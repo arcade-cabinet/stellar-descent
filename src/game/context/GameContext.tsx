@@ -1,4 +1,5 @@
 import React, { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { getAudioManager, type MusicTrack } from '../core/AudioManager';
 import type { CommsMessage, TouchInput } from '../types';
 
 interface GameContextType {
@@ -41,6 +42,11 @@ interface GameContextType {
   // Calibration mode (shooting range)
   isCalibrating: boolean;
   setIsCalibrating: (value: boolean) => void;
+
+  // Music/combat state
+  inCombat: boolean;
+  setInCombat: (value: boolean) => void;
+  playMusic: (track: MusicTrack) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -71,17 +77,72 @@ export function GameProvider({ children }: GameProviderProps) {
   const [currentComms, setCurrentComms] = useState<CommsMessage | null>(null);
   const [commsDismissedFlag, setCommsDismissedFlag] = useState(0);
   const [isCalibrating, setIsCalibrating] = useState(false);
-  
+  const [inCombat, setInCombatState] = useState(false);
+
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const damageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const combatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Clear timeouts on unmount
   useEffect(() => {
     return () => {
       if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current);
       if (damageTimeoutRef.current) clearTimeout(damageTimeoutRef.current);
+      if (combatTimeoutRef.current) clearTimeout(combatTimeoutRef.current);
     };
   }, []);
+
+  // Play music function
+  const playMusic = useCallback((track: MusicTrack) => {
+    getAudioManager().playMusic(track, 2);
+  }, []);
+
+  // Combat state management with auto-decay
+  const setInCombat = useCallback((value: boolean) => {
+    setInCombatState(value);
+
+    if (value) {
+      // Start combat music
+      playMusic('combat');
+
+      // Clear any existing decay timeout
+      if (combatTimeoutRef.current) clearTimeout(combatTimeoutRef.current);
+
+      // Auto-decay combat after 8 seconds of no activity
+      combatTimeoutRef.current = setTimeout(() => {
+        setInCombatState(false);
+        // Return to exploration music
+        playMusic('exploration');
+      }, 8000);
+    }
+  }, [playMusic]);
+
+  // Music based on chapter changes
+  useEffect(() => {
+    // Don't override combat music
+    if (inCombat) return;
+
+    switch (currentChapter) {
+      case 1:
+        // Tutorial/Anchor Station - ambient
+        playMusic('ambient');
+        break;
+      case 2:
+        // Surface - exploration
+        playMusic('exploration');
+        break;
+      case 5:
+        // Boss fight
+        playMusic('boss');
+        break;
+      case 6:
+        // Victory/extraction
+        playMusic('victory');
+        break;
+      default:
+        playMusic('exploration');
+    }
+  }, [currentChapter, inCombat, playMusic]);
 
   const addKill = useCallback(() => {
     setKills((k) => k + 1);
@@ -145,6 +206,9 @@ export function GameProvider({ children }: GameProviderProps) {
     damageFlash,
     isCalibrating,
     setIsCalibrating,
+    inCombat,
+    setInCombat,
+    playMusic,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

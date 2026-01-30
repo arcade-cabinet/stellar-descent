@@ -33,6 +33,16 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
     checkSave();
   }, []);
 
+  // Start menu music
+  useEffect(() => {
+    const audioManager = getAudioManager();
+    audioManager.playMusic('menu', 1.5);
+
+    return () => {
+      // Don't stop music on unmount - let it crossfade to next track
+    };
+  }, []);
+
   const playClickSound = useCallback(() => {
     getAudioManager().play('ui_click', { volume: 0.3 });
   }, []);
@@ -86,7 +96,10 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
     const data = worldDb.exportDatabase();
     if (!data) return;
 
-    const blob = new Blob([data], { type: 'application/x-sqlite3' });
+    // Create a copy in a standard ArrayBuffer for Blob compatibility
+    const arrayBuffer = new ArrayBuffer(data.byteLength);
+    new Uint8Array(arrayBuffer).set(data);
+    const blob = new Blob([arrayBuffer], { type: 'application/x-sqlite3' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

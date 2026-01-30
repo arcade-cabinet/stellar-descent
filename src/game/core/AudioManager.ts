@@ -1,3 +1,4 @@
+import * as Tone from 'tone';
 import type { Sound } from '@babylonjs/core/Audio/sound';
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
@@ -24,8 +25,30 @@ export type SoundEffect =
   | 'door_open'
   | 'airlock';
 
-// Music tracks
-export type MusicTrack = 'menu' | 'ambient' | 'combat' | 'drop_sequence' | 'victory' | 'defeat';
+// Music tracks - mapped to actual audio files
+export type MusicTrack = 'menu' | 'ambient' | 'combat' | 'exploration' | 'boss' | 'victory' | 'defeat';
+
+// Music file paths (relative to public/)
+const MUSIC_PATHS: Record<MusicTrack, string> = {
+  menu: '/audio/music/menu.ogg',
+  ambient: '/audio/music/ambient.ogg',
+  combat: '/audio/music/combat.ogg',
+  exploration: '/audio/music/exploration.ogg',
+  boss: '/audio/music/boss.ogg',
+  victory: '/audio/music/victory.ogg',
+  defeat: '/audio/music/combat.ogg', // Reuse combat for defeat tension
+};
+
+// Track characteristics for intelligent blending
+const TRACK_INFO: Record<MusicTrack, { intensity: number; bpm?: number }> = {
+  menu: { intensity: 0.2, bpm: 80 },
+  ambient: { intensity: 0.3, bpm: 70 },
+  exploration: { intensity: 0.4, bpm: 90 },
+  combat: { intensity: 0.8, bpm: 140 },
+  boss: { intensity: 1.0, bpm: 160 },
+  victory: { intensity: 0.5, bpm: 100 },
+  defeat: { intensity: 0.7, bpm: 120 },
+};
 
 interface SoundConfig {
   url: string;
@@ -360,11 +383,167 @@ class ProceduralAudio {
   }
 }
 
+// Tone.js-based Music Player with crossfading
+class MusicPlayer {
+  private playerA: Tone.Player | null = null;
+  private playerB: Tone.Player | null = null;
+  private crossFade: Tone.CrossFade;
+  private masterGain: Tone.Gain;
+  private reverb: Tone.Reverb;
+  private lowpassFilter: Tone.Filter;
+
+  private currentPlayer: 'A' | 'B' = 'A';
+  private currentTrack: MusicTrack | null = null;
+  private isLoading = false;
+  private volume = 0.5;
+
+  constructor() {
+    // Create effects chain for atmospheric sound
+    this.reverb = new Tone.Reverb({
+      decay: 4,
+      wet: 0.3,
+    });
+
+    this.lowpassFilter = new Tone.Filter({
+      frequency: 20000,
+      type: 'lowpass',
+    });
+
+    // Crossfade between two players for smooth transitions
+    this.crossFade = new Tone.CrossFade(0);
+
+    // Master output
+    this.masterGain = new Tone.Gain(this.volume);
+
+    // Connect: crossfade -> filter -> reverb -> master -> destination
+    this.crossFade.connect(this.lowpassFilter);
+    this.lowpassFilter.connect(this.reverb);
+    this.reverb.connect(this.masterGain);
+    this.masterGain.toDestination();
+  }
+
+  async play(track: MusicTrack, crossfadeDuration = 2): Promise<void> {
+    if (this.currentTrack === track || this.isLoading) return;
+
+    this.isLoading = true;
+    const path = MUSIC_PATHS[track];
+
+    try {
+      // Start Tone.js context if not started (requires user interaction)
+      if (Tone.getContext().state !== 'running') {
+        await Tone.start();
+      }
+
+      // Create new player for the incoming track
+      const newPlayer = new Tone.Player({
+        url: path,
+        loop: true,
+        fadeIn: 0.1,
+        fadeOut: 0.1,
+      });
+
+      // Wait for the audio to load
+      await Tone.loaded();
+
+      // Determine which player slot to use
+      const targetPlayer = this.currentPlayer === 'A' ? 'B' : 'A';
+
+      if (targetPlayer === 'A') {
+        // Dispose old player if exists
+        if (this.playerA) {
+          this.playerA.stop();
+          this.playerA.dispose();
+        }
+        this.playerA = newPlayer;
+        this.playerA.connect(this.crossFade.a);
+        this.playerA.start();
+      } else {
+        if (this.playerB) {
+          this.playerB.stop();
+          this.playerB.dispose();
+        }
+        this.playerB = newPlayer;
+        this.playerB.connect(this.crossFade.b);
+        this.playerB.start();
+      }
+
+      // Perform crossfade
+      const targetFade = targetPlayer === 'A' ? 0 : 1;
+      this.crossFade.fade.rampTo(targetFade, crossfadeDuration);
+
+      // Adjust effects based on track intensity
+      const info = TRACK_INFO[track];
+      const reverbWet = 0.2 + (1 - info.intensity) * 0.3; // More reverb for calmer tracks
+      this.reverb.wet.rampTo(reverbWet, crossfadeDuration);
+
+      // Update state
+      this.currentPlayer = targetPlayer;
+      this.currentTrack = track;
+
+      // Clean up the old player after crossfade
+      setTimeout(() => {
+        const oldPlayer = targetPlayer === 'A' ? this.playerB : this.playerA;
+        if (oldPlayer) {
+          oldPlayer.stop();
+        }
+      }, crossfadeDuration * 1000 + 100);
+
+    } catch (error) {
+      console.warn('Music playback failed:', error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  stop(fadeDuration = 1): void {
+    this.masterGain.gain.rampTo(0, fadeDuration);
+    setTimeout(() => {
+      this.playerA?.stop();
+      this.playerB?.stop();
+      this.currentTrack = null;
+      this.masterGain.gain.value = this.volume;
+    }, fadeDuration * 1000 + 100);
+  }
+
+  setVolume(vol: number): void {
+    this.volume = Math.max(0, Math.min(1, vol));
+    this.masterGain.gain.rampTo(this.volume, 0.1);
+  }
+
+  getVolume(): number {
+    return this.volume;
+  }
+
+  getCurrentTrack(): MusicTrack | null {
+    return this.currentTrack;
+  }
+
+  // Apply a lowpass filter effect (useful for underwater, muffled, etc.)
+  setFilterCutoff(frequency: number, rampTime = 0.5): void {
+    this.lowpassFilter.frequency.rampTo(frequency, rampTime);
+  }
+
+  // Reset filter to normal
+  resetFilter(): void {
+    this.lowpassFilter.frequency.rampTo(20000, 0.5);
+  }
+
+  dispose(): void {
+    this.playerA?.dispose();
+    this.playerB?.dispose();
+    this.crossFade.dispose();
+    this.masterGain.dispose();
+    this.reverb.dispose();
+    this.lowpassFilter.dispose();
+  }
+}
+
 // Main Audio Manager class
 export class AudioManager {
   private scene: Scene | null = null;
   private sounds: Map<string, Sound> = new Map();
   private proceduralAudio: ProceduralAudio;
+  private musicPlayer: MusicPlayer;
 
   private masterVolume = 1.0;
   private sfxVolume = 0.7;
@@ -376,22 +555,40 @@ export class AudioManager {
 
   constructor() {
     this.proceduralAudio = new ProceduralAudio();
+    this.musicPlayer = new MusicPlayer();
+    this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
   }
 
   initialize(scene: Scene): void {
     this.scene = scene;
   }
 
+  // Play a music track with smooth crossfade
+  async playMusic(track: MusicTrack, crossfadeDuration = 2): Promise<void> {
+    if (this.isMuted) return;
+    await this.musicPlayer.play(track, crossfadeDuration);
+  }
+
+  stopMusic(fadeDuration = 1): void {
+    this.musicPlayer.stop(fadeDuration);
+  }
+
+  getCurrentMusicTrack(): MusicTrack | null {
+    return this.musicPlayer.getCurrentTrack();
+  }
+
+  // Apply muffled/underwater effect to music
+  setMusicMuffled(muffled: boolean): void {
+    if (muffled) {
+      this.musicPlayer.setFilterCutoff(800);
+    } else {
+      this.musicPlayer.resetFilter();
+    }
+  }
+
   // Play a sound effect
   play(effect: SoundEffect, options?: { volume?: number; position?: Vector3 }): void {
     if (this.isMuted) return;
-    
-    // Check if audio context is available
-    if (!this.proceduralAudio || !this.proceduralAudio['audioContext']) {
-        // Fallback or ignore if audio not supported/initialized
-        // Ideally we would check `this.proceduralAudio.getContext()` but it's private
-        // For now, we assume it's safe if not muted, but let's add a try-catch for safety
-    }
 
     const volume = (options?.volume ?? 1) * this.sfxVolume * this.masterVolume;
 
@@ -430,8 +627,6 @@ export class AudioManager {
         case 'drop_wind':
         case 'drop_thrust':
           // Placeholder for effects not yet implemented procedurally
-          // In a full implementation, these would have their own generators
-          // or load from files. For now, silence is better than a crash.
           break;
       }
     } catch (e) {
@@ -461,7 +656,7 @@ export class AudioManager {
 
       this.activeLoops.set(effect, loop);
     } catch (e) {
-        console.warn('Audio loop failed', e);
+      console.warn('Audio loop failed', e);
     }
   }
 
@@ -476,7 +671,7 @@ export class AudioManager {
 
   // Stop all loops
   stopAllLoops(): void {
-    for (const [key, loop] of this.activeLoops) {
+    for (const [, loop] of this.activeLoops) {
       loop.stop();
     }
     this.activeLoops.clear();
@@ -485,6 +680,7 @@ export class AudioManager {
   // Volume controls
   setMasterVolume(volume: number): void {
     this.masterVolume = Math.max(0, Math.min(1, volume));
+    this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
   }
 
   setSFXVolume(volume: number): void {
@@ -493,24 +689,18 @@ export class AudioManager {
 
   setMusicVolume(volume: number): void {
     this.musicVolume = Math.max(0, Math.min(1, volume));
-    if (this.currentMusic) {
-      this.currentMusic.setVolume(this.musicVolume * this.masterVolume);
-    }
+    this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
   }
 
   mute(): void {
     this.isMuted = true;
     this.stopAllLoops();
-    if (this.currentMusic) {
-      this.currentMusic.pause();
-    }
+    this.musicPlayer.setVolume(0);
   }
 
   unmute(): void {
     this.isMuted = false;
-    if (this.currentMusic) {
-      this.currentMusic.play();
-    }
+    this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
   }
 
   toggleMute(): boolean {
@@ -536,6 +726,7 @@ export class AudioManager {
     }
 
     this.proceduralAudio.dispose();
+    this.musicPlayer.dispose();
   }
 }
 
