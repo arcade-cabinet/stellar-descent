@@ -12,10 +12,13 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Scene } from '@babylonjs/core/scene';
 import React, { useEffect, useRef } from 'react';
 
-// Side effect imports
+// Side effect imports - need these for proper ES6 tree-shaking
 import '@babylonjs/core/Materials/standardMaterial';
 import '@babylonjs/core/Meshes/meshBuilder';
 import '@babylonjs/loaders/glTF';
+// Import shaders for StandardMaterial to work properly
+import '@babylonjs/core/Shaders/default.vertex';
+import '@babylonjs/core/Shaders/default.fragment';
 
 import { useGame } from '../game/context/GameContext';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
@@ -302,20 +305,12 @@ export function GameCanvas({
       Effect.ShadersStore['planetVertexShader'] = planetVertexShader;
       Effect.ShadersStore['planetFragmentShader'] = planetFragmentShader;
 
-      // Starfield skybox
+      // Starfield skybox - temporarily using solid color to bypass shader error
       const skybox = MeshBuilder.CreateBox('skybox', { size: 10000 }, scene);
-      const skyboxMaterial = new ShaderMaterial(
-        'starfieldMat',
-        scene,
-        {
-          vertex: 'starfield',
-          fragment: 'starfield',
-        },
-        {
-          attributes: ['position'],
-          uniforms: ['worldViewProjection', 'time'],
-        }
-      );
+      const skyboxMaterial = new StandardMaterial('starfieldMat', scene);
+      skyboxMaterial.diffuseColor = Color3.FromHexString('#020204');
+      skyboxMaterial.emissiveColor = Color3.FromHexString('#020204');
+      skyboxMaterial.specularColor = new Color3(0, 0, 0);
       skyboxMaterial.backFaceCulling = false;
       skybox.material = skyboxMaterial;
       skybox.infiniteDistance = true;
@@ -353,23 +348,12 @@ export function GameCanvas({
 
       const surfaceTexture = new Texture('https://assets.babylonjs.com/textures/rock.png', scene);
 
-      const planetMaterial = new ShaderMaterial(
-        'planetMat',
-        scene,
-        {
-          vertex: 'planet',
-          fragment: 'planet',
-        },
-        {
-          attributes: ['position', 'normal', 'uv'],
-          uniforms: ['world', 'worldViewProjection', 'sunDirection', 'cameraPosition'],
-          samplers: ['surfaceTexture'],
-        }
-      );
-
-      planetMaterial.setVector3('sunDirection', sunDirection);
-      planetMaterial.setVector3('cameraPosition', menuCamera.position);
-      planetMaterial.setTexture('surfaceTexture', surfaceTexture);
+      // Temporarily use StandardMaterial to bypass shader compilation issue
+      const planetMaterial = new StandardMaterial('planetMat', scene);
+      planetMaterial.diffuseColor = Color3.FromHexString('#8B6B4A');
+      planetMaterial.specularColor = new Color3(0.15, 0.12, 0.1);
+      planetMaterial.specularPower = 8;
+      planetMaterial.diffuseTexture = surfaceTexture;
       planet.material = planetMaterial;
 
       planetRef.current = { planet, planetMaterial };
@@ -405,14 +389,7 @@ export function GameCanvas({
       engine.runRenderLoop(() => {
         animationTime += engine.getDeltaTime() / 1000;
 
-        skyboxMaterial.setFloat('time', animationTime);
-
-        if (planetRef.current && scene.activeCamera) {
-          planetRef.current.planetMaterial.setVector3(
-            'cameraPosition',
-            scene.activeCamera.position
-          );
-        }
+        // Shader animation removed - using StandardMaterial temporarily
 
         // Update active level/game based on current refs (not state)
         const deltaTime = engine.getDeltaTime() / 1000;

@@ -1,4 +1,6 @@
 import { Animation } from '@babylonjs/core/Animations/animation';
+// Import Animatable to register scene.beginAnimation
+import '@babylonjs/core/Animations/animatable';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
