@@ -1,0 +1,249 @@
+/* SubtitleDisplay - Accessible subtitle overlay */
+
+.container {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
+  max-height: 30vh;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  z-index: 140;
+  pointer-events: none;
+
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 93, 35, 0.5) transparent;
+}
+
+.container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: rgba(74, 93, 35, 0.5);
+  border-radius: 2px;
+}
+
+/* Position variants */
+.positionBottom {
+  bottom: 80px; /* Above HUD controls */
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+}
+
+.positionTop {
+  top: 60px; /* Below header elements */
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+}
+
+/* Individual subtitle line */
+.subtitleLine {
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.3s ease-out;
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s ease-out;
+}
+
+.subtitleLine:last-child {
+  margin-bottom: 0;
+}
+
+/* Fade out state */
+.subtitleLine.fadeOut {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Sound effect subtitle styling */
+.subtitleLine.soundEffect {
+  opacity: 0.85;
+}
+
+.soundEffectText {
+  font-style: italic;
+  color: #aaaaaa;
+  letter-spacing: 0.05em;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Subtitle content with background */
+.subtitleContent {
+  display: inline-block;
+  padding: 0.5rem 0.875rem;
+  background: rgba(0, 0, 0, var(--subtitle-bg-opacity, 0.8));
+  border-radius: 4px;
+  border-left: 3px solid rgba(74, 93, 35, 0.6);
+  max-width: 100%;
+}
+
+/* Speaker info (prefix + name) */
+.speakerInfo {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: calc(var(--subtitle-font-size, 18px) * 0.85);
+  font-weight: bold;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.speakerPrefix {
+  opacity: 0.8;
+  margin-right: 0.25rem;
+}
+
+.speakerName {
+  /* Inherits color from speakerInfo */
+}
+
+/* Main subtitle text */
+.subtitleText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: var(--subtitle-font-size, 18px);
+  color: #e8e8e8;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+/* Text line for multi-line subtitles */
+.textLine {
+  display: inline;
+}
+
+/* Inline subtitle variant (for integration with CommsDisplay) */
+.inlineSubtitle {
+  display: block;
+  padding: 0.25rem 0;
+}
+
+.inlineSpeakerInfo {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: calc(var(--subtitle-font-size, 18px) * 0.75);
+  font-weight: bold;
+  opacity: 0.9;
+}
+
+.inlineText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: var(--subtitle-font-size, 18px);
+  color: #d0d0d0;
+  line-height: 1.6;
+}
+
+/* Mobile adjustments */
+@media (max-width: 520px) {
+  .container {
+    width: 95%;
+    max-height: 25vh;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .positionBottom {
+    bottom: 100px; /* More space for touch controls */
+  }
+
+  .subtitleContent {
+    padding: 0.375rem 0.625rem;
+  }
+
+  .speakerInfo {
+    display: block;
+    margin-bottom: 0.25rem;
+    margin-right: 0;
+  }
+}
+
+/* Landscape mobile */
+@media (max-height: 500px) {
+  .container {
+    max-height: 35vh;
+  }
+
+  .positionBottom {
+    bottom: 60px;
+  }
+
+  .subtitleLine {
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitleContent {
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Text outline mode - adds shadow for readability */
+.container.textOutline .subtitleText,
+.container.textOutline .speakerInfo,
+.inlineSubtitle.textOutline .inlineText,
+.inlineSubtitle.textOutline .inlineSpeakerInfo {
+  text-shadow:
+    1px 1px 2px rgba(0, 0, 0, 0.9),
+    -1px -1px 2px rgba(0, 0, 0, 0.9),
+    1px -1px 2px rgba(0, 0, 0, 0.9),
+    -1px 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+/* High contrast mode - manual toggle */
+.container.highContrast .subtitleContent,
+.inlineSubtitle.highContrast {
+  background: rgba(0, 0, 0, 0.95);
+  border-left-width: 4px;
+  border-left-color: #ffd700;
+}
+
+.container.highContrast .subtitleText,
+.inlineSubtitle.highContrast .inlineText {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.container.highContrast .speakerInfo,
+.inlineSubtitle.highContrast .inlineSpeakerInfo {
+  font-weight: bold;
+}
+
+.container.highContrast .soundEffectText {
+  color: #ffff00;
+  font-weight: bold;
+}
+
+/* High contrast mode support - system preference */
+@media (prefers-contrast: high) {
+  .subtitleContent {
+    background: rgba(0, 0, 0, 0.95);
+    border-left-width: 4px;
+    border-left-color: #b5a642;
+  }
+
+  .subtitleText {
+    color: #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .subtitleLine {
+    animation: none;
+    transition: none;
+  }
+
+  .subtitleLine.fadeOut {
+    transition: none;
+  }
+}

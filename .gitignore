@@ -137,3 +137,29 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Test artifacts
+playwright-report/
+blob-report/
+test-results/
+e2e/test-results/
+e2e/screenshots/
+
+# Force pnpm
+package-lock.json
+yarn.lock
+
+# Local Netlify folder
+.netlify
+
+# Capacitor native projects (regenerated from web build)
+ios/
+android/
+
+# Maestro test artifacts (keep flows and config)
+.maestro/screenshots/
+.maestro/videos/
+.maestro/test-results/
+
+# Vite PWA dev service worker output
+dev-dist/

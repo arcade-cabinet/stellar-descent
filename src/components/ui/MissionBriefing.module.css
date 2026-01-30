@@ -1,0 +1,875 @@
+/* MissionBriefing - Military Terminal Briefing Screen */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 7, 0.97);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 160;
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
+/* Scan line effect */
+.scanLines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  opacity: 0.4;
+  z-index: 1;
+}
+
+.briefingPanel {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  max-height: calc(100vh - 4rem);
+  background: linear-gradient(180deg, rgba(15, 15, 17, 0.98) 0%, rgba(10, 10, 12, 0.98) 100%);
+  border: 1px solid #4a5d23;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2;
+}
+
+/* Corner decorations */
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+  z-index: 3;
+}
+
+.cornerTL {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.cornerTR {
+  top: -1px;
+  right: -1px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.cornerBL {
+  bottom: -1px;
+  left: -1px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+.cornerBR {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  background: rgba(74, 93, 35, 0.2);
+  border-bottom: 1px solid #4a5d23;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.statusLight {
+  width: 8px;
+  height: 8px;
+  background: #6b8e23;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #6b8e23;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.headerLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  font-weight: bold;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+}
+
+.timestamp {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #666;
+  letter-spacing: 0.1em;
+}
+
+/* Title Section */
+.titleSection {
+  padding: 1.5rem 1.5rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.chapterBadge {
+  display: inline-block;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #4a5d23;
+  margin-bottom: 0.75rem;
+}
+
+.missionName {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  color: #e8e8e8;
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.missionSubtitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #888;
+  margin: 0.5rem 0 0;
+  letter-spacing: 0.05em;
+}
+
+.actName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #4a5d23;
+  letter-spacing: 0.12em;
+  margin-top: 0.75rem;
+}
+
+/* Tab Navigation */
+.tabNav {
+  display: flex;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 0 0.5rem;
+}
+
+.tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #666;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+}
+
+.tab:hover {
+  color: #a0a0a0;
+  background: rgba(74, 93, 35, 0.1);
+}
+
+.tabActive {
+  color: #b5a642;
+  border-bottom-color: #4a5d23;
+}
+
+/* Tab Content */
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  min-height: 300px;
+  max-height: 400px;
+}
+
+/* Briefing Content */
+.briefingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.commanderSection {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.portrait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.portraitFrame {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border: 1px solid #4a5d23;
+  overflow: hidden;
+  background: #0f0f11;
+}
+
+.portraitInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #151517 0%, #0a0a0c 100%);
+}
+
+.portraitIcon {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #b5a642;
+}
+
+.scanLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(180deg, rgba(74, 93, 35, 0.4) 0%, transparent 100%);
+  animation: scan 2.5s linear infinite;
+}
+
+@keyframes scan {
+  from {
+    top: 0;
+  }
+  to {
+    top: 100%;
+  }
+}
+
+.commanderInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.commanderName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #e8e8e8;
+  max-width: 90px;
+  line-height: 1.3;
+}
+
+.commanderCallsign {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #666;
+  letter-spacing: 0.05em;
+}
+
+.briefingText {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+  padding: 1rem;
+  cursor: pointer;
+  min-height: 120px;
+}
+
+.briefingTextContent {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: #c0c0c0;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.cursor {
+  color: #b5a642;
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Objectives Section */
+.objectivesSection {
+  padding-top: 1rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.sectionTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  margin: 0 0 0.75rem;
+}
+
+.objectivesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.objectiveItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 2px solid #4a5d23;
+}
+
+.objectiveMarker {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #4a5d23;
+  flex-shrink: 0;
+}
+
+.objectiveText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+}
+
+/* Intel Content */
+.intelContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.intelSection {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.intelSection:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.intelGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.intelItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.intelLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #666;
+  letter-spacing: 0.1em;
+}
+
+.intelValue {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #e8e8e8;
+}
+
+/* Threat level colors */
+.threatMinimal {
+  color: #6b8e23;
+}
+
+.threatModerate {
+  color: #b5a642;
+}
+
+.threatHigh {
+  color: #ff8c42;
+}
+
+.threatExtreme {
+  color: #ff4444;
+}
+
+.environmentDescription {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: #888;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem;
+  border-left: 2px solid #3a3a3a;
+}
+
+/* Enemy Intel Cards */
+.enemyIntelList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.enemyIntelCard {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+  border-left: 3px solid #4a5d23;
+  padding: 0.75rem;
+}
+
+.enemyIntelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.enemyType {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #e8e8e8;
+  letter-spacing: 0.1em;
+}
+
+.threatBadge {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  font-weight: bold;
+  padding: 0.125rem 0.5rem;
+  letter-spacing: 0.1em;
+  border: 1px solid currentColor;
+}
+
+.threatLow {
+  color: #6b8e23;
+  background: rgba(107, 142, 35, 0.15);
+}
+
+.threatMedium {
+  color: #b5a642;
+  background: rgba(181, 166, 66, 0.15);
+}
+
+.threatHigh {
+  color: #ff8c42;
+  background: rgba(255, 140, 66, 0.15);
+}
+
+.threatExtreme {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.2);
+  animation: threatPulse 2s ease-in-out infinite;
+}
+
+@keyframes threatPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(255, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  }
+}
+
+.enemyDescription {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #a0a0a0;
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+}
+
+.enemyWeakness {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.weaknessLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #6b8e23;
+  letter-spacing: 0.1em;
+}
+
+.weaknessText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #888;
+}
+
+/* No hostiles state */
+.noHostiles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(107, 142, 35, 0.1);
+  border: 1px dashed #4a5d23;
+}
+
+.noHostilesIcon {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1rem;
+  color: #6b8e23;
+  margin-bottom: 0.5rem;
+}
+
+.noHostilesText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #888;
+  text-align: center;
+}
+
+.hostileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hostileDesignation,
+.hostileOrigin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Loadout Content */
+.loadoutContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loadoutGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.loadoutItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid #2a2a2a;
+  transition: all 0.15s ease;
+}
+
+.loadoutItem:hover {
+  background: rgba(74, 93, 35, 0.1);
+  border-color: #3a3a3a;
+}
+
+.loadoutEquipped {
+  border-left: 3px solid #4a5d23;
+}
+
+.loadoutIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.25rem;
+  color: #4a5d23;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+
+.loadoutInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.loadoutName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+  letter-spacing: 0.05em;
+}
+
+.loadoutDesc {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #666;
+}
+
+.loadoutStatus {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #4a5d23;
+  flex-shrink: 0;
+}
+
+.loadoutNote {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #555;
+  text-align: center;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid #4a5d23;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.footerText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #4a5d23;
+  letter-spacing: 0.1em;
+}
+
+.footerActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.cancelButton {
+  padding: 0.625rem 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+}
+
+.cancelButton:hover {
+  background: rgba(181, 66, 66, 0.2);
+  border-color: #b54242;
+  color: #ff6666;
+}
+
+.beginButton {
+  padding: 0.625rem 1.25rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+  background: rgba(74, 93, 35, 0.4);
+  border: 1px solid #4a5d23;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.beginButton:hover:not(:disabled) {
+  background: rgba(74, 93, 35, 0.6);
+  color: #b5a642;
+}
+
+.beginButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonIcon {
+  font-size: 0.625rem;
+}
+
+/* Hint text */
+.hint {
+  margin-top: 1.25rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #555;
+  letter-spacing: 0.1em;
+  z-index: 2;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .briefingPanel {
+    max-height: calc(100vh - 2rem);
+  }
+
+  .titleSection {
+    padding: 1rem;
+  }
+
+  .missionName {
+    font-size: 1.25rem;
+  }
+
+  .tabContent {
+    padding: 1rem;
+    min-height: 250px;
+    max-height: 300px;
+  }
+
+  .commanderSection {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .portrait {
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+
+  .portraitFrame {
+    width: 50px;
+    height: 50px;
+  }
+
+  .portraitIcon {
+    font-size: 1.125rem;
+  }
+
+  .commanderInfo {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .briefingText {
+    min-height: 100px;
+  }
+
+  .briefingTextContent {
+    font-size: 0.75rem;
+  }
+
+  .intelGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .footerLeft {
+    display: none;
+  }
+
+  .footerActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .cancelButton,
+  .beginButton {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .briefingTextContent {
+    color: #ffffff;
+  }
+
+  .briefingPanel {
+    border-width: 2px;
+  }
+
+  .objectiveText,
+  .intelValue {
+    color: #ffffff;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .statusLight,
+  .cursor {
+    animation: none;
+  }
+
+  .scanLine {
+    animation: none;
+    display: none;
+  }
+
+  .tab,
+  .cancelButton,
+  .beginButton,
+  .loadoutItem {
+    transition: none;
+  }
+}

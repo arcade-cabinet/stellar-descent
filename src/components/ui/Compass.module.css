@@ -1,0 +1,192 @@
+/* Compass Navigation HUD */
+
+.compassContainer {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+/* Main compass strip */
+.compassStrip {
+  position: relative;
+  width: clamp(200px, 40vw, 320px);
+  height: 28px;
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+/* Tick marks */
+.tickMark {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 6px;
+  background: rgba(232, 232, 232, 0.3);
+  transform: translateX(-50%);
+}
+
+.tickMark.major {
+  height: 10px;
+  background: rgba(232, 232, 232, 0.5);
+}
+
+/* Cardinal direction labels */
+.cardinalLabel {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.cardinalLabel.primary {
+  font-size: 0.875rem;
+  color: var(--cb-compass-cardinal, #ffbf00);
+}
+
+.cardinalLabel.secondary {
+  font-size: 0.625rem;
+  color: rgba(232, 232, 232, 0.6);
+}
+
+/* Center indicator triangle */
+.centerIndicator {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.centerTriangle {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--cb-compass-cardinal, #ffbf00);
+}
+
+/* Heading readout below compass */
+.headingReadout {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  background: rgba(28, 28, 28, 0.8);
+  border: 1px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.25rem 0.5rem;
+}
+
+.headingValue {
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: #e8e8e8;
+  letter-spacing: 0.1em;
+}
+
+.headingUnit {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #a0a0a0;
+  font-weight: bold;
+}
+
+/* Objective marker container */
+.objectiveContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  margin-top: 0.25rem;
+}
+
+.objectiveArrow {
+  width: 24px;
+  height: 24px;
+  color: var(--cb-objective, #ffd700);
+  transition: transform 0.1s ease-out;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.arrowSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.objectiveDistance {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  font-weight: bold;
+  color: var(--cb-objective, #ffd700);
+  letter-spacing: 0.05em;
+}
+
+/* Pulse animation for objective */
+@keyframes objectivePulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px currentColor);
+    opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor);
+    opacity: 1;
+  }
+}
+
+.objectiveArrow {
+  animation: objectivePulse 2s ease-in-out infinite;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .compassStrip {
+    width: clamp(160px, 50vw, 250px);
+    height: 24px;
+  }
+
+  .cardinalLabel.primary {
+    font-size: 0.75rem;
+  }
+
+  .cardinalLabel.secondary {
+    font-size: 0.5rem;
+  }
+
+  .headingReadout {
+    padding: 0.125rem 0.375rem;
+  }
+
+  .headingValue {
+    font-size: 0.75rem;
+  }
+
+  .objectiveArrow {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* When mission text is visible, push compass down */
+.compassContainer.withMission {
+  top: calc(max(20px, env(safe-area-inset-top, 20px)) + 50px);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .objectiveArrow {
+    animation: none;
+    transition: none;
+  }
+}

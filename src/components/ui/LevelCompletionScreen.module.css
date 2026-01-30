@@ -1,0 +1,838 @@
+/* Level Completion Screen - Military Terminal Style with Victory Theme */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 12, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.5s ease forwards;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Scan line effect */
+.scanLines {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Victory vignette effect - green tinted */
+.vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(74, 93, 35, 0.2) 80%,
+    rgba(50, 70, 25, 0.35) 100%
+  );
+  pointer-events: none;
+  animation: vignetteGlow 3s ease-in-out infinite;
+}
+
+@keyframes vignetteGlow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.container {
+  position: relative;
+  width: min(95%, 550px);
+  max-height: calc(100vh - 2rem);
+  padding: 2rem 1.5rem;
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.95) 0%, rgba(12, 12, 14, 0.95) 100%);
+  border: 2px solid #4a5d23;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: containerSlideIn 0.3s ease forwards;
+  overflow-y: auto;
+}
+
+@keyframes containerSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Corner decorations - olive green accent for success */
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cornerTL {
+  top: -2px;
+  left: -2px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+
+.cornerTR {
+  top: -2px;
+  right: -2px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+
+.cornerBL {
+  bottom: -2px;
+  left: -2px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+
+.cornerBR {
+  bottom: -2px;
+  right: -2px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
+
+/* Success Marker */
+.successMarker {
+  width: 70px;
+  height: 70px;
+  border: 3px solid #4a5d23;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  background: rgba(74, 93, 35, 0.2);
+  animation: markerPulse 2s ease-in-out infinite;
+}
+
+@keyframes markerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(181, 166, 66, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(181, 166, 66, 0.7);
+  }
+}
+
+.successMarkerInner {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #b5a642;
+}
+
+/* Title with glow effect */
+.title {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: clamp(1.5rem, 7vw, 2.5rem);
+  font-weight: 700;
+  color: #b5a642;
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 10px rgba(181, 166, 66, 0.6),
+    0 0 20px rgba(181, 166, 66, 0.3);
+  animation: titleGlow 2s ease-in-out infinite;
+  text-align: center;
+}
+
+@keyframes titleGlow {
+  0%,
+  100% {
+    text-shadow:
+      0 0 10px rgba(181, 166, 66, 0.6),
+      0 0 20px rgba(181, 166, 66, 0.3);
+  }
+  50% {
+    text-shadow:
+      0 0 15px rgba(181, 166, 66, 0.8),
+      0 0 30px rgba(181, 166, 66, 0.5);
+  }
+}
+
+/* Mission name */
+.missionName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: clamp(0.75rem, 3vw, 1rem);
+  color: #e8e8e8;
+  font-weight: normal;
+  margin: 0 0 1.5rem;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+  text-align: center;
+}
+
+/* Divider */
+.divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #4a5d23, transparent);
+}
+
+.dividerText {
+  padding: 0 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.7rem;
+  color: #666;
+  letter-spacing: 0.1em;
+}
+
+/* Stats display */
+.statsContainer {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+/* Stat animation */
+.statAnimateIn {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: statSlideIn 0.4s ease forwards;
+}
+
+@keyframes statSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2a2a2a;
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.statIcon {
+  font-size: 0.875rem;
+  color: #b5a642;
+  opacity: 0.8;
+}
+
+.statLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #666;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.1rem;
+  color: #b5a642;
+  font-weight: bold;
+}
+
+/* Perfect stat - special styling for 0 damage or 0 deaths */
+.perfectStat {
+  color: #66ff66;
+  text-shadow: 0 0 8px rgba(102, 255, 102, 0.6);
+}
+
+.statWithBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* New record badge */
+.newRecord {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  padding: 0.1rem 0.3rem;
+  border: 1px solid #ffd700;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  animation: newRecordPulse 1s ease-in-out infinite;
+  margin-left: auto;
+}
+
+@keyframes newRecordPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Previous best */
+.previousBest {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #555;
+  letter-spacing: 0.05em;
+}
+
+/* Progress bars */
+.accuracyBar,
+.secretsBar {
+  width: 100%;
+  height: 6px;
+  background: rgba(40, 40, 40, 0.8);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.accuracyFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a5d23, #6a8d33);
+  border-radius: 3px;
+  transition: width 1s ease-out;
+}
+
+.secretsFill {
+  height: 100%;
+  background: linear-gradient(90deg, #b5a642, #ffd700);
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+}
+
+/* Fade in animation */
+.fadeIn {
+  animation: fadeInAnimation 0.5s ease forwards;
+}
+
+@keyframes fadeInAnimation {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Score breakdown section */
+.breakdownContainer {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(74, 93, 35, 0.08);
+  border: 1px solid #3a4a1a;
+  margin-bottom: 1rem;
+}
+
+.breakdownHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.breakdownHeader::before,
+.breakdownHeader::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #3a4a1a, transparent);
+}
+
+.breakdownGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.breakdownItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breakdownLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.65rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+.breakdownScore {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #66ff66;
+  font-weight: bold;
+}
+
+.breakdownComment {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #555;
+  font-style: italic;
+}
+
+.breakdownBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(40, 40, 40, 0.8);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.breakdownFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a5d23, #66ff66);
+  border-radius: 2px;
+  transition: width 0.8s ease-out;
+}
+
+.totalScoreRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #3a4a1a;
+}
+
+.totalScoreLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.7rem;
+  color: #888;
+  letter-spacing: 0.1em;
+}
+
+.totalScoreValue {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1rem;
+  color: #b5a642;
+  font-weight: bold;
+}
+
+/* Rating display */
+.ratingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem;
+  background: rgba(74, 93, 35, 0.1);
+  border: 1px solid #3a4a1a;
+  width: 100%;
+}
+
+.ratingVisible {
+  animation: ratingReveal 0.5s ease forwards;
+}
+
+@keyframes ratingReveal {
+  from {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ratingLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.65rem;
+  color: #888;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.ratingDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ratingValue {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  animation: ratingPop 0.3s ease-out 0.5s both;
+}
+
+@keyframes ratingPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ratingNewRecord {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6rem;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #ffd700;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  animation: newRecordPulse 1s ease-in-out infinite;
+}
+
+.ratingDescription {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6rem;
+  color: #666;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Rating color classes */
+.ratingS {
+  color: #ffd700;
+  text-shadow:
+    0 0 10px rgba(255, 215, 0, 0.8),
+    0 0 20px rgba(255, 215, 0, 0.5),
+    0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+.ratingA {
+  color: #66ff66;
+  text-shadow:
+    0 0 10px rgba(102, 255, 102, 0.6),
+    0 0 20px rgba(102, 255, 102, 0.3);
+}
+
+.ratingB {
+  color: #b5a642;
+  text-shadow:
+    0 0 10px rgba(181, 166, 66, 0.6),
+    0 0 20px rgba(181, 166, 66, 0.3);
+}
+
+.ratingC {
+  color: #a0a0a0;
+  text-shadow: 0 0 10px rgba(160, 160, 160, 0.4);
+}
+
+.ratingD {
+  color: #8b4513;
+  text-shadow: 0 0 10px rgba(139, 69, 19, 0.4);
+}
+
+/* Achievements section */
+.achievementsContainer {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.6rem;
+  background: rgba(181, 166, 66, 0.08);
+  border: 1px solid #4a4a2a;
+}
+
+.achievementsHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.achievementsHeader::before,
+.achievementsHeader::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #4a4a2a, transparent);
+}
+
+.achievementsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.achievementItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem;
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid #3a3a2a;
+  animation: achievementSlide 0.4s ease forwards;
+}
+
+@keyframes achievementSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.achievementIcon {
+  font-size: 1.25rem;
+  color: #ffd700;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.achievementInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.achievementName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+  font-weight: bold;
+}
+
+.achievementDesc {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #888;
+}
+
+/* Buttons */
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.button {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  font-weight: normal;
+  color: #a0a0a0;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.buttonIcon {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.button:hover:not(:disabled) {
+  background: rgba(74, 93, 35, 0.3);
+  border-color: #4a5d23;
+  color: #e8e8e8;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:focus {
+  outline: 2px solid #b5a642;
+  outline-offset: 2px;
+}
+
+.primaryButton {
+  background: rgba(74, 93, 35, 0.4);
+  border-color: #4a5d23;
+  color: #e8e8e8;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: rgba(74, 93, 35, 0.6);
+  border-color: #b5a642;
+  color: #b5a642;
+}
+
+/* Footer */
+.footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 0.75rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.footer span {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #444;
+  letter-spacing: 0.05em;
+}
+
+.footerCenter {
+  color: #4a5d23;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .container {
+    padding: 1.5rem 1rem;
+  }
+
+  .successMarker {
+    width: 50px;
+    height: 50px;
+  }
+
+  .successMarkerInner {
+    font-size: 1.5rem;
+  }
+
+  .statsContainer {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .statItem {
+    padding: 0.5rem;
+  }
+
+  .statValue {
+    font-size: 1rem;
+  }
+
+  .ratingValue {
+    font-size: 2rem;
+  }
+
+  .breakdownContainer {
+    padding: 0.5rem;
+  }
+
+  .achievementsContainer {
+    padding: 0.5rem;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+
+  .container {
+    animation: none;
+  }
+
+  .title {
+    animation: none;
+    text-shadow:
+      0 0 10px rgba(181, 166, 66, 0.6),
+      0 0 20px rgba(181, 166, 66, 0.3);
+  }
+
+  .successMarker {
+    animation: none;
+    box-shadow: 0 0 15px rgba(181, 166, 66, 0.5);
+  }
+
+  .vignette {
+    animation: none;
+  }
+
+  .ratingValue {
+    animation: none;
+  }
+
+  .statAnimateIn {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .fadeIn {
+    animation: none;
+  }
+
+  .newRecord {
+    animation: none;
+  }
+
+  .ratingNewRecord {
+    animation: none;
+  }
+
+  .achievementItem {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

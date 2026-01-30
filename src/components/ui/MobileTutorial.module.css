@@ -1,0 +1,584 @@
+/* Mobile Tutorial Overlay - Touch controls onboarding */
+/* Shows animated gestures explaining each control */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  touch-action: none;
+}
+
+.container {
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.title {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.5rem;
+  color: #b5a642;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 0.1em;
+}
+
+/* Step progress indicator */
+.stepIndicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.stepDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #333;
+  border: 1px solid #4a5d23;
+  transition: all 0.3s ease;
+}
+
+.stepDot.active {
+  background: #b5a642;
+  border-color: #b5a642;
+  box-shadow: 0 0 8px rgba(181, 166, 66, 0.5);
+}
+
+.stepDot.completed {
+  background: #4a5d23;
+  border-color: #4a5d23;
+}
+
+/* Current step content */
+.stepContent {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.125rem;
+  color: #e8e8e8;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stepDescription {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #aaa;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+/* Gesture animation container */
+.gestureContainer {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 24px;
+}
+
+/* Hand icon (simplified SVG-based) */
+.hand {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  color: #b5a642;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* Joystick gesture animation */
+.joystickBase {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(28, 28, 28, 0.8);
+  border: 3px solid #4a5d23;
+}
+
+.joystickThumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(74, 93, 35, 0.8);
+  border: 2px solid #b5a642;
+  transform: translate(-50%, -50%);
+}
+
+.joystickAnimated {
+  animation: joystickMove 2s ease-in-out infinite;
+}
+
+@keyframes joystickMove {
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  25% {
+    transform: translate(-50%, calc(-50% - 25px));
+  }
+  50% {
+    transform: translate(calc(-50% + 20px), calc(-50% - 15px));
+  }
+  75% {
+    transform: translate(calc(-50% - 15px), calc(-50% + 10px));
+  }
+}
+
+.handOnJoystick {
+  top: 55%;
+  left: 55%;
+  animation: handFollow 2s ease-in-out infinite;
+}
+
+@keyframes handFollow {
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  25% {
+    transform: translate(-50%, calc(-50% - 25px));
+  }
+  50% {
+    transform: translate(calc(-50% + 20px), calc(-50% - 15px));
+  }
+  75% {
+    transform: translate(calc(-50% - 15px), calc(-50% + 10px));
+  }
+}
+
+/* Swipe gesture animation */
+.swipeArea {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 140px;
+  border: 2px dashed #4a5d23;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipeLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #4a5d23;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.handSwiping {
+  animation: swipeGesture 2s ease-in-out infinite;
+}
+
+@keyframes swipeGesture {
+  0% {
+    top: 50%;
+    left: 30%;
+    transform: translate(-50%, -50%);
+  }
+  40% {
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+  50% {
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+  90%,
+  100% {
+    top: 50%;
+    left: 30%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.swipeTrail {
+  position: absolute;
+  top: 50%;
+  left: 30%;
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #b5a642);
+  transform: translateY(-50%);
+  animation: trailGrow 2s ease-in-out infinite;
+}
+
+@keyframes trailGrow {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  40% {
+    width: 55%;
+    opacity: 1;
+  }
+  50%,
+  100% {
+    width: 55%;
+    opacity: 0;
+  }
+}
+
+/* Fire button animation */
+.fireButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(244, 67, 54, 0.3);
+  border: 3px solid #f44336;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 0.875rem;
+  color: #e8e8e8;
+}
+
+.fireButton.tapped {
+  animation: fireTap 1.5s ease-in-out infinite;
+}
+
+@keyframes fireTap {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    background: rgba(244, 67, 54, 0.3);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(0.95);
+    background: rgba(244, 67, 54, 0.7);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1);
+    background: rgba(244, 67, 54, 0.3);
+  }
+}
+
+.handTapping {
+  animation: tapGesture 1.5s ease-in-out infinite;
+}
+
+@keyframes tapGesture {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Sprint button animation */
+.sprintButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(255, 191, 0, 0.2);
+  border: 2px solid #ffbf00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+}
+
+.sprintButton.held {
+  animation: sprintHold 2s ease-in-out infinite;
+}
+
+@keyframes sprintHold {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    background: rgba(255, 191, 0, 0.2);
+    box-shadow: none;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(0.95);
+    background: rgba(255, 191, 0, 0.6);
+    box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(0.95);
+    background: rgba(255, 191, 0, 0.6);
+    box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
+  }
+}
+
+.handHolding {
+  animation: holdGesture 2s ease-in-out infinite;
+}
+
+@keyframes holdGesture {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  20%,
+  80% {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+.holdIndicator {
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #ffbf00;
+  text-transform: uppercase;
+  animation: holdPulse 2s ease-in-out infinite;
+}
+
+@keyframes holdPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  20%,
+  80% {
+    opacity: 1;
+  }
+}
+
+/* Completion checkmark animation */
+.completedOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 93, 35, 0.3);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.checkmark {
+  width: 64px;
+  height: 64px;
+  color: #4caf50;
+  animation: checkPop 0.4s ease-out;
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Try it prompt */
+.tryPrompt {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  animation: promptPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes promptPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Skip button */
+.skipButton {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  background: transparent;
+  border: 1px solid #4a5d23;
+  padding: 8px 16px;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skipButton:hover,
+.skipButton:active {
+  border-color: #b5a642;
+  color: #b5a642;
+}
+
+/* Progress bar for timed steps */
+.progressBar {
+  width: 100%;
+  max-width: 200px;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #b5a642;
+  transition: width 0.1s linear;
+}
+
+/* Landscape adjustments */
+@media (max-height: 500px) {
+  .overlay {
+    flex-direction: row;
+    padding: 16px;
+  }
+
+  .container {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    max-width: 600px;
+  }
+
+  .header {
+    display: none;
+  }
+
+  .stepIndicator {
+    flex-direction: column;
+    margin-bottom: 0;
+    margin-right: 16px;
+  }
+
+  .stepContent {
+    flex-direction: row;
+    min-height: auto;
+    gap: 24px;
+  }
+
+  .gestureContainer {
+    width: 120px;
+    height: 120px;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .joystickBase {
+    width: 80px;
+    height: 80px;
+  }
+
+  .joystickThumb {
+    width: 32px;
+    height: 32px;
+  }
+
+  .swipeArea {
+    width: 100px;
+    height: 100px;
+  }
+
+  .fireButton {
+    width: 60px;
+    height: 60px;
+    font-size: 0.75rem;
+  }
+
+  .sprintButton {
+    width: 55px;
+    height: 55px;
+    font-size: 0.625rem;
+  }
+
+  .textContainer {
+    text-align: left;
+  }
+
+  .stepTitle {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+
+  .stepDescription {
+    font-size: 0.75rem;
+    margin-bottom: 16px;
+  }
+}
