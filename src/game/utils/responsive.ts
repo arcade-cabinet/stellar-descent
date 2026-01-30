@@ -75,5 +75,14 @@ export async function releaseWakeLock(): Promise<void> {
     }
   }
 }
+export async function releaseWakeLock(): Promise<void> {
+  if (wakeLock) {
+    try {
+      await wakeLock.release();
+    } catch {
+      // Already released
+    } finally {
+      wakeLock = null;
+    }
   }
 }
