@@ -30,7 +30,7 @@ export const setUI = async (scene: Scene) => {
   let counter = 0;
   button.onPointerUpObservable.add(() => {
     counter++;
-    (button.children[0] as TextBlock).text = counter.toString();
+    button.textBlock!.text = counter.toString();
   });
 
   const disposeButton = Button.CreateSimpleButton('disposeButton', 'Dispose GUI');
