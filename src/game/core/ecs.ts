@@ -4,6 +4,25 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { World } from 'miniplex';
 import type { SteeringBehavior, Vehicle } from 'yuka';
 
+// Import structural components for modular building system
+import type {
+  Atmosphere,
+  Conduit,
+  CoverPoint,
+  Door,
+  Interactable,
+  LightFixture,
+  PlanetaryFeature,
+  Prop,
+  Room,
+  SpawnPoint,
+  StructuralPiece,
+  TerrainChunk,
+  TriggerZone,
+  Viewport,
+  Weather,
+} from '../ecs/components/structural';
+
 // Component types
 export interface Transform {
   position: Vector3;
@@ -51,10 +70,19 @@ export interface Tags {
   ally?: boolean;
   boss?: boolean;
   mech?: boolean;
+  alien?: boolean;
+  mechanical?: boolean;
   projectile?: boolean;
   building?: boolean;
   obstacle?: boolean;
   pickup?: boolean;
+  // Structural tags
+  structural?: boolean;
+  interior?: boolean;
+  exterior?: boolean;
+  hazard?: boolean;
+  navigation?: boolean;
+  objective?: boolean;
 }
 
 // Alien-specific component for tracking species
@@ -97,6 +125,23 @@ export interface Entity {
   lifetime?: LifeTime;
   spawner?: Spawner;
   alienInfo?: AlienInfo;
+
+  // Structural components (for modular building system)
+  structuralPiece?: StructuralPiece;
+  door?: Door;
+  viewport?: Viewport;
+  lightFixture?: LightFixture;
+  conduit?: Conduit;
+  room?: Room;
+  atmosphere?: Atmosphere;
+  triggerZone?: TriggerZone;
+  spawnPoint?: SpawnPoint;
+  prop?: Prop;
+  coverPoint?: CoverPoint;
+  interactable?: Interactable;
+  terrainChunk?: TerrainChunk;
+  planetaryFeature?: PlanetaryFeature;
+  weather?: Weather;
 }
 
 // Create the ECS world
@@ -133,8 +178,8 @@ export function removeEntity(entity: Entity): void {
 }
 
 /**
- * Queries entities within a radius in the XZ plane (ignoring Y).
- * This is a 2D distance check suitable for ground-based gameplay.
+ * Gets entities within a certain radius of a point.
+ * Note: This uses a 2D distance check (X/Z plane) ignoring the Y axis, ideal for gameplay logic on terrain.
  */
 export function getEntitiesInRadius(
   center: Vector3,

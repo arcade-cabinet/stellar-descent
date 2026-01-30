@@ -3,19 +3,23 @@ import type { Engine } from '@babylonjs/core/Engines/engine';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { getAchievementManager } from '../achievements';
+import { getCurrentWeaponDef } from '../context/useWeaponActions';
 import { getAudioManager } from '../core/AudioManager';
 import { createEntity, type Entity } from '../core/ecs';
+import { particleManager } from '../effects/ParticleManager';
+import { weaponEffects } from '../effects/WeaponEffects';
 import type { TouchInput } from '../types';
 import { tokens } from '../utils/designTokens';
 import { getScreenInfo, vibrate } from '../utils/responsive';
 
 // Sun direction for optimal visuals - sun should be top-right when facing forward
-const _SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
+const SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
 // Player should face so sun is top-right (roughly northeast facing southwest)
 const OPTIMAL_SPAWN_ROTATION_Y = Math.PI * 0.75; // Face southwest, sun top-right
 
@@ -27,9 +31,13 @@ export class Player {
 
   private scene: Scene;
   private canvas: HTMLCanvasElement;
+  private engine: Engine;
 
   // First-person weapon view
   private weaponContainer: TransformNode;
+  private weaponMesh: Mesh;
+  private handsMesh: Mesh;
+  private muzzleFlashMesh: Mesh | null = null;
   private weaponBobTime = 0;
   private weaponRecoilOffset = 0;
 
@@ -50,6 +58,11 @@ export class Player {
   private rotationX = 0;
   private rotationY = OPTIMAL_SPAWN_ROTATION_Y;
 
+  // Smooth camera rotation - target values set by input, actual values interpolate
+  private targetRotationX = 0;
+  private targetRotationY = OPTIMAL_SPAWN_ROTATION_Y;
+  private readonly rotationLerpSpeed = 15; // Higher = snappier, lower = smoother
+
   // Drop sequence state
   private isDropping = true;
   private dropStartY = 800; // Higher start for more dramatic drop
@@ -64,17 +77,20 @@ export class Player {
   private dropBaseZ = 0;
   private dropSpinVelocity = 0;
 
-  constructor(scene: Scene, canvas: HTMLCanvasElement, _engine: Engine) {
+  constructor(scene: Scene, canvas: HTMLCanvasElement, engine: Engine) {
     this.scene = scene;
     this.canvas = canvas;
+    this.engine = engine;
     this.isTouchDevice = getScreenInfo().isTouchDevice;
 
     this.mesh = this.createPlayerMesh();
     this.camera = this.createCamera();
 
     // Create first-person weapon view
-    const { container } = this.createWeaponView();
+    const { container, weapon, hands } = this.createWeaponView();
     this.weaponContainer = container;
+    this.weaponMesh = weapon;
+    this.handsMesh = hands;
 
     this.entity = this.createEntity();
 
@@ -344,94 +360,85 @@ export class Player {
   }
 
   private setupControls(): void {
-    this.onKeyDown = this.onKeyDown.bind(this);
-    this.onKeyUp = this.onKeyUp.bind(this);
-    this.onMouseDown = this.onMouseDown.bind(this);
-    this.onMouseUp = this.onMouseUp.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onClick = this.onClick.bind(this);
-    this.onContextMenu = this.onContextMenu.bind(this);
-
     // Keyboard controls
-    window.addEventListener('keydown', this.onKeyDown);
-    window.addEventListener('keyup', this.onKeyUp);
+    const keydownHandler = (e: KeyboardEvent) => {
+      this.keysPressed.add(e.code);
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        this.isSprinting = true;
+      }
+    };
+    window.addEventListener('keydown', keydownHandler);
+    this._listeners.push(() => window.removeEventListener('keydown', keydownHandler));
+
+    const keyupHandler = (e: KeyboardEvent) => {
+      this.keysPressed.delete(e.code);
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        this.isSprinting = false;
+      }
+    };
+    window.addEventListener('keyup', keyupHandler);
+    this._listeners.push(() => window.removeEventListener('keyup', keyupHandler));
 
     // Mouse controls
-    window.addEventListener('mousedown', this.onMouseDown);
-    window.addEventListener('mouseup', this.onMouseUp);
+    const mousedownHandler = (e: MouseEvent) => {
+      if (e.button === 0) {
+        this.mouseDown = true;
+      }
+    };
+    window.addEventListener('mousedown', mousedownHandler);
+    this._listeners.push(() => window.removeEventListener('mousedown', mousedownHandler));
+
+    const mouseupHandler = (e: MouseEvent) => {
+      if (e.button === 0) {
+        this.mouseDown = false;
+      }
+    };
+    window.addEventListener('mouseup', mouseupHandler);
+    this._listeners.push(() => window.removeEventListener('mouseup', mouseupHandler));
 
     // Mouse look - only when pointer is locked
-    document.addEventListener('mousemove', this.onMouseMove);
+    // Updates TARGET rotation - actual rotation interpolates toward this for smooth feel
+    const mousemoveHandler = (e: MouseEvent) => {
+      if (document.pointerLockElement === this.canvas && !this.isDropping) {
+        const sensitivity = 0.002;
+        this.targetRotationY += e.movementX * sensitivity;
+        this.targetRotationX -= e.movementY * sensitivity;
+
+        // Clamp vertical rotation
+        this.targetRotationX = Math.max(
+          -Math.PI / 2.2,
+          Math.min(Math.PI / 2.2, this.targetRotationX)
+        );
+      }
+    };
+    document.addEventListener('mousemove', mousemoveHandler);
+    this._listeners.push(() => document.removeEventListener('mousemove', mousemoveHandler));
 
     // Request pointer lock on click (desktop only)
     if (!this.isTouchDevice) {
-      this.canvas.addEventListener('click', this.onClick);
+      const clickHandler = () => {
+        if (!this.isDropping) {
+          this.canvas.requestPointerLock();
+        }
+      };
+      this.canvas.addEventListener('click', clickHandler);
+      this._listeners.push(() => this.canvas.removeEventListener('click', clickHandler));
     }
 
     // Prevent context menu
-    this.canvas.addEventListener('contextmenu', this.onContextMenu);
+    const contextMenuHandler = (e: Event) => e.preventDefault();
+    this.canvas.addEventListener('contextmenu', contextMenuHandler);
+    this._listeners.push(() => this.canvas.removeEventListener('contextmenu', contextMenuHandler));
   }
+
+  private _listeners: (() => void)[] = [];
 
   dispose(): void {
-    window.removeEventListener('keydown', this.onKeyDown);
-    window.removeEventListener('keyup', this.onKeyUp);
-    window.removeEventListener('mousedown', this.onMouseDown);
-    window.removeEventListener('mouseup', this.onMouseUp);
-    document.removeEventListener('mousemove', this.onMouseMove);
-    if (!this.isTouchDevice) {
-      this.canvas.removeEventListener('click', this.onClick);
-    }
-    this.canvas.removeEventListener('contextmenu', this.onContextMenu);
-
+    this._listeners.forEach((cleanup) => cleanup());
+    this._listeners = [];
     this.keysPressed.clear();
-    this.mouseDown = false;
-  }
-
-  private onKeyDown(e: KeyboardEvent): void {
-    this.keysPressed.add(e.code);
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-      this.isSprinting = true;
-    }
-  }
-
-  private onKeyUp(e: KeyboardEvent): void {
-    this.keysPressed.delete(e.code);
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-      this.isSprinting = false;
-    }
-  }
-
-  private onMouseDown(e: MouseEvent): void {
-    if (e.button === 0) {
-      this.mouseDown = true;
-    }
-  }
-
-  private onMouseUp(e: MouseEvent): void {
-    if (e.button === 0) {
-      this.mouseDown = false;
-    }
-  }
-
-  private onMouseMove(e: MouseEvent): void {
-    if (document.pointerLockElement === this.canvas && !this.isDropping) {
-      const sensitivity = 0.002;
-      this.rotationY += e.movementX * sensitivity;
-      this.rotationX -= e.movementY * sensitivity;
-
-      // Clamp vertical rotation
-      this.rotationX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.rotationX));
-    }
-  }
-
-  private onClick(): void {
-    if (!this.isDropping) {
-      this.canvas.requestPointerLock();
-    }
-  }
-
-  private onContextMenu(e: MouseEvent): void {
-    e.preventDefault();
+    this.mesh.dispose();
+    this.weaponContainer.dispose();
   }
 
   private startHaloDrop(): void {
@@ -463,11 +470,15 @@ export class Player {
     if (now - this.lastFireTime < fireInterval) return;
     this.lastFireTime = now;
 
+    // Track shot fired for achievement accuracy tracking
+    getAchievementManager().onShotFired();
+
     // Trigger weapon recoil animation
     this.triggerWeaponRecoil();
 
-    // Play weapon fire sound
-    getAudioManager().play('weapon_fire', { volume: 0.5 });
+    // Play per-weapon fire sound (polished, with variation)
+    const weaponDef = getCurrentWeaponDef();
+    getAudioManager().playWeaponFire(weaponDef.id, 0.5);
 
     if (this.isTouchDevice) {
       vibrate(15);
@@ -520,27 +531,31 @@ export class Player {
     glowMat.alpha = 0.4;
     glowShell.material = glowMat;
 
-    // Muzzle flash at spawn point
-    const flash = MeshBuilder.CreateSphere('muzzleFlash', { diameter: 0.4 }, this.scene);
+    // Enhanced muzzle flash using particle system
+    // Emits core flash, sparks, and lingering smoke for realistic effect
+    particleManager.emitEnhancedMuzzleFlash(spawnPos, forward, 1.0);
+
+    // Also create a simple mesh flash for the bright core (supplements particles)
+    const flash = MeshBuilder.CreateSphere('muzzleFlash', { diameter: 0.3 }, this.scene);
     flash.position = spawnPos;
     const flashMat = new StandardMaterial('flashMat', this.scene);
     flashMat.emissiveColor = Color3.FromHexString('#FFFFFF');
     flashMat.disableLighting = true;
-    flashMat.alpha = 0.8;
+    flashMat.alpha = 0.9;
     flash.material = flashMat;
 
     // Animate muzzle flash fade
     const flashStart = performance.now();
     const animateFlash = () => {
       const elapsed = performance.now() - flashStart;
-      const progress = elapsed / 80;
+      const progress = elapsed / 60; // Faster fade for snappier feel
       if (progress < 1) {
-        flashMat.alpha = 0.8 * (1 - progress);
-        flash.scaling.setAll(1 + progress * 0.5);
+        flashMat.alpha = 0.9 * (1 - progress);
+        flash.scaling.setAll(1 + progress * 0.3);
         requestAnimationFrame(animateFlash);
       } else {
+        flash.material?.dispose();
         flash.dispose();
-        flashMat.dispose();
       }
     };
     requestAnimationFrame(animateFlash);
@@ -565,6 +580,10 @@ export class Player {
     };
     requestAnimationFrame(animateBolt);
 
+    // Add particle trail effect to the projectile
+    const projectileId = `player_proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    weaponEffects.createProjectileTrail(laserBolt, 'player_plasma', projectileId);
+
     createEntity({
       transform: {
         position: laserBolt.position.clone(),
@@ -586,9 +605,9 @@ export class Player {
       lifetime: {
         remaining: 2000,
         onExpire: () => {
+          laserBolt.material?.dispose(); // coreMat
+          glowShell.material?.dispose(); // glowMat
           laserBolt.dispose();
-          coreMat.dispose();
-          glowMat.dispose();
         },
       },
     });
@@ -708,12 +727,32 @@ export class Player {
       return;
     }
 
-    // Apply camera rotation
-    this.camera.rotation.x = this.rotationX;
-    this.camera.rotation.y = this.rotationY;
-
     // Determine input source
     const usingTouch = this.touchInput !== null && this.isTouchDevice;
+
+    // Process touch look input (updates target rotation)
+    if (usingTouch && this.touchInput) {
+      const look = this.touchInput.look;
+      if (Math.abs(look.x) > 0.0001 || Math.abs(look.y) > 0.0001) {
+        // Touch controls provide raw delta - add to target rotation
+        this.targetRotationY += look.x;
+        this.targetRotationX -= look.y;
+        this.targetRotationX = Math.max(
+          -Math.PI / 2.2,
+          Math.min(Math.PI / 2.2, this.targetRotationX)
+        );
+      }
+    }
+
+    // Smooth camera rotation interpolation (lerp toward target)
+    // This creates fluid, non-snappy camera movement for both mouse and touch
+    const lerpFactor = Math.min(1, this.rotationLerpSpeed * deltaTime);
+    this.rotationX += (this.targetRotationX - this.rotationX) * lerpFactor;
+    this.rotationY += (this.targetRotationY - this.rotationY) * lerpFactor;
+
+    // Apply smoothed camera rotation
+    this.camera.rotation.x = this.rotationX;
+    this.camera.rotation.y = this.rotationY;
 
     // Sprint state
     if (usingTouch && this.touchInput) {
@@ -722,40 +761,31 @@ export class Player {
 
     const speed = this.isSprinting ? this.moveSpeed * this.sprintMultiplier : this.moveSpeed;
 
-    // Calculate movement
+    // Calculate movement (relative to camera facing direction)
     const moveDir = Vector3.Zero();
 
     if (usingTouch && this.touchInput) {
-      // Touch joystick movement
+      // Touch joystick movement (relative to camera facing)
       const movement = this.touchInput.movement;
       const moveMagnitude = Math.sqrt(movement.x * movement.x + movement.y * movement.y);
       if (moveMagnitude > 0.1) {
         moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movement.y));
         moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movement.x));
       }
+    }
 
-      // Camera rotation from screen touch-drag
-      const look = this.touchInput.look;
-      if (Math.abs(look.x) > 0.0001 || Math.abs(look.y) > 0.0001) {
-        // Direct delta - touch controls already apply sensitivity
-        this.rotationY += look.x;
-        this.rotationX -= look.y;
-        this.rotationX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.rotationX));
-      }
-    } else {
-      // Keyboard movement
-      if (this.keysPressed.has('KeyW')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()));
-      }
-      if (this.keysPressed.has('KeyS')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Backward()));
-      }
-      if (this.keysPressed.has('KeyA')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Left()));
-      }
-      if (this.keysPressed.has('KeyD')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Right()));
-      }
+    // Keyboard movement (works alongside touch)
+    if (this.keysPressed.has('KeyW')) {
+      moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()));
+    }
+    if (this.keysPressed.has('KeyS')) {
+      moveDir.addInPlace(this.camera.getDirection(Vector3.Backward()));
+    }
+    if (this.keysPressed.has('KeyA')) {
+      moveDir.addInPlace(this.camera.getDirection(Vector3.Left()));
+    }
+    if (this.keysPressed.has('KeyD')) {
+      moveDir.addInPlace(this.camera.getDirection(Vector3.Right()));
     }
 
     // Apply movement
@@ -839,6 +869,17 @@ export class Player {
 
   getPosition(): Vector3 {
     return this.camera.position.clone();
+  }
+
+  /**
+   * Get player heading in radians (0 = North/+Z, positive = clockwise)
+   * This is used for the compass HUD element
+   */
+  getHeading(): number {
+    // Camera rotation Y is the horizontal rotation
+    // In Babylon.js, rotation Y=0 faces +Z (forward)
+    // We need to convert so that 0 = North (+Z in world space)
+    return this.rotationY;
   }
 
   takeDamage(amount: number): void {

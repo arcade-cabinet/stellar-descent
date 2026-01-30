@@ -326,28 +326,23 @@ This enables:
 
 ### Unit Tests
 
-### Error: WebGL not available
-
+## Error: WebGL not available
 - Ensure `src/test/setup.ts` is loaded (check `vitest.config.ts`)
 
-### Error: useGame must be used within GameProvider
-
+## Error: useGame must be used within GameProvider
 - Wrap test component in `<GameProvider>`
 
 ### E2E Tests
 
-### Error: Page not loading
-
+## Error: Page not loading
 - Check dev server is running on port 5173
 - Verify `playwright.config.ts` webServer settings
 
-### Tests timing out
-
+## Tests timing out
 - Increase timeout: `await expect(...).toBeVisible({ timeout: 30000 })`
 - Check if game state transitions are completing
 
-### Screenshots blank
-
+## Screenshots blank
 - Wait for canvas to render: `await page.waitForTimeout(500)`
 - Ensure WebGL is initializing
 

@@ -1,0 +1,543 @@
+/* InstallPrompt - Military Terminal Style PWA Install Prompt */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 7, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: #0a0a0c;
+  border: 1px solid #4a5d23;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Corner decorations */
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cornerTL {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.cornerTR {
+  top: -1px;
+  right: -1px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.cornerBL {
+  bottom: -1px;
+  left: -1px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+.cornerBR {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: rgba(74, 93, 35, 0.2);
+  border-bottom: 1px solid #4a5d23;
+}
+
+.header span {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+}
+
+.statusLight {
+  width: 8px;
+  height: 8px;
+  background: #6b8e23;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #6b8e23;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Content */
+.content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.icon {
+  width: 64px;
+  height: 64px;
+  border: 2px solid #4a5d23;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  background: rgba(74, 93, 35, 0.1);
+}
+
+.iconSvg {
+  width: 32px;
+  height: 32px;
+  color: #b5a642;
+}
+
+.title {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #666;
+  letter-spacing: 0.15em;
+  margin-bottom: 1.25rem;
+}
+
+/* Benefits list */
+.benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.benefits li:last-child {
+  border-bottom: none;
+}
+
+.benefitIcon {
+  font-size: 0.5rem;
+  color: #4a5d23;
+}
+
+/* Footer with buttons */
+.footer {
+  display: flex;
+  border-top: 1px solid #2a2a2a;
+}
+
+.dismissButton,
+.installButton {
+  flex: 1;
+  padding: 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+}
+
+.dismissButton {
+  color: #666;
+  border-right: 1px solid #2a2a2a;
+}
+
+.dismissButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #a0a0a0;
+}
+
+.installButton {
+  color: #b5a642;
+  background: rgba(74, 93, 35, 0.2);
+}
+
+.installButton:hover {
+  background: rgba(74, 93, 35, 0.4);
+  color: #e8e8e8;
+}
+
+.installButton:active {
+  transform: scale(0.98);
+}
+
+/* iOS Instructions */
+.instructions {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+  margin-bottom: 0.5rem;
+}
+
+.step:last-child {
+  margin-bottom: 0;
+}
+
+.stepNumber {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 93, 35, 0.3);
+  border: 1px solid #4a5d23;
+  border-radius: 50%;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  line-height: 1.5;
+}
+
+.stepText strong {
+  color: #e8e8e8;
+}
+
+.shareIcon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+}
+
+.shareIcon svg {
+  fill: none;
+  stroke: #b5a642;
+  stroke-width: 2;
+}
+
+/* Outcome display */
+.outcomeContent {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.outcomeIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #4a5d23;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  color: #6b8e23;
+  margin-bottom: 1rem;
+}
+
+.outcomeTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #b5a642;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.outcomeText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Welcome overlay for first standalone launch */
+.welcomeOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 7, 0.98);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 1rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.welcomePanel {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  background: #0a0a0c;
+  border: 1px solid #4a5d23;
+  animation: welcomeSlideUp 0.5s ease-out;
+}
+
+@keyframes welcomeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.welcomeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(74, 93, 35, 0.15);
+  border-bottom: 1px solid #4a5d23;
+}
+
+.welcomeHeader span {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #6b8e23;
+  letter-spacing: 0.15em;
+}
+
+.welcomeContent {
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.welcomeIcon {
+  font-size: 2.5rem;
+  color: #b5a642;
+  margin-bottom: 1rem;
+  animation: starPulse 2s ease-in-out infinite;
+}
+
+@keyframes starPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.welcomeTitle {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.welcomeSubtitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #4a5d23;
+  letter-spacing: 0.2em;
+  margin-bottom: 1rem;
+}
+
+.welcomeText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.welcomeButton {
+  width: 100%;
+  padding: 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  background: rgba(74, 93, 35, 0.2);
+  border: none;
+  border-top: 1px solid #4a5d23;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+}
+
+.welcomeButton:hover {
+  background: rgba(74, 93, 35, 0.4);
+  color: #e8e8e8;
+}
+
+/* Mobile adjustments */
+@media (max-width: 400px) {
+  .panel {
+    max-width: 100%;
+  }
+
+  .content {
+    padding: 1.25rem;
+  }
+
+  .title {
+    font-size: 1.125rem;
+  }
+
+  .benefits li {
+    font-size: 0.6875rem;
+  }
+
+  .step {
+    padding: 0.625rem;
+  }
+
+  .stepText {
+    font-size: 0.6875rem;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .overlay {
+    padding: 0.5rem;
+  }
+
+  .panel {
+    max-width: 500px;
+  }
+
+  .content {
+    flex-direction: row;
+    text-align: left;
+    gap: 1.25rem;
+    padding: 1rem;
+  }
+
+  .icon {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .benefits {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+  }
+
+  .benefits li {
+    padding: 0.25rem 0;
+    border-bottom: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .panel {
+    border-width: 2px;
+  }
+
+  .title {
+    color: #ffffff;
+  }
+
+  .benefits li {
+    color: #ffffff;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .panel,
+  .welcomePanel {
+    animation: none;
+  }
+
+  .statusLight,
+  .welcomeIcon {
+    animation: none;
+  }
+}

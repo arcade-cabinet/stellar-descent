@@ -1,0 +1,257 @@
+/* Achievement Popup - Military Toast Notification */
+
+.popupContainer {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.popup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, rgba(74, 93, 35, 0.95) 0%, rgba(45, 55, 25, 0.95) 100%);
+  border: 1px solid #b5a642;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(181, 166, 66, 0.2);
+  min-width: 280px;
+  max-width: 400px;
+  pointer-events: auto;
+  transform: translateX(0);
+  opacity: 1;
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.popup.exiting {
+  animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Corner brackets */
+.popup::before,
+.popup::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+}
+
+.popup::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.popup::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #b5a642;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 1.5rem;
+  color: #b5a642;
+  text-shadow: 0 0 8px rgba(181, 166, 66, 0.5);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.header {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.headerLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #b5a642 0%, transparent 100%);
+}
+
+.name {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.description {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  line-height: 1.4;
+}
+
+/* Shimmer effect on unlock */
+.popup::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(181, 166, 66, 0.2) 50%, transparent 100%);
+  animation: shimmer 1.5s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Category-specific styling */
+.popup.story {
+  border-color: #4da6ff;
+}
+
+.popup.story .icon,
+.popup.story .header {
+  color: #4da6ff;
+}
+
+.popup.story::before,
+.popup.story::after {
+  border-color: #4da6ff;
+}
+
+.popup.combat {
+  border-color: #ff4040;
+}
+
+.popup.combat .icon,
+.popup.combat .header {
+  color: #ff4040;
+}
+
+.popup.combat::before,
+.popup.combat::after {
+  border-color: #ff4040;
+}
+
+.popup.exploration {
+  border-color: #40c040;
+}
+
+.popup.exploration .icon,
+.popup.exploration .header {
+  color: #40c040;
+}
+
+.popup.exploration::before,
+.popup.exploration::after {
+  border-color: #40c040;
+}
+
+.popup.challenge {
+  /* Default gold styling */
+}
+
+/* Progress bar for progressive achievements (optional) */
+.progressBar {
+  height: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progressFill {
+  height: 100%;
+  background: #b5a642;
+  transition: width 0.3s ease;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .popupContainer {
+    top: 1rem;
+    right: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .popup {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .iconContainer {
+    width: 40px;
+    height: 40px;
+  }
+
+  .icon {
+    font-size: 1.25rem;
+  }
+
+  .name {
+    font-size: 1rem;
+  }
+
+  .description {
+    font-size: 0.6875rem;
+  }
+}

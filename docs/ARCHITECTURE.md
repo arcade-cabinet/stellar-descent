@@ -106,7 +106,6 @@ Physics bodies are created for:
 - `ArriveBehavior` - Ally positioning
 
 **State Machine**
-
 ```text
           ┌─────────┐
           │  IDLE   │

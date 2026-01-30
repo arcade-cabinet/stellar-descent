@@ -314,6 +314,93 @@
   color: #e8e8e8;
 }
 
+/* Save info inline text */
+.saveInfo {
+  font-size: 0.625rem;
+  color: #888;
+  margin-left: auto;
+  padding-left: 1rem;
+}
+
+/* Confirmation modal text */
+.confirmText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+/* Save preview box */
+.savePreview {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+  padding: 0.75rem;
+}
+
+.savePreviewRow {
+  display: flex;
+  justify-content: space-between;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #888;
+  padding: 0.25rem 0;
+}
+
+.savePreviewRow:not(:last-child) {
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.savePreviewRow span:last-child {
+  color: #b5a642;
+}
+
+/* Modal buttons row */
+.modalButtons {
+  display: flex;
+  border-top: 1px solid #2a2a2a;
+}
+
+.modalButton {
+  flex: 1;
+  padding: 0.875rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+}
+
+.modalButton:hover {
+  background: rgba(74, 93, 35, 0.2);
+  color: #e8e8e8;
+}
+
+.modalButton:first-child {
+  border-right: 1px solid #2a2a2a;
+}
+
+.dangerButton {
+  color: #b54242;
+}
+
+.dangerButton:hover {
+  background: rgba(181, 66, 66, 0.2);
+  color: #ff6666;
+}
+
+/* Difficulty selection modal - wider to fit cards */
+.difficultyModal {
+  width: min(90%, 700px);
+}
+
+.difficultyModal .modalContent {
+  padding: 1rem;
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   .container {

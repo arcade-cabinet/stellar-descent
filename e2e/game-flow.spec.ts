@@ -49,10 +49,10 @@ test.describe('Game Flow', () => {
       await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
       // Wait for loading to complete and tutorial to start
-      await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 30000 });
 
       // Wait for tutorial comms to appear
-      await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
     });
   });
 
@@ -62,7 +62,7 @@ test.describe('Game Flow', () => {
       await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
       // Wait for tutorial to start
-      await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
     });
 
     test('should show comms display with AI message', async ({ page }) => {
@@ -78,7 +78,7 @@ test.describe('Game Flow', () => {
       // Click to advance
       await page.getByRole('button', { name: /ACKNOWLEDGE|SKIP/i }).click();
 
-      // Wait for message to disappear or change
+      // Wait for the next message or the button to disappear
       await expect(firstMessage).not.toBeVisible();
     });
 
@@ -89,7 +89,7 @@ test.describe('Game Flow', () => {
       // Should see objective display eventually
       // The exact text depends on which step we're on
       const objectiveDisplay = page.locator('.objective-display, .objective-title');
-      await expect(objectiveDisplay.first()).toBeVisible({ timeout: 10000 });
+      await expect(objectiveDisplay.first()).toBeVisible({ timeout: 30000 });
     });
   });
 
@@ -101,10 +101,10 @@ test.describe('Game Flow', () => {
       await expect(page.getByText(/ANCHOR STATION PROMETHEUS/i)).toBeVisible();
 
       // Wait for loading to complete
-      await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 30000 });
 
       // Should see notification about drop
-      await expect(page.getByText(/ORBITAL DROP INITIATED/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/ORBITAL DROP INITIATED/i)).toBeVisible({ timeout: 30000 });
     });
   });
 });

@@ -1,0 +1,402 @@
+/* ControlHints - Desktop control hints overlay for tutorial */
+
+.controlHints {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 45;
+  font-family: "Courier New", monospace;
+}
+
+/* Hints Labels */
+.hintsLabel {
+  font-size: 0.625rem;
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  color: #4a5d23;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+/* Movement Hints - Bottom Left */
+.movementHints {
+  position: absolute;
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 20px) + 80px));
+  left: max(20px, env(safe-area-inset-left, 20px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+.keyCluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.wasdGrid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.wasdRow {
+  display: flex;
+  gap: 4px;
+}
+
+.keyDescription {
+  font-size: 0.5rem;
+  color: rgba(232, 232, 232, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+}
+
+/* Look Hints - Top Right */
+.lookHints {
+  position: absolute;
+  top: max(80px, calc(env(safe-area-inset-top, 20px) + 60px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+.mouseHint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mouseIcon {
+  position: relative;
+  width: 32px;
+  height: 48px;
+  transition: all 0.15s ease;
+}
+
+.mouseIcon.active {
+  filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.8));
+}
+
+.mouseBody {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 36px;
+  border: 2px solid rgba(232, 232, 232, 0.6);
+  border-radius: 12px 12px 10px 10px;
+  background: rgba(28, 28, 28, 0.8);
+}
+
+.mouseScroll {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 8px;
+  border: 1px solid rgba(232, 232, 232, 0.6);
+  border-radius: 2px;
+}
+
+.mouseArrows {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.625rem;
+  color: rgba(232, 232, 232, 0.4);
+}
+
+.mouseArrow {
+  position: absolute;
+}
+
+.mouseArrow:nth-child(1) {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mouseArrow:nth-child(2) {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mouseArrow:nth-child(3) {
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mouseArrow:nth-child(4) {
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mouseIcon.active .mouseArrow {
+  color: #4caf50;
+  animation: arrowPulse 0.5s ease infinite;
+}
+
+/* Interact Hints - Center Right */
+.interactHints {
+  position: absolute;
+  top: 50%;
+  right: max(20px, env(safe-area-inset-right, 20px));
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+/* Combat Hints - Bottom Right */
+.combatHints {
+  position: absolute;
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 20px) + 80px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+.combatRow {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.fireHint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fireIcon {
+  width: 28px;
+  height: 40px;
+}
+
+.fireIcon .mouseBody {
+  width: 20px;
+  height: 32px;
+}
+
+.mouseButton {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 12px;
+  border: 1px solid rgba(232, 232, 232, 0.6);
+  background: rgba(28, 28, 28, 0.8);
+}
+
+.leftButton {
+  left: 1px;
+  border-radius: 4px 0 0 0;
+  border-right: none;
+}
+
+.fireIcon.active .leftButton {
+  background: rgba(76, 175, 80, 0.6);
+  border-color: #4caf50;
+}
+
+/* Advanced Hints - Bottom Center */
+.advancedHints {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+  animation: fadeIn 0.5s ease;
+}
+
+/* Key Hint Component */
+.keyHint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.3s ease;
+}
+
+.keyHint.learned {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.keyBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px 8px;
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid rgba(74, 93, 35, 0.6);
+  border-radius: 4px;
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.1s ease;
+}
+
+.keyHint.active .keyBox {
+  background: rgba(74, 93, 35, 0.6);
+  border-color: #4caf50;
+  box-shadow:
+    0 0 12px rgba(76, 175, 80, 0.5),
+    0 2px 0 rgba(0, 0, 0, 0.4);
+  transform: translateY(1px);
+}
+
+.keyHint.large .keyBox {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 8px 12px;
+}
+
+.keyHint.wide .keyBox {
+  min-width: 64px;
+  padding: 4px 12px;
+}
+
+.keyLabel {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #e8e8e8;
+  letter-spacing: 0.05em;
+}
+
+.keyHint.large .keyLabel {
+  font-size: 1rem;
+}
+
+.keyAlt {
+  font-size: 0.5rem;
+  color: rgba(232, 232, 232, 0.5);
+  margin-top: 2px;
+}
+
+.keyDesc {
+  font-size: 0.5rem;
+  color: rgba(232, 232, 232, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes arrowPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Phase-specific animations for hint groups appearing */
+.movementHints,
+.lookHints,
+.interactHints,
+.combatHints,
+.advancedHints {
+  animation: hintSlideIn 0.5s ease;
+}
+
+@keyframes hintSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Position adjustment for interact hints */
+.interactHints {
+  animation: hintSlideIn 0.5s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .movementHints {
+    bottom: max(140px, calc(env(safe-area-inset-bottom, 20px) + 120px));
+  }
+
+  .combatHints {
+    bottom: max(140px, calc(env(safe-area-inset-bottom, 20px) + 120px));
+  }
+
+  .keyBox {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 3px 6px;
+  }
+
+  .keyLabel {
+    font-size: 0.625rem;
+  }
+
+  .keyHint.large .keyBox {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .keyHint.large .keyLabel {
+    font-size: 0.875rem;
+  }
+}
+
+/* Hide on very small screens where touch would be expected */
+@media (max-width: 768px) {
+  .controlHints {
+    display: none;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .controlHints * {
+    animation: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+}

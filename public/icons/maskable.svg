@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background fills entire area for maskable icon -->
+  <rect width="512" height="512" fill="#0a0a0c"/>
+
+  <!-- Content scaled to safe zone (80% centered) -->
+  <g transform="translate(51.2, 51.2) scale(0.8)">
+    <!-- Outer border -->
+    <rect x="16" y="16" width="480" height="480" fill="none" stroke="#4a5d23" stroke-width="4"/>
+
+    <!-- Corner brackets -->
+    <path d="M16 80 L16 16 L80 16" fill="none" stroke="#b5a642" stroke-width="6"/>
+    <path d="M432 16 L496 16 L496 80" fill="none" stroke="#b5a642" stroke-width="6"/>
+    <path d="M496 432 L496 496 L432 496" fill="none" stroke="#b5a642" stroke-width="6"/>
+    <path d="M80 496 L16 496 L16 432" fill="none" stroke="#b5a642" stroke-width="6"/>
+
+    <!-- Central insignia circle -->
+    <circle cx="256" cy="200" r="120" fill="none" stroke="#4a5d23" stroke-width="4"/>
+    <circle cx="256" cy="200" r="100" fill="#151515"/>
+
+    <!-- Stylized "SD" monogram -->
+    <path d="M200 160 L260 160 L260 180 L220 180 L220 195 L260 195 L260 240 L200 240 L200 220 L240 220 L240 215 L200 215 Z" fill="#b5a642"/>
+    <path d="M270 160 L310 160 C330 160 340 175 340 200 C340 225 330 240 310 240 L270 240 Z M290 180 L290 220 L305 220 C315 220 320 212 320 200 C320 188 315 180 305 180 Z" fill="#b5a642"/>
+
+    <!-- Down arrow -->
+    <path d="M256 290 L316 360 L286 360 L286 430 L226 430 L226 360 L196 360 Z" fill="#6b8e23"/>
+  </g>
+</svg>

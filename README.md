@@ -27,7 +27,7 @@ pnpm preview
 ## Technology Stack
 
 | Technology | Version | Purpose |
-| ---------- | ------- | ------- |
+| :--- | :--- | :--- |
 | **BabylonJS** | 8.x | 3D rendering (WebGPU/WebGL2) |
 | **Havok Physics** | 1.3.x | Physics simulation |
 | **Yuka** | 0.7.x | AI steering behaviors |
@@ -128,7 +128,7 @@ src/
 ## Development
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 18+
 - pnpm 10.2+
 
 ### Commands

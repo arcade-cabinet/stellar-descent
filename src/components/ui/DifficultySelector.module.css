@@ -1,0 +1,198 @@
+/**
+ * DifficultySelector Styles
+ * Military/retro-futuristic styling consistent with the game's aesthetic
+ */
+
+/* Full mode container */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.title {
+  font-family: "Courier New", monospace;
+  font-size: 1.1rem;
+  color: #8cb369;
+  text-align: center;
+  margin: 0;
+  letter-spacing: 0.15em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Card style for full mode */
+.card {
+  background: linear-gradient(135deg, #1a1f14 0%, #0d100a 100%);
+  border: 1px solid #3a4a30;
+  border-radius: 4px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-family: "Courier New", monospace;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #4a5a40, transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.card:hover {
+  border-color: #6a7a60;
+  transform: translateY(-2px);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.cardSelected {
+  border-color: #8cb369;
+  background: linear-gradient(135deg, #1f2518 0%, #151a10 100%);
+  box-shadow:
+    0 0 10px rgba(140, 179, 105, 0.2),
+    inset 0 0 20px rgba(140, 179, 105, 0.05);
+}
+
+.cardSelected::before {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, #8cb369, transparent);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.cardName {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #e8eae3;
+  letter-spacing: 0.1em;
+}
+
+.cardCheck {
+  color: #8cb369;
+  font-size: 1.2rem;
+}
+
+.cardDescription {
+  font-size: 0.75rem;
+  color: #9a9a8a;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.4;
+  min-height: 3em;
+}
+
+.cardModifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Modifier badges */
+.badge {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 2px;
+  background: #2a2f24;
+  color: #b0b0a0;
+  border: 1px solid #3a3f34;
+}
+
+.badgeGreen {
+  color: #7cb369;
+  border-color: #4a6440;
+}
+
+.badgeRed {
+  color: #c96a5a;
+  border-color: #6a4440;
+}
+
+/* Compact mode for settings inline */
+.compactContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.compactLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #8cb369;
+  letter-spacing: 0.1em;
+}
+
+.compactButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.compactButton {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  background: #1a1f14;
+  border: 1px solid #3a4a30;
+  border-radius: 3px;
+  color: #9a9a8a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.05em;
+}
+
+.compactButton:hover {
+  border-color: #6a7a60;
+  color: #d0d0c0;
+}
+
+.compactButton.selected {
+  background: linear-gradient(135deg, #2a3520 0%, #1a2510 100%);
+  border-color: #8cb369;
+  color: #8cb369;
+  box-shadow: 0 0 8px rgba(140, 179, 105, 0.15);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
+  .cardDescription {
+    min-height: auto;
+  }
+
+  .compactButtons {
+    flex-wrap: wrap;
+  }
+
+  .compactButton {
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+  }
+}
