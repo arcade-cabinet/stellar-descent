@@ -9,11 +9,5 @@ declare module '*.glsl' {
   export default glsl;
 }
 
-declare module '@babylonjs';
-
 declare module 'earcut';
 declare module 'recast-detour';
-
-declare class CustomErr extends Error {
-  constructor(message: string);
-}

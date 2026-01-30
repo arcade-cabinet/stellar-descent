@@ -7,6 +7,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import type { TouchInput } from '../../types';
+import styles from './AnchorStationLevel.module.css';
 import { createStationEnvironment, type StationEnvironment } from './environment';
 import { TutorialManager } from './TutorialManager';
 import type { TutorialStep } from './tutorialSteps';
@@ -163,51 +164,18 @@ export class AnchorStationLevel {
 
   private createInteractionPrompt(): void {
     this.interactionPrompt = document.createElement('div');
-    this.interactionPrompt.className = 'interaction-prompt';
-    this.interactionPrompt.innerHTML = `
-      <div class="prompt-key">E</div>
-      <div class="prompt-text">INTERACT</div>
-    `;
-    this.interactionPrompt.style.cssText = `
-      position: fixed;
-      bottom: 35%;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
-      background: rgba(10, 10, 12, 0.9);
-      border: 2px solid #B5A642;
-      font-family: 'Share Tech Mono', monospace;
-      z-index: 100;
-    `;
-
-    const keyStyle = this.interactionPrompt.querySelector('.prompt-key') as HTMLElement;
-    if (keyStyle) {
-      keyStyle.style.cssText = `
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(74, 93, 35, 0.5);
-        border: 2px solid #B5A642;
-        color: #E8E8E8;
-        font-size: 1.25rem;
-        font-weight: bold;
-      `;
-    }
-
-    const textStyle = this.interactionPrompt.querySelector('.prompt-text') as HTMLElement;
-    if (textStyle) {
-      textStyle.style.cssText = `
-        color: #A0A0A0;
-        font-size: 0.75rem;
-        letter-spacing: 0.1em;
-      `;
-    }
+    this.interactionPrompt.className = styles.interactionPrompt;
+    
+    const key = document.createElement('div');
+    key.className = styles.promptKey;
+    key.textContent = 'E';
+    
+    const text = document.createElement('div');
+    text.className = styles.promptText;
+    text.textContent = 'INTERACT';
+    
+    this.interactionPrompt.appendChild(key);
+    this.interactionPrompt.appendChild(text);
 
     document.body.appendChild(this.interactionPrompt);
   }

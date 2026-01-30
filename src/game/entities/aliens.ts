@@ -1,14 +1,11 @@
-import { Animation } from '@babylonjs/core/Animations/animation';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { Vehicle } from 'yuka';
 import { createEntity, type Entity } from '../core/ecs';
-import { tokens } from '../utils/designTokens';
 
 // Alien species definitions - creepy, surreal, procedurally generated
 export interface AlienSpecies {
@@ -444,6 +441,12 @@ function createSpewer(
 
   // Pulsating sacs (3-5)
   const sacCount = 3 + Math.floor(random() * 3);
+  
+  const sacMat = new StandardMaterial('sacMat', scene);
+  sacMat.diffuseColor = Color3.FromHexString('#5A7A3D');
+  sacMat.alpha = 0.7;
+  sacMat.emissiveColor = new Color3(0.2, 0.3, 0.1);
+
   for (let i = 0; i < sacCount; i++) {
     const sac = MeshBuilder.CreateSphere(
       'sac',
@@ -454,10 +457,6 @@ function createSpewer(
       scene
     );
 
-    const sacMat = new StandardMaterial('sacMat', scene);
-    sacMat.diffuseColor = Color3.FromHexString('#5A7A3D');
-    sacMat.alpha = 0.7;
-    sacMat.emissiveColor = new Color3(0.2, 0.3, 0.1);
     sac.material = sacMat;
     sac.parent = body;
 
@@ -694,6 +693,11 @@ function createBroodmother(
   body.position.y = 1.2;
 
   // Translucent egg sacs with visible embryos
+  const eggMat = new StandardMaterial('eggMat', scene);
+  eggMat.diffuseColor = Color3.FromHexString('#4A3D5A');
+  eggMat.alpha = 0.6;
+  eggMat.emissiveColor = new Color3(0.2, 0.1, 0.2);
+
   for (let i = 0; i < 8; i++) {
     const egg = MeshBuilder.CreateSphere(
       'egg',
@@ -703,10 +707,6 @@ function createBroodmother(
       },
       scene
     );
-    const eggMat = new StandardMaterial('eggMat', scene);
-    eggMat.diffuseColor = Color3.FromHexString('#4A3D5A');
-    eggMat.alpha = 0.6;
-    eggMat.emissiveColor = new Color3(0.2, 0.1, 0.2);
     egg.material = eggMat;
     egg.parent = body;
 

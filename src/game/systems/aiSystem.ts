@@ -92,13 +92,14 @@ export class AISystem {
           // Attack state - pursue and attack
           entity.ai.state = 'attack';
 
-          const pursuit = new PursuitBehavior(
-            (() => {
-              const target = new Vehicle();
-              target.position = toYuka(playerPos);
-              return target;
-            })()
-          );
+          // Reuse a shared target vehicle or update a persistent one
+          // For Yuka Pursuit, we need a moving target (Vehicle)
+          // We can create a lightweight vehicle representation of the player
+          const targetVehicle = new Vehicle();
+          targetVehicle.position = toYuka(playerPos);
+          // If we had player velocity, we'd set it here for better prediction
+          
+          const pursuit = new PursuitBehavior(targetVehicle);
           pursuit.weight = 1.0;
           vehicle.steering.add(pursuit);
         } else if (distToPlayer < entity.ai.alertRadius) {

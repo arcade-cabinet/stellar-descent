@@ -78,19 +78,18 @@ test.describe('Game Flow', () => {
       // Click to advance
       await page.getByRole('button', { name: /ACKNOWLEDGE|SKIP/i }).click();
 
-      // Wait for next message or objective
-      await page.waitForTimeout(500);
+      // Wait for the next message or the button to disappear
+      await expect(firstMessage).not.toBeVisible();
     });
 
     test('should show objective display during tutorial', async ({ page }) => {
       // Advance past initial comms
       await page.keyboard.press('Space');
-      await page.waitForTimeout(3000);
-
+      
       // Should see objective display eventually
       // The exact text depends on which step we're on
       const objectiveDisplay = page.locator('.objective-display, .objective-title');
-      await expect(objectiveDisplay.first()).toBeVisible({ timeout: 10000 });
+      await expect(objectiveDisplay.first()).toBeVisible({ timeout: 15000 });
     });
   });
 

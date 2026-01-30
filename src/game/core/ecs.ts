@@ -132,6 +132,10 @@ export function removeEntity(entity: Entity): void {
   world.remove(entity);
 }
 
+/**
+ * Gets entities within a certain radius of a point.
+ * Note: This uses a 2D distance check (X/Z plane) ignoring the Y axis, ideal for gameplay logic on terrain.
+ */
 export function getEntitiesInRadius(
   center: Vector3,
   radius: number,

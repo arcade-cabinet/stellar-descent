@@ -89,6 +89,9 @@ class WorldDatabase {
       )
     `);
 
+    // Add index for faster chunk queries
+    this.db.run(`CREATE INDEX IF NOT EXISTS idx_entities_chunk ON entities(chunk_x, chunk_z)`);
+
     this.db.run(`
       CREATE TABLE IF NOT EXISTS player_stats (
         id INTEGER PRIMARY KEY DEFAULT 1,
@@ -220,7 +223,8 @@ class WorldDatabase {
     if (!this.db) return null;
 
     const result = this.db.exec(
-      `SELECT * FROM chunks WHERE chunk_x = ${chunkX} AND chunk_z = ${chunkZ}`
+      'SELECT * FROM chunks WHERE chunk_x = ? AND chunk_z = ?',
+      [chunkX, chunkZ]
     );
 
     if (result.length === 0 || result[0].values.length === 0) return null;
@@ -261,8 +265,8 @@ class WorldDatabase {
     if (!this.db) return [];
 
     const result = this.db.exec(
-      `SELECT id, type, x, y, z, health, data FROM entities
-       WHERE chunk_x = ${chunkX} AND chunk_z = ${chunkZ}`
+      'SELECT id, type, x, y, z, health, data FROM entities WHERE chunk_x = ? AND chunk_z = ?',
+      [chunkX, chunkZ]
     );
 
     if (result.length === 0) return [];
@@ -383,9 +387,9 @@ class WorldDatabase {
     // Get chunks outside radius
     const result = this.db.exec(`
       SELECT chunk_x, chunk_z FROM chunks
-      WHERE (chunk_x - ${centerX}) * (chunk_x - ${centerX}) +
-            (chunk_z - ${centerZ}) * (chunk_z - ${centerZ}) > ${radius * radius}
-    `);
+      WHERE (chunk_x - ?) * (chunk_x - ?) +
+            (chunk_z - ?) * (chunk_z - ?) > ?
+    `, [centerX, centerX, centerZ, centerZ, radius * radius]);
 
     if (result.length === 0) return;
 
@@ -405,7 +409,8 @@ class WorldDatabase {
 
     // Check if species exists
     const existing = this.db.exec(
-      `SELECT total_killed FROM alien_kills WHERE species_id = '${speciesId}'`
+      'SELECT total_killed FROM alien_kills WHERE species_id = ?',
+      [speciesId]
     );
 
     if (existing.length === 0 || existing[0].values.length === 0) {
@@ -468,7 +473,7 @@ class WorldDatabase {
     if (!this.db) return;
 
     const now = Date.now();
-    const existing = this.db.exec(`SELECT quantity FROM inventory WHERE item_id = '${itemId}'`);
+    const existing = this.db.exec('SELECT quantity FROM inventory WHERE item_id = ?', [itemId]);
 
     if (existing.length === 0 || existing[0].values.length === 0) {
       this.db.run(
@@ -530,7 +535,7 @@ class WorldDatabase {
   getQuestProgress(questId: string): QuestProgress | null {
     if (!this.db) return null;
 
-    const result = this.db.exec(`SELECT * FROM quests WHERE quest_id = '${questId}'`);
+    const result = this.db.exec('SELECT * FROM quests WHERE quest_id = ?', [questId]);
 
     if (result.length === 0 || result[0].values.length === 0) return null;
 

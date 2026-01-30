@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -16,6 +17,12 @@ async function takeScreenshot(page: Page, name: string) {
 }
 
 test.describe('Smoke Tests with Screenshots', () => {
+  test.beforeAll(() => {
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+  });
+
   test('01 - Main Menu renders correctly', async ({ page }) => {
     await page.goto('/');
 

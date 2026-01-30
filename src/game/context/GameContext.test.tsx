@@ -16,21 +16,22 @@ function TestConsumer() {
       <span data-testid="is-calibrating">{game.isCalibrating.toString()}</span>
       <span data-testid="comms">{game.currentComms?.text || 'none'}</span>
       <span data-testid="notification">{game.notification?.text || 'none'}</span>
-      <button onClick={() => game.setPlayerHealth(50)}>Set Health</button>
-      <button onClick={() => game.addKill()}>Add Kill</button>
-      <button onClick={() => game.setMissionText('New Mission')}>Set Mission</button>
-      <button onClick={() => game.setObjective('Title', 'Instructions')}>Set Objective</button>
-      <button onClick={() => game.setIsCalibrating(true)}>Start Calibrating</button>
+      <button type="button" onClick={() => game.setPlayerHealth(50)}>Set Health</button>
+      <button type="button" onClick={() => game.addKill()}>Add Kill</button>
+      <button type="button" onClick={() => game.setMissionText('New Mission')}>Set Mission</button>
+      <button type="button" onClick={() => game.setObjective('Title', 'Instructions')}>Set Objective</button>
+      <button type="button" onClick={() => game.setIsCalibrating(true)}>Start Calibrating</button>
       <button
+        type="button"
         onClick={() =>
           game.showComms({ sender: 'Test', callsign: 'TST', portrait: 'ai', text: 'Hello' })
         }
       >
         Show Comms
       </button>
-      <button onClick={() => game.hideComms()}>Hide Comms</button>
-      <button onClick={() => game.showNotification('Test notification')}>Show Notification</button>
-      <button onClick={() => game.onDamage()}>Trigger Damage</button>
+      <button type="button" onClick={() => game.hideComms()}>Hide Comms</button>
+      <button type="button" onClick={() => game.showNotification('Test notification')}>Show Notification</button>
+      <button type="button" onClick={() => game.onDamage()}>Trigger Damage</button>
     </div>
   );
 }
@@ -230,7 +231,7 @@ describe('GameContext', () => {
       function DamageTestConsumer() {
         const game = useGame();
         damageFlash = game.damageFlash;
-        return <button onClick={() => game.onDamage()}>Trigger Damage</button>;
+        return <button type="button" onClick={() => game.onDamage()}>Trigger Damage</button>;
       }
 
       render(

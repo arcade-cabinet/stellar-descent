@@ -22,7 +22,8 @@ export default class MainScene {
     this._setCamera(scene);
     this._setLight(scene);
     this._setEnvironment(scene);
-    this.loadComponents();
+    this._setPipeLine();
+    this.loadComponents().catch(console.error);
   }
 
   _setCamera(scene: Scene): void {

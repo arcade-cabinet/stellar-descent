@@ -93,6 +93,10 @@ export class CombatSystem {
         core.dispose();
         fireball.dispose();
         smoke.dispose();
+        
+        coreMat.dispose();
+        fireballMat.dispose();
+        smokeMat.dispose();
       }
     };
 
@@ -107,14 +111,22 @@ export class CombatSystem {
       if (!projectile.transform) continue;
 
       const projPos = projectile.transform.position;
-      const isAllyProjectile = projectile.tags?.ally;
-      const isPlayerProjectile = !isAllyProjectile;
+      const isAllyProjectile = projectile.tags?.ally === true;
+      const isPlayerProjectile = projectile.tags?.player === true || (!isAllyProjectile && !projectile.tags?.enemy);
+      const isEnemyProjectile = projectile.tags?.enemy === true;
 
       // Check against appropriate targets
-      const targets =
-        isPlayerProjectile || isAllyProjectile
-          ? getEntitiesInRadius(projPos, 2, (e) => e.tags?.enemy === true)
-          : getEntitiesInRadius(projPos, 2, (e) => e.tags?.player === true);
+      let targets: Entity[] = [];
+      
+      if (isPlayerProjectile || isAllyProjectile) {
+        // Player/Ally shots hit enemies
+        targets = getEntitiesInRadius(projPos, 2, (e) => e.tags?.enemy === true);
+      } else if (isEnemyProjectile) {
+        // Enemy shots hit player (handled in checkPlayerHits, but good to have symmetry here or avoid double check)
+        // checkPlayerHits handles player collision specifically.
+        // If we wanted enemy fire to hit allies (mechs), we'd add that here.
+        targets = getEntitiesInRadius(projPos, 2, (e) => e.tags?.ally === true);
+      }
 
       for (const target of targets) {
         if (!target.health || !target.transform) continue;
@@ -287,6 +299,12 @@ export class CombatSystem {
       requestAnimationFrame(animateBolt);
     };
     requestAnimationFrame(animateBolt);
+    
+    // Clean up materials when mesh is disposed
+    plasmaBolt.onDisposeObservable.add(() => {
+      coreMat.dispose();
+      glowMat.dispose();
+    });
 
     const velocity = direction.scale(enemy.combat.projectileSpeed);
 

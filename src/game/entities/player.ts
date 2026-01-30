@@ -352,35 +352,43 @@ export class Player {
 
   private setupControls(): void {
     // Keyboard controls
-    window.addEventListener('keydown', (e) => {
+    const keydownHandler = (e: KeyboardEvent) => {
       this.keysPressed.add(e.code);
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         this.isSprinting = true;
       }
-    });
+    };
+    window.addEventListener('keydown', keydownHandler);
+    this._listeners.push(() => window.removeEventListener('keydown', keydownHandler));
 
-    window.addEventListener('keyup', (e) => {
+    const keyupHandler = (e: KeyboardEvent) => {
       this.keysPressed.delete(e.code);
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         this.isSprinting = false;
       }
-    });
+    };
+    window.addEventListener('keyup', keyupHandler);
+    this._listeners.push(() => window.removeEventListener('keyup', keyupHandler));
 
     // Mouse controls
-    window.addEventListener('mousedown', (e) => {
+    const mousedownHandler = (e: MouseEvent) => {
       if (e.button === 0) {
         this.mouseDown = true;
       }
-    });
+    };
+    window.addEventListener('mousedown', mousedownHandler);
+    this._listeners.push(() => window.removeEventListener('mousedown', mousedownHandler));
 
-    window.addEventListener('mouseup', (e) => {
+    const mouseupHandler = (e: MouseEvent) => {
       if (e.button === 0) {
         this.mouseDown = false;
       }
-    });
+    };
+    window.addEventListener('mouseup', mouseupHandler);
+    this._listeners.push(() => window.removeEventListener('mouseup', mouseupHandler));
 
     // Mouse look - only when pointer is locked
-    document.addEventListener('mousemove', (e) => {
+    const mousemoveHandler = (e: MouseEvent) => {
       if (document.pointerLockElement === this.canvas && !this.isDropping) {
         const sensitivity = 0.002;
         this.rotationY += e.movementX * sensitivity;
@@ -389,21 +397,35 @@ export class Player {
         // Clamp vertical rotation
         this.rotationX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.rotationX));
       }
-    });
+    };
+    document.addEventListener('mousemove', mousemoveHandler);
+    this._listeners.push(() => document.removeEventListener('mousemove', mousemoveHandler));
 
     // Request pointer lock on click (desktop only)
     if (!this.isTouchDevice) {
-      this.canvas.addEventListener('click', () => {
+      const clickHandler = () => {
         if (!this.isDropping) {
           this.canvas.requestPointerLock();
         }
-      });
+      };
+      this.canvas.addEventListener('click', clickHandler);
+      this._listeners.push(() => this.canvas.removeEventListener('click', clickHandler));
     }
 
     // Prevent context menu
-    this.canvas.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
+    const contextMenuHandler = (e: Event) => e.preventDefault();
+    this.canvas.addEventListener('contextmenu', contextMenuHandler);
+    this._listeners.push(() => this.canvas.removeEventListener('contextmenu', contextMenuHandler));
+  }
+
+  private _listeners: (() => void)[] = [];
+
+  dispose(): void {
+    this._listeners.forEach(cleanup => cleanup());
+    this._listeners = [];
+    this.keysPressed.clear();
+    this.mesh.dispose();
+    this.weaponContainer.dispose();
   }
 
   private startHaloDrop(): void {
@@ -511,6 +533,7 @@ export class Player {
         flash.scaling.setAll(1 + progress * 0.5);
         requestAnimationFrame(animateFlash);
       } else {
+        flash.material?.dispose();
         flash.dispose();
       }
     };
@@ -557,6 +580,8 @@ export class Player {
       lifetime: {
         remaining: 2000,
         onExpire: () => {
+          laserBolt.material?.dispose(); // coreMat
+          glowShell.material?.dispose(); // glowMat
           laserBolt.dispose();
         },
       },

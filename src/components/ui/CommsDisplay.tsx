@@ -1,15 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import type { CommsMessage } from '../../game/types';
 import { getScreenInfo } from '../../game/utils/responsive';
 import styles from './CommsDisplay.module.css';
-
-// Single message interface - used by both tutorial and gameplay
-export interface CommsMessage {
-  sender: string;
-  callsign: string;
-  text: string;
-  portrait?: 'commander' | 'marcus' | 'player' | 'ai' | 'armory';
-}
 
 interface CommsDisplayProps {
   isOpen: boolean;
@@ -119,7 +112,19 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   };
 
   return (
-    <div className={styles.overlay} onClick={handleAdvance}>
+    <div 
+      className={styles.overlay} 
+      onClick={handleAdvance}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleAdvance();
+        }
+      }}
+      aria-label="Advance message"
+    >
       <div className={styles.commsPanel} onClick={(e) => e.stopPropagation()}>
         {/* Header bar */}
         <div className={styles.header}>
@@ -160,7 +165,7 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
         {/* Footer */}
         <div className={styles.footer}>
           <span className={styles.messageCounter}>INCOMING TRANSMISSION</span>
-          <button className={styles.advanceButton} onClick={handleAdvance}>
+          <button type="button" className={styles.advanceButton} onClick={handleAdvance}>
             {isTyping ? '[ SKIP ]' : '[ ACKNOWLEDGE ]'}
           </button>
         </div>

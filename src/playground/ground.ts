@@ -5,19 +5,17 @@ import type { Scene } from '@babylonjs/core/scene';
 
 export class Ground {
   constructor(private scene: Scene) {
-    this.scene = scene;
     this._createGround();
     this._createSphere();
   }
 
-  _createGround(): void {
+  private _createGround(): void {
     const mesh = MeshBuilder.CreateGround('ground', { width: 10, height: 10 }, this.scene);
     const pa = new PhysicsAggregate(mesh, PhysicsShapeType.BOX, { mass: 0 }, this.scene);
     pa.body.startAsleep = true;
-    console.log(pa);
   }
 
-  _createSphere(): void {
+  private _createSphere(): void {
     const mesh = MeshBuilder.CreateSphere('sphere', { diameter: 2, segments: 32 }, this.scene);
     mesh.position.y = 4;
 

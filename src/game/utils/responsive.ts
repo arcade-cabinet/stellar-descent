@@ -22,7 +22,8 @@ export function getScreenInfo(): ScreenInfo {
   const isFoldable =
     isTouchDevice &&
     ((width >= 700 && width <= 900 && aspectRatio < 1.5) ||
-      (height >= 700 && height <= 900 && aspectRatio < 1.5));
+      (height >= 700 && height <= 900 && aspectRatio < 1.5) ||
+      width === BREAKPOINTS.foldableOpen);
 
   let deviceType: DeviceType;
   if (isFoldable) {

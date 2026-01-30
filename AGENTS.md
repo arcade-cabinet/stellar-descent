@@ -103,6 +103,7 @@ requestAnimationFrame(animateScale);
 ## Code Style
 
 ### TypeScript
+
 ```typescript
 // Use explicit types
 function createEnemy(position: Vector3, type: EnemyType): Entity {

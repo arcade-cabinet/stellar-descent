@@ -78,13 +78,15 @@ export function TouchControls({ onInput }: TouchControlsProps) {
       look: lookDelta,
       isFiring,
       isSprinting,
+      isJumping,
+      isCrouching,
     });
 
     // Reset look delta after sending
     if (lookDelta.x !== 0 || lookDelta.y !== 0) {
       setLookDelta({ x: 0, y: 0 });
     }
-  }, [moveStick, lookDelta, isFiring, isSprinting, getJoystickOutput, onInput]);
+  }, [moveStick, lookDelta, isFiring, isSprinting, isJumping, isCrouching, getJoystickOutput, onInput]);
 
   // Movement joystick handlers
   const handleMoveStart = useCallback(
@@ -241,6 +243,7 @@ export function TouchControls({ onInput }: TouchControlsProps) {
       <div className={styles.actionButtonColumn}>
         {/* Fire Button - Large, prominent */}
         <button
+          type="button"
           className={`${styles.actionButton} ${styles.fireButton} ${isFiring ? styles.active : ''}`}
           onPointerDown={(e) => {
             e.stopPropagation();
@@ -257,6 +260,7 @@ export function TouchControls({ onInput }: TouchControlsProps) {
         <div className={styles.secondaryButtonRow}>
           {/* Jump Button */}
           <button
+            type="button"
             className={`${styles.actionButton} ${styles.smallButton} ${isJumping ? styles.active : ''}`}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -271,6 +275,7 @@ export function TouchControls({ onInput }: TouchControlsProps) {
 
           {/* Crouch Button */}
           <button
+            type="button"
             className={`${styles.actionButton} ${styles.smallButton} ${isCrouching ? styles.active : ''}`}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -286,6 +291,7 @@ export function TouchControls({ onInput }: TouchControlsProps) {
 
         {/* Sprint Button */}
         <button
+          type="button"
           className={`${styles.actionButton} ${styles.sprintButton} ${isSprinting ? styles.active : ''}`}
           onPointerDown={(e) => {
             e.stopPropagation();

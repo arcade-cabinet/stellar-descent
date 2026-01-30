@@ -125,6 +125,8 @@ export class PlanetaryTerrain {
   private terrainMaterial: StandardMaterial | null = null;
   private planetMaterial: ShaderMaterial | null = null;
   private rockTexture: Texture | null = null;
+  private groundTexture: Texture | null = null;
+  private bumpTexture: Texture | null = null;
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -138,7 +140,7 @@ export class PlanetaryTerrain {
 
   createPlanet(): void {
     // Load texture first
-    this.rockTexture = new Texture('https://assets.babylonjs.com/textures/rock.png', this.scene);
+    this.rockTexture = new Texture('/texture/rock.png', this.scene);
 
     // Create the massive planet sphere (visible during drop)
     this.planetSphere = MeshBuilder.CreateSphere(
@@ -205,15 +207,15 @@ export class PlanetaryTerrain {
     this.terrainMaterial.specularColor = new Color3(0.15, 0.12, 0.1);
     this.terrainMaterial.specularPower = 8;
 
-    const groundTex = new Texture('https://assets.babylonjs.com/textures/rock.png', this.scene);
-    groundTex.uScale = 80;
-    groundTex.vScale = 80;
-    this.terrainMaterial.diffuseTexture = groundTex;
+    this.groundTexture = new Texture('/texture/rock.png', this.scene);
+    this.groundTexture.uScale = 80;
+    this.groundTexture.vScale = 80;
+    this.terrainMaterial.diffuseTexture = this.groundTexture;
 
-    const bumpTex = new Texture('https://assets.babylonjs.com/textures/rockn.png', this.scene);
-    bumpTex.uScale = 80;
-    bumpTex.vScale = 80;
-    this.terrainMaterial.bumpTexture = bumpTex;
+    this.bumpTexture = new Texture('/texture/rockn.png', this.scene);
+    this.bumpTexture.uScale = 80;
+    this.bumpTexture.vScale = 80;
+    this.terrainMaterial.bumpTexture = this.bumpTexture;
 
     this.localTerrain.material = this.terrainMaterial;
     this.localTerrain.receiveShadows = true;
@@ -279,5 +281,7 @@ export class PlanetaryTerrain {
     this.terrainMaterial?.dispose();
     this.planetMaterial?.dispose();
     this.rockTexture?.dispose();
+    this.groundTexture?.dispose();
+    this.bumpTexture?.dispose();
   }
 }

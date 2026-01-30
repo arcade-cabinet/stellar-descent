@@ -64,6 +64,7 @@ export class GameManager {
 
     this.combatSystem.onPlayerDamage((amount) => {
       this.callbacks.onDamage();
+      // We could use 'amount' for damage numbers here
       if (this.player?.entity.health) {
         this.callbacks.onHealthChange(this.player.entity.health.current);
       }

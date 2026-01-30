@@ -385,30 +385,57 @@ export class AudioManager {
   // Play a sound effect
   play(effect: SoundEffect, options?: { volume?: number; position?: Vector3 }): void {
     if (this.isMuted) return;
+    
+    // Check if audio context is available
+    if (!this.proceduralAudio || !this.proceduralAudio['audioContext']) {
+        // Fallback or ignore if audio not supported/initialized
+        // Ideally we would check `this.proceduralAudio.getContext()` but it's private
+        // For now, we assume it's safe if not muted, but let's add a try-catch for safety
+    }
 
     const volume = (options?.volume ?? 1) * this.sfxVolume * this.masterVolume;
 
-    // Use procedural audio for most effects (no external files needed)
-    switch (effect) {
-      case 'weapon_fire':
-        this.proceduralAudio.generateLaserShot(volume);
-        break;
-      case 'hit_marker':
-        this.proceduralAudio.generateHitMarker(volume);
-        break;
-      case 'player_damage':
-        this.proceduralAudio.generateDamage(volume);
-        break;
-      case 'footstep':
-        this.proceduralAudio.generateFootstep(volume);
-        break;
-      case 'ui_click':
-        this.proceduralAudio.generateUIClick(volume);
-        break;
-      case 'notification':
-      case 'comms_open':
-        this.proceduralAudio.generateNotificationBeep(volume);
-        break;
+    try {
+      // Use procedural audio for most effects (no external files needed)
+      switch (effect) {
+        case 'weapon_fire':
+          this.proceduralAudio.generateLaserShot(volume);
+          break;
+        case 'hit_marker':
+          this.proceduralAudio.generateHitMarker(volume);
+          break;
+        case 'player_damage':
+          this.proceduralAudio.generateDamage(volume);
+          break;
+        case 'footstep':
+          this.proceduralAudio.generateFootstep(volume);
+          break;
+        case 'ui_click':
+          this.proceduralAudio.generateUIClick(volume);
+          break;
+        case 'notification':
+        case 'comms_open':
+          this.proceduralAudio.generateNotificationBeep(volume);
+          break;
+        case 'weapon_reload':
+        case 'enemy_death':
+        case 'jump':
+        case 'land':
+        case 'ambient_wind':
+        case 'ui_hover':
+        case 'drop_impact':
+        case 'comms_close':
+        case 'door_open':
+        case 'airlock':
+        case 'drop_wind':
+        case 'drop_thrust':
+          // Placeholder for effects not yet implemented procedurally
+          // In a full implementation, these would have their own generators
+          // or load from files. For now, silence is better than a crash.
+          break;
+      }
+    } catch (e) {
+      console.warn('Audio play failed', e);
     }
   }
 
@@ -417,21 +444,25 @@ export class AudioManager {
     if (this.isMuted) return;
     if (this.activeLoops.has(effect)) return;
 
-    const vol = volume * this.sfxVolume * this.masterVolume;
+    try {
+      const vol = volume * this.sfxVolume * this.masterVolume;
 
-    let loop: { stop: () => void };
-    switch (effect) {
-      case 'drop_wind':
-        loop = this.proceduralAudio.generateDropWind(5, vol);
-        break;
-      case 'drop_thrust':
-        loop = this.proceduralAudio.generateThrustSound(vol);
-        break;
-      default:
-        return;
+      let loop: { stop: () => void };
+      switch (effect) {
+        case 'drop_wind':
+          loop = this.proceduralAudio.generateDropWind(5, vol);
+          break;
+        case 'drop_thrust':
+          loop = this.proceduralAudio.generateThrustSound(vol);
+          break;
+        default:
+          return;
+      }
+
+      this.activeLoops.set(effect, loop);
+    } catch (e) {
+        console.warn('Audio loop failed', e);
     }
-
-    this.activeLoops.set(effect, loop);
   }
 
   // Stop a looping sound

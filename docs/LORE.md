@@ -38,7 +38,7 @@ Mobile deployment platforms positioned in orbit above target worlds. These massi
 ### Astronomical Data
 
 | Property | Value |
-|----------|-------|
+| :--- | :--- |
 | Designation | PCb-7 "Kepler's Promise" |
 | Star | Proxima Centauri (Red Dwarf, M5.5Ve) |
 | Distance from Earth | 4.24 light years |
@@ -49,21 +49,21 @@ Mobile deployment platforms positioned in orbit above target worlds. These massi
 
 ### Environment
 
-**Surface Conditions**
+## Surface Conditions
 - Rocky, desert terrain
 - Large canyon systems
 - Sparse vegetation (extremophile plants)
 - Frequent dust storms
 - Temperature extremes (-40°C to +30°C)
 
-**Lighting**
+## Lighting
 - Proxima Centauri is a red dwarf
 - ~65% of Earth's solar radiation
 - Perpetual "sunset" quality to light
 - High UV output (dangerous without protection)
 - Harsh shadows due to point light source
 
-**Geography**
+## Geography
 - Northern Hemisphere: Canyon lands (FOB Delta location)
 - Equatorial Region: Rocky desert (player drop zone)
 - Southern Hemisphere: Ice fields (unexplored)

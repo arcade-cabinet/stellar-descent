@@ -18,7 +18,13 @@ test.describe('Game Playthrough Screenshots', () => {
 
   test('capture main menu', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(1000); // Let canvas render
+    
+    // Wait for canvas to be ready
+    await expect(page.locator('canvas')).toBeVisible();
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('canvas');
+      return canvas && canvas.width > 0 && canvas.height > 0;
+    });
 
     await page.screenshot({
       path: path.join(screenshotsDir, '01-main-menu.png'),
@@ -34,14 +40,14 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Capture loading screen
-    await page.waitForTimeout(500);
+    await expect(page.getByText(/ANCHOR STATION PROMETHEUS/i)).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotsDir, '02-loading-screen.png'),
       fullPage: true,
     });
 
     // Wait for loading to progress
-    await expect(page.getByText(/ANCHOR STATION PROMETHEUS/i)).toBeVisible();
+    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible();
   });
 
   test('capture tutorial start - AI greeting', async ({ page }) => {

@@ -28,7 +28,7 @@ export class TerrainGenerator {
     const groundMat = new StandardMaterial('groundMat', this.scene);
 
     // Use Babylon.js texture library for rock/sand texture
-    const diffuseTex = new Texture('https://assets.babylonjs.com/textures/ground.jpg', this.scene);
+    const diffuseTex = new Texture('/texture/ground.jpg', this.scene);
     diffuseTex.uScale = 100;
     diffuseTex.vScale = 100;
     groundMat.diffuseTexture = diffuseTex;
@@ -39,7 +39,7 @@ export class TerrainGenerator {
     groundMat.specularPower = 8;
 
     // Add bump map for texture
-    const bumpTex = new Texture('https://assets.babylonjs.com/textures/rockn.png', this.scene);
+    const bumpTex = new Texture('/texture/rockn.png', this.scene);
     bumpTex.uScale = 80;
     bumpTex.vScale = 80;
     groundMat.bumpTexture = bumpTex;
@@ -64,7 +64,7 @@ export class TerrainGenerator {
     rockMat.specularColor = new Color3(0.4, 0.35, 0.3);
     rockMat.specularPower = 16;
 
-    const rockTex = new Texture('https://assets.babylonjs.com/textures/rock.png', this.scene);
+    const rockTex = new Texture('/texture/rock.png', this.scene);
     rockMat.diffuseTexture = rockTex;
 
     for (let i = 0; i < count; i++) {

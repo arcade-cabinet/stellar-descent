@@ -14,9 +14,16 @@ interface MainMenuProps {
 export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
   const [showControls, setShowControls] = useState(false);
   const [hasSave, setHasSave] = useState(false);
+  const [screenInfo, setScreenInfo] = useState(() => getScreenInfo());
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const screenInfo = getScreenInfo();
+  
   const isMobile = screenInfo.deviceType === 'mobile' || screenInfo.deviceType === 'foldable';
+
+  useEffect(() => {
+    const handleResize = () => setScreenInfo(getScreenInfo());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const checkSave = async () => {
@@ -63,6 +70,8 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
         onStart();
       } catch (err) {
         console.error('Failed to load save file', err);
+        // Alert user (simple fallback)
+        alert(`Failed to load save file: ${err instanceof Error ? err.message : String(err)}`);
       }
 
       if (fileInputRef.current) {
@@ -77,7 +86,7 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
     const data = worldDb.exportDatabase();
     if (!data) return;
 
-    const blob = new Blob([data as any], { type: 'application/x-sqlite3' });
+    const blob = new Blob([data], { type: 'application/x-sqlite3' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -193,8 +202,7 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
           className={styles.modalOverlay}
           onClick={handleCloseControls}
           onKeyDown={(e) => e.key === 'Escape' && handleCloseControls()}
-          role="button"
-          tabIndex={0}
+          role="presentation"
         >
           {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
           <div

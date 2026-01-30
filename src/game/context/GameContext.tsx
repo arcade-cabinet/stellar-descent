@@ -1,13 +1,5 @@
-import React, { createContext, type ReactNode, useCallback, useContext, useState } from 'react';
-import type { TouchInput } from '../types';
-
-// Comms message type for tutorial/story
-export interface CommsMessage {
-  sender: string;
-  callsign: string;
-  portrait: 'commander' | 'ai' | 'marcus' | 'armory';
-  text: string;
-}
+import React, { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { CommsMessage, TouchInput } from '../types';
 
 interface GameContextType {
   // Player state
@@ -79,6 +71,17 @@ export function GameProvider({ children }: GameProviderProps) {
   const [currentComms, setCurrentComms] = useState<CommsMessage | null>(null);
   const [commsDismissedFlag, setCommsDismissedFlag] = useState(0);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const damageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current);
+      if (damageTimeoutRef.current) clearTimeout(damageTimeoutRef.current);
+    };
+  }, []);
 
   const addKill = useCallback(() => {
     setKills((k) => k + 1);
@@ -92,7 +95,10 @@ export function GameProvider({ children }: GameProviderProps) {
   const showNotification = useCallback((text: string, duration = 3000) => {
     const id = Date.now();
     setNotification({ text, id });
-    setTimeout(() => {
+    
+    if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current);
+    
+    notificationTimeoutRef.current = setTimeout(() => {
       setNotification((current) => (current?.id === id ? null : current));
     }, duration);
   }, []);
@@ -108,7 +114,10 @@ export function GameProvider({ children }: GameProviderProps) {
 
   const onDamage = useCallback(() => {
     setDamageFlash(true);
-    setTimeout(() => setDamageFlash(false), 300);
+    
+    if (damageTimeoutRef.current) clearTimeout(damageTimeoutRef.current);
+    
+    damageTimeoutRef.current = setTimeout(() => setDamageFlash(false), 300);
   }, []);
 
   const value: GameContextType = {

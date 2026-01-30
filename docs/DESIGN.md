@@ -44,7 +44,7 @@ Do NOT use:
 ```css
 Primary:  'Rajdhani', sans-serif      /* UI text */
 Mono:     'Share Tech Mono', monospace /* Data/numbers */
-Display:  'Impact', sans-serif         /* Titles */
+Display:  'Black Ops One', cursive     /* Titles */
 ```
 
 ### Size Scale (Mobile Base)
@@ -80,7 +80,7 @@ XXL: 48px  - Major sections
 
 ### Buttons
 
-**Primary Button**
+## Primary Button
 ```
 Background: tokens.colors.primary.oliveDark
 Text:       tokens.colors.ui.text
@@ -89,14 +89,14 @@ Height:     50px (desktop), 48px (mobile)
 Font:       Courier New, monospace, 16px
 ```
 
-**Hover State**
+## Hover State
 ```
 Background: tokens.colors.primary.olive
 Text:       tokens.colors.accent.brass
 Transform:  scale(1.02)
 ```
 
-**Disabled State**
+## Disabled State
 ```
 Background: tokens.colors.ui.surface
 Text:       tokens.colors.ui.textMuted
@@ -224,7 +224,7 @@ linear         - Continuous animations
 
 ### Animation Examples
 
-**Button Hover**
+## Button Hover
 ```javascript
 anime({
   targets: button,
@@ -235,7 +235,7 @@ anime({
 });
 ```
 
-**Damage Flash**
+## Damage Flash
 ```javascript
 anime({
   targets: damageOverlay,
@@ -245,7 +245,7 @@ anime({
 });
 ```
 
-**Notification Entry**
+## Notification Entry
 ```javascript
 anime({
   targets: notification,

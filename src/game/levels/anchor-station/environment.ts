@@ -328,6 +328,7 @@ export function createStationEnvironment(scene: Scene): StationEnvironment {
 
   // Create holographic targets (initially invisible)
   const targets: Mesh[] = [];
+  const targetMaterials: StandardMaterial[] = [];
   const targetPositions = [
     new Vector3(-0.8, 1.8, 2.8),
     new Vector3(0.8, 1.2, 2.8),
@@ -360,6 +361,7 @@ export function createStationEnvironment(scene: Scene): StationEnvironment {
     targetRing.isVisible = false;
     targetRing.parent = root;
     allMeshes.push(targetRing);
+    targetMaterials.push(targetMat);
 
     // Center point (hit detection)
     const targetCenter = MeshBuilder.CreateDisc(
@@ -382,6 +384,7 @@ export function createStationEnvironment(scene: Scene): StationEnvironment {
     targetCenter.isVisible = false;
     targetCenter.parent = root;
     allMeshes.push(targetCenter);
+    targetMaterials.push(centerMat);
 
     targets.push(targetCenter);
     targets.push(targetRing);
@@ -884,6 +887,9 @@ export function createStationEnvironment(scene: Scene): StationEnvironment {
     }
     for (const light of lights) {
       light.dispose();
+    }
+    for (const mat of targetMaterials) {
+      mat.dispose();
     }
     disposeMaterials(materials);
     root.dispose();

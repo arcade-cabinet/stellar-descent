@@ -427,18 +427,17 @@ export function GameCanvas({
 
         scene.render();
       });
-
-      const handleResize = () => engine.resize();
-      window.addEventListener('resize', handleResize);
-
-      return () => {
-        window.removeEventListener('resize', handleResize);
-      };
     }
 
     initEngine();
 
+    const handleResize = () => {
+      if (engineRef.current) engineRef.current.resize();
+    };
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
       mounted = false;
       tutorialLevelRef.current?.dispose();
       tutorialLevelRef.current = null;
@@ -573,7 +572,6 @@ export function GameCanvas({
     hideComms,
     setObjective,
     onTutorialComplete,
-    onDropComplete,
     setIsCalibrating,
   ]);
 

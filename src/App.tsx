@@ -158,7 +158,7 @@ function GameUI() {
           <div className="gameover-content">
             <h1>MISSION FAILED</h1>
             <p>SPECTER DOWN - KIA</p>
-            <button onClick={handleRestart}>RETURN TO BASE</button>
+            <button type="button" onClick={handleRestart}>RETURN TO BASE</button>
           </div>
         </div>
       )}

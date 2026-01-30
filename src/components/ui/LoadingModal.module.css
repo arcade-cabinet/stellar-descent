@@ -142,6 +142,15 @@
   letter-spacing: 0.05em;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .statusIndicator {
+    animation: none;
+  }
+  .progressFill {
+    transition: none;
+  }
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   .modal {

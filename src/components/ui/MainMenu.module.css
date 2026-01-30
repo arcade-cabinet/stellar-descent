@@ -216,8 +216,8 @@
   letter-spacing: 0.05em;
 }
 
-.footerCenter {
-  color: #4a5d23 !important;
+.footer .footerCenter {
+  color: #4a5d23;
 }
 
 /* Modal */

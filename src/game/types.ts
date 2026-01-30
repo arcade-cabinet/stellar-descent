@@ -7,6 +7,13 @@ export interface TouchInput {
   isCrouching?: boolean;
 }
 
+export interface CommsMessage {
+  sender: string;
+  callsign: string;
+  portrait: 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
+  text: string;
+}
+
 export type DeviceType = 'mobile' | 'tablet' | 'foldable' | 'desktop';
 export type Orientation = 'portrait' | 'landscape';
 

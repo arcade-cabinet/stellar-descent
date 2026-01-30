@@ -11,7 +11,8 @@ interface HUDProps {
 
 export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
   const { notification, damageFlash } = useGame();
-  const healthPercent = (health / maxHealth) * 100;
+  
+  const healthPercent = maxHealth > 0 ? Math.max(0, Math.min(100, (health / maxHealth) * 100)) : 0;
 
   const getHealthColor = () => {
     if (healthPercent > 50) return '#4CAF50';

@@ -4,7 +4,7 @@ This document describes the technical architecture of STELLAR DESCENT: PROXIMA B
 
 ## System Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                         App.ts (Entry)                         │
 │  - Engine initialization (WebGPU/WebGL2)                       │
@@ -106,7 +106,7 @@ Physics bodies are created for:
 - `ArriveBehavior` - Ally positioning
 
 **State Machine**
-```
+```text
           ┌─────────┐
           │  IDLE   │
           └────┬────┘

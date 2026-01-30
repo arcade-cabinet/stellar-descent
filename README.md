@@ -27,7 +27,7 @@ pnpm preview
 ## Technology Stack
 
 | Technology | Version | Purpose |
-|------------|---------|---------|
+| :--- | :--- | :--- |
 | **BabylonJS** | 8.x | 3D rendering (WebGPU/WebGL2) |
 | **Havok Physics** | 1.3.x | Physics simulation |
 | **Yuka** | 0.7.x | AI steering behaviors |
@@ -81,7 +81,7 @@ pnpm preview
 
 ## Project Structure
 
-```
+```text
 src/
 ├── app.ts                 # Application entry point
 ├── css/
