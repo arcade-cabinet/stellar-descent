@@ -5,7 +5,22 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { Vehicle } from 'yuka';
+import { AssetManager, SPECIES_TO_ASSET } from '../core/AssetManager';
+import {
+  type DifficultyLevel,
+  loadDifficultySetting,
+  scaleDetectionRange,
+  scaleEnemyFireRate,
+  scaleEnemyHealth,
+} from '../core/DifficultySettings';
 import { createEntity, type Entity } from '../core/ecs';
+import { LODManager } from '../core/LODManager';
+
+// Configuration for GLB vs procedural mesh generation
+export const ALIEN_CONFIG = {
+  useGLBModels: true, // Set to false to use procedural meshes
+  glbScale: 0.5, // Scale factor for GLB models to match game units
+};
 
 // Alien species definitions - creepy, surreal, procedurally generated
 export interface AlienSpecies {
@@ -441,7 +456,7 @@ function createSpewer(
 
   // Pulsating sacs (3-5)
   const sacCount = 3 + Math.floor(random() * 3);
-  
+
   const sacMat = new StandardMaterial('sacMat', scene);
   sacMat.diffuseColor = Color3.FromHexString('#5A7A3D');
   sacMat.alpha = 0.7;
@@ -828,15 +843,74 @@ function createBroodmother(
   }
 }
 
+/**
+ * Create alien mesh using GLB model if available, falling back to procedural
+ */
+export async function createAlienMeshAsync(
+  scene: Scene,
+  species: AlienSpecies,
+  seed: number
+): Promise<TransformNode> {
+  // Try GLB model first if enabled
+  if (ALIEN_CONFIG.useGLBModels && SPECIES_TO_ASSET[species.id]) {
+    const assetName = SPECIES_TO_ASSET[species.id];
+    console.log(`[Aliens] Attempting GLB load for ${species.id} -> asset '${assetName}'`);
+
+    try {
+      const instance = await AssetManager.loadAndCreateInstance(
+        'aliens',
+        assetName,
+        `alien_${species.id}_${seed}`,
+        scene
+      );
+
+      if (instance) {
+        // Apply scale for GLB models
+        instance.scaling.setAll(ALIEN_CONFIG.glbScale);
+        console.log(
+          `[Aliens] SUCCESS: GLB instance created for ${species.id}, scale=${ALIEN_CONFIG.glbScale}`
+        );
+        return instance;
+      } else {
+        console.warn(
+          `[Aliens] GLB instance was null for ${species.id}, falling back to procedural`
+        );
+      }
+    } catch (error) {
+      console.warn(`[Aliens] Failed to load GLB for ${species.id}, using procedural:`, error);
+    }
+  } else {
+    console.log(
+      `[Aliens] Using procedural mesh for ${species.id} (useGLBModels=${ALIEN_CONFIG.useGLBModels}, hasAsset=${!!SPECIES_TO_ASSET[species.id]})`
+    );
+  }
+
+  // Fallback to procedural mesh
+  return createAlienMesh(scene, species, seed);
+}
+
 // Create an alien entity with full ECS integration
+// Stats are scaled based on current difficulty setting
 export function createAlienEntity(
   scene: Scene,
   species: AlienSpecies,
   position: Vector3,
-  seed: number = Date.now()
+  seed: number = Date.now(),
+  difficulty?: DifficultyLevel
 ): Entity {
   const mesh = createAlienMesh(scene, species, seed);
   mesh.position = position.clone();
+
+  // Apply LOD to procedural meshes - they have lots of geometry that benefits from LOD
+  LODManager.applyNativeLODToNode(mesh, 'enemy');
+
+  // Use provided difficulty or load from settings
+  const currentDifficulty = difficulty ?? loadDifficultySetting();
+
+  // Apply difficulty scaling to stats
+  const scaledHealth = scaleEnemyHealth(species.baseHealth, currentDifficulty);
+  const scaledFireRate = scaleEnemyFireRate(species.fireRate, currentDifficulty);
+  const scaledAlertRadius = scaleDetectionRange(species.alertRadius, currentDifficulty);
 
   const vehicle = new Vehicle();
   vehicle.maxSpeed = species.moveSpeed;
@@ -848,8 +922,8 @@ export function createAlienEntity(
       scale: new Vector3(1, 1, 1),
     },
     health: {
-      current: species.baseHealth,
-      max: species.baseHealth,
+      current: scaledHealth,
+      max: scaledHealth,
       regenRate: 0,
     },
     velocity: {
@@ -858,9 +932,9 @@ export function createAlienEntity(
       maxSpeed: species.moveSpeed,
     },
     combat: {
-      damage: species.baseDamage,
+      damage: species.baseDamage, // Damage scaling applied at attack time in combat system
       range: species.attackRange,
-      fireRate: species.fireRate,
+      fireRate: scaledFireRate,
       lastFire: 0,
       projectileSpeed: species.projectileSpeed,
     },
@@ -869,7 +943,7 @@ export function createAlienEntity(
       behaviors: [],
       state: 'patrol',
       target: null,
-      alertRadius: species.alertRadius,
+      alertRadius: scaledAlertRadius,
       attackRadius: species.attackRange,
     },
     renderable: {
@@ -881,6 +955,83 @@ export function createAlienEntity(
       boss: species.id === 'broodmother',
     },
     // Track alien species for stats and loot
+    alienInfo: {
+      speciesId: species.id,
+      seed,
+      xpValue: species.xpValue,
+      lootTable: species.lootTable,
+    },
+  });
+}
+
+/**
+ * Create an alien entity with GLB model support (async version)
+ * Use this for spawning aliens with high-quality GLB models
+ * Stats are scaled based on current difficulty setting
+ */
+export async function createAlienEntityAsync(
+  scene: Scene,
+  species: AlienSpecies,
+  position: Vector3,
+  seed: number = Date.now(),
+  difficulty?: DifficultyLevel
+): Promise<Entity> {
+  const mesh = await createAlienMeshAsync(scene, species, seed);
+  mesh.position = position.clone();
+
+  // Apply LOD to alien mesh - particularly important for GLB models with high poly counts
+  LODManager.applyNativeLODToNode(mesh, 'enemy');
+
+  // Use provided difficulty or load from settings
+  const currentDifficulty = difficulty ?? loadDifficultySetting();
+
+  // Apply difficulty scaling to stats
+  const scaledHealth = scaleEnemyHealth(species.baseHealth, currentDifficulty);
+  const scaledFireRate = scaleEnemyFireRate(species.fireRate, currentDifficulty);
+  const scaledAlertRadius = scaleDetectionRange(species.alertRadius, currentDifficulty);
+
+  const vehicle = new Vehicle();
+  vehicle.maxSpeed = species.moveSpeed;
+
+  return createEntity({
+    transform: {
+      position: position.clone(),
+      rotation: Vector3.Zero(),
+      scale: new Vector3(1, 1, 1),
+    },
+    health: {
+      current: scaledHealth,
+      max: scaledHealth,
+      regenRate: 0,
+    },
+    velocity: {
+      linear: Vector3.Zero(),
+      angular: Vector3.Zero(),
+      maxSpeed: species.moveSpeed,
+    },
+    combat: {
+      damage: species.baseDamage, // Damage scaling applied at attack time in combat system
+      range: species.attackRange,
+      fireRate: scaledFireRate,
+      lastFire: 0,
+      projectileSpeed: species.projectileSpeed,
+    },
+    ai: {
+      vehicle,
+      behaviors: [],
+      state: 'patrol',
+      target: null,
+      alertRadius: scaledAlertRadius,
+      attackRadius: species.attackRange,
+    },
+    renderable: {
+      mesh,
+      visible: true,
+    },
+    tags: {
+      enemy: true,
+      boss: species.id === 'broodmother',
+    },
     alienInfo: {
       speciesId: species.id,
       seed,

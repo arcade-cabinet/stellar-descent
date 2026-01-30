@@ -1,0 +1,35 @@
+# New Game Flow - Starts a new game and enters tutorial
+# Run: maestro test .maestro/flows/new-game-start.yaml
+
+appId: com.jbcom.stellardescent
+
+---
+- launchApp:
+    clearState: true
+
+- assertVisible:
+    text: "NEW GAME"
+    timeout: 10000
+
+- tapOn:
+    text: "NEW GAME"
+
+# Wait for loading screen (if present)
+- extendedWaitUntil:
+    notVisible:
+      text: "Loading"
+    timeout: 30000
+
+# Should show mission briefing or level intro
+- takeScreenshot: "game_started"
+
+# Verify HUD elements appear
+- assertVisible:
+    id: "health-bar"
+    optional: true
+    timeout: 15000
+
+- assertVisible:
+    id: "ammo-counter"
+    optional: true
+    timeout: 5000

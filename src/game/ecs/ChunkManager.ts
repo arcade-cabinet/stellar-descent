@@ -1,31 +1,39 @@
 /**
- * ChunkManager - Handles procedural loading/unloading of world chunks
+ * ChunkManager (ECS) - Handles procedural loading/unloading of world chunks
  *
  * Key features:
  * 1. Loads chunks in a radius around the player
  * 2. Unloads chunks beyond the render radius to save memory
  * 3. Persists chunk state to SQLite so visited locations don't change
  * 4. Uses deterministic seeding for reproducible generation
+ * 5. Loads actual BabylonJS meshes via AssetManager with instancing and LOD
+ * 6. Async mesh loading without blocking the main thread
+ * 7. Proper dispose() to clean up all BabylonJS resources
  */
 
-import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Scene } from '@babylonjs/core/scene';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../core/AssetManager';
+import { createEntity, type Entity, removeEntity } from '../core/ecs';
+import { LODManager } from '../core/LODManager';
 import { worldDb } from '../db/worldDatabase';
 import {
+  ALL_ASSEMBLAGES,
   type AssemblageDefinition,
+  type AssemblageEntityDef,
+  CHUNK_SIZE,
   type ChunkState,
   type EnvironmentType,
-  type PlacedAssemblage,
-  CHUNK_SIZE,
+  getAssemblagesByEnvironment,
   RENDER_RADIUS,
   UNLOAD_RADIUS,
-  getAssemblagesByEnvironment,
-  ALL_ASSEMBLAGES,
 } from './assemblages';
-import { world, createEntity, removeEntity, type Entity } from '../core/ecs';
 
-// Seeded random number generator for reproducible chunk generation
+// ---------------------------------------------------------------------------
+// Seeded PRNG for reproducible chunk generation
+// ---------------------------------------------------------------------------
+
 class SeededRandom {
   private seed: number;
 
@@ -61,7 +69,6 @@ class SeededRandom {
 
 // Hash function for generating chunk seeds
 function hashChunkCoords(x: number, z: number, worldSeed: number): number {
-  // Simple but effective hash combining coordinates with world seed
   let hash = worldSeed;
   hash = ((hash << 5) - hash + x) | 0;
   hash = ((hash << 5) - hash + z) | 0;
@@ -69,14 +76,39 @@ function hashChunkCoords(x: number, z: number, worldSeed: number): number {
   return Math.abs(hash);
 }
 
+// ---------------------------------------------------------------------------
+// Mesh load tracking per entity
+// ---------------------------------------------------------------------------
+
+interface EntityMeshBinding {
+  entity: Entity;
+  meshNode: TransformNode | null;
+  modelPath: string;
+  loadState: 'pending' | 'loading' | 'loaded' | 'failed';
+}
+
+// ---------------------------------------------------------------------------
+// Loaded chunk
+// ---------------------------------------------------------------------------
+
 interface LoadedChunk {
   x: number;
   z: number;
   state: ChunkState;
   root: TransformNode;
   entities: Entity[];
+  /** All mesh nodes owned by this chunk (disposed on unload). */
+  meshNodes: TransformNode[];
+  /** Per-entity mesh binding for lifecycle tracking. */
+  meshBindings: EntityMeshBinding[];
   lastAccessed: number;
+  /** LOD registration ids for cleanup. */
+  lodIds: string[];
 }
+
+// ---------------------------------------------------------------------------
+// ChunkManager
+// ---------------------------------------------------------------------------
 
 export class ChunkManager {
   private scene: Scene;
@@ -87,13 +119,142 @@ export class ChunkManager {
   private playerChunkX = 0;
   private playerChunkZ = 0;
   private root: TransformNode;
+  private disposed = false;
+
+  /**
+   * Set of unique model paths referenced by the current environment's assemblages.
+   * Pre-computed in `preloadAssemblageMeshes()` for efficient cache warming.
+   */
+  private preloadedPaths: Set<string> = new Set();
 
   constructor(scene: Scene, worldSeed: number, environment: EnvironmentType) {
     this.scene = scene;
     this.worldSeed = worldSeed;
     this.environment = environment;
-    this.root = new TransformNode('chunkManager', scene);
+    this.root = new TransformNode('ecsChunkManager', scene);
   }
+
+  // -----------------------------------------------------------------------
+  // Public API
+  // -----------------------------------------------------------------------
+
+  /**
+   * Pre-load all unique model assets used by the current environment's
+   * assemblage definitions. Call once after construction or after
+   * setEnvironment() to warm the AssetManager cache so that individual
+   * chunk spawns can create instances synchronously.
+   */
+  async preloadAssemblageMeshes(): Promise<void> {
+    const assemblages = getAssemblagesByEnvironment(this.environment);
+    const paths = new Set<string>();
+
+    for (const def of assemblages) {
+      for (const entDef of def.entities) {
+        const path = entDef.modelPath ?? entDef.components.structuralPiece?.modelPath;
+        if (path) {
+          paths.add(path);
+        }
+      }
+    }
+
+    // Load all unique paths in parallel via AssetManager
+    const loadPromises: Promise<unknown>[] = [];
+    for (const path of paths) {
+      if (!AssetManager.isPathCached(path)) {
+        loadPromises.push(AssetManager.loadAssetByPath(path, this.scene));
+      }
+    }
+
+    if (loadPromises.length > 0) {
+      console.log(
+        `[ECSChunkManager] Preloading ${loadPromises.length} model(s) for environment: ${this.environment}`
+      );
+      await Promise.all(loadPromises);
+    }
+
+    this.preloadedPaths = paths;
+  }
+
+  /**
+   * Update chunk loading based on player position.
+   * Call every frame or on a throttled interval.
+   */
+  async update(playerPosition: Vector3): Promise<void> {
+    if (this.disposed) return;
+
+    const playerChunk = this.worldToChunk(playerPosition);
+
+    // Only trigger load/unload when player crosses a chunk boundary
+    if (playerChunk.x !== this.playerChunkX || playerChunk.z !== this.playerChunkZ) {
+      this.playerChunkX = playerChunk.x;
+      this.playerChunkZ = playerChunk.z;
+      await this.updateLoadedChunks();
+    }
+
+    // Update last-accessed timestamp for the player's current chunk
+    const nearbyKey = this.getChunkKey(playerChunk.x, playerChunk.z);
+    const nearbyChunk = this.loadedChunks.get(nearbyKey);
+    if (nearbyChunk) {
+      nearbyChunk.lastAccessed = Date.now();
+    }
+  }
+
+  /**
+   * Force reload all chunks (e.g., after environment change).
+   */
+  async reloadAll(): Promise<void> {
+    for (const key of [...this.loadedChunks.keys()]) {
+      await this.unloadChunk(key);
+    }
+    await this.updateLoadedChunks();
+  }
+
+  /**
+   * Change environment type (e.g., entering hive from surface).
+   */
+  async setEnvironment(env: EnvironmentType): Promise<void> {
+    if (env === this.environment) return;
+
+    this.environment = env;
+    this.preloadedPaths.clear();
+    await this.preloadAssemblageMeshes();
+    await this.reloadAll();
+  }
+
+  /**
+   * Get currently loaded chunk count.
+   */
+  getLoadedChunkCount(): number {
+    return this.loadedChunks.size;
+  }
+
+  /**
+   * Check whether a specific chunk is loaded.
+   */
+  isChunkLoaded(x: number, z: number): boolean {
+    return this.loadedChunks.has(this.getChunkKey(x, z));
+  }
+
+  /**
+   * Dispose all resources. Safe to call multiple times.
+   */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+
+    for (const chunk of this.loadedChunks.values()) {
+      this.disposeChunkResources(chunk);
+    }
+    this.loadedChunks.clear();
+    this.loadingChunks.clear();
+    this.preloadedPaths.clear();
+
+    this.root.dispose();
+  }
+
+  // -----------------------------------------------------------------------
+  // Internal helpers
+  // -----------------------------------------------------------------------
 
   private getChunkKey(x: number, z: number): string {
     return `${x},${z}`;
@@ -106,32 +267,10 @@ export class ChunkManager {
     };
   }
 
-  /**
-   * Update chunk loading based on player position
-   */
-  async update(playerPosition: Vector3): Promise<void> {
-    const playerChunk = this.worldToChunk(playerPosition);
+  // -----------------------------------------------------------------------
+  // Chunk load / unload orchestration
+  // -----------------------------------------------------------------------
 
-    // Check if player has moved to a new chunk
-    if (playerChunk.x !== this.playerChunkX || playerChunk.z !== this.playerChunkZ) {
-      this.playerChunkX = playerChunk.x;
-      this.playerChunkZ = playerChunk.z;
-
-      // Trigger chunk loading/unloading
-      await this.updateLoadedChunks();
-    }
-
-    // Update last accessed time for chunks player is near
-    const nearbyKey = this.getChunkKey(playerChunk.x, playerChunk.z);
-    const nearbyChunk = this.loadedChunks.get(nearbyKey);
-    if (nearbyChunk) {
-      nearbyChunk.lastAccessed = Date.now();
-    }
-  }
-
-  /**
-   * Load chunks in render radius, unload those outside
-   */
   private async updateLoadedChunks(): Promise<void> {
     const chunksToLoad: { x: number; z: number }[] = [];
     const chunksToUnload: string[] = [];
@@ -159,19 +298,19 @@ export class ChunkManager {
       }
     }
 
-    // Unload distant chunks first (frees memory)
+    // Unload distant chunks first (frees memory for new loads)
     for (const key of chunksToUnload) {
       await this.unloadChunk(key);
     }
 
-    // Load new chunks (prioritize closer ones)
+    // Load new chunks, prioritized by distance (closest first)
     chunksToLoad.sort((a, b) => {
       const distA = Math.abs(a.x - this.playerChunkX) + Math.abs(a.z - this.playerChunkZ);
       const distB = Math.abs(b.x - this.playerChunkX) + Math.abs(b.z - this.playerChunkZ);
       return distA - distB;
     });
 
-    // Load chunks in batches to avoid frame drops
+    // Load in batches to avoid frame drops
     const BATCH_SIZE = 2;
     for (let i = 0; i < Math.min(chunksToLoad.length, BATCH_SIZE); i++) {
       const { x, z } = chunksToLoad[i];
@@ -179,9 +318,6 @@ export class ChunkManager {
     }
   }
 
-  /**
-   * Load a chunk - either from database or generate new
-   */
   private async loadChunk(x: number, z: number): Promise<void> {
     const key = this.getChunkKey(x, z);
     if (this.loadedChunks.has(key) || this.loadingChunks.has(key)) {
@@ -191,55 +327,47 @@ export class ChunkManager {
     this.loadingChunks.add(key);
 
     try {
-      // Check if chunk exists in database
+      // Try database first
       let state = await this.loadChunkState(x, z);
 
       if (!state) {
         // Generate new chunk
-        state = await this.generateChunk(x, z);
-        // Save to database
+        state = this.generateChunk(x, z);
         await this.saveChunkState(state);
       }
 
-      // Spawn the chunk in the scene
+      // Bail out if manager was disposed during async work
+      if (this.disposed) return;
+
+      // Spawn the chunk in the scene (creates ECS entities + meshes)
       const loaded = await this.spawnChunk(state);
       this.loadedChunks.set(key, loaded);
-
     } catch (error) {
-      console.error(`Failed to load chunk ${key}:`, error);
+      console.error(`[ECSChunkManager] Failed to load chunk ${key}:`, error);
     } finally {
       this.loadingChunks.delete(key);
     }
   }
 
-  /**
-   * Unload a chunk - save state and remove from scene
-   */
   private async unloadChunk(key: string): Promise<void> {
     const chunk = this.loadedChunks.get(key);
     if (!chunk) return;
 
-    // Update state with current entity states
-    await this.updateChunkState(chunk);
-
-    // Save to database
+    // Persist current runtime state before removing
+    this.updateChunkState(chunk);
     await this.saveChunkState(chunk.state);
 
-    // Remove entities from ECS
-    for (const entity of chunk.entities) {
-      removeEntity(entity);
-    }
-
-    // Dispose scene objects
-    chunk.root.dispose();
+    // Dispose all BabylonJS + ECS resources
+    this.disposeChunkResources(chunk);
 
     this.loadedChunks.delete(key);
   }
 
-  /**
-   * Generate a new chunk using seeded random and assemblages
-   */
-  private async generateChunk(x: number, z: number): Promise<ChunkState> {
+  // -----------------------------------------------------------------------
+  // Chunk generation
+  // -----------------------------------------------------------------------
+
+  private generateChunk(x: number, z: number): ChunkState {
     const seed = hashChunkCoords(x, z, this.worldSeed);
     const rng = new SeededRandom(seed);
 
@@ -258,23 +386,17 @@ export class ChunkManager {
       fullyExplored: false,
     };
 
-    // Get available assemblages for this environment
     const available = getAssemblagesByEnvironment(this.environment);
-
     if (available.length === 0) {
-      console.warn(`No assemblages for environment: ${this.environment}`);
+      console.warn(`[ECSChunkManager] No assemblages for environment: ${this.environment}`);
       return state;
     }
 
-    // Simple generation: place assemblages based on environment type
     if (this.environment === 'station_interior') {
-      // Interior: corridor-based layout
       this.generateInteriorLayout(state, rng, available);
     } else if (this.environment === 'surface_rocky') {
-      // Exterior: terrain with scattered features
       this.generateExteriorLayout(state, rng, available);
     } else if (this.environment === 'hive_organic') {
-      // Hive: tunnel network
       this.generateHiveLayout(state, rng, available);
     }
 
@@ -286,16 +408,13 @@ export class ChunkManager {
     rng: SeededRandom,
     available: AssemblageDefinition[]
   ): void {
-    // For interior, create a corridor network
-    const corridors = available.filter(a =>
-      a.type.startsWith('corridor') || a.type === 'airlock'
+    const corridors = available.filter(
+      (a) => a.type.startsWith('corridor') || a.type === 'airlock'
     );
-
     if (corridors.length === 0) return;
 
-    // Place 2-4 assemblages per chunk
     const count = rng.nextInt(2, 4);
-    const gridSize = CHUNK_SIZE / 4; // 8 grid cells per chunk
+    const gridSize = CHUNK_SIZE / 4;
 
     for (let i = 0; i < count; i++) {
       const assemblage = rng.pick(corridors);
@@ -308,7 +427,7 @@ export class ChunkManager {
         gridX,
         gridZ,
         rotation,
-        entityIds: [], // Will be filled when spawned
+        entityIds: [],
       });
     }
   }
@@ -318,8 +437,7 @@ export class ChunkManager {
     rng: SeededRandom,
     available: AssemblageDefinition[]
   ): void {
-    // Always have base terrain
-    const terrains = available.filter(a => a.type.startsWith('terrain'));
+    const terrains = available.filter((a) => a.type.startsWith('terrain'));
     if (terrains.length > 0) {
       state.assemblages.push({
         type: 'terrain_flat',
@@ -330,18 +448,14 @@ export class ChunkManager {
       });
     }
 
-    // Add rock clusters randomly
-    const rocks = available.filter(a => a.type === 'rock_cluster');
+    const rocks = available.filter((a) => a.type === 'rock_cluster');
     if (rocks.length > 0) {
       const rockCount = rng.nextInt(0, 5);
       for (let i = 0; i < rockCount; i++) {
-        const gridX = rng.nextInt(0, 6);
-        const gridZ = rng.nextInt(0, 6);
-
         state.assemblages.push({
           type: 'rock_cluster',
-          gridX,
-          gridZ,
+          gridX: rng.nextInt(0, 6),
+          gridZ: rng.nextInt(0, 6),
           rotation: rng.pick([0, 90, 180, 270]) as 0 | 90 | 180 | 270,
           entityIds: [],
         });
@@ -354,13 +468,11 @@ export class ChunkManager {
     rng: SeededRandom,
     available: AssemblageDefinition[]
   ): void {
-    const tunnels = available.filter(a =>
-      a.type.startsWith('tunnel') || a.type === 'egg_chamber'
+    const tunnels = available.filter(
+      (a) => a.type.startsWith('tunnel') || a.type === 'egg_chamber'
     );
-
     if (tunnels.length === 0) return;
 
-    // Hives are more connected - create a branching network
     const count = rng.nextInt(1, 3);
     const gridSize = CHUNK_SIZE / 4;
 
@@ -379,31 +491,35 @@ export class ChunkManager {
     }
   }
 
-  /**
-   * Spawn chunk entities in the scene
-   */
+  // -----------------------------------------------------------------------
+  // Chunk spawning - creates ECS entities AND BabylonJS meshes
+  // -----------------------------------------------------------------------
+
   private async spawnChunk(state: ChunkState): Promise<LoadedChunk> {
     const chunkRoot = new TransformNode(
       `chunk_${state.chunkX}_${state.chunkZ}`,
       this.scene
     );
     chunkRoot.parent = this.root;
-
-    // Position chunk in world space
     chunkRoot.position.x = state.chunkX * CHUNK_SIZE;
     chunkRoot.position.z = state.chunkZ * CHUNK_SIZE;
 
     const entities: Entity[] = [];
+    const meshNodes: TransformNode[] = [];
+    const meshBindings: EntityMeshBinding[] = [];
+    const lodIds: string[] = [];
 
-    // Spawn each assemblage
+    // Collect all mesh-load promises so we can await them together
+    const meshLoadPromises: Promise<void>[] = [];
+
     for (const placed of state.assemblages) {
       const def = ALL_ASSEMBLAGES[placed.type];
       if (!def) {
-        console.warn(`Unknown assemblage type: ${placed.type}`);
+        console.warn(`[ECSChunkManager] Unknown assemblage type: ${placed.type}`);
         continue;
       }
 
-      // Create assemblage root
+      // Create assemblage root node
       const assembRoot = new TransformNode(
         `assem_${placed.type}_${placed.gridX}_${placed.gridZ}`,
         this.scene
@@ -412,8 +528,9 @@ export class ChunkManager {
       assembRoot.position.x = placed.gridX * 4;
       assembRoot.position.z = placed.gridZ * 4;
       assembRoot.rotation.y = (placed.rotation * Math.PI) / 180;
+      meshNodes.push(assembRoot);
 
-      // Spawn entities from assemblage definition
+      // Spawn entities from the assemblage definition
       for (const entDef of def.entities) {
         const entity = createEntity({
           ...entDef.components,
@@ -426,9 +543,37 @@ export class ChunkManager {
         placed.entityIds.push(entity.id);
         entities.push(entity);
 
-        // TODO: Load actual mesh from modelPath
-        // For now, just create placeholder
+        // Determine the model path
+        const modelPath =
+          entDef.modelPath ?? entDef.components.structuralPiece?.modelPath ?? '';
+
+        const binding: EntityMeshBinding = {
+          entity,
+          meshNode: null,
+          modelPath,
+          loadState: modelPath ? 'pending' : 'failed',
+        };
+        meshBindings.push(binding);
+
+        if (modelPath) {
+          // Schedule async mesh load
+          meshLoadPromises.push(
+            this.loadEntityMesh(
+              binding,
+              entDef,
+              assembRoot,
+              meshNodes,
+              lodIds,
+              state
+            )
+          );
+        }
       }
+    }
+
+    // Await all mesh loads in parallel (non-blocking batched)
+    if (meshLoadPromises.length > 0) {
+      await Promise.all(meshLoadPromises);
     }
 
     return {
@@ -437,17 +582,169 @@ export class ChunkManager {
       state,
       root: chunkRoot,
       entities,
+      meshNodes,
+      meshBindings,
       lastAccessed: Date.now(),
+      lodIds,
     };
   }
 
   /**
-   * Update chunk state from current entity states (for persistence)
+   * Load and create a mesh instance for a single entity.
+   *
+   * Uses AssetManager.createInstanceByPath (synchronous if pre-loaded) or
+   * falls back to loadAssetByPath + createInstanceByPath if the asset was
+   * not pre-loaded yet.
    */
-  private async updateChunkState(chunk: LoadedChunk): Promise<void> {
+  private async loadEntityMesh(
+    binding: EntityMeshBinding,
+    entDef: AssemblageEntityDef,
+    parentNode: TransformNode,
+    meshNodes: TransformNode[],
+    lodIds: string[],
+    chunkState: ChunkState
+  ): Promise<void> {
+    const { entity, modelPath } = binding;
+    if (!modelPath) return;
+
+    binding.loadState = 'loading';
+
+    try {
+      // Ensure the asset is cached
+      if (!AssetManager.isPathCached(modelPath)) {
+        await AssetManager.loadAssetByPath(modelPath, this.scene);
+      }
+
+      // Bail if disposed during async load
+      if (this.disposed) return;
+
+      // Determine appropriate LOD category based on entity type
+      const lodCategory = this.getLODCategoryForEntity(entDef);
+
+      // Create an instance from the cached source
+      const instanceName = `mesh_${entity.id}`;
+      const meshNode = AssetManager.createInstanceByPath(
+        modelPath,
+        instanceName,
+        this.scene,
+        true, // apply LOD
+        lodCategory
+      );
+
+      if (!meshNode) {
+        binding.loadState = 'failed';
+        return;
+      }
+
+      // Apply the entity definition's local transform
+      meshNode.parent = parentNode;
+
+      if (entDef.position) {
+        meshNode.position = new Vector3(
+          entDef.position.x,
+          entDef.position.y,
+          entDef.position.z
+        );
+      }
+
+      if (entDef.rotation) {
+        meshNode.rotation = new Vector3(
+          entDef.rotation.x,
+          entDef.rotation.y,
+          entDef.rotation.z
+        );
+      }
+
+      if (entDef.scale !== undefined) {
+        const s = entDef.scale;
+        meshNode.scaling = new Vector3(s, s, s);
+      }
+
+      // Enable collisions and shadows on instanced meshes
+      this.configureMeshPhysics(meshNode, entDef);
+
+      // Register with LODManager for distance-based quality management
+      const lodId = `chunk_${chunkState.chunkX}_${chunkState.chunkZ}_${entity.id}`;
+      LODManager.registerMesh(lodId, meshNode, lodCategory, false).catch(() => {
+        // Non-critical -- LODManager registration can fail if node has no geometry
+      });
+      lodIds.push(lodId);
+
+      // Bind mesh to entity renderable component
+      entity.renderable = {
+        mesh: meshNode,
+        visible: true,
+      };
+
+      // Apply transform component from definition if not already set
+      if (!entity.transform && entDef.position) {
+        const absPos = meshNode.getAbsolutePosition();
+        entity.transform = {
+          position: absPos,
+          rotation: meshNode.rotation.clone(),
+          scale: meshNode.scaling.clone(),
+        };
+      }
+
+      binding.meshNode = meshNode;
+      binding.loadState = 'loaded';
+      meshNodes.push(meshNode);
+    } catch (error) {
+      console.warn(
+        `[ECSChunkManager] Failed to load mesh for entity ${entity.id} (${modelPath}):`,
+        error
+      );
+      binding.loadState = 'failed';
+    }
+  }
+
+  /**
+   * Determine the LOD category from the entity type in the assemblage definition.
+   */
+  private getLODCategoryForEntity(entDef: AssemblageEntityDef): string {
+    switch (entDef.type) {
+      case 'structural':
+        return 'environment';
+      case 'prop':
+        return 'prop';
+      case 'light':
+        return 'decoration';
+      case 'door':
+        return 'environment';
+      case 'trigger':
+      case 'spawn':
+        return 'decoration';
+      default:
+        return 'prop';
+    }
+  }
+
+  /**
+   * Configure collision and shadow reception on instanced meshes.
+   */
+  private configureMeshPhysics(
+    meshNode: TransformNode,
+    entDef: AssemblageEntityDef
+  ): void {
+    const isStructural = entDef.type === 'structural' || entDef.type === 'door';
+    const childMeshes = meshNode.getChildMeshes(false);
+
+    for (const child of childMeshes) {
+      if (isStructural) {
+        child.checkCollisions = true;
+      }
+      child.receiveShadows = true;
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Chunk state persistence
+  // -----------------------------------------------------------------------
+
+  private updateChunkState(chunk: LoadedChunk): void {
     chunk.state.lastVisited = Date.now();
 
-    // Update door states
+    // Doors
     chunk.state.doors = [];
     for (const entity of chunk.entities) {
       if (entity.door) {
@@ -458,23 +755,25 @@ export class ChunkManager {
       }
     }
 
-    // Update enemy states
+    // Enemies
     chunk.state.enemies = [];
     for (const entity of chunk.entities) {
       if (entity.tags?.enemy && entity.health) {
         chunk.state.enemies.push({
           entityId: entity.id,
           dead: entity.health.current <= 0,
-          position: entity.transform ? {
-            x: entity.transform.position.x,
-            y: entity.transform.position.y,
-            z: entity.transform.position.z,
-          } : undefined,
+          position: entity.transform
+            ? {
+                x: entity.transform.position.x,
+                y: entity.transform.position.y,
+                z: entity.transform.position.z,
+              }
+            : undefined,
         });
       }
     }
 
-    // Update loot states
+    // Loot
     chunk.state.loot = [];
     for (const entity of chunk.entities) {
       if (entity.prop?.contents) {
@@ -485,7 +784,7 @@ export class ChunkManager {
       }
     }
 
-    // Update trigger states
+    // Triggers
     chunk.state.triggers = [];
     for (const entity of chunk.entities) {
       if (entity.triggerZone) {
@@ -497,9 +796,6 @@ export class ChunkManager {
     }
   }
 
-  /**
-   * Load chunk state from SQLite
-   */
   private async loadChunkState(x: number, z: number): Promise<ChunkState | null> {
     try {
       const key = `chunk_${this.environment}_${x}_${z}`;
@@ -508,65 +804,57 @@ export class ChunkManager {
         return JSON.parse(data) as ChunkState;
       }
     } catch (error) {
-      console.warn(`Failed to load chunk state: ${error}`);
+      console.warn(`[ECSChunkManager] Failed to load chunk state: ${error}`);
     }
     return null;
   }
 
-  /**
-   * Save chunk state to SQLite
-   */
   private async saveChunkState(state: ChunkState): Promise<void> {
     try {
       const key = `chunk_${this.environment}_${state.chunkX}_${state.chunkZ}`;
-      const data = JSON.stringify(state);
-      worldDb.setChunkData(key, data);
+      worldDb.setChunkData(key, JSON.stringify(state));
     } catch (error) {
-      console.warn(`Failed to save chunk state: ${error}`);
+      console.warn(`[ECSChunkManager] Failed to save chunk state: ${error}`);
     }
   }
 
+  // -----------------------------------------------------------------------
+  // Resource cleanup
+  // -----------------------------------------------------------------------
+
   /**
-   * Force reload all chunks (e.g., after environment change)
+   * Dispose all BabylonJS and ECS resources owned by a chunk.
    */
-  async reloadAll(): Promise<void> {
-    // Unload all current chunks
-    for (const key of [...this.loadedChunks.keys()]) {
-      await this.unloadChunk(key);
+  private disposeChunkResources(chunk: LoadedChunk): void {
+    // Unregister all LOD tracked meshes
+    for (const lodId of chunk.lodIds) {
+      LODManager.unregisterMesh(lodId);
     }
 
-    // Reload around player
-    await this.updateLoadedChunks();
-  }
+    // Remove ECS entities (this also disposes their renderable.mesh via removeEntity)
+    for (const entity of chunk.entities) {
+      removeEntity(entity);
+    }
 
-  /**
-   * Change environment type (e.g., entering hive from surface)
-   */
-  async setEnvironment(env: EnvironmentType): Promise<void> {
-    if (env === this.environment) return;
-
-    this.environment = env;
-    await this.reloadAll();
-  }
-
-  /**
-   * Get currently loaded chunk count
-   */
-  getLoadedChunkCount(): number {
-    return this.loadedChunks.size;
-  }
-
-  /**
-   * Dispose all resources
-   */
-  dispose(): void {
-    for (const chunk of this.loadedChunks.values()) {
-      for (const entity of chunk.entities) {
-        removeEntity(entity);
+    // Dispose all mesh nodes that might not have been disposed by removeEntity
+    // (e.g., assemblage root nodes, parent TransformNodes).
+    // We iterate in reverse to dispose children before parents.
+    for (let i = chunk.meshNodes.length - 1; i >= 0; i--) {
+      const node = chunk.meshNodes[i];
+      if (!node.isDisposed()) {
+        node.dispose(false, true);
       }
-      chunk.root.dispose();
     }
-    this.loadedChunks.clear();
-    this.root.dispose();
+
+    // Dispose chunk root
+    if (!chunk.root.isDisposed()) {
+      chunk.root.dispose(false, true);
+    }
+
+    // Clear references
+    chunk.entities.length = 0;
+    chunk.meshNodes.length = 0;
+    chunk.meshBindings.length = 0;
+    chunk.lodIds.length = 0;
   }
 }

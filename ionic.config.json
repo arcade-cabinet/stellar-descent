@@ -1,0 +1,7 @@
+{
+  "name": "stellar-descent",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

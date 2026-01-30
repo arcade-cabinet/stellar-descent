@@ -5,6 +5,24 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+
+  /* Colorblind-aware color defaults - overridden by JS based on settings */
+  --cb-health-high: #4caf50;
+  --cb-health-medium: #ff9800;
+  --cb-health-low: #f44336;
+  --cb-enemy: #f44336;
+  --cb-friendly: #4da6ff;
+  --cb-neutral: #a0a0a0;
+  --cb-primary: #b5a642;
+  --cb-warning: #ff9800;
+  --cb-objective: #ffd700;
+  --cb-success: #4caf50;
+  --cb-crosshair-default: rgba(255, 255, 255, 0.9);
+  --cb-crosshair-hover: #ffbf00;
+  --cb-crosshair-hit: #ff4444;
+  --cb-ammo-normal: #e8e8e8;
+  --cb-ammo-low: #ff6b35;
+  --cb-compass-cardinal: #ffbf00;
 }
 
 * {
@@ -232,3 +250,6 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Note: Colorblind mode styles, high contrast, shape indicators, pattern indicators,
+   and reduced flashing styles are now in colorblind.css for better organization */

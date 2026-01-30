@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSubtitles } from '../../game/context/SubtitleContext';
 import { getAudioManager } from '../../game/core/AudioManager';
 import type { CommsMessage } from '../../game/types';
 import { getScreenInfo } from '../../game/utils/responsive';
@@ -15,6 +17,9 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   const [isTyping, setIsTyping] = useState(false);
   const screenInfo = getScreenInfo();
   const hasPlayedSound = useRef(false);
+
+  // Get subtitle settings for accessibility font size
+  const { settings: subtitleSettings, fontSizePx } = useSubtitles();
 
   // Play comms open sound when message appears
   useEffect(() => {
@@ -112,8 +117,8 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   };
 
   return (
-    <div 
-      className={styles.overlay} 
+    <div
+      className={styles.overlay}
       onClick={handleAdvance}
       role="button"
       tabIndex={0}
@@ -153,9 +158,18 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
             </div>
           </div>
 
-          {/* Message */}
+          {/* Message with accessibility subtitle support */}
           <div className={styles.messageContainer}>
-            <div className={styles.messageText}>
+            <div
+              className={styles.messageText}
+              style={
+                subtitleSettings.enabled
+                  ? ({ '--subtitle-font-size': `${fontSizePx}px` } as React.CSSProperties)
+                  : undefined
+              }
+              aria-live="polite"
+              aria-atomic="false"
+            >
               {typedText}
               {isTyping && <span className={styles.cursor}>|</span>}
             </div>

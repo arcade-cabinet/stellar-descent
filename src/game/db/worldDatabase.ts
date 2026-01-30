@@ -1,4 +1,9 @@
 import initSqlJs, { type Database } from 'sql.js';
+import {
+  clearSavedDatabase,
+  loadDatabaseFromIndexedDB,
+  persistenceManager,
+} from './IndexedDBPersistence';
 
 export interface ChunkData {
   chunkX: number;
@@ -50,17 +55,76 @@ export interface QuestProgress {
 class WorldDatabase {
   private db: Database | null = null;
   private initialized = false;
+  private SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
 
   async init(): Promise<void> {
     if (this.initialized) return;
 
-    const SQL = await initSqlJs({
+    this.SQL = await initSqlJs({
       locateFile: (file: string) => `${import.meta.env.BASE_URL}${file}`,
     });
 
-    this.db = new SQL.Database();
+    // Try to load existing database from IndexedDB
+    const savedData = await loadDatabaseFromIndexedDB();
+    if (savedData) {
+      console.log('[WorldDatabase] Loading saved database from IndexedDB');
+      this.db = new this.SQL.Database(savedData);
+      this.initialized = true;
+      return;
+    }
 
-    // Create tables
+    // No saved data - create fresh database
+    console.log('[WorldDatabase] Creating new database');
+    this.db = new this.SQL.Database();
+    this.createTables();
+    this.initialized = true;
+  }
+
+  exportDatabase(): Uint8Array | null {
+    if (!this.db) return null;
+    return this.db.export();
+  }
+
+  async importDatabase(data: Uint8Array): Promise<void> {
+    if (this.db) {
+      this.db.close();
+    }
+    if (!this.SQL) {
+      this.SQL = await initSqlJs({
+        locateFile: (file: string) => `${import.meta.env.BASE_URL}${file}`,
+      });
+    }
+    this.db = new this.SQL.Database(data);
+    this.initialized = true;
+    // Persist to IndexedDB
+    await this.persistToIndexedDB();
+  }
+
+  async resetDatabase(): Promise<void> {
+    if (this.db) {
+      this.db.close();
+    }
+    // Clear IndexedDB as well
+    await clearSavedDatabase();
+    this.initialized = false;
+    this.db = null;
+    // Force fresh database creation by not loading from IndexedDB
+    if (!this.SQL) {
+      this.SQL = await initSqlJs({
+        locateFile: (file: string) => `${import.meta.env.BASE_URL}${file}`,
+      });
+    }
+    this.db = new this.SQL.Database();
+    await this.createTables();
+    this.initialized = true;
+  }
+
+  /**
+   * Create all database tables - extracted for reuse
+   */
+  private createTables(): void {
+    if (!this.db) return;
+
     this.db.run(`
       CREATE TABLE IF NOT EXISTS chunks (
         chunk_x INTEGER,
@@ -89,7 +153,6 @@ class WorldDatabase {
       )
     `);
 
-    // Add index for faster chunk queries
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_entities_chunk ON entities(chunk_x, chunk_z)`);
 
     this.db.run(`
@@ -105,10 +168,8 @@ class WorldDatabase {
       )
     `);
 
-    // Initialize player stats if not exists
     this.db.run(`INSERT OR IGNORE INTO player_stats (id) VALUES (1)`);
 
-    // Alien kill stats table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS alien_kills (
         species_id TEXT PRIMARY KEY,
@@ -120,7 +181,6 @@ class WorldDatabase {
       )
     `);
 
-    // Inventory table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS inventory (
         item_id TEXT PRIMARY KEY,
@@ -129,7 +189,6 @@ class WorldDatabase {
       )
     `);
 
-    // Quest progress table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS quests (
         quest_id TEXT PRIMARY KEY,
@@ -141,7 +200,6 @@ class WorldDatabase {
       )
     `);
 
-    // Tutorial completion tracking
     this.db.run(`
       CREATE TABLE IF NOT EXISTS tutorial_progress (
         id INTEGER PRIMARY KEY DEFAULT 1,
@@ -152,8 +210,6 @@ class WorldDatabase {
     `);
     this.db.run(`INSERT OR IGNORE INTO tutorial_progress (id) VALUES (1)`);
 
-    // Chunk state storage for procedural generation persistence
-    // Uses string keys like "chunk_station_interior_0_0" to store full ChunkState JSON
     this.db.run(`
       CREATE TABLE IF NOT EXISTS chunk_data (
         key TEXT PRIMARY KEY,
@@ -162,31 +218,43 @@ class WorldDatabase {
       )
     `);
 
-    this.initialized = true;
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS level_completion (
+        level_id TEXT PRIMARY KEY,
+        completed INTEGER DEFAULT 0,
+        completed_at INTEGER,
+        best_time_seconds REAL,
+        total_kills INTEGER DEFAULT 0
+      )
+    `);
   }
 
-  exportDatabase(): Uint8Array | null {
-    if (!this.db) return null;
-    return this.db.export();
+  /**
+   * Persist the current database to IndexedDB
+   * Uses debounced persistence manager for efficiency
+   */
+  persistToIndexedDB(): void {
+    if (!this.db) return;
+    const data = this.db.export();
+    persistenceManager.scheduleSave(data);
   }
 
-  async importDatabase(data: Uint8Array): Promise<void> {
-    if (this.db) {
-      this.db.close();
-    }
-    const SQL = await initSqlJs({
-      locateFile: (file: string) => `${import.meta.env.BASE_URL}${file}`,
-    });
-    this.db = new SQL.Database(data);
-    this.initialized = true;
+  /**
+   * Force immediate persistence to IndexedDB
+   * Use sparingly - prefer persistToIndexedDB() for normal operations
+   */
+  async persistNow(): Promise<void> {
+    if (!this.db) return;
+    const data = this.db.export();
+    await persistenceManager.saveNow(data);
   }
 
-  async resetDatabase(): Promise<void> {
-    if (this.db) {
-      this.db.close();
-    }
-    this.initialized = false;
-    await this.init();
+  /**
+   * Flush any pending persistence operations
+   * Call before app unload to ensure data is saved
+   */
+  async flushPersistence(): Promise<void> {
+    await persistenceManager.flush();
   }
 
   hasSaveData(): boolean {
@@ -232,10 +300,10 @@ class WorldDatabase {
   getChunk(chunkX: number, chunkZ: number): ChunkData | null {
     if (!this.db) return null;
 
-    const result = this.db.exec(
-      'SELECT * FROM chunks WHERE chunk_x = ? AND chunk_z = ?',
-      [chunkX, chunkZ]
-    );
+    const result = this.db.exec('SELECT * FROM chunks WHERE chunk_x = ? AND chunk_z = ?', [
+      chunkX,
+      chunkZ,
+    ]);
 
     if (result.length === 0 || result[0].values.length === 0) return null;
 
@@ -395,11 +463,14 @@ class WorldDatabase {
     if (!this.db) return;
 
     // Get chunks outside radius
-    const result = this.db.exec(`
+    const result = this.db.exec(
+      `
       SELECT chunk_x, chunk_z FROM chunks
       WHERE (chunk_x - ?) * (chunk_x - ?) +
             (chunk_z - ?) * (chunk_z - ?) > ?
-    `, [centerX, centerX, centerZ, centerZ, radius * radius]);
+    `,
+      [centerX, centerX, centerZ, centerZ, radius * radius]
+    );
 
     if (result.length === 0) return;
 
@@ -418,10 +489,9 @@ class WorldDatabase {
     const now = Date.now();
 
     // Check if species exists
-    const existing = this.db.exec(
-      'SELECT total_killed FROM alien_kills WHERE species_id = ?',
-      [speciesId]
-    );
+    const existing = this.db.exec('SELECT total_killed FROM alien_kills WHERE species_id = ?', [
+      speciesId,
+    ]);
 
     if (existing.length === 0 || existing[0].values.length === 0) {
       // First kill of this species
@@ -644,10 +714,11 @@ class WorldDatabase {
   setChunkData(key: string, data: string): void {
     if (!this.db) return;
 
-    this.db.run(
-      `INSERT OR REPLACE INTO chunk_data (key, data, updated_at) VALUES (?, ?, ?)`,
-      [key, data, Date.now()]
-    );
+    this.db.run(`INSERT OR REPLACE INTO chunk_data (key, data, updated_at) VALUES (?, ?, ?)`, [
+      key,
+      data,
+      Date.now(),
+    ]);
   }
 
   /**
@@ -665,10 +736,9 @@ class WorldDatabase {
   getChunkKeysByEnvironment(environment: string): string[] {
     if (!this.db) return [];
 
-    const result = this.db.exec(
-      `SELECT key FROM chunk_data WHERE key LIKE ?`,
-      [`chunk_${environment}_%`]
-    );
+    const result = this.db.exec(`SELECT key FROM chunk_data WHERE key LIKE ?`, [
+      `chunk_${environment}_%`,
+    ]);
 
     if (result.length === 0) return [];
 
@@ -714,6 +784,140 @@ class WorldDatabase {
     }
 
     return { totalChunks: total, byEnvironment };
+  }
+
+  // ============================================================================
+  // LEVEL COMPLETION TRACKING
+  // ============================================================================
+
+  /**
+   * Mark a level as completed
+   * @param levelId The level ID to mark as completed
+   * @param stats Optional stats to record (time, kills)
+   */
+  completeLevel(levelId: string, stats?: { timeSeconds?: number; kills?: number }): void {
+    if (!this.db) return;
+
+    const now = Date.now();
+
+    // Check if level already has a record
+    const existing = this.db.exec(
+      'SELECT best_time_seconds FROM level_completion WHERE level_id = ?',
+      [levelId]
+    );
+
+    if (existing.length === 0 || existing[0].values.length === 0) {
+      // First completion
+      this.db.run(
+        `INSERT INTO level_completion (level_id, completed, completed_at, best_time_seconds, total_kills)
+         VALUES (?, 1, ?, ?, ?)`,
+        [levelId, now, stats?.timeSeconds ?? null, stats?.kills ?? 0]
+      );
+    } else {
+      // Update existing - keep best time
+      const currentBestTime = existing[0].values[0][0] as number | null;
+      const newTime = stats?.timeSeconds ?? null;
+      const bestTime =
+        newTime !== null && (currentBestTime === null || newTime < currentBestTime)
+          ? newTime
+          : currentBestTime;
+
+      this.db.run(
+        `UPDATE level_completion SET
+         completed = 1,
+         completed_at = ?,
+         best_time_seconds = ?,
+         total_kills = total_kills + ?
+         WHERE level_id = ?`,
+        [now, bestTime, stats?.kills ?? 0, levelId]
+      );
+    }
+  }
+
+  /**
+   * Check if a level has been completed
+   */
+  isLevelCompleted(levelId: string): boolean {
+    if (!this.db) return false;
+
+    const result = this.db.exec('SELECT completed FROM level_completion WHERE level_id = ?', [
+      levelId,
+    ]);
+
+    if (result.length === 0 || result[0].values.length === 0) return false;
+    return result[0].values[0][0] === 1;
+  }
+
+  /**
+   * Get all completed level IDs
+   */
+  getCompletedLevels(): string[] {
+    if (!this.db) return [];
+
+    const result = this.db.exec('SELECT level_id FROM level_completion WHERE completed = 1');
+
+    if (result.length === 0) return [];
+    return result[0].values.map((row) => row[0] as string);
+  }
+
+  /**
+   * Get level completion stats
+   */
+  getLevelStats(levelId: string): {
+    completed: boolean;
+    completedAt: number | null;
+    bestTimeSeconds: number | null;
+    totalKills: number;
+  } | null {
+    if (!this.db) return null;
+
+    const result = this.db.exec(
+      'SELECT completed, completed_at, best_time_seconds, total_kills FROM level_completion WHERE level_id = ?',
+      [levelId]
+    );
+
+    if (result.length === 0 || result[0].values.length === 0) return null;
+
+    const row = result[0].values[0];
+    return {
+      completed: row[0] === 1,
+      completedAt: row[1] as number | null,
+      bestTimeSeconds: row[2] as number | null,
+      totalKills: row[3] as number,
+    };
+  }
+
+  /**
+   * Get all level stats for display
+   */
+  getAllLevelStats(): Map<
+    string,
+    {
+      completed: boolean;
+      completedAt: number | null;
+      bestTimeSeconds: number | null;
+      totalKills: number;
+    }
+  > {
+    const stats = new Map();
+    if (!this.db) return stats;
+
+    const result = this.db.exec(
+      'SELECT level_id, completed, completed_at, best_time_seconds, total_kills FROM level_completion'
+    );
+
+    if (result.length === 0) return stats;
+
+    for (const row of result[0].values) {
+      stats.set(row[0] as string, {
+        completed: row[1] === 1,
+        completedAt: row[2] as number | null,
+        bestTimeSeconds: row[3] as number | null,
+        totalKills: row[4] as number,
+      });
+    }
+
+    return stats;
   }
 }
 

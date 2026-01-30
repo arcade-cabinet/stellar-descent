@@ -20,33 +20,53 @@ export const UNLOAD_RADIUS = 5; // Chunks to keep in memory before unloading
 // ============================================================================
 
 export type EnvironmentType =
-  | 'station_interior'   // Anchor Station
-  | 'surface_rocky'      // Proxima surface
-  | 'fob_military'       // FOB Delta
-  | 'hive_organic'       // Chitin hive tunnels
-  | 'canyon'             // Canyon terrain
-  | 'extraction_zone';   // LZ Omega
+  | 'station_interior' // Anchor Station
+  | 'surface_rocky' // Proxima surface
+  | 'fob_military' // FOB Delta
+  | 'hive_organic' // Chitin hive tunnels
+  | 'canyon' // Canyon terrain
+  | 'extraction_zone'; // LZ Omega
 
 export type AssemblageType =
   // Station Interior
-  | 'corridor_straight' | 'corridor_corner' | 'corridor_t' | 'corridor_cross'
-  | 'room_small' | 'room_medium' | 'room_large'
-  | 'hangar_bay' | 'airlock'
-  | 'quarters' | 'command_deck' | 'engineering'
+  | 'corridor_straight'
+  | 'corridor_corner'
+  | 'corridor_t'
+  | 'corridor_cross'
+  | 'room_small'
+  | 'room_medium'
+  | 'room_large'
+  | 'hangar_bay'
+  | 'airlock'
+  | 'quarters'
+  | 'command_deck'
+  | 'engineering'
   // Surface Rocky
-  | 'terrain_flat' | 'terrain_rocky' | 'terrain_crater'
-  | 'rock_cluster' | 'boulder_field'
+  | 'terrain_flat'
+  | 'terrain_rocky'
+  | 'terrain_crater'
+  | 'rock_cluster'
+  | 'boulder_field'
   | 'alien_vegetation'
   // FOB Military
-  | 'prefab_barracks' | 'prefab_command' | 'prefab_vehicle_bay'
-  | 'perimeter_wall' | 'perimeter_gate'
-  | 'comms_tower' | 'power_generator'
+  | 'prefab_barracks'
+  | 'prefab_command'
+  | 'prefab_vehicle_bay'
+  | 'perimeter_wall'
+  | 'perimeter_gate'
+  | 'comms_tower'
+  | 'power_generator'
   // Hive Organic
-  | 'tunnel_straight' | 'tunnel_branch' | 'tunnel_chamber'
-  | 'egg_chamber' | 'queen_chamber'
+  | 'tunnel_straight'
+  | 'tunnel_branch'
+  | 'tunnel_chamber'
+  | 'egg_chamber'
+  | 'queen_chamber'
   | 'hive_entrance'
   // Common
-  | 'spawn_point' | 'objective_marker' | 'loot_cache';
+  | 'spawn_point'
+  | 'objective_marker'
+  | 'loot_cache';
 
 // ============================================================================
 // ASSEMBLAGE DEFINITION
@@ -149,7 +169,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       ...Array.from({ length: 12 }, (_, i) => ({
         type: 'structural' as const,
         modelPath: '/models/psx/structures/floor_ceiling_hr_1.glb',
-        position: { x: (i % 3 - 1) * 4, y: 0, z: Math.floor(i / 3) * 4 - 6 },
+        position: { x: ((i % 3) - 1) * 4, y: 0, z: Math.floor(i / 3) * 4 - 6 },
         components: {
           structuralPiece: {
             pieceType: 'floor' as const,
@@ -165,7 +185,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       ...Array.from({ length: 12 }, (_, i) => ({
         type: 'structural' as const,
         modelPath: '/models/psx/structures/floor_ceiling_hr_1.glb',
-        position: { x: (i % 3 - 1) * 4, y: 6, z: Math.floor(i / 3) * 4 - 6 },
+        position: { x: ((i % 3) - 1) * 4, y: 6, z: Math.floor(i / 3) * 4 - 6 },
         rotation: { x: Math.PI, y: 0, z: 0 },
         components: {
           structuralPiece: {
@@ -282,7 +302,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       ...Array.from({ length: 9 }, (_, i) => ({
         type: 'structural' as const,
         modelPath: '/models/psx/structures/floor_ceiling_hr_3.glb',
-        position: { x: (i % 3 - 1) * 4, y: 0, z: Math.floor(i / 3) * 4 - 4 },
+        position: { x: ((i % 3) - 1) * 4, y: 0, z: Math.floor(i / 3) * 4 - 4 },
         components: {
           structuralPiece: {
             pieceType: 'floor' as const,
@@ -519,9 +539,7 @@ export const HIVE_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
         },
       },
     ],
-    enemySpawns: [
-      { maxCount: 3, types: ['chitin_drone', 'chitin_grunt'] },
-    ],
+    enemySpawns: [{ maxCount: 3, types: ['chitin_drone', 'chitin_grunt'] }],
     navmeshIncluded: true,
     coverPoints: [],
     tags: ['hive', 'hostile', 'underground'],
@@ -533,9 +551,7 @@ export const HIVE_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
     gridWidth: 4,
     gridDepth: 4,
     gridHeight: 3,
-    connections: [
-      { direction: 'south', type: 'open', offset: { x: 0, z: -2 } },
-    ],
+    connections: [{ direction: 'south', type: 'open', offset: { x: 0, z: -2 } }],
     entities: [
       {
         type: 'structural' as const,
@@ -555,12 +571,8 @@ export const HIVE_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
         },
       },
     ],
-    enemySpawns: [
-      { maxCount: 6, types: ['chitin_drone'], waveDelay: 5000 },
-    ],
-    lootSpawns: [
-      { position: { x: 3, y: 0, z: 3 }, lootTable: 'hive_rare' },
-    ],
+    enemySpawns: [{ maxCount: 6, types: ['chitin_drone'], waveDelay: 5000 }],
+    lootSpawns: [{ position: { x: 3, y: 0, z: 3 }, lootTable: 'hive_rare' }],
     navmeshIncluded: true,
     coverPoints: [],
     tags: ['hive', 'hostile', 'objective'],
@@ -578,9 +590,9 @@ export const ALL_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
 };
 
 export function getAssemblagesByEnvironment(env: EnvironmentType): AssemblageDefinition[] {
-  return Object.values(ALL_ASSEMBLAGES).filter(a => a.environment === env);
+  return Object.values(ALL_ASSEMBLAGES).filter((a) => a.environment === env);
 }
 
 export function getAssemblagesByTag(tag: string): AssemblageDefinition[] {
-  return Object.values(ALL_ASSEMBLAGES).filter(a => a.tags.includes(tag));
+  return Object.values(ALL_ASSEMBLAGES).filter((a) => a.tags.includes(tag));
 }

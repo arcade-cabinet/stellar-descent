@@ -11,13 +11,7 @@
  */
 
 import { Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
-import {
-  ArriveBehavior,
-  EntityManager,
-  SeekBehavior,
-  Vehicle,
-  Vector3 as YukaVector3,
-} from 'yuka';
+import { ArriveBehavior, EntityManager, SeekBehavior, Vehicle, Vector3 as YukaVector3 } from 'yuka';
 import type { Entity } from '../core/ecs';
 import { getEntitiesInRadius } from '../core/ecs';
 
@@ -325,12 +319,13 @@ export class PlayerGovernor {
     }
   }
 
-  private processNavigateGoal(goal: { type: 'navigate'; target: BabylonVector3; threshold?: number }): void {
+  private processNavigateGoal(goal: {
+    type: 'navigate';
+    target: BabylonVector3;
+    threshold?: number;
+  }): void {
     const threshold = goal.threshold ?? this.config.arrivalThreshold;
-    const distance = BabylonVector3.Distance(
-      this.playerEntity!.transform!.position,
-      goal.target
-    );
+    const distance = BabylonVector3.Distance(this.playerEntity!.transform!.position, goal.target);
 
     if (distance <= threshold) {
       this.emit({ type: 'position_reached', position: goal.target });
@@ -395,7 +390,10 @@ export class PlayerGovernor {
     }
   }
 
-  private processWaitGoal(goal: { type: 'wait'; duration: number; started?: number }, now: number): void {
+  private processWaitGoal(
+    goal: { type: 'wait'; duration: number; started?: number },
+    now: number
+  ): void {
     if (!goal.started) {
       goal.started = now;
     }

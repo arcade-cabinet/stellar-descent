@@ -114,6 +114,22 @@ a central queen controlling the hive mind.
       name: 'LZ OMEGA',
       description: 'Emergency extraction coordinates for dropship pickup',
     },
+    canyonRun: {
+      name: 'SOUTHERN RIFT VALLEY',
+      description: 'Narrow canyon system connecting northern drop zone to FOB Delta',
+    },
+    southernIce: {
+      name: 'POLAR REGION',
+      description: 'Frozen wasteland at the southern pole with cryovolcanic activity',
+    },
+    hiveAssault: {
+      name: 'HIVE APPROACH',
+      description: 'Fortified surface entrance to the primary hive network',
+    },
+    finalEscape: {
+      name: 'COLLAPSE RIDGELINE',
+      description: 'Crumbling terrain along the escarpment leading to the final extraction point',
+    },
   },
 };
 
@@ -186,7 +202,30 @@ Time to find out.
   },
 
   mission3: {
-    title: 'CHAPTER 3: FOB DELTA',
+    title: 'CHAPTER 3: CANYON RUN',
+    subtitle: 'Vehicle Pursuit',
+    location: 'PCb-7 Surface - Southern Rift Valley',
+    objectives: [
+      'Commandeer abandoned LRV',
+      'Navigate canyon system to FOB Delta',
+      'Survive aerial and ground ambushes',
+      'Reach FOB Delta perimeter',
+    ],
+    text: `
+The canyon system stretches south toward the FOB. On foot, it would
+take days. But there - half-buried in dust - an abandoned Light
+Recon Vehicle. The keys are still in it.
+
+Orbital scans show movement in the canyon walls. They've burrowed
+through the rock. The route won't be clear.
+
+Floor it. Shoot anything that moves. Don't stop until you see
+those prefab walls.
+    `,
+  },
+
+  mission4: {
+    title: 'CHAPTER 4: FOB DELTA',
     subtitle: 'The Silent Camp',
     location: 'Forward Operating Base Delta',
     objectives: [
@@ -208,8 +247,8 @@ is still active - inside the base.
     `,
   },
 
-  mission4: {
-    title: 'CHAPTER 4: BROTHERS IN ARMS',
+  mission5: {
+    title: 'CHAPTER 5: BROTHERS IN ARMS',
     subtitle: 'Team Operations',
     location: 'PCb-7 Surface - Open World',
     objectives: [
@@ -230,8 +269,32 @@ It's time to take the fight to them.
     `,
   },
 
-  mission5: {
-    title: 'CHAPTER 5: INTO THE BREACH',
+  mission6: {
+    title: 'CHAPTER 6: SOUTHERN ICE',
+    subtitle: 'Frozen Wasteland',
+    location: 'PCb-7 Surface - Polar Region',
+    objectives: [
+      'Traverse the frozen wasteland',
+      'Survive blizzard conditions',
+      'Defeat cold-adapted Chitin variants',
+      'Reach the secondary hive entrance',
+    ],
+    text: `
+Marcus traced the hive network south. The tunnels converge under
+the polar ice cap - a secondary entrance the Chitin didn't expect
+us to find.
+
+But the surface route is brutal. Temperatures at negative sixty.
+Visibility near zero in the storms. And the Chitin here are
+different. Adapted. Their armor is crystalline ice.
+
+The flamethrower is your best friend down here.
+Burn everything that moves.
+    `,
+  },
+
+  mission7: {
+    title: 'CHAPTER 7: INTO THE BREACH',
     subtitle: 'Hive Assault',
     location: 'Subterranean Hive Network',
     objectives: [
@@ -253,8 +316,30 @@ Kill the queen. End this.
     `,
   },
 
-  mission6: {
-    title: 'CHAPTER 6: EXTRACTION',
+  mission8: {
+    title: 'CHAPTER 8: HIVE ASSAULT',
+    subtitle: 'Combined Arms',
+    location: 'PCb-7 Surface to Hive Core',
+    objectives: [
+      'Lead vehicle assault on hive surface defenses',
+      'Breach the outer hive wall',
+      'Dismount and push into hive core on foot',
+      'Plant demolition charges on hive nexus',
+    ],
+    text: `
+The queen is dead, but the hive lives on. Secondary queens are
+already spawning. Command has authorized a full assault - vehicles
+punch through the surface defenses, then we go in on foot.
+
+Marcus will lead the mech column. You take the LRV and clear a
+path to the outer wall. Once inside, it's infantry only.
+
+Plant the charges. Bring the whole thing down. No half measures.
+    `,
+  },
+
+  mission9: {
+    title: 'CHAPTER 9: EXTRACTION',
     subtitle: 'Survival Run',
     location: 'PCb-7 Surface - Route to LZ Omega',
     objectives: [
@@ -264,14 +349,39 @@ Kill the queen. End this.
       'Signal for pickup',
     ],
     text: `
-The queen is dead. The hive is dying. But the Chitin don't know
-they've lost yet - and they're angry.
+The charges are set. The timer is running. The hive is collapsing
+from within, and every Chitin on the planet knows it.
 
 The surface erupts with fleeing drones and enraged soldiers.
 LZ Omega is 3 klicks north. The dropship won't wait forever.
 
 Run. Fight. Survive.
-Get home.
+Get to the LZ.
+    `,
+  },
+
+  mission10: {
+    title: 'CHAPTER 10: FINAL ESCAPE',
+    subtitle: 'Outrun the Collapse',
+    location: 'PCb-7 Surface - Collapse Ridgeline',
+    objectives: [
+      'Board the LRV with Marcus',
+      'Outrun the cascading ground collapse',
+      'Survive aerial interceptor attacks',
+      'Reach the dropship before time runs out',
+    ],
+    text: `
+The demolition charges have triggered a chain reaction. The entire
+hive network is collapsing, and the surface is going with it.
+Kilometers of ground are caving in behind you.
+
+Marcus is in the passenger seat, the Titan abandoned. One vehicle.
+One road. One chance.
+
+The dropship is on the ridge, engines hot. The ground is falling
+away. Faster. FASTER.
+
+This is it. The final run. Make it count.
     `,
   },
 
@@ -313,11 +423,23 @@ export const RADIO_CHATTER = {
     'Specter, be advised - multiple contacts on approach.',
     'Prometheus tracking heavy movement in your sector.',
   ],
+  canyonRun: [
+    'Specter, we read vehicle signature moving south through the rift.',
+    'Canyon walls are compromised - watch for burrowers!',
+    'Flyers inbound from the east. Gun it, Sergeant!',
+    "FOB Delta is two klicks ahead. Don't slow down.",
+  ],
   marcus: [
     'Hammer here. Good to see you, brother.',
     'Watch your six - they come from below.',
     'Titan systems nominal. Ready to bring the thunder.',
     'Just like the Europa job, eh James?',
+  ],
+  southernIce: [
+    'Temperature dropping fast. Thermal systems at 40 percent.',
+    'Prometheus reads new bio-signatures - cold-adapted variants.',
+    'Blizzard moving in. Visibility will be near zero.',
+    'Marcus, the secondary hive entrance should be under the ice shelf.',
   ],
   victory: [
     'Confirmed kill. Good shooting, Specter.',
@@ -329,9 +451,22 @@ export const RADIO_CHATTER = {
     "That's the queen! Light her up!",
     "She's down! The hive is collapsing!",
   ],
+  hiveAssault: [
+    'All units, commence assault on the hive perimeter!',
+    'Mech column breaking through the outer wall. Infantry, advance!',
+    'Colossus-class contact at the breach point! Bring rockets!',
+    'Charges planted. Everyone out NOW!',
+  ],
   extraction: [
     'Dropship inbound to LZ Omega. ETA 5 minutes.',
     'Specter, Hammer - get to extraction NOW.',
     "We see you on approach. Hold tight, we're coming.",
+  ],
+  finalEscape: [
+    'The ground is collapsing! Get to the vehicle!',
+    'Seismic cascade in progress. You have 90 seconds!',
+    'Dropship is on the ridge. Engines hot. MOVE!',
+    "We're not leaving without you, Specter! FASTER!",
+    'Marcus, hold on! Almost there!',
   ],
 };

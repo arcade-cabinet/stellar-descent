@@ -192,7 +192,8 @@
 
 .messageText {
   font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 0.9375rem;
+  /* Use subtitle font size if set via CSS variable, otherwise default */
+  font-size: var(--subtitle-font-size, 0.9375rem);
   line-height: 1.7;
   color: #d0d0d0;
 }
@@ -322,12 +323,41 @@
   }
 
   .messageText {
-    font-size: 0.875rem;
+    /* On mobile, use subtitle font size if set, otherwise smaller default */
+    font-size: var(--subtitle-font-size, 0.875rem);
     line-height: 1.6;
   }
 
   .commsPanel {
     max-height: 85vh;
     overflow-y: auto;
+  }
+}
+
+/* High contrast mode support for accessibility */
+@media (prefers-contrast: high) {
+  .messageText {
+    color: #ffffff;
+  }
+
+  .commsPanel {
+    border-width: 2px;
+  }
+
+  .senderName {
+    color: #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .statusLight,
+  .cursor {
+    animation: none;
+  }
+
+  .scanLine {
+    animation: none;
+    display: none;
   }
 }

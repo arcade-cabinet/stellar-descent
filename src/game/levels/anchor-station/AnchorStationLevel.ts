@@ -1,293 +1,558 @@
-import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
+/**
+ * AnchorStationLevel - Tutorial and briefing station level
+ *
+ * This is the first level of the game, introducing the player to:
+ * - Movement controls (Phase 1)
+ * - Look controls (Phase 2)
+ * - Interaction mechanics (Phase 2)
+ * - Suit equipment (Phase 2)
+ * - Weapon calibration / shooting range (Phase 3)
+ * - Drop pod deployment (Phase 4)
+ *
+ * Room Layout:
+ * BRIEFING ROOM (20m x 15m) -> CORRIDOR A (30m x 4m) -> EQUIPMENT BAY (15m x 12m)
+ *                                    |
+ *                             SHOOTING RANGE (25m x 10m)
+ *                                    |
+ *                             HANGAR BAY (40m x 30m) -> [EXIT TO LANDFALL]
+ *
+ * Progressive HUD Unlocks:
+ * - Phase 0: Briefing - notifications only
+ * - Phase 1: After briefing - health bar appears, WASD enabled
+ * - Phase 2: Equipment Bay - crosshair appears, mouse look enabled
+ * - Phase 3: Shooting Range - ammo counter, fire enabled
+ * - Phase 4: Hangar Bay - full HUD, ready for drop
+ *
+ * Extends StationLevel for interior space station rendering.
+ */
+
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import type { Scene } from '@babylonjs/core/scene';
-import type { TouchInput } from '../../types';
+import {
+  bindableActionParams,
+  formatKeyForDisplay,
+  levelActionParams,
+} from '../../input/InputBridge';
+import type { ActionButtonGroup } from '../../types/actions';
+import { StationLevel } from '../StationLevel';
+import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import styles from './AnchorStationLevel.module.css';
-import { createStationEnvironment, type StationEnvironment } from './environment';
+import { MODULAR_ROOM_POSITIONS } from './ModularStationBuilder';
+// Use modular GLB-based station (replaces legacy procedural generation)
+import {
+  createModularStationEnvironment,
+  type ModularStationEnv,
+} from './ModularStationEnvironment';
 import { TutorialManager } from './TutorialManager';
-import type { TutorialStep } from './tutorialSteps';
+import type { HUDUnlockState, TutorialPhase } from './tutorialSteps';
 
-export interface AnchorStationCallbacks {
-  onCommsMessage: (message: NonNullable<TutorialStep['commsMessage']>) => void;
-  onObjectiveUpdate: (title: string, instructions: string) => void;
-  onTutorialComplete: () => void;
-  onNotification: (text: string, duration?: number) => void;
-  onCalibrationStart?: () => void;
-  onCalibrationEnd?: () => void;
-}
+export class AnchorStationLevel extends StationLevel {
+  // Station environment (modular GLB-based)
+  private stationEnvironment: ModularStationEnv | null = null;
 
-// The Anchor Station level - tutorial introduction to the game
-export class AnchorStationLevel {
-  private scene: Scene;
-  private engine: Engine;
-  private canvas: HTMLCanvasElement;
+  // Tutorial system
+  private tutorialManager: TutorialManager | null = null;
 
-  private camera: UniversalCamera;
-  private environment: StationEnvironment | null = null;
-  private tutorialManager: TutorialManager;
-  private callbacks: AnchorStationCallbacks;
-
-  // Player state
-  private isActive = false;
-  private moveSpeed = 8;
-  private keysPressed: Set<string> = new Set();
-  private touchInput: TouchInput | null = null;
-
-  // Camera rotation - fixed FOV, player turns with mouse/touch drag
-  private rotationX = 0;
-  private rotationY = Math.PI; // Face down the corridor
-
-  // Objective marker
+  // Objective marker (! above objectives)
   private objectiveMarker: Mesh | null = null;
+  private objectiveMarkerExclamation: Mesh | null = null;
 
-  // Interaction prompt
+  // Interact marker ([E] above interactables)
+  private interactMarker: Mesh | null = null;
+
+  // Interaction prompt (HTML overlay)
   private interactionPrompt: HTMLDivElement | null = null;
   private showingPrompt = false;
 
-  // Suit equipped state
-  private suitEquipped = false;
+  // Note: touchInput is inherited from BaseLevel (protected)
 
-  // Shooting range state
+  // Tutorial state
+  private suitEquipped = false;
+  private weaponAcquired = false;
   private targetsHit = 0;
   private totalTargets = 5;
 
-  // Store bound handlers for cleanup
-  private boundKeyDown: (e: KeyboardEvent) => void;
-  private boundKeyUp: (e: KeyboardEvent) => void;
-  private boundMouseMove: (e: MouseEvent) => void;
-  private boundClick: () => void;
+  // Current HUD state based on tutorial phase
+  private currentHUDState: HUDUnlockState = {
+    healthBar: false,
+    crosshair: false,
+    ammoCounter: false,
+    missionText: false,
+    actionButtons: false,
+    movementEnabled: false,
+    lookEnabled: false,
+    fireEnabled: false,
+  };
+
+  // Current tutorial phase
+  private currentPhase: TutorialPhase = 0;
 
   constructor(
-    scene: Scene,
     engine: Engine,
     canvas: HTMLCanvasElement,
-    callbacks: AnchorStationCallbacks
+    config: LevelConfig,
+    callbacks: LevelCallbacks
   ) {
-    this.scene = scene;
-    this.engine = engine;
-    this.canvas = canvas;
-    this.callbacks = callbacks;
-
-    this.camera = this.createCamera();
-    this.tutorialManager = new TutorialManager(scene);
-
-    // Bind handlers
-    this.boundKeyDown = this.handleKeyDown.bind(this);
-    this.boundKeyUp = this.handleKeyUp.bind(this);
-    this.boundMouseMove = this.handleMouseMove.bind(this);
-    this.boundClick = this.handleClick.bind(this);
+    super(engine, canvas, config, callbacks);
   }
 
-  private createCamera(): UniversalCamera {
-    const camera = new UniversalCamera(
-      'stationCamera',
-      new Vector3(0, 1.7, 0), // Standing height at start
-      this.scene
+  protected override getBackgroundColor(): Color4 {
+    // Dark station interior
+    return new Color4(0.01, 0.01, 0.02, 1);
+  }
+
+  protected async createEnvironment(): Promise<void> {
+    console.log('[AnchorStationLevel] createEnvironment() starting...');
+    // Create modular station from GLB corridor segments
+    // This replaces the legacy procedural generation with snap-together GLB corridors
+    console.log('[AnchorStationLevel] About to call createModularStationEnvironment');
+    console.log(
+      '[AnchorStationLevel] createModularStationEnvironment function exists:',
+      typeof createModularStationEnvironment
     );
+    this.stationEnvironment = await createModularStationEnvironment(this.scene);
+    console.log('[AnchorStationLevel] Station environment created');
 
-    camera.rotation.y = this.rotationY;
-    camera.minZ = 0.1;
-    camera.maxZ = 500;
-    // Proper FPS FOV - not too wide, not too narrow
-    camera.fov = 1.2; // ~69 degrees - good for FPS
+    // Add station-specific interior lights in briefing room
+    this.addStationLight('briefing1', new Vector3(-5, 3.5, 3));
+    this.addStationLight('briefing2', new Vector3(5, 3.5, 3));
 
-    // Clear default inputs - we handle manually
-    camera.inputs.clear();
+    // Add some emergency lights for atmosphere
+    this.addEmergencyLight('emergency1', new Vector3(-8, 2, -20), 0.2);
+    this.addEmergencyLight('emergency2', new Vector3(8, 2, -40), 0.2);
 
-    return camera;
-  }
-
-  initialize(): void {
-    // Create station environment
-    this.environment = createStationEnvironment(this.scene);
-
-    // Set this camera as active
-    this.scene.activeCamera = this.camera;
+    // Create space view through windows
+    this.createSpaceView();
 
     // Create objective marker
-    this.objectiveMarker = MeshBuilder.CreateCylinder(
+    this.createObjectiveMarker();
+
+    // Create interact marker
+    this.createInteractMarker();
+
+    // Create interaction prompt
+    this.createInteractionPrompt();
+
+    // Initialize tutorial manager
+    this.tutorialManager = new TutorialManager(this.scene);
+    this.startTutorial();
+
+    // Set up environmental audio for station atmosphere
+    this.setupStationEnvironmentalAudio();
+  }
+
+  /**
+   * Set up spatial sound sources for immersive station atmosphere.
+   * Machinery hum, air vents, electrical panels, and computer terminals.
+   */
+  private setupStationEnvironmentalAudio(): void {
+    // Air vents throughout corridors (use modular room positions)
+    this.addSpatialSound('vent_briefing', 'vent', { x: 0, y: 3, z: 5 }, { maxDistance: 8 });
+    this.addSpatialSound('vent_corridor1', 'vent', { x: -30, y: 3, z: 0 }, { maxDistance: 10 });
+    this.addSpatialSound('vent_corridor2', 'vent', { x: -60, y: 3, z: 0 }, { maxDistance: 10 });
+
+    // Machinery in equipment bay
+    this.addSpatialSound(
+      'machinery_equipment',
+      'machinery',
+      {
+        x: MODULAR_ROOM_POSITIONS.equipmentBay.x,
+        y: 1.5,
+        z: MODULAR_ROOM_POSITIONS.equipmentBay.z,
+      },
+      { maxDistance: 12, volume: 0.4 }
+    );
+
+    // Generator hum in hangar bay
+    this.addSpatialSound(
+      'generator_hangar',
+      'generator',
+      { x: MODULAR_ROOM_POSITIONS.hangarBay.x + 15, y: 1, z: MODULAR_ROOM_POSITIONS.hangarBay.z },
+      { maxDistance: 20, volume: 0.5 }
+    );
+
+    // Electrical panels near equipment bay
+    this.addSpatialSound(
+      'electric_panel1',
+      'electrical_panel',
+      {
+        x: MODULAR_ROOM_POSITIONS.equipmentBay.x - 5,
+        y: 2,
+        z: MODULAR_ROOM_POSITIONS.equipmentBay.z,
+      },
+      { maxDistance: 6, volume: 0.2 }
+    );
+
+    // Computer terminals in briefing room (periodic beeps)
+    this.addSpatialSound(
+      'terminal_briefing',
+      'terminal',
+      { x: 3, y: 1.5, z: 0 },
+      { maxDistance: 5, volume: 0.15, interval: 4000 }
+    );
+
+    // Define audio zones for different station areas
+    this.addAudioZone('zone_briefing', 'station', { x: 0, y: 0, z: 0 }, 15, {
+      isIndoor: true,
+      intensity: 0.3,
+    });
+    this.addAudioZone(
+      'zone_equipment',
+      'station',
+      {
+        x: MODULAR_ROOM_POSITIONS.equipmentBay.x,
+        y: 0,
+        z: MODULAR_ROOM_POSITIONS.equipmentBay.z,
+      },
+      12,
+      { isIndoor: true, intensity: 0.4 }
+    );
+    this.addAudioZone(
+      'zone_hangar',
+      'station',
+      { x: MODULAR_ROOM_POSITIONS.hangarBay.x, y: 0, z: MODULAR_ROOM_POSITIONS.hangarBay.z },
+      25,
+      { isIndoor: true, intensity: 0.5 }
+    );
+  }
+
+  private createObjectiveMarker(): void {
+    // Base ring marker
+    this.objectiveMarker = MeshBuilder.CreateTorus(
       'objectiveMarker',
       {
-        height: 0.1,
         diameter: 1.5,
-        tessellation: 16,
+        thickness: 0.08,
+        tessellation: 24,
       },
       this.scene
     );
+    this.objectiveMarker.rotation.x = Math.PI / 2;
     const markerMat = new StandardMaterial('markerMat', this.scene);
     markerMat.emissiveColor = Color3.FromHexString('#FFD700');
-    markerMat.alpha = 0.4;
+    markerMat.diffuseColor = Color3.FromHexString('#3A3000');
+    markerMat.alpha = 0.8;
     this.objectiveMarker.material = markerMat;
     this.objectiveMarker.isVisible = false;
 
-    // Create interaction prompt (HTML overlay)
-    this.createInteractionPrompt();
+    // Exclamation mark above marker
+    this.objectiveMarkerExclamation = MeshBuilder.CreateCylinder(
+      'exclamation',
+      { height: 0.6, diameter: 0.2, tessellation: 8 },
+      this.scene
+    );
+    const exclamationMat = new StandardMaterial('exclamationMat', this.scene);
+    exclamationMat.emissiveColor = Color3.FromHexString('#FFD700');
+    exclamationMat.diffuseColor = Color3.FromHexString('#3A3000');
+    this.objectiveMarkerExclamation.material = exclamationMat;
+    this.objectiveMarkerExclamation.isVisible = false;
+  }
 
-    // Setup controls
-    this.setupControls();
-
-    // Start tutorial with sequence handlers
-    this.tutorialManager.start({
-      onStepChange: (step) => {
-        // Update objective marker position
-        const target = this.tutorialManager.getCurrentObjectiveTarget();
-        if (target && this.objectiveMarker) {
-          this.objectiveMarker.position = target.clone();
-          this.objectiveMarker.position.y = 0.1;
-          this.objectiveMarker.isVisible = true;
-        } else if (this.objectiveMarker) {
-          this.objectiveMarker.isVisible = false;
-        }
-      },
-      onCommsMessage: (message) => {
-        this.callbacks.onCommsMessage(message);
-      },
-      onObjectiveUpdate: (title, instructions) => {
-        this.callbacks.onObjectiveUpdate(title, instructions);
-      },
-      onTriggerSequence: (sequence) => {
-        this.handleSequence(sequence);
-      },
-      onComplete: () => {
-        this.callbacks.onTutorialComplete();
-      },
-    });
-
-    this.isActive = true;
-    this.callbacks.onNotification('ANCHOR STATION PROMETHEUS', 3000);
+  private createInteractMarker(): void {
+    // [E] marker for interactables
+    this.interactMarker = MeshBuilder.CreateBox(
+      'interactMarker',
+      { width: 0.5, height: 0.5, depth: 0.1 },
+      this.scene
+    );
+    const interactMat = new StandardMaterial('interactMat', this.scene);
+    interactMat.emissiveColor = new Color3(0.9, 0.9, 0.9);
+    interactMat.diffuseColor = new Color3(0.2, 0.2, 0.2);
+    this.interactMarker.material = interactMat;
+    this.interactMarker.isVisible = false;
   }
 
   private createInteractionPrompt(): void {
     this.interactionPrompt = document.createElement('div');
     this.interactionPrompt.className = styles.interactionPrompt;
-    
+
     const key = document.createElement('div');
     key.className = styles.promptKey;
     key.textContent = 'E';
-    
+
     const text = document.createElement('div');
     text.className = styles.promptText;
     text.textContent = 'INTERACT';
-    
+
     this.interactionPrompt.appendChild(key);
     this.interactionPrompt.appendChild(text);
 
     document.body.appendChild(this.interactionPrompt);
   }
 
+  private startTutorial(): void {
+    console.log('[AnchorStationLevel] startTutorial() called');
+    if (!this.tutorialManager) {
+      console.log('[AnchorStationLevel] No tutorialManager!');
+      return;
+    }
+
+    this.tutorialManager.start({
+      onStepChange: (_step) => {
+        // Update objective marker position
+        const target = this.tutorialManager?.getCurrentObjectiveTarget();
+        if (target && this.objectiveMarker && this.objectiveMarkerExclamation) {
+          this.objectiveMarker.position = target.clone();
+          this.objectiveMarker.position.y = 0.1;
+          this.objectiveMarker.isVisible = true;
+
+          this.objectiveMarkerExclamation.position = target.clone();
+          this.objectiveMarkerExclamation.position.y = 2.5;
+          this.objectiveMarkerExclamation.isVisible = true;
+        } else if (this.objectiveMarker && this.objectiveMarkerExclamation) {
+          this.objectiveMarker.isVisible = false;
+          this.objectiveMarkerExclamation.isVisible = false;
+        }
+      },
+      onPhaseChange: (phase, hudState) => {
+        this.currentPhase = phase;
+        this.currentHUDState = hudState;
+
+        // Notify game context about HUD changes if needed
+        // This would typically be done through a dedicated callback
+        this.handlePhaseChange(phase);
+      },
+      onCommsMessage: (message) => {
+        console.log(
+          '[AnchorStationLevel] onCommsMessage callback received:',
+          message.text.substring(0, 40)
+        );
+        this.callbacks.onCommsMessage({
+          sender: message.sender,
+          callsign: message.callsign,
+          portrait: message.portrait,
+          text: message.text,
+        });
+      },
+      onObjectiveUpdate: (title, instructions) => {
+        // Only show objective if missionText is unlocked
+        if (this.currentHUDState.missionText) {
+          this.callbacks.onObjectiveUpdate(title, instructions);
+        }
+      },
+      onActionButtonsChange: (buttons) => {
+        // Only show action buttons if unlocked
+        if (this.currentHUDState.actionButtons && buttons.length > 0) {
+          const actionGroup: ActionButtonGroup = {
+            id: 'tutorial',
+            position: 'right',
+            buttons: buttons.map((btn) => {
+              // Look up the actual keybinding for configurable actions
+              const keyInfo = this.getKeyForActionId(btn.id, btn.key);
+              return {
+                id: btn.id,
+                label: btn.label,
+                key: keyInfo.key,
+                keyDisplay: keyInfo.keyDisplay,
+                enabled: true,
+                visible: true,
+                highlighted: btn.highlighted,
+                variant: btn.variant ?? 'primary',
+                size: btn.size ?? 'medium',
+              };
+            }),
+          };
+          this.callbacks.onActionGroupsChange([actionGroup]);
+        } else {
+          this.callbacks.onActionGroupsChange([]);
+        }
+      },
+      onTriggerSequence: (sequence) => {
+        this.handleSequence(sequence);
+      },
+      onComplete: () => {
+        // Tutorial complete - transition to next level
+        this.completeLevel();
+      },
+    });
+
+    this.callbacks.onNotification('ANCHOR STATION PROMETHEUS', 3000);
+  }
+
+  /**
+   * Get the actual keybinding for an action ID, supporting both
+   * configurable actions (jump, crouch, fire, reload, interact) and
+   * level-specific fixed actions.
+   */
+  private getKeyForActionId(
+    actionId: string,
+    fallbackKey: string
+  ): { key: string; keyDisplay: string } {
+    // Map tutorial action IDs to configurable keybindings
+    const bindableActionMap: Record<string, Parameters<typeof bindableActionParams>[0]> = {
+      jump: 'jump',
+      crouch: 'crouch',
+      fire: 'fire',
+      reload: 'reload',
+      interact: 'interact',
+      equip_suit: 'interact', // Equip suit uses interact key
+    };
+
+    if (bindableActionMap[actionId]) {
+      return bindableActionParams(bindableActionMap[actionId]);
+    }
+
+    // Fallback to static key with formatting
+    return {
+      key: fallbackKey,
+      keyDisplay: formatKeyForDisplay(fallbackKey),
+    };
+  }
+
+  private handlePhaseChange(phase: TutorialPhase): void {
+    // Show notification for major unlocks
+    switch (phase) {
+      case 1:
+        this.callbacks.onNotification('MOVEMENT CONTROLS ONLINE', 2000);
+        break;
+      case 2:
+        this.callbacks.onNotification('TARGETING SYSTEMS ONLINE', 2000);
+        break;
+      case 3:
+        this.callbacks.onNotification('WEAPONS SYSTEMS ONLINE', 2000);
+        break;
+      case 4:
+        this.callbacks.onNotification('ALL SYSTEMS NOMINAL', 2000);
+        break;
+    }
+  }
+
   private handleSequence(sequence: string): void {
-    if (!this.environment) return;
+    if (!this.stationEnvironment) return;
 
     switch (sequence) {
       case 'equip_suit':
         this.suitEquipped = true;
-        this.environment.playEquipSuit(() => {
+        this.stationEnvironment.playEquipSuit(() => {
           this.callbacks.onNotification('EVA SUIT EQUIPPED', 2000);
         });
         break;
 
+      case 'pickup_weapon':
+        this.weaponAcquired = true;
+        this.callbacks.onNotification('M7 RIFLE ACQUIRED', 2000);
+        break;
+
       case 'depressurize':
-        this.environment.playDepressurize(() => {
+        this.stationEnvironment.playDepressurize(() => {
           // Depressurization complete
         });
         break;
 
       case 'open_bay_doors':
-        this.environment.playOpenBayDoors(() => {
+        this.stationEnvironment.playOpenBayDoors(() => {
           this.callbacks.onNotification('BAY DOORS OPEN', 2000);
         });
         break;
 
       case 'enter_pod':
-        this.environment.playEnterPod(() => {
+        this.stationEnvironment.playEnterPod(() => {
           // Lock player in pod position
-          this.camera.position.set(0, 1.7, -47);
-          this.rotationY = Math.PI; // Face the opening
+          this.camera.position = MODULAR_ROOM_POSITIONS.dropPod.clone();
+          this.camera.position.y = 1.7;
+          this.rotationY = Math.PI;
+          this.camera.rotation.y = this.rotationY;
         });
         break;
 
       case 'launch':
-        this.environment.playLaunch(() => {
-          // Tutorial complete - transition to HALO drop
+        this.stationEnvironment.playLaunch(() => {
+          // Tutorial complete - handled by onComplete
         });
         break;
 
       case 'start_calibration':
         this.targetsHit = 0;
-        this.callbacks.onCalibrationStart?.();
-        this.environment.startCalibration({
-          onTargetHit: (targetIndex) => {
+        this.stationEnvironment.startCalibration({
+          onTargetHit: (_targetIndex) => {
             this.targetsHit++;
             this.callbacks.onNotification(`TARGET ${this.targetsHit}/${this.totalTargets}`, 800);
+            // Trigger hit confirmation visual feedback
+            this.triggerHitConfirmation();
+            // Update kill streak for progressive visual feedback
+            this.updateKillStreak(this.targetsHit);
           },
           onAllTargetsHit: () => {
-            this.callbacks.onCalibrationEnd?.();
             this.callbacks.onNotification('CALIBRATION COMPLETE', 1500);
-            this.tutorialManager.onShootingRangeComplete();
+            this.tutorialManager?.onShootingRangeComplete();
           },
         });
         break;
     }
   }
 
-  private handleKeyDown(e: KeyboardEvent): void {
-    this.keysPressed.add(e.code);
+  protected override handleKeyDown(e: KeyboardEvent): void {
+    // Only process movement if enabled
+    if (this.currentHUDState.movementEnabled) {
+      super.handleKeyDown(e);
+    }
 
-    // Handle interaction
-    if (e.code === 'KeyE' && this.tutorialManager.isInteractStep()) {
+    // Get keybindings for interact and jump actions
+    const interactKeys = this.inputTracker.getAllKeysForAction('interact');
+    const jumpKeys = this.inputTracker.getAllKeysForAction('jump');
+
+    // Handle interaction (configurable keybinding, default: E)
+    if (interactKeys.includes(e.code) && this.tutorialManager?.isInteractStep()) {
       this.tryInteract();
     }
-  }
 
-  private handleKeyUp(e: KeyboardEvent): void {
-    this.keysPressed.delete(e.code);
-  }
-
-  private handleMouseMove(e: MouseEvent): void {
-    // Mouse look - turn the player when pointer is locked
-    if (document.pointerLockElement === this.canvas) {
-      const sensitivity = 0.002;
-      this.rotationY += e.movementX * sensitivity;
-      this.rotationX -= e.movementY * sensitivity;
-      this.rotationX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.rotationX));
+    // Handle jump/space for launch (configurable keybinding, default: Space)
+    if (jumpKeys.includes(e.code) && this.tutorialManager?.isLaunchStep()) {
+      this.tutorialManager.tryLaunchAction();
     }
   }
 
-  private handleClick(): void {
-    if (this.isActive) {
-      // If calibration is active and pointer is locked, try to shoot
-      if (this.environment?.isCalibrationActive() && document.pointerLockElement === this.canvas) {
-        this.tryShoot();
-        return;
-      }
+  protected override handleKeyUp(e: KeyboardEvent): void {
+    if (this.currentHUDState.movementEnabled) {
+      super.handleKeyUp(e);
+    }
+  }
 
-      // If showing interaction prompt, try to interact
-      if (this.showingPrompt && this.tutorialManager.isInteractStep()) {
-        this.tryInteract();
-      } else {
-        this.canvas.requestPointerLock();
-      }
+  protected override handleMouseMove(e: MouseEvent): void {
+    // Only process look if enabled
+    if (this.currentHUDState.lookEnabled) {
+      super.handleMouseMove(e);
+    }
+  }
+
+  protected override handleClick(): void {
+    // If calibration is active and pointer is locked, try to shoot
+    if (
+      this.currentHUDState.fireEnabled &&
+      this.stationEnvironment?.isCalibrationActive() &&
+      this.isPointerLocked()
+    ) {
+      this.tryShoot();
+      return;
+    }
+
+    // If showing interaction prompt, try to interact
+    if (this.showingPrompt && this.tutorialManager?.isInteractStep()) {
+      this.tryInteract();
+    } else if (this.currentHUDState.lookEnabled) {
+      // Only lock pointer if look is enabled
+      super.handleClick();
     }
   }
 
   private tryShoot(): void {
-    if (!this.environment?.isCalibrationActive()) return;
+    if (!this.stationEnvironment?.isCalibrationActive()) return;
+    if (!this.currentHUDState.fireEnabled) return;
 
     // Get ray from camera center
     const rayOrigin = this.camera.position.clone();
     const rayDirection = this.camera.getDirection(Vector3.Forward());
 
     // Check for target hit
-    this.environment.checkTargetHit(rayOrigin, rayDirection);
+    this.stationEnvironment.checkTargetHit(rayOrigin, rayDirection);
   }
 
   private tryInteract(): void {
-    if (this.tutorialManager.tryInteract(this.camera.position)) {
+    if (this.tutorialManager?.tryInteract(this.camera.position)) {
       this.hideInteractionPrompt();
     }
   }
@@ -306,129 +571,152 @@ export class AnchorStationLevel {
     }
   }
 
-  private setupControls(): void {
-    window.addEventListener('keydown', this.boundKeyDown);
-    window.addEventListener('keyup', this.boundKeyUp);
-    document.addEventListener('mousemove', this.boundMouseMove);
-    this.canvas.addEventListener('click', this.boundClick);
-  }
+  // Note: setTouchInput is inherited from BaseLevel
 
-  private removeControls(): void {
-    window.removeEventListener('keydown', this.boundKeyDown);
-    window.removeEventListener('keyup', this.boundKeyUp);
-    document.removeEventListener('mousemove', this.boundMouseMove);
-    this.canvas.removeEventListener('click', this.boundClick);
-  }
-
-  setTouchInput(input: TouchInput | null): void {
-    this.touchInput = input;
-  }
-
-  update(deltaTime: number): void {
-    if (!this.isActive) return;
-
-    // Apply camera rotation - camera follows player turn
-    this.camera.rotation.x = this.rotationX;
-    this.camera.rotation.y = this.rotationY;
-
-    // Movement
-    const moveDir = Vector3.Zero();
-
+  protected updateLevel(deltaTime: number): void {
+    // Process touch input for movement/look (respecting HUD state)
     if (this.touchInput) {
-      // Touch input - movement from left joystick
       const movement = this.touchInput.movement;
-      if (Math.abs(movement.x) > 0.1 || Math.abs(movement.y) > 0.1) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movement.y));
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movement.x));
+      if (
+        this.currentHUDState.movementEnabled &&
+        (Math.abs(movement.x) > 0.1 || Math.abs(movement.y) > 0.1)
+      ) {
+        const forward = this.camera.getDirection(Vector3.Forward());
+        const right = this.camera.getDirection(Vector3.Right());
+        forward.y = 0;
+        right.y = 0;
+        forward.normalize();
+        right.normalize();
+
+        const speed = this.getMoveSpeed() * deltaTime;
+        this.camera.position.addInPlace(forward.scale(movement.y * speed));
+        this.camera.position.addInPlace(right.scale(movement.x * speed));
       }
 
-      // Touch look from screen drag
       const look = this.touchInput.look;
-      if (Math.abs(look.x) > 0.0001 || Math.abs(look.y) > 0.0001) {
+      if (
+        this.currentHUDState.lookEnabled &&
+        (Math.abs(look.x) > 0.0001 || Math.abs(look.y) > 0.0001)
+      ) {
         this.rotationY += look.x;
         this.rotationX -= look.y;
         this.rotationX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.rotationX));
+        this.camera.rotation.x = this.rotationX;
+        this.camera.rotation.y = this.rotationY;
       }
-    } else {
-      // Keyboard
-      if (this.keysPressed.has('KeyW')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()));
-      }
-      if (this.keysPressed.has('KeyS')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Backward()));
-      }
-      if (this.keysPressed.has('KeyA')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Left()));
-      }
-      if (this.keysPressed.has('KeyD')) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Right()));
-      }
-    }
-
-    // Apply movement
-    if (moveDir.length() > 0) {
-      moveDir.normalize();
-      moveDir.y = 0;
-      moveDir.scaleInPlace(this.moveSpeed * deltaTime);
-      this.camera.position.addInPlace(moveDir);
     }
 
     // Keep at standing height
     this.camera.position.y = 1.7;
 
-    // Clamp to corridor bounds
-    const corridorHalfWidth = 4.5;
-    const corridorEnd = -53;
-    this.camera.position.x = Math.max(
-      -corridorHalfWidth,
-      Math.min(corridorHalfWidth, this.camera.position.x)
-    );
-    this.camera.position.z = Math.max(corridorEnd, Math.min(2, this.camera.position.z));
+    // Clamp to station bounds (expanded for new rooms)
+    // Allow movement through all rooms
+    const minX = -25; // Account for equipment bay offset
+    const maxX = 25;
+    const minZ = -120; // Hangar bay is far down
+    const maxZ = 10; // Briefing room
+    this.camera.position.x = Math.max(minX, Math.min(maxX, this.camera.position.x));
+    this.camera.position.z = Math.max(minZ, Math.min(maxZ, this.camera.position.z));
 
     // Check tutorial objectives
-    const lookDir = this.camera.getDirection(Vector3.Forward());
-    this.tutorialManager.checkObjective(this.camera.position, lookDir);
+    if (this.tutorialManager) {
+      const lookDir = this.camera.getDirection(Vector3.Forward());
+      this.tutorialManager.checkObjective(this.camera.position, lookDir);
 
-    // Show/hide interaction prompt
-    if (this.tutorialManager.canPlayerInteract(this.camera.position)) {
-      this.showInteractionPrompt();
-    } else {
-      this.hideInteractionPrompt();
+      // Show/hide interaction prompt
+      if (this.tutorialManager.canPlayerInteract(this.camera.position)) {
+        this.showInteractionPrompt();
+
+        // Update interact marker position
+        if (this.interactMarker) {
+          const target = this.tutorialManager.getCurrentObjectiveTarget();
+          if (target) {
+            this.interactMarker.position = target.clone();
+            this.interactMarker.position.y = 2.8;
+            this.interactMarker.isVisible = true;
+          }
+        }
+      } else {
+        this.hideInteractionPrompt();
+        if (this.interactMarker) {
+          this.interactMarker.isVisible = false;
+        }
+      }
     }
 
     // Animate objective marker
     if (this.objectiveMarker?.isVisible) {
       this.objectiveMarker.rotation.y += deltaTime * 2;
-      // Pulse alpha
-      const pulse = 0.3 + Math.sin(performance.now() * 0.003) * 0.15;
+      const pulse = 0.6 + Math.sin(performance.now() * 0.003) * 0.2;
       (this.objectiveMarker.material as StandardMaterial).alpha = pulse;
     }
+
+    // Animate exclamation mark (bob up and down)
+    if (this.objectiveMarkerExclamation?.isVisible) {
+      const bob = Math.sin(performance.now() * 0.004) * 0.15;
+      const target = this.tutorialManager?.getCurrentObjectiveTarget();
+      if (target) {
+        this.objectiveMarkerExclamation.position.y = 2.5 + bob;
+      }
+    }
+
+    // Animate interact marker
+    if (this.interactMarker?.isVisible) {
+      const bob = Math.sin(performance.now() * 0.005) * 0.1;
+      this.interactMarker.position.y = 2.8 + bob;
+    }
+  }
+
+  // Override movement processing to respect HUD state
+  protected override processMovement(deltaTime: number): void {
+    if (!this.currentHUDState.movementEnabled) return;
+    if (!this.isPointerLocked()) return;
+
+    super.processMovement(deltaTime);
   }
 
   // Called when player dismisses comms
   onCommsDismissed(): void {
-    this.tutorialManager.onCommsDismissed();
+    this.tutorialManager?.onCommsDismissed();
   }
 
+  // Skip tutorial for debugging
   skip(): void {
-    this.tutorialManager.skip();
+    this.tutorialManager?.skip();
   }
 
-  getCamera(): UniversalCamera {
-    return this.camera;
+  override canTransitionTo(levelId: LevelId): boolean {
+    // Can only transition to next level when tutorial is complete
+    return levelId === this.config.nextLevelId && this.state.completed;
   }
 
-  dispose(): void {
-    this.isActive = false;
-    this.removeControls();
-    this.tutorialManager.dispose();
-    this.environment?.dispose();
+  protected override disposeLevel(): void {
+    // Dispose tutorial manager
+    this.tutorialManager?.dispose();
+    this.tutorialManager = null;
+
+    // Dispose station environment
+    this.stationEnvironment?.dispose();
+    this.stationEnvironment = null;
+
+    // Dispose markers
     this.objectiveMarker?.dispose();
-    this.camera.dispose();
+    this.objectiveMarker = null;
+    this.objectiveMarkerExclamation?.dispose();
+    this.objectiveMarkerExclamation = null;
+    this.interactMarker?.dispose();
+    this.interactMarker = null;
 
-    // Remove interaction prompt
-    if (this.interactionPrompt && this.interactionPrompt.parentNode) {
+    // Remove interaction prompt from DOM
+    if (this.interactionPrompt?.parentNode) {
       this.interactionPrompt.parentNode.removeChild(this.interactionPrompt);
     }
+    this.interactionPrompt = null;
+
+    // Clear action buttons
+    this.callbacks.onActionGroupsChange([]);
+
+    // Call parent dispose
+    super.disposeLevel();
   }
 }

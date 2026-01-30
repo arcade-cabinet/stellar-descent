@@ -1,22 +1,63 @@
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useGame } from '../../game/context/GameContext';
+import {
+  getKeyDisplayName,
+  getPrimaryKey,
+  useKeybindings,
+} from '../../game/context/KeybindingsContext';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { type DifficultyLevel, getDifficultyDisplayName } from '../../game/core/DifficultySettings';
 import { GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, LORE } from '../../game/core/lore';
 import { worldDb } from '../../game/db/worldDatabase';
+import type { LevelId } from '../../game/levels/types';
+import {
+  formatPlayTime,
+  type GameSaveMetadata,
+  getLevelDisplayName,
+  saveSystem,
+} from '../../game/persistence';
 import { getScreenInfo } from '../../game/utils/responsive';
+import { AchievementsPanel } from './AchievementsPanel';
+import { DifficultySelector } from './DifficultySelector';
+import { InstallPrompt, useInstallAvailable } from './InstallPrompt';
+import { LevelSelect } from './LevelSelect';
 import styles from './MainMenu.module.css';
+import { SettingsMenu } from './SettingsMenu';
 
 interface MainMenuProps {
   onStart: () => void;
+  onContinue?: () => void;
   onSkipTutorial?: () => void;
+  onSelectLevel?: (levelId: LevelId) => void;
+  onReplayTitle?: () => void;
 }
 
-export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
+export function MainMenu({
+  onStart,
+  onContinue,
+  onSkipTutorial,
+  onSelectLevel,
+  onReplayTitle,
+}: MainMenuProps) {
   const [showControls, setShowControls] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showLevelSelect, setShowLevelSelect] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [showDifficultySelect, setShowDifficultySelect] = useState(false);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [hasSave, setHasSave] = useState(false);
+  const [saveMetadata, setSaveMetadata] = useState<GameSaveMetadata | null>(null);
   const [screenInfo, setScreenInfo] = useState(() => getScreenInfo());
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  const { keybindings } = useKeybindings();
+  const { difficulty } = useGame();
+
+  // PWA install availability
+  const { isAvailable: canInstall, isStandalone } = useInstallAvailable();
+
   const isMobile = screenInfo.deviceType === 'mobile' || screenInfo.deviceType === 'foldable';
 
   useEffect(() => {
@@ -27,8 +68,13 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
 
   useEffect(() => {
     const checkSave = async () => {
-      await worldDb.init();
-      setHasSave(worldDb.hasSaveData());
+      await saveSystem.initialize();
+      const hasSaveData = saveSystem.hasSave();
+      setHasSave(hasSaveData);
+      if (hasSaveData) {
+        const metadata = saveSystem.getSaveMetadata();
+        setSaveMetadata(metadata);
+      }
     };
     checkSave();
   }, []);
@@ -47,18 +93,63 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
     getAudioManager().play('ui_click', { volume: 0.3 });
   }, []);
 
-  const handleStart = useCallback(() => {
+  const handleNewGame = useCallback(() => {
     playClickSound();
-    onStart();
-  }, [onStart, playClickSound]);
+    // If there's an existing save, ask for confirmation
+    if (hasSave) {
+      setShowNewGameConfirm(true);
+    } else {
+      // No save exists, show difficulty selection first
+      setShowDifficultySelect(true);
+    }
+  }, [hasSave, playClickSound]);
 
-  const handleContinue = useCallback(() => {
-    playClickSound();
-    onStart();
-  }, [onStart, playClickSound]);
+  const handleStartWithDifficulty = useCallback(
+    (selectedDifficulty: DifficultyLevel) => {
+      playClickSound();
+      setShowDifficultySelect(false);
+      saveSystem.newGame(selectedDifficulty).then(() => {
+        onStart();
+      });
+    },
+    [onStart, playClickSound]
+  );
 
-  const handleSkipTutorial = useCallback(() => {
+  const handleCancelDifficultySelect = useCallback(() => {
     playClickSound();
+    setShowDifficultySelect(false);
+  }, [playClickSound]);
+
+  const handleConfirmNewGame = useCallback(async () => {
+    playClickSound();
+    setShowNewGameConfirm(false);
+    // Show difficulty selection for the new game
+    setShowDifficultySelect(true);
+  }, [playClickSound]);
+
+  const handleCancelNewGame = useCallback(() => {
+    playClickSound();
+    setShowNewGameConfirm(false);
+  }, [playClickSound]);
+
+  const handleContinue = useCallback(async () => {
+    playClickSound();
+    // Load the saved game
+    const save = await saveSystem.loadGame();
+    if (save && onContinue) {
+      onContinue();
+    } else if (save) {
+      // Fallback to onStart if onContinue not provided
+      onStart();
+    }
+  }, [onContinue, onStart, playClickSound]);
+
+  const handleSkipTutorial = useCallback(async () => {
+    playClickSound();
+    // Create new game but skip tutorial
+    await saveSystem.newGame();
+    saveSystem.completeTutorial();
+    saveSystem.setCurrentLevel('landfall');
     onSkipTutorial?.();
   }, [onSkipTutorial, playClickSound]);
 
@@ -120,6 +211,58 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
     setShowControls(false);
   }, [playClickSound]);
 
+  const handleShowSettings = useCallback(() => {
+    playClickSound();
+    setShowSettings(true);
+  }, [playClickSound]);
+
+  const handleReplayTitle = useCallback(() => {
+    playClickSound();
+    onReplayTitle?.();
+  }, [playClickSound, onReplayTitle]);
+
+  const handleCloseSettings = useCallback(() => {
+    playClickSound();
+    setShowSettings(false);
+  }, [playClickSound]);
+
+  const handleShowLevelSelect = useCallback(() => {
+    playClickSound();
+    setShowLevelSelect(true);
+  }, [playClickSound]);
+
+  const handleCloseLevelSelect = useCallback(() => {
+    playClickSound();
+    setShowLevelSelect(false);
+  }, [playClickSound]);
+
+  const handleLevelSelect = useCallback(
+    (levelId: LevelId) => {
+      setShowLevelSelect(false);
+      onSelectLevel?.(levelId);
+    },
+    [onSelectLevel]
+  );
+
+  const handleShowAchievements = useCallback(() => {
+    playClickSound();
+    setShowAchievements(true);
+  }, [playClickSound]);
+
+  const handleCloseAchievements = useCallback(() => {
+    playClickSound();
+    setShowAchievements(false);
+  }, [playClickSound]);
+
+  const handleShowInstall = useCallback(() => {
+    playClickSound();
+    setShowInstallPrompt(true);
+  }, [playClickSound]);
+
+  const handleCloseInstall = useCallback(() => {
+    setShowInstallPrompt(false);
+  }, []);
+
   return (
     <div className={styles.overlay}>
       <input
@@ -156,23 +299,31 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
 
         {/* Buttons */}
         <div className={styles.buttonGroup}>
-          <button
-            type="button"
-            className={`${styles.button} ${styles.primaryButton}`}
-            onClick={handleStart}
-          >
-            <span className={styles.buttonIcon}>▶</span>
-            NEW CAMPAIGN
-          </button>
+          {/* Show CONTINUE as primary if save exists */}
+          {hasSave && (
+            <button
+              type="button"
+              className={`${styles.button} ${styles.primaryButton}`}
+              onClick={handleContinue}
+            >
+              <span className={styles.buttonIcon}>▶</span>
+              CONTINUE
+              {saveMetadata && (
+                <span className={styles.saveInfo}>
+                  Ch.{saveMetadata.currentChapter} - {formatPlayTime(saveMetadata.playTime)} -{' '}
+                  {getDifficultyDisplayName(saveMetadata.difficulty)}
+                </span>
+              )}
+            </button>
+          )}
 
           <button
             type="button"
-            className={`${styles.button} ${!hasSave ? styles.disabled : ''}`}
-            disabled={!hasSave}
-            onClick={handleContinue}
+            className={`${styles.button} ${!hasSave ? styles.primaryButton : ''}`}
+            onClick={handleNewGame}
           >
-            <span className={styles.buttonIcon}>◆</span>
-            CONTINUE
+            <span className={styles.buttonIcon}>{hasSave ? '◆' : '▶'}</span>
+            NEW CAMPAIGN
           </button>
 
           <button type="button" className={styles.button} onClick={handleLoadClick}>
@@ -194,10 +345,42 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
             </button>
           )}
 
+          {onSelectLevel && (
+            <button type="button" className={styles.button} onClick={handleShowLevelSelect}>
+              <span className={styles.buttonIcon}>&#9632;</span>
+              SELECT MISSION
+            </button>
+          )}
+
+          <button type="button" className={styles.button} onClick={handleShowAchievements}>
+            <span className={styles.buttonIcon}>{'\u2605'}</span>
+            ACHIEVEMENTS
+          </button>
+
           <button type="button" className={styles.button} onClick={handleShowControls}>
             <span className={styles.buttonIcon}>◈</span>
             CONTROLS
           </button>
+
+          <button type="button" className={styles.button} onClick={handleShowSettings}>
+            <span className={styles.buttonIcon}>⚙</span>
+            SETTINGS
+          </button>
+
+          {onReplayTitle && (
+            <button type="button" className={styles.button} onClick={handleReplayTitle}>
+              <span className={styles.buttonIcon}>&#9654;</span>
+              REPLAY INTRO
+            </button>
+          )}
+
+          {/* Install App button - only show when PWA install is available and not already installed */}
+          {canInstall && !isStandalone && (
+            <button type="button" className={styles.button} onClick={handleShowInstall}>
+              <span className={styles.buttonIcon}>&#8681;</span>
+              INSTALL APP
+            </button>
+          )}
         </div>
 
         {/* Footer info */}
@@ -251,7 +434,12 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
               ) : (
                 <div className={styles.controlsGrid}>
                   <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>W A S D</span>
+                    <span className={styles.controlKey}>
+                      {getKeyDisplayName(getPrimaryKey(keybindings.moveForward))}{' '}
+                      {getKeyDisplayName(getPrimaryKey(keybindings.moveLeft))}{' '}
+                      {getKeyDisplayName(getPrimaryKey(keybindings.moveBackward))}{' '}
+                      {getKeyDisplayName(getPrimaryKey(keybindings.moveRight))} / Arrows
+                    </span>
                     <span className={styles.controlAction}>Move</span>
                   </div>
                   <div className={styles.controlItem}>
@@ -259,11 +447,15 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
                     <span className={styles.controlAction}>Aim / Look</span>
                   </div>
                   <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>LEFT CLICK</span>
+                    <span className={styles.controlKey}>
+                      {getKeyDisplayName(getPrimaryKey(keybindings.fire))}
+                    </span>
                     <span className={styles.controlAction}>Fire</span>
                   </div>
                   <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>SHIFT</span>
+                    <span className={styles.controlKey}>
+                      {getKeyDisplayName(getPrimaryKey(keybindings.sprint))}
+                    </span>
                     <span className={styles.controlAction}>Sprint</span>
                   </div>
                 </div>
@@ -278,6 +470,119 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
           </div>
         </div>
       )}
+
+      {/* Settings Menu */}
+      <SettingsMenu isOpen={showSettings} onClose={handleCloseSettings} />
+
+      {/* Level Select */}
+      <LevelSelect
+        isOpen={showLevelSelect}
+        onClose={handleCloseLevelSelect}
+        onSelectLevel={handleLevelSelect}
+      />
+
+      {/* Achievements Panel */}
+      <AchievementsPanel isOpen={showAchievements} onClose={handleCloseAchievements} />
+
+      {/* New Game Confirmation Modal */}
+      {showNewGameConfirm && (
+        // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
+        <div
+          className={styles.modalOverlay}
+          onClick={handleCancelNewGame}
+          onKeyDown={(e) => e.key === 'Escape' && handleCancelNewGame()}
+          role="presentation"
+        >
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            <div className={styles.modalHeader}>
+              <span>START NEW CAMPAIGN?</span>
+            </div>
+
+            <div className={styles.modalContent}>
+              <p className={styles.confirmText}>
+                Starting a new campaign will overwrite your existing save data.
+              </p>
+              {saveMetadata && (
+                <div className={styles.savePreview}>
+                  <div className={styles.savePreviewRow}>
+                    <span>Current Progress:</span>
+                    <span>Chapter {saveMetadata.currentChapter}</span>
+                  </div>
+                  <div className={styles.savePreviewRow}>
+                    <span>Location:</span>
+                    <span>{getLevelDisplayName(saveMetadata.currentLevel)}</span>
+                  </div>
+                  <div className={styles.savePreviewRow}>
+                    <span>Play Time:</span>
+                    <span>{formatPlayTime(saveMetadata.playTime)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalButtons}>
+              <button type="button" className={styles.modalButton} onClick={handleCancelNewGame}>
+                CANCEL
+              </button>
+              <button
+                type="button"
+                className={`${styles.modalButton} ${styles.dangerButton}`}
+                onClick={handleConfirmNewGame}
+              >
+                START NEW
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Difficulty Selection Modal */}
+      {showDifficultySelect && (
+        // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
+        <div
+          className={styles.modalOverlay}
+          onClick={handleCancelDifficultySelect}
+          onKeyDown={(e) => e.key === 'Escape' && handleCancelDifficultySelect()}
+          role="presentation"
+        >
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
+          <div
+            className={`${styles.modal} ${styles.difficultyModal}`}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="difficulty-title"
+          >
+            <div className={styles.modalHeader}>
+              <span id="difficulty-title">SELECT DIFFICULTY</span>
+            </div>
+
+            <div className={styles.modalContent}>
+              <DifficultySelector onSelect={handleStartWithDifficulty} />
+            </div>
+
+            <div className={styles.modalButtons}>
+              <button
+                type="button"
+                className={styles.modalButton}
+                onClick={handleCancelDifficultySelect}
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Install Prompt */}
+      <InstallPrompt triggerShow={showInstallPrompt} onClose={handleCloseInstall} />
     </div>
   );
 }

@@ -1,10 +1,52 @@
+/**
+ * TouchControls - Enhanced mobile touch controls for FPS gameplay
+ *
+ * Features:
+ * - Virtual joystick with dead zones and acceleration curves
+ * - Smooth look control with sensitivity and inverted Y option
+ * - Fire button with haptic feedback
+ * - Reload button with progress indicator
+ * - Jump/Crouch/Sprint buttons
+ * - Context-sensitive action button
+ * - Double-tap to sprint gesture
+ * - Swipe to switch weapons gesture
+ * - Adjustable control positions, sizes, and opacity
+ * - Haptic feedback for various actions
+ */
+
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TouchInput } from '../../game/types';
+import { getScreenInfo } from '../../game/utils/responsive';
+import {
+  applyAccelerationCurve,
+  applyDeadZone,
+  DEFAULT_TOUCH_SETTINGS,
+  GestureDetector,
+  getScaledControlSizes,
+  LookSmoother,
+  loadTouchSettings,
+  MIN_TOUCH_TARGET_SIZE,
+  saveTouchSettings,
+  type TouchControlSettings,
+  triggerHaptic,
+} from '../../game/utils/touchSettings';
 import styles from './TouchControls.module.css';
 
 interface TouchControlsProps {
   onInput: (input: TouchInput | null) => void;
+  /** Whether to show the settings panel */
+  showSettings?: boolean;
+  /** Callback when settings panel is toggled */
+  onSettingsToggle?: (show: boolean) => void;
+  /** Reload progress (0-1), undefined when not reloading */
+  reloadProgress?: number;
+  /** Whether a context-sensitive interaction is available */
+  interactionAvailable?: boolean;
+  /** Label for the context-sensitive interaction button */
+  interactionLabel?: string;
+  /** Callback when pause button is pressed */
+  onPause?: () => void;
 }
 
 interface JoystickState {
@@ -16,7 +58,6 @@ interface JoystickState {
   pointerId: number | null;
 }
 
-// Track touch on screen for look (not on joystick or buttons)
 interface LookTouchState {
   active: boolean;
   lastX: number;
@@ -24,8 +65,20 @@ interface LookTouchState {
   pointerId: number | null;
 }
 
-export function TouchControls({ onInput }: TouchControlsProps) {
-  // Left joystick for movement
+export function TouchControls({
+  onInput,
+  showSettings = false,
+  onSettingsToggle,
+  reloadProgress,
+  interactionAvailable = false,
+  interactionLabel = 'USE',
+  onPause,
+}: TouchControlsProps) {
+  // Settings
+  const [settings, setSettings] = useState<TouchControlSettings>(() => loadTouchSettings());
+  const [isSettingsOpen, setIsSettingsOpen] = useState(showSettings);
+
+  // Joystick state
   const [moveStick, setMoveStick] = useState<JoystickState>({
     active: false,
     startX: 0,
@@ -35,7 +88,7 @@ export function TouchControls({ onInput }: TouchControlsProps) {
     pointerId: null,
   });
 
-  // Look via screen drag (not a joystick)
+  // Look touch state
   const [lookTouch, setLookTouch] = useState<LookTouchState>({
     active: false,
     lastX: 0,
@@ -44,58 +97,159 @@ export function TouchControls({ onInput }: TouchControlsProps) {
   });
   const [lookDelta, setLookDelta] = useState({ x: 0, y: 0 });
 
-  // Action buttons
+  // Action buttons state
   const [isFiring, setIsFiring] = useState(false);
   const [isSprinting, setIsSprinting] = useState(false);
   const [isJumping, setIsJumping] = useState(false);
   const [isCrouching, setIsCrouching] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
 
-  const maxDistance = 40;
+  // Weapon switching
+  const [activeWeapon, setActiveWeapon] = useState(0);
+  const [weaponSwitchRequest, setWeaponSwitchRequest] = useState<number | undefined>(undefined);
 
-  // Calculate joystick output
-  const getJoystickOutput = useCallback((stick: JoystickState) => {
-    if (!stick.active) return { x: 0, y: 0 };
+  // Gesture detection
+  const gestureDetectorRef = useRef(new GestureDetector());
+  const lookSmootherRef = useRef(new LookSmoother(0.5)); // Reduced smoothing for faster response
 
-    const dx = stick.currentX - stick.startX;
-    const dy = stick.currentY - stick.startY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+  // Scaled sizes based on device and settings
+  const controlSizes = useMemo(
+    () => getScaledControlSizes(settings.controlSizeMultiplier),
+    [settings.controlSizeMultiplier]
+  );
 
-    if (distance < 5) return { x: 0, y: 0 };
+  // Max joystick distance
+  const maxDistance = controlSizes.joystickSize * 0.4;
 
-    const clampedDist = Math.min(distance, maxDistance);
-    return {
-      x: (dx / distance) * (clampedDist / maxDistance),
-      y: (dy / distance) * (clampedDist / maxDistance),
-    };
-  }, []);
+  // Update settings when showSettings prop changes
+  useEffect(() => {
+    setIsSettingsOpen(showSettings);
+  }, [showSettings]);
+
+  // Calculate joystick output with dead zone and acceleration
+  const getJoystickOutput = useCallback(
+    (stick: JoystickState) => {
+      if (!stick.active) return { x: 0, y: 0 };
+
+      const dx = stick.currentX - stick.startX;
+      const dy = stick.currentY - stick.startY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Apply dead zone
+      const deadZone = settings.movementDeadZone * maxDistance;
+      if (distance < deadZone) return { x: 0, y: 0 };
+
+      // Normalize and apply dead zone scaling
+      const effectiveDistance = distance - deadZone;
+      const maxEffective = maxDistance - deadZone;
+      const clampedDist = Math.min(effectiveDistance, maxEffective);
+      const normalizedDist = clampedDist / maxEffective;
+
+      // Calculate direction
+      const dirX = dx / distance;
+      const dirY = dy / distance;
+
+      // Apply acceleration curve based on user preference
+      const curvedMagnitude = applyAccelerationCurve(normalizedDist, settings.joystickCurve);
+
+      return {
+        x: dirX * curvedMagnitude,
+        y: dirY * curvedMagnitude,
+      };
+    },
+    [maxDistance, settings.movementDeadZone, settings.joystickCurve]
+  );
 
   // Send input updates
   useEffect(() => {
     const movement = getJoystickOutput(moveStick);
 
+    // Apply look smoothing if enabled with velocity-based scaling
+    let finalLook = lookDelta;
+    if (settings.smoothLook && (lookDelta.x !== 0 || lookDelta.y !== 0)) {
+      const smoothResult = lookSmootherRef.current.smooth(lookDelta.x, lookDelta.y, {
+        velocityScaling: settings.velocityAimScaling,
+        deadZone: settings.lookDeadZone,
+      });
+      finalLook = { x: smoothResult.x, y: smoothResult.y };
+    } else if (settings.lookDeadZone > 0) {
+      // Apply dead zone even without smoothing
+      const magnitude = Math.sqrt(lookDelta.x ** 2 + lookDelta.y ** 2);
+      if (magnitude < settings.lookDeadZone) {
+        finalLook = { x: 0, y: 0 };
+      }
+    }
+
+    // Apply sensitivity and inverted Y
+    const scaledLook = {
+      x: finalLook.x * settings.lookSensitivity,
+      y: finalLook.y * settings.lookSensitivity * (settings.invertedY ? -1 : 1),
+    };
+
     onInput({
       movement: { x: movement.x, y: -movement.y }, // Invert Y for forward
-      look: lookDelta,
+      look: scaledLook,
       isFiring,
       isSprinting,
       isJumping,
       isCrouching,
+      weaponSlot: weaponSwitchRequest,
+      isReloading,
+      isInteracting,
+      aimAssist: settings.aimAssist,
+      aimAssistStrength: settings.aimAssistStrength,
     });
 
     // Reset look delta after sending
     if (lookDelta.x !== 0 || lookDelta.y !== 0) {
       setLookDelta({ x: 0, y: 0 });
     }
-  }, [moveStick, lookDelta, isFiring, isSprinting, isJumping, isCrouching, getJoystickOutput, onInput]);
+    // Clear one-shot actions
+    if (weaponSwitchRequest !== undefined) {
+      setWeaponSwitchRequest(undefined);
+    }
+    if (isReloading) {
+      setIsReloading(false);
+    }
+    if (isInteracting) {
+      setIsInteracting(false);
+    }
+  }, [
+    moveStick,
+    lookDelta,
+    isFiring,
+    isSprinting,
+    isJumping,
+    isCrouching,
+    weaponSwitchRequest,
+    isReloading,
+    isInteracting,
+    getJoystickOutput,
+    onInput,
+    settings.lookSensitivity,
+    settings.invertedY,
+    settings.smoothLook,
+    settings.velocityAimScaling,
+    settings.lookDeadZone,
+    settings.aimAssist,
+    settings.aimAssistStrength,
+  ]);
 
   // Movement joystick handlers
   const handleMoveStart = useCallback(
     (e: React.PointerEvent) => {
       if (moveStick.pointerId !== null) return;
       e.currentTarget.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left - rect.width / 2;
       const y = e.clientY - rect.top - rect.height / 2;
+
+      // Trigger haptic on touch
+      triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
+
       setMoveStick({
         active: true,
         startX: x,
@@ -105,7 +259,7 @@ export function TouchControls({ onInput }: TouchControlsProps) {
         pointerId: e.pointerId,
       });
     },
-    [moveStick.pointerId]
+    [moveStick.pointerId, settings.hapticFeedback, settings.hapticIntensity]
   );
 
   const handleMoveMove = useCallback(
@@ -136,20 +290,33 @@ export function TouchControls({ onInput }: TouchControlsProps) {
     [moveStick.pointerId]
   );
 
-  // Screen touch for looking (drag anywhere on screen)
+  // Screen touch for looking
   const handleScreenTouchStart = useCallback(
     (e: React.PointerEvent) => {
-      // Only capture touches in the center area (not on controls)
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      // Exclude left 25% (joystick) and right 25% (buttons)
-      if (x < rect.width * 0.25 || x > rect.width * 0.75) return;
-      // Exclude bottom 30% (action buttons area)
-      if (y > rect.height * 0.7) return;
+      // Exclude left 30% (joystick area with padding)
+      if (x < rect.width * 0.3) return;
+      // Exclude right 25% (buttons)
+      if (x > rect.width * 0.75) return;
+      // Exclude bottom 35% (action buttons area)
+      if (y > rect.height * 0.65) return;
 
       if (lookTouch.pointerId !== null) return;
+
+      // Check for gestures (double-tap sprint)
+      if (settings.doubleTapSprint) {
+        const gesture = gestureDetectorRef.current.onTouchStart(e.clientX, e.clientY);
+        if (gesture.doubleTapDetected) {
+          setIsSprinting(true);
+          triggerHaptic('sprint', settings.hapticFeedback, settings.hapticIntensity);
+          // Auto-disable sprint after 3 seconds if not held
+          setTimeout(() => setIsSprinting(false), 3000);
+          return;
+        }
+      }
 
       setLookTouch({
         active: true,
@@ -158,16 +325,17 @@ export function TouchControls({ onInput }: TouchControlsProps) {
         pointerId: e.pointerId,
       });
     },
-    [lookTouch.pointerId]
+    [lookTouch.pointerId, settings.doubleTapSprint, settings.hapticFeedback]
   );
 
   const handleScreenTouchMove = useCallback(
     (e: React.PointerEvent) => {
       if (e.pointerId !== lookTouch.pointerId || !lookTouch.active) return;
 
-      const sensitivity = 0.003;
-      const dx = (e.clientX - lookTouch.lastX) * sensitivity;
-      const dy = (e.clientY - lookTouch.lastY) * sensitivity;
+      // Base sensitivity
+      const baseSensitivity = 0.003;
+      const dx = (e.clientX - lookTouch.lastX) * baseSensitivity;
+      const dy = (e.clientY - lookTouch.lastY) * baseSensitivity;
 
       setLookDelta((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
       setLookTouch((prev) => ({
@@ -182,14 +350,32 @@ export function TouchControls({ onInput }: TouchControlsProps) {
   const handleScreenTouchEnd = useCallback(
     (e: React.PointerEvent) => {
       if (e.pointerId !== lookTouch.pointerId) return;
+
+      // Check for swipe gesture (weapon switch)
+      if (settings.swipeWeaponSwitch) {
+        const gesture = gestureDetectorRef.current.onTouchEnd(e.clientX, e.clientY);
+        if (gesture.swipeDirection === 'left') {
+          const newWeapon = (activeWeapon + 1) % 3;
+          setActiveWeapon(newWeapon);
+          setWeaponSwitchRequest(newWeapon);
+          triggerHaptic('weaponSwitch', settings.hapticFeedback, settings.hapticIntensity);
+        } else if (gesture.swipeDirection === 'right') {
+          const newWeapon = (activeWeapon + 2) % 3;
+          setActiveWeapon(newWeapon);
+          setWeaponSwitchRequest(newWeapon);
+          triggerHaptic('weaponSwitch', settings.hapticFeedback, settings.hapticIntensity);
+        }
+      }
+
       setLookTouch({
         active: false,
         lastX: 0,
         lastY: 0,
         pointerId: null,
       });
+      lookSmootherRef.current.reset();
     },
-    [lookTouch.pointerId]
+    [lookTouch.pointerId, settings.swipeWeaponSwitch, settings.hapticFeedback, activeWeapon]
   );
 
   // Calculate thumb position
@@ -213,6 +399,105 @@ export function TouchControls({ onInput }: TouchControlsProps) {
     };
   };
 
+  // Fire button handlers with haptic
+  const handleFireStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      setIsFiring(true);
+      triggerHaptic('fire', settings.hapticFeedback, settings.hapticIntensity);
+    },
+    [settings.hapticFeedback, settings.hapticIntensity]
+  );
+
+  const handleFireEnd = useCallback(() => {
+    setIsFiring(false);
+  }, []);
+
+  // Reload button handler
+  const handleReload = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      setIsReloading(true);
+      triggerHaptic('reload', settings.hapticFeedback, settings.hapticIntensity);
+    },
+    [settings.hapticFeedback, settings.hapticIntensity]
+  );
+
+  // Interaction button handler
+  const handleInteract = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      setIsInteracting(true);
+      triggerHaptic('interact', settings.hapticFeedback, settings.hapticIntensity);
+    },
+    [settings.hapticFeedback, settings.hapticIntensity]
+  );
+
+  // Pause button handler
+  const handlePause = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
+      onPause?.();
+    },
+    [settings.hapticFeedback, settings.hapticIntensity, onPause]
+  );
+
+  // Settings handlers
+  const handleSettingChange = useCallback(
+    <K extends keyof TouchControlSettings>(key: K, value: TouchControlSettings[K]) => {
+      setSettings((prev) => {
+        const next = { ...prev, [key]: value };
+        saveTouchSettings(next);
+        return next;
+      });
+    },
+    []
+  );
+
+  const toggleSettings = useCallback(() => {
+    const newState = !isSettingsOpen;
+    setIsSettingsOpen(newState);
+    onSettingsToggle?.(newState);
+  }, [isSettingsOpen, onSettingsToggle]);
+
+  // Calculate control positions with custom offsets
+  const joystickStyle = useMemo(() => {
+    const baseLeft = 20 + settings.joystickPositionX;
+    const baseBottom = 100 + settings.joystickPositionY;
+    return {
+      left: `max(${baseLeft}px, calc(env(safe-area-inset-left, 20px) + ${settings.joystickPositionX}px))`,
+      bottom: `max(${baseBottom}px, calc(env(safe-area-inset-bottom, 30px) + 70px + ${settings.joystickPositionY}px))`,
+      width: `${controlSizes.joystickSize}px`,
+      height: `${controlSizes.joystickSize}px`,
+      opacity: settings.controlOpacity,
+    };
+  }, [
+    settings.joystickPositionX,
+    settings.joystickPositionY,
+    settings.controlOpacity,
+    controlSizes.joystickSize,
+  ]);
+
+  const buttonsStyle = useMemo(() => {
+    const baseRight = 20 + settings.buttonPositionX;
+    const baseBottom = 100 + settings.buttonPositionY;
+    return {
+      right: `max(${baseRight}px, calc(env(safe-area-inset-right, 20px) + ${settings.buttonPositionX}px))`,
+      bottom: `max(${baseBottom}px, calc(env(safe-area-inset-bottom, 30px) + 70px + ${settings.buttonPositionY}px))`,
+      opacity: settings.controlOpacity,
+    };
+  }, [settings.buttonPositionX, settings.buttonPositionY, settings.controlOpacity]);
+
+  // Touch area style (larger than visual for easier touch)
+  const touchAreaStyle = useMemo(
+    () => ({
+      padding: `${controlSizes.touchAreaPadding}px`,
+      margin: `-${controlSizes.touchAreaPadding}px`,
+    }),
+    [controlSizes.touchAreaPadding]
+  );
+
   return (
     <div
       className={styles.touchControls}
@@ -221,16 +506,30 @@ export function TouchControls({ onInput }: TouchControlsProps) {
       onPointerUp={handleScreenTouchEnd}
       onPointerCancel={handleScreenTouchEnd}
     >
-      {/* Left Joystick - Movement Only */}
+      {/* Look area indicator */}
+      <div className={`${styles.lookArea} ${lookTouch.active ? styles.lookAreaActive : ''}`}>
+        <span className={styles.lookAreaLabel}>DRAG TO LOOK</span>
+      </div>
+
+      {/* Left Joystick - Movement */}
       <div
         className={styles.joystickContainer}
-        style={{ left: 'max(20px, env(safe-area-inset-left, 20px))' }}
+        style={joystickStyle}
         onPointerDown={handleMoveStart}
         onPointerMove={handleMoveMove}
         onPointerUp={handleMoveEnd}
         onPointerCancel={handleMoveEnd}
       >
+        {/* Extended touch area */}
+        <div className={styles.joystickTouchArea} style={touchAreaStyle} />
         <div className={styles.joystickBase}>
+          {/* Direction indicators */}
+          <div className={styles.joystickIndicators}>
+            <div className={`${styles.indicator} ${styles.indicatorUp}`} />
+            <div className={`${styles.indicator} ${styles.indicatorDown}`} />
+            <div className={`${styles.indicator} ${styles.indicatorLeft}`} />
+            <div className={`${styles.indicator} ${styles.indicatorRight}`} />
+          </div>
           <div
             className={`${styles.joystickThumb} ${moveStick.active ? styles.active : ''}`}
             style={getThumbStyle(moveStick)}
@@ -240,20 +539,41 @@ export function TouchControls({ onInput }: TouchControlsProps) {
       </div>
 
       {/* Right Side Action Buttons */}
-      <div className={styles.actionButtonColumn}>
+      <div className={styles.actionButtonColumn} style={buttonsStyle}>
         {/* Fire Button - Large, prominent */}
         <button
           type="button"
           className={`${styles.actionButton} ${styles.fireButton} ${isFiring ? styles.active : ''}`}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            setIsFiring(true);
+          style={{
+            width: `${controlSizes.fireButtonSize}px`,
+            height: `${controlSizes.fireButtonSize}px`,
           }}
-          onPointerUp={() => setIsFiring(false)}
-          onPointerCancel={() => setIsFiring(false)}
-          onPointerLeave={() => setIsFiring(false)}
+          onPointerDown={handleFireStart}
+          onPointerUp={handleFireEnd}
+          onPointerCancel={handleFireEnd}
+          onPointerLeave={handleFireEnd}
         >
-          FIRE
+          <span className={styles.buttonIcon}>+</span>
+          <span className={styles.buttonLabel}>FIRE</span>
+        </button>
+
+        {/* Reload Button with progress indicator */}
+        <button
+          type="button"
+          className={`${styles.actionButton} ${styles.reloadButton} ${reloadProgress !== undefined ? styles.reloading : ''}`}
+          style={{
+            width: `${controlSizes.smallButtonSize}px`,
+            height: `${controlSizes.smallButtonSize}px`,
+          }}
+          onPointerDown={handleReload}
+        >
+          {reloadProgress !== undefined && (
+            <div
+              className={styles.reloadProgress}
+              style={{ '--progress': `${reloadProgress * 100}%` } as React.CSSProperties}
+            />
+          )}
+          <span className={styles.buttonLabel}>R</span>
         </button>
 
         {/* Secondary buttons row */}
@@ -262,30 +582,42 @@ export function TouchControls({ onInput }: TouchControlsProps) {
           <button
             type="button"
             className={`${styles.actionButton} ${styles.smallButton} ${isJumping ? styles.active : ''}`}
+            style={{
+              width: `${controlSizes.smallButtonSize}px`,
+              height: `${controlSizes.smallButtonSize}px`,
+            }}
             onPointerDown={(e) => {
               e.stopPropagation();
               setIsJumping(true);
+              triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
             }}
             onPointerUp={() => setIsJumping(false)}
             onPointerCancel={() => setIsJumping(false)}
             onPointerLeave={() => setIsJumping(false)}
           >
-            JUMP
+            <span className={styles.buttonIcon}>^</span>
+            <span className={styles.buttonLabel}>JUMP</span>
           </button>
 
           {/* Crouch Button */}
           <button
             type="button"
             className={`${styles.actionButton} ${styles.smallButton} ${isCrouching ? styles.active : ''}`}
+            style={{
+              width: `${controlSizes.smallButtonSize}px`,
+              height: `${controlSizes.smallButtonSize}px`,
+            }}
             onPointerDown={(e) => {
               e.stopPropagation();
               setIsCrouching(true);
+              triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
             }}
             onPointerUp={() => setIsCrouching(false)}
             onPointerCancel={() => setIsCrouching(false)}
             onPointerLeave={() => setIsCrouching(false)}
           >
-            CROUCH
+            <span className={styles.buttonIcon}>v</span>
+            <span className={styles.buttonLabel}>DUCK</span>
           </button>
         </div>
 
@@ -293,33 +625,340 @@ export function TouchControls({ onInput }: TouchControlsProps) {
         <button
           type="button"
           className={`${styles.actionButton} ${styles.sprintButton} ${isSprinting ? styles.active : ''}`}
+          style={{
+            width: `${controlSizes.sprintButtonSize}px`,
+            height: `${controlSizes.sprintButtonSize}px`,
+          }}
           onPointerDown={(e) => {
             e.stopPropagation();
             setIsSprinting(true);
+            triggerHaptic('sprint', settings.hapticFeedback, settings.hapticIntensity);
           }}
           onPointerUp={() => setIsSprinting(false)}
           onPointerCancel={() => setIsSprinting(false)}
           onPointerLeave={() => setIsSprinting(false)}
         >
-          RUN
+          <span className={styles.buttonIcon}>&gt;&gt;</span>
+          <span className={styles.buttonLabel}>RUN</span>
+        </button>
+
+        {/* Context-sensitive Interaction Button */}
+        {interactionAvailable && (
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.interactButton}`}
+            style={{
+              width: `${controlSizes.smallButtonSize + 10}px`,
+              height: `${controlSizes.smallButtonSize + 10}px`,
+            }}
+            onPointerDown={handleInteract}
+          >
+            <span className={styles.buttonIcon}>E</span>
+            <span className={styles.buttonLabel}>{interactionLabel}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Bottom Weapon Rack */}
+      <div className={styles.weaponRack}>
+        {[
+          { slot: 0, icon: '1', name: 'RIFLE' },
+          { slot: 1, icon: '2', name: 'PISTOL' },
+          { slot: 2, icon: '3', name: 'NADE' },
+        ].map((weapon) => (
+          <button
+            key={weapon.slot}
+            type="button"
+            className={`${styles.weaponSlot} ${activeWeapon === weapon.slot ? styles.weaponActive : ''}`}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              if (activeWeapon !== weapon.slot) {
+                setActiveWeapon(weapon.slot);
+                setWeaponSwitchRequest(weapon.slot);
+                triggerHaptic('weaponSwitch', settings.hapticFeedback, settings.hapticIntensity);
+              }
+            }}
+          >
+            <span className={styles.weaponIcon}>{weapon.icon}</span>
+            <span className={styles.weaponName}>{weapon.name}</span>
+          </button>
+        ))}
+        <span className={styles.swipeHint}>SWIPE TO SWITCH</span>
+      </div>
+
+      {/* Top Right Buttons: Pause and Settings */}
+      <div className={styles.topRightButtons}>
+        {/* Pause Button */}
+        {onPause && (
+          <button
+            type="button"
+            className={styles.pauseButton}
+            onPointerDown={handlePause}
+            aria-label="Pause Game"
+          >
+            <span className={styles.pauseIcon}>II</span>
+          </button>
+        )}
+
+        {/* Settings Toggle Button */}
+        <button
+          type="button"
+          className={styles.settingsToggle}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            toggleSettings();
+          }}
+          aria-label="Touch Control Settings"
+        >
+          <span className={styles.settingsIcon}>...</span>
         </button>
       </div>
 
-      {/* Bottom Weapon Rack - TODO: Implement weapon switching */}
-      <div className={styles.weaponRack}>
-        <div className={`${styles.weaponSlot} ${styles.weaponActive}`}>
-          <span className={styles.weaponIcon}>1</span>
-          <span className={styles.weaponName}>RIFLE</span>
+      {/* Settings Panel */}
+      {isSettingsOpen && (
+        <div className={styles.settingsPanel} onPointerDown={(e) => e.stopPropagation()}>
+          <h3 className={styles.settingsTitle}>Touch Controls</h3>
+
+          {/* Aiming Section */}
+          <div className={styles.settingSection}>
+            <span className={styles.settingSectionTitle}>AIMING</span>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              Look Sensitivity: {settings.lookSensitivity.toFixed(1)}
+            </label>
+            <input
+              type="range"
+              min="0.1"
+              max="3"
+              step="0.1"
+              value={settings.lookSensitivity}
+              onChange={(e) => handleSettingChange('lookSensitivity', parseFloat(e.target.value))}
+              className={styles.settingSlider}
+            />
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              Aim Dead Zone: {(settings.lookDeadZone * 100).toFixed(0)}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="0.3"
+              step="0.01"
+              value={settings.lookDeadZone}
+              onChange={(e) => handleSettingChange('lookDeadZone', parseFloat(e.target.value))}
+              className={styles.settingSlider}
+            />
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.aimAssist}
+                onChange={(e) => handleSettingChange('aimAssist', e.target.checked)}
+              />
+              Aim Assist
+            </label>
+          </div>
+
+          {settings.aimAssist && (
+            <div className={styles.settingGroup}>
+              <label className={styles.settingLabel}>
+                Aim Assist Strength: {(settings.aimAssistStrength * 100).toFixed(0)}%
+              </label>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.1"
+                value={settings.aimAssistStrength}
+                onChange={(e) =>
+                  handleSettingChange('aimAssistStrength', parseFloat(e.target.value))
+                }
+                className={styles.settingSlider}
+              />
+            </div>
+          )}
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.smoothLook}
+                onChange={(e) => handleSettingChange('smoothLook', e.target.checked)}
+              />
+              Smooth Look
+            </label>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.velocityAimScaling}
+                onChange={(e) => handleSettingChange('velocityAimScaling', e.target.checked)}
+              />
+              Velocity Aim Scaling
+            </label>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.invertedY}
+                onChange={(e) => handleSettingChange('invertedY', e.target.checked)}
+              />
+              Invert Y-Axis
+            </label>
+          </div>
+
+          {/* Movement Section */}
+          <div className={styles.settingSection}>
+            <span className={styles.settingSectionTitle}>MOVEMENT</span>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              Movement Dead Zone: {(settings.movementDeadZone * 100).toFixed(0)}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="0.4"
+              step="0.02"
+              value={settings.movementDeadZone}
+              onChange={(e) => handleSettingChange('movementDeadZone', parseFloat(e.target.value))}
+              className={styles.settingSlider}
+            />
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>Joystick Response</label>
+            <select
+              value={settings.joystickCurve}
+              onChange={(e) =>
+                handleSettingChange(
+                  'joystickCurve',
+                  e.target.value as 'linear' | 'exponential' | 'aggressive'
+                )
+              }
+              className={styles.settingSelect}
+            >
+              <option value="linear">Linear (Raw)</option>
+              <option value="exponential">Exponential (Default)</option>
+              <option value="aggressive">Aggressive (Precision)</option>
+            </select>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.doubleTapSprint}
+                onChange={(e) => handleSettingChange('doubleTapSprint', e.target.checked)}
+              />
+              Double-Tap Sprint
+            </label>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.swipeWeaponSwitch}
+                onChange={(e) => handleSettingChange('swipeWeaponSwitch', e.target.checked)}
+              />
+              Swipe Weapon Switch
+            </label>
+          </div>
+
+          {/* Appearance Section */}
+          <div className={styles.settingSection}>
+            <span className={styles.settingSectionTitle}>APPEARANCE</span>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              Control Size: {(settings.controlSizeMultiplier * 100).toFixed(0)}%
+            </label>
+            <input
+              type="range"
+              min="0.75"
+              max="1.5"
+              step="0.05"
+              value={settings.controlSizeMultiplier}
+              onChange={(e) =>
+                handleSettingChange('controlSizeMultiplier', parseFloat(e.target.value))
+              }
+              className={styles.settingSlider}
+            />
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              Opacity: {(settings.controlOpacity * 100).toFixed(0)}%
+            </label>
+            <input
+              type="range"
+              min="0.3"
+              max="1"
+              step="0.05"
+              value={settings.controlOpacity}
+              onChange={(e) => handleSettingChange('controlOpacity', parseFloat(e.target.value))}
+              className={styles.settingSlider}
+            />
+          </div>
+
+          {/* Feedback Section */}
+          <div className={styles.settingSection}>
+            <span className={styles.settingSectionTitle}>FEEDBACK</span>
+          </div>
+
+          <div className={styles.settingGroup}>
+            <label className={styles.settingCheckbox}>
+              <input
+                type="checkbox"
+                checked={settings.hapticFeedback}
+                onChange={(e) => handleSettingChange('hapticFeedback', e.target.checked)}
+              />
+              Haptic Feedback
+            </label>
+          </div>
+
+          {settings.hapticFeedback && (
+            <div className={styles.settingGroup}>
+              <label className={styles.settingLabel}>
+                Haptic Intensity: {(settings.hapticIntensity * 100).toFixed(0)}%
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={settings.hapticIntensity}
+                onChange={(e) => handleSettingChange('hapticIntensity', parseFloat(e.target.value))}
+                className={styles.settingSlider}
+              />
+            </div>
+          )}
+
+          <button
+            type="button"
+            className={styles.settingsClose}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              toggleSettings();
+            }}
+          >
+            CLOSE
+          </button>
         </div>
-        <div className={styles.weaponSlot}>
-          <span className={styles.weaponIcon}>2</span>
-          <span className={styles.weaponName}>PISTOL</span>
-        </div>
-        <div className={styles.weaponSlot}>
-          <span className={styles.weaponIcon}>3</span>
-          <span className={styles.weaponName}>NADE</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

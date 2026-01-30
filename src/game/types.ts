@@ -5,6 +5,16 @@ export interface TouchInput {
   isSprinting: boolean;
   isJumping?: boolean;
   isCrouching?: boolean;
+  /** Current weapon slot (0-2, undefined = no change requested) */
+  weaponSlot?: number;
+  /** Reload action triggered */
+  isReloading?: boolean;
+  /** Context-sensitive interaction triggered */
+  isInteracting?: boolean;
+  /** Whether aim assist is enabled */
+  aimAssist?: boolean;
+  /** Aim assist strength (0-1) */
+  aimAssistStrength?: number;
 }
 
 export interface CommsMessage {
@@ -25,4 +35,6 @@ export interface ScreenInfo {
   pixelRatio: number;
   isTouchDevice: boolean;
   isFoldable: boolean;
+  /** Convenience: true if deviceType is 'mobile' or 'foldable' */
+  isMobile: boolean;
 }

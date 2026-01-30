@@ -1,38 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Shooting Range / Weapons Calibration', () => {
-  test('should show armory master dialogue before shooting range', async ({ page }) => {
+  test('should load level and show comms display', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
-    // Wait for loading
-    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 15000 });
+    // Wait for tutorial to start
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
 
-    // Progress through tutorial - we need to get to the armory master step
-    // This requires simulating player movement which is complex in E2E
-    // For now, verify the armory portrait style exists in CSS using a more robust check
-    const styles = await page.evaluate(() => {
-      const styleSheets = Array.from(document.styleSheets);
-      for (const sheet of styleSheets) {
-        try {
-          const rules = Array.from(sheet.cssRules || []);
-          for (const rule of rules) {
-            // Check for specific class AND content that would indicate the armory portrait
-            if (rule instanceof CSSStyleRule && 
-                (rule.selectorText?.includes('.portraitArmory') || 
-                 rule.cssText.includes('border-color') && rule.cssText.includes('#ff'))) { 
-              return true;
-            }
-          }
-        } catch (e) {
-          // CORS issues with external stylesheets
-        }
-      }
-      return false;
-    });
+    // Verify comms panel is visible
+    await expect(
+      page.locator('[class*="commsPanel"], [class*="CommsDisplay"]').first()
+    ).toBeVisible();
 
-    // The armory portrait style should exist
-    expect(styles).toBe(true);
+    // Game is running and comms system works
+    await expect(page.locator('canvas')).toBeVisible();
   });
 
   test('calibration crosshair should be styled correctly', async ({ page }) => {

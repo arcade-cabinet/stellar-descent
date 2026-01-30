@@ -1,0 +1,438 @@
+/* AudioLogCollection - Collection Menu */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 7, 0.98);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 155;
+  padding: 1rem;
+  padding-top: max(2rem, env(safe-area-inset-top, 2rem));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+  animation: fadeIn 0.3s ease;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.title {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.25rem;
+  color: #e8e8e8;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.closeButton {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #888;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #555;
+  color: #e8e8e8;
+}
+
+/* Progress summary */
+.progressSection {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: rgba(58, 110, 165, 0.1);
+  border: 1px solid rgba(58, 110, 165, 0.3);
+}
+
+.progressStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.progressLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #666;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.progressCount {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.5rem;
+  color: #3a6ea5;
+}
+
+.progressBar {
+  flex: 1;
+  height: 8px;
+  background: #1a1a1c;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3a6ea5, #4ecdc4);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progressPercentage {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.25rem;
+  color: #4ecdc4;
+  min-width: 55px;
+  text-align: right;
+}
+
+/* Filter tabs */
+.filterTabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filterTab {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #666;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.filterTab:hover {
+  border-color: #444;
+  color: #a0a0a0;
+}
+
+.filterTab.active {
+  background: rgba(58, 110, 165, 0.2);
+  border-color: #3a6ea5;
+  color: #3a6ea5;
+}
+
+.filterCount {
+  opacity: 0.6;
+  margin-left: 0.25rem;
+}
+
+/* Log list */
+.logList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.levelSection {
+  margin-bottom: 0.5rem;
+}
+
+.levelHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.levelName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.levelProgress {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #555;
+}
+
+.levelDivider {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #2a2a2a 0%, transparent 100%);
+}
+
+/* Log item - button element with reset styles */
+.logItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #0f0f11;
+  border: 1px solid #2a2a2a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  outline: none;
+}
+
+.logItem:focus-visible {
+  border-color: #3a6ea5;
+  box-shadow: 0 0 0 2px rgba(58, 110, 165, 0.3);
+}
+
+.logItem:hover:not(.locked) {
+  background: rgba(58, 110, 165, 0.1);
+  border-color: #3a6ea5;
+}
+
+.logItem.locked {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.logItem:disabled {
+  cursor: default;
+}
+
+.logItem.unplayed {
+  border-left: 3px solid #4ecdc4;
+}
+
+.logIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(58, 110, 165, 0.1);
+  border: 1px solid rgba(58, 110, 165, 0.3);
+  flex-shrink: 0;
+}
+
+.logIconText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #3a6ea5;
+}
+
+.logItem.locked .logIcon {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: #2a2a2a;
+}
+
+.logItem.locked .logIconText {
+  color: #444;
+}
+
+.logInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.logTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #e8e8e8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logItem.locked .logTitle {
+  color: #555;
+}
+
+.logMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.logSpeaker {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #888;
+}
+
+.logCategory {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #3a6ea5;
+  padding: 0.125rem 0.375rem;
+  background: rgba(58, 110, 165, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.logDuration {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #555;
+  margin-left: auto;
+}
+
+.newBadge {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #0a0a0c;
+  background: #4ecdc4;
+  padding: 0.125rem 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(78, 205, 196, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(78, 205, 196, 0.8);
+  }
+}
+
+/* Empty state */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #555;
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .overlay {
+    padding: 1rem;
+    padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .progressSection {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .progressStats {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .progressPercentage {
+    min-width: auto;
+  }
+
+  .filterTabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filterTab {
+    flex-shrink: 0;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.625rem;
+  }
+
+  .logItem {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .logIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .logTitle {
+    font-size: 0.8125rem;
+  }
+
+  .logMeta {
+    gap: 0.5rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+
+  .newBadge {
+    animation: none;
+  }
+
+  .progressFill {
+    transition: none;
+  }
+}

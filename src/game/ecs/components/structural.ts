@@ -78,17 +78,26 @@ export interface Conduit {
 /** Room/zone definition */
 export interface Room {
   roomType:
-    | 'corridor' | 'hallway'
-    | 'hangar' | 'bay'
-    | 'quarters' | 'barracks'
-    | 'bridge' | 'command'
-    | 'engineering' | 'reactor'
-    | 'medbay' | 'infirmary'
-    | 'storage' | 'cargo'
+    | 'corridor'
+    | 'hallway'
+    | 'hangar'
+    | 'bay'
+    | 'quarters'
+    | 'barracks'
+    | 'bridge'
+    | 'command'
+    | 'engineering'
+    | 'reactor'
+    | 'medbay'
+    | 'infirmary'
+    | 'storage'
+    | 'cargo'
     | 'airlock'
     | 'armory'
-    | 'mess' | 'cafeteria'
-    | 'lab' | 'research';
+    | 'mess'
+    | 'cafeteria'
+    | 'lab'
+    | 'research';
   name: string;
   ambientLight: { r: number; g: number; b: number; intensity: number };
   fogDensity: number;
@@ -147,12 +156,22 @@ export interface SpawnPoint {
 /** Interactive prop */
 export interface Prop {
   propType:
-    | 'crate' | 'barrel' | 'container'
-    | 'terminal' | 'console' | 'panel'
-    | 'chair' | 'table' | 'bed'
-    | 'locker' | 'cabinet' | 'shelf'
-    | 'machinery' | 'equipment'
-    | 'debris' | 'rubble';
+    | 'crate'
+    | 'barrel'
+    | 'container'
+    | 'terminal'
+    | 'console'
+    | 'panel'
+    | 'chair'
+    | 'table'
+    | 'bed'
+    | 'locker'
+    | 'cabinet'
+    | 'shelf'
+    | 'machinery'
+    | 'equipment'
+    | 'debris'
+    | 'rubble';
   modelPath: string;
   interactive: boolean;
   destructible: boolean;

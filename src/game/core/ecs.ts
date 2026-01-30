@@ -6,20 +6,20 @@ import type { SteeringBehavior, Vehicle } from 'yuka';
 
 // Import structural components for modular building system
 import type {
-  StructuralPiece,
-  Door,
-  Viewport,
-  LightFixture,
-  Conduit,
-  Room,
   Atmosphere,
-  TriggerZone,
-  SpawnPoint,
-  Prop,
+  Conduit,
   CoverPoint,
+  Door,
   Interactable,
-  TerrainChunk,
+  LightFixture,
   PlanetaryFeature,
+  Prop,
+  Room,
+  SpawnPoint,
+  StructuralPiece,
+  TerrainChunk,
+  TriggerZone,
+  Viewport,
   Weather,
 } from '../ecs/components/structural';
 
@@ -70,6 +70,8 @@ export interface Tags {
   ally?: boolean;
   boss?: boolean;
   mech?: boolean;
+  alien?: boolean;
+  mechanical?: boolean;
   projectile?: boolean;
   building?: boolean;
   obstacle?: boolean;

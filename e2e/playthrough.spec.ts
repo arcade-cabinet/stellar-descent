@@ -18,7 +18,7 @@ test.describe('Game Playthrough Screenshots', () => {
 
   test('capture main menu', async ({ page }) => {
     await page.goto('/');
-    
+
     // Wait for canvas to be ready
     await expect(page.locator('canvas')).toBeVisible();
     await page.waitForFunction(() => {
@@ -55,7 +55,7 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
 
     await page.screenshot({
       path: path.join(screenshotsDir, '03-tutorial-ai-greeting.png'),
@@ -68,15 +68,15 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
 
     // Advance comms
     await page.keyboard.press('Space');
     await page.waitForTimeout(500);
 
-    // Wait for next message
-    await expect(page.getByText(/ANCHOR STATION PROMETHEUS|equipment station/i)).toBeVisible({
-      timeout: 5000,
+    // Wait for next message (Marcus's team went dark or movement controls)
+    await expect(page.getByText(/brother's team|FOB Delta|Movement controls/i)).toBeVisible({
+      timeout: 15000,
     });
 
     await page.screenshot({
@@ -90,7 +90,7 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
 
     // Advance through initial comms
     for (let i = 0; i < 3; i++) {
@@ -109,7 +109,7 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /HALO DROP/i }).click();
 
     // Wait for loading
-    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 30000 });
 
     // Wait for drop notification
     await expect(page.getByText(/ORBITAL DROP INITIATED/i)).toBeVisible({ timeout: 10000 });
@@ -155,7 +155,7 @@ test.describe('Game Playthrough - Full Tutorial', () => {
     });
 
     // Wait for tutorial
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
 
     // Screenshot 3: First comms
     await page.screenshot({

@@ -1,8 +1,10 @@
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { LODManager } from './LODManager';
 
 // Import GLTF loader
 import '@babylonjs/loaders/glTF';
@@ -63,6 +65,7 @@ const modelCache = new Map<string, LoadedModel>();
 
 /**
  * Load a PSX model and return a cloned instance
+ * @param applyLOD Whether to apply LOD to the model (default: true for environment, false for small props)
  */
 export async function loadPSXModel(
   scene: Scene,
@@ -73,6 +76,8 @@ export async function loadPSXModel(
     rotation?: Vector3;
     scale?: number | Vector3;
     parent?: TransformNode;
+    applyLOD?: boolean;
+    lodCategory?: string;
   }
 ): Promise<LoadedModel> {
   const path = (PSX_MODELS[category] as Record<string, string>)[modelName];
@@ -105,10 +110,7 @@ export async function loadPSXModel(
   }
 
   // Clone the model
-  const instanceRoot = new TransformNode(
-    `psx_${category}_${modelName}_${Date.now()}`,
-    scene
-  );
+  const instanceRoot = new TransformNode(`psx_${category}_${modelName}_${Date.now()}`, scene);
 
   // Clone meshes
   const clonedMeshes: AbstractMesh[] = [];
@@ -118,6 +120,17 @@ export async function loadPSXModel(
       if (clone) {
         clone.setEnabled(true);
         clonedMeshes.push(clone);
+      }
+    }
+  }
+
+  // Apply LOD if requested (default for structures, lights)
+  const shouldApplyLOD = options?.applyLOD ?? (category === 'structures' || category === 'lights');
+  if (shouldApplyLOD && clonedMeshes.length > 0) {
+    const lodCategory = options?.lodCategory ?? (category === 'props' ? 'prop' : 'environment');
+    for (const mesh of clonedMeshes) {
+      if (mesh instanceof Mesh) {
+        LODManager.applyNativeLOD(mesh, lodCategory);
       }
     }
   }
@@ -150,9 +163,7 @@ export async function preloadPSXModels(
   scene: Scene,
   models: Array<{ category: PSXModelCategory; name: string }>
 ): Promise<void> {
-  const promises = models.map(({ category, name }) =>
-    loadPSXModel(scene, category, name)
-  );
+  const promises = models.map(({ category, name }) => loadPSXModel(scene, category, name));
   await Promise.all(promises);
 }
 
@@ -174,7 +185,7 @@ export async function buildPSXCorridor(
   parent: TransformNode,
   options: {
     length: number; // in tiles (each tile is 4 units)
-    width: number;  // in tiles
+    width: number; // in tiles
     includeFloor?: boolean;
     includeCeiling?: boolean;
     includeWalls?: boolean;
@@ -183,7 +194,13 @@ export async function buildPSXCorridor(
   const corridor = new TransformNode('psx_corridor', scene);
   corridor.parent = parent;
 
-  const { length, width, includeFloor = true, includeCeiling = true, includeWalls = true } = options;
+  const {
+    length,
+    width,
+    includeFloor = true,
+    includeCeiling = true,
+    includeWalls = true,
+  } = options;
   const tileSize = PSX_DIMENSIONS.floorTile.width;
 
   // Floor tiles
@@ -191,11 +208,7 @@ export async function buildPSXCorridor(
     for (let z = 0; z < length; z++) {
       for (let x = 0; x < width; x++) {
         await loadPSXModel(scene, 'structures', 'floorCeiling1', {
-          position: new Vector3(
-            (x - width / 2 + 0.5) * tileSize,
-            0,
-            -z * tileSize
-          ),
+          position: new Vector3((x - width / 2 + 0.5) * tileSize, 0, -z * tileSize),
           parent: corridor,
         });
       }
@@ -225,7 +238,7 @@ export async function buildPSXCorridor(
       // Left wall
       await loadPSXModel(scene, 'structures', 'wallDouble', {
         position: new Vector3(
-          -width * tileSize / 2,
+          (-width * tileSize) / 2,
           PSX_DIMENSIONS.wall.height / 2,
           -z * tileSize
         ),
@@ -236,7 +249,7 @@ export async function buildPSXCorridor(
       // Right wall
       await loadPSXModel(scene, 'structures', 'wallDouble', {
         position: new Vector3(
-          width * tileSize / 2,
+          (width * tileSize) / 2,
           PSX_DIMENSIONS.wall.height / 2,
           -z * tileSize
         ),

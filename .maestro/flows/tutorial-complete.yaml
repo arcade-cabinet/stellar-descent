@@ -1,0 +1,70 @@
+# Tutorial Complete Flow - Plays through Anchor Station tutorial
+# Run: maestro test .maestro/flows/tutorial-complete.yaml
+
+appId: com.jbcom.stellardescent
+
+---
+- launchApp:
+    clearState: true
+
+- tapOn:
+    text: "NEW GAME"
+    timeout: 10000
+
+- extendedWaitUntil:
+    notVisible:
+      text: "Loading"
+    timeout: 30000
+
+# Tutorial Step 1: Movement
+- assertVisible:
+    text: "Movement"
+    optional: true
+    timeout: 10000
+
+# Simulate movement input
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 65%"
+    duration: 2000
+
+- wait: 1000
+
+# Tutorial Step 2: Look around
+- swipe:
+    start: "80%, 50%"
+    end: "70%, 40%"
+    duration: 1500
+
+- wait: 1000
+
+# Tutorial Step 3: Interact/Fire
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 2000
+
+# Check for tutorial completion or next step
+- takeScreenshot: "tutorial_progress"
+
+# Continue through tutorial prompts
+- tapOn:
+    text: "Continue"
+    optional: true
+
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- tapOn:
+    text: "Got it"
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "tutorial_end"
