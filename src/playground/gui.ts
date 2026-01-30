@@ -12,7 +12,6 @@ export const setUI = async (scene: Scene) => {
 
   const panel = new StackPanel();
   panel.width = 0.15;
-  panel.height = 50;
   panel.verticalAlignment = 0;
   panel.horizontalAlignment = 0;
   panel.isVertical = true;
