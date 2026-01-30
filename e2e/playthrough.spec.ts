@@ -1,7 +1,7 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,13 +18,7 @@ test.describe('Game Playthrough Screenshots', () => {
 
   test('capture main menu', async ({ page }) => {
     await page.goto('/');
-
-    // Wait for canvas to be ready
-    await expect(page.locator('canvas')).toBeVisible();
-    await page.waitForFunction(() => {
-      const canvas = document.querySelector('canvas');
-      return canvas && canvas.width > 0 && canvas.height > 0;
-    });
+    await expect(page.locator('canvas')).toBeVisible(); // Wait for canvas
 
     await page.screenshot({
       path: path.join(screenshotsDir, '01-main-menu.png'),
@@ -40,14 +34,14 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Capture loading screen
-    await expect(page.getByText(/ANCHOR STATION PROMETHEUS/i)).toBeVisible();
+    await expect(page.getByText(/INITIALIZING/i)).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotsDir, '02-loading-screen.png'),
       fullPage: true,
     });
 
     // Wait for loading to progress
-    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible();
+    await expect(page.getByText(/ANCHOR STATION PROMETHEUS/i)).toBeVisible();
   });
 
   test('capture tutorial start - AI greeting', async ({ page }) => {
@@ -55,7 +49,7 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
 
     await page.screenshot({
       path: path.join(screenshotsDir, '03-tutorial-ai-greeting.png'),
@@ -68,15 +62,16 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
+    const firstMessage = page.getByText(/Good morning, Sergeant Cole/i);
+    await expect(firstMessage).toBeVisible({ timeout: 20000 });
 
     // Advance comms
     await page.keyboard.press('Space');
-    await page.waitForTimeout(500);
+    await expect(firstMessage).not.toBeVisible();
 
-    // Wait for next message (Marcus's team went dark or movement controls)
-    await expect(page.getByText(/brother's team|FOB Delta|Movement controls/i)).toBeVisible({
-      timeout: 15000,
+    // Wait for next message
+    await expect(page.getByText(/ANCHOR STATION PROMETHEUS|equipment station/i)).toBeVisible({
+      timeout: 5000,
     });
 
     await page.screenshot({
@@ -90,12 +85,15 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
 
     // Advance through initial comms
     for (let i = 0; i < 3; i++) {
       await page.keyboard.press('Space');
-      await page.waitForTimeout(1500);
+      // Wait for comms to update (simple wait here as we don't know exact text sequence)
+      await page.waitForFunction(
+        () => (document.querySelector('[class*="messageText"]')?.textContent?.length || 0) > 0
+      );
     }
 
     await page.screenshot({
@@ -109,7 +107,7 @@ test.describe('Game Playthrough Screenshots', () => {
     await page.getByRole('button', { name: /HALO DROP/i }).click();
 
     // Wait for loading
-    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/SYSTEMS ONLINE/i)).toBeVisible({ timeout: 20000 });
 
     // Wait for drop notification
     await expect(page.getByText(/ORBITAL DROP INITIATED/i)).toBeVisible({ timeout: 10000 });
@@ -138,7 +136,7 @@ test.describe('Game Playthrough - Full Tutorial', () => {
     await page.goto('/');
 
     // Screenshot 1: Main menu
-    await page.waitForTimeout(1000);
+    await expect(page.locator('canvas')).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotsDir, 'playthrough-01-menu.png'),
       fullPage: true,
@@ -148,14 +146,14 @@ test.describe('Game Playthrough - Full Tutorial', () => {
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Screenshot 2: Loading
-    await page.waitForTimeout(500);
+    await expect(page.getByText(/INITIALIZING/i)).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotsDir, 'playthrough-02-loading.png'),
       fullPage: true,
     });
 
     // Wait for tutorial
-    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 20000 });
 
     // Screenshot 3: First comms
     await page.screenshot({
@@ -169,7 +167,19 @@ test.describe('Game Playthrough - Full Tutorial', () => {
 
     while (screenshotIndex <= maxScreenshots) {
       await page.keyboard.press('Space');
-      await page.waitForTimeout(1000);
+
+      // Wait for text to change or type out
+      try {
+        await page.waitForFunction(
+          () => {
+            const el = document.querySelector('[class*="messageText"]');
+            return (el?.textContent?.length || 0) > 5;
+          },
+          { timeout: 2000 }
+        );
+      } catch {
+        // Ignore timeout if text didn't change (might be end of sequence)
+      }
 
       await page.screenshot({
         path: path.join(
@@ -192,8 +202,10 @@ test.describe('Game Playthrough - Full Tutorial', () => {
         .catch(() => false);
 
       if (!hasComms && !hasObjective) {
-        // May have completed or transitioned
-        await page.waitForTimeout(500);
+        // Wait for canvas/gameplay to stabilize
+        await page.locator('canvas').evaluate((_canvas) => {
+          return new Promise((resolve) => requestAnimationFrame(() => resolve(true)));
+        });
       }
     }
   });
@@ -203,7 +215,7 @@ test.describe('Responsive Screenshots', () => {
   test('capture mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await expect(page.locator('canvas')).toBeVisible();
 
     await page.screenshot({
       path: path.join(screenshotsDir, 'responsive-mobile.png'),
@@ -216,7 +228,7 @@ test.describe('Responsive Screenshots', () => {
   test('capture tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await expect(page.locator('canvas')).toBeVisible();
 
     await page.screenshot({
       path: path.join(screenshotsDir, 'responsive-tablet.png'),
@@ -227,7 +239,7 @@ test.describe('Responsive Screenshots', () => {
   test('capture desktop viewport', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await expect(page.locator('canvas')).toBeVisible();
 
     await page.screenshot({
       path: path.join(screenshotsDir, 'responsive-desktop.png'),

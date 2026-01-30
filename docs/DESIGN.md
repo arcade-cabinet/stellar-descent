@@ -28,6 +28,53 @@ This document defines the visual design system, UI patterns, and user experience
 
 ### Primary Palette (Military)
 
+```text
+Olive:        #4A5D23  - Primary brand color
+Olive Dark:   #3B4A1C  - Darker variant
+Olive Light:  #5C7A2E  - Lighter variant
+Khaki:        #C3B091  - Secondary warm
+Khaki Dark:   #9A8A6F  - Darker khaki
+Tan:          #D4B896  - Warm accent
+Sand:         #E8DCC4  - Light warm
+```
+
+### Accent Colors
+
+```text
+Rust:         #8B4513  - Warning accent
+Amber:        #FFBF00  - Highlight/active
+Brass:        #B5A642  - Metallic accent
+Copper:       #B87333  - Secondary metallic
+Gunmetal:     #2A3439  - Dark metallic
+```
+
+### UI Colors
+
+```text
+Background:   #1C1C1C  - Primary dark
+Background Alt: #2D2D2D - Secondary dark
+Surface:      #3A3A3A  - Elevated surface
+Text:         #E8E8E8  - Primary text
+Text Muted:   #A0A0A0  - Secondary text
+Success:      #4CAF50  - Positive actions
+Warning:      #FF9800  - Caution
+Danger:       #F44336  - Critical/damage
+Health:       #4CAF50  - Health bar
+Shield:       #2196F3  - Shield (if added)
+Energy:       #FFEB3B  - Energy/ammo
+```
+
+### Environment Colors
+
+```text
+Sky:          #87CEEB  - Alien sky
+Sun:          #FFF8DC  - Star color
+Sun Glow:     #FFD700  - Bloom color
+Rock:         #8B7355  - Rock formations
+Rock Dark:    #5C4033  - Shadowed rock
+Rock Light:   #A08060  - Sunlit rock
+Dust:         #C4A77D  - Dust particles
+```
 
 ### Forbidden Colors
 
@@ -44,7 +91,7 @@ Do NOT use:
 ```css
 Primary:  'Rajdhani', sans-serif      /* UI text */
 Mono:     'Share Tech Mono', monospace /* Data/numbers */
-Display:  'Black Ops One', cursive     /* Titles */
+Display:  'Impact', sans-serif         /* Titles */
 ```
 
 ### Size Scale (Mobile Base)
@@ -80,8 +127,9 @@ XXL: 48px  - Major sections
 
 ### Buttons
 
-## Primary Button
-```
+### Primary Button
+
+```text
 Background: tokens.colors.primary.oliveDark
 Text:       tokens.colors.ui.text
 Border:     2px solid tokens.colors.primary.olive
@@ -89,15 +137,17 @@ Height:     50px (desktop), 48px (mobile)
 Font:       Courier New, monospace, 16px
 ```
 
-## Hover State
-```
+### Hover State
+
+```text
 Background: tokens.colors.primary.olive
 Text:       tokens.colors.accent.brass
 Transform:  scale(1.02)
 ```
 
-## Disabled State
-```
+### Disabled State
+
+```text
 Background: tokens.colors.ui.surface
 Text:       tokens.colors.ui.textMuted
 Opacity:    1 (don't use opacity for disabled)
@@ -224,7 +274,7 @@ linear         - Continuous animations
 
 ### Animation Examples
 
-## Button Hover
+**Button Hover**
 ```javascript
 anime({
   targets: button,
@@ -235,7 +285,7 @@ anime({
 });
 ```
 
-## Damage Flash
+**Damage Flash**
 ```javascript
 anime({
   targets: damageOverlay,
@@ -245,7 +295,7 @@ anime({
 });
 ```
 
-## Notification Entry
+**Notification Entry**
 ```javascript
 anime({
   targets: notification,

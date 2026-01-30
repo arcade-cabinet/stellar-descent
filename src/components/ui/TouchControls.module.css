@@ -1,63 +1,25 @@
-/* Touch Controls Styles - Enhanced DOOM-style FPS layout */
+/* Touch Controls Styles - DOOM-style FPS layout */
 /* Left: Movement joystick | Center: Touch to look | Right: Action buttons | Bottom: Weapon rack */
 
 .touchControls {
   position: fixed;
   inset: 0;
-  pointer-events: auto;
+  pointer-events: auto; /* Allow touch on screen for looking */
   touch-action: none;
   z-index: 60;
 }
 
-/* Look Area Indicator */
-.lookArea {
-  position: absolute;
-  top: 10%;
-  left: 30%;
-  right: 25%;
-  bottom: 35%;
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  transition: all 0.2s ease;
-}
-
-.lookArea.lookAreaActive {
-  border-color: rgba(181, 166, 66, 0.4);
-  background: rgba(181, 166, 66, 0.05);
-}
-
-.lookAreaLabel {
-  font-family: "Courier New", monospace;
-  font-size: 0.625rem;
-  color: rgba(160, 160, 160, 0.3);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-
-.lookAreaActive .lookAreaLabel {
-  color: rgba(181, 166, 66, 0.5);
-}
-
-/* Joystick Container - Left side */
+/* Joystick Container - Left side only */
 .joystickContainer {
   position: absolute;
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 30px) + 70px));
+  width: clamp(100px, 25vw, 140px);
+  height: clamp(100px, 25vw, 140px);
   pointer-events: auto;
   touch-action: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-/* Extended touch area - larger than visual */
-.joystickTouchArea {
-  position: absolute;
-  inset: 0;
-  pointer-events: auto;
 }
 
 .joystickBase {
@@ -67,48 +29,6 @@
   background: rgba(28, 28, 28, 0.6);
   border: 3px solid #4a5d23;
   position: relative;
-  box-shadow:
-    inset 0 0 20px rgba(0, 0, 0, 0.5),
-    0 0 10px rgba(74, 93, 35, 0.3);
-}
-
-/* Direction indicators on joystick */
-.joystickIndicators {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.indicator {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(181, 166, 66, 0.3);
-}
-
-.indicatorUp {
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.indicatorDown {
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.indicatorLeft {
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.indicatorRight {
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
 }
 
 .joystickThumb {
@@ -121,17 +41,11 @@
   background: rgba(74, 93, 35, 0.8);
   border: 2px solid #b5a642;
   transform: translate(-50%, -50%);
-  transition:
-    background 0.1s ease,
-    box-shadow 0.1s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: background 0.1s ease;
 }
 
 .joystickThumb.active {
   background: rgba(255, 191, 0, 0.8);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.5),
-    0 0 15px rgba(255, 191, 0, 0.5);
 }
 
 .joystickLabel {
@@ -145,6 +59,8 @@
 /* Action Button Column - Right side */
 .actionButtonColumn {
   position: absolute;
+  right: max(20px, env(safe-area-inset-right, 20px));
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 30px) + 70px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -152,7 +68,7 @@
   pointer-events: auto;
 }
 
-/* Action Buttons Base */
+/* Action Buttons */
 .actionButton {
   pointer-events: auto;
   touch-action: none;
@@ -164,100 +80,37 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
-  /* Ensure minimum 44x44px touch target per WCAG 2.1 */
-  min-width: 44px;
-  min-height: 44px;
 }
 
-.buttonIcon {
-  font-size: 1.25rem;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-.buttonLabel {
-  font-size: 0.5rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-/* Fire Button - Large and prominent */
 .fireButton {
+  width: clamp(70px, 18vw, 90px);
+  height: clamp(70px, 18vw, 90px);
   font-size: clamp(0.75rem, 2.5vw, 0.875rem);
   color: #e8e8e8;
   background: rgba(244, 67, 54, 0.3);
   border: 3px solid #f44336;
-  box-shadow:
-    0 0 15px rgba(244, 67, 54, 0.3),
-    inset 0 0 10px rgba(244, 67, 54, 0.2);
-}
-
-.fireButton .buttonIcon {
-  font-size: 1.5rem;
-  font-weight: bold;
 }
 
 .fireButton:active,
 .fireButton.active {
   background: rgba(244, 67, 54, 0.7);
   transform: scale(0.95);
-  box-shadow:
-    0 0 25px rgba(244, 67, 54, 0.6),
-    inset 0 0 15px rgba(244, 67, 54, 0.4);
 }
 
-/* Reload Button */
-.reloadButton {
-  font-size: clamp(0.625rem, 2vw, 0.75rem);
-  color: #a0a0a0;
-  background: rgba(33, 150, 243, 0.2);
-  border: 2px solid #2196f3;
-}
-
-.reloadButton:active,
-.reloadButton.reloading {
-  background: rgba(33, 150, 243, 0.5);
-  color: #e8e8e8;
-}
-
-/* Reload progress indicator */
-.reloadProgress {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    rgba(33, 150, 243, 0.6) var(--progress, 0%),
-    transparent var(--progress, 0%)
-  );
-  pointer-events: none;
-}
-
-.reloadButton .buttonLabel {
-  position: relative;
-  z-index: 1;
-}
-
-/* Secondary buttons row */
 .secondaryButtonRow {
   display: flex;
   gap: 10px;
 }
 
 .smallButton {
+  width: clamp(50px, 12vw, 60px);
+  height: clamp(50px, 12vw, 60px);
   font-size: clamp(0.5rem, 1.8vw, 0.625rem);
   color: #a0a0a0;
   background: rgba(74, 93, 35, 0.2);
   border: 2px solid #4a5d23;
-}
-
-.smallButton .buttonIcon {
-  font-size: 0.875rem;
 }
 
 .smallButton:active,
@@ -265,55 +118,21 @@
   background: rgba(74, 93, 35, 0.6);
   color: #e8e8e8;
   transform: scale(0.95);
-  box-shadow: 0 0 10px rgba(74, 93, 35, 0.5);
 }
 
-/* Sprint Button */
 .sprintButton {
+  width: clamp(60px, 15vw, 70px);
+  height: clamp(60px, 15vw, 70px);
   font-size: clamp(0.625rem, 2vw, 0.75rem);
   color: #e8e8e8;
   background: rgba(255, 191, 0, 0.2);
   border: 2px solid #ffbf00;
 }
 
-.sprintButton .buttonIcon {
-  font-size: 1rem;
-}
-
 .sprintButton:active,
 .sprintButton.active {
   background: rgba(255, 191, 0, 0.6);
   transform: scale(0.95);
-  box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
-}
-
-/* Interact Button - Context-sensitive */
-.interactButton {
-  font-size: clamp(0.625rem, 2vw, 0.75rem);
-  color: #e8e8e8;
-  background: rgba(76, 175, 80, 0.3);
-  border: 2px solid #4caf50;
-  animation: pulseInteract 1.5s ease-in-out infinite;
-}
-
-.interactButton .buttonIcon {
-  font-size: 1rem;
-}
-
-.interactButton:active {
-  background: rgba(76, 175, 80, 0.7);
-  transform: scale(0.95);
-  animation: none;
-}
-
-@keyframes pulseInteract {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.7);
-  }
 }
 
 /* Bottom Weapon Rack - DOOM style */
@@ -329,7 +148,6 @@
   padding: 8px 12px;
   border-radius: 4px;
   pointer-events: auto;
-  align-items: center;
 }
 
 .weaponSlot {
@@ -337,17 +155,12 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 14px;
-  /* Ensure minimum 44px touch target */
-  min-width: 44px;
-  min-height: 44px;
+  padding: 6px 12px;
   border: 1px solid #2a2a2a;
   border-radius: 3px;
   background: rgba(28, 28, 28, 0.5);
   opacity: 0.5;
   transition: all 0.15s ease;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .weaponSlot.weaponActive {
@@ -374,272 +187,35 @@
   color: #e8e8e8;
 }
 
-.swipeHint {
-  font-family: "Courier New", monospace;
-  font-size: 0.5rem;
-  color: rgba(160, 160, 160, 0.4);
-  letter-spacing: 0.05em;
-  margin-left: 8px;
-  white-space: nowrap;
-}
-
-/* Top Right Buttons Container */
-.topRightButtons {
-  position: absolute;
-  top: max(15px, env(safe-area-inset-top, 15px));
-  right: max(15px, env(safe-area-inset-right, 15px));
-  display: flex;
-  gap: 10px;
-  pointer-events: auto;
-}
-
-/* Pause Button */
-.pauseButton {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  background: rgba(28, 28, 28, 0.7);
-  border: 2px solid #4a5d23;
-  color: #b5a642;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.pauseButton:hover,
-.pauseButton:active {
-  background: rgba(74, 93, 35, 0.5);
-  border-color: #b5a642;
-  transform: scale(0.95);
-}
-
-.pauseIcon {
-  font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 1rem;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
-
-/* Settings Toggle Button */
-.settingsToggle {
-  /* Ensure minimum 44px touch target */
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  background: rgba(28, 28, 28, 0.6);
-  border: 1px solid #4a5d23;
-  color: #a0a0a0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.settingsToggle:hover,
-.settingsToggle:active {
-  background: rgba(74, 93, 35, 0.4);
-  color: #e8e8e8;
-}
-
-.settingsIcon {
-  font-size: 1.25rem;
-  font-weight: bold;
-  letter-spacing: -2px;
-}
-
-/* Settings Panel */
-.settingsPanel {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(90vw, 320px);
-  max-height: 80vh;
-  overflow-y: auto;
-  background: rgba(10, 10, 12, 0.95);
-  border: 2px solid #4a5d23;
-  border-radius: 8px;
-  padding: 20px;
-  z-index: 100;
-  pointer-events: auto;
-  backdrop-filter: blur(10px);
-}
-
-.settingsTitle {
-  font-family: "Orbitron", "Courier New", monospace;
-  font-size: 1rem;
-  color: #b5a642;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin: 0 0 20px 0;
-  text-align: center;
-  border-bottom: 1px solid #4a5d23;
-  padding-bottom: 10px;
-}
-
-/* Setting section dividers */
-.settingSection {
-  margin: 16px 0 12px 0;
-  padding-top: 12px;
-  border-top: 1px solid rgba(74, 93, 35, 0.4);
-}
-
-.settingSection:first-of-type {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
-}
-
-.settingSectionTitle {
-  font-family: "Orbitron", "Courier New", monospace;
-  font-size: 0.625rem;
-  color: #b5a642;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.settingGroup {
-  margin-bottom: 16px;
-}
-
-.settingLabel {
-  display: block;
-  font-family: "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #a0a0a0;
-  margin-bottom: 8px;
-}
-
-.settingSlider {
-  width: 100%;
-  height: 24px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.settingSlider::-webkit-slider-runnable-track {
-  height: 6px;
-  background: rgba(74, 93, 35, 0.4);
-  border-radius: 3px;
-  border: 1px solid #4a5d23;
-}
-
-.settingSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #b5a642;
-  border: 2px solid #ffbf00;
-  margin-top: -8px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.settingSlider::-moz-range-track {
-  height: 6px;
-  background: rgba(74, 93, 35, 0.4);
-  border-radius: 3px;
-  border: 1px solid #4a5d23;
-}
-
-.settingSlider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #b5a642;
-  border: 2px solid #ffbf00;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.settingCheckbox {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #a0a0a0;
-  cursor: pointer;
-}
-
-.settingCheckbox input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  accent-color: #b5a642;
-  cursor: pointer;
-}
-
-/* Select dropdown for settings */
-.settingSelect {
-  width: 100%;
-  padding: 10px 12px;
-  font-family: "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #e8e8e8;
-  background: rgba(28, 28, 28, 0.8);
-  border: 1px solid #4a5d23;
-  border-radius: 4px;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b5a642' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px;
-}
-
-.settingSelect:focus {
-  outline: none;
-  border-color: #b5a642;
-  box-shadow: 0 0 6px rgba(181, 166, 66, 0.3);
-}
-
-.settingSelect option {
-  background: #1c1c1c;
-  color: #e8e8e8;
-  padding: 8px;
-}
-
-.settingsClose {
-  width: 100%;
-  padding: 12px;
-  margin-top: 20px;
-  font-family: "Orbitron", "Courier New", monospace;
-  font-size: 0.875rem;
-  font-weight: bold;
-  color: #e8e8e8;
-  background: rgba(74, 93, 35, 0.4);
-  border: 2px solid #4a5d23;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.settingsClose:hover,
-.settingsClose:active {
-  background: rgba(74, 93, 35, 0.7);
-  border-color: #b5a642;
-}
-
 /* Landscape phone adjustments */
 @media (max-height: 500px) {
-  .joystickLabel {
-    display: none;
+  .joystickContainer {
+    width: clamp(80px, 20vh, 100px);
+    height: clamp(80px, 20vh, 100px);
+    bottom: max(80px, calc(env(safe-area-inset-bottom, 15px) + 65px));
   }
 
-  .lookArea {
+  .actionButtonColumn {
+    bottom: max(80px, calc(env(safe-area-inset-bottom, 15px) + 65px));
+    gap: 8px;
+  }
+
+  .fireButton {
+    width: clamp(60px, 15vh, 75px);
+    height: clamp(60px, 15vh, 75px);
+  }
+
+  .smallButton {
+    width: clamp(40px, 10vh, 50px);
+    height: clamp(40px, 10vh, 50px);
+  }
+
+  .sprintButton {
+    width: clamp(50px, 12vh, 60px);
+    height: clamp(50px, 12vh, 60px);
+  }
+
+  .joystickLabel {
     display: none;
   }
 
@@ -658,59 +234,19 @@
   .weaponName {
     display: none;
   }
-
-  .swipeHint {
-    display: none;
-  }
-
-  .settingsPanel {
-    max-height: 70vh;
-    padding: 15px;
-  }
-
-  .settingsTitle {
-    font-size: 0.875rem;
-    margin-bottom: 15px;
-  }
-
-  .settingGroup {
-    margin-bottom: 12px;
-  }
 }
 
 /* Very small screens */
 @media (max-width: 400px) {
   .weaponRack {
-    display: none;
+    display: none; /* Hide weapon rack on very small screens */
   }
 
-  .lookArea {
-    display: none;
+  .joystickContainer {
+    bottom: max(40px, calc(env(safe-area-inset-bottom, 20px) + 20px));
   }
 
-  .swipeHint {
-    display: none;
-  }
-}
-
-/* Tablet adjustments */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .lookAreaLabel {
-    font-size: 0.75rem;
-  }
-
-  .settingsPanel {
-    width: 400px;
-  }
-}
-
-/* High DPI screens */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .joystickBase {
-    border-width: 2px;
-  }
-
-  .joystickThumb {
-    border-width: 1.5px;
+  .actionButtonColumn {
+    bottom: max(40px, calc(env(safe-area-inset-bottom, 20px) + 20px));
   }
 }

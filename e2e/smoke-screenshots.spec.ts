@@ -1,10 +1,11 @@
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+import * as fs from 'node:fs';
 
 const screenshotsDir = path.join(__dirname, 'screenshots');
 
@@ -17,7 +18,7 @@ async function takeScreenshot(page: Page, name: string) {
 }
 
 test.describe('Smoke Tests with Screenshots', () => {
-  test.beforeAll(() => {
+  test.beforeAll(async () => {
     if (!fs.existsSync(screenshotsDir)) {
       fs.mkdirSync(screenshotsDir, { recursive: true });
     }
@@ -67,31 +68,11 @@ test.describe('Smoke Tests with Screenshots', () => {
   });
 
   test('04 - Tutorial comms appear after loading', async ({ page }) => {
-    // Capture console logs for debugging
-    const consoleLogs: string[] = [];
-    page.on('console', (msg) => {
-      const text = msg.text();
-      // Capture ALL logs for now to debug
-      consoleLogs.push(`${msg.type()}: ${text.substring(0, 200)}`);
-    });
-
-    // Also capture page errors
-    page.on('pageerror', (error) => {
-      consoleLogs.push(`PAGE_ERROR: ${error.message}`);
-    });
-
     await page.goto('/');
     await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
 
     // Wait for tutorial to start (first comms message)
-    try {
-      await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
-    } catch (e) {
-      console.log('=== Console logs collected (last 100) ===');
-      consoleLogs.slice(-100).forEach((log) => console.log(log));
-      console.log('=== End console logs ===');
-      throw e;
-    }
+    await expect(page.getByText(/Good morning, Sergeant Cole/i)).toBeVisible({ timeout: 30000 });
     await takeScreenshot(page, 'smoke-04-tutorial-comms');
 
     // Verify comms UI structure
@@ -125,8 +106,8 @@ test.describe('Smoke Tests with Screenshots', () => {
 
     await takeScreenshot(page, 'smoke-06-halo-drop');
 
-    // Should see drop notification or HUD (use .first() to handle multiple matches)
-    await expect(page.getByText(/ORBITAL DROP INITIATED|DROP ZONE/i).first()).toBeVisible({
+    // Should see drop notification or HUD
+    await expect(page.getByText(/ORBITAL DROP INITIATED|DROP ZONE/i)).toBeVisible({
       timeout: 10000,
     });
   });

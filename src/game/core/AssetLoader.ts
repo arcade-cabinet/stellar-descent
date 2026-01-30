@@ -71,7 +71,7 @@ export class AssetLoader {
     this.updateProgress('SYSTEMS ONLINE', 100);
   }
 
-  private loadTexture(name: string, url: string): Promise<Texture> {
+  private loadTexture(_name: string, url: string): Promise<Texture> {
     return new Promise((resolve, reject) => {
       const texture = new Texture(
         url,

@@ -1,46 +1,5 @@
 import { vi } from 'vitest';
 
-// Mock AudioManager to avoid Tone.js issues in test environment
-// Tone.js requires a real AudioContext which happy-dom doesn't provide
-vi.mock('../game/core/AudioManager', () => ({
-  getAudioManager: vi.fn(() => ({
-    initialize: vi.fn(),
-    dispose: vi.fn(),
-    playSound: vi.fn(),
-    playMusic: vi.fn(),
-    stopMusic: vi.fn(),
-    setMusicVolume: vi.fn(),
-    setSFXVolume: vi.fn(),
-    setVoiceVolume: vi.fn(),
-    setAmbientVolume: vi.fn(),
-    setMasterVolume: vi.fn(),
-    playWeaponFire: vi.fn(),
-    playWeaponReload: vi.fn(),
-    playReloadStart: vi.fn(),
-    playReloadComplete: vi.fn(),
-    playEmptyClick: vi.fn(),
-    playWeaponSwitch: vi.fn(),
-    playWeaponEquip: vi.fn(),
-    playImpact: vi.fn(),
-    playExplosion: vi.fn(),
-    playHitMarker: vi.fn(),
-    playHeadshot: vi.fn(),
-    playKillConfirmation: vi.fn(),
-    playDamageDealt: vi.fn(),
-    playUIClick: vi.fn(),
-    playUIHover: vi.fn(),
-    setLevelConfig: vi.fn(),
-    setCombatState: vi.fn(),
-    onEnemyKill: vi.fn(),
-    onPlayerDamage: vi.fn(),
-    onLevelComplete: vi.fn(),
-    play: vi.fn(),
-    startLoop: vi.fn(),
-    stopLoop: vi.fn(),
-  })),
-  disposeAudioManager: vi.fn(),
-}));
-
 // Mock WebGL context for Babylon.js tests
 const mockWebGLContext = {
   getExtension: vi.fn(() => null),

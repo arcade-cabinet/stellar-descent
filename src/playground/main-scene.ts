@@ -22,7 +22,6 @@ export default class MainScene {
     this._setCamera(scene);
     this._setLight(scene);
     this._setEnvironment(scene);
-    this._setPipeLine();
     this.loadComponents().catch(console.error);
   }
 
@@ -62,5 +61,6 @@ export default class MainScene {
     // Load Babylon GUI
     await setUI(this.scene);
     //
+    this._setPipeLine();
   }
 }

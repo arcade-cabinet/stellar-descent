@@ -1,17 +1,19 @@
 import type { Scene } from '@babylonjs/core/scene';
-import { AdvancedDynamicTexture, Button, StackPanel } from '@babylonjs/gui/2D';
+import { AdvancedDynamicTexture, Button, StackPanel, type TextBlock } from '@babylonjs/gui/2D';
 
 export const setUI = async (scene: Scene) => {
   if (scene.getEngine().name === 'WebGPU') {
     // WebGPU specific imports
     await import('@babylonjs/core/Engines/WebGPU/Extensions/engine.dynamicTexture');
     await import('@babylonjs/core/Engines/WebGPU/Extensions/engine.renderTarget');
+    console.log('WebGPU GUI extensions loaded');
   }
 
   const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI('myUI', true, scene);
 
   const panel = new StackPanel();
   panel.width = 0.15;
+  panel.height = 50;
   panel.verticalAlignment = 0;
   panel.horizontalAlignment = 0;
   panel.isVertical = true;
@@ -28,7 +30,7 @@ export const setUI = async (scene: Scene) => {
   let counter = 0;
   button.onPointerUpObservable.add(() => {
     counter++;
-    button.textBlock!.text = counter.toString();
+    (button.children[0] as TextBlock).text = counter.toString();
   });
 
   const disposeButton = Button.CreateSimpleButton('disposeButton', 'Dispose GUI');

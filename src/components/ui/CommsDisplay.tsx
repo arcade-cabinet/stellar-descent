@@ -1,6 +1,4 @@
-import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSubtitles } from '../../game/context/SubtitleContext';
 import { getAudioManager } from '../../game/core/AudioManager';
 import type { CommsMessage } from '../../game/types';
 import { getScreenInfo } from '../../game/utils/responsive';
@@ -17,9 +15,6 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   const [isTyping, setIsTyping] = useState(false);
   const screenInfo = getScreenInfo();
   const hasPlayedSound = useRef(false);
-
-  // Get subtitle settings for accessibility font size
-  const { settings: subtitleSettings, fontSizePx } = useSubtitles();
 
   // Play comms open sound when message appears
   useEffect(() => {
@@ -117,11 +112,10 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   };
 
   return (
-    <div
+    <button
+      type="button"
       className={styles.overlay}
       onClick={handleAdvance}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -130,11 +124,11 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
       }}
       aria-label="Advance message"
     >
-      <div className={styles.commsPanel} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.commsPanel}>
         {/* Header bar */}
         <div className={styles.header}>
           <div className={styles.statusLight} />
-          <span className={styles.headerText}>SECURE CHANNEL // PRIORITY ALPHA</span>
+          <span className={styles.headerText}>{'SECURE CHANNEL // PRIORITY ALPHA'}</span>
           <div className={styles.signalBars}>
             <div className={styles.signalBar} />
             <div className={styles.signalBar} />
@@ -158,18 +152,9 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
             </div>
           </div>
 
-          {/* Message with accessibility subtitle support */}
+          {/* Message */}
           <div className={styles.messageContainer}>
-            <div
-              className={styles.messageText}
-              style={
-                subtitleSettings.enabled
-                  ? ({ '--subtitle-font-size': `${fontSizePx}px` } as React.CSSProperties)
-                  : undefined
-              }
-              aria-live="polite"
-              aria-atomic="false"
-            >
+            <div className={styles.messageText}>
               {typedText}
               {isTyping && <span className={styles.cursor}>|</span>}
             </div>
@@ -195,6 +180,6 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
       <p className={styles.hint}>
         {screenInfo.isTouchDevice ? 'TAP TO CONTINUE' : 'CLICK OR PRESS SPACE TO CONTINUE'}
       </p>
-    </div>
+    </button>
   );
 }
