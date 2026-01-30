@@ -63,6 +63,7 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
         onStart();
       } catch (err) {
         console.error('Failed to load save file', err);
+        showNotification('ERROR: FAILED TO LOAD SAVE FILE', 4000);
       }
 
       if (fileInputRef.current) {
