@@ -3,6 +3,9 @@ import glsl from 'vite-plugin-glsl';
 import { createHtmlPlugin } from 'vite-plugin-html';
 
 const vitePlugins: any = (env: any) => {
+  if (!env?.VITE_APP_TITLE) {
+    throw new Error('VITE_APP_TITLE is required to render the HTML title.');
+  }
   return [
     glsl(), // Convenient for you to write shader
     viteCompression({
