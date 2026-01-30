@@ -62,10 +62,14 @@ initAchievements();
 const VALID_LEVELS: LevelId[] = [
   'anchor_station',
   'landfall',
+  'canyon_run',
   'fob_delta',
   'brothers_in_arms',
+  'southern_ice',
   'the_breach',
+  'hive_assault',
   'extraction',
+  'final_escape',
 ];
 
 /**
@@ -262,10 +266,14 @@ function GameUI() {
         case 'landfall':
           setGameState('dropping');
           break;
+        case 'canyon_run':
         case 'fob_delta':
         case 'brothers_in_arms':
+        case 'southern_ice':
         case 'the_breach':
+        case 'hive_assault':
         case 'extraction':
+        case 'final_escape':
           // These levels go straight to playing state
           setGameState('playing');
           break;
@@ -311,8 +319,7 @@ function GameUI() {
   }, []);
 
   // Handle level completion - show completion screen with stats
-  // This callback will be passed to GameCanvas once level completion is wired up
-  const _handleLevelComplete = useCallback(() => {
+  const handleLevelComplete = useCallback(() => {
     // Calculate stats for the completed level
     const timeElapsed = (Date.now() - levelStartTimeRef.current) / 1000;
     const stats: LevelStats = {
@@ -509,6 +516,7 @@ function GameUI() {
         onDropComplete={handleDropComplete}
         onLoadingProgress={setLoadingState}
         onLevelChange={handleLevelChange}
+        onLevelComplete={handleLevelComplete}
       />
 
       {/* Title Sequence - opening cinematic */}

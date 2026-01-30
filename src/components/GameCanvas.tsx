@@ -24,7 +24,7 @@ import { useGame } from '../game/context/GameContext';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
 import { GameManager } from '../game/core/GameManager';
 import { getPerformanceManager } from '../game/core/PerformanceManager';
-import { AnchorStationLevel } from '../game/levels/anchor-station';
+import { defaultLevelFactories } from '../game/levels/factories';
 import {
   CAMPAIGN_LEVELS,
   type ILevel,
@@ -241,6 +241,7 @@ interface GameCanvasProps {
   onDropComplete: () => void;
   onLoadingProgress?: (progress: LoadingProgress) => void;
   onLevelChange?: (levelId: LevelId) => void;
+  onLevelComplete?: () => void;
 }
 
 export function GameCanvas({
@@ -250,6 +251,7 @@ export function GameCanvas({
   onDropComplete,
   onLoadingProgress,
   onLevelChange,
+  onLevelComplete,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Engine | null>(null);
@@ -626,13 +628,13 @@ export function GameCanvas({
         },
       };
 
-      console.log('[GameCanvas] Creating AnchorStationLevel');
-      tutorialLevelRef.current = new AnchorStationLevel(
-        engine,
-        canvas,
-        CAMPAIGN_LEVELS.anchor_station,
-        levelCallbacks
+      // Use factory system to create the tutorial level
+      const levelConfig = CAMPAIGN_LEVELS.anchor_station;
+      const factory = defaultLevelFactories[levelConfig.type];
+      console.log(
+        `[GameCanvas] Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`
       );
+      tutorialLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
       console.log('[GameCanvas] Calling initialize()');
       tutorialLevelRef.current
         .initialize()
@@ -654,10 +656,11 @@ export function GameCanvas({
       hideComms();
       setObjective('', '');
 
-      // Notify level change
-      onLevelChange?.('landfall');
+      // Determine which level to load
+      const dropLevelId: LevelId = (startLevelId as LevelId) || 'landfall';
+      onLevelChange?.(dropLevelId);
 
-      // Create game manager for surface gameplay
+      // Create game manager for surface gameplay (Landfall uses GameManager for HALO drop)
       if (!gameManagerRef.current) {
         gameManagerRef.current = new GameManager(scene, engine, canvas, {
           onHealthChange: setPlayerHealth,
@@ -674,6 +677,58 @@ export function GameCanvas({
       showNotification('ORBITAL DROP INITIATED', 4000);
     }
 
+    // Transition: loading -> playing (for levels beyond tutorial/landfall)
+    if (gameState === 'playing' && prevState !== 'playing' && prevState !== 'dropping') {
+      // For non-tutorial, non-drop levels, create the level via factory
+      const levelId = startLevelId as LevelId;
+      if (levelId && levelId !== 'anchor_station' && levelId !== 'landfall') {
+        // Clean up any existing level
+        if (tutorialLevelRef.current) {
+          tutorialLevelRef.current.dispose();
+          tutorialLevelRef.current = null;
+        }
+        if (gameManagerRef.current) {
+          gameManagerRef.current.dispose();
+          gameManagerRef.current = null;
+        }
+
+        onLevelChange?.(levelId);
+
+        const levelConfig = CAMPAIGN_LEVELS[levelId];
+        const factory = defaultLevelFactories[levelConfig.type];
+        const levelCallbacks: LevelCallbacks = {
+          onCommsMessage: (msg) => showComms(msg),
+          onObjectiveUpdate: (title, instructions) => setObjective(title, instructions),
+          onChapterChange: (_chapter) => {},
+          onHealthChange: setPlayerHealth,
+          onKill: addKill,
+          onDamage: onDamage,
+          onNotification: showNotification,
+          onLevelComplete: (_nextLevelId) => {
+            onLevelComplete?.();
+          },
+          onCombatStateChange: (_inCombat) => {},
+          onActionGroupsChange: (_groups) => {},
+          onActionHandlerRegister: (_handler) => {},
+          onHitMarker: (damage, isCritical) => addHitMarker(damage, isCritical),
+          onDirectionalDamage: (angle, damage) => addDamageIndicator(angle, damage),
+        };
+
+        console.log(
+          `[GameCanvas] Creating level via factory: ${levelId} (type: ${levelConfig.type})`
+        );
+        tutorialLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
+        tutorialLevelRef.current
+          .initialize()
+          .then(() => {
+            console.log(`[GameCanvas] Level ${levelId} initialized`);
+          })
+          .catch((e) => {
+            console.error(`[GameCanvas] Level ${levelId} initialization failed:`, e);
+          });
+      }
+    }
+
     // Transition: dropping -> playing
     if (gameState === 'playing' && prevState === 'dropping') {
       // The GameManager handles the drop sequence internally
@@ -683,6 +738,7 @@ export function GameCanvas({
     prevGameStateRef.current = gameState;
   }, [
     gameState,
+    startLevelId,
     setPlayerHealth,
     addKill,
     onDamage,
@@ -691,6 +747,7 @@ export function GameCanvas({
     hideComms,
     setObjective,
     onTutorialComplete,
+    onLevelComplete,
     setIsCalibrating,
     onLevelChange,
     setCompassData,

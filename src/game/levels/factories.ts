@@ -10,8 +10,11 @@ import { AnchorStationLevel } from './anchor-station/AnchorStationLevel';
 import { BrothersInArmsLevel } from './brothers-in-arms/BrothersInArmsLevel';
 import { CanyonRunLevel } from './canyon-run/CanyonRunLevel';
 import { ExtractionLevel } from './extraction/ExtractionLevel';
+import { FinalEscapeLevel } from './final-escape/FinalEscapeLevel';
 import { FOBDeltaLevel } from './fob-delta/FOBDeltaLevel';
+import { HiveAssaultLevel } from './hive-assault/HiveAssaultLevel';
 import { LandfallLevel } from './landfall/LandfallLevel';
+import { SouthernIceLevel } from './southern-ice/SouthernIceLevel';
 import { TheBreachLevel } from './the-breach/TheBreachLevel';
 import type {
   ILevel,
@@ -126,13 +129,12 @@ export const vehicleLevelFactory: LevelFactory = (
  * Frozen terrain with new enemy types and environmental hazards
  */
 export const iceLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
 ): ILevel => {
-  // TODO: Implement SouthernIceLevel class
-  throw new Error('Ice level type is not yet implemented. Awaiting SouthernIceLevel class.');
+  return new SouthernIceLevel(engine, canvas, config, callbacks);
 };
 
 /**
@@ -140,15 +142,12 @@ export const iceLevelFactory: LevelFactory = (
  * Mixed vehicle and infantry gameplay pushing into the hive
  */
 export const combinedArmsLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
 ): ILevel => {
-  // TODO: Implement HiveAssaultLevel class
-  throw new Error(
-    'Combined arms level type is not yet implemented. Awaiting HiveAssaultLevel class.'
-  );
+  return new HiveAssaultLevel(engine, canvas, config, callbacks);
 };
 
 /**
@@ -156,13 +155,12 @@ export const combinedArmsLevelFactory: LevelFactory = (
  * Timed vehicle escape sequence - Warthog Run style
  */
 export const finaleLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
 ): ILevel => {
-  // TODO: Implement FinalEscapeLevel class
-  throw new Error('Finale level type is not yet implemented. Awaiting FinalEscapeLevel class.');
+  return new FinalEscapeLevel(engine, canvas, config, callbacks);
 };
 
 /**
@@ -188,15 +186,9 @@ export const defaultLevelFactories: LevelFactoryRegistry = {
  */
 export function createLevelFactories(
   overrides: Partial<LevelFactoryRegistry> = {}
-): Partial<LevelFactoryRegistry> {
+): LevelFactoryRegistry {
   return {
-    station: stationLevelFactory,
-    drop: dropLevelFactory,
-    vehicle: vehicleLevelFactory,
-    base: baseLevelFactory,
-    brothers: brothersLevelFactory,
-    hive: hiveLevelFactory,
-    extraction: extractionLevelFactory,
+    ...defaultLevelFactories,
     ...overrides,
   };
 }
