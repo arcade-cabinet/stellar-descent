@@ -152,6 +152,16 @@ class WorldDatabase {
     `);
     this.db.run(`INSERT OR IGNORE INTO tutorial_progress (id) VALUES (1)`);
 
+    // Chunk state storage for procedural generation persistence
+    // Uses string keys like "chunk_station_interior_0_0" to store full ChunkState JSON
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS chunk_data (
+        key TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        updated_at INTEGER
+      )
+    `);
+
     this.initialized = true;
   }
 
@@ -605,6 +615,105 @@ class WorldDatabase {
 
     if (result.length === 0 || result[0].values.length === 0) return false;
     return result[0].values[0][0] === 1;
+  }
+
+  // ============================================================================
+  // CHUNK DATA PERSISTENCE (for ChunkManager procedural generation)
+  // ============================================================================
+
+  /**
+   * Get chunk state data by key
+   * @param key Format: "chunk_{environment}_{x}_{z}" e.g., "chunk_station_interior_0_1"
+   * @returns JSON string of ChunkState or null if not found
+   */
+  getChunkData(key: string): string | null {
+    if (!this.db) return null;
+
+    const result = this.db.exec('SELECT data FROM chunk_data WHERE key = ?', [key]);
+
+    if (result.length === 0 || result[0].values.length === 0) return null;
+
+    return result[0].values[0][0] as string;
+  }
+
+  /**
+   * Save chunk state data by key
+   * @param key Format: "chunk_{environment}_{x}_{z}"
+   * @param data JSON-serialized ChunkState
+   */
+  setChunkData(key: string, data: string): void {
+    if (!this.db) return;
+
+    this.db.run(
+      `INSERT OR REPLACE INTO chunk_data (key, data, updated_at) VALUES (?, ?, ?)`,
+      [key, data, Date.now()]
+    );
+  }
+
+  /**
+   * Delete chunk data by key
+   */
+  deleteChunkData(key: string): void {
+    if (!this.db) return;
+
+    this.db.run(`DELETE FROM chunk_data WHERE key = ?`, [key]);
+  }
+
+  /**
+   * Get all chunk keys for a specific environment
+   */
+  getChunkKeysByEnvironment(environment: string): string[] {
+    if (!this.db) return [];
+
+    const result = this.db.exec(
+      `SELECT key FROM chunk_data WHERE key LIKE ?`,
+      [`chunk_${environment}_%`]
+    );
+
+    if (result.length === 0) return [];
+
+    return result[0].values.map((row) => row[0] as string);
+  }
+
+  /**
+   * Clear all chunk data for an environment (useful for regeneration)
+   */
+  clearEnvironmentChunks(environment: string): void {
+    if (!this.db) return;
+
+    this.db.run(`DELETE FROM chunk_data WHERE key LIKE ?`, [`chunk_${environment}_%`]);
+  }
+
+  /**
+   * Get chunk data statistics
+   */
+  getChunkStats(): { totalChunks: number; byEnvironment: Record<string, number> } {
+    if (!this.db) return { totalChunks: 0, byEnvironment: {} };
+
+    const totalResult = this.db.exec('SELECT COUNT(*) FROM chunk_data');
+    const total = totalResult.length > 0 ? (totalResult[0].values[0][0] as number) : 0;
+
+    // Get counts by environment prefix
+    const byEnvironment: Record<string, number> = {};
+    const envResult = this.db.exec(`
+      SELECT
+        SUBSTR(key, 7, INSTR(SUBSTR(key, 7), '_') - 1) as env,
+        COUNT(*) as count
+      FROM chunk_data
+      GROUP BY env
+    `);
+
+    if (envResult.length > 0) {
+      for (const row of envResult[0].values) {
+        const env = row[0] as string;
+        const count = row[1] as number;
+        if (env) {
+          byEnvironment[env] = count;
+        }
+      }
+    }
+
+    return { totalChunks: total, byEnvironment };
   }
 }
 

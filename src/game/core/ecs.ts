@@ -4,6 +4,25 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { World } from 'miniplex';
 import type { SteeringBehavior, Vehicle } from 'yuka';
 
+// Import structural components for modular building system
+import type {
+  StructuralPiece,
+  Door,
+  Viewport,
+  LightFixture,
+  Conduit,
+  Room,
+  Atmosphere,
+  TriggerZone,
+  SpawnPoint,
+  Prop,
+  CoverPoint,
+  Interactable,
+  TerrainChunk,
+  PlanetaryFeature,
+  Weather,
+} from '../ecs/components/structural';
+
 // Component types
 export interface Transform {
   position: Vector3;
@@ -55,6 +74,13 @@ export interface Tags {
   building?: boolean;
   obstacle?: boolean;
   pickup?: boolean;
+  // Structural tags
+  structural?: boolean;
+  interior?: boolean;
+  exterior?: boolean;
+  hazard?: boolean;
+  navigation?: boolean;
+  objective?: boolean;
 }
 
 // Alien-specific component for tracking species
@@ -97,6 +123,23 @@ export interface Entity {
   lifetime?: LifeTime;
   spawner?: Spawner;
   alienInfo?: AlienInfo;
+
+  // Structural components (for modular building system)
+  structuralPiece?: StructuralPiece;
+  door?: Door;
+  viewport?: Viewport;
+  lightFixture?: LightFixture;
+  conduit?: Conduit;
+  room?: Room;
+  atmosphere?: Atmosphere;
+  triggerZone?: TriggerZone;
+  spawnPoint?: SpawnPoint;
+  prop?: Prop;
+  coverPoint?: CoverPoint;
+  interactable?: Interactable;
+  terrainChunk?: TerrainChunk;
+  planetaryFeature?: PlanetaryFeature;
+  weather?: Weather;
 }
 
 // Create the ECS world
