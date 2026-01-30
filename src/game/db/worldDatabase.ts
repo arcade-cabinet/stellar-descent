@@ -408,7 +408,8 @@ class WorldDatabase {
 
     // Check if species exists
     const existing = this.db.exec(
-      `SELECT total_killed FROM alien_kills WHERE species_id = '${speciesId}'`
+      `SELECT total_killed FROM alien_kills WHERE species_id = ?`,
+      [speciesId]
     );
 
     if (existing.length === 0 || existing[0].values.length === 0) {
