@@ -28,7 +28,7 @@ pnpm preview
 
 | Technology | Version | Purpose |
 | :--- | :--- | :--- |
-| **BabylonJS** | 8.x | 3D rendering (WebGPU/WebGL2) |
+| **BabylonJS** | 8.x | 3D rendering (WebGL2) |
 | **Havok Physics** | 1.3.x | Physics simulation |
 | **Yuka** | 0.7.x | AI steering behaviors |
 | **AnimeJS** | 4.x | UI animations |
@@ -49,7 +49,7 @@ pnpm preview
 - **Mission-based progression** with story chapters
 
 ### Technical
-- **WebGPU with WebGL2 fallback** for broad compatibility
+- **WebGL2 rendering** for broad compatibility
 - **Mobile-first responsive design** works on phones, tablets, foldables, and desktop
 - **Virtual joystick controls** for touch devices
 - **HDR rendering pipeline** with bloom, tone mapping, and chromatic aberration
@@ -153,8 +153,8 @@ pnpm preview      # Preview production build
 ```
 
 ### Browser Support
-- Chrome 113+ (WebGPU)
-- Firefox 115+ (WebGL2 fallback)
+- Chrome 113+ (WebGL2)
+- Firefox 115+ (WebGL2)
 - Safari 17+ (WebGL2)
 - Mobile Safari iOS 17+
 - Chrome Android 113+
