@@ -264,7 +264,8 @@ class WorldDatabase {
 
     const result = this.db.exec(
       `SELECT id, type, x, y, z, health, data FROM entities
-       WHERE chunk_x = ${chunkX} AND chunk_z = ${chunkZ}`
+       WHERE chunk_x = ? AND chunk_z = ?`,
+      [chunkX, chunkZ]
     );
 
     if (result.length === 0) return [];
