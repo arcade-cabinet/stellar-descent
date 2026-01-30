@@ -1,0 +1,252 @@
+/* Touch Controls Styles - DOOM-style FPS layout */
+/* Left: Movement joystick | Center: Touch to look | Right: Action buttons | Bottom: Weapon rack */
+
+.touchControls {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto; /* Allow touch on screen for looking */
+  touch-action: none;
+  z-index: 60;
+}
+
+/* Joystick Container - Left side only */
+.joystickContainer {
+  position: absolute;
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 30px) + 70px));
+  width: clamp(100px, 25vw, 140px);
+  height: clamp(100px, 25vw, 140px);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.joystickBase {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(28, 28, 28, 0.6);
+  border: 3px solid #4a5d23;
+  position: relative;
+}
+
+.joystickThumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 45%;
+  height: 45%;
+  border-radius: 50%;
+  background: rgba(74, 93, 35, 0.8);
+  border: 2px solid #b5a642;
+  transform: translate(-50%, -50%);
+  transition: background 0.1s ease;
+}
+
+.joystickThumb.active {
+  background: rgba(255, 191, 0, 0.8);
+}
+
+.joystickLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: rgba(160, 160, 160, 0.6);
+  margin-top: 0.5rem;
+  letter-spacing: 0.1em;
+}
+
+/* Action Button Column - Right side */
+.actionButtonColumn {
+  position: absolute;
+  right: max(20px, env(safe-area-inset-right, 20px));
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 30px) + 70px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+/* Action Buttons */
+.actionButton {
+  pointer-events: auto;
+  touch-action: none;
+  border-radius: 50%;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fireButton {
+  width: clamp(70px, 18vw, 90px);
+  height: clamp(70px, 18vw, 90px);
+  font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+  color: #e8e8e8;
+  background: rgba(244, 67, 54, 0.3);
+  border: 3px solid #f44336;
+}
+
+.fireButton:active,
+.fireButton.active {
+  background: rgba(244, 67, 54, 0.7);
+  transform: scale(0.95);
+}
+
+.secondaryButtonRow {
+  display: flex;
+  gap: 10px;
+}
+
+.smallButton {
+  width: clamp(50px, 12vw, 60px);
+  height: clamp(50px, 12vw, 60px);
+  font-size: clamp(0.5rem, 1.8vw, 0.625rem);
+  color: #a0a0a0;
+  background: rgba(74, 93, 35, 0.2);
+  border: 2px solid #4a5d23;
+}
+
+.smallButton:active,
+.smallButton.active {
+  background: rgba(74, 93, 35, 0.6);
+  color: #e8e8e8;
+  transform: scale(0.95);
+}
+
+.sprintButton {
+  width: clamp(60px, 15vw, 70px);
+  height: clamp(60px, 15vw, 70px);
+  font-size: clamp(0.625rem, 2vw, 0.75rem);
+  color: #e8e8e8;
+  background: rgba(255, 191, 0, 0.2);
+  border: 2px solid #ffbf00;
+}
+
+.sprintButton:active,
+.sprintButton.active {
+  background: rgba(255, 191, 0, 0.6);
+  transform: scale(0.95);
+}
+
+/* Bottom Weapon Rack - DOOM style */
+.weaponRack {
+  position: absolute;
+  bottom: max(15px, env(safe-area-inset-bottom, 15px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background: rgba(10, 10, 12, 0.8);
+  border: 1px solid #4a5d23;
+  padding: 8px 12px;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+.weaponSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  background: rgba(28, 28, 28, 0.5);
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+
+.weaponSlot.weaponActive {
+  opacity: 1;
+  border-color: #b5a642;
+  background: rgba(74, 93, 35, 0.3);
+}
+
+.weaponIcon {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #b5a642;
+  font-weight: bold;
+}
+
+.weaponName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+.weaponSlot.weaponActive .weaponName {
+  color: #e8e8e8;
+}
+
+/* Landscape phone adjustments */
+@media (max-height: 500px) {
+  .joystickContainer {
+    width: clamp(80px, 20vh, 100px);
+    height: clamp(80px, 20vh, 100px);
+    bottom: max(80px, calc(env(safe-area-inset-bottom, 15px) + 65px));
+  }
+
+  .actionButtonColumn {
+    bottom: max(80px, calc(env(safe-area-inset-bottom, 15px) + 65px));
+    gap: 8px;
+  }
+
+  .fireButton {
+    width: clamp(60px, 15vh, 75px);
+    height: clamp(60px, 15vh, 75px);
+  }
+
+  .smallButton {
+    width: clamp(40px, 10vh, 50px);
+    height: clamp(40px, 10vh, 50px);
+  }
+
+  .sprintButton {
+    width: clamp(50px, 12vh, 60px);
+    height: clamp(50px, 12vh, 60px);
+  }
+
+  .joystickLabel {
+    display: none;
+  }
+
+  .weaponRack {
+    padding: 4px 8px;
+  }
+
+  .weaponSlot {
+    padding: 4px 8px;
+  }
+
+  .weaponIcon {
+    font-size: 0.75rem;
+  }
+
+  .weaponName {
+    display: none;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 400px) {
+  .weaponRack {
+    display: none; /* Hide weapon rack on very small screens */
+  }
+
+  .joystickContainer {
+    bottom: max(40px, calc(env(safe-area-inset-bottom, 20px) + 20px));
+  }
+
+  .actionButtonColumn {
+    bottom: max(40px, calc(env(safe-area-inset-bottom, 20px) + 20px));
+  }
+}
