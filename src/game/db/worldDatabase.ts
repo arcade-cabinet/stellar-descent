@@ -472,7 +472,7 @@ class WorldDatabase {
     if (!this.db) return;
 
     const now = Date.now();
-    const existing = this.db.exec(`SELECT quantity FROM inventory WHERE item_id = '${itemId}'`);
+    const existing = this.db.exec(`SELECT quantity FROM inventory WHERE item_id = ?`, [itemId]);
 
     if (existing.length === 0 || existing[0].values.length === 0) {
       this.db.run(
