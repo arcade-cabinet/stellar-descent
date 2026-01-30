@@ -4,9 +4,7 @@ import glsl from 'vite-plugin-glsl';
 import { createHtmlPlugin } from 'vite-plugin-html';
 
 const vitePlugins = (env: Record<string, string>): PluginOption => {
-  if (!env?.VITE_APP_TITLE) {
-    throw new Error('VITE_APP_TITLE is required to render the HTML title.');
-  }
+  const appTitle = env?.VITE_APP_TITLE || 'STELLAR DESCENT: PROXIMA BREACH';
   return [
     glsl(), // Convenient for you to write shader
     viteCompression({
@@ -20,7 +18,7 @@ const vitePlugins = (env: Record<string, string>): PluginOption => {
     createHtmlPlugin({
       inject: {
         data: {
-          title: env.VITE_APP_TITLE, // Need to reference environment variables in html
+          title: appTitle, // Need to reference environment variables in html
         },
       },
     }),
