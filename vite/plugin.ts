@@ -13,7 +13,7 @@ const vitePlugins = (env: Record<string, string>): PluginOption => {
       verbose: true, // Whether to output compression results on the console
       disable: false, // Do not disable compression
       deleteOriginFile: false, // Whether to delete the original file after compression
-      threshold: 10240, // Whether to delete the original file after compression
+      threshold: 10240, // Only compress files larger than this size (bytes)
       ext: '.gz', // file type
       algorithm: 'gzip', // Compression algorithm
     }),
