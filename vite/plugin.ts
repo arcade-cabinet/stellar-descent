@@ -1,8 +1,9 @@
+import type { PluginOption } from 'vite';
 import viteCompression from 'vite-plugin-compression';
 import glsl from 'vite-plugin-glsl';
 import { createHtmlPlugin } from 'vite-plugin-html';
 
-const vitePlugins: any = (env: any) => {
+const vitePlugins = (env: Record<string, string>): PluginOption => {
   if (!env?.VITE_APP_TITLE) {
     throw new Error('VITE_APP_TITLE is required to render the HTML title.');
   }
