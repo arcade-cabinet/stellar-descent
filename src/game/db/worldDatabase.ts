@@ -534,7 +534,7 @@ class WorldDatabase {
   getQuestProgress(questId: string): QuestProgress | null {
     if (!this.db) return null;
 
-    const result = this.db.exec(`SELECT * FROM quests WHERE quest_id = '${questId}'`);
+    const result = this.db.exec(`SELECT * FROM quests WHERE quest_id = ?`, [questId]);
 
     if (result.length === 0 || result[0].values.length === 0) return null;
 
