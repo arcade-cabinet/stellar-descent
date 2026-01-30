@@ -163,6 +163,13 @@ export function MainMenu({
       const file = e.target.files?.[0];
       if (!file) return;
 
+      // Validate file size (50MB limit)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        console.error('Save file too large. Maximum size is 50MB.');
+        return;
+      }
+
       try {
         const buffer = await file.arrayBuffer();
         const data = new Uint8Array(buffer);
