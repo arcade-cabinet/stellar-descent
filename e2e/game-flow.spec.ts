@@ -78,21 +78,21 @@ test.describe('Game Flow', () => {
       // Click to advance
       await page.getByRole('button', { name: /ACKNOWLEDGE|SKIP/i }).click();
 
-      // Wait for next message or objective
-      await page.waitForTimeout(500);
+      // Wait for UI to update (e.g., message change or button state)
+      await expect(page.getByRole('button', { name: /ACKNOWLEDGE|SKIP/i })).toBeVisible();
     });
 
     test('should show objective display during tutorial', async ({ page }) => {
       // Advance past initial comms
       await page.keyboard.press('Space');
-      await page.waitForTimeout(3000);
+      // Wait for objective display to appear instead of arbitrary delay
+      await expect(page.locator('.objective-display, .objective-title').first()).toBeVisible({ timeout: 5000 });
 
       // Should see objective display eventually
       // The exact text depends on which step we're on
       const objectiveDisplay = page.locator('.objective-display, .objective-title');
       await expect(objectiveDisplay.first()).toBeVisible({ timeout: 10000 });
     });
-  });
 
   test.describe('HALO Drop (Skip Tutorial)', () => {
     test('should skip to HALO drop when clicking HALO DROP', async ({ page }) => {
