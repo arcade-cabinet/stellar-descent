@@ -968,7 +968,9 @@ export class CombatMusicManager {
     // Start transport
     Tone.getTransport().start();
 
-    console.log(`[CombatMusicManager] Started combat music: ${config.theme} theme @ ${config.baseBpm} BPM`);
+    console.log(
+      `[CombatMusicManager] Started combat music: ${config.theme} theme @ ${config.baseBpm} BPM`
+    );
   }
 
   /**
@@ -1019,18 +1021,21 @@ export class CombatMusicManager {
     this.masterGain.gain.rampTo(0, fadeDuration);
 
     // Stop after fade
-    this.transitionTimeout = setTimeout(() => {
-      this.isPlaying = false;
-      Tone.getTransport().stop();
+    this.transitionTimeout = setTimeout(
+      () => {
+        this.isPlaying = false;
+        Tone.getTransport().stop();
 
-      this.disposeSequences();
-      this.disposeInstruments();
+        this.disposeSequences();
+        this.disposeInstruments();
 
-      this.currentIntensity = 'none';
-      this.intensityValue = 0;
+        this.currentIntensity = 'none';
+        this.intensityValue = 0;
 
-      console.log('[CombatMusicManager] Combat music stopped');
-    }, fadeDuration * 1000 + 100);
+        console.log('[CombatMusicManager] Combat music stopped');
+      },
+      fadeDuration * 1000 + 100
+    );
   }
 
   /**

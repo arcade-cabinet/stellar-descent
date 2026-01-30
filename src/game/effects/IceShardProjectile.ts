@@ -72,7 +72,10 @@ const DEFAULT_ICE_SHARD_CONFIG: IceShardConfig = {
  * Uses a tapered cylinder core with a polyhedron tip to emulate a
  * crystalline shape without custom geometry.
  */
-function createIceShardMesh(scene: Scene, scale: number): {
+function createIceShardMesh(
+  scene: Scene,
+  scale: number
+): {
   root: Mesh;
   coreMat: StandardMaterial;
   glowMat: StandardMaterial;
@@ -118,11 +121,7 @@ function createIceShardMesh(scene: Scene, scale: number): {
   glowShell.material = glowMat;
 
   // Crystal tip (polyhedron) at the front
-  const tip = MeshBuilder.CreatePolyhedron(
-    'iceShardTip',
-    { type: 1, size: 0.04 * scale },
-    scene
-  );
+  const tip = MeshBuilder.CreatePolyhedron('iceShardTip', { type: 1, size: 0.04 * scale }, scene);
   tip.parent = core;
   tip.position.y = -0.48 * scale; // Bottom of cylinder = leading edge
   tip.material = coreMat;
@@ -138,11 +137,7 @@ function createIceShardMesh(scene: Scene, scale: number): {
  * Attach a continuous ice particle trail to the shard mesh.
  * Returns a dispose callback to stop the trail.
  */
-function attachIceTrail(
-  scene: Scene,
-  shardMesh: Mesh,
-  scale: number
-): () => void {
+function attachIceTrail(scene: Scene, shardMesh: Mesh, scale: number): () => void {
   // Use the energy_trail config from ParticleManager as a starting point
   // but override colours to icy blue/white
   const trailSystem = particleManager.emit('energy_trail', Vector3.Zero(), {
@@ -176,11 +171,7 @@ function attachIceTrail(
  * Visual + gameplay effect on shard impact.
  * Creates a frost AOE, shatter fragments, and brief blue flash.
  */
-function onIceShardImpact(
-  scene: Scene,
-  position: Vector3,
-  config: IceShardConfig
-): Entity[] {
+function onIceShardImpact(scene: Scene, position: Vector3, config: IceShardConfig): Entity[] {
   // Shatter fragments
   emitShatterFragments(scene, position, config.scale);
 
@@ -239,11 +230,7 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
     );
     frag.material = fragMat;
     frag.position = position.add(
-      new Vector3(
-        (Math.random() - 0.5) * 0.3,
-        Math.random() * 0.3,
-        (Math.random() - 0.5) * 0.3
-      )
+      new Vector3((Math.random() - 0.5) * 0.3, Math.random() * 0.3, (Math.random() - 0.5) * 0.3)
     );
 
     const velocity = new Vector3(
@@ -251,11 +238,7 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
       2 + Math.random() * 4,
       (Math.random() - 0.5) * 7
     );
-    const angularVel = new Vector3(
-      Math.random() * 10,
-      Math.random() * 10,
-      Math.random() * 10
-    );
+    const angularVel = new Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10);
 
     const startTime = performance.now();
     const gravity = -14;
@@ -340,10 +323,7 @@ function emitFrostAoeVisual(scene: Scene, position: Vector3, radius: number): vo
 // GLOW FLICKER ANIMATION
 // ---------------------------------------------------------------------------
 
-function startGlowFlicker(
-  glowMat: StandardMaterial,
-  shardMesh: Mesh
-): () => void {
+function startGlowFlicker(glowMat: StandardMaterial, shardMesh: Mesh): () => void {
   const startTime = performance.now();
   let cancelled = false;
 

@@ -16,18 +16,18 @@
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import type { Scene } from '@babylonjs/core/scene';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import type { Scene } from '@babylonjs/core/scene';
 
 import { getAchievementManager } from '../achievements';
 import { getAudioManager } from '../core/AudioManager';
 import type { LevelId } from '../levels/types';
-import { type SkullDefinition, type SkullId, SKULLS, getSkullSystem } from './SkullSystem';
+import { getSkullSystem, SKULLS, type SkullDefinition, type SkullId } from './SkullSystem';
 
 // ============================================================================
 // TYPES
@@ -197,11 +197,7 @@ export class SkullPickupManager {
     const pos = new Vector3(position.x, position.y, position.z);
 
     // --- Root transform node (empty mesh) ---
-    const rootMesh = MeshBuilder.CreateBox(
-      `skull_root_${skull.id}`,
-      { size: 0.01 },
-      this.scene
-    );
+    const rootMesh = MeshBuilder.CreateBox(`skull_root_${skull.id}`, { size: 0.01 }, this.scene);
     rootMesh.position = pos.clone();
     rootMesh.visibility = 0;
     rootMesh.isPickable = false;

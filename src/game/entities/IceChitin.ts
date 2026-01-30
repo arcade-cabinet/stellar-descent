@@ -276,11 +276,7 @@ function attachArmorPlates(
 // PROCEDURAL MESH BUILDERS  (per-variant)
 // ---------------------------------------------------------------------------
 
-function createIceDroneMesh(
-  scene: Scene,
-  mats: IceMaterials,
-  random: () => number
-): TransformNode {
+function createIceDroneMesh(scene: Scene, mats: IceMaterials, random: () => number): TransformNode {
   const root = new TransformNode('iceChitin_drone', scene);
 
   // Central body - flattened sphere, icy coloring
@@ -331,7 +327,12 @@ function createIceDroneMesh(
 
     const lowerLeg = MeshBuilder.CreateCylinder(
       'lowerLeg',
-      { height: 0.35 + random() * 0.15, diameterTop: 0.025, diameterBottom: 0.015, tessellation: 6 },
+      {
+        height: 0.35 + random() * 0.15,
+        diameterTop: 0.025,
+        diameterBottom: 0.015,
+        tessellation: 6,
+      },
       scene
     );
     lowerLeg.material = mats.baseMat;
@@ -590,11 +591,7 @@ function createIceBroodMotherMesh(
 
   // Multiple glowing eyes in crown pattern
   for (let i = 0; i < 6; i++) {
-    const eye = MeshBuilder.CreateSphere(
-      'eye',
-      { diameter: 0.08 + (i < 2 ? 0.04 : 0) },
-      scene
-    );
+    const eye = MeshBuilder.CreateSphere('eye', { diameter: 0.08 + (i < 2 ? 0.04 : 0) }, scene);
     eye.material = mats.glowMat;
     eye.parent = head;
     const angle = (i / 6) * Math.PI * 1.4 - Math.PI * 0.7;
@@ -1047,11 +1044,7 @@ export function playIceChitinDeathEffect(scene: Scene, position: Vector3, scale:
     );
     shard.material = armorMat;
     shard.position = position.add(
-      new Vector3(
-        (Math.random() - 0.5) * 0.5,
-        Math.random() * 0.8,
-        (Math.random() - 0.5) * 0.5
-      )
+      new Vector3((Math.random() - 0.5) * 0.5, Math.random() * 0.8, (Math.random() - 0.5) * 0.5)
     );
 
     // Velocity - explode outward
@@ -1060,11 +1053,7 @@ export function playIceChitinDeathEffect(scene: Scene, position: Vector3, scale:
       3 + Math.random() * 6,
       (Math.random() - 0.5) * 10
     );
-    const angularVel = new Vector3(
-      Math.random() * 12,
-      Math.random() * 12,
-      Math.random() * 12
-    );
+    const angularVel = new Vector3(Math.random() * 12, Math.random() * 12, Math.random() * 12);
 
     const startTime = performance.now();
     const gravity = -15;

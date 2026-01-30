@@ -19,10 +19,10 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../core/AudioManager';
-import { createEntity, getEntitiesInRadius, type Entity, removeEntity } from '../core/ecs';
+import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../core/ecs';
 import { particleManager } from '../effects/ParticleManager';
-import { VehicleBase, type VehicleStats, type VehicleWeapon } from './VehicleBase';
 import type { Player } from '../entities/player';
+import { VehicleBase, type VehicleStats, type VehicleWeapon } from './VehicleBase';
 
 // --------------------------------------------------------------------------
 // Constants
@@ -110,7 +110,7 @@ export class WraithTank extends VehicleBase {
       for (let i = 0; i < 4; i++) {
         const angle = (i / 4) * Math.PI * 2;
         this.patrolPoints.push(
-          center.add(new Vector3(Math.cos(angle) * 30, 0, Math.sin(angle) * 30)),
+          center.add(new Vector3(Math.cos(angle) * 30, 0, Math.sin(angle) * 30))
         );
       }
     }
@@ -146,7 +146,7 @@ export class WraithTank extends VehicleBase {
         diameterZ: 8,
         segments: 14,
       },
-      this.scene,
+      this.scene
     );
     body.material = hullMat;
     body.parent = this.rootNode;
@@ -158,7 +158,7 @@ export class WraithTank extends VehicleBase {
       const skirt = MeshBuilder.CreateBox(
         `wraithSkirt_${side}`,
         { width: 2.5, height: 0.8, depth: 6 },
-        this.scene,
+        this.scene
       );
       skirt.material = accentMat;
       skirt.parent = this.rootNode;
@@ -169,7 +169,7 @@ export class WraithTank extends VehicleBase {
       const hoverGlow = MeshBuilder.CreateDisc(
         `wraithHover_${side}`,
         { radius: 1, tessellation: 12 },
-        this.scene,
+        this.scene
       );
       hoverGlow.material = this.glowMat;
       hoverGlow.parent = this.rootNode;
@@ -182,7 +182,7 @@ export class WraithTank extends VehicleBase {
     const turretBase = MeshBuilder.CreateCylinder(
       'wraithTurretBase',
       { height: 0.6, diameterTop: 1.8, diameterBottom: 2.2, tessellation: 12 },
-      this.scene,
+      this.scene
     );
     turretBase.material = accentMat;
     turretBase.parent = this.rootNode;
@@ -192,7 +192,7 @@ export class WraithTank extends VehicleBase {
     const turretBarrel = MeshBuilder.CreateCylinder(
       'wraithTurretBarrel',
       { height: 2.5, diameterTop: 0.3, diameterBottom: 0.5, tessellation: 10 },
-      this.scene,
+      this.scene
     );
     turretBarrel.material = hullMat;
     turretBarrel.parent = this.rootNode;
@@ -204,7 +204,7 @@ export class WraithTank extends VehicleBase {
     this.mortarGlowMesh = MeshBuilder.CreateSphere(
       'wraithMortarGlow',
       { diameter: 0.5 },
-      this.scene,
+      this.scene
     );
     this.mortarGlowMesh.material = mortarMat;
     this.mortarGlowMesh.parent = this.rootNode;
@@ -215,7 +215,7 @@ export class WraithTank extends VehicleBase {
     const rearPanel = MeshBuilder.CreateBox(
       'wraithRearPanel',
       { width: 2.5, height: 1.5, depth: 1 },
-      this.scene,
+      this.scene
     );
     rearPanel.material = accentMat;
     rearPanel.parent = this.rootNode;
@@ -226,7 +226,7 @@ export class WraithTank extends VehicleBase {
     const powerCore = MeshBuilder.CreateSphere(
       'wraithPowerCore',
       { diameter: 0.8, segments: 8 },
-      this.scene,
+      this.scene
     );
     const coreMat = new StandardMaterial('wraithCoreMat', this.scene);
     coreMat.emissiveColor = Color3.FromHexString('#FF2244');
@@ -238,16 +238,12 @@ export class WraithTank extends VehicleBase {
     this.hullMeshes.push(powerCore);
 
     // --- Glow seams ---
-    const seams = [
-      new Vector3(0, 1.5, -3),
-      new Vector3(-2, 0.8, 0),
-      new Vector3(2, 0.8, 0),
-    ];
+    const seams = [new Vector3(0, 1.5, -3), new Vector3(-2, 0.8, 0), new Vector3(2, 0.8, 0)];
     for (let i = 0; i < seams.length; i++) {
       const seam = MeshBuilder.CreateBox(
         `wraithSeam_${i}`,
         { width: 0.08, height: 0.06, depth: 2.5 },
-        this.scene,
+        this.scene
       );
       seam.material = this.glowMat;
       seam.parent = this.rootNode;
@@ -260,7 +256,7 @@ export class WraithTank extends VehicleBase {
       const trail = MeshBuilder.CreateCylinder(
         `wraithBoostTrail_${side}`,
         { height: 3, diameterTop: 0.1, diameterBottom: 0.8, tessellation: 8 },
-        this.scene,
+        this.scene
       );
       const trailMat = new StandardMaterial(`wraithTrailMat_${side}`, this.scene);
       trailMat.emissiveColor = Color3.FromHexString(WRAITH_GLOW);
@@ -325,7 +321,7 @@ export class WraithTank extends VehicleBase {
     // Initial velocity: horizontal toward target, vertical for arc
     const horizontalDir = new Vector3(toTarget.x, 0, toTarget.z).normalize();
     const initialVelocity = horizontalDir.scale(weapon.projectileSpeed);
-    initialVelocity.y = (MORTAR_ARC_HEIGHT / timeToTarget) + (0.5 * 9.8 * timeToTarget);
+    initialVelocity.y = MORTAR_ARC_HEIGHT / timeToTarget + 0.5 * 9.8 * timeToTarget;
 
     this.createMortarProjectile(spawnPos, initialVelocity, weapon);
     getAudioManager().play('mech_fire', { volume: 0.5 });
@@ -334,12 +330,12 @@ export class WraithTank extends VehicleBase {
   private createMortarProjectile(
     spawnPos: Vector3,
     initialVelocity: Vector3,
-    weapon: VehicleWeapon,
+    weapon: VehicleWeapon
   ): void {
     const mortar = MeshBuilder.CreateSphere(
       'wraithMortar',
       { diameter: 1.2, segments: 8 },
-      this.scene,
+      this.scene
     );
     mortar.position = spawnPos;
 
@@ -352,7 +348,7 @@ export class WraithTank extends VehicleBase {
     const shell = MeshBuilder.CreateSphere(
       'wraithMortarShell',
       { diameter: 2, segments: 6 },
-      this.scene,
+      this.scene
     );
     const shellMat = new StandardMaterial('wraithMortarShellMat', this.scene);
     shellMat.emissiveColor = Color3.FromHexString(WRAITH_GLOW);
@@ -699,7 +695,7 @@ export class WraithTank extends VehicleBase {
 
   protected processInput(deltaTime: number): void {
     // Only processes when player is in the vehicle
-    let moveDir = Vector3.Zero();
+    const moveDir = Vector3.Zero();
     const forward = this.getForward();
     const right = this.getRight();
 
@@ -745,9 +741,7 @@ export class WraithTank extends VehicleBase {
     if (this.mortarGlowMesh?.material instanceof StandardMaterial) {
       const weapon = this.weapons[0];
       const ready = this.canFireWeapon(weapon);
-      this.mortarGlowMesh.material.alpha = ready
-        ? 0.8 + Math.sin(time * 2) * 0.2
-        : 0.3;
+      this.mortarGlowMesh.material.alpha = ready ? 0.8 + Math.sin(time * 2) * 0.2 : 0.3;
     }
   }
 }

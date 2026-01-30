@@ -50,7 +50,7 @@ export {
 
 export type { SecretAreaSystemCallbacks } from './SecretAreaSystem';
 // Secret area system
-export { SecretAreaSystem, createSecretAreaSystem } from './SecretAreaSystem';
+export { createSecretAreaSystem, SecretAreaSystem } from './SecretAreaSystem';
 // Secret persistence
 export type { SecretCollectionState } from './secretPersistence';
 export {
@@ -74,12 +74,12 @@ export type {
   SecretRewardType,
 } from './secrets';
 export {
-  SECRET_AREAS,
   getSecretById,
   getSecretCountByLevel,
   getSecretsByDifficulty,
   getSecretsByLevel,
   getTotalSecretCount,
+  SECRET_AREAS,
 } from './secrets';
 
 // ============================================================================
@@ -88,7 +88,23 @@ export {
 
 export type { SkullPickupCallbacks } from './SkullPickup';
 // Skull pickup system
-export { SkullPickupManager, createSkullPickupManager } from './SkullPickup';
+export { createSkullPickupManager, SkullPickupManager } from './SkullPickup';
+// Skull system and types
+export type {
+  SkullCategory,
+  SkullDefinition,
+  SkullEffectType,
+  SkullId,
+  SkullModifiers,
+  SkullState,
+  SkullSystem,
+} from './SkullSystem';
+export {
+  getSkullSystem,
+  initSkulls,
+  SKULL_ORDER,
+  SKULLS,
+} from './SkullSystem';
 // Skull persistence
 export type { SkullCollectionState } from './skullPersistence';
 export {
@@ -102,19 +118,3 @@ export {
   resetSkullCollection,
   saveSkullCollection,
 } from './skullPersistence';
-// Skull system and types
-export type {
-  SkullCategory,
-  SkullDefinition,
-  SkullEffectType,
-  SkullId,
-  SkullModifiers,
-  SkullState,
-  SkullSystem,
-} from './SkullSystem';
-export {
-  SKULL_ORDER,
-  SKULLS,
-  getSkullSystem,
-  initSkulls,
-} from './SkullSystem';

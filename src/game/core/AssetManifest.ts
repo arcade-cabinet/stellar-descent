@@ -451,17 +451,9 @@ export const LEVEL_MANIFESTS: Record<LevelId, LevelManifest> = {
 
   landfall: {
     levelId: 'landfall',
-    required: [
-      'enemy/spider',
-      'enemy/scout',
-    ],
-    preload: [
-      'vehicle/wraith',
-      'vehicle/phantom',
-    ],
-    deferred: [
-      'enemy/alienmale',
-    ],
+    required: ['enemy/spider', 'enemy/scout'],
+    preload: ['vehicle/wraith', 'vehicle/phantom'],
+    deferred: ['enemy/alienmale'],
   },
 
   // -------------------------------------------------------------------------
@@ -506,19 +498,9 @@ export const LEVEL_MANIFESTS: Record<LevelId, LevelManifest> = {
 
   brothers_in_arms: {
     levelId: 'brothers_in_arms',
-    required: [
-      'enemy/spider',
-      'enemy/scout',
-      'enemy/soldier',
-      'vehicle/marcus_mech',
-    ],
-    preload: [
-      'enemy/flyingalien',
-      'vehicle/wraith',
-    ],
-    deferred: [
-      'enemy/alienmale',
-    ],
+    required: ['enemy/spider', 'enemy/scout', 'enemy/soldier', 'vehicle/marcus_mech'],
+    preload: ['enemy/flyingalien', 'vehicle/wraith'],
+    deferred: ['enemy/alienmale'],
   },
 
   // -------------------------------------------------------------------------
@@ -526,13 +508,7 @@ export const LEVEL_MANIFESTS: Record<LevelId, LevelManifest> = {
   // -------------------------------------------------------------------------
   the_breach: {
     levelId: 'the_breach',
-    required: [
-      'enemy/spider',
-      'enemy/scout',
-      'enemy/soldier',
-      'enemy/tentakel',
-      'structure/brain',
-    ],
+    required: ['enemy/spider', 'enemy/scout', 'enemy/soldier', 'enemy/tentakel', 'structure/brain'],
     preload: [
       'structure/birther',
       'structure/claw',
@@ -543,27 +519,14 @@ export const LEVEL_MANIFESTS: Record<LevelId, LevelManifest> = {
       'vehicle/wraith',
       'vehicle/phantom',
     ],
-    deferred: [
-      'enemy/alienmonster',
-      'enemy/alienmale',
-      'enemy/alienfemale',
-    ],
+    deferred: ['enemy/alienmonster', 'enemy/alienmale', 'enemy/alienfemale'],
   },
 
   extraction: {
     levelId: 'extraction',
-    required: [
-      'enemy/spider',
-      'enemy/scout',
-      'enemy/soldier',
-      'vehicle/phantom',
-    ],
-    preload: [
-      'enemy/flyingalien',
-    ],
-    deferred: [
-      'enemy/alienmonster',
-    ],
+    required: ['enemy/spider', 'enemy/scout', 'enemy/soldier', 'vehicle/phantom'],
+    preload: ['enemy/flyingalien'],
+    deferred: ['enemy/alienmonster'],
   },
 
   // -------------------------------------------------------------------------
@@ -571,33 +534,16 @@ export const LEVEL_MANIFESTS: Record<LevelId, LevelManifest> = {
   // -------------------------------------------------------------------------
   canyon_run: {
     levelId: 'canyon_run',
-    required: [
-      'enemy/spider',
-      'enemy/flyingalien',
-    ],
-    preload: [
-      'enemy/scout',
-      'vehicle/wraith',
-    ],
-    deferred: [
-      'enemy/soldier',
-    ],
+    required: ['enemy/spider', 'enemy/flyingalien'],
+    preload: ['enemy/scout', 'vehicle/wraith'],
+    deferred: ['enemy/soldier'],
   },
 
   southern_ice: {
     levelId: 'southern_ice',
-    required: [
-      'enemy/spider',
-      'enemy/scout',
-      'enemy/soldier',
-    ],
-    preload: [
-      'enemy/flyingalien',
-      'enemy/tentakel',
-    ],
-    deferred: [
-      'enemy/alienmonster',
-    ],
+    required: ['enemy/spider', 'enemy/scout', 'enemy/soldier'],
+    preload: ['enemy/flyingalien', 'enemy/tentakel'],
+    deferred: ['enemy/alienmonster'],
   },
 
   hive_assault: {
@@ -617,22 +563,13 @@ export const LEVEL_MANIFESTS: Record<LevelId, LevelManifest> = {
       'vehicle/wraith',
       'vehicle/phantom',
     ],
-    deferred: [
-      'enemy/alienmonster',
-      'enemy/alienmale',
-      'enemy/alienfemale',
-    ],
+    deferred: ['enemy/alienmonster', 'enemy/alienmale', 'enemy/alienfemale'],
   },
 
   final_escape: {
     levelId: 'final_escape',
-    required: [
-      'enemy/flyingalien',
-      'vehicle/phantom',
-    ],
-    preload: [
-      'enemy/spider',
-    ],
+    required: ['enemy/flyingalien', 'vehicle/phantom'],
+    preload: ['enemy/spider'],
     deferred: [],
   },
 };

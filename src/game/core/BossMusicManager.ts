@@ -286,16 +286,19 @@ export class BossMusicManager {
     }
 
     // Stop after fade
-    setTimeout(() => {
-      this.disposeLoops();
-      Tone.getTransport().stop();
-      this.subBass?.stop();
+    setTimeout(
+      () => {
+        this.disposeLoops();
+        Tone.getTransport().stop();
+        this.subBass?.stop();
 
-      // Restore volume for next time
-      if (this.masterGain) {
-        this.masterGain.gain.value = this.volume;
-      }
-    }, fadeDuration * 1000 + 100);
+        // Restore volume for next time
+        if (this.masterGain) {
+          this.masterGain.gain.value = this.volume;
+        }
+      },
+      fadeDuration * 1000 + 100
+    );
   }
 
   /**
@@ -313,9 +316,12 @@ export class BossMusicManager {
     // Filter sweep down then up
     if (this.filter) {
       this.filter.frequency.rampTo(500, transitionTime / 2);
-      setTimeout(() => {
-        this.filter?.frequency.rampTo(this.getFilterFrequency(newPhase), transitionTime / 2);
-      }, (transitionTime / 2) * 1000);
+      setTimeout(
+        () => {
+          this.filter?.frequency.rampTo(this.getFilterFrequency(newPhase), transitionTime / 2);
+        },
+        (transitionTime / 2) * 1000
+      );
     }
 
     // Gradual tempo change
@@ -538,41 +544,50 @@ export class BossMusicManager {
 
   private createLoops(): void {
     // Bass loop - plays on beats
-    this.bassLoop = new Tone.Loop((time) => {
-      const notes = this.getBassNotes();
-      const note = notes[this.bassIndex % notes.length];
-      const duration = this.currentPhase === 3 ? '8n' : '4n';
-      this.bassSynth?.triggerAttackRelease(note, duration, time);
-      this.bassIndex++;
-    }, this.currentPhase === 3 ? '8n' : '4n');
+    this.bassLoop = new Tone.Loop(
+      (time) => {
+        const notes = this.getBassNotes();
+        const note = notes[this.bassIndex % notes.length];
+        const duration = this.currentPhase === 3 ? '8n' : '4n';
+        this.bassSynth?.triggerAttackRelease(note, duration, time);
+        this.bassIndex++;
+      },
+      this.currentPhase === 3 ? '8n' : '4n'
+    );
     this.bassLoop.start(0);
 
     // Chord loop - plays every measure
-    this.chordLoop = new Tone.Loop((time) => {
-      const chords = this.getChords();
-      const chord = chords[this.chordIndex % chords.length];
-      const duration = this.currentPhase === 3 ? '2n' : '1n';
-      this.padSynth?.triggerAttackRelease(chord, duration, time);
-      this.chordIndex++;
-    }, this.currentPhase === 3 ? '2n' : '1n');
+    this.chordLoop = new Tone.Loop(
+      (time) => {
+        const chords = this.getChords();
+        const chord = chords[this.chordIndex % chords.length];
+        const duration = this.currentPhase === 3 ? '2n' : '1n';
+        this.padSynth?.triggerAttackRelease(chord, duration, time);
+        this.chordIndex++;
+      },
+      this.currentPhase === 3 ? '2n' : '1n'
+    );
     this.chordLoop.start(0);
 
     // Melody loop - plays fragments
-    this.melodyLoop = new Tone.Loop((time) => {
-      const fragments = this.getMelodyFragments();
-      const fragment = fragments[this.melodyIndex % fragments.length];
-      const note = fragment[this.melodyNoteIndex % fragment.length];
+    this.melodyLoop = new Tone.Loop(
+      (time) => {
+        const fragments = this.getMelodyFragments();
+        const fragment = fragments[this.melodyIndex % fragments.length];
+        const note = fragment[this.melodyNoteIndex % fragment.length];
 
-      // Vary note duration by phase
-      const duration = this.currentPhase === 3 ? '16n' : this.currentPhase === 2 ? '8n' : '4n';
-      this.leadSynth?.triggerAttackRelease(note, duration, time);
+        // Vary note duration by phase
+        const duration = this.currentPhase === 3 ? '16n' : this.currentPhase === 2 ? '8n' : '4n';
+        this.leadSynth?.triggerAttackRelease(note, duration, time);
 
-      this.melodyNoteIndex++;
-      if (this.melodyNoteIndex >= fragment.length) {
-        this.melodyNoteIndex = 0;
-        this.melodyIndex++;
-      }
-    }, this.currentPhase === 3 ? '8n' : this.currentPhase === 2 ? '8n' : '4n');
+        this.melodyNoteIndex++;
+        if (this.melodyNoteIndex >= fragment.length) {
+          this.melodyNoteIndex = 0;
+          this.melodyIndex++;
+        }
+      },
+      this.currentPhase === 3 ? '8n' : this.currentPhase === 2 ? '8n' : '4n'
+    );
     this.melodyLoop.start('1m'); // Start after one measure
 
     // Kick drum loop
@@ -590,9 +605,12 @@ export class BossMusicManager {
 
     // Hi-hat loop - 16th notes in phase 2/3
     if (this.currentPhase >= 2) {
-      this.hihatLoop = new Tone.Loop((time) => {
-        this.hihatSynth?.triggerAttackRelease('16n', time);
-      }, this.currentPhase === 3 ? '16n' : '8n');
+      this.hihatLoop = new Tone.Loop(
+        (time) => {
+          this.hihatSynth?.triggerAttackRelease('16n', time);
+        },
+        this.currentPhase === 3 ? '16n' : '8n'
+      );
       this.hihatLoop.start(0);
     }
 
@@ -608,14 +626,17 @@ export class BossMusicManager {
     }
 
     // Sub bass pulse - more frequent in later phases
-    this.subBassLoop = new Tone.Loop((time) => {
-      if (this.subBass) {
-        // Pulse the sub bass
-        const freq = this.currentPhase === 3 ? 48.99 : this.currentPhase === 2 ? 41.2 : 36.71; // D1, E1, D1
-        this.subBass.frequency.setValueAtTime(freq, time);
-        this.subBass.frequency.exponentialRampToValueAtTime(freq * 0.8, time + 0.2);
-      }
-    }, this.currentPhase === 3 ? '4n' : '2n');
+    this.subBassLoop = new Tone.Loop(
+      (time) => {
+        if (this.subBass) {
+          // Pulse the sub bass
+          const freq = this.currentPhase === 3 ? 48.99 : this.currentPhase === 2 ? 41.2 : 36.71; // D1, E1, D1
+          this.subBass.frequency.setValueAtTime(freq, time);
+          this.subBass.frequency.exponentialRampToValueAtTime(freq * 0.8, time + 0.2);
+        }
+      },
+      this.currentPhase === 3 ? '4n' : '2n'
+    );
     this.subBassLoop.start(0);
 
     // Set filter frequency for phase

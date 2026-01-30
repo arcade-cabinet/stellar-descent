@@ -20,11 +20,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
+  getSkullSystem,
+  SKULL_ORDER,
   type SkullCategory,
   type SkullId,
   type SkullState,
-  SKULL_ORDER,
-  getSkullSystem,
 } from '../../game/collectibles/SkullSystem';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
@@ -134,15 +134,9 @@ export function SkullMenu({ isOpen, onClose }: SkullMenuProps) {
     return groups;
   }, [skullStates]);
 
-  const activeCount = useMemo(
-    () => skullStates.filter((s) => s.active).length,
-    [skullStates]
-  );
+  const activeCount = useMemo(() => skullStates.filter((s) => s.active).length, [skullStates]);
 
-  const foundCount = useMemo(
-    () => skullStates.filter((s) => s.found).length,
-    [skullStates]
-  );
+  const foundCount = useMemo(() => skullStates.filter((s) => s.found).length, [skullStates]);
 
   const totalScoreMultiplier = useMemo(() => {
     let multiplier = 1.0;
@@ -155,10 +149,7 @@ export function SkullMenu({ isOpen, onClose }: SkullMenuProps) {
   }, [skullStates]);
 
   const hasDifficultySkulls = useMemo(
-    () =>
-      skullStates.some(
-        (s) => s.active && s.definition.category !== 'fun'
-      ),
+    () => skullStates.some((s) => s.active && s.definition.category !== 'fun'),
     [skullStates]
   );
 
@@ -212,9 +203,8 @@ export function SkullMenu({ isOpen, onClose }: SkullMenuProps) {
               /!\
             </span>
             <span className={styles.warningText} id="skull-menu-desc">
-              Difficulty skulls are active. Enemies will be stronger and gameplay
-              will be more challenging. Score multiplier: x
-              {totalScoreMultiplier.toFixed(2)}.
+              Difficulty skulls are active. Enemies will be stronger and gameplay will be more
+              challenging. Score multiplier: x{totalScoreMultiplier.toFixed(2)}.
             </span>
           </div>
         )}
@@ -241,9 +231,7 @@ export function SkullMenu({ isOpen, onClose }: SkullMenuProps) {
                 <div key={category} className={styles.categorySection}>
                   <div className={styles.categoryHeader}>
                     <span className={styles.categoryLine} />
-                    <span className={styles.categoryLabel}>
-                      {CATEGORY_LABELS[category]}
-                    </span>
+                    <span className={styles.categoryLabel}>{CATEGORY_LABELS[category]}</span>
                     <span className={styles.categoryLine} />
                   </div>
 
@@ -325,11 +313,7 @@ function SkullCard({ skullState, onToggle }: SkullCardProps) {
     [definition.id, found, onToggle]
   );
 
-  const statusLabel = !found
-    ? 'Locked'
-    : active
-      ? 'Active'
-      : 'Inactive';
+  const statusLabel = !found ? 'Locked' : active ? 'Active' : 'Inactive';
 
   const ariaLabel = found
     ? `${definition.name} skull. ${definition.description}. Currently ${statusLabel.toLowerCase()}. Press Enter to toggle.`
@@ -353,24 +337,21 @@ function SkullCard({ skullState, onToggle }: SkullCardProps) {
 
       {/* Info */}
       <div className={styles.skullInfo}>
-        <p className={styles.skullName}>
-          {found ? definition.name : '???'}
-        </p>
+        <p className={styles.skullName}>{found ? definition.name : '???'}</p>
         <p className={styles.skullDescription}>
           {found
             ? definition.description
             : `Hidden in ${getLevelDisplayName(definition.levelFound)}`}
         </p>
-        {!found && (
-          <p className={styles.skullLevel}>
-            Explore to discover
-          </p>
-        )}
+        {!found && <p className={styles.skullLevel}>Explore to discover</p>}
       </div>
 
       {/* Score multiplier badge (only for found skulls with > 1.0) */}
       {found && definition.scoreMultiplier > 1.0 && (
-        <span className={styles.scoreBadge} aria-label={`Score multiplier: ${definition.scoreMultiplier}x`}>
+        <span
+          className={styles.scoreBadge}
+          aria-label={`Score multiplier: ${definition.scoreMultiplier}x`}
+        >
           x{definition.scoreMultiplier.toFixed(1)}
         </span>
       )}

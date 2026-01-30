@@ -33,6 +33,11 @@ export type { DeathEffectConfig, DeathEffectType } from './DeathEffects';
 export { DeathEffects, deathEffects } from './DeathEffects';
 export type { EnvironmentalEffectType, EnvironmentalEmitterConfig } from './EnvironmentalParticles';
 export { EnvironmentalParticles, environmentalParticles } from './EnvironmentalParticles';
+// Frost / Ice effects (Southern Ice level)
+export type { FrostEffectConfig } from './FrostEffect';
+export { FrostEffectManager, frostEffect } from './FrostEffect';
+export type { IceShardConfig } from './IceShardProjectile';
+export { destroyIceShardInAir, fireIceShard } from './IceShardProjectile';
 export type { MuzzleFlashConfig } from './MuzzleFlash';
 export { MuzzleFlashManager, muzzleFlash, WEAPON_FLASH_CONFIGS } from './MuzzleFlash';
 export type { ParticleEffectConfig } from './ParticleManager';
@@ -50,9 +55,3 @@ export type {
   WeatherType,
 } from './WeatherSystem';
 export { disposeWeatherSystem, getWeatherSystem, WeatherSystem } from './WeatherSystem';
-
-// Frost / Ice effects (Southern Ice level)
-export type { FrostEffectConfig } from './FrostEffect';
-export { FrostEffectManager, frostEffect } from './FrostEffect';
-export type { IceShardConfig } from './IceShardProjectile';
-export { fireIceShard, destroyIceShardInAir } from './IceShardProjectile';

@@ -3591,6 +3591,8 @@ export function disposeAudioManager(): void {
   }
 }
 
+// Re-export boss music manager for direct access
+export { type BossPhase, disposeBossMusicManager, getBossMusicManager } from './BossMusicManager';
 // Re-export environmental audio types for external use
 export type {
   AudioZone,
@@ -3599,6 +3601,3 @@ export type {
   SpatialSoundSource,
   SpatialSoundType,
 } from './EnvironmentalAudioManager';
-
-// Re-export boss music manager for direct access
-export { getBossMusicManager, disposeBossMusicManager, type BossPhase } from './BossMusicManager';

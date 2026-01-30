@@ -135,10 +135,10 @@ const MORALE_LOSS_PER_DOWN = 0.2;
 // Formation offsets relative to squad center
 const FORMATION_OFFSETS: Record<SquadFormation, Vector3[]> = {
   diamond: [
-    new Vector3(0, 0, 3),     // Point
-    new Vector3(-2.5, 0, 0),  // Left flank
-    new Vector3(2.5, 0, 0),   // Right flank
-    new Vector3(0, 0, -3),    // Rear guard
+    new Vector3(0, 0, 3), // Point
+    new Vector3(-2.5, 0, 0), // Left flank
+    new Vector3(2.5, 0, 0), // Right flank
+    new Vector3(0, 0, -3), // Rear guard
   ],
   line: [
     new Vector3(-4, 0, 0),
@@ -159,10 +159,22 @@ const SQUAD_CALLSIGNS = ['ALPHA', 'BRAVO', 'CHARLIE', 'DELTA'];
 
 // Marine first names for callouts
 const MARINE_NAMES = [
-  'Rodriguez', 'Chen', 'Kowalski', 'Okafor',
-  'Singh', 'Petrov', 'Nakamura', 'Garcia',
-  'Kim', 'Adeyemi', 'Hansen', 'Torres',
-  'Yamamoto', 'Mensah', 'Johansson', 'Diallo',
+  'Rodriguez',
+  'Chen',
+  'Kowalski',
+  'Okafor',
+  'Singh',
+  'Petrov',
+  'Nakamura',
+  'Garcia',
+  'Kim',
+  'Adeyemi',
+  'Hansen',
+  'Torres',
+  'Yamamoto',
+  'Mensah',
+  'Johansson',
+  'Diallo',
 ];
 
 // Radio callouts
@@ -171,12 +183,12 @@ const CALLOUTS = {
     'Contact! Hostiles ahead!',
     'Enemy spotted! Engaging!',
     'We have contact! Opening fire!',
-    'Tangos at twelve o\'clock!',
+    "Tangos at twelve o'clock!",
   ],
   TAKING_FIRE: [
     'Taking fire! Need support!',
     'Heavy fire on our position!',
-    'We\'re pinned down!',
+    "We're pinned down!",
     'Under heavy fire here!',
   ],
   MAN_DOWN: [
@@ -192,21 +204,21 @@ const CALLOUTS = {
     'Armored targets approaching!',
   ],
   OVERWHELMED: [
-    'We\'re getting overwhelmed here!',
+    "We're getting overwhelmed here!",
     'Too many of them! We need backup!',
-    'They\'re everywhere! Help us!',
-    'Can\'t hold them! We need support!',
+    "They're everywhere! Help us!",
+    "Can't hold them! We need support!",
   ],
   RESCUED: [
     'Thank God! Friendlies! Keep firing!',
-    'We\'re saved! Pushing back!',
-    'About time! Let\'s push these things back!',
+    "We're saved! Pushing back!",
+    "About time! Let's push these things back!",
     'Reinforcements! We can hold now!',
   ],
   REVIVE_THANKS: [
     'Thanks, I owe you one!',
-    'I\'m back in the fight!',
-    'Patched up! Let\'s go!',
+    "I'm back in the fight!",
+    "Patched up! Let's go!",
     'Good as new! Well, close enough.',
   ],
   ADVANCING: [
@@ -219,7 +231,7 @@ const CALLOUTS = {
     'Area secure!',
     'All clear! Moving on!',
     'Hostiles eliminated!',
-    'Clear! Let\'s keep moving!',
+    "Clear! Let's keep moving!",
   ],
 };
 
@@ -282,12 +294,7 @@ export class MarineSquadManager {
   /**
    * Create a single marine mesh and data
    */
-  private createMarine(
-    squadId: string,
-    callsign: string,
-    index: number,
-    basePos: Vector3
-  ): Marine {
+  private createMarine(squadId: string, callsign: string, index: number, basePos: Vector3): Marine {
     const name = this.getUniqueName();
     const marineId = `${squadId}_marine_${index}`;
 
@@ -440,11 +447,7 @@ export class MarineSquadManager {
       case 'follow_player':
         // Follow 8m behind and offset to one side
         targetPos = playerPosition.add(
-          new Vector3(
-            Math.sin(this.squads.indexOf(squad) * Math.PI / 2) * 8,
-            0,
-            8
-          )
+          new Vector3(Math.sin((this.squads.indexOf(squad) * Math.PI) / 2) * 8, 0, 8)
         );
         break;
 
@@ -516,9 +519,8 @@ export class MarineSquadManager {
         this.updateMarineCombat(marine, squad, nearbyEnemies, coverPositions, deltaTime);
       } else {
         this.updateMarineMovement(marine, deltaTime);
-        marine.state = marine.position.subtract(marine.targetPosition).length() > 1
-          ? 'moving'
-          : 'idle';
+        marine.state =
+          marine.position.subtract(marine.targetPosition).length() > 1 ? 'moving' : 'idle';
         marine.targetEnemyPos = null;
       }
     }
@@ -574,7 +576,6 @@ export class MarineSquadManager {
 
       // Radio callouts
       this.tryCallout(marine, squad, closestEnemy, enemies.length);
-
     } else {
       // No enemy in range, advance toward formation position
       this.updateMarineMovement(marine, deltaTime);
@@ -800,9 +801,7 @@ export class MarineSquadManager {
    * Send a comms message from a squad
    */
   private sendSquadComms(squad: MarineSquad, text: string, marineName?: string): void {
-    const sender = marineName
-      ? `Pvt. ${marineName}`
-      : `${squad.callsign} Lead`;
+    const sender = marineName ? `Pvt. ${marineName}` : `${squad.callsign} Lead`;
 
     this.callbacks.onCommsMessage({
       sender,

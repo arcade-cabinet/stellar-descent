@@ -330,11 +330,7 @@ export class CollapsingTerrain {
    * @param destructionProgress - 0 (start) to 1 (fully destroyed / timer expired)
    * @param playerPosition - Current player camera position
    */
-  update(
-    deltaTime: number,
-    destructionProgress: number,
-    playerPosition: Vector3
-  ): void {
+  update(deltaTime: number, destructionProgress: number, playerPosition: Vector3): void {
     this.destructionProgress = Math.min(1, destructionProgress * this.config.destructionRate);
     this.totalElapsed += deltaTime;
 
@@ -368,10 +364,7 @@ export class CollapsingTerrain {
     // Spawn rate increases with destruction progress
     const spawnInterval = Math.max(2.0, 8.0 - this.destructionProgress * 6.0);
 
-    if (
-      this.timeSinceLastChasm >= spawnInterval &&
-      this.chasms.length < this.config.maxChasms
-    ) {
+    if (this.timeSinceLastChasm >= spawnInterval && this.chasms.length < this.config.maxChasms) {
       this.timeSinceLastChasm = 0;
 
       // Spawn ahead of player, offset to one side
@@ -379,11 +372,7 @@ export class CollapsingTerrain {
       const lateralOffset =
         (this.seededNoise(this.totalElapsed + 50) - 0.5) * this.config.terrainWidth * 0.6;
 
-      const chasmPos = new Vector3(
-        lateralOffset,
-        -0.5,
-        playerPosition.z - aheadDistance
-      );
+      const chasmPos = new Vector3(lateralOffset, -0.5, playerPosition.z - aheadDistance);
 
       this.spawnChasm(chasmPos);
     }
@@ -516,11 +505,7 @@ export class CollapsingTerrain {
       { radius: size * 1.5, tessellation: 16 },
       this.scene
     );
-    shadowMarker.position.set(
-      position.x - sideDirection * 5,
-      0.05,
-      position.z
-    );
+    shadowMarker.position.set(position.x - sideDirection * 5, 0.05, position.z);
     shadowMarker.rotation.x = Math.PI / 2;
 
     const shadowMat = new StandardMaterial(`shadow_mat_${this.fallingRocks.length}`, this.scene);
@@ -683,7 +668,7 @@ export class CollapsingTerrain {
 
       // Rapid intensity falloff
       const t = exp.lifetime / exp.maxLifetime;
-      exp.light.intensity = exp.maxIntensity * Math.pow(1 - t, 3);
+      exp.light.intensity = exp.maxIntensity * (1 - t) ** 3;
     }
 
     for (let i = toRemove.length - 1; i >= 0; i--) {
@@ -712,11 +697,7 @@ export class CollapsingTerrain {
         (this.seededNoise(this.totalElapsed * 14.3) - 0.5) * this.config.terrainWidth * 0.8;
       const offsetZ = (this.seededNoise(this.totalElapsed * 15.7) - 0.5) * 80;
 
-      const crackPos = new Vector3(
-        offsetX,
-        0.05,
-        playerPosition.z - 20 + offsetZ
-      );
+      const crackPos = new Vector3(offsetX, 0.05, playerPosition.z - 20 + offsetZ);
 
       this.spawnGroundCrack(crackPos);
     }

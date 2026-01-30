@@ -170,10 +170,7 @@ export class AssetPipeline {
    * @returns Promise that resolves when CRITICAL + HIGH are loaded.
    *          LOW assets continue loading in the background.
    */
-  async loadLevel(
-    levelId: LevelId,
-    onProgress?: ProgressCallback
-  ): Promise<void> {
+  async loadLevel(levelId: LevelId, onProgress?: ProgressCallback): Promise<void> {
     const manifest = LEVEL_MANIFESTS[levelId];
     if (!manifest) {
       console.warn(`[AssetPipeline] No manifest for level: ${levelId}`);
@@ -183,11 +180,7 @@ export class AssetPipeline {
     this.progressCb = onProgress ?? null;
 
     // Collect all unique asset ids across all bands
-    const allIds = [
-      ...manifest.required,
-      ...manifest.preload,
-      ...manifest.deferred,
-    ];
+    const allIds = [...manifest.required, ...manifest.preload, ...manifest.deferred];
     const uniqueIds = [...new Set(allIds)];
 
     // Resolve dependencies recursively
@@ -551,10 +544,7 @@ export class AssetPipeline {
     }
   }
 
-  private async doLoad(
-    entry: AssetEntry,
-    levelId: LevelId
-  ): Promise<CachedPipelineAsset | null> {
+  private async doLoad(entry: AssetEntry, levelId: LevelId): Promise<CachedPipelineAsset | null> {
     try {
       switch (entry.category) {
         case 'model':
@@ -659,7 +649,8 @@ export class AssetPipeline {
         true, // invertY
         Texture.TRILINEAR_SAMPLINGMODE,
         () => resolve(tex),
-        (_msg, exception) => reject(exception || new Error(`Failed to load texture: ${texturePath}`))
+        (_msg, exception) =>
+          reject(exception || new Error(`Failed to load texture: ${texturePath}`))
       );
     });
 
@@ -685,10 +676,7 @@ export class AssetPipeline {
   // Generic data loading (audio, shaders, JSON)
   // -----------------------------------------------------------------------
 
-  private async loadData(
-    entry: AssetEntry,
-    levelId: LevelId
-  ): Promise<CachedPipelineAsset | null> {
+  private async loadData(entry: AssetEntry, levelId: LevelId): Promise<CachedPipelineAsset | null> {
     const response = await fetch(entry.path);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status} for ${entry.path}`);

@@ -24,8 +24,8 @@ import {
   getActiveSkullIds,
   getFoundSkullIds,
   loadSkullCollection,
-  saveSkullCollection,
   type SkullCollectionState,
+  saveSkullCollection,
 } from './skullPersistence';
 
 // ============================================================================

@@ -54,18 +54,18 @@ import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import {
-  AssaultEnvironmentBuilder,
   type AATurret,
+  AssaultEnvironmentBuilder,
   type DestroyedVehicle,
   type Fortification,
   type HiveEntrance,
   type StagingAreaProps,
 } from './environment';
 import {
-  MarineSquadManager,
   type EnemyTarget,
   type Marine,
   type MarineSquad,
+  MarineSquadManager,
 } from './MarineSquadAI';
 
 import '@babylonjs/core/Animations/animatable';
@@ -75,10 +75,10 @@ import '@babylonjs/core/Animations/animatable';
 // ============================================================================
 
 type AssaultPhase =
-  | 'staging'        // Phase 1: Briefing, gear up
-  | 'field_assault'  // Phase 2: Vehicle combat, destroy AA turrets
-  | 'breach_point'   // Phase 3: Dismount, infantry assault
-  | 'entry_push';    // Phase 4: Clear hive entrance
+  | 'staging' // Phase 1: Briefing, gear up
+  | 'field_assault' // Phase 2: Vehicle combat, destroy AA turrets
+  | 'breach_point' // Phase 3: Dismount, infantry assault
+  | 'entry_push'; // Phase 4: Clear hive entrance
 
 type EnemyClass = 'ground' | 'flying' | 'armored';
 
@@ -153,13 +153,16 @@ const AA_TURRET_FIRE_RATE = 1.5;
 const AA_TURRET_DAMAGE = 15;
 const AA_TURRET_RANGE = 80;
 
-const ENEMY_CONFIGS: Record<EnemyClass, {
-  health: number;
-  damage: number;
-  speed: number;
-  fireRate: number;
-  attackRange: number;
-}> = {
+const ENEMY_CONFIGS: Record<
+  EnemyClass,
+  {
+    health: number;
+    damage: number;
+    speed: number;
+    fireRate: number;
+    attackRange: number;
+  }
+> = {
   ground: {
     health: 40,
     damage: 8,
@@ -219,7 +222,7 @@ const COMMS = {
     sender: 'Corporal Marcus Cole',
     callsign: 'HAMMER',
     portrait: 'marcus' as const,
-    text: 'You heard the Commander, James. Time to finish what we started. HAMMER is locked and loaded - let\'s roll!',
+    text: "You heard the Commander, James. Time to finish what we started. HAMMER is locked and loaded - let's roll!",
   },
   ATHENA_BRIEFING: {
     sender: 'PROMETHEUS A.I.',
@@ -251,7 +254,7 @@ const COMMS = {
     sender: 'Corporal Marcus Cole',
     callsign: 'HAMMER',
     portrait: 'marcus' as const,
-    text: 'Flying contacts! They\'re coming from above - watch the skies!',
+    text: "Flying contacts! They're coming from above - watch the skies!",
   },
   AMBUSH_ALERT: {
     sender: 'Commander Reyes',
@@ -263,7 +266,7 @@ const COMMS = {
     sender: 'Corporal Marcus Cole',
     callsign: 'HAMMER',
     portrait: 'marcus' as const,
-    text: 'HAMMER engaging targets! Keep pushing, James - I\'ve got your flanks covered!',
+    text: "HAMMER engaging targets! Keep pushing, James - I've got your flanks covered!",
   },
 
   // Phase 3: Breach Point
@@ -277,7 +280,7 @@ const COMMS = {
     sender: 'Corporal Marcus Cole',
     callsign: 'HAMMER',
     portrait: 'marcus' as const,
-    text: 'Dismount! Fight on foot from here! I\'ll provide heavy fire support!',
+    text: "Dismount! Fight on foot from here! I'll provide heavy fire support!",
   },
   ARMORED_CHITIN: {
     sender: 'PROMETHEUS A.I.',
@@ -303,7 +306,7 @@ const COMMS = {
     sender: 'Corporal Marcus Cole',
     callsign: 'HAMMER',
     portrait: 'marcus' as const,
-    text: 'The gate is open! Push inside! I\'ll hold the entrance - they won\'t get behind you!',
+    text: "The gate is open! Push inside! I'll hold the entrance - they won't get behind you!",
   },
   ENTRY_COMBAT: {
     sender: 'Commander Reyes',
@@ -321,7 +324,7 @@ const COMMS = {
     sender: 'Corporal Marcus Cole',
     callsign: 'HAMMER',
     portrait: 'marcus' as const,
-    text: 'Go on, brother. I\'ll hold the door. Whatever\'s in there... end it. For all of us.',
+    text: "Go on, brother. I'll hold the door. Whatever's in there... end it. For all of us.",
   },
 };
 
@@ -497,10 +500,15 @@ export class HiveAssaultLevel extends SurfaceLevel {
     });
 
     // Spatial sounds
-    this.addSpatialSound('wind', 'vent', { x: 0, y: 5, z: -100 }, {
-      maxDistance: 200,
-      volume: 0.3,
-    });
+    this.addSpatialSound(
+      'wind',
+      'vent',
+      { x: 0, y: 5, z: -100 },
+      {
+        maxDistance: 200,
+        volume: 0.3,
+      }
+    );
 
     // Start staging phase
     this.startStagingPhase();
@@ -518,11 +526,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     bodyMat.diffuseColor = Color3.FromHexString('#5A6A5A');
     bodyMat.specularColor = new Color3(0.2, 0.2, 0.2);
 
-    const body = MeshBuilder.CreateBox(
-      'mechBody',
-      { width: 3, height: 4, depth: 2.5 },
-      this.scene
-    );
+    const body = MeshBuilder.CreateBox('mechBody', { width: 3, height: 4, depth: 2.5 }, this.scene);
     body.material = bodyMat;
     body.position.y = 5;
     body.parent = rootNode;
@@ -551,11 +555,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const legMat = new StandardMaterial('mechLegMat', this.scene);
     legMat.diffuseColor = Color3.FromHexString('#3A4A3A');
 
-    const legs = MeshBuilder.CreateBox(
-      'mechLegs',
-      { width: 2.5, height: 3, depth: 2 },
-      this.scene
-    );
+    const legs = MeshBuilder.CreateBox('mechLegs', { width: 2.5, height: 3, depth: 2 }, this.scene);
     legs.material = legMat;
     legs.position.y = 1.5;
     legs.parent = rootNode;
@@ -727,10 +727,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
       this.playerVehicle.health = 0;
     }
 
-    this.callbacks.onObjectiveUpdate(
-      'BREACH POINT',
-      'Clear the hive entrance. Fight on foot.'
-    );
+    this.callbacks.onObjectiveUpdate('BREACH POINT', 'Clear the hive entrance. Fight on foot.');
 
     this.callbacks.onCommsMessage(COMMS.DISMOUNT);
     setTimeout(() => this.callbacks.onCommsMessage(COMMS.BREACH_COMBAT), 3000);
@@ -796,12 +793,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     // Update marine squads
     const enemyTargets = this.getEnemyTargets();
-    this.marineManager?.update(
-      deltaTime,
-      this.camera.position,
-      enemyTargets,
-      this.coverPositions
-    );
+    this.marineManager?.update(deltaTime, this.camera.position, enemyTargets, this.coverPositions);
 
     // Process marine fire
     this.processMarineFire();
@@ -877,10 +869,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
 
     // Transition to breach point when all turrets destroyed and player is close
-    if (
-      this.turretsDestroyed >= this.totalTurrets &&
-      this.camera.position.z < -380
-    ) {
+    if (this.turretsDestroyed >= this.totalTurrets && this.camera.position.z < -380) {
       this.startBreachPointPhase();
     }
 
@@ -959,10 +948,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.waveSpawnTimer += deltaTime;
 
     // Determine spawn delay based on current wave configs
-    const currentWaves = this.phase === 'field_assault' ? FIELD_WAVES
-      : this.phase === 'breach_point' ? BREACH_WAVES
-      : ENTRY_WAVES;
-    const spawnDelay = currentWaves[Math.min(this.waveIndex, currentWaves.length - 1)]?.spawnDelay ?? 1.0;
+    const currentWaves =
+      this.phase === 'field_assault'
+        ? FIELD_WAVES
+        : this.phase === 'breach_point'
+          ? BREACH_WAVES
+          : ENTRY_WAVES;
+    const spawnDelay =
+      currentWaves[Math.min(this.waveIndex, currentWaves.length - 1)]?.spawnDelay ?? 1.0;
 
     if (this.waveSpawnTimer >= spawnDelay) {
       this.waveSpawnTimer = 0;
@@ -1002,11 +995,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         );
         break;
       case 'entry_push':
-        spawnPos = new Vector3(
-          (Math.random() - 0.5) * 30,
-          0,
-          -620 - Math.random() * 30
-        );
+        spawnPos = new Vector3((Math.random() - 0.5) * 30, 0, -620 - Math.random() * 30);
         break;
       default:
         spawnPos = new Vector3(0, 0, -100);
@@ -1179,7 +1168,11 @@ export class HiveAssaultLevel extends SurfaceLevel {
       .map((e) => ({
         position: e.position.clone(),
         health: e.health,
-        threatLevel: (e.enemyClass === 'armored' ? 'high' : e.enemyClass === 'flying' ? 'medium' : 'low') as EnemyTarget['threatLevel'],
+        threatLevel: (e.enemyClass === 'armored'
+          ? 'high'
+          : e.enemyClass === 'flying'
+            ? 'medium'
+            : 'low') as EnemyTarget['threatLevel'],
       }));
   }
 
@@ -1317,11 +1310,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     if (!this.playerVehicle) return;
 
     // Vehicle follows camera position (player drives)
-    this.playerVehicle.rootNode.position.set(
-      this.camera.position.x,
-      0,
-      this.camera.position.z
-    );
+    this.playerVehicle.rootNode.position.set(this.camera.position.x, 0, this.camera.position.z);
     this.playerVehicle.rootNode.rotation.y = this.rotationY;
 
     // Vehicle fire
@@ -1338,11 +1327,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
   private fireVehicleWeapon(): void {
     // Raycast forward from vehicle position
-    const forward = new Vector3(
-      Math.sin(this.rotationY),
-      0,
-      Math.cos(this.rotationY)
-    );
+    const forward = new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
 
     // Check enemy hits
     for (const enemy of this.enemies) {
@@ -1534,10 +1519,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         this.marineManager.startRevive(marine);
 
         const progress = Math.floor((marine.reviveProgress / marine.reviveTime) * 100);
-        this.callbacks.onNotification(
-          `Reviving ${marine.name}... ${progress}%`,
-          500
-        );
+        this.callbacks.onNotification(`Reviving ${marine.name}... ${progress}%`, 500);
       } else {
         this.marineManager.cancelRevive(marine);
       }

@@ -183,7 +183,10 @@ export class ProceduralMusicEngine {
   /**
    * Start procedural music for an environment
    */
-  async start(environment: MusicEnvironment, intensity: CombatIntensity = 'ambient'): Promise<void> {
+  async start(
+    environment: MusicEnvironment,
+    intensity: CombatIntensity = 'ambient'
+  ): Promise<void> {
     // Ensure Tone.js is started
     if (Tone.getContext().state !== 'running') {
       await Tone.start();
@@ -321,7 +324,11 @@ export class ProceduralMusicEngine {
   /**
    * Get current playback state
    */
-  getState(): { isPlaying: boolean; environment: MusicEnvironment | null; intensity: CombatIntensity } {
+  getState(): {
+    isPlaying: boolean;
+    environment: MusicEnvironment | null;
+    intensity: CombatIntensity;
+  } {
     return {
       isPlaying: this.isPlaying,
       environment: this.currentEnvironment,
@@ -347,7 +354,10 @@ export class ProceduralMusicEngine {
   // LAYER CREATION
   // ============================================================================
 
-  private createEnvironmentLayers(environment: MusicEnvironment, profile: EnvironmentProfile): void {
+  private createEnvironmentLayers(
+    environment: MusicEnvironment,
+    profile: EnvironmentProfile
+  ): void {
     if (profile.layers.drone) {
       this.createDroneLayer(environment, profile);
     }
@@ -497,7 +507,14 @@ export class ProceduralMusicEngine {
       oscillator: { type: 'square' },
       envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.5 },
       filter: { type: 'lowpass', frequency: 200, Q: 2 },
-      filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.3, baseFrequency: 100, octaves: 2 },
+      filterEnvelope: {
+        attack: 0.01,
+        decay: 0.2,
+        sustain: 0.2,
+        release: 0.3,
+        baseFrequency: 100,
+        octaves: 2,
+      },
     });
 
     pulseSynth.connect(volume);
@@ -705,7 +722,12 @@ export class ProceduralMusicEngine {
   /**
    * Build a chord from scale degree
    */
-  private buildChord(rootFreq: number, scale: number[], degree: number, noteCount: number): string[] {
+  private buildChord(
+    rootFreq: number,
+    scale: number[],
+    degree: number,
+    noteCount: number
+  ): string[] {
     const notes: string[] = [];
     const baseOctave = 2; // Start in low octave
 
@@ -713,7 +735,7 @@ export class ProceduralMusicEngine {
       const scaleIndex = (degree + i * 2) % scale.length;
       const octaveOffset = Math.floor((degree + i * 2) / scale.length);
       const semitones = scale[scaleIndex];
-      const freq = rootFreq * Math.pow(2, (semitones + (baseOctave + octaveOffset) * 12 - 12) / 12);
+      const freq = rootFreq * 2 ** ((semitones + (baseOctave + octaveOffset) * 12 - 12) / 12);
       notes.push(Tone.Frequency(freq).toNote());
     }
 
@@ -731,7 +753,7 @@ export class ProceduralMusicEngine {
     // Generate notes across 2 octaves
     for (let octave = 3; octave <= 4; octave++) {
       for (const semitone of scale) {
-        const freq = rootFreq * Math.pow(2, octave - 1 + semitone / 12);
+        const freq = rootFreq * 2 ** (octave - 1 + semitone / 12);
         notes.push(Tone.Frequency(freq).toNote());
       }
     }

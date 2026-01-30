@@ -13,7 +13,7 @@
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
@@ -241,20 +241,12 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
   // Glowing compound eyes (4 eyes arranged in pairs)
   const eyeCount = 4;
   for (let i = 0; i < eyeCount; i++) {
-    const eye = MeshBuilder.CreateSphere(
-      `eye_${i}`,
-      { diameter: 0.06 + random() * 0.03 },
-      scene
-    );
+    const eye = MeshBuilder.CreateSphere(`eye_${i}`, { diameter: 0.06 + random() * 0.03 }, scene);
     eye.material = glowMat;
     eye.parent = head;
     const row = Math.floor(i / 2);
     const col = i % 2;
-    eye.position.set(
-      (col - 0.5) * 0.18,
-      0.05 + row * 0.1,
-      -0.2
-    );
+    eye.position.set((col - 0.5) * 0.18, 0.05 + row * 0.1, -0.2);
   }
 
   // Mandibles for ice shard formation
@@ -334,11 +326,7 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
     spine.material = crystalMat;
     spine.parent = thorax;
     const angle = (i / spineCount) * Math.PI * 0.8 - Math.PI * 0.4;
-    spine.position.set(
-      Math.sin(angle) * 0.2,
-      0.3 + random() * 0.1,
-      Math.cos(angle) * 0.15
-    );
+    spine.position.set(Math.sin(angle) * 0.2, 0.3 + random() * 0.1, Math.cos(angle) * 0.15);
     spine.rotation.x = -0.3 + random() * 0.6;
     spine.rotation.z = (random() - 0.5) * 0.4;
   }
@@ -361,11 +349,7 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
   launcher.rotation.x = Math.PI / 2;
 
   // Glow core inside launcher
-  const launcherCore = MeshBuilder.CreateSphere(
-    'launcher_core',
-    { diameter: 0.05 },
-    scene
-  );
+  const launcherCore = MeshBuilder.CreateSphere('launcher_core', { diameter: 0.05 }, scene);
   launcherCore.material = glowMat;
   launcherCore.parent = launcher;
   launcherCore.position.set(0, -0.05, 0);
@@ -427,11 +411,7 @@ export function createIceShardMesh(scene: Scene): TransformNode {
   coreMat.emissiveColor = new Color3(0.4, 0.9, 1.0);
   coreMat.disableLighting = true;
 
-  const core = MeshBuilder.CreateSphere(
-    'shard_core',
-    { diameter: 0.04 },
-    scene
-  );
+  const core = MeshBuilder.CreateSphere('shard_core', { diameter: 0.04 }, scene);
   core.material = coreMat;
   core.parent = root;
 
@@ -499,11 +479,7 @@ export function createDormantCocoonMesh(scene: Scene, seed: number): TransformNo
   }
 
   // Faint inner glow (the creature inside)
-  const innerGlow = MeshBuilder.CreateSphere(
-    'inner_glow',
-    { diameter: 0.3 },
-    scene
-  );
+  const innerGlow = MeshBuilder.CreateSphere('inner_glow', { diameter: 0.3 }, scene);
   const innerMat = new StandardMaterial(`cocoon_inner_${seed}`, scene);
   innerMat.emissiveColor = new Color3(0.15, 0.5, 0.7);
   innerMat.disableLighting = true;

@@ -126,7 +126,7 @@ export abstract class VehicleBase {
     name: string,
     position: Vector3,
     stats: VehicleStats,
-    maxPassengers: number,
+    maxPassengers: number
   ) {
     this.scene = scene;
     this.vehicleId = id;
@@ -146,11 +146,7 @@ export abstract class VehicleBase {
     this.initDamageMaterials();
 
     // Create third-person vehicle camera
-    this.vehicleCamera = new FreeCamera(
-      `vehicleCam_${id}`,
-      Vector3.Zero(),
-      scene,
-    );
+    this.vehicleCamera = new FreeCamera(`vehicleCam_${id}`, Vector3.Zero(), scene);
     this.vehicleCamera.minZ = 0.5;
     this.vehicleCamera.maxZ = 2000;
     this.vehicleCamera.fov = 1.0;
@@ -463,7 +459,7 @@ export abstract class VehicleBase {
     ) {
       this.stats.shield = Math.min(
         this.stats.maxShield,
-        this.stats.shield + this.stats.shieldRegenRate * deltaTime,
+        this.stats.shield + this.stats.shieldRegenRate * deltaTime
       );
     }
 

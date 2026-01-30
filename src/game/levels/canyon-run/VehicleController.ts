@@ -12,7 +12,7 @@
  * physics model that feels responsive and fun in a chase scenario.
  */
 
-import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
+import type { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -324,10 +324,7 @@ export class VehicleController {
     lightMat.emissiveColor = new Color3(1.0, 0.95, 0.8);
     lightMat.disableLighting = true;
 
-    const positions = [
-      new Vector3(-0.8, 0.6, 2.8),
-      new Vector3(0.8, 0.6, 2.8),
-    ];
+    const positions = [new Vector3(-0.8, 0.6, 2.8), new Vector3(0.8, 0.6, 2.8)];
 
     for (let i = 0; i < positions.length; i++) {
       const light = MeshBuilder.CreateSphere(
@@ -406,10 +403,7 @@ export class VehicleController {
    * @param deltaTime - Time since last frame (seconds)
    * @param getTerrainHeight - Function that returns terrain height at (x, z)
    */
-  update(
-    deltaTime: number,
-    getTerrainHeight: (x: number, z: number) => number
-  ): void {
+  update(deltaTime: number, getTerrainHeight: (x: number, z: number) => number): void {
     if (this.state.isDead) return;
 
     const dt = Math.min(deltaTime, 0.05); // Cap delta to prevent tunneling
@@ -418,10 +412,7 @@ export class VehicleController {
     // -- Boost fuel management --
     if (input.boost && this.state.boostFuel > 0 && input.throttle > 0) {
       this.state.isBoosting = true;
-      this.state.boostFuel = Math.max(
-        0,
-        this.state.boostFuel - this.config.boostBurnRate * dt
-      );
+      this.state.boostFuel = Math.max(0, this.state.boostFuel - this.config.boostBurnRate * dt);
     } else {
       this.state.isBoosting = false;
       this.state.boostFuel = Math.min(
@@ -464,11 +455,8 @@ export class VehicleController {
     // -- Steering --
     const speedFactor = Math.abs(this.state.speed) / this.config.maxSpeed;
     const turnMultiplier =
-      speedFactor < 0.2
-        ? this.config.lowSpeedTurnMultiplier * speedFactor * 5
-        : 1.0;
-    const turnAmount =
-      input.steer * this.config.turnRate * turnMultiplier * dt;
+      speedFactor < 0.2 ? this.config.lowSpeedTurnMultiplier * speedFactor * 5 : 1.0;
+    const turnAmount = input.steer * this.config.turnRate * turnMultiplier * dt;
 
     // Only steer when moving
     if (Math.abs(this.state.speed) > 1.0) {
@@ -476,18 +464,13 @@ export class VehicleController {
     }
 
     // -- Position update --
-    const forward = new Vector3(
-      Math.sin(this.state.rotation),
-      0,
-      Math.cos(this.state.rotation)
-    );
+    const forward = new Vector3(Math.sin(this.state.rotation), 0, Math.cos(this.state.rotation));
     const displacement = forward.scale(this.state.speed * dt);
     this.state.position.addInPlace(displacement);
 
     // -- Gravity and terrain following --
     const terrainY =
-      getTerrainHeight(this.state.position.x, this.state.position.z) +
-      this.config.groundOffset;
+      getTerrainHeight(this.state.position.x, this.state.position.z) + this.config.groundOffset;
 
     if (this.state.position.y > terrainY + 0.1) {
       // In air
@@ -569,18 +552,12 @@ export class VehicleController {
 
     // Smooth camera follow
     const posLerp = Math.min(1, this.cameraConfig.positionSmoothing * dt);
-    this.currentCameraPos = Vector3.Lerp(
-      this.currentCameraPos,
-      this.cameraTargetPos,
-      posLerp
-    );
+    this.currentCameraPos = Vector3.Lerp(this.currentCameraPos, this.cameraTargetPos, posLerp);
 
     this.camera.position.copyFrom(this.currentCameraPos);
 
     // Look at the target
-    const lookDir = this.cameraTargetLookAt
-      .subtract(this.currentCameraPos)
-      .normalize();
+    const lookDir = this.cameraTargetLookAt.subtract(this.currentCameraPos).normalize();
     const targetRotY = Math.atan2(lookDir.x, lookDir.z);
     const targetRotX = -Math.asin(lookDir.y);
 
@@ -621,10 +598,7 @@ export class VehicleController {
    * Heal the vehicle.
    */
   heal(amount: number): void {
-    this.state.health = Math.min(
-      this.config.maxHealth,
-      this.state.health + amount
-    );
+    this.state.health = Math.min(this.config.maxHealth, this.state.health + amount);
   }
 
   /**
@@ -684,11 +658,7 @@ export class VehicleController {
   }
 
   getForwardDirection(): Vector3 {
-    return new Vector3(
-      Math.sin(this.state.rotation),
-      0,
-      Math.cos(this.state.rotation)
-    );
+    return new Vector3(Math.sin(this.state.rotation), 0, Math.cos(this.state.rotation));
   }
 
   // ==========================================================================

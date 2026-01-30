@@ -127,10 +127,7 @@ export class ChunkManager {
     const buildingMat = new StandardMaterial('chunkBuildingMat', this.scene);
     buildingMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.khakiDark);
     buildingMat.specularColor = new Color3(0.1, 0.1, 0.1);
-    const concreteTex = new Texture(
-      'https://assets.babylonjs.com/textures/floor.png',
-      this.scene
-    );
+    const concreteTex = new Texture('https://assets.babylonjs.com/textures/floor.png', this.scene);
     concreteTex.uScale = 4;
     concreteTex.vScale = 4;
     buildingMat.diffuseTexture = concreteTex;
@@ -147,10 +144,7 @@ export class ChunkManager {
     // Sand/ground material
     const sandMat = new StandardMaterial('chunkSandMat', this.scene);
     sandMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.sand);
-    const sandTex = new Texture(
-      'https://assets.babylonjs.com/textures/sand.png',
-      this.scene
-    );
+    const sandTex = new Texture('https://assets.babylonjs.com/textures/sand.png', this.scene);
     sandTex.uScale = 10;
     sandTex.vScale = 10;
     sandMat.diffuseTexture = sandTex;
@@ -278,11 +272,7 @@ export class ChunkManager {
   // Mesh creation helpers
   // -----------------------------------------------------------------------
 
-  private createBuildingMesh(
-    building: GeneratedBuilding,
-    chunkX: number,
-    chunkZ: number
-  ): Mesh {
+  private createBuildingMesh(building: GeneratedBuilding, chunkX: number, chunkZ: number): Mesh {
     const worldX = chunkX * CHUNK_SIZE + building.x;
     const worldZ = chunkZ * CHUNK_SIZE + building.z;
 
@@ -346,11 +336,7 @@ export class ChunkManager {
     return mesh;
   }
 
-  private createObstacleMesh(
-    obstacle: GeneratedObstacle,
-    chunkX: number,
-    chunkZ: number
-  ): Mesh {
+  private createObstacleMesh(obstacle: GeneratedObstacle, chunkX: number, chunkZ: number): Mesh {
     const worldX = chunkX * CHUNK_SIZE + obstacle.x;
     const worldZ = chunkZ * CHUNK_SIZE + obstacle.z;
 

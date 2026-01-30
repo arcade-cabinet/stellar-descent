@@ -17,16 +17,9 @@ import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
 import type { LevelId } from '../levels/types';
+import { getNextLevelId, LEVEL_MANIFESTS } from './AssetManifest';
+import { getAssetPipeline, type PipelineProgress, type ProgressCallback } from './AssetPipeline';
 import { LODManager } from './LODManager';
-import {
-  getAssetPipeline,
-  type PipelineProgress,
-  type ProgressCallback,
-} from './AssetPipeline';
-import {
-  getNextLevelId,
-  LEVEL_MANIFESTS,
-} from './AssetManifest';
 
 // ---------------------------------------------------------------------------
 // Legacy asset path / manifest (kept for backward-compatible callers)
@@ -486,13 +479,15 @@ class AssetManagerClass {
   ): Promise<void> {
     // If the pipeline is initialized, try to use it for levels in the manifest
     if (this.pipelineInitialized && levelId in LEVEL_MANIFESTS) {
-      await this.preloadLevel(levelId as LevelId, onProgress
-        ? (p) => {
-            const total = 100;
-            const loaded = Math.round(p.progress);
-            onProgress(loaded, total);
-          }
-        : undefined
+      await this.preloadLevel(
+        levelId as LevelId,
+        onProgress
+          ? (p) => {
+              const total = 100;
+              const loaded = Math.round(p.progress);
+              onProgress(loaded, total);
+            }
+          : undefined
       );
       return;
     }
@@ -558,10 +553,7 @@ class AssetManagerClass {
    * Load a GLB asset by its raw file path (with caching).
    * Useful for PSX structural models referenced by direct path in assemblage definitions.
    */
-  async loadAssetByPath(
-    path: string,
-    scene?: Scene
-  ): Promise<CachedAsset | null> {
+  async loadAssetByPath(path: string, scene?: Scene): Promise<CachedAsset | null> {
     const targetScene = scene || this.scene;
     if (!targetScene) {
       console.error('AssetManager: No scene available');
@@ -613,7 +605,9 @@ class AssetManagerClass {
     const cached = this.cache.get(cacheKey);
 
     if (!cached) {
-      console.warn(`[AssetManager] Asset not loaded for path: ${path}. Call loadAssetByPath first.`);
+      console.warn(
+        `[AssetManager] Asset not loaded for path: ${path}. Call loadAssetByPath first.`
+      );
       return null;
     }
 

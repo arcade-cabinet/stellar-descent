@@ -37,6 +37,8 @@
  * VICTORY: Shuttle launches, cutscene of planet destruction from orbit
  */
 
+import { Animation } from '@babylonjs/core/Animations/animation';
+import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -45,8 +47,6 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { Animation } from '@babylonjs/core/Animations/animation';
-import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
 
 import '@babylonjs/core/Animations/animatable';
 
@@ -54,9 +54,9 @@ import { getAchievementManager } from '../../achievements';
 import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
+import { levelActionParams } from '../../input/InputBridge';
 import { saveSystem } from '../../persistence/SaveSystem';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
-import { levelActionParams } from '../../input/InputBridge';
 import { SurfaceLevel } from '../SurfaceLevel';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import { CollapsingTerrain } from './CollapsingTerrain';
@@ -66,7 +66,13 @@ import { EscapeTimer, type TimerUrgency } from './EscapeTimer';
 // TYPES
 // ============================================================================
 
-type EscapeSection = 'hive_exit' | 'surface_run' | 'canyon_sprint' | 'launch_pad' | 'victory' | 'game_over';
+type EscapeSection =
+  | 'hive_exit'
+  | 'surface_run'
+  | 'canyon_sprint'
+  | 'launch_pad'
+  | 'victory'
+  | 'game_over';
 
 interface StragglerEnemy {
   mesh: TransformNode;
@@ -562,11 +568,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     }
 
     // Mech spotlight
-    this.marcusMechLight = new PointLight(
-      'mech_light',
-      new Vector3(0, 7, -2),
-      this.scene
-    );
+    this.marcusMechLight = new PointLight('mech_light', new Vector3(0, 7, -2), this.scene);
     this.marcusMechLight.parent = this.marcusMech;
     this.marcusMechLight.diffuse = new Color3(0.8, 0.9, 1.0);
     this.marcusMechLight.intensity = 4;
@@ -813,7 +815,8 @@ export class FinalEscapeLevel extends SurfaceLevel {
     }
 
     // Smooth steering
-    this.vehicleSteering += (steerInput * VEHICLE_TURN_SPEED - this.vehicleSteering) * deltaTime * 5;
+    this.vehicleSteering +=
+      (steerInput * VEHICLE_TURN_SPEED - this.vehicleSteering) * deltaTime * 5;
 
     // Apply movement
     const moveZ = -this.vehicleSpeed * deltaTime;
@@ -839,11 +842,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Update vehicle node position to match camera
     if (this.vehicleNode) {
-      this.vehicleNode.position.set(
-        this.camera.position.x,
-        0,
-        this.camera.position.z
-      );
+      this.vehicleNode.position.set(this.camera.position.x, 0, this.camera.position.z);
       // Tilt vehicle based on steering
       this.vehicleNode.rotation.y = Math.PI + this.vehicleSteering * 0.1;
     }
@@ -933,10 +932,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Checkpoint bonus
     this.escapeTimer.reachCheckpoint('Surface Run');
 
-    this.callbacks.onObjectiveUpdate(
-      'SURFACE RUN',
-      'RACE ACROSS THE SURFACE TO THE CANYON'
-    );
+    this.callbacks.onObjectiveUpdate('SURFACE RUN', 'RACE ACROSS THE SURFACE TO THE CANYON');
 
     this.queueComms(0.5, {
       sender: 'Corporal Marcus Cole',
@@ -994,10 +990,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Checkpoint bonus
     this.escapeTimer.reachCheckpoint('Launch Pad');
 
-    this.callbacks.onObjectiveUpdate(
-      'LAUNCH PAD',
-      'REACH THE SHUTTLE - ALMOST THERE'
-    );
+    this.callbacks.onObjectiveUpdate('LAUNCH PAD', 'REACH THE SHUTTLE - ALMOST THERE');
 
     this.queueComms(0.5, {
       sender: 'Corporal Marcus Cole',
@@ -1026,10 +1019,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     this.callbacks.onCinematicStart?.();
 
-    this.callbacks.onObjectiveUpdate(
-      'ESCAPE SUCCESSFUL',
-      'LAUNCHING TO ORBIT'
-    );
+    this.callbacks.onObjectiveUpdate('ESCAPE SUCCESSFUL', 'LAUNCHING TO ORBIT');
 
     // Comms
     this.queueComms(0, {
@@ -1081,10 +1071,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private onEnterGameOver(): void {
     this.cinematicActive = true;
 
-    this.callbacks.onObjectiveUpdate(
-      'MISSION FAILED',
-      'THE PLANET HAS BEEN CONSUMED'
-    );
+    this.callbacks.onObjectiveUpdate('MISSION FAILED', 'THE PLANET HAS BEEN CONSUMED');
 
     this.queueComms(0, {
       sender: 'PROMETHEUS A.I.',
@@ -1117,7 +1104,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
    */
   private updateHiveExit(deltaTime: number): void {
     // Advance collapse wall behind player
-    this.tunnelCollapseZ -= (VEHICLE_SPEED * 0.8) * deltaTime; // Collapse chases player
+    this.tunnelCollapseZ -= VEHICLE_SPEED * 0.8 * deltaTime; // Collapse chases player
     if (this.tunnelCollapseWall) {
       this.tunnelCollapseWall.position.z = this.tunnelCollapseZ;
     }
@@ -1277,11 +1264,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     if (this.skyDome) {
       const skyMat = this.skyDome.material as StandardMaterial;
       const shift = this.skyColorShift;
-      skyMat.emissiveColor = new Color3(
-        0.6 + shift * 0.3,
-        0.3 - shift * 0.15,
-        0.15 - shift * 0.1
-      );
+      skyMat.emissiveColor = new Color3(0.6 + shift * 0.3, 0.3 - shift * 0.15, 0.15 - shift * 0.1);
     }
 
     // Environmental camera shake increases with urgency
@@ -1297,11 +1280,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Update sun color for apocalyptic feel
     if (this.sunLight) {
       const shift = this.skyColorShift;
-      this.sunLight.diffuse = new Color3(
-        1.0,
-        0.6 - shift * 0.3,
-        0.3 - shift * 0.2
-      );
+      this.sunLight.diffuse = new Color3(1.0, 0.6 - shift * 0.3, 0.3 - shift * 0.2);
       this.sunLight.intensity = 2.5 + shift * 2;
     }
   }
@@ -1318,7 +1297,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
     if (!this.marcusMech) return;
 
     // Marcus only visible during outdoor sections
-    if (this.section === 'hive_exit' || this.section === 'victory' || this.section === 'game_over') {
+    if (
+      this.section === 'hive_exit' ||
+      this.section === 'victory' ||
+      this.section === 'game_over'
+    ) {
       return;
     }
 

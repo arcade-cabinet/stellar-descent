@@ -18,12 +18,36 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "warn",
+        "noUnknownMediaFeatureName": "warn"
+      },
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "useIterableCallbackReturn": "warn",
+        "noAssignInExpressions": "warn",
+        "noArrayIndexKey": "warn",
+        "noCommentText": "warn"
       },
       "style": {
         "noNonNullAssertion": "off"
+      },
+      "a11y": {
+        "useAriaPropsSupportedByRole": "warn",
+        "useSemanticElements": "warn",
+        "noLabelWithoutControl": "warn",
+        "noStaticElementInteractions": "warn",
+        "noSvgWithoutTitle": "warn",
+        "useKeyWithClickEvents": "warn",
+        "useButtonType": "warn",
+        "noAutofocus": "warn"
       }
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": true
     }
   },
   "javascript": {

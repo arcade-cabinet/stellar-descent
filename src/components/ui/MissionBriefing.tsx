@@ -173,7 +173,8 @@ function generateBriefingData(levelId: LevelId): MissionBriefingData {
       {
         type: 'FROST CHITIN',
         threat: 'HIGH',
-        description: 'Cold-adapted variant with ice-crystal carapace. Slower but extremely durable.',
+        description:
+          'Cold-adapted variant with ice-crystal carapace. Slower but extremely durable.',
         weakness: 'Incendiary weapons melt armor plating. Vulnerable to heat.',
       },
       {
@@ -213,7 +214,8 @@ function generateBriefingData(levelId: LevelId): MissionBriefingData {
       {
         type: 'HIVE COLOSSUS',
         threat: 'EXTREME',
-        description: 'Massive siege unit guarding hive entrance. Armored shell deflects small arms.',
+        description:
+          'Massive siege unit guarding hive entrance. Armored shell deflects small arms.',
         weakness: 'Vehicle-mounted weapons required. Target leg joints to immobilize.',
       },
       {

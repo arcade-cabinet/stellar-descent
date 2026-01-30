@@ -176,11 +176,12 @@ export class BalanceValidator {
 
     // Per-difficulty parameters: harder difficulties = better player accuracy
     // and weapon switching (player uses all 3 weapons, not just one)
-    const AMMO_PARAMS: Record<string, { missRate: number; failRatio: number; warnRatio: number }> = {
-      normal: { missRate: 1.5, failRatio: 0.8, warnRatio: 1.0 },
-      veteran: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
-      legendary: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
-    };
+    const AMMO_PARAMS: Record<string, { missRate: number; failRatio: number; warnRatio: number }> =
+      {
+        normal: { missRate: 1.5, failRatio: 0.8, warnRatio: 1.0 },
+        veteran: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
+        legendary: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
+      };
 
     for (const difficulty of DIFFICULTY_ORDER) {
       const params = AMMO_PARAMS[difficulty];
@@ -489,7 +490,9 @@ export function formatBalanceReport(report: BalanceValidationReport): string {
   lines.push('=== COMBAT BALANCE VALIDATION REPORT ===');
   lines.push(`Generated: ${report.timestamp}`);
   lines.push(`Total checks: ${report.totalChecks}`);
-  lines.push(`Passed: ${report.passed} | Warnings: ${report.warnings} | Failures: ${report.failures}`);
+  lines.push(
+    `Passed: ${report.passed} | Warnings: ${report.warnings} | Failures: ${report.failures}`
+  );
   lines.push(`Overall: ${report.isValid ? 'VALID' : 'INVALID'}`);
   lines.push('');
 

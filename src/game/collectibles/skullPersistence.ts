@@ -111,10 +111,7 @@ export function saveSkullCollection(state: SkullCollectionState): void {
  * Add a discovered skull to the collection.
  * Returns the updated state.
  */
-export function addFoundSkull(
-  skullId: SkullId,
-  saveId?: string
-): SkullCollectionState {
+export function addFoundSkull(skullId: SkullId, saveId?: string): SkullCollectionState {
   const state = loadSkullCollection(saveId);
 
   if (state.foundSkulls.includes(skullId)) {
@@ -148,10 +145,7 @@ export function getFoundSkullIds(saveId?: string): SkullId[] {
  * Set a skull as active. It must already be found.
  * Returns the updated state.
  */
-export function activateSkull(
-  skullId: SkullId,
-  saveId?: string
-): SkullCollectionState {
+export function activateSkull(skullId: SkullId, saveId?: string): SkullCollectionState {
   const state = loadSkullCollection(saveId);
 
   if (!state.foundSkulls.includes(skullId)) {
@@ -172,10 +166,7 @@ export function activateSkull(
  * Set a skull as inactive.
  * Returns the updated state.
  */
-export function deactivateSkull(
-  skullId: SkullId,
-  saveId?: string
-): SkullCollectionState {
+export function deactivateSkull(skullId: SkullId, saveId?: string): SkullCollectionState {
   const state = loadSkullCollection(saveId);
 
   const idx = state.activeSkulls.indexOf(skullId);

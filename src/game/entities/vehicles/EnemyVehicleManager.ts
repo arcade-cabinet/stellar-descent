@@ -23,16 +23,12 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
-import type { DifficultyLevel } from '../../core/DifficultySettings';
 import { getAudioManager } from '../../core/AudioManager';
+import type { DifficultyLevel } from '../../core/DifficultySettings';
 import { removeEntity } from '../../core/ecs';
-import { particleManager } from '../../effects/ParticleManager';
 import { deathEffects } from '../../effects/DeathEffects';
-import {
-  WraithAI,
-  type WraithConfig,
-  type WraithWaypoint,
-} from './WraithAI';
+import { particleManager } from '../../effects/ParticleManager';
+import { WraithAI, type WraithConfig, type WraithWaypoint } from './WraithAI';
 
 // ----------------------------------------------------------------------------
 // Types
@@ -110,13 +106,7 @@ export class EnemyVehicleManager {
   spawnWraith(options: SpawnWraithOptions): WraithAI {
     const { position, waypoints, config, difficulty } = options;
 
-    const wraith = new WraithAI(
-      this.scene,
-      position,
-      waypoints ?? [],
-      config ?? {},
-      difficulty
-    );
+    const wraith = new WraithAI(this.scene, position, waypoints ?? [], config ?? {}, difficulty);
 
     // Wire callbacks
     wraith.onScreenShake = this.onScreenShake;
@@ -422,7 +412,7 @@ export class EnemyVehicleManager {
       const speed = 5 + Math.random() * 10;
       const vx = Math.cos(angle) * speed;
       const vz = Math.sin(angle) * speed;
-      let vy = 5 + Math.random() * 8;
+      const vy = 5 + Math.random() * 8;
 
       // Random spin
       const spinX = (Math.random() - 0.5) * 10;

@@ -15,8 +15,8 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { VehicleBase } from './VehicleBase';
 import type { PhantomDropship } from './PhantomDropship';
+import type { VehicleBase } from './VehicleBase';
 import styles from './VehicleHUD.module.css';
 
 // --------------------------------------------------------------------------
@@ -63,30 +63,20 @@ export function VehicleHUD({ vehicle, enemies = [] }: VehicleHUDProps) {
   // --- Derive HUD data from vehicle ---
   const { stats, weapons, activeWeaponIndex, passengers, displayName, damageState } = vehicle;
 
-  const shieldPct = stats.maxShield > 0
-    ? Math.max(0, Math.min(100, (stats.shield / stats.maxShield) * 100))
-    : 0;
-  const healthPct = stats.maxHealth > 0
-    ? Math.max(0, Math.min(100, (stats.health / stats.maxHealth) * 100))
-    : 0;
+  const shieldPct =
+    stats.maxShield > 0 ? Math.max(0, Math.min(100, (stats.shield / stats.maxShield) * 100)) : 0;
+  const healthPct =
+    stats.maxHealth > 0 ? Math.max(0, Math.min(100, (stats.health / stats.maxHealth) * 100)) : 0;
 
   const activeWeapon = weapons[activeWeaponIndex] ?? null;
-  const heatPct = activeWeapon
-    ? Math.max(0, Math.min(100, activeWeapon.currentHeat * 100))
-    : 0;
+  const heatPct = activeWeapon ? Math.max(0, Math.min(100, activeWeapon.currentHeat * 100)) : 0;
   const isOverheated = activeWeapon?.isOverheated ?? false;
 
   // Flight-specific data (duck-type check for PhantomDropship)
   const isFlying = 'getSpeed' in vehicle && 'getAltitude' in vehicle;
-  const speed = isFlying
-    ? Math.round((vehicle as PhantomDropship).getSpeed())
-    : 0;
-  const altitude = isFlying
-    ? Math.round((vehicle as PhantomDropship).getAltitude())
-    : 0;
-  const flightMode = isFlying
-    ? (vehicle as PhantomDropship).flightMode
-    : null;
+  const speed = isFlying ? Math.round((vehicle as PhantomDropship).getSpeed()) : 0;
+  const altitude = isFlying ? Math.round((vehicle as PhantomDropship).getAltitude()) : 0;
+  const flightMode = isFlying ? (vehicle as PhantomDropship).flightMode : null;
 
   // --- Minimap blips ---
   const MINIMAP_RANGE = 80;
@@ -159,9 +149,7 @@ export function VehicleHUD({ vehicle, enemies = [] }: VehicleHUDProps) {
                 style={{ width: `${heatPct}%` }}
               />
             </div>
-            {isOverheated && (
-              <span className={styles.overheatWarning}>OVERHEAT</span>
-            )}
+            {isOverheated && <span className={styles.overheatWarning}>OVERHEAT</span>}
           </div>
         )}
       </div>
@@ -240,8 +228,9 @@ export function VehicleHUD({ vehicle, enemies = [] }: VehicleHUDProps) {
         Press <span className={styles.exitKey}>E</span> to exit vehicle
         {isFlying && (
           <>
-            {' '}| <span className={styles.exitKey}>G</span> takeoff/land
-            {' '}| <span className={styles.exitKey}>F</span> toggle flight mode
+            {' '}
+            | <span className={styles.exitKey}>G</span> takeoff/land |{' '}
+            <span className={styles.exitKey}>F</span> toggle flight mode
           </>
         )}
       </div>

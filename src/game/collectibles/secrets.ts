@@ -113,7 +113,7 @@ export const SECRET_AREAS: SecretArea[] = [
   },
   {
     id: 'anchor_station_secret_02',
-    name: 'Commander\'s Personal Stash',
+    name: "Commander's Personal Stash",
     levelId: 'anchor_station',
     position: { x: 15, y: 1.5, z: -20 },
     triggerRadius: 2.0,
@@ -198,7 +198,7 @@ export const SECRET_AREAS: SecretArea[] = [
       },
     ],
     loreText:
-      "A sniper position with spent casings everywhere. Whoever was here put up one hell of a fight.",
+      'A sniper position with spent casings everywhere. Whoever was here put up one hell of a fight.',
   },
 
   // ---------------------------------------------------------------------------
@@ -241,12 +241,11 @@ export const SECRET_AREAS: SecretArea[] = [
         icon: '+',
       },
     ],
-    loreText:
-      "Rodriguez's personal med supplies. He always said preparation beats panic.",
+    loreText: "Rodriguez's personal med supplies. He always said preparation beats panic.",
   },
   {
     id: 'fob_delta_secret_03',
-    name: 'Kowalski\'s Dead Drop',
+    name: "Kowalski's Dead Drop",
     levelId: 'fob_delta',
     position: { x: -20, y: -1.5, z: -5 },
     triggerRadius: 1.8,
@@ -275,7 +274,7 @@ export const SECRET_AREAS: SecretArea[] = [
   // ---------------------------------------------------------------------------
   {
     id: 'brothers_secret_01',
-    name: 'Fallen Soldier\'s Gear',
+    name: "Fallen Soldier's Gear",
     levelId: 'brothers_in_arms',
     position: { x: -40, y: 1, z: 35 },
     triggerRadius: 2.5,
@@ -315,8 +314,7 @@ export const SECRET_AREAS: SecretArea[] = [
         icon: '\u2605',
       },
     ],
-    loreText:
-      "Marcus dropped this during his fighting retreat. 'Big Betty sends her regards.'",
+    loreText: "Marcus dropped this during his fighting retreat. 'Big Betty sends her regards.'",
   },
 
   // ---------------------------------------------------------------------------
@@ -339,8 +337,7 @@ export const SECRET_AREAS: SecretArea[] = [
         icon: '+',
       },
     ],
-    loreText:
-      "Dr. Chen's emergency supplies. She made it this far before being captured.",
+    loreText: "Dr. Chen's emergency supplies. She made it this far before being captured.",
   },
   {
     id: 'breach_secret_02',
@@ -365,12 +362,11 @@ export const SECRET_AREAS: SecretArea[] = [
         icon: '\u2022',
       },
     ],
-    loreText:
-      'A chamber of dormant eggs. Supplies from fallen soldiers litter the floor.',
+    loreText: 'A chamber of dormant eggs. Supplies from fallen soldiers litter the floor.',
   },
   {
     id: 'breach_secret_03',
-    name: 'Queen\'s Trophy Room',
+    name: "Queen's Trophy Room",
     levelId: 'the_breach',
     position: { x: 5, y: -18, z: -75 },
     triggerRadius: 3.0,
@@ -420,12 +416,11 @@ export const SECRET_AREAS: SecretArea[] = [
         icon: '\u2022',
       },
     ],
-    loreText:
-      'Emergency resupply ordered by Commander Vasquez. She always has a backup plan.',
+    loreText: 'Emergency resupply ordered by Commander Vasquez. She always has a backup plan.',
   },
   {
     id: 'extraction_secret_02',
-    name: 'Pilot\'s Last Stand',
+    name: "Pilot's Last Stand",
     levelId: 'extraction',
     position: { x: 35, y: 1, z: -15 },
     triggerRadius: 2.5,

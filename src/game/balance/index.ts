@@ -8,6 +8,28 @@
  *   import { runBalanceValidation, formatBalanceReport } from '../balance';
  */
 
+export type {
+  BalanceValidationReport,
+  ValidationEntry,
+  ValidationSeverity,
+} from './BalanceValidator';
+// Validation
+export {
+  BalanceValidator,
+  formatBalanceReport,
+  runBalanceValidation,
+} from './BalanceValidator';
+export type {
+  AmmoPickupConfig,
+  BalanceSummaryEntry,
+  EnemyBalanceEntry,
+  HealthPickupConfig,
+  LevelSpawnConfig,
+  PlayerBalanceConfig,
+  TTKRange,
+  TTKTargets,
+  WeaponBalanceEntry,
+} from './CombatBalanceConfig';
 // Configuration - the single source of truth
 export {
   AMMO_ECONOMY,
@@ -31,28 +53,3 @@ export {
   TTK_TARGETS,
   WEAPON_BALANCE,
 } from './CombatBalanceConfig';
-
-export type {
-  AmmoPickupConfig,
-  BalanceSummaryEntry,
-  EnemyBalanceEntry,
-  HealthPickupConfig,
-  LevelSpawnConfig,
-  PlayerBalanceConfig,
-  TTKRange,
-  TTKTargets,
-  WeaponBalanceEntry,
-} from './CombatBalanceConfig';
-
-// Validation
-export {
-  BalanceValidator,
-  formatBalanceReport,
-  runBalanceValidation,
-} from './BalanceValidator';
-
-export type {
-  BalanceValidationReport,
-  ValidationEntry,
-  ValidationSeverity,
-} from './BalanceValidator';

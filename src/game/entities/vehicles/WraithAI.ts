@@ -36,6 +36,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
+import { getAudioManager } from '../../core/AudioManager';
 import {
   type DifficultyLevel,
   loadDifficultySetting,
@@ -44,14 +45,13 @@ import {
   scaleEnemyHealth,
 } from '../../core/DifficultySettings';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
-import { getAudioManager } from '../../core/AudioManager';
 import {
   launchMortar,
-  updateMortar,
-  predictTargetPosition,
   MORTAR_CHARGE_TIME,
   MORTAR_FLIGHT_TIME,
   type MortarProjectile,
+  predictTargetPosition,
+  updateMortar,
 } from './WraithMortar';
 
 // ----------------------------------------------------------------------------
@@ -256,11 +256,7 @@ export class WraithAI {
 
   /** World-space position of the rear armor zone (for hijack and weak point) */
   get rearPosition(): Vector3 {
-    const behind = new Vector3(
-      -Math.sin(this.facingAngle) * 4,
-      0,
-      -Math.cos(this.facingAngle) * 4
-    );
+    const behind = new Vector3(-Math.sin(this.facingAngle) * 4, 0, -Math.cos(this.facingAngle) * 4);
     return this.root.position.add(behind);
   }
 
@@ -349,14 +345,11 @@ export class WraithAI {
     this.stateTimer += deltaTime;
 
     // Calculate distance to player
-    const distToPlayer = playerPos
-      ? Vector3.Distance(this.root.position, playerPos)
-      : Infinity;
+    const distToPlayer = playerPos ? Vector3.Distance(this.root.position, playerPos) : Infinity;
 
     // Check hijack eligibility
     this._isHijackable =
-      this.healthPercent > 0 &&
-      this.healthPercent <= this.config.hijackThreshold;
+      this.healthPercent > 0 && this.healthPercent <= this.config.hijackThreshold;
 
     // Determine effective speed
     const isDamaged = this.healthPercent <= this.config.damagedThreshold && this.healthPercent > 0;
@@ -475,7 +468,11 @@ export class WraithAI {
 
     // Rotate toward waypoint
     const targetAngle = Math.atan2(toTarget.x, toTarget.z);
-    this.facingAngle = this.lerpAngle(this.facingAngle, targetAngle, this.config.turnSpeed * deltaTime);
+    this.facingAngle = this.lerpAngle(
+      this.facingAngle,
+      targetAngle,
+      this.config.turnSpeed * deltaTime
+    );
     this.root.rotation.y = this.facingAngle;
 
     // Move forward
@@ -593,7 +590,8 @@ export class WraithAI {
 
     if (this.turretCooldownTimer <= 0 && dist <= turretRange) {
       this.firePlasmaTurret(playerPos);
-      this.turretCooldownTimer = 1.0 / scaleEnemyFireRate(this.config.turretFireRate, this.difficulty);
+      this.turretCooldownTimer =
+        1.0 / scaleEnemyFireRate(this.config.turretFireRate, this.difficulty);
     }
   }
 
@@ -755,11 +753,7 @@ export class WraithAI {
     accentMat.specularColor = new Color3(0.15, 0.1, 0.25);
 
     // --- Main body (flattened box) ---
-    const body = MeshBuilder.CreateBox(
-      'wraith_body',
-      { width: 5, height: 1.2, depth: 7 },
-      scene
-    );
+    const body = MeshBuilder.CreateBox('wraith_body', { width: 5, height: 1.2, depth: 7 }, scene);
     body.material = hullMat;
     body.parent = root;
     body.position.y = 0;
@@ -921,7 +915,8 @@ export class WraithAI {
     // Slight roll based on strafing
     if (this._state === 'combat') {
       const targetRoll = this.strafeDirection * 0.05;
-      this.root.rotation.z = this.root.rotation.z + (targetRoll - this.root.rotation.z) * 2 * deltaTime;
+      this.root.rotation.z =
+        this.root.rotation.z + (targetRoll - this.root.rotation.z) * 2 * deltaTime;
     } else {
       this.root.rotation.z *= 1 - 3 * deltaTime; // Dampen roll
     }

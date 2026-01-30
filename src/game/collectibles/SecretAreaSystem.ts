@@ -13,13 +13,13 @@
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import type { Scene } from '@babylonjs/core/scene';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import type { Scene } from '@babylonjs/core/scene';
 
 import { getAchievementManager } from '../achievements';
 import { getAudioManager } from '../core/AudioManager';
@@ -189,11 +189,7 @@ export class SecretAreaSystem {
       case 'tunnel':
       case 'alcove':
         // Generic small orb hint
-        mesh = MeshBuilder.CreateSphere(
-          `secret_hint_${secret.id}`,
-          { diameter: 0.15 },
-          this.scene
-        );
+        mesh = MeshBuilder.CreateSphere(`secret_hint_${secret.id}`, { diameter: 0.15 }, this.scene);
         mesh.position = position.clone();
         break;
 
@@ -221,12 +217,7 @@ export class SecretAreaSystem {
       // Add to glow layer
       if (this.glowLayer) {
         this.glowLayer.addIncludedOnlyMesh(mesh);
-        this.glowLayer.customEmissiveColorSelector = (
-          _mesh,
-          _subMesh,
-          _material,
-          result
-        ) => {
+        this.glowLayer.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => {
           result.set(0.8, 0.6, 0.2, settings.glowIntensity);
         };
       }

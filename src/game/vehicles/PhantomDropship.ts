@@ -136,7 +136,7 @@ export class PhantomDropship extends VehicleBase {
         diameterZ: 14,
         segments: 16,
       },
-      this.scene,
+      this.scene
     );
     body.material = hullMat;
     body.parent = this.rootNode;
@@ -152,7 +152,7 @@ export class PhantomDropship extends VehicleBase {
         diameterZ: 4,
         segments: 12,
       },
-      this.scene,
+      this.scene
     );
     canopy.material = accentMat;
     canopy.parent = this.rootNode;
@@ -164,7 +164,7 @@ export class PhantomDropship extends VehicleBase {
       const wing = MeshBuilder.CreateBox(
         `phantomWing_${side}`,
         { width: 5, height: 0.4, depth: 6 },
-        this.scene,
+        this.scene
       );
       wing.material = hullMat;
       wing.parent = this.rootNode;
@@ -176,7 +176,7 @@ export class PhantomDropship extends VehicleBase {
       const fin = MeshBuilder.CreateBox(
         `phantomFin_${side}`,
         { width: 0.4, height: 2, depth: 3 },
-        this.scene,
+        this.scene
       );
       fin.material = accentMat;
       fin.parent = this.rootNode;
@@ -192,7 +192,7 @@ export class PhantomDropship extends VehicleBase {
           diameterBottom: 1.8,
           tessellation: 12,
         },
-        this.scene,
+        this.scene
       );
       enginePod.material = hullMat;
       enginePod.parent = this.rootNode;
@@ -203,7 +203,7 @@ export class PhantomDropship extends VehicleBase {
       const engineGlow = MeshBuilder.CreateDisc(
         `phantomEngineGlow_${side}`,
         { radius: 0.8, tessellation: 16 },
-        this.scene,
+        this.scene
       );
       engineGlow.material = engineMat;
       engineGlow.parent = this.rootNode;
@@ -222,7 +222,7 @@ export class PhantomDropship extends VehicleBase {
         diameterBottom: 3,
         tessellation: 16,
       },
-      this.scene,
+      this.scene
     );
     centralEngine.material = hullMat;
     centralEngine.parent = this.rootNode;
@@ -232,7 +232,7 @@ export class PhantomDropship extends VehicleBase {
     const centralGlow = MeshBuilder.CreateDisc(
       'phantomCentralGlow',
       { radius: 1.4, tessellation: 16 },
-      this.scene,
+      this.scene
     );
     centralGlow.material = engineMat;
     centralGlow.parent = this.rootNode;
@@ -245,7 +245,7 @@ export class PhantomDropship extends VehicleBase {
     const bay = MeshBuilder.CreateBox(
       'phantomBay',
       { width: 3.5, height: 1.5, depth: 6 },
-      this.scene,
+      this.scene
     );
     bay.material = accentMat;
     bay.parent = this.rootNode;
@@ -265,7 +265,7 @@ export class PhantomDropship extends VehicleBase {
       const strip = MeshBuilder.CreateBox(
         `phantomStrip_${i}`,
         { width: 0.1, height: 0.08, depth: len },
-        this.scene,
+        this.scene
       );
       strip.material = this.hullGlowMat;
       strip.parent = this.rootNode;
@@ -283,7 +283,7 @@ export class PhantomDropship extends VehicleBase {
         diameterBottom: 1.0,
         tessellation: 10,
       },
-      this.scene,
+      this.scene
     );
     turretMount.material = accentMat;
     turretMount.parent = this.rootNode;
@@ -299,7 +299,7 @@ export class PhantomDropship extends VehicleBase {
         diameterBottom: 0.2,
         tessellation: 8,
       },
-      this.scene,
+      this.scene
     );
     turretBarrel.material = hullMat;
     turretBarrel.parent = this.rootNode;
@@ -308,11 +308,7 @@ export class PhantomDropship extends VehicleBase {
     this.hullMeshes.push(turretBarrel);
 
     // Turret glow tip
-    const turretGlow = MeshBuilder.CreateSphere(
-      'phantomTurretGlow',
-      { diameter: 0.3 },
-      this.scene,
-    );
+    const turretGlow = MeshBuilder.CreateSphere('phantomTurretGlow', { diameter: 0.3 }, this.scene);
     turretGlow.material = this.hullGlowMat;
     turretGlow.parent = this.rootNode;
     turretGlow.position.set(0, -2.2, -6.3);
@@ -328,7 +324,7 @@ export class PhantomDropship extends VehicleBase {
     this.shieldMesh = MeshBuilder.CreateSphere(
       'phantomShieldBubble',
       { diameter: 18, segments: 16 },
-      this.scene,
+      this.scene
     );
     this.shieldMesh.material = this.shieldMat;
     this.shieldMesh.parent = this.rootNode;
@@ -380,9 +376,7 @@ export class PhantomDropship extends VehicleBase {
     this.onWeaponFired(weapon);
 
     const forward = this.getForward();
-    const spawnPos = this.rootNode.position
-      .add(forward.scale(-6.5))
-      .add(new Vector3(0, -2.2, 0));
+    const spawnPos = this.rootNode.position.add(forward.scale(-6.5)).add(new Vector3(0, -2.2, 0));
 
     this.createPlasmaBolt(spawnPos, forward, weapon);
     getAudioManager().play('mech_fire', { volume: 0.4 });
@@ -394,18 +388,13 @@ export class PhantomDropship extends VehicleBase {
     this.onWeaponFired(weapon);
 
     const forward = this.getForward();
-    const spawnPos = this.rootNode.position
-      .add(new Vector3(0, -2.5, 0));
+    const spawnPos = this.rootNode.position.add(new Vector3(0, -2.5, 0));
 
     this.createPlasmaBomb(spawnPos, forward, weapon);
     getAudioManager().play('explosion', { volume: 0.35 });
   }
 
-  private createPlasmaBolt(
-    spawnPos: Vector3,
-    direction: Vector3,
-    weapon: VehicleWeapon,
-  ): void {
+  private createPlasmaBolt(spawnPos: Vector3, direction: Vector3, weapon: VehicleWeapon): void {
     const bolt = MeshBuilder.CreateCylinder(
       'phantomBolt',
       {
@@ -414,7 +403,7 @@ export class PhantomDropship extends VehicleBase {
         diameterBottom: 0.1,
         tessellation: 8,
       },
-      this.scene,
+      this.scene
     );
     bolt.position = spawnPos;
 
@@ -435,7 +424,7 @@ export class PhantomDropship extends VehicleBase {
     const glow = MeshBuilder.CreateCylinder(
       'phantomBoltGlow',
       { height: 2.2, diameterTop: 0.4, diameterBottom: 0.3, tessellation: 8 },
-      this.scene,
+      this.scene
     );
     glow.parent = bolt;
     glow.position = Vector3.Zero();
@@ -479,15 +468,11 @@ export class PhantomDropship extends VehicleBase {
     });
   }
 
-  private createPlasmaBomb(
-    spawnPos: Vector3,
-    direction: Vector3,
-    weapon: VehicleWeapon,
-  ): void {
+  private createPlasmaBomb(spawnPos: Vector3, direction: Vector3, weapon: VehicleWeapon): void {
     const bomb = MeshBuilder.CreateSphere(
       'phantomBomb',
       { diameter: 0.8, segments: 10 },
-      this.scene,
+      this.scene
     );
     bomb.position = spawnPos;
 
@@ -501,7 +486,7 @@ export class PhantomDropship extends VehicleBase {
     const shell = MeshBuilder.CreateSphere(
       'phantomBombGlow',
       { diameter: 1.4, segments: 8 },
-      this.scene,
+      this.scene
     );
     shell.parent = bomb;
     const shellMat = new StandardMaterial('phantomBombGlowMat', this.scene);
@@ -608,7 +593,7 @@ export class PhantomDropship extends VehicleBase {
       this.throttle = Math.max(-0.3, this.throttle - deltaTime * 2);
     } else {
       // Throttle decay
-      this.throttle *= Math.pow(0.3, deltaTime);
+      this.throttle *= 0.3 ** deltaTime;
       if (Math.abs(this.throttle) < 0.01) this.throttle = 0;
     }
 
@@ -775,10 +760,7 @@ export class PhantomDropship extends VehicleBase {
 
   private updateLandingState(deltaTime: number): void {
     if (this.landingState === 'taking_off') {
-      this.altitude = Math.min(
-        this.targetAltitude,
-        this.altitude + TAKEOFF_SPEED * deltaTime,
-      );
+      this.altitude = Math.min(this.targetAltitude, this.altitude + TAKEOFF_SPEED * deltaTime);
       this.landingProgress = (this.altitude - LANDING_HEIGHT) / (HOVER_HEIGHT - LANDING_HEIGHT);
 
       if (this.altitude >= this.targetAltitude) {
@@ -789,7 +771,7 @@ export class PhantomDropship extends VehicleBase {
     } else if (this.landingState === 'landing') {
       this.altitude = Math.max(
         this.targetAltitude,
-        this.altitude - TAKEOFF_SPEED * 0.7 * deltaTime,
+        this.altitude - TAKEOFF_SPEED * 0.7 * deltaTime
       );
       this.landingProgress = 1 - (this.altitude - LANDING_HEIGHT) / (HOVER_HEIGHT - LANDING_HEIGHT);
 
@@ -823,10 +805,8 @@ export class PhantomDropship extends VehicleBase {
     const targetSpeed = this.throttle * this.stats.maxSpeed;
     const currentSpeed = this.linearVelocity.length();
     const speedDiff = targetSpeed - currentSpeed;
-    const accelForce = Math.sign(speedDiff) * Math.min(
-      Math.abs(speedDiff),
-      this.stats.acceleration * deltaTime,
-    );
+    const accelForce =
+      Math.sign(speedDiff) * Math.min(Math.abs(speedDiff), this.stats.acceleration * deltaTime);
 
     if (this.flightMode === 'forward') {
       this.linearVelocity.addInPlace(forward.scale(accelForce));
@@ -845,10 +825,10 @@ export class PhantomDropship extends VehicleBase {
 
     // -- Hover mode: bleed forward speed, maintain altitude --
     if (this.flightMode === 'hover') {
-      this.linearVelocity.scaleInPlace(Math.pow(0.15, deltaTime)); // heavy drag
+      this.linearVelocity.scaleInPlace(0.15 ** deltaTime); // heavy drag
     } else {
       // Forward mode: lighter drag
-      this.linearVelocity.scaleInPlace(Math.pow(0.7, deltaTime));
+      this.linearVelocity.scaleInPlace(0.7 ** deltaTime);
     }
 
     // -- Apply velocity --
@@ -856,9 +836,7 @@ export class PhantomDropship extends VehicleBase {
     root.position.y = this.altitude;
 
     // -- Visual tilt based on movement --
-    const targetPitch = this.flightMode === 'forward'
-      ? -this.throttle * PITCH_LIMIT
-      : 0;
+    const targetPitch = this.flightMode === 'forward' ? -this.throttle * PITCH_LIMIT : 0;
     const targetRoll = -this.yaw * ROLL_LIMIT * 0.6;
 
     this.pitch += (targetPitch - this.pitch) * Math.min(1, 3 * deltaTime);
@@ -872,7 +850,7 @@ export class PhantomDropship extends VehicleBase {
       const yawOnly = Quaternion.RotationYawPitchRoll(
         root.rotationQuaternion.toEulerAngles().y,
         0,
-        0,
+        0
       );
       root.rotationQuaternion = yawOnly.multiply(pitchQ).multiply(rollQ);
     }
@@ -880,9 +858,10 @@ export class PhantomDropship extends VehicleBase {
 
   private updateEngineGlow(deltaTime: number): void {
     const time = performance.now() * 0.003;
-    const intensity = this.landingState === 'grounded'
-      ? 0.2
-      : 0.5 + Math.abs(this.throttle) * 0.4 + Math.sin(time) * 0.1;
+    const intensity =
+      this.landingState === 'grounded'
+        ? 0.2
+        : 0.5 + Math.abs(this.throttle) * 0.4 + Math.sin(time) * 0.1;
 
     for (const glow of this.engineGlowMeshes) {
       if (glow.material && glow.material instanceof StandardMaterial) {

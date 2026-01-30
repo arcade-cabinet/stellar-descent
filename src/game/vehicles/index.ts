@@ -6,22 +6,19 @@
  * VehicleBase class, and the VehicleHUD React overlay.
  */
 
-// Base class & types
-export { VehicleBase } from './VehicleBase';
+export type { PhantomFlightMode, PhantomLandingState } from './PhantomDropship';
+// Phantom Dropship
+export { PhantomDropship } from './PhantomDropship';
 export type {
   DamageState,
   VehiclePassenger,
   VehicleStats,
   VehicleWeapon,
 } from './VehicleBase';
-
-// Phantom Dropship
-export { PhantomDropship } from './PhantomDropship';
-export type { PhantomFlightMode, PhantomLandingState } from './PhantomDropship';
-
-// Wraith Tank
-export { WraithTank } from './WraithTank';
-export type { WraithAIState } from './WraithTank';
-
+// Base class & types
+export { VehicleBase } from './VehicleBase';
 // HUD
 export { VehicleHUD } from './VehicleHUD';
+export type { WraithAIState } from './WraithTank';
+// Wraith Tank
+export { WraithTank } from './WraithTank';

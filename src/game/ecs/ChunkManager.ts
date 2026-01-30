@@ -496,10 +496,7 @@ export class ChunkManager {
   // -----------------------------------------------------------------------
 
   private async spawnChunk(state: ChunkState): Promise<LoadedChunk> {
-    const chunkRoot = new TransformNode(
-      `chunk_${state.chunkX}_${state.chunkZ}`,
-      this.scene
-    );
+    const chunkRoot = new TransformNode(`chunk_${state.chunkX}_${state.chunkZ}`, this.scene);
     chunkRoot.parent = this.root;
     chunkRoot.position.x = state.chunkX * CHUNK_SIZE;
     chunkRoot.position.z = state.chunkZ * CHUNK_SIZE;
@@ -544,8 +541,7 @@ export class ChunkManager {
         entities.push(entity);
 
         // Determine the model path
-        const modelPath =
-          entDef.modelPath ?? entDef.components.structuralPiece?.modelPath ?? '';
+        const modelPath = entDef.modelPath ?? entDef.components.structuralPiece?.modelPath ?? '';
 
         const binding: EntityMeshBinding = {
           entity,
@@ -558,14 +554,7 @@ export class ChunkManager {
         if (modelPath) {
           // Schedule async mesh load
           meshLoadPromises.push(
-            this.loadEntityMesh(
-              binding,
-              entDef,
-              assembRoot,
-              meshNodes,
-              lodIds,
-              state
-            )
+            this.loadEntityMesh(binding, entDef, assembRoot, meshNodes, lodIds, state)
           );
         }
       }
@@ -640,19 +629,11 @@ export class ChunkManager {
       meshNode.parent = parentNode;
 
       if (entDef.position) {
-        meshNode.position = new Vector3(
-          entDef.position.x,
-          entDef.position.y,
-          entDef.position.z
-        );
+        meshNode.position = new Vector3(entDef.position.x, entDef.position.y, entDef.position.z);
       }
 
       if (entDef.rotation) {
-        meshNode.rotation = new Vector3(
-          entDef.rotation.x,
-          entDef.rotation.y,
-          entDef.rotation.z
-        );
+        meshNode.rotation = new Vector3(entDef.rotation.x, entDef.rotation.y, entDef.rotation.z);
       }
 
       if (entDef.scale !== undefined) {
@@ -722,10 +703,7 @@ export class ChunkManager {
   /**
    * Configure collision and shadow reception on instanced meshes.
    */
-  private configureMeshPhysics(
-    meshNode: TransformNode,
-    entDef: AssemblageEntityDef
-  ): void {
+  private configureMeshPhysics(meshNode: TransformNode, entDef: AssemblageEntityDef): void {
     const isStructural = entDef.type === 'structural' || entDef.type === 'door';
     const childMeshes = meshNode.getChildMeshes(false);
 

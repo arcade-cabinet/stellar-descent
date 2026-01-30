@@ -21,19 +21,19 @@
  */
 
 import type { Camera } from '@babylonjs/core/Cameras/camera';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import {
+  type ISimplificationSettings,
   SimplificationQueue,
   SimplificationType,
-  type ISimplificationSettings,
 } from '@babylonjs/core/Meshes/meshSimplification';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import type { Scene } from '@babylonjs/core/scene';
 import { getPerformanceManager } from './PerformanceManager';
 
@@ -504,13 +504,7 @@ class LODManagerClass {
 
       // Use a strided vertex reduction approach for performance
       // This creates a simpler but still effective LOD
-      const result = this.stridedDecimation(
-        positions,
-        indices as number[],
-        normals,
-        uvs,
-        quality
-      );
+      const result = this.stridedDecimation(positions, indices as number[], normals, uvs, quality);
 
       if (!result) {
         return null;
@@ -587,11 +581,7 @@ class LODManagerClass {
 
         newPositions.push(x, y, z);
         if (normals) {
-          newNormals.push(
-            normals[i * 3],
-            normals[i * 3 + 1],
-            normals[i * 3 + 2]
-          );
+          newNormals.push(normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]);
         }
         if (uvs) {
           newUvs.push(uvs[i * 2], uvs[i * 2 + 1]);
@@ -700,16 +690,8 @@ class LODManagerClass {
     }
 
     // Slightly darker for silhouette effect
-    mat.diffuseColor = new Color3(
-      baseColor.r * 0.7,
-      baseColor.g * 0.7,
-      baseColor.b * 0.7
-    );
-    mat.emissiveColor = new Color3(
-      baseColor.r * 0.2,
-      baseColor.g * 0.2,
-      baseColor.b * 0.2
-    );
+    mat.diffuseColor = new Color3(baseColor.r * 0.7, baseColor.g * 0.7, baseColor.b * 0.7);
+    mat.emissiveColor = new Color3(baseColor.r * 0.2, baseColor.g * 0.2, baseColor.b * 0.2);
     mat.alpha = 0.85;
     mat.backFaceCulling = false; // Visible from both sides
     mat.disableLighting = true; // Consistent appearance at distance

@@ -154,16 +154,19 @@ export class PlayerVoiceManager {
   startHeavyBreathing(): void {
     if (this.breathingState?.isActive) return;
 
-    const breathInterval = setInterval(() => {
-      if (this.isDisposed) {
-        this.stopHeavyBreathing();
-        return;
-      }
-      const vol = this.getVolume();
-      if (vol > 0) {
-        this.generateHeavyBreath(vol * 0.2);
-      }
-    }, 1200 + Math.random() * 400);
+    const breathInterval = setInterval(
+      () => {
+        if (this.isDisposed) {
+          this.stopHeavyBreathing();
+          return;
+        }
+        const vol = this.getVolume();
+        if (vol > 0) {
+          this.generateHeavyBreath(vol * 0.2);
+        }
+      },
+      1200 + Math.random() * 400
+    );
 
     this.breathingState = {
       intervalId: breathInterval,

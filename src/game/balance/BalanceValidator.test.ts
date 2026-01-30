@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTY_ORDER, type DifficultyLevel } from '../core/DifficultySettings';
 import type { WeaponId } from '../entities/weapons';
+import { BalanceValidator, formatBalanceReport, runBalanceValidation } from './BalanceValidator';
 import {
   calculateAmmoRequiredForLevel,
   calculatePlayerSurvivableHits,
@@ -20,11 +21,6 @@ import {
   TTK_TARGETS,
   WEAPON_BALANCE,
 } from './CombatBalanceConfig';
-import {
-  BalanceValidator,
-  formatBalanceReport,
-  runBalanceValidation,
-} from './BalanceValidator';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -91,9 +87,9 @@ describe('Ammo economy supports level completion', () => {
   // Per-difficulty parameters: harder difficulties assume better accuracy
   // and weapon switching (player uses all 3 weapons, not just one)
   const DIFFICULTY_AMMO_PARAMS: Record<string, { missRate: number; threshold: number }> = {
-    normal: { missRate: 1.5, threshold: 0.8 },     // Casual: 67% accuracy, one weapon viable
-    veteran: { missRate: 1.3, threshold: 0.5 },     // Skilled: 77% accuracy, weapon switching
-    legendary: { missRate: 1.15, threshold: 0.35 },  // Expert: 87% accuracy, all weapons + melee
+    normal: { missRate: 1.5, threshold: 0.8 }, // Casual: 67% accuracy, one weapon viable
+    veteran: { missRate: 1.3, threshold: 0.5 }, // Skilled: 77% accuracy, weapon switching
+    legendary: { missRate: 1.15, threshold: 0.35 }, // Expert: 87% accuracy, all weapons + melee
   };
 
   for (const difficulty of DIFFICULTY_ORDER) {

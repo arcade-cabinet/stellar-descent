@@ -31,8 +31,8 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import type { Scene } from '@babylonjs/core/scene';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
 
 import '@babylonjs/core/Layers/effectLayerSceneComponent';
 
@@ -236,11 +236,7 @@ export class AssaultEnvironmentBuilder {
     this.allMeshes.push(briefingPlatform);
 
     // Hologram light
-    const holoLight = new PointLight(
-      'holoLight',
-      new Vector3(-8, 2.5, -5),
-      this.scene
-    );
+    const holoLight = new PointLight('holoLight', new Vector3(-8, 2.5, -5), this.scene);
     holoLight.diffuse = new Color3(0.2, 0.5, 0.8);
     holoLight.intensity = 8;
     holoLight.range = 10;
@@ -381,11 +377,7 @@ export class AssaultEnvironmentBuilder {
         this.scene
       );
       ridge.material = rockMat;
-      ridge.position.set(
-        (Math.random() - 0.5) * 100,
-        0.5,
-        -80 - i * 60 - Math.random() * 30
-      );
+      ridge.position.set((Math.random() - 0.5) * 100, 0.5, -80 - i * 60 - Math.random() * 30);
       ridge.rotation.y = (Math.random() - 0.5) * 0.4;
 
       fortifications.push({
@@ -839,17 +831,9 @@ export class AssaultEnvironmentBuilder {
 
       const side = i % 2 === 0 ? -1 : 1;
       const height = 3 + (i / 10) * 40;
-      bulb.position.set(
-        side * (18 + Math.random() * 5),
-        height,
-        -598 + Math.random() * 2
-      );
+      bulb.position.set(side * (18 + Math.random() * 5), height, -598 + Math.random() * 2);
 
-      const light = new PointLight(
-        `bioLightPL_${i}`,
-        bulb.position.clone(),
-        this.scene
-      );
+      const light = new PointLight(`bioLightPL_${i}`, bulb.position.clone(), this.scene);
       light.diffuse = Color3.FromHexString(ENV_COLORS.bioGlow);
       light.intensity = 2 + Math.random() * 2;
       light.range = 8;
@@ -877,11 +861,7 @@ export class AssaultEnvironmentBuilder {
         this.scene
       );
       vent.material = sporeVentMat;
-      vent.position.set(
-        (i % 2 === 0 ? -1 : 1) * (10 + i * 3),
-        0.75,
-        -590 - Math.random() * 5
-      );
+      vent.position.set((i % 2 === 0 ? -1 : 1) * (10 + i * 3), 0.75, -590 - Math.random() * 5);
       sporeVents.push(vent);
       this.allMeshes.push(vent);
     }
@@ -922,11 +902,7 @@ export class AssaultEnvironmentBuilder {
         this.scene
       );
       wall.material = wallMat;
-      wall.position.set(
-        -(TERRAIN_WIDTH / 2 + 5) + (Math.random() - 0.5) * 10,
-        30,
-        -i * 100 - 20
-      );
+      wall.position.set(-(TERRAIN_WIDTH / 2 + 5) + (Math.random() - 0.5) * 10, 30, -i * 100 - 20);
       walls.push(wall);
       this.allMeshes.push(wall);
     }
@@ -943,11 +919,7 @@ export class AssaultEnvironmentBuilder {
         this.scene
       );
       wall.material = wallMat;
-      wall.position.set(
-        TERRAIN_WIDTH / 2 + 5 + (Math.random() - 0.5) * 10,
-        30,
-        -i * 100 - 20
-      );
+      wall.position.set(TERRAIN_WIDTH / 2 + 5 + (Math.random() - 0.5) * 10, 30, -i * 100 - 20);
       walls.push(wall);
       this.allMeshes.push(wall);
     }

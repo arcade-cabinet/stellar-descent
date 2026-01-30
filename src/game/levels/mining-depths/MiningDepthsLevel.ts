@@ -43,12 +43,12 @@ import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import {
   AUDIO_LOGS,
   type AudioLogPickup,
+  createMiningEnvironment,
   type FlickerLightDef,
   HAZARD_ZONES,
   type HazardZone,
   MINE_POSITIONS,
   type MiningEnvironment,
-  createMiningEnvironment,
 } from './environment';
 
 import '@babylonjs/core/Animations/animatable';
@@ -58,13 +58,13 @@ import '@babylonjs/core/Animations/animatable';
 // ============================================================================
 
 type MiningPhase =
-  | 'arrival'       // Player enters via broken elevator
-  | 'hub_explore'   // Explore mining hub, find keycard
-  | 'tunnels'       // Navigate collapsed tunnels
+  | 'arrival' // Player enters via broken elevator
+  | 'hub_explore' // Explore mining hub, find keycard
+  | 'tunnels' // Navigate collapsed tunnels
   | 'shaft_descent' // Descend the deep shaft
-  | 'boss_fight'    // Fight Mining Drill Chitin
+  | 'boss_fight' // Fight Mining Drill Chitin
   | 'boss_defeated' // Boss eliminated, level complete
-  | 'exit';         // Proceed to next level
+  | 'exit'; // Proceed to next level
 
 // ============================================================================
 // Enemy & Boss Definitions
@@ -357,46 +357,99 @@ export class MiningDepthsLevel extends BaseLevel {
 
   private setupMiningAudio(): void {
     // Dripping water
-    this.addSpatialSound('drip_hub', 'dripping', { x: -15, y: 2, z: -20 }, {
-      maxDistance: 12, volume: 0.3, interval: 3000,
-    });
-    this.addSpatialSound('drip_tunnel', 'dripping', { x: -12, y: -5, z: -70 }, {
-      maxDistance: 10, volume: 0.35, interval: 4000,
-    });
+    this.addSpatialSound(
+      'drip_hub',
+      'dripping',
+      { x: -15, y: 2, z: -20 },
+      {
+        maxDistance: 12,
+        volume: 0.3,
+        interval: 3000,
+      }
+    );
+    this.addSpatialSound(
+      'drip_tunnel',
+      'dripping',
+      { x: -12, y: -5, z: -70 },
+      {
+        maxDistance: 10,
+        volume: 0.35,
+        interval: 4000,
+      }
+    );
 
     // Creaking mine supports
-    this.addSpatialSound('creak_hub_1', 'debris_settling', { x: 10, y: 4, z: -25 }, {
-      maxDistance: 15, volume: 0.4, interval: 8000,
-    });
-    this.addSpatialSound('creak_tunnel', 'debris_settling', { x: -8, y: -3, z: -60 }, {
-      maxDistance: 12, volume: 0.5, interval: 6000,
-    });
-    this.addSpatialSound('creak_shaft', 'debris_settling', { x: -10, y: -15, z: -120 }, {
-      maxDistance: 18, volume: 0.45, interval: 7000,
-    });
+    this.addSpatialSound(
+      'creak_hub_1',
+      'debris_settling',
+      { x: 10, y: 4, z: -25 },
+      {
+        maxDistance: 15,
+        volume: 0.4,
+        interval: 8000,
+      }
+    );
+    this.addSpatialSound(
+      'creak_tunnel',
+      'debris_settling',
+      { x: -8, y: -3, z: -60 },
+      {
+        maxDistance: 12,
+        volume: 0.5,
+        interval: 6000,
+      }
+    );
+    this.addSpatialSound(
+      'creak_shaft',
+      'debris_settling',
+      { x: -10, y: -15, z: -120 },
+      {
+        maxDistance: 18,
+        volume: 0.45,
+        interval: 7000,
+      }
+    );
 
     // Wind through tunnels
-    this.addSpatialSound('wind_entry', 'wind_howl', { x: 0, y: 3, z: 0 }, {
-      maxDistance: 20, volume: 0.3,
-    });
+    this.addSpatialSound(
+      'wind_entry',
+      'wind_howl',
+      { x: 0, y: 3, z: 0 },
+      {
+        maxDistance: 20,
+        volume: 0.3,
+      }
+    );
 
     // Machinery hum (abandoned but not silent)
-    this.addSpatialSound('machinery_hub', 'machinery', { x: 8, y: 1, z: -20 }, {
-      maxDistance: 10, volume: 0.2,
-    });
+    this.addSpatialSound(
+      'machinery_hub',
+      'machinery',
+      { x: 8, y: 1, z: -20 },
+      {
+        maxDistance: 10,
+        volume: 0.2,
+      }
+    );
 
     // Audio zones
     this.addAudioZone('zone_entry', 'station', { x: 0, y: 0, z: 0 }, 15, {
-      isIndoor: true, intensity: 0.3,
+      isIndoor: true,
+      intensity: 0.3,
     });
     this.addAudioZone('zone_hub', 'station', { x: 0, y: 0, z: -25 }, 25, {
-      isIndoor: true, intensity: 0.5,
+      isIndoor: true,
+      intensity: 0.5,
     });
     this.addAudioZone('zone_tunnels', 'hive', { x: -10, y: -5, z: -70 }, 30, {
-      isIndoor: true, intensity: 0.6, highThreat: true,
+      isIndoor: true,
+      intensity: 0.6,
+      highThreat: true,
     });
     this.addAudioZone('zone_shaft', 'hive', { x: -10, y: -15, z: -120 }, 20, {
-      isIndoor: true, intensity: 0.8, highThreat: true,
+      isIndoor: true,
+      intensity: 0.8,
+      highThreat: true,
     });
   }
 
@@ -511,10 +564,7 @@ export class MiningDepthsLevel extends BaseLevel {
         break;
 
       case 'exit':
-        this.callbacks.onObjectiveUpdate(
-          'LEVEL COMPLETE',
-          'The mining facility has been cleared.'
-        );
+        this.callbacks.onObjectiveUpdate('LEVEL COMPLETE', 'The mining facility has been cleared.');
         this.clearObjective();
         break;
     }
@@ -630,8 +680,7 @@ export class MiningDepthsLevel extends BaseLevel {
           fl.offDuration = 0.1 + Math.random() * 0.5;
         }
 
-        const noise =
-          Math.sin(fl.timer) * Math.sin(fl.timer * 2.3) * Math.sin(fl.timer * 0.7);
+        const noise = Math.sin(fl.timer) * Math.sin(fl.timer * 2.3) * Math.sin(fl.timer * 0.7);
         fl.light.intensity = fl.baseIntensity + noise * fl.flickerAmount * fl.baseIntensity;
         fl.light.intensity = Math.max(0, fl.light.intensity);
       }
@@ -849,10 +898,7 @@ export class MiningDepthsLevel extends BaseLevel {
     if (this.hasKeycard) return;
     if (!this.environment) return;
 
-    const dist = Vector3.Distance(
-      this.camera.position,
-      MINE_POSITIONS.hubKeycard
-    );
+    const dist = Vector3.Distance(this.camera.position, MINE_POSITIONS.hubKeycard);
 
     if (dist < 2) {
       this.pickupKeycard();
@@ -1246,11 +1292,7 @@ export class MiningDepthsLevel extends BaseLevel {
     eyeMat.disableLighting = true;
 
     for (let e = 0; e < 4; e++) {
-      const eye = MeshBuilder.CreateSphere(
-        `bossEye_${e}`,
-        { diameter: 0.15 },
-        this.scene
-      );
+      const eye = MeshBuilder.CreateSphere(`bossEye_${e}`, { diameter: 0.15 }, this.scene);
       eye.position.set(-0.3 + (e % 2) * 0.2, 1.5 + Math.floor(e / 2) * 0.15, -1.0);
       eye.material = eyeMat;
       eye.parent = bossBody;
@@ -1445,11 +1487,7 @@ export class MiningDepthsLevel extends BaseLevel {
     }
 
     // Random burrow behavior
-    if (
-      boss.state === 'idle' &&
-      boss.stateTimer > 5 &&
-      Math.random() < 0.01 * deltaTime
-    ) {
+    if (boss.state === 'idle' && boss.stateTimer > 5 && Math.random() < 0.01 * deltaTime) {
       boss.state = 'burrow';
       boss.stateTimer = 0;
     }

@@ -7,7 +7,7 @@
 
 import type { LevelId } from '../levels/types';
 import type { SecretDiscovery } from './secrets';
-import { SECRET_AREAS, getTotalSecretCount } from './secrets';
+import { getTotalSecretCount, SECRET_AREAS } from './secrets';
 
 const STORAGE_KEY_PREFIX = 'stellar_descent_secrets';
 const CURRENT_SAVE_KEY = 'stellar_descent_current_save';
@@ -143,10 +143,7 @@ export function getDiscoveredSecretIds(saveId?: string): string[] {
 /**
  * Get discovered secrets for a specific level
  */
-export function getDiscoveredSecretsByLevel(
-  levelId: LevelId,
-  saveId?: string
-): SecretDiscovery[] {
+export function getDiscoveredSecretsByLevel(levelId: LevelId, saveId?: string): SecretDiscovery[] {
   const state = loadSecretCollection(saveId);
   return state.discoveries.filter((d) => d.levelId === levelId);
 }

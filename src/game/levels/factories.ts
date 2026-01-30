@@ -55,9 +55,7 @@ export const canyonLevelFactory: LevelFactory = (
   _config: LevelConfig,
   _callbacks: LevelCallbacks
 ): ILevel => {
-  throw new Error(
-    'Canyon level type is not yet implemented. Awaiting CanyonLevel class.'
-  );
+  throw new Error('Canyon level type is not yet implemented. Awaiting CanyonLevel class.');
 };
 
 /**
@@ -134,9 +132,7 @@ export const iceLevelFactory: LevelFactory = (
   _callbacks: LevelCallbacks
 ): ILevel => {
   // TODO: Implement SouthernIceLevel class
-  throw new Error(
-    'Ice level type is not yet implemented. Awaiting SouthernIceLevel class.'
-  );
+  throw new Error('Ice level type is not yet implemented. Awaiting SouthernIceLevel class.');
 };
 
 /**
@@ -166,9 +162,7 @@ export const finaleLevelFactory: LevelFactory = (
   _callbacks: LevelCallbacks
 ): ILevel => {
   // TODO: Implement FinalEscapeLevel class
-  throw new Error(
-    'Finale level type is not yet implemented. Awaiting FinalEscapeLevel class.'
-  );
+  throw new Error('Finale level type is not yet implemented. Awaiting FinalEscapeLevel class.');
 };
 
 /**

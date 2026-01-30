@@ -34,40 +34,36 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import {
-  fireWeapon,
-  getWeaponActions,
-  startReload,
-} from '../../context/useWeaponActions';
+import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { getAudioManager } from '../../core/AudioManager';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
-import { SurfaceLevel, type SurfaceConfig } from '../SurfaceLevel';
+import { type SurfaceConfig, SurfaceLevel } from '../SurfaceLevel';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
-import {
-  createIceChitinMesh,
-  createIceShardMesh,
-  createDormantCocoonMesh,
-  ICE_CHITIN_SPECIES,
-  ICE_CHITIN_RESISTANCES,
-  FROST_AURA,
-  ICE_SHARD_PROJECTILE,
-  BURROW_CONFIG,
-  type IceChitinState,
-  type IceChitinInstance,
-} from './IceChitin';
 import {
   createIceEnvironment,
   disposeIceEnvironment,
-  updateAuroraBorealis,
-  updateBlizzardEmitter,
   getTemperatureAtPosition,
   type IceEnvironment,
   type TemperatureZone,
+  updateAuroraBorealis,
+  updateBlizzardEmitter,
 } from './environment';
+import {
+  BURROW_CONFIG,
+  createDormantCocoonMesh,
+  createIceChitinMesh,
+  createIceShardMesh,
+  FROST_AURA,
+  ICE_CHITIN_RESISTANCES,
+  ICE_CHITIN_SPECIES,
+  ICE_SHARD_PROJECTILE,
+  type IceChitinInstance,
+  type IceChitinState,
+} from './IceChitin';
 
 // ============================================================================
 // TYPES
@@ -149,7 +145,7 @@ const COMMS = {
     sender: 'CPL. MARCUS COLE',
     callsign: 'IRONJAW',
     portrait: 'marcus' as const,
-    text: "I can squeeze through. These tunnels lead south to the main hive. Stay sharp -- my thermals show heat signatures all around us.",
+    text: 'I can squeeze through. These tunnels lead south to the main hive. Stay sharp -- my thermals show heat signatures all around us.',
   },
   dormantNest: {
     sender: 'SUIT A.I.',
@@ -172,10 +168,22 @@ const COMMS = {
 };
 
 const OBJECTIVES = {
-  iceFields: { title: 'TRAVERSE ICE FIELDS', instructions: 'Move south through the blizzard. Stay near heat sources to avoid hypothermia.' },
-  frozenLake: { title: 'CROSS FROZEN LAKE', instructions: 'Navigate across the thin ice. Avoid dark patches -- the ice is weakest there.' },
-  iceCaverns: { title: 'CLEAR ICE CAVERNS', instructions: 'Fight through the Chitin nest. Reach the southern hive entrance.' },
-  reachBreach: { title: 'REACH THE BREACH', instructions: 'Enter the southern hive entrance to proceed to The Breach.' },
+  iceFields: {
+    title: 'TRAVERSE ICE FIELDS',
+    instructions: 'Move south through the blizzard. Stay near heat sources to avoid hypothermia.',
+  },
+  frozenLake: {
+    title: 'CROSS FROZEN LAKE',
+    instructions: 'Navigate across the thin ice. Avoid dark patches -- the ice is weakest there.',
+  },
+  iceCaverns: {
+    title: 'CLEAR ICE CAVERNS',
+    instructions: 'Fight through the Chitin nest. Reach the southern hive entrance.',
+  },
+  reachBreach: {
+    title: 'REACH THE BREACH',
+    instructions: 'Enter the southern hive entrance to proceed to The Breach.',
+  },
 };
 
 const NOTIFICATIONS = {
@@ -792,11 +800,7 @@ export class SouthernIceLevel extends SurfaceLevel {
     this.grenadeCooldownTimer = GRENADE_COOLDOWN;
 
     // Grenade lands at the aim point, roughly 15m forward
-    const throwDir = new Vector3(
-      Math.sin(this.rotationY),
-      0,
-      Math.cos(this.rotationY)
-    );
+    const throwDir = new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
     const grenadePos = this.camera.position.add(throwDir.scale(15));
     grenadePos.y = 0.5;
 
@@ -848,11 +852,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
     // Spawn dormant nests
     for (let i = 0; i < config.dormant; i++) {
-      const pos = new Vector3(
-        (Math.random() - 0.5) * 100,
-        0,
-        phaseZ + (Math.random() - 0.5) * 60
-      );
+      const pos = new Vector3((Math.random() - 0.5) * 100, 0, phaseZ + (Math.random() - 0.5) * 60);
       this.spawnDormantNest(pos);
     }
 
@@ -1003,27 +1003,20 @@ export class SouthernIceLevel extends SurfaceLevel {
             chitin.state = 'emerging';
             chitin.stateTimer = 0;
             chitin.position.copyFrom(chitin.targetPosition);
-            chitin.rootNode.position.set(
-              chitin.targetPosition.x,
-              -1.5,
-              chitin.targetPosition.z
-            );
+            chitin.rootNode.position.set(chitin.targetPosition.x, -1.5, chitin.targetPosition.z);
             chitin.rootNode.setEnabled(true);
           }
           break;
 
         case 'emerging':
           chitin.stateTimer += deltaTime;
-          chitin.rootNode.position.y = -1.5 + (chitin.stateTimer / BURROW_CONFIG.emergeDuration) * 2.3;
+          chitin.rootNode.position.y =
+            -1.5 + (chitin.stateTimer / BURROW_CONFIG.emergeDuration) * 2.3;
           if (chitin.stateTimer >= BURROW_CONFIG.emergeDuration) {
             chitin.state = 'chase';
             chitin.stateTimer = 0;
             chitin.rootNode.position.y = 0.8;
-            chitin.position.set(
-              chitin.rootNode.position.x,
-              0.8,
-              chitin.rootNode.position.z
-            );
+            chitin.position.set(chitin.rootNode.position.x, 0.8, chitin.rootNode.position.z);
             chitin.frostAuraActive = true;
             chitin.burrowCooldown = BURROW_CONFIG.burrowCooldown;
 
@@ -1044,15 +1037,16 @@ export class SouthernIceLevel extends SurfaceLevel {
         // Slow effect handled via getMoveSpeed override
         // Apply frost damage
         if (chitin.stateTimer % 1.0 < deltaTime) {
-          this.damagePlayer(
-            Math.floor(FROST_AURA.damagePerSecond),
-            'frost_aura'
-          );
+          this.damagePlayer(Math.floor(FROST_AURA.damagePerSecond), 'frost_aura');
         }
       }
 
       // Update mesh position
-      chitin.rootNode.position.set(chitin.position.x, chitin.rootNode.position.y, chitin.position.z);
+      chitin.rootNode.position.set(
+        chitin.position.x,
+        chitin.rootNode.position.y,
+        chitin.position.z
+      );
     }
   }
 
@@ -1257,11 +1251,7 @@ export class SouthernIceLevel extends SurfaceLevel {
     reactorMat.emissiveColor = new Color3(0.8, 0.4, 0.15);
     reactorMat.disableLighting = true;
 
-    const reactor = MeshBuilder.CreateSphere(
-      'marcusReactor',
-      { diameter: 0.8 },
-      this.scene
-    );
+    const reactor = MeshBuilder.CreateSphere('marcusReactor', { diameter: 0.8 }, this.scene);
     reactor.material = reactorMat;
     reactor.parent = root;
     reactor.position.set(0, 5.5, -1.3);
@@ -1296,11 +1286,7 @@ export class SouthernIceLevel extends SurfaceLevel {
       this.marcus.position.z = Math.max(this.marcus.position.z, FROZEN_LAKE_TRIGGER_Z + 10);
     }
 
-    this.marcus.rootNode.position.set(
-      this.marcus.position.x,
-      0,
-      this.marcus.position.z
-    );
+    this.marcus.rootNode.position.set(this.marcus.position.x, 0, this.marcus.position.z);
 
     // Face player
     if (dist > 1) {
@@ -1381,7 +1367,12 @@ export class SouthernIceLevel extends SurfaceLevel {
 
   private sendComms(
     id: string,
-    message: { sender: string; callsign: string; portrait: 'commander' | 'ai' | 'marcus' | 'armory' | 'player'; text: string }
+    message: {
+      sender: string;
+      callsign: string;
+      portrait: 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
+      text: string;
+    }
   ): void {
     if (this.sentComms.has(id)) return;
     this.sentComms.add(id);

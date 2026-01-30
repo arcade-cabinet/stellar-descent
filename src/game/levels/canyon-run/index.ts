@@ -8,18 +8,6 @@
  */
 
 export { CanyonRunLevel } from './CanyonRunLevel';
-export { VehicleController } from './VehicleController';
-export type { VehicleConfig, VehicleInput, VehicleState } from './VehicleController';
-export {
-  BRIDGE_Z,
-  CANYON_HALF_WIDTH,
-  CANYON_LENGTH,
-  EXTRACTION_Z,
-  collapseBridge,
-  createCanyonEnvironment,
-  sampleTerrainHeight,
-  spawnRockslide,
-} from './environment';
 export type {
   BridgeStructure,
   CanyonEnvironment,
@@ -27,3 +15,15 @@ export type {
   RockslideRock,
   TerrainSample,
 } from './environment';
+export {
+  BRIDGE_Z,
+  CANYON_HALF_WIDTH,
+  CANYON_LENGTH,
+  collapseBridge,
+  createCanyonEnvironment,
+  EXTRACTION_Z,
+  sampleTerrainHeight,
+  spawnRockslide,
+} from './environment';
+export type { VehicleConfig, VehicleInput, VehicleState } from './VehicleController';
+export { VehicleController } from './VehicleController';

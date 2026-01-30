@@ -215,7 +215,7 @@ export class VoiceSynthesizer {
       beepDuration,
       volume * 0.5,
       masterGain,
-      true,
+      true
     );
 
     // 2. Radio static layer (entire duration)
@@ -225,7 +225,7 @@ export class VoiceSynthesizer {
       voiceEnd + fadeTime - (now + beepDuration),
       profile,
       volume,
-      masterGain,
+      masterGain
     );
 
     // 3. Voice body
@@ -236,11 +236,14 @@ export class VoiceSynthesizer {
     let stopFn: (() => void) | null = null;
 
     const finished = new Promise<void>((resolve) => {
-      const timeout = setTimeout(() => {
-        playing = false;
-        this.activeNodes.delete(masterGain);
-        resolve();
-      }, (totalEnd - now) * 1000 + 50);
+      const timeout = setTimeout(
+        () => {
+          playing = false;
+          this.activeNodes.delete(masterGain);
+          resolve();
+        },
+        (totalEnd - now) * 1000 + 50
+      );
 
       stopFn = () => {
         if (!playing) return;
@@ -339,7 +342,7 @@ export class VoiceSynthesizer {
     duration: number,
     profile: VoiceProfile,
     volume: number,
-    destination: AudioNode,
+    destination: AudioNode
   ): void {
     // --- Primary tonal oscillator ---
     const osc = ctx.createOscillator();
@@ -439,7 +442,7 @@ export class VoiceSynthesizer {
     const distortion = ctx.createWaveShaper();
     const curve = new Float32Array(256);
     for (let i = 0; i < 256; i++) {
-      const x = (i / 128) - 1;
+      const x = i / 128 - 1;
       curve[i] = Math.tanh(x * 2.5);
     }
     distortion.curve = curve;
@@ -482,7 +485,7 @@ export class VoiceSynthesizer {
     duration: number,
     profile: VoiceProfile,
     volume: number,
-    destination: AudioNode,
+    destination: AudioNode
   ): void {
     const staticBuffer = this.createNoiseBuffer(ctx, duration + 0.1);
     const staticSource = ctx.createBufferSource();
@@ -541,7 +544,7 @@ export class VoiceSynthesizer {
     duration: number,
     volume: number,
     destination: AudioNode,
-    descending = false,
+    descending = false
   ): void {
     const osc = ctx.createOscillator();
     osc.type = 'sine';

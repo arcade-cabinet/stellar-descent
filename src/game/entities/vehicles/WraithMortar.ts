@@ -15,13 +15,13 @@
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { getAudioManager } from '../../core/AudioManager';
 import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../../core/ecs';
 import { particleManager } from '../../effects/ParticleManager';

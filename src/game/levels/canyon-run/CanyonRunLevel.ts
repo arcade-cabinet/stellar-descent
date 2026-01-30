@@ -48,17 +48,17 @@ import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
 import type { LevelCallbacks, LevelConfig } from '../types';
 import {
-  type BridgeStructure,
   BRIDGE_Z,
+  type BridgeStructure,
   CANYON_HALF_WIDTH,
   CANYON_LENGTH,
   type CanyonEnvironment,
-  EXTRACTION_Z,
-  type ObjectiveMarker,
-  type RockslideRock,
   collapseBridge,
   createCanyonEnvironment,
   disposeRockslide,
+  EXTRACTION_Z,
+  type ObjectiveMarker,
+  type RockslideRock,
   sampleTerrainHeight,
   spawnRockslide,
   updateRockslide,
@@ -287,11 +287,7 @@ export class CanyonRunLevel extends SurfaceLevel {
 
     // Create vehicle at spawn position
     const spawnPos = new Vector3(0, 2, -20);
-    this.vehicle = new VehicleController(
-      this.scene,
-      this.camera,
-      spawnPos
-    );
+    this.vehicle = new VehicleController(this.scene, this.camera, spawnPos);
 
     // Position camera for intro
     this.camera.position.set(5, 4, -15);
@@ -505,7 +501,7 @@ export class CanyonRunLevel extends SurfaceLevel {
 
       // Collapse the main bridge
       if (this.canyonEnv) {
-        const mainBridge = this.canyonEnv.bridges.find(b => b.isCollapsible);
+        const mainBridge = this.canyonEnv.bridges.find((b) => b.isCollapsible);
         if (mainBridge) {
           collapseBridge(mainBridge, this.scene);
         }
@@ -575,10 +571,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     this.sendComms('extracted', COMMS.extracted);
     this.setCombatState(false);
 
-    this.callbacks.onObjectiveUpdate(
-      'EXTRACTION COMPLETE',
-      'Proceed to FOB Delta.'
-    );
+    this.callbacks.onObjectiveUpdate('EXTRACTION COMPLETE', 'Proceed to FOB Delta.');
 
     this.callbacks.onNotification('EXTRACTION POINT REACHED', 3000);
 
@@ -684,19 +677,13 @@ export class CanyonRunLevel extends SurfaceLevel {
       const offsetX = (Math.random() - 0.5) * CANYON_HALF_WIDTH * 0.8;
       const spawnZ = playerPos.z + WRAITH_SPAWN_DISTANCE;
 
-      const wraith = this.createWraithMesh(
-        new Vector3(offsetX, 2.5, spawnZ),
-        this.wraiths.length
-      );
+      const wraith = this.createWraithMesh(new Vector3(offsetX, 2.5, spawnZ), this.wraiths.length);
 
       this.wraiths.push(wraith);
     }
   }
 
-  private createWraithMesh(
-    position: Vector3,
-    index: number
-  ): EnemyWraith {
+  private createWraithMesh(position: Vector3, index: number): EnemyWraith {
     const rootNode = new TransformNode(`wraith_${index}`, this.scene);
     rootNode.position = position.clone();
 
@@ -756,7 +743,7 @@ export class CanyonRunLevel extends SurfaceLevel {
 
       // Target position: behind the player
       const targetZ = playerPos.z + wraith.pursuitOffset;
-      const targetX = playerPos.x + (Math.sin(this.phaseTime * 0.5 + wraith.pursuitOffset) * 10);
+      const targetX = playerPos.x + Math.sin(this.phaseTime * 0.5 + wraith.pursuitOffset) * 10;
 
       // Move toward target
       const dx = targetX - wraith.position.x;
@@ -897,12 +884,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     // Also trigger from other side slightly later for dramatic effect
     setTimeout(() => {
       const otherSide = side === 'left' ? 'right' : 'left';
-      const moreRocks = spawnRockslide(
-        this.scene,
-        otherSide,
-        zPosition - 20,
-        10
-      );
+      const moreRocks = spawnRockslide(this.scene, otherSide, zPosition - 20, 10);
       this.activeRockslides.push(moreRocks);
       this.triggerShake(4);
     }, 800);

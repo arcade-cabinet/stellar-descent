@@ -74,20 +74,16 @@ export interface IceEnvironment {
 const DEFAULT_CONFIG: IceEnvironmentConfig = {
   terrainSize: 600,
   terrainSubdivisions: 64,
-  cavePositions: [
-    new Vector3(-80, 0, -120),
-    new Vector3(60, 0, -200),
-    new Vector3(-30, 0, -280),
-  ],
+  cavePositions: [new Vector3(-80, 0, -120), new Vector3(60, 0, -200), new Vector3(-30, 0, -280)],
   outpostPosition: new Vector3(40, 0, -50),
   frozenLakeCenter: new Vector3(0, -0.5, -160),
   frozenLakeRadius: 60,
   heatSourcePositions: [
-    new Vector3(40, 0, -50),   // Outpost heater
+    new Vector3(40, 0, -50), // Outpost heater
     new Vector3(-80, 0, -120), // Cave 1 entrance
-    new Vector3(60, 0, -200),  // Cave 2 interior
+    new Vector3(60, 0, -200), // Cave 2 interior
     new Vector3(-30, 0, -280), // Cave 3 interior
-    new Vector3(0, 0, -80),    // Mid-field barrel fire
+    new Vector3(0, 0, -80), // Mid-field barrel fire
   ],
 };
 
@@ -190,7 +186,10 @@ function createTerrain(scene: Scene, config: IceEnvironmentConfig): Mesh {
 
       // Raise edges for ice cliffs
       const distFromCenter = Math.sqrt(x * x + z * z);
-      const edgeFactor = Math.max(0, (distFromCenter - config.terrainSize * 0.35) / (config.terrainSize * 0.15));
+      const edgeFactor = Math.max(
+        0,
+        (distFromCenter - config.terrainSize * 0.35) / (config.terrainSize * 0.15)
+      );
       height += edgeFactor * edgeFactor * 15;
 
       newPositions[i] = positions[i];
@@ -281,10 +280,7 @@ export function createAuroraBorealis(scene: Scene): TransformNode[] {
  * Update aurora borealis animation.
  * Call each frame to animate the color and position of aurora curtains.
  */
-export function updateAuroraBorealis(
-  auroraNodes: TransformNode[],
-  time: number
-): void {
+export function updateAuroraBorealis(auroraNodes: TransformNode[], time: number): void {
   for (let i = 0; i < auroraNodes.length; i++) {
     const node = auroraNodes[i];
     // Gentle swaying
@@ -298,11 +294,7 @@ export function updateAuroraBorealis(
       const r = 0.1 + Math.sin(phase) * 0.15;
       const g = 0.35 + Math.cos(phase * 0.7) * 0.25;
       const b = 0.3 + Math.sin(phase * 1.3 + 1) * 0.25;
-      ribbon.material.emissiveColor.set(
-        Math.max(0, r),
-        Math.max(0, g),
-        Math.max(0, b)
-      );
+      ribbon.material.emissiveColor.set(Math.max(0, r), Math.max(0, g), Math.max(0, b));
       ribbon.material.alpha = 0.1 + Math.sin(phase * 0.5) * 0.06;
     }
   }
@@ -316,21 +308,17 @@ export function updateAuroraBorealis(
  * Create the blizzard/snowstorm particle system.
  * Follows the camera and emits wind-driven snow and ice particles.
  */
-export function createBlizzardParticles(
-  scene: Scene,
-  intensity: number = 0.5
-): ParticleSystem {
-  const emitter = MeshBuilder.CreateBox(
-    'blizzardEmitter',
-    { size: 0.1 },
-    scene
-  );
+export function createBlizzardParticles(scene: Scene, intensity: number = 0.5): ParticleSystem {
+  const emitter = MeshBuilder.CreateBox('blizzardEmitter', { size: 0.1 }, scene);
   emitter.isVisible = false;
 
   const system = new ParticleSystem('blizzard', Math.floor(2000 * intensity), scene);
 
   // Use default particle texture (white dot)
-  system.particleTexture = new Texture('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAI0lEQVQYV2P8////fwYkwMjAwMCERACnJLIibCYR5R5h4QAA5HULAVxOgIwAAAAASUVORK5CYII=', scene);
+  system.particleTexture = new Texture(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAI0lEQVQYV2P8////fwYkwMjAwMCERACnJLIibCYR5R5h4QAA5HULAVxOgIwAAAAASUVORK5CYII=',
+    scene
+  );
 
   system.emitter = emitter;
 
@@ -381,7 +369,10 @@ function createAmbientSnow(scene: Scene): ParticleSystem {
   emitter.isVisible = false;
 
   const system = new ParticleSystem('ambientSnow', 300, scene);
-  system.particleTexture = new Texture('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAI0lEQVQYV2P8////fwYkwMjAwMCERACnJLIibCYR5R5h4QAA5HULAVxOgIwAAAAASUVORK5CYII=', scene);
+  system.particleTexture = new Texture(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAI0lEQVQYV2P8////fwYkwMjAwMCERACnJLIibCYR5R5h4QAA5HULAVxOgIwAAAAASUVORK5CYII=',
+    scene
+  );
   system.emitter = emitter;
 
   system.emitRate = 60;
@@ -413,10 +404,7 @@ function createAmbientSnow(scene: Scene): ParticleSystem {
 /**
  * Update blizzard particle emitter to follow the camera position.
  */
-export function updateBlizzardEmitter(
-  system: ParticleSystem,
-  cameraPosition: Vector3
-): void {
+export function updateBlizzardEmitter(system: ParticleSystem, cameraPosition: Vector3): void {
   const emitter = system.emitter;
   if (emitter && 'position' in emitter) {
     (emitter as Mesh).position.copyFrom(cameraPosition);
@@ -430,16 +418,8 @@ export function updateBlizzardEmitter(
 /**
  * Create the frozen lake surface (Phase 2 - thin ice hazard).
  */
-function createFrozenLake(
-  scene: Scene,
-  center: Vector3,
-  radius: number
-): Mesh {
-  const lake = MeshBuilder.CreateDisc(
-    'frozenLake',
-    { radius, tessellation: 48 },
-    scene
-  );
+function createFrozenLake(scene: Scene, center: Vector3, radius: number): Mesh {
+  const lake = MeshBuilder.CreateDisc('frozenLake', { radius, tessellation: 48 }, scene);
   lake.rotation.x = Math.PI / 2;
   lake.position.copyFrom(center);
   lake.position.y = center.y + 0.02; // Slightly above terrain depression
@@ -459,11 +439,7 @@ function createFrozenLake(
   for (let i = 0; i < crackCount; i++) {
     const angle = (i / crackCount) * Math.PI * 2 + Math.random() * 0.5;
     const length = radius * (0.3 + Math.random() * 0.5);
-    const crack = MeshBuilder.CreatePlane(
-      `crack_${i}`,
-      { width: 0.15, height: length },
-      scene
-    );
+    const crack = MeshBuilder.CreatePlane(`crack_${i}`, { width: 0.15, height: length }, scene);
     crack.material = crackMat;
     crack.rotation.x = Math.PI / 2;
     crack.position.set(
@@ -485,11 +461,7 @@ function createFrozenLake(
  * Create an ice cave structure at the given position.
  * Provides shelter from blizzard and temperature protection.
  */
-function createIceCave(
-  scene: Scene,
-  position: Vector3,
-  index: number
-): TransformNode {
+function createIceCave(scene: Scene, position: Vector3, index: number): TransformNode {
   const root = new TransformNode(`iceCave_${index}`, scene);
   root.position.copyFrom(position);
 
@@ -589,11 +561,7 @@ function createOutpost(scene: Scene, position: Vector3): TransformNode {
   frostMat.alpha = 0.4;
 
   // Main habitat module
-  const habitat = MeshBuilder.CreateBox(
-    'habitat',
-    { width: 6, height: 3, depth: 8 },
-    scene
-  );
+  const habitat = MeshBuilder.CreateBox('habitat', { width: 6, height: 3, depth: 8 }, scene);
   habitat.material = metalMat;
   habitat.parent = root;
   habitat.position.y = 1.5;
@@ -721,10 +689,7 @@ function createIceFormations(scene: Scene, terrainSize: number): Mesh[] {
 /**
  * Create frozen waterfall meshes attached to cave entrances and cliffs.
  */
-function createFrozenWaterfalls(
-  scene: Scene,
-  positions: Vector3[]
-): Mesh[] {
+function createFrozenWaterfalls(scene: Scene, positions: Vector3[]): Mesh[] {
   const waterfalls: Mesh[] = [];
   const iceMat = createIceSheetMaterial(scene, 'waterfallIce');
   iceMat.alpha = 0.55;
@@ -747,11 +712,7 @@ function createFrozenWaterfalls(
         scene
       );
       col.material = iceMat;
-      col.position.set(
-        pos.x + (j - columnCount / 2) * 0.5,
-        pos.y + height / 2 + 2,
-        pos.z
-      );
+      col.position.set(pos.x + (j - columnCount / 2) * 0.5, pos.y + height / 2 + 2, pos.z);
       col.rotation.z = (Math.random() - 0.5) * 0.1;
       waterfalls.push(col);
     }
@@ -837,10 +798,7 @@ export function createTemperatureZones(
  *
  * @returns Temperature offset from baseline (positive = warmer, negative = colder)
  */
-export function getTemperatureAtPosition(
-  position: Vector3,
-  zones: TemperatureZone[]
-): number {
+export function getTemperatureAtPosition(position: Vector3, zones: TemperatureZone[]): number {
   let totalOffset = 0;
 
   for (const zone of zones) {
@@ -879,16 +837,10 @@ export function createIceEnvironment(
   const skyDome = createSkyDome(scene);
 
   // Frozen lake (Phase 2 area)
-  const frozenLake = createFrozenLake(
-    scene,
-    cfg.frozenLakeCenter,
-    cfg.frozenLakeRadius
-  );
+  const frozenLake = createFrozenLake(scene, cfg.frozenLakeCenter, cfg.frozenLakeRadius);
 
   // Ice caves (Phase 3 and shelter)
-  const iceCaves = cfg.cavePositions.map((pos, i) =>
-    createIceCave(scene, pos, i)
-  );
+  const iceCaves = cfg.cavePositions.map((pos, i) => createIceCave(scene, pos, i));
 
   // Research outpost
   const outpost = createOutpost(scene, cfg.outpostPosition);

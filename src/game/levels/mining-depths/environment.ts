@@ -66,7 +66,11 @@ export const MINE_POSITIONS = {
   tunnelEnd: TUNNEL_END.clone(),
   shaftCenter: SHAFT_CENTER.clone(),
   shaftFloor: new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 1, SHAFT_CENTER.z),
-  shaftBossSpawn: new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 3, SHAFT_CENTER.z),
+  shaftBossSpawn: new Vector3(
+    SHAFT_CENTER.x,
+    SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 3,
+    SHAFT_CENTER.z
+  ),
   // Audio log pickup locations
   audioLog1: new Vector3(8, 0, -18),
   audioLog2: new Vector3(-15, -5, -75),
@@ -516,8 +520,7 @@ function createCrystalFormation(
   variant: 'cyan' | 'purple' = 'cyan'
 ): void {
   const matKey = variant === 'cyan' ? 'crystal' : 'crystal_purple';
-  const lightColor =
-    variant === 'cyan' ? new Color3(0.1, 0.6, 0.8) : new Color3(0.5, 0.2, 0.8);
+  const lightColor = variant === 'cyan' ? new Color3(0.1, 0.6, 0.8) : new Color3(0.5, 0.2, 0.8);
 
   // Main crystal shard
   const mainCrystal = MeshBuilder.CreateCylinder(
@@ -854,10 +857,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Entry tunnel to hub
   createTunnelSegment(
-    scene, entrySection,
-    ENTRY_CENTER, new Vector3(0, 0, -10),
-    TUNNEL_WIDTH, TUNNEL_HEIGHT,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    entrySection,
+    ENTRY_CENTER,
+    new Vector3(0, 0, -10),
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // ------ MINING HUB (40m x 30m x 8m) ------
@@ -892,30 +901,42 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     // North wall (with entry opening)
     {
       pos: new Vector3(-12, HUB_HEIGHT / 2, HUB_CENTER.z + HUB_DEPTH / 2),
-      w: 16, d: 0.5, ry: 0,
+      w: 16,
+      d: 0.5,
+      ry: 0,
     },
     {
       pos: new Vector3(12, HUB_HEIGHT / 2, HUB_CENTER.z + HUB_DEPTH / 2),
-      w: 16, d: 0.5, ry: 0,
+      w: 16,
+      d: 0.5,
+      ry: 0,
     },
     // South wall (with tunnel exit opening)
     {
       pos: new Vector3(-12, HUB_HEIGHT / 2, HUB_CENTER.z - HUB_DEPTH / 2),
-      w: 16, d: 0.5, ry: 0,
+      w: 16,
+      d: 0.5,
+      ry: 0,
     },
     {
       pos: new Vector3(12, HUB_HEIGHT / 2, HUB_CENTER.z - HUB_DEPTH / 2),
-      w: 16, d: 0.5, ry: 0,
+      w: 16,
+      d: 0.5,
+      ry: 0,
     },
     // East wall
     {
       pos: new Vector3(HUB_CENTER.x + HUB_WIDTH / 2, HUB_HEIGHT / 2, HUB_CENTER.z),
-      w: 0.5, d: HUB_DEPTH, ry: 0,
+      w: 0.5,
+      d: HUB_DEPTH,
+      ry: 0,
     },
     // West wall
     {
       pos: new Vector3(HUB_CENTER.x - HUB_WIDTH / 2, HUB_HEIGHT / 2, HUB_CENTER.z),
-      w: 0.5, d: HUB_DEPTH, ry: 0,
+      w: 0.5,
+      d: HUB_DEPTH,
+      ry: 0,
     },
   ];
 
@@ -958,11 +979,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   createDrillRig(scene, hubSection, new Vector3(-8, 0, -28), Math.PI / 3, materials, allMeshes);
 
   // Conveyor belt fragment
-  const conveyor = MeshBuilder.CreateBox(
-    'conveyor',
-    { width: 2, height: 1, depth: 8 },
-    scene
-  );
+  const conveyor = MeshBuilder.CreateBox('conveyor', { width: 2, height: 1, depth: 8 }, scene);
   conveyor.position.set(0, 0.5, HUB_CENTER.z + 5);
   conveyor.material = materials.get('equipment')!;
   conveyor.parent = hubSection;
@@ -992,7 +1009,8 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Minecart tracks through hub
   createMinecartTrack(
-    scene, hubSection,
+    scene,
+    hubSection,
     [
       new Vector3(-18, 0, -12),
       new Vector3(-10, 0, -15),
@@ -1000,7 +1018,8 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
       new Vector3(10, 0, -25),
       new Vector3(15, 0, -30),
     ],
-    materials, allMeshes
+    materials,
+    allMeshes
   );
 
   // Minecarts
@@ -1009,19 +1028,34 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Crystal formations in hub (natural light sources)
   createCrystalFormation(
-    scene, hubSection,
-    new Vector3(-16, 0, -18), 1.5,
-    materials, allMeshes, lights, 'cyan'
+    scene,
+    hubSection,
+    new Vector3(-16, 0, -18),
+    1.5,
+    materials,
+    allMeshes,
+    lights,
+    'cyan'
   );
   createCrystalFormation(
-    scene, hubSection,
-    new Vector3(16, 0, -30), 1.2,
-    materials, allMeshes, lights, 'purple'
+    scene,
+    hubSection,
+    new Vector3(16, 0, -30),
+    1.2,
+    materials,
+    allMeshes,
+    lights,
+    'purple'
   );
   createCrystalFormation(
-    scene, hubSection,
-    new Vector3(-5, 0, -35), 0.8,
-    materials, allMeshes, lights, 'cyan'
+    scene,
+    hubSection,
+    new Vector3(-5, 0, -35),
+    0.8,
+    materials,
+    allMeshes,
+    lights,
+    'cyan'
   );
 
   // Hub emergency lights
@@ -1099,11 +1133,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
       scene
     );
     resinPatch.position = rp.clone();
-    resinPatch.rotation.set(
-      Math.random() * Math.PI,
-      Math.random() * Math.PI * 2,
-      0
-    );
+    resinPatch.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI * 2, 0);
     resinPatch.material = materials.get('resin')!;
     resinPatch.parent = hubSection;
     allMeshes.push(resinPatch);
@@ -1115,10 +1145,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Tunnel from hub to collapsed area
   createTunnelSegment(
-    scene, tunnelSection,
-    TUNNEL_START, new Vector3(-5, -2, -58),
-    TUNNEL_WIDTH, TUNNEL_HEIGHT,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    tunnelSection,
+    TUNNEL_START,
+    new Vector3(-5, -2, -58),
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // Debris pile at start of collapsed area
@@ -1126,10 +1162,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Collapsed tunnel segment 1 (narrower, lower ceiling)
   createTunnelSegment(
-    scene, tunnelSection,
-    new Vector3(-5, -2, -58), new Vector3(-12, -4, -68),
-    TUNNEL_WIDTH - 1, TUNNEL_HEIGHT - 1,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    tunnelSection,
+    new Vector3(-5, -2, -58),
+    new Vector3(-12, -4, -68),
+    TUNNEL_WIDTH - 1,
+    TUNNEL_HEIGHT - 1,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // More debris and cave-in rocks
@@ -1137,9 +1179,14 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Crystal formation lighting the way
   createCrystalFormation(
-    scene, tunnelSection,
-    new Vector3(-10, -4, -66), 1.0,
-    materials, allMeshes, lights, 'purple'
+    scene,
+    tunnelSection,
+    new Vector3(-10, -4, -66),
+    1.0,
+    materials,
+    allMeshes,
+    lights,
+    'purple'
   );
 
   // Gas vent hazard area 1
@@ -1155,10 +1202,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Collapsed tunnel segment 2
   createTunnelSegment(
-    scene, tunnelSection,
-    new Vector3(-12, -4, -68), TUNNEL_MID,
-    TUNNEL_WIDTH, TUNNEL_HEIGHT,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    tunnelSection,
+    new Vector3(-12, -4, -68),
+    TUNNEL_MID,
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // Tunnel mid-point widened area with minecart
@@ -1177,22 +1230,47 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Crystal cluster mid-tunnel
   createCrystalFormation(
-    scene, tunnelSection,
-    new Vector3(-18, -5, -74), 0.7,
-    materials, allMeshes, lights, 'cyan'
+    scene,
+    tunnelSection,
+    new Vector3(-18, -5, -74),
+    0.7,
+    materials,
+    allMeshes,
+    lights,
+    'cyan'
   );
 
   // Collapsed tunnel segment 3 (descending further)
   createTunnelSegment(
-    scene, tunnelSection,
-    TUNNEL_MID, new Vector3(-12, -8, -85),
-    TUNNEL_WIDTH - 0.5, TUNNEL_HEIGHT - 0.5,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    tunnelSection,
+    TUNNEL_MID,
+    new Vector3(-12, -8, -85),
+    TUNNEL_WIDTH - 0.5,
+    TUNNEL_HEIGHT - 0.5,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // Rockfall hazard areas
-  createDebrisPile(scene, tunnelSection, MINE_POSITIONS.rockfall1.clone(), 1.0, materials, allMeshes);
-  createDebrisPile(scene, tunnelSection, MINE_POSITIONS.rockfall2.clone(), 1.3, materials, allMeshes);
+  createDebrisPile(
+    scene,
+    tunnelSection,
+    MINE_POSITIONS.rockfall1.clone(),
+    1.0,
+    materials,
+    allMeshes
+  );
+  createDebrisPile(
+    scene,
+    tunnelSection,
+    MINE_POSITIONS.rockfall2.clone(),
+    1.3,
+    materials,
+    allMeshes
+  );
 
   // More alien resin
   for (let i = 0; i < 6; i++) {
@@ -1207,11 +1285,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
       scene
     );
     resinPatch.position = rp;
-    resinPatch.rotation.set(
-      Math.random() * Math.PI,
-      Math.random() * Math.PI * 2,
-      0
-    );
+    resinPatch.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI * 2, 0);
     resinPatch.material = materials.get('resin')!;
     resinPatch.parent = tunnelSection;
     allMeshes.push(resinPatch);
@@ -1219,10 +1293,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Final tunnel segment to deep shaft
   createTunnelSegment(
-    scene, tunnelSection,
-    new Vector3(-12, -8, -85), TUNNEL_END,
-    TUNNEL_WIDTH, TUNNEL_HEIGHT,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    tunnelSection,
+    new Vector3(-12, -8, -85),
+    TUNNEL_END,
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // Flooded section
@@ -1239,10 +1319,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Transition tunnel from collapsed to shaft
   createTunnelSegment(
-    scene, tunnelSection,
-    TUNNEL_END, new Vector3(-10, -13, -108),
-    TUNNEL_WIDTH, TUNNEL_HEIGHT,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    tunnelSection,
+    TUNNEL_END,
+    new Vector3(-10, -13, -108),
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // ===========================================================================
@@ -1274,10 +1360,16 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Short tunnel to shaft
   createTunnelSegment(
-    scene, shaftSection,
-    new Vector3(-10, -13, -110), new Vector3(-10, -15, -115),
-    TUNNEL_WIDTH, TUNNEL_HEIGHT,
-    materials, allMeshes, lights, flickerLights
+    scene,
+    shaftSection,
+    new Vector3(-10, -13, -110),
+    new Vector3(-10, -15, -115),
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
+    materials,
+    allMeshes,
+    lights,
+    flickerLights
   );
 
   // Deep Shaft room (25m x 25m x 30m tall)
@@ -1298,26 +1390,36 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     // North wall (with entry)
     {
       pos: new Vector3(SHAFT_CENTER.x - 8, SHAFT_CENTER.y, SHAFT_CENTER.z + SHAFT_DEPTH / 2),
-      w: 9, h: SHAFT_HEIGHT, d: 0.5,
+      w: 9,
+      h: SHAFT_HEIGHT,
+      d: 0.5,
     },
     {
       pos: new Vector3(SHAFT_CENTER.x + 8, SHAFT_CENTER.y, SHAFT_CENTER.z + SHAFT_DEPTH / 2),
-      w: 9, h: SHAFT_HEIGHT, d: 0.5,
+      w: 9,
+      h: SHAFT_HEIGHT,
+      d: 0.5,
     },
     // South wall
     {
       pos: new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y, SHAFT_CENTER.z - SHAFT_DEPTH / 2),
-      w: SHAFT_WIDTH, h: SHAFT_HEIGHT, d: 0.5,
+      w: SHAFT_WIDTH,
+      h: SHAFT_HEIGHT,
+      d: 0.5,
     },
     // East wall
     {
       pos: new Vector3(SHAFT_CENTER.x + SHAFT_WIDTH / 2, SHAFT_CENTER.y, SHAFT_CENTER.z),
-      w: 0.5, h: SHAFT_HEIGHT, d: SHAFT_DEPTH,
+      w: 0.5,
+      h: SHAFT_HEIGHT,
+      d: SHAFT_DEPTH,
     },
     // West wall
     {
       pos: new Vector3(SHAFT_CENTER.x - SHAFT_WIDTH / 2, SHAFT_CENTER.y, SHAFT_CENTER.z),
-      w: 0.5, h: SHAFT_HEIGHT, d: SHAFT_DEPTH,
+      w: 0.5,
+      h: SHAFT_HEIGHT,
+      d: SHAFT_DEPTH,
     },
   ];
 
@@ -1385,32 +1487,55 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
 
   // Large crystal formations in shaft (lighting)
   createCrystalFormation(
-    scene, shaftSection,
+    scene,
+    shaftSection,
     new Vector3(SHAFT_CENTER.x - 8, SHAFT_CENTER.y - SHAFT_HEIGHT / 2, SHAFT_CENTER.z - 8),
-    2.0, materials, allMeshes, lights, 'cyan'
+    2.0,
+    materials,
+    allMeshes,
+    lights,
+    'cyan'
   );
   createCrystalFormation(
-    scene, shaftSection,
+    scene,
+    shaftSection,
     new Vector3(SHAFT_CENTER.x + 8, SHAFT_CENTER.y - SHAFT_HEIGHT / 2, SHAFT_CENTER.z + 6),
-    2.5, materials, allMeshes, lights, 'purple'
+    2.5,
+    materials,
+    allMeshes,
+    lights,
+    'purple'
   );
   createCrystalFormation(
-    scene, shaftSection,
+    scene,
+    shaftSection,
     new Vector3(SHAFT_CENTER.x + 3, SHAFT_CENTER.y - SHAFT_HEIGHT / 2, SHAFT_CENTER.z - 10),
-    1.8, materials, allMeshes, lights, 'cyan'
+    1.8,
+    materials,
+    allMeshes,
+    lights,
+    'cyan'
   );
   createCrystalFormation(
-    scene, shaftSection,
+    scene,
+    shaftSection,
     new Vector3(SHAFT_CENTER.x - 10, SHAFT_CENTER.y - SHAFT_HEIGHT / 2, SHAFT_CENTER.z + 4),
-    1.5, materials, allMeshes, lights, 'purple'
+    1.5,
+    materials,
+    allMeshes,
+    lights,
+    'purple'
   );
 
   // Boss arena floor details
   // Central mining rig (destroyed)
   createDrillRig(
-    scene, shaftSection,
+    scene,
+    shaftSection,
     new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 0.2, SHAFT_CENTER.z + 5),
-    Math.PI / 4, materials, allMeshes
+    Math.PI / 4,
+    materials,
+    allMeshes
   );
 
   // Boss arena door (blocks exit during boss fight)
@@ -1419,7 +1544,11 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     { width: TUNNEL_WIDTH, height: TUNNEL_HEIGHT, depth: 0.3 },
     scene
   );
-  bossArenaDoor.position = new Vector3(-10, -15 + TUNNEL_HEIGHT / 2, SHAFT_CENTER.z + SHAFT_DEPTH / 2 - 0.5);
+  bossArenaDoor.position = new Vector3(
+    -10,
+    -15 + TUNNEL_HEIGHT / 2,
+    SHAFT_CENTER.z + SHAFT_DEPTH / 2 - 0.5
+  );
   bossArenaDoor.material = materials.get('metal')!;
   bossArenaDoor.parent = shaftSection;
   bossArenaDoor.isVisible = false; // Hidden until boss fight starts
@@ -1439,11 +1568,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
       SHAFT_CENTER.y + (Math.random() - 0.5) * SHAFT_HEIGHT * 0.8,
       SHAFT_CENTER.z + Math.sin(angle) * wallDist
     );
-    shaftResin.rotation.set(
-      Math.random() * Math.PI,
-      angle + Math.PI / 2,
-      0
-    );
+    shaftResin.rotation.set(Math.random() * Math.PI, angle + Math.PI / 2, 0);
     shaftResin.material = materials.get('resin')!;
     shaftResin.parent = shaftSection;
     allMeshes.push(shaftResin);
@@ -1543,8 +1668,6 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
       hazardMeshes.push(crack);
     }
     if (hazard.type === 'flooded') {
-      // Water already created above
-      continue;
     }
   }
 

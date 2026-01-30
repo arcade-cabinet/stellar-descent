@@ -271,9 +271,7 @@ function createTerrain(scene: Scene, materials: CanyonMaterials): Mesh {
       const z = positions[i + 2];
       // Gentle rolling + some noise
       positions[i + 1] +=
-        Math.sin(x * 0.05) * 0.8 +
-        Math.sin(z * 0.03) * 1.2 +
-        Math.sin(x * 0.15 + z * 0.1) * 0.3;
+        Math.sin(x * 0.05) * 0.8 + Math.sin(z * 0.03) * 1.2 + Math.sin(x * 0.15 + z * 0.1) * 0.3;
     }
     terrain.updateVerticesData('position', positions);
     terrain.createNormals(true);
@@ -352,11 +350,7 @@ function createCanyonWalls(
 // BOULDERS / OBSTACLES
 // ============================================================================
 
-function createBoulders(
-  scene: Scene,
-  materials: CanyonMaterials,
-  rand: () => number
-): Mesh[] {
+function createBoulders(scene: Scene, materials: CanyonMaterials, rand: () => number): Mesh[] {
   const boulders: Mesh[] = [];
 
   for (let i = 0; i < BOULDER_COUNT; i++) {
@@ -374,21 +368,9 @@ function createBoulders(
       scene
     );
     boulder.material = materials.boulder;
-    boulder.position.set(
-      x,
-      sampleTerrainHeight(x, z) + size * 0.3,
-      z
-    );
-    boulder.scaling.set(
-      0.7 + rand() * 0.6,
-      0.5 + rand() * 0.5,
-      0.7 + rand() * 0.6
-    );
-    boulder.rotation.set(
-      rand() * Math.PI,
-      rand() * Math.PI,
-      rand() * Math.PI
-    );
+    boulder.position.set(x, sampleTerrainHeight(x, z) + size * 0.3, z);
+    boulder.scaling.set(0.7 + rand() * 0.6, 0.5 + rand() * 0.5, 0.7 + rand() * 0.6);
+    boulder.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
 
     boulders.push(boulder);
   }
@@ -400,28 +382,15 @@ function createBoulders(
 // BRIDGES
 // ============================================================================
 
-function createBridges(
-  scene: Scene,
-  materials: CanyonMaterials
-): BridgeStructure[] {
+function createBridges(scene: Scene, materials: CanyonMaterials): BridgeStructure[] {
   const bridges: BridgeStructure[] = [];
 
   // Main bridge (collapsible during gameplay)
-  const mainBridge = createSingleBridge(
-    scene,
-    materials,
-    new Vector3(0, 8, BRIDGE_Z),
-    true
-  );
+  const mainBridge = createSingleBridge(scene, materials, new Vector3(0, 8, BRIDGE_Z), true);
   bridges.push(mainBridge);
 
   // A smaller intact bridge earlier in the canyon (non-collapsible)
-  const earlyBridge = createSingleBridge(
-    scene,
-    materials,
-    new Vector3(0, 6, -600),
-    false
-  );
+  const earlyBridge = createSingleBridge(scene, materials, new Vector3(0, 6, -600), false);
   bridges.push(earlyBridge);
 
   return bridges;
@@ -478,11 +447,7 @@ function createSingleBridge(
       scene
     );
     railing.material = materials.bridgeMetal;
-    railing.position.set(
-      position.x + side * (bridgeWidth / 2 - 0.5),
-      position.y + 1.0,
-      position.z
-    );
+    railing.position.set(position.x + side * (bridgeWidth / 2 - 0.5), position.y + 1.0, position.z);
   }
 
   // Use the first segment as the representative mesh
@@ -545,16 +510,8 @@ function createWrecks(
       );
       debris.material = materials.wreck;
       debris.parent = wreck;
-      debris.position.set(
-        (rand() - 0.5) * 5,
-        rand() * 0.3,
-        (rand() - 0.5) * 5
-      );
-      debris.rotation.set(
-        rand() * Math.PI,
-        rand() * Math.PI,
-        rand() * Math.PI
-      );
+      debris.position.set((rand() - 0.5) * 5, rand() * 0.3, (rand() - 0.5) * 5);
+      debris.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
     }
 
     wrecks.push(wreck);
@@ -567,11 +524,7 @@ function createWrecks(
 // VEGETATION
 // ============================================================================
 
-function createVegetation(
-  scene: Scene,
-  materials: CanyonMaterials,
-  rand: () => number
-): Mesh[] {
+function createVegetation(scene: Scene, materials: CanyonMaterials, rand: () => number): Mesh[] {
   const vegMeshes: Mesh[] = [];
 
   for (let i = 0; i < VEGETATION_COUNT; i++) {
@@ -586,16 +539,8 @@ function createVegetation(
       scene
     );
     cluster.material = materials.vegetation;
-    cluster.position.set(
-      x,
-      sampleTerrainHeight(x, z) + 0.5,
-      z
-    );
-    cluster.scaling.set(
-      1 + rand() * 0.5,
-      0.5 + rand() * 0.5,
-      1 + rand() * 0.5
-    );
+    cluster.position.set(x, sampleTerrainHeight(x, z) + 0.5, z);
+    cluster.scaling.set(1 + rand() * 0.5, 0.5 + rand() * 0.5, 1 + rand() * 0.5);
 
     vegMeshes.push(cluster);
   }
@@ -607,10 +552,7 @@ function createVegetation(
 // DUST EMITTERS
 // ============================================================================
 
-function createDustEmitters(
-  scene: Scene,
-  rand: () => number
-): TransformNode[] {
+function createDustEmitters(scene: Scene, rand: () => number): TransformNode[] {
   const emitters: TransformNode[] = [];
 
   // Place dust sources along the canyon
@@ -646,11 +588,7 @@ function createLighting(scene: Scene): {
   const canyonLights: PointLight[] = [];
   for (let i = 0; i < 10; i++) {
     const z = -(i / 10) * CANYON_LENGTH;
-    const light = new PointLight(
-      `canyon_fill_${i}`,
-      new Vector3(0, 15, z),
-      scene
-    );
+    const light = new PointLight(`canyon_fill_${i}`, new Vector3(0, 15, z), scene);
     light.intensity = 0.4;
     light.diffuse = Color3.FromHexString('#FFC090');
     light.range = 80;
@@ -717,10 +655,7 @@ function createObjectiveMarkers(scene: Scene): ObjectiveMarker[] {
 // EXTRACTION ZONE
 // ============================================================================
 
-function createExtractionZone(
-  scene: Scene,
-  materials: CanyonMaterials
-): Mesh {
+function createExtractionZone(scene: Scene, materials: CanyonMaterials): Mesh {
   const zone = MeshBuilder.CreateCylinder(
     'canyon_extraction_zone',
     { diameter: 30, height: 0.3, tessellation: 32 },
@@ -772,10 +707,7 @@ function createSkyDome(scene: Scene): Mesh {
  * Animate the collapse of a bridge structure.
  * Each segment falls with slightly different timing for dramatic effect.
  */
-export function collapseBridge(
-  bridge: BridgeStructure,
-  scene: Scene
-): void {
+export function collapseBridge(bridge: BridgeStructure, scene: Scene): void {
   if (bridge.collapsed || !bridge.isCollapsible) return;
   bridge.collapsed = true;
 
@@ -865,11 +797,7 @@ export function spawnRockslide(
       (rand() - 0.5) * 5
     );
 
-    const rotationSpeed = new Vector3(
-      (rand() - 0.5) * 4,
-      (rand() - 0.5) * 4,
-      (rand() - 0.5) * 4
-    );
+    const rotationSpeed = new Vector3((rand() - 0.5) * 4, (rand() - 0.5) * 4, (rand() - 0.5) * 4);
 
     rocks.push({
       mesh: rock,
@@ -907,10 +835,7 @@ export function updateRockslide(
     rock.mesh.rotation.addInPlace(rock.rotationSpeed.scale(deltaTime));
 
     // Bounce off ground
-    const groundY = sampleTerrainHeight(
-      rock.mesh.position.x,
-      rock.mesh.position.z
-    );
+    const groundY = sampleTerrainHeight(rock.mesh.position.x, rock.mesh.position.z);
     if (rock.mesh.position.y < groundY + 0.5) {
       rock.mesh.position.y = groundY + 0.5;
       rock.velocity.y = Math.abs(rock.velocity.y) * 0.3;

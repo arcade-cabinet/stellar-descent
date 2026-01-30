@@ -20,13 +20,13 @@
  * - Combat callouts with audio synthesis
  */
 
-import type { CommsMessage } from '../types';
 import { getAudioManager } from '../core/AudioManager';
+import type { CommsMessage } from '../types';
 import {
+  getVoiceSynthesizer,
+  MARCUS_VOICE,
   type VoicePlaybackHandle,
   type VoiceProfile,
-  MARCUS_VOICE,
-  getVoiceSynthesizer,
 } from './VoiceSynthesizer';
 
 // ---------------------------------------------------------------------------
@@ -376,7 +376,7 @@ export class MarcusVoiceManager {
 let marcusVoiceInstance: MarcusVoiceManager | null = null;
 
 export function getMarcusVoiceManager(
-  onCommsMessage?: (msg: CommsMessage) => void,
+  onCommsMessage?: (msg: CommsMessage) => void
 ): MarcusVoiceManager {
   if (!marcusVoiceInstance) {
     marcusVoiceInstance = new MarcusVoiceManager(onCommsMessage);

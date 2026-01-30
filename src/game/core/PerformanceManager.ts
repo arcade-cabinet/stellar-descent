@@ -21,8 +21,8 @@
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
-import type { IShadowLight } from '@babylonjs/core/Lights/shadowLight';
 import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
+import type { IShadowLight } from '@babylonjs/core/Lights/shadowLight';
 import type { Scene } from '@babylonjs/core/scene';
 import type { DeviceType, ScreenInfo } from '../types';
 import { getScreenInfo } from '../utils/responsive';
@@ -602,9 +602,7 @@ class PerformanceManager {
         this.currentResolutionScale = newScale;
         this.engine?.setHardwareScalingLevel(1 / newScale);
         this.dynamicScalingActive = true;
-        console.log(
-          `[PerformanceManager] Reducing resolution to ${Math.round(newScale * 100)}%`
-        );
+        console.log(`[PerformanceManager] Reducing resolution to ${Math.round(newScale * 100)}%`);
       }
     }
   }
@@ -624,19 +622,14 @@ class PerformanceManager {
 
     // First, try to restore resolution if it was lowered
     if (this.dynamicScalingActive && this.currentResolutionScale < this.settings.resolutionScale) {
-      const newScale = Math.min(
-        this.settings.resolutionScale,
-        this.currentResolutionScale + 0.05
-      );
+      const newScale = Math.min(this.settings.resolutionScale, this.currentResolutionScale + 0.05);
       this.currentResolutionScale = newScale;
       this.engine?.setHardwareScalingLevel(1 / newScale);
 
       if (newScale >= this.settings.resolutionScale - 0.01) {
         this.dynamicScalingActive = false;
       }
-      console.log(
-        `[PerformanceManager] Restoring resolution to ${Math.round(newScale * 100)}%`
-      );
+      console.log(`[PerformanceManager] Restoring resolution to ${Math.round(newScale * 100)}%`);
       return;
     }
 
@@ -647,9 +640,7 @@ class PerformanceManager {
       const maxQuality = DEVICE_QUALITY_MAP[this.screenInfo.deviceType];
       const levels: QualityLevel[] = ['potato', 'low', 'medium', 'high', 'ultra'];
       if (levels.indexOf(newLevel) <= levels.indexOf(maxQuality)) {
-        console.log(
-          `[PerformanceManager] Upgrading quality: ${this.qualityLevel} -> ${newLevel}`
-        );
+        console.log(`[PerformanceManager] Upgrading quality: ${this.qualityLevel} -> ${newLevel}`);
         this.setQuality(newLevel);
       }
     }
@@ -1074,7 +1065,9 @@ class PerformanceManager {
 
     // Particle settings
     if (settings.particlesEnabled !== undefined) {
-      this.settings.particleMultiplier = settings.particlesEnabled ? this.settings.particleMultiplier : 0;
+      this.settings.particleMultiplier = settings.particlesEnabled
+        ? this.settings.particleMultiplier
+        : 0;
     }
 
     if (settings.particleDensity !== undefined) {
@@ -1225,7 +1218,8 @@ class PerformanceManager {
 
     const m = this.getMetrics();
     const targetFPS = this.config.minTargetFPS;
-    const fpsColor = m.fps >= targetFPS * 0.9 ? '#00ff00' : m.fps >= targetFPS * 0.6 ? '#ffff00' : '#ff0000';
+    const fpsColor =
+      m.fps >= targetFPS * 0.9 ? '#00ff00' : m.fps >= targetFPS * 0.6 ? '#ffff00' : '#ff0000';
 
     // Calculate auto-quality status
     let autoQualityStatus = '';
