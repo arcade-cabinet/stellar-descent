@@ -51,17 +51,9 @@ export function MainMenu({ onStart, onSkipTutorial }: MainMenuProps) {
   }, [playClickSound]);
 
   const handleFileChange = useCallback(
-  const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
-      // Validate file size (50MB limit)
-      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-      if (file.size > MAX_FILE_SIZE) {
-        console.error('File too large. Maximum size is 50MB.');
-        return;
-      }
 
       try {
         const buffer = await file.arrayBuffer();

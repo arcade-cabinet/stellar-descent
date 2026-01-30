@@ -1,26 +1,27 @@
 name: CI
 
-on: &anchor_for_if_needed
+on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-    - uses: pnpm/action-setup@fe02b34f77f8bc703788d581728de5388274cb3a  # v4.0.0
+    - uses: pnpm/action-setup@a3252b78c470c02df07e6d5829a28f5634585204 # v2.2.4
       with:
         version: 10
 
-    - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+    - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
       with:
         node-version: 20
         cache: 'pnpm'
+
     - name: Install dependencies
       run: pnpm install
 

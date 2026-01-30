@@ -25,6 +25,7 @@ function GameUI() {
     stage: 'INITIALIZING',
     progress: 0,
   });
+  const gameCanvasRef = useRef<{ startLoading: () => Promise<void> } | null>(null);
 
   const {
     playerHealth,

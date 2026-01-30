@@ -22,9 +22,7 @@ export default class MainScene {
     this._setCamera(scene);
     this._setLight(scene);
     this._setEnvironment(scene);
-    void this.loadComponents().catch((error) => {
-      console.error('Failed to load scene components', error);
-    });
+    this.loadComponents();
   }
 
   _setCamera(scene: Scene): void {

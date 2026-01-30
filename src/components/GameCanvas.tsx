@@ -430,16 +430,16 @@ export function GameCanvas({
 
       const handleResize = () => engine.resize();
       window.addEventListener('resize', handleResize);
-      resizeHandler = handleResize;
+
+      return () => {
+        window.removeEventListener('resize', handleResize);
+      };
     }
 
     initEngine();
 
     return () => {
       mounted = false;
-      if (resizeHandler) {
-        window.removeEventListener('resize', resizeHandler);
-      }
       tutorialLevelRef.current?.dispose();
       tutorialLevelRef.current = null;
       gameManagerRef.current?.dispose();
