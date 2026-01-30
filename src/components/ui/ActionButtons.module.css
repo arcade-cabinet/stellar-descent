@@ -1,0 +1,276 @@
+/* Action Buttons - Dynamic HUD buttons */
+
+.rightPanel {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.leftPanel {
+  position: fixed;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.bottomPanel {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bottomPanel .buttons {
+  flex-direction: row;
+}
+
+/* Base button */
+.button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-family: "Orbitron", "Courier New", monospace;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+
+.button:hover:not(.disabled):not(.cooldown) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.02);
+}
+
+.button:active:not(.disabled):not(.cooldown) {
+  transform: scale(0.98);
+}
+
+/* Sizes */
+.small {
+  padding: 8px 12px;
+  min-width: 80px;
+}
+
+.medium {
+  padding: 12px 16px;
+  min-width: 120px;
+}
+
+.large {
+  padding: 16px 24px;
+  min-width: 160px;
+}
+
+/* Variants */
+.primary {
+  border-color: #4caf50;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.primary:hover:not(.disabled):not(.cooldown) {
+  border-color: #66bb6a;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+}
+
+.secondary {
+  border-color: #2196f3;
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
+}
+
+.secondary:hover:not(.disabled):not(.cooldown) {
+  border-color: #42a5f5;
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+}
+
+.danger {
+  border-color: #f44336;
+  box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
+}
+
+.danger:hover:not(.disabled):not(.cooldown) {
+  border-color: #ef5350;
+  box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+}
+
+.warning {
+  border-color: #ff9800;
+  box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+}
+
+.warning:hover:not(.disabled):not(.cooldown) {
+  border-color: #ffa726;
+  box-shadow: 0 0 20px rgba(255, 152, 0, 0.5);
+}
+
+/* States */
+.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.cooldown {
+  cursor: wait;
+}
+
+.highlighted {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px currentColor,
+      0 0 20px currentColor;
+  }
+  50% {
+    box-shadow:
+      0 0 20px currentColor,
+      0 0 40px currentColor,
+      0 0 60px currentColor;
+  }
+}
+
+/* Overlays */
+.cooldownOverlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  transition: width 0.1s linear;
+}
+
+.progressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  transition: width 0.1s linear;
+}
+
+/* Content */
+.buttonContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.large .icon {
+  font-size: 28px;
+}
+
+.small .icon {
+  font-size: 16px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.large .label {
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.small .label {
+  font-size: 10px;
+}
+
+.key {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.large .key {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rightPanel,
+  .leftPanel {
+    top: auto;
+    bottom: 120px;
+    transform: none;
+  }
+
+  .rightPanel {
+    right: 10px;
+  }
+
+  .leftPanel {
+    left: 10px;
+  }
+
+  .button {
+    padding: 10px 14px;
+  }
+
+  .large {
+    padding: 14px 20px;
+    min-width: 140px;
+  }
+}

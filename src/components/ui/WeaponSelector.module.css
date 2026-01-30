@@ -1,0 +1,106 @@
+/* Weapon Selector - Desktop weapon quick-switch HUD */
+
+.weaponSelector {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(10, 10, 10, 0.7);
+  border: 1px solid rgba(74, 93, 35, 0.6);
+  border-radius: 4px;
+}
+
+.weaponSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(28, 28, 28, 0.8);
+  border: 2px solid rgba(74, 93, 35, 0.4);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 70px;
+}
+
+.weaponSlot:hover {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: rgba(74, 93, 35, 0.8);
+}
+
+.weaponSlot.active {
+  background: rgba(74, 93, 35, 0.3);
+  border-color: #6b8e23;
+  box-shadow: 0 0 8px rgba(107, 142, 35, 0.4);
+}
+
+.weaponSlot.active .weaponKey {
+  color: #9acd32;
+}
+
+.weaponKey {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: rgba(200, 200, 200, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+.weaponIcon {
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.weaponIcon.rifle::before {
+  content: "[]";
+  font-family: monospace;
+  color: #ffd700;
+}
+
+.weaponIcon.plasma::before {
+  content: "{}";
+  font-family: monospace;
+  color: #4da6ff;
+}
+
+.weaponIcon.smg::before {
+  content: "()";
+  font-family: monospace;
+  color: #32cd32;
+}
+
+.weaponName {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Visibility states */
+.visible {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+/* Responsive - hide on mobile (touch controls have their own) */
+@media (max-width: 768px), (pointer: coarse) {
+  .weaponSelector {
+    display: none;
+  }
+}

@@ -6,12 +6,22 @@ import { AISystem } from '../systems/aiSystem';
 import { CombatSystem } from '../systems/combatSystem';
 import type { TouchInput } from '../types';
 import { ChunkManager } from '../world/chunkManager';
+import { LODManager, type LODMetrics } from './LODManager';
+
+export interface CompassData {
+  heading: number;
+  objectiveDirection?: number;
+  objectiveDistance?: number;
+}
 
 export interface GameCallbacks {
   onHealthChange: (health: number) => void;
   onKill: () => void;
   onDamage: () => void;
   onNotification: (text: string, duration?: number) => void;
+  onCompassUpdate?: (data: CompassData) => void;
+  onHitMarker?: (damage: number, isCritical: boolean) => void;
+  onDirectionalDamage?: (angle: number, damage: number) => void;
 }
 
 export class GameManager {
@@ -48,6 +58,9 @@ export class GameManager {
     // Set player camera as the active camera
     this.scene.activeCamera = this.player.camera;
 
+    // Initialize LOD Manager with scene and player camera
+    LODManager.init(this.scene, this.player.camera);
+
     // Create game systems
     this.chunkManager = new ChunkManager(this.scene);
     this.combatSystem = new CombatSystem(this.scene);
@@ -62,11 +75,22 @@ export class GameManager {
       this.callbacks.onKill();
     });
 
-    this.combatSystem.onPlayerDamage((_amount) => {
+    this.combatSystem.onPlayerDamage((amount) => {
       this.callbacks.onDamage();
+      // We could use 'amount' for damage numbers here
       if (this.player?.entity.health) {
         this.callbacks.onHealthChange(this.player.entity.health.current);
       }
+    });
+
+    // Wire up hit marker callback for dealing damage
+    this.combatSystem.onHitMarker((damage, isCritical) => {
+      this.callbacks.onHitMarker?.(damage, isCritical);
+    });
+
+    // Wire up directional damage callback for taking damage
+    this.combatSystem.onDirectionalDamage((angle, damage) => {
+      this.callbacks.onDirectionalDamage?.(angle, damage);
     });
 
     // Load initial chunks around spawn
@@ -119,9 +143,18 @@ export class GameManager {
       this.combatSystem.update(cappedDelta);
     }
 
+    // Update LOD system (throttled internally)
+    LODManager.update();
+
     // Update health in UI
     if (this.player.entity.health) {
       this.callbacks.onHealthChange(this.player.entity.health.current);
+    }
+
+    // Update compass data
+    if (this.callbacks.onCompassUpdate) {
+      const heading = this.player.getHeading();
+      this.callbacks.onCompassUpdate({ heading });
     }
   }
 
@@ -148,12 +181,24 @@ export class GameManager {
 
   dispose(): void {
     this.isRunning = false;
-    if (this.player) {
-      this.player.dispose();
-      this.player = null;
-    }
+
+    // Dispose subsystems
+    this.combatSystem?.dispose();
+    this.aiSystem?.dispose();
+    this.chunkManager?.dispose();
+    LODManager.dispose();
+
+    // Clear references
+    this.player = null;
     this.chunkManager = null;
     this.combatSystem = null;
     this.aiSystem = null;
+  }
+
+  /**
+   * Get LOD system performance metrics
+   */
+  getLODMetrics(): LODMetrics {
+    return LODManager.getMetrics();
   }
 }

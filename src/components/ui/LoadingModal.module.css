@@ -1,24 +1,195 @@
+/* LoadingModal - Enhanced Military Terminal Loading Screen */
+
+/* ============================================================================
+   OVERLAY & BACKGROUND
+   ============================================================================ */
+
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 10, 12, 0.98);
+  background: #0a0a0c;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 150;
+  padding: 1rem;
+  overflow: hidden;
 }
+
+/* Scan line effect for CRT aesthetic */
+.scanLines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+/* Moving scanner line */
+.scannerLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(107, 142, 35, 0.3) 20%,
+    rgba(107, 142, 35, 0.6) 50%,
+    rgba(107, 142, 35, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 10px rgba(107, 142, 35, 0.5),
+    0 0 20px rgba(107, 142, 35, 0.3);
+  animation: scannerMove 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes scannerMove {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   MODAL CONTAINER
+   ============================================================================ */
 
 .modal {
-  width: min(90%, 500px);
-  padding: 2rem;
-  background: linear-gradient(180deg, rgba(28, 28, 28, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
-  border: 2px solid #4a5d23;
+  position: relative;
+  width: min(95%, 560px);
+  padding: 1.75rem 2rem;
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98) 0%, rgba(12, 12, 14, 0.98) 100%);
+  border: 1px solid #4a5d23;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  z-index: 10;
+  box-shadow:
+    0 0 40px rgba(74, 93, 35, 0.2),
+    inset 0 0 60px rgba(0, 0, 0, 0.4);
 }
 
-/* Header */
+/* ============================================================================
+   CORNER DECORATIONS
+   ============================================================================ */
+
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cornerTL {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.cornerTR {
+  top: -1px;
+  right: -1px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.cornerBL {
+  bottom: -1px;
+  left: -1px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+.cornerBR {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Blinking corner lights */
+.cornerLight {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #b5a642;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #b5a642;
+  animation: cornerBlink 1.5s ease-in-out infinite;
+}
+
+.cornerTL .cornerLight {
+  top: 2px;
+  left: 2px;
+}
+.cornerTR .cornerLight {
+  top: 2px;
+  right: 2px;
+}
+.cornerBL .cornerLight {
+  bottom: 2px;
+  left: 2px;
+}
+.cornerBR .cornerLight {
+  bottom: 2px;
+  right: 2px;
+}
+
+@keyframes cornerBlink {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 6px #b5a642;
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 2px #b5a642;
+  }
+}
+
+/* ============================================================================
+   DATA STREAM HEADER
+   ============================================================================ */
+
+.dataStream {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #4a5d23;
+  letter-spacing: 0.2em;
+  text-align: center;
+  opacity: 0.6;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
 .header {
   display: flex;
   align-items: center;
@@ -33,65 +204,185 @@
 
 .headerText {
   font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #b5a642;
+  font-size: 0.6875rem;
+  color: #888;
   letter-spacing: 0.15em;
   white-space: nowrap;
 }
 
-/* Schematic */
+/* ============================================================================
+   LEVEL INFO
+   ============================================================================ */
+
+.levelInfo {
+  padding: 0.75rem 1rem;
+  background: rgba(74, 93, 35, 0.1);
+  border-left: 3px solid #b5a642;
+}
+
+.levelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chapterLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #b5a642;
+  letter-spacing: 0.2em;
+}
+
+.missionName {
+  font-family: "Rajdhani", "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(232, 232, 232, 0.2);
+}
+
+.missionSubtitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================================
+   SCHEMATIC
+   ============================================================================ */
+
 .schematic {
   display: flex;
   justify-content: center;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
+  position: relative;
 }
 
 .asciiArt {
   font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 0.6rem;
-  color: #4a5d23;
-  line-height: 1.2;
+  font-size: 0.55rem;
+  color: #6b8e23;
+  line-height: 1.15;
   margin: 0;
-  opacity: 0.8;
+  text-shadow: 0 0 8px rgba(107, 142, 35, 0.4);
+  position: relative;
+  z-index: 1;
 }
 
-/* Progress */
-.progressContainer {
+.schematicGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(107, 142, 35, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  animation: schematicPulse 2s ease-in-out infinite;
+}
+
+@keyframes schematicPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   PROGRESS SECTION
+   ============================================================================ */
+
+.progressSection {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #888;
+  letter-spacing: 0.1em;
 }
 
-.progressBar {
-  flex: 1;
-  height: 8px;
-  background: #1c1c1c;
-  border: 1px solid #4a5d23;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: linear-gradient(90deg, #4a5d23, #6b8e23);
-  transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(107, 142, 35, 0.5);
+.progressStage {
+  color: #6b8e23;
 }
 
 .progressPercent {
-  font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #b5a642;
-  min-width: 3rem;
-  text-align: right;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(181, 166, 66, 0.3);
 }
 
-/* Status */
+.progressContainer {
+  padding: 3px;
+  background: #0f0f11;
+  border: 1px solid #3a3a3a;
+  position: relative;
+}
+
+.progressBar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+}
+
+.progressSegment {
+  flex: 1;
+  height: 100%;
+  background: #1c1c1c;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.segmentFilled {
+  background: linear-gradient(180deg, #6b8e23 0%, #4a5d23 100%);
+  box-shadow: 0 0 4px rgba(107, 142, 35, 0.4);
+}
+
+/* Active segment (leading edge) pulses */
+.segmentActive {
+  animation: segmentPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes segmentPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(107, 142, 35, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 12px rgba(107, 142, 35, 0.9),
+      0 0 20px rgba(107, 142, 35, 0.5);
+  }
+}
+
+.progressSubtext {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #555;
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+/* ============================================================================
+   STATUS
+   ============================================================================ */
+
 .status {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.3);
+  padding: 0.625rem 0.875rem;
+  background: rgba(0, 0, 0, 0.4);
   border-left: 3px solid #4a5d23;
 }
 
@@ -101,13 +392,14 @@
   background: #6b8e23;
   border-radius: 50%;
   animation: pulse 1s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 @keyframes pulse {
   0%,
   100% {
     opacity: 1;
-    box-shadow: 0 0 5px #6b8e23;
+    box-shadow: 0 0 6px #6b8e23;
   }
   50% {
     opacity: 0.5;
@@ -117,52 +409,332 @@
 
 .statusText {
   font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: #e8e8e8;
   letter-spacing: 0.05em;
 }
 
 .statusDetail {
-  color: #888;
-  font-size: 0.65rem;
+  color: #666;
+  font-size: 0.625rem;
 }
 
-/* Footer */
+/* ============================================================================
+   TIPS SECTION
+   ============================================================================ */
+
+.tipsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.tipsDivider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tipsLine {
+  flex: 1;
+  height: 1px;
+  background: #2a2a2a;
+}
+
+.tipsLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #555;
+  letter-spacing: 0.15em;
+}
+
+.tipContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.75rem;
+  background: rgba(74, 93, 35, 0.08);
+  border: 1px solid #2a2a2a;
+  min-height: 70px;
+  transition: opacity 0.3s ease;
+}
+
+.tipFading {
+  opacity: 0;
+}
+
+.tipCategory {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #b5a642;
+  letter-spacing: 0.1em;
+}
+
+.tipText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #a0a0a0;
+  line-height: 1.5;
+  margin: 0;
+  min-height: 1.5em;
+}
+
+/* Blinking cursor for typewriter effect */
+.cursor {
+  color: #6b8e23;
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   SYSTEM STATUS INDICATORS
+   ============================================================================ */
+
+.systemStatus {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #666;
+  letter-spacing: 0.1em;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.statusDot[data-status="active"] {
+  background: #6b8e23;
+  box-shadow: 0 0 4px #6b8e23;
+}
+
+.statusDot[data-status="loading"] {
+  background: #b5a642;
+  box-shadow: 0 0 4px #b5a642;
+  animation: statusBlink 0.5s ease-in-out infinite;
+}
+
+.statusDot[data-status="inactive"] {
+  background: #444;
+}
+
+@keyframes statusBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
 .footer {
   display: flex;
   justify-content: space-between;
-  padding-top: 0.5rem;
-  border-top: 1px solid #3a3a3a;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: 1px solid #2a2a2a;
 }
 
 .footer span {
   font-family: "Share Tech Mono", "Courier New", monospace;
-  font-size: 0.625rem;
-  color: #666;
+  font-size: 0.5625rem;
+  color: #555;
   letter-spacing: 0.05em;
 }
 
-/* Mobile */
-@media (max-width: 480px) {
-  .modal {
-    padding: 1.5rem;
-  }
+.secureConnection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-  .asciiArt {
-    font-size: 0.5rem;
-  }
+.connectionDot {
+  width: 6px;
+  height: 6px;
+  background: #6b8e23;
+  border-radius: 50%;
+  box-shadow: 0 0 4px #6b8e23;
+  animation: connectionPulse 2s ease-in-out infinite;
+}
 
-  .headerText {
-    font-size: 0.65rem;
+@keyframes connectionPulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 4px #6b8e23;
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px #6b8e23;
   }
 }
 
+/* ============================================================================
+   ACCESSIBILITY: REDUCED MOTION
+   ============================================================================ */
+
 @media (prefers-reduced-motion: reduce) {
-  .statusIndicator {
+  .statusIndicator,
+  .cornerLight,
+  .connectionDot,
+  .statusDot[data-status="loading"],
+  .cursor {
     animation: none;
   }
 
-  .progressFill {
+  .progressSegment,
+  .segmentFilled,
+  .segmentActive {
     transition: none;
+    animation: none;
+  }
+
+  .tipContainer {
+    transition: none;
+  }
+
+  .scanLines,
+  .scannerLine,
+  .schematicGlow {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================ */
+
+@media (prefers-contrast: high) {
+  .modal {
+    border-width: 2px;
+    border-color: #6b8e23;
+  }
+
+  .missionName {
+    color: #ffffff;
+  }
+
+  .tipText {
+    color: #d0d0d0;
+  }
+
+  .statusText {
+    color: #ffffff;
+  }
+
+  .asciiArt {
+    color: #8fbc8f;
+  }
+
+  .progressPercent {
+    color: #ffd700;
+  }
+}
+
+/* ============================================================================
+   MOBILE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 520px) {
+  .modal {
+    padding: 1.25rem 1rem;
+    gap: 0.875rem;
+  }
+
+  .asciiArt {
+    font-size: 0.45rem;
+  }
+
+  .headerText {
+    font-size: 0.5625rem;
+    letter-spacing: 0.1em;
+  }
+
+  .missionName {
+    font-size: 1.125rem;
+  }
+
+  .levelInfo {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .progressBar {
+    height: 10px;
+  }
+
+  .tipText {
+    font-size: 0.75rem;
+  }
+
+  .tipContainer {
+    min-height: 60px;
+    padding: 0.625rem;
+  }
+
+  .footer span {
+    font-size: 0.5rem;
+  }
+
+  .systemStatus {
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .dataStream {
+    font-size: 0.4rem;
+  }
+}
+
+/* ============================================================================
+   VERY SMALL SCREENS
+   ============================================================================ */
+
+@media (max-width: 360px) {
+  .asciiArt {
+    font-size: 0.35rem;
+  }
+
+  .missionName {
+    font-size: 1rem;
+  }
+
+  .chapterLabel {
+    font-size: 0.5625rem;
+  }
+
+  .systemStatus {
+    display: none;
+  }
+
+  .dataStream {
+    display: none;
   }
 }

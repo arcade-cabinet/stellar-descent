@@ -11,11 +11,29 @@
   pointer-events: auto;
 }
 
-/* Damage Flash */
+/* Visibility transitions for progressive HUD unlocking */
+.visible {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+  pointer-events: none;
+}
+
+/* Damage Flash - uses colorblind-aware color */
 .damageFlash {
   position: absolute;
   inset: 0;
-  background: #f44336;
+  background: var(--cb-health-low, #f44336);
   opacity: 0.4;
   animation: flashOut 0.3s ease forwards;
   pointer-events: none;
@@ -46,6 +64,7 @@
 }
 
 .healthBar {
+  position: relative;
   width: clamp(150px, 30vw, 250px);
   height: 20px;
   background: rgba(28, 28, 28, 0.8);
@@ -54,11 +73,85 @@
   overflow: hidden;
 }
 
+/* Pattern overlay for colorblind accessibility */
+.healthBar.withPatterns {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 255, 255, 0.05) 3px,
+    rgba(255, 255, 255, 0.05) 6px
+  );
+}
+
 .healthFill {
   height: 100%;
   transition:
     width 0.2s ease,
     background-color 0.3s ease;
+}
+
+/* Health status patterns for colorblind accessibility */
+.healthFill.healthHigh {
+  background-color: var(--cb-health-high, #4caf50);
+}
+
+.healthFill.healthMedium {
+  background-color: var(--cb-health-medium, #ff9800);
+}
+
+.healthFill.healthLow {
+  background-color: var(--cb-health-low, #f44336);
+}
+
+/* Pattern fills when patterns mode is enabled */
+.cb-patterns .healthFill.healthMedium {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(0, 0, 0, 0.2) 4px,
+    rgba(0, 0, 0, 0.2) 8px
+  );
+}
+
+.cb-patterns .healthFill.healthLow {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.3) 3px,
+    rgba(0, 0, 0, 0.3) 6px
+  );
+}
+
+/* Critical health indicator (exclamation mark) */
+.healthCriticalIndicator {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow:
+    0 0 4px var(--cb-health-low, #f44336),
+    0 0 8px var(--cb-health-low, #f44336);
+  animation: criticalPulse 0.5s ease-in-out infinite;
+  z-index: 2;
+}
+
+@keyframes criticalPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-50%) scale(1.1);
+  }
 }
 
 .healthText {
@@ -113,62 +206,8 @@
 .killsCount {
   font-family: "Courier New", monospace;
   font-size: 1.25rem;
-  color: #ffbf00;
+  color: var(--cb-primary, #ffbf00);
   font-weight: bold;
-}
-
-/* Crosshair */
-.crosshair {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.crosshairDot {
-  width: 6px;
-  height: 6px;
-  background: #ffbf00;
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.crosshairLine {
-  position: absolute;
-  background: rgba(232, 232, 232, 0.7);
-}
-
-.crosshairLine.top,
-.crosshairLine.bottom {
-  width: 2px;
-  height: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.crosshairLine.left,
-.crosshairLine.right {
-  width: 14px;
-  height: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.crosshairLine.top {
-  bottom: calc(50% + 10px);
-}
-.crosshairLine.bottom {
-  top: calc(50% + 10px);
-}
-.crosshairLine.left {
-  right: calc(50% + 10px);
-}
-.crosshairLine.right {
-  left: calc(50% + 10px);
 }
 
 /* Notification */
@@ -210,6 +249,132 @@
   }
 }
 
+/* Ammo Display */
+.ammoContainer {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  min-width: 100px;
+}
+
+.ammoMain {
+  display: flex;
+  align-items: baseline;
+  gap: 0.125rem;
+}
+
+.ammoCount {
+  font-family: "Courier New", monospace;
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #e8e8e8;
+  min-width: 2.5ch;
+  text-align: right;
+  transition: color 0.2s ease;
+}
+
+.ammoCount.ammoLow {
+  color: var(--cb-ammo-low, #ff6b35);
+  animation: ammoPulse 0.5s ease-in-out infinite;
+}
+
+.ammoCount.ammoReloading {
+  color: #ffbf00;
+  animation: ammoReloadingBlink 0.4s ease-in-out infinite;
+}
+
+.ammoSeparator {
+  font-family: "Courier New", monospace;
+  font-size: 1.25rem;
+  color: #808080;
+}
+
+.ammoMagazine {
+  font-family: "Courier New", monospace;
+  font-size: 1rem;
+  color: #808080;
+}
+
+.ammoReserve {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ammoReserveLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #606060;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.ammoReserveCount {
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #a0a0a0;
+  font-weight: bold;
+}
+
+.reloadContainer {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.reloadBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(60, 60, 60, 0.8);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.reloadProgress {
+  height: 100%;
+  background: linear-gradient(90deg, #ffbf00, #ffd700);
+  border-radius: 2px;
+  transition: width 0.05s linear;
+}
+
+.reloadText {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #ffbf00;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-top: 0.125rem;
+  display: block;
+  text-align: center;
+}
+
+@keyframes ammoPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes ammoReloadingBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .healthBar {
@@ -225,31 +390,100 @@
     padding: 0.375rem 0.75rem;
   }
 
-  .crosshairDot {
-    width: 8px;
-    height: 8px;
+  .ammoContainer {
+    min-width: 80px;
+    padding: 0.375rem 0.75rem;
   }
 
-  .crosshairLine {
-    background: rgba(232, 232, 232, 0.8);
+  .ammoCount {
+    font-size: 1.5rem;
   }
 
-  .crosshairLine.top,
-  .crosshairLine.bottom {
-    width: 3px;
-    height: 16px;
-  }
-
-  .crosshairLine.left,
-  .crosshairLine.right {
-    width: 16px;
-    height: 3px;
+  .ammoReserveLabel {
+    display: none;
   }
 }
 
-/* When touch controls are visible, move health bar up */
+/* When touch controls are visible, move health bar and ammo up */
 @media (pointer: coarse) {
   .healthContainer {
     bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
+  }
+
+  .ammoContainer {
+    bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
+  }
+}
+
+/* Compass positioning when mission text is visible */
+.compassBelowMission {
+  position: absolute;
+  top: calc(max(20px, env(safe-area-inset-top, 20px)) + 50px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Objective Marker */
+.objectiveMarker {
+  position: absolute;
+  top: calc(max(20px, env(safe-area-inset-top, 20px)) + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #ffd700;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  animation: markerPulse 2s ease-in-out infinite;
+}
+
+.objectiveMarkerIcon {
+  font-family: "Courier New", monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: inherit;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.objectiveMarkerLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #e8e8e8;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+@keyframes markerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .visible,
+  .hidden {
+    transition: none;
+  }
+
+  .objectiveMarker {
+    animation: none;
+  }
+
+  .notification {
+    animation: none;
+  }
+
+  @keyframes flashOut {
+    to {
+      opacity: 0;
+    }
   }
 }

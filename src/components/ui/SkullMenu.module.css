@@ -1,0 +1,495 @@
+/* Skull Menu - Sci-fi terminal panel for skull modifier management */
+
+/* ================================================================
+   OVERLAY
+   ================================================================ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  animation: overlayFadeIn 0.2s ease;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ================================================================
+   PANEL
+   ================================================================ */
+
+.panel {
+  position: relative;
+  width: min(92%, 640px);
+  max-height: 85vh;
+  background: linear-gradient(180deg, rgba(12, 14, 10, 0.98) 0%, rgba(8, 10, 6, 0.98) 100%);
+  border: 1px solid #4a5d23;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Corner brackets (matching MainMenu style) */
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cornerTL {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.cornerTR {
+  top: -1px;
+  right: -1px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.cornerBL {
+  bottom: -1px;
+  left: -1px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+.cornerBR {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* ================================================================
+   HEADER
+   ================================================================ */
+
+.header {
+  padding: 1rem 1.25rem;
+  background: rgba(74, 93, 35, 0.15);
+  border-bottom: 1px solid #4a5d23;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerIcon {
+  font-size: 1.25rem;
+}
+
+.headerTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.9375rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  font-weight: normal;
+  margin: 0;
+}
+
+.headerCount {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #666;
+  letter-spacing: 0.05em;
+}
+
+/* ================================================================
+   WARNING BANNER
+   ================================================================ */
+
+.warningBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(181, 66, 66, 0.1);
+  border-bottom: 1px solid rgba(181, 66, 66, 0.3);
+}
+
+.warningIcon {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #b54242;
+  flex-shrink: 0;
+}
+
+.warningText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #b54242;
+  line-height: 1.4;
+}
+
+/* ================================================================
+   CONTENT (scrollable skull list)
+   ================================================================ */
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+/* Custom scrollbar */
+.content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: #4a5d23;
+  border-radius: 2px;
+}
+
+/* ================================================================
+   CATEGORY SECTIONS
+   ================================================================ */
+
+.categorySection {
+  margin-bottom: 0.75rem;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.categoryLine {
+  flex: 1;
+  height: 1px;
+  background: #2a2a2a;
+}
+
+.categoryLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #666;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ================================================================
+   SKULL CARD
+   ================================================================ */
+
+.skullGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.skullCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2a2a2a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.skullCard:hover:not(.skullCardLocked) {
+  background: rgba(74, 93, 35, 0.15);
+  border-color: #4a5d23;
+}
+
+.skullCard:focus-visible {
+  outline: 2px solid #b5a642;
+  outline-offset: 2px;
+}
+
+.skullCardActive {
+  background: rgba(74, 93, 35, 0.2);
+  border-color: #4a5d23;
+  box-shadow: inset 0 0 8px rgba(74, 93, 35, 0.15);
+}
+
+.skullCardActive:hover {
+  background: rgba(74, 93, 35, 0.3);
+}
+
+.skullCardLocked {
+  opacity: 0.4;
+  cursor: default;
+  filter: grayscale(0.6);
+}
+
+/* ================================================================
+   SKULL ICON
+   ================================================================ */
+
+.skullIcon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.375rem;
+  border: 1px solid #3a3a3a;
+  background: rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.skullCardActive .skullIcon {
+  border-color: #4a5d23;
+  background: rgba(74, 93, 35, 0.15);
+}
+
+.skullCardLocked .skullIcon {
+  font-size: 1rem;
+  color: #444;
+}
+
+/* ================================================================
+   SKULL INFO
+   ================================================================ */
+
+.skullInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.skullName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #e8e8e8;
+  font-weight: normal;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.125rem;
+}
+
+.skullCardLocked .skullName {
+  color: #666;
+}
+
+.skullDescription {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #888;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.skullCardLocked .skullDescription {
+  color: #444;
+}
+
+.skullLevel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #555;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* ================================================================
+   SKULL STATUS INDICATOR
+   ================================================================ */
+
+.skullStatus {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #3a3a3a;
+  border-radius: 2px;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #555;
+  transition: all 0.15s ease;
+}
+
+.skullStatusActive {
+  border-color: #4a5d23;
+  color: #b5a642;
+  background: rgba(74, 93, 35, 0.15);
+}
+
+.skullStatusLocked {
+  border-color: #222;
+  color: #333;
+}
+
+/* ================================================================
+   SCORE MULTIPLIER BADGE
+   ================================================================ */
+
+.scoreBadge {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5625rem;
+  color: #b5a642;
+  background: rgba(181, 166, 66, 0.1);
+  border: 1px solid rgba(181, 166, 66, 0.2);
+  padding: 0.125rem 0.375rem;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   FOOTER
+   ================================================================ */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #2a2a2a;
+  gap: 0.5rem;
+}
+
+.footerInfo {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #555;
+  letter-spacing: 0.05em;
+}
+
+.footerMultiplier {
+  color: #b5a642;
+}
+
+.closeButton {
+  padding: 0.625rem 1.5rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.1em;
+}
+
+.closeButton:hover {
+  background: rgba(74, 93, 35, 0.2);
+  border-color: #4a5d23;
+  color: #e8e8e8;
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid #b5a642;
+  outline-offset: 2px;
+}
+
+/* ================================================================
+   EMPTY STATE
+   ================================================================ */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  gap: 0.75rem;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #555;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
+@media (max-width: 480px) {
+  .panel {
+    width: 100%;
+    max-height: 90vh;
+    border: none;
+    border-top: 1px solid #4a5d23;
+    border-bottom: 1px solid #4a5d23;
+  }
+
+  .skullCard {
+    padding: 0.625rem;
+    gap: 0.5rem;
+  }
+
+  .skullIcon {
+    width: 34px;
+    height: 34px;
+    font-size: 1.125rem;
+  }
+
+  .skullDescription {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* ================================================================
+   REDUCED MOTION
+   ================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+
+  .skullCard {
+    transition: none;
+  }
+
+  .closeButton {
+    transition: none;
+  }
+
+  .skullStatus {
+    transition: none;
+  }
+}

@@ -7,7 +7,7 @@ This document tracks the development progress, decisions, and roadmap for STELLA
 ## Project Timeline
 
 | Phase | Status | Description |
-| ----- | ------ | ----------- |
+| :--- | :--- | :--- |
 | Phase 1: Foundation | ✅ Complete | Project setup, core systems |
 | Phase 2: Core Gameplay | ✅ Complete | Combat, AI, procedural world |
 | Phase 3: Tutorial & Story | 🔄 In Progress | Anchor Station, dialogue, shooting range |
@@ -174,7 +174,7 @@ Complete initial build of the game from scratch using the bp800 BabylonJS templa
 
 ### MACRO LEVEL - Project Phases (Months)
 
-```text
+```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ PHASE 1: FOUNDATION                                          [COMPLETE] │
 │ Core engine, ECS, world generation, basic combat                        │

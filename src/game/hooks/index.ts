@@ -1,0 +1,1 @@
+export { useCommsSubtitles } from './useCommsSubtitles';
