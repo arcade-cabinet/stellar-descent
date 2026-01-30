@@ -220,7 +220,9 @@ class WorldDatabase {
     if (!this.db) return null;
 
     const result = this.db.exec(
-      `SELECT * FROM chunks WHERE chunk_x = ${chunkX} AND chunk_z = ${chunkZ}`
+    const result = this.db.exec(
+      `SELECT * FROM chunks WHERE chunk_x = ? AND chunk_z = ?`,
+      [chunkX, chunkZ]
     );
 
     if (result.length === 0 || result[0].values.length === 0) return null;
