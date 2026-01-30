@@ -8,6 +8,8 @@ A sophisticated, mobile-first arcade shooter built with modern web technologies.
 
 ## Quick Start
 
+This project uses `pnpm` for package management.
+
 ```bash
 # Install dependencies
 pnpm install
