@@ -1,5 +1,5 @@
 import type { Scene } from '@babylonjs/core/scene';
-import { AdvancedDynamicTexture, Button, StackPanel, type TextBlock } from '@babylonjs/gui/2D';
+import { AdvancedDynamicTexture, Button, StackPanel } from '@babylonjs/gui/2D';
 
 export const setUI = async (scene: Scene) => {
   if (scene.getEngine().name === 'WebGPU') {
