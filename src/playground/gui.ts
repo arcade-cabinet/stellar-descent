@@ -9,7 +9,7 @@ export const setUI = async (scene: Scene) => {
     console.log('WebGPU GUI extensions loaded');
   }
 
-  const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI('myUI');
+  const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI('myUI', true, scene);
 
   const panel = new StackPanel();
   panel.width = 0.15;
