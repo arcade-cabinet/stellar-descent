@@ -386,9 +386,9 @@ class WorldDatabase {
     // Get chunks outside radius
     const result = this.db.exec(`
       SELECT chunk_x, chunk_z FROM chunks
-      WHERE (chunk_x - ${centerX}) * (chunk_x - ${centerX}) +
-            (chunk_z - ${centerZ}) * (chunk_z - ${centerZ}) > ${radius * radius}
-    `);
+      WHERE (chunk_x - ?) * (chunk_x - ?) +
+            (chunk_z - ?) * (chunk_z - ?) > ?
+    `, [centerX, centerX, centerZ, centerZ, radius * radius]);
 
     if (result.length === 0) return;
 
