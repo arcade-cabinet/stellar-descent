@@ -64,14 +64,16 @@ export async function requestWakeLock(): Promise<void> {
   }
 }
 
-export function releaseWakeLock(): void {
+export async function releaseWakeLock(): Promise<void> {
   if (wakeLock) {
     try {
-      wakeLock.release();
+      await wakeLock.release();
     } catch {
       // Already released
     } finally {
       wakeLock = null;
     }
+  }
+}
   }
 }
