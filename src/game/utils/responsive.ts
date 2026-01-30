@@ -66,7 +66,12 @@ export async function requestWakeLock(): Promise<void> {
 
 export function releaseWakeLock(): void {
   if (wakeLock) {
-    wakeLock.release();
-    wakeLock = null;
+    try {
+      wakeLock.release();
+    } catch {
+      // Already released
+    } finally {
+      wakeLock = null;
+    }
   }
 }
