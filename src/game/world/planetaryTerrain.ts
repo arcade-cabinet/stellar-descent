@@ -5,15 +5,13 @@ import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
-import { tokens } from '../utils/designTokens';
 
 // Planet configuration
 const PLANET_RADIUS = 50000; // Massive planet radius
-const TERRAIN_RING_COUNT = 12; // Number of terrain rings around player
-const RING_SEGMENT_COUNT = 24; // Segments per ring
+const _TERRAIN_RING_COUNT = 12; // Number of terrain rings around player
+const _RING_SEGMENT_COUNT = 24; // Segments per ring
 const TERRAIN_RADIUS = 800; // Visible terrain radius around player
 const CURVATURE_SCALE = 0.00002; // How much curvature to apply locally
 
@@ -134,8 +132,8 @@ export class PlanetaryTerrain {
   }
 
   private registerShaders(): void {
-    Effect.ShadersStore['planetSurfaceVertexShader'] = planetVertexShader;
-    Effect.ShadersStore['planetSurfaceFragmentShader'] = planetFragmentShader;
+    Effect.ShadersStore.planetSurfaceVertexShader = planetVertexShader;
+    Effect.ShadersStore.planetSurfaceFragmentShader = planetFragmentShader;
   }
 
   createPlanet(): void {
@@ -221,7 +219,7 @@ export class PlanetaryTerrain {
     this.localTerrain.receiveShadows = true;
   }
 
-  private applyCurvature(mesh: Mesh, subdivisions: number): void {
+  private applyCurvature(mesh: Mesh, _subdivisions: number): void {
     const positions = mesh.getVerticesData('position');
     if (!positions) return;
 

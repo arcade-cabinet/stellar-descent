@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TUTORIAL_STEPS, type TutorialStep } from './tutorialSteps';
+import { TUTORIAL_STEPS } from './tutorialSteps';
 
 describe('Tutorial Steps Configuration', () => {
   describe('step structure', () => {
@@ -22,16 +22,7 @@ describe('Tutorial Steps Configuration', () => {
 
   describe('objective types', () => {
     it('should only use valid objective types', () => {
-      const validTypes = [
-        'move_to',
-        'interact',
-        'look_at',
-        'wait',
-        'shooting_range',
-        'platforming_jump',
-        'platforming_crouch',
-        'platforming_complete',
-      ];
+      const validTypes = ['move_to', 'interact', 'look_at', 'wait', 'shooting_range'];
 
       TUTORIAL_STEPS.forEach((step) => {
         if (step.objective) {
@@ -49,13 +40,11 @@ describe('Tutorial Steps Configuration', () => {
       });
     });
 
-    it('interact objectives should have target or interactId', () => {
+    it('interact objectives should have target', () => {
       const interactSteps = TUTORIAL_STEPS.filter((s) => s.objective?.type === 'interact');
 
       interactSteps.forEach((step) => {
-        const hasTarget = step.objective?.target !== undefined;
-        const hasInteractId = step.objective?.interactId !== undefined;
-        expect(hasTarget || hasInteractId, `${step.id} missing target or interactId`).toBe(true);
+        expect(step.objective?.target, `${step.id} missing target`).toBeDefined();
       });
     });
 
@@ -106,8 +95,6 @@ describe('Tutorial Steps Configuration', () => {
         'enter_pod',
         'launch',
         'start_calibration',
-        'pickup_weapon',
-        'start_platforming',
       ];
 
       TUTORIAL_STEPS.forEach((step) => {
@@ -121,11 +108,11 @@ describe('Tutorial Steps Configuration', () => {
   });
 
   describe('shooting range flow', () => {
-    it('should have weapon acquisition before shooting range', () => {
+    it('should have armory master intro before shooting range', () => {
       const shootingIndex = TUTORIAL_STEPS.findIndex((s) => s.id === 'calibration_start');
-      const weaponIndex = TUTORIAL_STEPS.findIndex((s) => s.id === 'approach_weapon_rack');
+      const armoryIndex = TUTORIAL_STEPS.findIndex((s) => s.id === 'armory_master_intro');
 
-      expect(weaponIndex).toBeLessThan(shootingIndex);
+      expect(armoryIndex).toBeLessThan(shootingIndex);
     });
 
     it('should have move_to_range step before calibration', () => {
@@ -163,18 +150,18 @@ describe('Tutorial Steps Configuration', () => {
       expect(equipIndex).toBeLessThan(calibrationIndex);
     });
 
-    it('should proceed to hangar after calibration', () => {
+    it('should have commander briefing after calibration', () => {
       const calibrationCompleteIndex = TUTORIAL_STEPS.findIndex(
         (s) => s.id === 'calibration_complete'
       );
-      const hangarIndex = TUTORIAL_STEPS.findIndex((s) => s.id === 'move_to_hangar');
+      const commanderIndex = TUTORIAL_STEPS.findIndex((s) => s.id === 'commander_intro');
 
-      expect(hangarIndex).toBe(calibrationCompleteIndex + 1);
+      expect(commanderIndex).toBe(calibrationCompleteIndex + 1);
     });
 
     it('should end with launch sequence', () => {
       const lastStep = TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1];
-      expect(lastStep.id).toBe('pre_launch');
+      expect(lastStep.id).toBe('launch');
       expect(lastStep.triggerSequence).toBe('launch');
     });
   });

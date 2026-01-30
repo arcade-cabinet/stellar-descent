@@ -1,10 +1,10 @@
-/* Interaction prompt - shown when player can interact with an object */
+/* Interaction Prompt Styles */
 .interactionPrompt {
   position: fixed;
   bottom: 35%;
   left: 50%;
   transform: translateX(-50%);
-  display: none;
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
@@ -13,239 +13,23 @@
   border: 2px solid #b5a642;
   font-family: "Share Tech Mono", monospace;
   z-index: 100;
-  animation: promptFadeIn 0.2s ease-out;
-}
-
-@keyframes promptFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
 }
 
 .promptKey {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(74, 93, 35, 0.6);
+  background: rgba(74, 93, 35, 0.5);
   border: 2px solid #b5a642;
   color: #e8e8e8;
   font-size: 1.25rem;
   font-weight: bold;
-  animation: keyPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes keyPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 5px rgba(181, 166, 66, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 15px rgba(181, 166, 66, 0.6);
-  }
 }
 
 .promptText {
   color: #a0a0a0;
   font-size: 0.75rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-/* Quest marker styles - rendered as HTML overlays on screen */
-.questMarker {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  z-index: 50;
-  transform: translate(-50%, -100%);
-}
-
-.questMarkerIcon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  animation: markerBob 1s ease-in-out infinite;
-}
-
-@keyframes markerBob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-/* Main objective marker (!) - gold */
-.questMarkerMain .questMarkerIcon {
-  color: #ffd700;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-}
-
-/* Optional objective marker (?) - blue */
-.questMarkerOptional .questMarkerIcon {
-  color: #4a9eff;
-  text-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
-}
-
-/* Interact marker ([E]) - white */
-.questMarkerInteract .questMarkerIcon {
-  color: #ffffff;
-  background: rgba(10, 10, 12, 0.8);
-  border: 1px solid #b5a642;
-  font-size: 0.875rem;
-  padding: 4px 8px;
-}
-
-/* Enemy marker - red */
-.questMarkerEnemy .questMarkerIcon {
-  color: #ff4040;
-  text-shadow: 0 0 10px rgba(255, 64, 64, 0.5);
-}
-
-/* Ally marker - green */
-.questMarkerAlly .questMarkerIcon {
-  color: #40ff40;
-  text-shadow: 0 0 10px rgba(64, 255, 64, 0.5);
-}
-
-/* Waypoint marker - yellow */
-.questMarkerWaypoint .questMarkerIcon {
-  color: #ffff40;
-  text-shadow: 0 0 10px rgba(255, 255, 64, 0.5);
-}
-
-.questMarkerLabel {
-  margin-top: 4px;
-  padding: 2px 8px;
-  background: rgba(10, 10, 12, 0.8);
-  color: #a0a0a0;
-  font-family: "Share Tech Mono", monospace;
-  font-size: 0.625rem;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.questMarkerDistance {
-  color: #808080;
-  font-size: 0.5rem;
-}
-
-/* Tutorial phase unlock notifications */
-.phaseUnlockNotification {
-  position: fixed;
-  top: 20%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 16px 32px;
-  background: linear-gradient(180deg, rgba(74, 93, 35, 0.9) 0%, rgba(30, 40, 20, 0.9) 100%);
-  border: 2px solid #b5a642;
-  font-family: "Share Tech Mono", monospace;
-  font-size: 1rem;
-  color: #e8e8e8;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  z-index: 200;
-  animation:
-    unlockSlideIn 0.5s ease-out,
-    unlockFadeOut 0.5s ease-in 2s forwards;
-}
-
-@keyframes unlockSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-@keyframes unlockFadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-/* HUD element highlight when unlocked */
-.hudElementUnlock {
-  animation: hudUnlockGlow 1s ease-out;
-}
-
-@keyframes hudUnlockGlow {
-  0% {
-    filter: brightness(2) drop-shadow(0 0 10px rgba(181, 166, 66, 0.8));
-  }
-  100% {
-    filter: brightness(1) drop-shadow(0 0 0 transparent);
-  }
-}
-
-/* Action button styles for tutorial */
-.tutorialActionButton {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  background: rgba(10, 10, 12, 0.85);
-  border: 2px solid #4a5d23;
-  transition: all 0.2s ease;
-}
-
-.tutorialActionButton:hover {
-  background: rgba(74, 93, 35, 0.6);
-  border-color: #b5a642;
-}
-
-.tutorialActionButtonHighlighted {
-  border-color: #b5a642;
-  animation: buttonHighlight 1.5s ease-in-out infinite;
-}
-
-@keyframes buttonHighlight {
-  0%,
-  100% {
-    box-shadow:
-      0 0 5px rgba(181, 166, 66, 0.3),
-      inset 0 0 10px rgba(181, 166, 66, 0.1);
-  }
-  50% {
-    box-shadow:
-      0 0 15px rgba(181, 166, 66, 0.6),
-      inset 0 0 20px rgba(181, 166, 66, 0.2);
-  }
-}
-
-.tutorialActionButtonDanger {
-  border-color: #a03030;
-  background: rgba(160, 48, 48, 0.2);
-}
-
-.tutorialActionButtonDanger:hover {
-  background: rgba(160, 48, 48, 0.4);
-}
-
-.tutorialActionButtonLarge {
-  padding: 16px 32px;
-  font-size: 1.125rem;
 }

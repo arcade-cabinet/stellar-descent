@@ -13,7 +13,6 @@ export class MechWarrior {
   public rootNode: TransformNode;
 
   private scene: Scene;
-  private body: Mesh;
   private leftArm: Mesh;
   private rightArm: Mesh;
   private legs: Mesh;
@@ -28,7 +27,7 @@ export class MechWarrior {
     this.rootNode = new TransformNode('mechRoot', scene);
     this.rootNode.position = position;
 
-    this.body = this.createBody();
+    this.createBody();
     this.leftArm = this.createArm('left');
     this.rightArm = this.createArm('right');
     this.legs = this.createLegs();
@@ -206,15 +205,15 @@ export class MechWarrior {
       const bounceOut = (t: number) => {
         if (t < 1 / 2.75) return 7.5625 * t * t;
         if (t < 2 / 2.75) {
-          const t2 = t - 1.5 / 2.75;
-          return 7.5625 * t2 * t2 + 0.75;
+          const tt = t - 1.5 / 2.75;
+          return 7.5625 * tt * tt + 0.75;
         }
         if (t < 2.5 / 2.75) {
-          const t3 = t - 2.25 / 2.75;
-          return 7.5625 * t3 * t3 + 0.9375;
+          const tt = t - 2.25 / 2.75;
+          return 7.5625 * tt * tt + 0.9375;
         }
-        const t4 = t - 2.625 / 2.75;
-        return 7.5625 * t4 * t4 + 0.984375;
+        const tt = t - 2.625 / 2.75;
+        return 7.5625 * tt * tt + 0.984375;
       };
 
       this.rootNode.position.y = startY - (startY - endY) * bounceOut(progress);
@@ -295,8 +294,8 @@ export class MechWarrior {
         lifetime: {
           remaining: 3000,
           onExpire: () => {
-            projectile.material?.dispose();
             projectile.dispose();
+            projMat.dispose();
           },
         },
       });
@@ -343,7 +342,11 @@ export class MechWarrior {
     // Update entity transform
     if (this.entity.transform) {
       this.entity.transform.position = this.rootNode.position.clone();
-      this.entity.transform.rotation = this.rootNode.rotation.clone();
+      if (this.rootNode.rotationQuaternion) {
+        this.entity.transform.rotation = this.rootNode.rotationQuaternion.toEulerAngles();
+      } else {
+        this.entity.transform.rotation = this.rootNode.rotation.clone();
+      }
     }
   }
 

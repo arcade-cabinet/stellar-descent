@@ -4,24 +4,32 @@ on:
   push:
     branches: ["main"]
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: "deploy"
+  group: "pages"
   cancel-in-progress: false
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+        with:
+          version: 10
 
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version-file: '.nvmrc'
+          node-version: 20
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -30,11 +38,14 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Install Netlify CLI
-        run: pnpm add -g netlify-cli
+      - name: Setup Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
-      - name: Deploy to Netlify
-        run: netlify deploy --prod --dir=dist --site=$NETLIFY_SITE_ID
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: 1df7d7e0-b11c-4a74-8530-3b673b5b36ce
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba404f6fc6f1649f056 # v3.0.1
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

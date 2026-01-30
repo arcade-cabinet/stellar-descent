@@ -1,6 +1,0 @@
-{
-  "allowedDeprecatedVersions": {},
-  "ignoredOptionalDependencies": [],
-  "onlyBuiltDependencies": [],
-  "trustedDependencies": ["sharp", "esbuild"]
-}

@@ -10,7 +10,7 @@ import { tokens } from '../utils/designTokens';
 
 export class TerrainGenerator {
   private scene: Scene;
-  private groundMesh: Mesh | null = null;
+  public groundMesh: Mesh | null = null;
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -27,7 +27,7 @@ export class TerrainGenerator {
     // Create material with harsh sunlit desert appearance
     const groundMat = new StandardMaterial('groundMat', this.scene);
 
-    // Use Babylon.js texture library for rock/sand texture
+    // Use local texture for rock/sand texture
     const diffuseTex = new Texture('/texture/ground.jpg', this.scene);
     diffuseTex.uScale = 100;
     diffuseTex.vScale = 100;

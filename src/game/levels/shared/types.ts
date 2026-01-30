@@ -1,6 +1,4 @@
 import type { Camera } from '@babylonjs/core/Cameras/camera';
-import type { Engine } from '@babylonjs/core/Engines/engine';
-import type { Scene } from '@babylonjs/core/scene';
 import type { TouchInput } from '../../types';
 
 // Base interface all levels implement
