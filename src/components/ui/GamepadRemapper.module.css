@@ -1,0 +1,444 @@
+/**
+ * GamepadRemapper Styles - Military/tactical theme
+ * Matches KeyboardRemapper styling
+ */
+
+.container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.actionLabel {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ff88;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.currentButton {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.instruction {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1rem;
+  color: #ffcc00;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Visual gamepad container */
+.gamepadContainer {
+  width: 100%;
+  max-width: 700px;
+  margin-bottom: 1.5rem;
+}
+
+.gamepadVisual {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%);
+  border: 2px solid #00ff88;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow:
+    0 0 20px rgba(0, 255, 136, 0.2),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Controller type label */
+.controllerType {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #4a5d23;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Button grid layout */
+.buttonGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 0.5rem;
+  height: 100%;
+  padding: 1.5rem;
+}
+
+/* Individual gamepad button */
+.gamepadButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #2a2a4a 0%, #1a1a2e 100%);
+  border: 2px solid #444;
+  color: #ccc;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 40px;
+  padding: 0.25rem;
+  text-align: center;
+}
+
+.gamepadButton:hover {
+  background: linear-gradient(180deg, #3a3a5a 0%, #2a2a3e 100%);
+  border-color: #666;
+  color: #fff;
+}
+
+.gamepadButton:active,
+.gamepadButton.pressed {
+  background: linear-gradient(180deg, #00ff88 0%, #00cc6a 100%);
+  color: #000;
+  border-color: #00ff88;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+  transform: scale(0.95);
+}
+
+.gamepadButton.selected {
+  background: linear-gradient(180deg, #ffcc00 0%, #cc9900 100%);
+  color: #000;
+  border-color: #ffcc00;
+  box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+}
+
+/* Button categories */
+.faceButton {
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+}
+
+.shoulderButton {
+  border-radius: 4px 4px 8px 8px;
+}
+
+.triggerButton {
+  border-radius: 8px;
+  height: 50px;
+}
+
+.dpadButton {
+  border-radius: 4px;
+}
+
+.stickButton {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+}
+
+.menuButton {
+  border-radius: 20px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.625rem;
+}
+
+/* Xbox button colors */
+.xbox .buttonA { border-color: #3db83d; }
+.xbox .buttonB { border-color: #e54b4b; }
+.xbox .buttonX { border-color: #1e90ff; }
+.xbox .buttonY { border-color: #ffd700; }
+
+/* PlayStation button colors */
+.playstation .buttonA { border-color: #6b9bd1; } /* Cross - blue */
+.playstation .buttonB { border-color: #e54b4b; } /* Circle - red */
+.playstation .buttonX { border-color: #d66ba0; } /* Square - pink */
+.playstation .buttonY { border-color: #4dccbd; } /* Triangle - teal */
+
+/* Nintendo button colors */
+.nintendo .buttonA { border-color: #e54b4b; } /* B - red */
+.nintendo .buttonB { border-color: #ffd700; } /* A - yellow */
+.nintendo .buttonX { border-color: #1e90ff; } /* Y - blue */
+.nintendo .buttonY { border-color: #3db83d; } /* X - green */
+
+/* Grid positioning */
+/* Row 1: LB LT --- Buttons --- RT RB */
+.posLB { grid-column: 1; grid-row: 1; }
+.posLT { grid-column: 2; grid-row: 1; }
+.posRT { grid-column: 6; grid-row: 1; }
+.posRB { grid-column: 7; grid-row: 1; }
+
+/* Row 2: Select/Back --- D-Pad Up --- Y --- Start */
+.posSelect { grid-column: 2; grid-row: 2; }
+.posDPadUp { grid-column: 3; grid-row: 2; }
+.posY { grid-column: 5; grid-row: 2; }
+.posStart { grid-column: 6; grid-row: 2; }
+
+/* Row 3: LS --- D-Pad Left/Right --- X/B --- RS */
+.posLS { grid-column: 1; grid-row: 3; }
+.posDPadLeft { grid-column: 2; grid-row: 3; }
+.posDPadRight { grid-column: 4; grid-row: 3; }
+.posX { grid-column: 5; grid-row: 3; }
+.posB { grid-column: 6; grid-row: 3; }
+.posRS { grid-column: 7; grid-row: 3; }
+
+/* Row 4: --- D-Pad Down --- A --- */
+.posDPadDown { grid-column: 3; grid-row: 4; }
+.posA { grid-column: 5; grid-row: 4; }
+
+/* Row 5: Home button in center */
+.posHome { grid-column: 4; grid-row: 5; }
+
+/* Alternative layout using flexbox for more visual fidelity */
+.gamepadLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0.5rem;
+  padding-top: 1.5rem;
+}
+
+.buttonsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.buttonsRowCenter {
+  justify-content: center;
+  gap: 2rem;
+}
+
+.leftSide,
+.rightSide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.centerSection {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+}
+
+.dpadContainer {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(3, 40px);
+  gap: 2px;
+}
+
+.dpadUp { grid-column: 2; grid-row: 1; }
+.dpadDown { grid-column: 2; grid-row: 3; }
+.dpadLeft { grid-column: 1; grid-row: 2; }
+.dpadRight { grid-column: 3; grid-row: 2; }
+.dpadCenter { grid-column: 2; grid-row: 2; background: #1a1a2e !important; cursor: default !important; }
+
+.faceButtonsContainer {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 48px);
+  gap: 2px;
+}
+
+.faceY { grid-column: 2; grid-row: 1; }
+.faceX { grid-column: 1; grid-row: 2; }
+.faceB { grid-column: 3; grid-row: 2; }
+.faceA { grid-column: 2; grid-row: 3; }
+
+.bumperRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.menuRow {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.stickRow {
+  display: flex;
+  justify-content: space-around;
+  padding: 0 2rem;
+}
+
+/* Listening mode overlay */
+.listeningOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.listeningBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 4rem;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%);
+  border: 2px solid #00ff88;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+}
+
+.listeningPulse {
+  width: 60px;
+  height: 60px;
+  border: 3px solid #00ff88;
+  border-radius: 50%;
+  animation: listeningPulse 1s ease-in-out infinite;
+}
+
+@keyframes listeningPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    opacity: 0.7;
+    box-shadow: 0 0 0 20px rgba(0, 255, 136, 0);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
+  }
+}
+
+.listeningText {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ff88;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.listeningHint {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Bottom buttons */
+.buttonRow {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.selectButton,
+.cancelButton {
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 2rem;
+  border: 2px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.selectButton {
+  background: linear-gradient(180deg, #00ff88 0%, #00cc6a 100%);
+  border-color: #00ff88;
+  color: #000;
+}
+
+.selectButton:hover {
+  background: linear-gradient(180deg, #00ffaa 0%, #00ff88 100%);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.selectButton:disabled {
+  background: linear-gradient(180deg, #444 0%, #333 100%);
+  border-color: #444;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  background: transparent;
+  border-color: #666;
+  color: #888;
+}
+
+.cancelButton:hover {
+  border-color: #ff4444;
+  color: #ff4444;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .gamepadButton {
+    font-size: 0.625rem;
+    min-height: 32px;
+  }
+
+  .faceButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stickButton {
+    width: 32px;
+    height: 32px;
+  }
+
+  .actionLabel {
+    font-size: 1.2rem;
+  }
+
+  .dpadContainer {
+    grid-template-columns: repeat(3, 32px);
+    grid-template-rows: repeat(3, 32px);
+  }
+
+  .faceButtonsContainer {
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(3, 40px);
+  }
+}

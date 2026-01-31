@@ -1,6 +1,9 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
 
+// Build timestamp injected by Vite at build time
+declare const __BUILD_TIMESTAMP__: string;
+
 // Build flag environment variables
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string;

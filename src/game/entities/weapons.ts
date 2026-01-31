@@ -20,6 +20,8 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 // ---------------------------------------------------------------------------
 
 export type WeaponId =
+  // Melee / No weapon
+  | 'bare_hands'
   // Sidearms
   | 'sidearm'
   | 'heavy_pistol'
@@ -43,19 +45,23 @@ export type WeaponId =
   // Heavy
   | 'plasma_cannon'
   | 'heavy_lmg'
-  | 'saw_lmg';
+  | 'saw_lmg'
+  // Special / Vehicle
+  | 'vehicle_yoke';
 
 // ---------------------------------------------------------------------------
 // Weapon categories (for inventory grouping and sound fallback)
 // ---------------------------------------------------------------------------
 
 export type WeaponCategory =
+  | 'melee'
   | 'sidearm'
   | 'smg'
   | 'rifle'
   | 'marksman'
   | 'shotgun'
-  | 'heavy';
+  | 'heavy'
+  | 'vehicle';
 
 // ---------------------------------------------------------------------------
 // Ammo types (weapons in the same ammo pool share reserves)
@@ -103,6 +109,35 @@ export interface WeaponDefinition {
   fireSound: string;
   reloadSound: string;
 }
+
+// ---------------------------------------------------------------------------
+// Melee / Bare Hands
+// ---------------------------------------------------------------------------
+
+export const BARE_HANDS: WeaponDefinition = {
+  id: 'bare_hands',
+  name: 'Bare Hands',
+  shortName: 'FISTS',
+  category: 'melee',
+  ammoType: '9mm', // Not used for melee
+  damage: 50, // Melee damage
+  fireRate: 1.25, // Punches per second
+  projectileSpeed: 0,
+  range: 2, // Melee range
+  magazineSize: 0, // No ammo
+  reserveAmmo: 0,
+  reloadTime: 0,
+  projectileColor: new Color3(1, 1, 1),
+  projectileGlowColor: new Color3(1, 1, 1),
+  projectileSize: 0,
+  muzzleFlashColor: new Color3(1, 1, 1),
+  muzzleFlashIntensity: 0,
+  muzzleFlashRange: 0,
+  glbFile: 'fps_bare_hands.glb',
+  tier: 0, // Always available
+  fireSound: 'melee_swing',
+  reloadSound: '',
+};
 
 // ---------------------------------------------------------------------------
 // Sidearms
@@ -579,10 +614,45 @@ export const SAW_LMG: WeaponDefinition = {
 };
 
 // ---------------------------------------------------------------------------
+// Vehicle Controls (Special)
+// ---------------------------------------------------------------------------
+
+/**
+ * Vehicle Yoke - Special "weapon" displayed when player is in a vehicle.
+ * Not a weapon per se, but uses the weapon system for first-person display.
+ */
+export const VEHICLE_YOKE: WeaponDefinition = {
+  id: 'vehicle_yoke',
+  name: 'Vehicle Controls',
+  shortName: 'YOKE',
+  category: 'vehicle',
+  ammoType: '9mm', // Not used for vehicle controls
+  damage: 0, // Not a weapon
+  fireRate: 0,
+  projectileSpeed: 0,
+  range: 0,
+  magazineSize: 0, // No ammo
+  reserveAmmo: 0,
+  reloadTime: 0,
+  projectileColor: new Color3(1, 1, 1),
+  projectileGlowColor: new Color3(1, 1, 1),
+  projectileSize: 0,
+  muzzleFlashColor: new Color3(1, 1, 1),
+  muzzleFlashIntensity: 0,
+  muzzleFlashRange: 0,
+  glbFile: '', // Procedurally generated
+  tier: 0, // Special - not part of normal progression
+  fireSound: '',
+  reloadSound: '',
+};
+
+// ---------------------------------------------------------------------------
 // Master registry
 // ---------------------------------------------------------------------------
 
 export const WEAPONS: Record<WeaponId, WeaponDefinition> = {
+  // Melee
+  bare_hands: BARE_HANDS,
   // Sidearms
   sidearm: SIDEARM,
   heavy_pistol: HEAVY_PISTOL,
@@ -607,6 +677,8 @@ export const WEAPONS: Record<WeaponId, WeaponDefinition> = {
   plasma_cannon: PLASMA_CANNON,
   heavy_lmg: HEAVY_LMG,
   saw_lmg: SAW_LMG,
+  // Special / Vehicle
+  vehicle_yoke: VEHICLE_YOKE,
 };
 
 // ---------------------------------------------------------------------------
@@ -663,6 +735,8 @@ export function categoryToEffectType(
   category: WeaponCategory
 ): 'rifle' | 'pistol' | 'plasma' | 'shotgun' | 'heavy' | 'default' {
   switch (category) {
+    case 'melee':
+      return 'default'; // No muzzle flash for melee
     case 'sidearm':
       return 'pistol';
     case 'smg':
@@ -675,6 +749,8 @@ export function categoryToEffectType(
       return 'shotgun';
     case 'heavy':
       return 'heavy';
+    case 'vehicle':
+      return 'default'; // No muzzle flash for vehicle controls
     default:
       return 'default';
   }

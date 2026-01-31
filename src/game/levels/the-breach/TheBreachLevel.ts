@@ -22,6 +22,11 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { getAchievementManager } from '../../achievements';
+import {
+  CinematicSystem,
+  createTheBreachIntroCinematic,
+  type CinematicCallbacks,
+} from '../../cinematics';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
@@ -83,6 +88,13 @@ import {
   INVINCIBILITY_SCALING,
   QUEEN_ATTACK_TELEGRAPH,
   GROUND_POUND_INDICATOR_DURATION,
+  QUEEN_ATTACK_RANGE,
+  ACID_SPRAY_SPEED,
+  QUEEN_SCREECH_SPAWN_COUNT,
+  QUEEN_POISON_CLOUD_DURATION,
+  QUEEN_FRENZY_ATTACK_COUNT,
+  QUEEN_FRENZY_ATTACK_DELAY,
+  QUEEN_DEATH_THROES_SPAWN_INTERVAL,
 } from './constants';
 import { loadDifficultySetting, type DifficultyLevel } from '../../core/DifficultySettings';
 import {
@@ -131,9 +143,31 @@ import {
   setQueenDifficulty,
   getScaledQueenDamage,
   getScaledCooldown,
+  // New attack system exports
+  selectNextAttack,
+  updateQueenAI,
+  animateAcidSpray,
+  animateTailSwipe,
+  animateScreech,
+  animateCharge,
+  animateEggBurst,
+  animatePoisonCloud,
+  animateFrenzyAttack,
+  animatePhaseTransition,
+  getAcidSprayPositions,
+  checkChargeCollision,
+  getEggBurstSpawnPositions,
+  revealWeakPoints,
+  hideWeakPoints,
+  startFrenzy,
+  activateDeathThroes,
+  shouldEnterDeathThroes,
+  getPhaseAttackCooldown,
+  checkWeakPointHit,
+  damageWeakPoint,
 } from './queen';
 import { setEnemyDifficulty } from './enemies';
-import type { Enemy, HiveZone, LevelPhase, Queen, QueenPhase } from './types';
+import type { Enemy, HiveZone, LevelPhase, Queen, QueenPhase, QueenAttackType } from './types';
 
 // ============================================================================
 // LEVEL CLASS
@@ -142,6 +176,9 @@ import type { Enemy, HiveZone, LevelPhase, Queen, QueenPhase } from './types';
 export class TheBreachLevel extends BaseLevel {
   // Collectibles (no flora in hive interior)
   private collectibleSystem: CollectibleSystemResult | null = null;
+
+  // Cinematic system for intro sequence
+  private cinematicSystem: CinematicSystem | null = null;
 
   // Level state
   private phase: LevelPhase = 'exploration';
@@ -286,8 +323,66 @@ export class TheBreachLevel extends BaseLevel {
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
     this.collectibleSystem = await buildCollectibles(this.scene, getTheBreachCollectibles(), collectibleRoot);
 
-    // Start level
+    // Initialize cinematic system
+    this.initializeCinematicSystem();
+
+    // Play intro cinematic when boss fight starts (not at level start)
+    // The intro cinematic is played when the player reaches the Queen's chamber
+    // For now, just start the level normally
     this.startLevel();
+  }
+
+  /**
+   * Initialize the cinematic system with appropriate callbacks.
+   */
+  private initializeCinematicSystem(): void {
+    const cinematicCallbacks: CinematicCallbacks = {
+      onCommsMessage: (message) => {
+        this.callbacks.onCommsMessage({
+          sender: message.sender,
+          callsign: message.callsign ?? '',
+          portrait: (message.portrait ?? 'ai') as 'commander' | 'ai' | 'marcus' | 'armory' | 'player',
+          text: message.text,
+        });
+      },
+      onNotification: (text, duration) => {
+        this.callbacks.onNotification(text, duration ?? 3000);
+      },
+      onObjectiveUpdate: (title, instructions) => {
+        this.callbacks.onObjectiveUpdate(title, instructions);
+      },
+      onShakeCamera: (intensity) => {
+        this.triggerShake(intensity);
+      },
+      onCinematicStart: () => {
+        this.callbacks.onCinematicStart?.();
+      },
+      onCinematicEnd: () => {
+        this.callbacks.onCinematicEnd?.();
+      },
+    };
+
+    this.cinematicSystem = new CinematicSystem(this.scene, this.camera, cinematicCallbacks);
+  }
+
+  /**
+   * Play the Queen boss intro cinematic.
+   * Called when the player reaches the Queen's chamber.
+   */
+  private playQueenIntroCinematic(onComplete: () => void): void {
+    if (!this.cinematicSystem || !this.queen) {
+      onComplete();
+      return;
+    }
+
+    const queenPosition = this.queen.mesh.position.clone();
+
+    const sequence = createTheBreachIntroCinematic(
+      onComplete,
+      queenPosition
+    );
+
+    this.cinematicSystem.play(sequence);
   }
 
   private setupHiveLighting(): void {
@@ -929,6 +1024,9 @@ export class TheBreachLevel extends BaseLevel {
   private startBossFight(): void {
     if (this.phase !== 'exploration' || !this.queen) return;
 
+    // Save checkpoint before boss fight
+    this.saveCheckpoint('boss_fight');
+
     this.phase = 'boss_intro';
 
     // Despawn remaining enemies when boss fight starts
@@ -938,45 +1036,51 @@ export class TheBreachLevel extends BaseLevel {
       this.queenDoorMesh.setEnabled(true);
     }
 
-    this.callbacks.onNotification(NOTIFICATIONS.BOSS_AWAKEN, 3000);
-    this.callbacks.onObjectiveUpdate(OBJECTIVES.BOSS_INTRO.title, OBJECTIVES.BOSS_INTRO.description);
-    this.triggerShake(3);
+    // Play intro cinematic for the Queen boss fight
+    this.playQueenIntroCinematic(() => {
+      // Cinematic complete, continue with boss fight setup
+      this.callbacks.onNotification(NOTIFICATIONS.BOSS_AWAKEN, 3000);
+      this.callbacks.onObjectiveUpdate(OBJECTIVES.BOSS_INTRO.title, OBJECTIVES.BOSS_INTRO.description);
+      this.triggerShake(3);
 
-    // Play queen awakening animation
-    animateQueenAwakening(this.queen);
-
-    setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS_BOSS_DETECTED);
-    }, 2000);
-
-    // Show tutorial hint for scan ability
-    setTimeout(() => {
-      if (!this.hintsShown.has('scan')) {
-        this.callbacks.onNotification(NOTIFICATIONS.HINT_SCAN, 4000);
-        this.hintsShown.add('scan');
+      // Play queen awakening animation
+      if (this.queen) {
+        animateQueenAwakening(this.queen);
       }
-    }, 4000);
 
-    setTimeout(() => {
-      this.phase = 'boss_fight';
-      this.callbacks.onCombatStateChange(true);
-      this.updateActionButtons('boss');
-      this.callbacks.onObjectiveUpdate(
-        OBJECTIVES.KILL_QUEEN.title,
-        OBJECTIVES.KILL_QUEEN.getDescription(this.queen!.health, this.queen!.maxHealth)
-      );
-
-      // Start boss fight music at phase 1
-      getBossMusicManager().start(1);
-
-      // Show cover hint
       setTimeout(() => {
-        if (!this.hintsShown.has('cover')) {
-          this.callbacks.onNotification(NOTIFICATIONS.HINT_COVER, 3000);
-          this.hintsShown.add('cover');
+        this.callbacks.onCommsMessage(COMMS_BOSS_DETECTED);
+      }, 2000);
+
+      // Show tutorial hint for scan ability
+      setTimeout(() => {
+        if (!this.hintsShown.has('scan')) {
+          this.callbacks.onNotification(NOTIFICATIONS.HINT_SCAN, 4000);
+          this.hintsShown.add('scan');
         }
-      }, 8000);
-    }, 5000);
+      }, 4000);
+
+      setTimeout(() => {
+        this.phase = 'boss_fight';
+        this.callbacks.onCombatStateChange(true);
+        this.updateActionButtons('boss');
+        this.callbacks.onObjectiveUpdate(
+          OBJECTIVES.KILL_QUEEN.title,
+          OBJECTIVES.KILL_QUEEN.getDescription(this.queen!.health, this.queen!.maxHealth)
+        );
+
+        // Start boss fight music at phase 1
+        getBossMusicManager().start(1);
+
+        // Show cover hint
+        setTimeout(() => {
+          if (!this.hintsShown.has('cover')) {
+            this.callbacks.onNotification(NOTIFICATIONS.HINT_COVER, 3000);
+            this.hintsShown.add('cover');
+          }
+        }, 8000);
+      }, 5000);
+    });
   }
 
   /**
@@ -994,15 +1098,15 @@ export class TheBreachLevel extends BaseLevel {
   private updateQueen(deltaTime: number): void {
     if (!this.queen || this.phase !== 'boss_fight') return;
 
-    // Update weak point visibility
+    // Update queen AI state (handles stagger, charge movement, frenzy, etc.)
+    updateQueenAI(this.queen, this.camera.position, deltaTime);
+
+    // Update weak point visibility timer
     if (this.queen.weakPointVisible) {
       this.queen.weakPointTimer -= deltaTime * 1000;
       if (this.queen.weakPointTimer <= 0) {
-        this.queen.weakPointVisible = false;
+        hideWeakPoints(this.queen);
         this.queen.isVulnerable = false;
-        if (this.queen.weakPointMesh) {
-          this.queen.weakPointMesh.isVisible = false;
-        }
         this.callbacks.onNotification(NOTIFICATIONS.WEAK_POINT_EXPIRED, 1000);
       }
     }
@@ -1017,13 +1121,38 @@ export class TheBreachLevel extends BaseLevel {
       this.transitionQueenPhase(newPhase);
     }
 
-    // Execute attacks
-    if (this.queen.attackCooldown <= 0) {
+    // Check for death throes activation (10% health)
+    if (!this.queen.aiState.deathThroesActive && shouldEnterDeathThroes(this.queen.health, this.queen.maxHealth)) {
+      activateDeathThroes(this.queen);
+      this.callbacks.onNotification('QUEEN ENTERS DEATH THROES!', 2000);
+    }
+
+    // Death throes spawning
+    if (this.queen.aiState.deathThroesActive && this.queen.aiState.deathThroesTimer >= QUEEN_DEATH_THROES_SPAWN_INTERVAL) {
+      this.queen.aiState.deathThroesTimer = 0;
+      this.queenDeathThroesSpawn();
+    }
+
+    // Check charge collision with player
+    if (this.queen.aiState.isCharging) {
+      if (checkChargeCollision(this.queen.mesh.position, this.camera.position)) {
+        const damage = getScaledQueenDamage('charge');
+        this.damagePlayer(damage, 'QUEEN CHARGE');
+        this.queen.aiState.totalDamageDealt += damage;
+        // End charge on hit
+        this.queen.aiState.isCharging = false;
+        this.queen.aiState.chargeTarget = null;
+        this.queen.aiState.chargeVelocity = null;
+      }
+    }
+
+    // Execute attacks (only if not staggered and cooldown ready)
+    if (this.queen.attackCooldown <= 0 && !this.queen.aiState.isStaggered) {
       this.queenAttack();
     }
 
-    // Spawn minions
-    if (this.queen.spawnCooldown <= 0) {
+    // Spawn minions (regular spawn, separate from attack spawns)
+    if (this.queen.spawnCooldown <= 0 && !this.queen.aiState.deathThroesActive) {
       this.queenSpawnMinions();
     }
 
@@ -1037,18 +1166,51 @@ export class TheBreachLevel extends BaseLevel {
     );
   }
 
+  /**
+   * Spawn enemies during death throes (continuous spawning at 10% health)
+   */
+  private queenDeathThroesSpawn(): void {
+    if (!this.queen) return;
+
+    const spawnCount = 2;
+    for (let i = 0; i < spawnCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 10 + Math.random() * 5;
+      const spawnPos = new Vector3(
+        this.queen.mesh.position.x + Math.cos(angle) * dist,
+        this.queen.mesh.position.y,
+        this.queen.mesh.position.z + Math.sin(angle) * dist
+      );
+      this.spawnEnemyAtPosition(spawnPos, 'drone', 'queen_chamber');
+    }
+
+    this.callbacks.onNotification('DEATH THROES: DRONES SPAWNED!', 1000);
+  }
+
   private transitionQueenPhase(newPhase: QueenPhase): void {
     if (!this.queen) return;
 
+    const oldPhase = this.queen.phase;
     this.queen.phase = newPhase;
-    this.triggerShake(5);
+
+    // Play phase transition animation (includes 3s stagger)
+    animatePhaseTransition(this.queen, newPhase);
+
+    // Strong screen shake for roar
+    this.triggerShake(8);
 
     // Transition boss music to match phase
     getBossMusicManager().transitionToPhase(newPhase);
 
     // Screen flash effect for phase transition
-    this.screenFlash = 0.6;
+    this.screenFlash = 0.8;
     this.screenFlashColor = Color3.FromHexString(COLORS.queenPurple);
+
+    // Enrage all existing minions (speed boost)
+    for (const enemy of this.enemies) {
+      // Minions get 50% speed boost on phase transition
+      enemy.velocity.scaleInPlace(1.5);
+    }
 
     if (newPhase === 2) {
       this.callbacks.onNotification(NOTIFICATIONS.PHASE_2_WARNING, 3000);
@@ -1064,55 +1226,76 @@ export class TheBreachLevel extends BaseLevel {
           this.hintsShown.add('grenade');
         }, 5000);
       }
+
+      // Play phase transition sound
+      // Note: Audio system call would go here
     } else if (newPhase === 3) {
       this.callbacks.onNotification(NOTIFICATIONS.PHASE_3_WARNING, 3000);
       setTimeout(() => {
         this.callbacks.onNotification(NOTIFICATIONS.BOSS_PHASE_3, 2000);
         this.callbacks.onCommsMessage(COMMS_BOSS_PHASE_3);
       }, 1000);
+
+      // Phase 3: Weak points glow brighter (handled in queen.ts updateQueenAI)
+      // Show weak point hint if not already shown
+      if (!this.hintsShown.has('weak_point_phase3')) {
+        setTimeout(() => {
+          this.callbacks.onNotification('WEAK POINTS NOW EASIER TO HIT!', 2500);
+          this.hintsShown.add('weak_point_phase3');
+        }, 3500);
+      }
     }
   }
 
   private queenAttack(): void {
     if (!this.queen) return;
 
-    const phaseMultiplier = getPhaseMultiplier(this.queen.phase);
-    const attacks = getAvailableAttacks(this.queen.phase);
-    const attackType = attacks[Math.floor(Math.random() * attacks.length)];
+    // Use AI-driven attack selection
+    const attackType = selectNextAttack(this.queen, this.camera.position, 0);
 
-    const playerPos = this.camera.position;
-    const queenPos = this.queen.mesh.position;
-    const dist = Vector3.Distance(playerPos, queenPos);
+    if (attackType === 'none') {
+      return; // Queen is staggered or can't attack
+    }
 
+    // Set attack cooldown based on phase
+    this.queen.attackCooldown = getPhaseAttackCooldown(this.queen.phase);
+
+    // Store current attack for tracking
+    this.queen.aiState.currentAttack = attackType;
+
+    // Execute the selected attack
     switch (attackType) {
-      case 'acid_spit':
-        this.queenAcidSpit();
-        this.queen.attackCooldown = 3000 * phaseMultiplier;
+      case 'acid_spray':
+        this.queenAcidSpray();
         break;
 
-      case 'claw_swipe':
-        if (dist < 8) {
-          this.queenClawSwipe();
-          this.queen.attackCooldown = 2500 * phaseMultiplier;
-        } else {
-          this.queenAcidSpit();
-          this.queen.attackCooldown = 3000 * phaseMultiplier;
-        }
+      case 'tail_swipe':
+        this.queenTailSwipe();
         break;
 
-      case 'tail_slam':
-        if (dist < 10) {
-          this.queenTailSlam();
-          this.queen.attackCooldown = 4000 * phaseMultiplier;
-        } else {
-          this.queenAcidSpit();
-          this.queen.attackCooldown = 3000 * phaseMultiplier;
-        }
+      case 'screech':
+        this.queenScreech();
         break;
 
-      case 'ground_pound':
-        this.queenGroundPound();
-        this.queen.attackCooldown = 5000 * phaseMultiplier;
+      case 'egg_burst':
+        this.queenEggBurst();
+        break;
+
+      case 'charge':
+        this.queenCharge();
+        break;
+
+      case 'poison_cloud':
+        this.queenPoisonCloud();
+        break;
+
+      case 'frenzy':
+        this.queenFrenzy();
+        break;
+
+      default:
+        // Fallback to acid spray for any unmapped attacks
+        this.queenAcidSpray();
         break;
     }
   }
@@ -1278,6 +1461,287 @@ export class TheBreachLevel extends BaseLevel {
     const mat = this.groundPoundIndicator.material as StandardMaterial;
     mat.alpha = 0;
     this.groundPoundIndicator.scaling.setAll(1);
+  }
+
+  // ============================================================================
+  // NEW ATTACK IMPLEMENTATIONS (Phase-based attack system)
+  // ============================================================================
+
+  /**
+   * Phase 1 Attack: Acid Spray - Cone of 5 acid projectiles
+   */
+  private queenAcidSpray(): void {
+    if (!this.queen) return;
+
+    this.callbacks.onNotification('ACID SPRAY INCOMING!', 1000);
+    animateAcidSpray(this.queen);
+
+    const playerPos = this.camera.position.clone();
+    const queenPos = this.queen.mesh.position.clone();
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.acid_spray;
+
+    // Get projectile directions (cone pattern)
+    const projectileDirections = getAcidSprayPositions(queenPos, playerPos);
+
+    setTimeout(() => {
+      if (!this.queen) return;
+
+      // Spawn acid projectiles in cone pattern
+      for (let i = 0; i < projectileDirections.length; i++) {
+        const dir = projectileDirections[i];
+        const startPos = queenPos.clone();
+        startPos.y += 2; // Fire from head height
+
+        // Create acid projectile visual
+        if (this.hazardBuilder) {
+          // Spawn pheromone cloud at predicted impact point
+          const impactPos = startPos.add(dir.scale(15));
+          setTimeout(() => {
+            this.hazardBuilder?.createPheromoneCloud(
+              impactPos,
+              2,
+              3000
+            );
+          }, i * 100); // Stagger impacts
+        }
+
+        // Check if player is in path
+        const toPlayer = playerPos.subtract(startPos);
+        const dot = Vector3.Dot(toPlayer.normalize(), dir);
+        if (dot > 0.8 && toPlayer.length() < QUEEN_ATTACK_RANGE.acid_spray) {
+          const damage = getScaledQueenDamage('acid_spray');
+          setTimeout(() => {
+            this.damagePlayer(damage, 'Acid Spray');
+            if (this.queen) {
+              this.queen.aiState.totalDamageDealt += damage;
+            }
+          }, i * 100);
+        }
+      }
+
+      // Particle effects
+      particleManager.emitAlienSplatter(queenPos.add(new Vector3(0, 2, -1)), 2);
+      this.triggerShake(2);
+    }, telegraphTime);
+  }
+
+  /**
+   * Phase 1 Attack: Tail Swipe - Frontal arc melee attack
+   */
+  private queenTailSwipe(): void {
+    if (!this.queen) return;
+
+    this.callbacks.onNotification('TAIL SWIPE!', 800);
+    animateTailSwipe(this.queen);
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.tail_swipe;
+
+    setTimeout(() => {
+      if (!this.queen) return;
+
+      this.triggerShake(3);
+
+      const playerPos = this.camera.position;
+      const queenPos = this.queen.mesh.position;
+      const dist = Vector3.Distance(playerPos, queenPos);
+
+      // Check if player is in frontal arc
+      const toPlayer = playerPos.subtract(queenPos).normalize();
+      const queenForward = new Vector3(0, 0, -1); // Queen faces -Z
+      const dot = Vector3.Dot(toPlayer, queenForward);
+
+      // Hit if within range AND in frontal arc (dot > 0.3 = ~70 degree arc)
+      if (dist < QUEEN_ATTACK_RANGE.tail_swipe && dot > 0.3) {
+        const damage = getScaledQueenDamage('tail_swipe');
+        this.damagePlayer(damage, 'Tail Swipe');
+        this.queen.aiState.totalDamageDealt += damage;
+      }
+    }, telegraphTime);
+  }
+
+  /**
+   * Phase 1 Attack: Screech - Stuns player briefly, summons skitterers
+   */
+  private queenScreech(): void {
+    if (!this.queen) return;
+
+    this.callbacks.onNotification('QUEEN SCREECH!', 1500);
+    animateScreech(this.queen);
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.screech;
+
+    // Screen shake during screech
+    this.triggerShake(4);
+
+    // Spawn skitterers
+    setTimeout(() => {
+      if (!this.queen) return;
+
+      // Summon skitterers near the player
+      for (let i = 0; i < QUEEN_SCREECH_SPAWN_COUNT; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 5 + Math.random() * 3;
+        const spawnPos = new Vector3(
+          this.camera.position.x + Math.cos(angle) * dist,
+          this.queen.mesh.position.y,
+          this.camera.position.z + Math.sin(angle) * dist
+        );
+        this.spawnEnemyAtPosition(spawnPos, 'drone', 'queen_chamber');
+      }
+
+      this.callbacks.onNotification(`${QUEEN_SCREECH_SPAWN_COUNT} SKITTERERS SUMMONED!`, 1500);
+
+      // Minor damage from screech
+      const damage = getScaledQueenDamage('screech');
+      this.damagePlayer(damage, 'Screech');
+      this.queen.aiState.totalDamageDealt += damage;
+
+      // Visual stun effect (screen flash)
+      this.screenFlash = 0.5;
+      this.screenFlashColor = Color3.FromHexString(COLORS.queenPurple);
+    }, telegraphTime);
+  }
+
+  /**
+   * Phase 2 Attack: Egg Burst - Spawns spitters from arena edges
+   */
+  private queenEggBurst(): void {
+    if (!this.queen) return;
+
+    this.callbacks.onNotification('EGG BURST!', 1500);
+    animateEggBurst(this.queen);
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.egg_burst;
+
+    setTimeout(() => {
+      if (!this.queen) return;
+
+      // Get arena center and radius for spawn positions
+      const arenaCenter = new Vector3(0, -150, 180);
+      const arenaRadius = 25;
+      const spawnPositions = getEggBurstSpawnPositions(arenaCenter, arenaRadius);
+
+      // Spawn spitters at each position
+      for (const pos of spawnPositions) {
+        this.spawnEnemyAtPosition(pos, 'grunt', 'queen_chamber'); // Using grunt as "spitter"
+        // Particle effect for egg hatching
+        particleManager.emitAlienDeath(pos, 0.5);
+      }
+
+      this.callbacks.onNotification(`${spawnPositions.length} SPITTERS SPAWNED FROM EGGS!`, 2000);
+      this.triggerShake(3);
+    }, telegraphTime);
+  }
+
+  /**
+   * Phase 2 Attack: Charge - Rush toward player
+   */
+  private queenCharge(): void {
+    if (!this.queen) return;
+
+    this.callbacks.onNotification('QUEEN CHARGING!', 1500);
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.charge;
+
+    // Wind-up shake
+    this.triggerShake(2);
+
+    setTimeout(() => {
+      if (!this.queen) return;
+
+      // Calculate charge target (where player was)
+      const targetPos = this.camera.position.clone();
+      targetPos.y = this.queen.mesh.position.y; // Keep same height
+
+      // Start charge animation
+      animateCharge(this.queen, targetPos);
+
+      this.callbacks.onNotification('DODGE!', 500);
+      this.triggerShake(4);
+
+      // Damage is handled in updateQueen via checkChargeCollision
+    }, telegraphTime);
+  }
+
+  /**
+   * Phase 2 Attack: Poison Cloud - Area denial
+   */
+  private queenPoisonCloud(): void {
+    if (!this.queen) return;
+
+    this.callbacks.onNotification('POISON CLOUD!', 1000);
+    animatePoisonCloud(this.queen);
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.poison_cloud;
+
+    setTimeout(() => {
+      if (!this.queen || !this.hazardBuilder) return;
+
+      // Create poison cloud at player's current position
+      const cloudPos = this.camera.position.clone();
+      cloudPos.y = this.queen.mesh.position.y;
+
+      // Use pheromone cloud as poison effect
+      this.hazardBuilder.createPheromoneCloud(
+        cloudPos,
+        6, // Large radius
+        QUEEN_POISON_CLOUD_DURATION
+      );
+
+      // Particle effect
+      particleManager.emitAlienSplatter(cloudPos, 3);
+      this.triggerShake(2);
+
+      this.callbacks.onNotification('POISON CLOUD DEPLOYED - MOVE!', 2000);
+
+      // Periodic damage while in cloud is handled by checkHazards
+    }, telegraphTime);
+  }
+
+  /**
+   * Phase 3 Attack: Frenzy - Rapid consecutive attacks
+   */
+  private queenFrenzy(): void {
+    if (!this.queen) return;
+
+    // Start frenzy mode
+    startFrenzy(this.queen);
+
+    this.callbacks.onNotification('FRENZY ATTACK!', 2000);
+    this.triggerShake(5);
+
+    // Execute rapid attacks
+    const executeNextFrenzyAttack = (attackIndex: number): void => {
+      if (!this.queen || attackIndex >= QUEEN_FRENZY_ATTACK_COUNT) {
+        return;
+      }
+
+      // Animate current attack
+      animateFrenzyAttack(this.queen, attackIndex);
+
+      // Check for hit
+      const playerPos = this.camera.position;
+      const queenPos = this.queen.mesh.position;
+      const dist = Vector3.Distance(playerPos, queenPos);
+
+      if (dist < QUEEN_ATTACK_RANGE.frenzy) {
+        const damage = getScaledQueenDamage('frenzy');
+        setTimeout(() => {
+          this.damagePlayer(damage, 'Frenzy Strike');
+          if (this.queen) {
+            this.queen.aiState.totalDamageDealt += damage;
+          }
+        }, QUEEN_FRENZY_ATTACK_DELAY * 0.5);
+      }
+
+      // Schedule next attack
+      setTimeout(() => {
+        executeNextFrenzyAttack(attackIndex + 1);
+      }, QUEEN_FRENZY_ATTACK_DELAY);
+    };
+
+    // Start frenzy combo
+    executeNextFrenzyAttack(0);
   }
 
   private queenSpawnMinions(): void {
@@ -1593,24 +2057,30 @@ export class TheBreachLevel extends BaseLevel {
     this.callbacks.onNotification(NOTIFICATIONS.SCANNING, 1500);
 
     setTimeout(() => {
-      if (this.queen && this.queen.weakPointMesh) {
-        this.queen.weakPointVisible = true;
-        this.queen.isVulnerable = true;
+      if (!this.queen) return;
 
-        // Apply difficulty-scaled weak point duration
-        const durationScaling = WEAK_POINT_DURATION_SCALING[this.difficulty] ?? 1.0;
-        this.queen.weakPointTimer = WEAK_POINT_DURATION * durationScaling;
-        this.queen.weakPointMesh.isVisible = true;
+      // Use new weak point system - reveal all weak points
+      revealWeakPoints(this.queen);
+      this.queen.isVulnerable = true;
 
-        this.callbacks.onNotification(NOTIFICATIONS.WEAK_POINT_REVEALED, 2000);
+      // Apply difficulty-scaled weak point duration
+      const durationScaling = WEAK_POINT_DURATION_SCALING[this.difficulty] ?? 1.0;
+      this.queen.weakPointTimer = WEAK_POINT_DURATION * durationScaling;
 
-        // Show weak point damage hint
-        if (!this.hintsShown.has('weak_point')) {
-          setTimeout(() => {
-            this.callbacks.onNotification(NOTIFICATIONS.HINT_WEAK_POINT, 2500);
-            this.hintsShown.add('weak_point');
-          }, 2500);
-        }
+      // Count active weak points
+      const activeWeakPoints = this.queen.weakPoints.filter(wp => !wp.isDestroyed).length;
+
+      this.callbacks.onNotification(
+        `${activeWeakPoints} WEAK POINTS REVEALED!`,
+        2000
+      );
+
+      // Show weak point damage hint
+      if (!this.hintsShown.has('weak_point')) {
+        setTimeout(() => {
+          this.callbacks.onNotification(NOTIFICATIONS.HINT_WEAK_POINT, 2500);
+          this.hintsShown.add('weak_point');
+        }, 2500);
       }
     }, 1500);
   }
@@ -1662,6 +2132,16 @@ export class TheBreachLevel extends BaseLevel {
   // ============================================================================
 
   protected updateLevel(deltaTime: number): void {
+    // Update cinematic system
+    if (this.cinematicSystem) {
+      this.cinematicSystem.update(deltaTime);
+
+      // Don't update gameplay if cinematic is playing
+      if (this.cinematicSystem.isPlaying()) {
+        return;
+      }
+    }
+
     this.phaseTimer += deltaTime;
 
     // Update collectibles
@@ -1810,7 +2290,37 @@ export class TheBreachLevel extends BaseLevel {
       const dot = Vector3.Dot(toQueen.normalize(), forward);
 
       if (dot > 0.8 && dist < 40) {
-        // Check weak point
+        // Calculate approximate hit position for weak point check
+        const hitDist = dist * 0.9; // Approximate hit on queen surface
+        const hitPosition = playerPos.add(forward.scale(hitDist));
+
+        // Check all weak points using the new system
+        const hitWeakPoint = checkWeakPointHit(this.queen, hitPosition);
+        if (hitWeakPoint) {
+          // Damage the weak point
+          const wasDestroyed = damageWeakPoint(this.queen, hitWeakPoint, 50);
+
+          if (wasDestroyed) {
+            this.callbacks.onNotification(`${hitWeakPoint.id.toUpperCase()} WEAK POINT DESTROYED!`, 2000);
+            this.triggerShake(5);
+            this.screenFlash = 0.5;
+            this.screenFlashColor = new Color3(1, 0.5, 0);
+
+            // Particle burst on weak point destruction
+            particleManager.emitCriticalHit(hitPosition, 2);
+          } else {
+            // Visual feedback for weak point hit
+            this.screenFlash = 0.3;
+            this.screenFlashColor = new Color3(1, 0.3, 0.3);
+            particleManager.emitCriticalHit(hitPosition, 1);
+          }
+
+          // Also damage the queen's main health
+          this.damageQueenInternal(50, true);
+          return;
+        }
+
+        // Legacy weak point check for backwards compatibility
         if (this.queen.weakPointVisible && this.queen.weakPointMesh) {
           const toWeakPoint = this.queen.weakPointMesh.position.subtract(playerPos);
           const wpDot = Vector3.Dot(toWeakPoint.normalize(), forward);
@@ -1837,6 +2347,10 @@ export class TheBreachLevel extends BaseLevel {
   }
 
   protected disposeLevel(): void {
+    // Dispose cinematic system
+    this.cinematicSystem?.dispose();
+    this.cinematicSystem = null;
+
     // Dispose collectibles
     this.collectibleSystem?.dispose();
     this.collectibleSystem = null;

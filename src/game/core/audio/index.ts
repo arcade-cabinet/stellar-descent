@@ -47,3 +47,77 @@ export { MusicPlayer } from './music';
 
 // Sound dispatcher
 export { SoundDispatcher, ProceduralAmbientGenerator } from './SoundDispatcher';
+export type { AudioPosition, SpatialEnvironment } from './SoundDispatcher';
+
+// Splash audio manager
+export {
+  SplashAudioManager,
+  getSplashAudioManager,
+  disposeSplashAudioManager,
+} from './SplashAudioManager';
+export type { AudioUnlockState, OrientationPreference } from './SplashAudioManager';
+
+// Audio event handler
+export {
+  AudioEventHandler,
+  getAudioEventHandler,
+  initializeAudioEventHandler,
+  disposeAudioEventHandler,
+} from './AudioEventHandler';
+
+// Adaptive music layer system
+export {
+  MusicLayerType,
+  MusicLayer,
+  TRANSITION_TIMING,
+  LAYER_VOLUMES,
+  LEVEL_MUSIC_THEMES,
+  SCALES,
+  BASS_NOTES,
+  CHORD_PROGRESSIONS,
+  calculateCombatIntensity,
+  getActiveLayersForIntensity,
+  getNextBarTime,
+  scheduleAtNextBar,
+  getSynthFactoryForStyle,
+  createIndustrialSynths,
+  createDesolateSynths,
+  createOrganicSynths,
+  createUrgentSynths,
+  createHorrorSynths,
+  createFrozenSynths,
+  generateAmbientPattern,
+  generatePercussionPattern,
+  generateBassPattern,
+  generateStabPattern,
+  generateLeadPattern,
+} from './MusicLayers';
+export type {
+  CombatState,
+  LayerState,
+  LevelMusicTheme,
+  BossMusicConfig,
+  LayerSynthSet,
+} from './MusicLayers';
+
+// Tone.js-based music composer (menu, combat, boss music)
+export {
+  MusicComposer,
+  getMusicComposer,
+  disposeMusicComposer,
+} from './MusicComposer';
+
+// Tone.js-based procedural sound effects
+export {
+  ProceduralSFX,
+  getProceduralSFX,
+  disposeProceduralSFX,
+} from './ProceduralSFX';
+
+// Ambient soundscape system
+export {
+  AmbientSoundscapes,
+  getAmbientSoundscapes,
+  disposeAmbientSoundscapes,
+} from './AmbientSoundscapes';
+export type { EnvironmentType } from './AmbientSoundscapes';

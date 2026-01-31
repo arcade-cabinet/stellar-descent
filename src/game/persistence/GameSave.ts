@@ -4,27 +4,162 @@
  * This module defines the structure of a game save, which captures
  * the player's campaign progress including:
  * - Current level and completed levels
- * - Player health and stats
- * - Inventory items
+ * - Player health, armor, and weapon state
+ * - Inventory items and collectibles
  * - Objective progress
- * - Difficulty settings
+ * - Difficulty and game settings
  */
 
 import type { DifficultyLevel } from '../core/DifficultySettings';
 import type { LevelId } from '../levels/types';
 
+// ============================================================================
+// WEAPON STATE
+// ============================================================================
+
+/**
+ * State of a single weapon for save/restore
+ */
+export interface WeaponSaveState {
+  /** Weapon ID (e.g., 'rifle', 'shotgun', 'pistol') */
+  weaponId: string;
+  /** Current magazine ammo */
+  currentAmmo: number;
+  /** Reserve ammo */
+  reserveAmmo: number;
+  /** Whether this weapon has been unlocked/acquired */
+  unlocked: boolean;
+}
+
+// ============================================================================
+// PLAYER STATE
+// ============================================================================
+
+/**
+ * Complete player state for save/restore
+ */
+export interface PlayerSaveState {
+  /** Current health (0-100) */
+  health: number;
+  /** Maximum health */
+  maxHealth: number;
+  /** Current armor (0-100) */
+  armor: number;
+  /** Maximum armor */
+  maxArmor: number;
+  /** All weapon states */
+  weapons: WeaponSaveState[];
+  /** Currently equipped weapon slot (0, 1, 2) */
+  currentWeaponSlot: number;
+  /** Grenade inventory by type */
+  grenades: {
+    frag: number;
+    plasma: number;
+    emp: number;
+  };
+  /** Grenade usage stats (picked up vs used) */
+  grenadeStats?: {
+    pickedUp: { frag: number; plasma: number; emp: number };
+    used: { frag: number; plasma: number; emp: number };
+  };
+  /** Checkpoint position (null if no checkpoint) */
+  checkpointPosition: { x: number; y: number; z: number } | null;
+  /** Checkpoint rotation (null if no checkpoint) */
+  checkpointRotation: number | null;
+}
+
+// ============================================================================
+// COLLECTIBLES STATE
+// ============================================================================
+
+/**
+ * Collectibles state for save/restore
+ */
+export interface CollectiblesSaveState {
+  /** IDs of collected skulls */
+  skulls: string[];
+  /** IDs of discovered audio logs */
+  audioLogs: string[];
+  /** IDs of discovered secret areas */
+  secretAreas: string[];
+}
+
+// ============================================================================
+// GAME SETTINGS
+// ============================================================================
+
+/**
+ * Game settings to persist with save
+ * These override the global settings when this save is loaded
+ */
+export interface SavedGameSettings {
+  /** Master volume (0-1) */
+  masterVolume: number;
+  /** Music volume (0-1) */
+  musicVolume: number;
+  /** SFX volume (0-1) */
+  sfxVolume: number;
+  /** Mouse sensitivity multiplier */
+  mouseSensitivity: number;
+  /** Invert Y axis */
+  invertMouseY: boolean;
+  /** Field of view in degrees */
+  fieldOfView: number;
+  /** Show hitmarkers */
+  showHitmarkers: boolean;
+}
+
+// ============================================================================
+// SAVE STATE (Full structure per requirements)
+// ============================================================================
+
+/**
+ * Complete save state structure matching requirements
+ */
+export interface SaveState {
+  /** Save format version for migrations */
+  version: number;
+  /** Unix timestamp of last save */
+  timestamp: number;
+  /** Campaign progress */
+  campaign: {
+    currentLevel: LevelId;
+    completedLevels: LevelId[];
+    difficulty: DifficultyLevel;
+    playTime: number;
+  };
+  /** Player state */
+  player: PlayerSaveState;
+  /** Collectibles state */
+  collectibles: CollectiblesSaveState;
+  /** Unlocked achievement IDs */
+  achievements: string[];
+  /** Game settings snapshot */
+  settings: SavedGameSettings;
+}
+
+// ============================================================================
+// GAME SAVE (Extended for multiple slots)
+// ============================================================================
+
 /**
  * Represents a single saved game slot
  */
 export interface GameSave {
-  /** Unique identifier for this save (UUID) */
+  /** Unique identifier for this save (UUID or slot number) */
   id: string;
+
+  /** Save slot number (1, 2, 3 for manual saves, 0 for autosave) */
+  slotNumber: number;
 
   /** Timestamp when save was created (Unix ms) */
   timestamp: number;
 
   /** Human-readable save name (auto-generated or user-provided) */
   name: string;
+
+  /** Type of save for filtering/display */
+  saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave';
 
   /** Current level the player is on */
   currentLevel: LevelId;
@@ -34,6 +169,12 @@ export interface GameSave {
 
   /** Maximum player health */
   maxPlayerHealth: number;
+
+  /** Player's current armor (0-100) */
+  playerArmor: number;
+
+  /** Maximum player armor */
+  maxPlayerArmor: number;
 
   /** Levels that have been completed (in order) */
   levelsCompleted: LevelId[];
@@ -50,7 +191,7 @@ export interface GameSave {
   /** Total time played in milliseconds */
   playTime: number;
 
-  /** Current chapter (1-6) */
+  /** Current chapter (1-10) */
   currentChapter: number;
 
   /** Player position within current level */
@@ -110,6 +251,49 @@ export interface GameSave {
 
   /** Version of the save format (for migration) */
   version: number;
+
+  // ========== NEW FIELDS FOR FULL STATE RESTORATION ==========
+
+  /** Weapon states for all weapons */
+  weaponStates: WeaponSaveState[];
+
+  /** Currently equipped weapon slot */
+  currentWeaponSlot: number;
+
+  /** Grenade inventory */
+  grenades: {
+    frag: number;
+    plasma: number;
+    emp: number;
+  };
+
+  /** Grenade usage stats (picked up vs used) */
+  grenadeStats: {
+    pickedUp: { frag: number; plasma: number; emp: number };
+    used: { frag: number; plasma: number; emp: number };
+  };
+
+  /** Collected skulls */
+  collectedSkulls: string[];
+
+  /** Discovered audio logs */
+  discoveredAudioLogs: string[];
+
+  /** Discovered secret areas */
+  discoveredSecretAreas: string[];
+
+  /** Unlocked achievements */
+  unlockedAchievements: string[];
+
+  /** Game settings at time of save */
+  savedSettings: SavedGameSettings | null;
+
+  /** Checkpoint data for mid-level saves */
+  checkpoint: {
+    position: { x: number; y: number; z: number };
+    rotation: number;
+    timestamp: number;
+  } | null;
 }
 
 /**
@@ -117,14 +301,29 @@ export interface GameSave {
  */
 export interface GameSaveMetadata {
   id: string;
+  slotNumber: number;
   timestamp: number;
   name: string;
+  saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave';
   currentLevel: LevelId;
   currentChapter: number;
   playTime: number;
   levelsCompleted: number;
   difficulty: DifficultyLevel;
+  playerHealth: number;
+  playerArmor: number;
 }
+
+/**
+ * Number of manual save slots available
+ */
+export const MAX_SAVE_SLOTS = 3;
+
+/**
+ * Special slot numbers
+ */
+export const SAVE_SLOT_AUTOSAVE = 0;
+export const SAVE_SLOT_QUICKSAVE = -1;
 
 /**
  * Current save format version
@@ -133,15 +332,10 @@ export interface GameSaveMetadata {
  * v3: Added seenIntroBriefing field
  * v4: Added levelBestTimes field
  * v5: Added quest chain state (completedQuests, activeQuests, failedQuests)
+ * v6: Added full player state (weapons, armor, grenades), collectibles, achievements, settings
  */
-export const SAVE_FORMAT_VERSION = 5;
+export const SAVE_FORMAT_VERSION = 6;
 
-/**
- * Create a new empty save with default values
- * @param id - Save slot ID
- * @param difficulty - Difficulty level
- * @param startLevel - Starting level (defaults to 'anchor_station')
- */
 /**
  * Level ID to chapter mapping (avoids circular dependency with levels/types)
  */
@@ -158,21 +352,71 @@ const LEVEL_CHAPTERS: Record<LevelId, number> = {
   final_escape: 10,
 };
 
+/**
+ * Default weapon states for a new game
+ */
+const DEFAULT_WEAPON_STATES: WeaponSaveState[] = [
+  { weaponId: 'rifle', currentAmmo: 30, reserveAmmo: 90, unlocked: true },
+  { weaponId: 'shotgun', currentAmmo: 0, reserveAmmo: 0, unlocked: false },
+  { weaponId: 'pistol', currentAmmo: 12, reserveAmmo: 36, unlocked: true },
+];
+
+/**
+ * Default grenade inventory (normal difficulty)
+ */
+const DEFAULT_GRENADES = {
+  frag: 2,
+  plasma: 1,
+  emp: 1,
+};
+
+/**
+ * Default grenade counts per difficulty
+ */
+const GRENADES_BY_DIFFICULTY: Record<DifficultyLevel, { frag: number; plasma: number; emp: number }> = {
+  easy: { frag: 3, plasma: 2, emp: 2 },
+  normal: { frag: 2, plasma: 1, emp: 1 },
+  hard: { frag: 1, plasma: 1, emp: 0 },
+  nightmare: { frag: 1, plasma: 0, emp: 0 },
+};
+
+/**
+ * Default grenade stats
+ */
+const DEFAULT_GRENADE_STATS = {
+  pickedUp: { frag: 0, plasma: 0, emp: 0 },
+  used: { frag: 0, plasma: 0, emp: 0 },
+};
+
+/**
+ * Create a new empty save with default values
+ * @param id - Save slot ID
+ * @param difficulty - Difficulty level
+ * @param startLevel - Starting level (defaults to 'anchor_station')
+ * @param slotNumber - Save slot number (0 = autosave, 1-3 = manual, -1 = quicksave)
+ * @param saveType - Type of save
+ */
 export function createNewSave(
   id: string,
   difficulty: DifficultyLevel = 'normal',
-  startLevel: LevelId = 'anchor_station'
+  startLevel: LevelId = 'anchor_station',
+  slotNumber: number = SAVE_SLOT_AUTOSAVE,
+  saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave' = 'auto'
 ): GameSave {
   // Get chapter from level mapping
   const chapter = LEVEL_CHAPTERS[startLevel] ?? 1;
 
   return {
     id,
+    slotNumber,
     timestamp: Date.now(),
-    name: generateSaveName(),
+    name: generateSaveName(saveType),
+    saveType,
     currentLevel: startLevel,
     playerHealth: 100,
     maxPlayerHealth: 100,
+    playerArmor: 0,
+    maxPlayerArmor: 100,
     levelsCompleted: [],
     levelsVisited: [],
     totalKills: 0,
@@ -203,19 +447,41 @@ export function createNewSave(
     difficulty,
     seenIntroBriefing: false,
     version: SAVE_FORMAT_VERSION,
+    // New v6 fields
+    weaponStates: [...DEFAULT_WEAPON_STATES],
+    currentWeaponSlot: 0,
+    grenades: { ...GRENADES_BY_DIFFICULTY[difficulty] },
+    grenadeStats: { ...DEFAULT_GRENADE_STATS, pickedUp: { frag: 0, plasma: 0, emp: 0 }, used: { frag: 0, plasma: 0, emp: 0 } },
+    collectedSkulls: [],
+    discoveredAudioLogs: [],
+    discoveredSecretAreas: [],
+    unlockedAchievements: [],
+    savedSettings: null,
+    checkpoint: null,
   };
 }
 
 /**
- * Generate a default save name based on current date/time
+ * Generate a default save name based on current date/time and save type
  */
-function generateSaveName(): string {
+function generateSaveName(saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave' = 'manual'): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `Save ${month}/${day} ${hours}:${minutes}`;
+  const timestamp = `${month}/${day} ${hours}:${minutes}`;
+
+  switch (saveType) {
+    case 'auto':
+      return `Autosave - ${timestamp}`;
+    case 'checkpoint':
+      return `Checkpoint - ${timestamp}`;
+    case 'quicksave':
+      return `Quicksave - ${timestamp}`;
+    default:
+      return `Save ${timestamp}`;
+  }
 }
 
 /**
@@ -236,13 +502,105 @@ export function generateSaveId(): string {
 export function extractSaveMetadata(save: GameSave): GameSaveMetadata {
   return {
     id: save.id,
+    slotNumber: save.slotNumber ?? SAVE_SLOT_AUTOSAVE,
     timestamp: save.timestamp,
     name: save.name,
+    saveType: save.saveType ?? 'auto',
     currentLevel: save.currentLevel,
     currentChapter: save.currentChapter,
     playTime: save.playTime,
     levelsCompleted: save.levelsCompleted.length,
     difficulty: save.difficulty ?? 'normal',
+    playerHealth: save.playerHealth,
+    playerArmor: save.playerArmor ?? 0,
+  };
+}
+
+/**
+ * Convert a GameSave to the SaveState format for export/cloud sync
+ */
+export function toSaveState(save: GameSave): SaveState {
+  return {
+    version: save.version,
+    timestamp: save.timestamp,
+    campaign: {
+      currentLevel: save.currentLevel,
+      completedLevels: [...save.levelsCompleted],
+      difficulty: save.difficulty,
+      playTime: save.playTime,
+    },
+    player: {
+      health: save.playerHealth,
+      maxHealth: save.maxPlayerHealth,
+      armor: save.playerArmor ?? 0,
+      maxArmor: save.maxPlayerArmor ?? 100,
+      weapons: save.weaponStates ?? [],
+      currentWeaponSlot: save.currentWeaponSlot ?? 0,
+      grenades: save.grenades ?? { frag: 2, plasma: 1, emp: 1 },
+      checkpointPosition: save.checkpoint?.position ?? null,
+      checkpointRotation: save.checkpoint?.rotation ?? null,
+    },
+    collectibles: {
+      skulls: save.collectedSkulls ?? [],
+      audioLogs: save.discoveredAudioLogs ?? [],
+      secretAreas: save.discoveredSecretAreas ?? [],
+    },
+    achievements: save.unlockedAchievements ?? [],
+    settings: save.savedSettings ?? {
+      masterVolume: 1.0,
+      musicVolume: 0.5,
+      sfxVolume: 0.7,
+      mouseSensitivity: 1.0,
+      invertMouseY: false,
+      fieldOfView: 90,
+      showHitmarkers: true,
+    },
+  };
+}
+
+/**
+ * Convert a SaveState back to GameSave format (for import/cloud sync)
+ */
+export function fromSaveState(
+  state: SaveState,
+  id: string,
+  slotNumber: number = SAVE_SLOT_AUTOSAVE,
+  saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave' = 'auto'
+): GameSave {
+  const baseSave = createNewSave(
+    id,
+    state.campaign.difficulty,
+    state.campaign.currentLevel,
+    slotNumber,
+    saveType
+  );
+
+  return {
+    ...baseSave,
+    version: state.version,
+    timestamp: state.timestamp,
+    playTime: state.campaign.playTime,
+    levelsCompleted: [...state.campaign.completedLevels],
+    levelsVisited: [...state.campaign.completedLevels], // Visited at least what's completed
+    playerHealth: state.player.health,
+    maxPlayerHealth: state.player.maxHealth,
+    playerArmor: state.player.armor,
+    maxPlayerArmor: state.player.maxArmor,
+    weaponStates: [...state.player.weapons],
+    currentWeaponSlot: state.player.currentWeaponSlot,
+    grenades: { ...state.player.grenades },
+    checkpoint: state.player.checkpointPosition
+      ? {
+          position: state.player.checkpointPosition,
+          rotation: state.player.checkpointRotation ?? 0,
+          timestamp: state.timestamp,
+        }
+      : null,
+    collectedSkulls: [...state.collectibles.skulls],
+    discoveredAudioLogs: [...state.collectibles.audioLogs],
+    discoveredSecretAreas: [...state.collectibles.secretAreas],
+    unlockedAchievements: [...state.achievements],
+    savedSettings: { ...state.settings },
   };
 }
 

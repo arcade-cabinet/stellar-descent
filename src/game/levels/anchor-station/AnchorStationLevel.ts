@@ -33,6 +33,11 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import {
+  CinematicSystem,
+  createAnchorStationIntroCinematic,
+  type CinematicCallbacks,
+} from '../../cinematics';
+import {
   bindableActionParams,
   formatKeyForDisplay,
   levelActionParams,
@@ -56,6 +61,9 @@ const log = getLogger('AnchorStationLevel');
 export class AnchorStationLevel extends StationLevel {
   // Station environment (modular GLB-based)
   private stationEnvironment: ModularStationEnv | null = null;
+
+  // Cinematic system for intro sequence
+  private cinematicSystem: CinematicSystem | null = null;
 
   // Tutorial system
   private tutorialManager: TutorialManager | null = null;
@@ -184,10 +192,72 @@ export class AnchorStationLevel extends StationLevel {
 
     // Initialize tutorial manager
     this.tutorialManager = new TutorialManager(this.scene);
-    this.startTutorial();
+
+    // Initialize cinematic system
+    this.initializeCinematicSystem();
+
+    // Play intro cinematic (or start tutorial directly if already viewed)
+    this.playIntroCinematic();
 
     // Set up environmental audio for station atmosphere
     this.setupStationEnvironmentalAudio();
+  }
+
+  /**
+   * Initialize the cinematic system with appropriate callbacks.
+   */
+  private initializeCinematicSystem(): void {
+    const cinematicCallbacks: CinematicCallbacks = {
+      onCommsMessage: (message) => {
+        this.callbacks.onCommsMessage({
+          sender: message.sender,
+          callsign: message.callsign ?? '',
+          portrait: (message.portrait ?? 'ai') as 'commander' | 'ai' | 'marcus' | 'armory' | 'player',
+          text: message.text,
+        });
+      },
+      onNotification: (text, duration) => {
+        this.callbacks.onNotification(text, duration ?? 3000);
+      },
+      onObjectiveUpdate: (title, instructions) => {
+        this.callbacks.onObjectiveUpdate(title, instructions);
+      },
+      onShakeCamera: (intensity) => {
+        this.triggerShake(intensity);
+      },
+      onCinematicStart: () => {
+        this.callbacks.onCinematicStart?.();
+      },
+      onCinematicEnd: () => {
+        this.callbacks.onCinematicEnd?.();
+      },
+    };
+
+    this.cinematicSystem = new CinematicSystem(this.scene, this.camera, cinematicCallbacks);
+  }
+
+  /**
+   * Play the level intro cinematic sequence.
+   * Cinematic is skipped if already viewed in the current save.
+   */
+  private playIntroCinematic(): void {
+    if (!this.cinematicSystem) {
+      this.startTutorial();
+      return;
+    }
+
+    // Player spawn position for the intro cinematic
+    const playerSpawnPosition = new Vector3(0, 1.7, 2);
+
+    const sequence = createAnchorStationIntroCinematic(
+      () => {
+        // Cinematic complete - start the tutorial
+        this.startTutorial();
+      },
+      playerSpawnPosition
+    );
+
+    this.cinematicSystem.play(sequence);
   }
 
   /**
@@ -681,6 +751,16 @@ export class AnchorStationLevel extends StationLevel {
   // Note: setTouchInput is inherited from BaseLevel
 
   protected updateLevel(deltaTime: number): void {
+    // Update cinematic system
+    if (this.cinematicSystem) {
+      this.cinematicSystem.update(deltaTime);
+
+      // Don't update gameplay if cinematic is playing
+      if (this.cinematicSystem.isPlaying()) {
+        return;
+      }
+    }
+
     // Process touch input for movement/look (respecting HUD state)
     if (this.touchInput) {
       const movement = this.touchInput.movement;
@@ -799,6 +879,10 @@ export class AnchorStationLevel extends StationLevel {
   }
 
   protected override disposeLevel(): void {
+    // Dispose cinematic system
+    this.cinematicSystem?.dispose();
+    this.cinematicSystem = null;
+
     // Dispose tutorial manager
     this.tutorialManager?.dispose();
     this.tutorialManager = null;

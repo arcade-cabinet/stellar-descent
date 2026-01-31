@@ -8,6 +8,16 @@ function pathResolve(dir: string) {
   return resolve(__dirname, '.', dir);
 }
 
+// Build timestamp for cache verification
+const BUILD_TIMESTAMP = new Date().toISOString();
+
+// Environment variable documentation:
+// - VITE_PUBLIC_PATH: Base path for the application
+// - VITE_GEMINI_API_KEY: Google Gemini API key for AI-powered asset generation
+//   Used for: Video generation (Veo 3.1), Image generation (Imagen), Text generation
+//   Required for: Cinematic videos, character portraits, dynamic dialogue
+//   Note: Set in .env.local file or CI/CD environment. Never commit API keys!
+
 // https://vitejs.dev/config/
 export default ({ mode }: any) => {
   const root = process.cwd();
@@ -251,11 +261,17 @@ export default ({ mode }: any) => {
     },
     // Ensure WASM files can be loaded
     assetsInclude: ['**/*.wasm'],
+    // Inject build timestamp as define for runtime access
+    define: {
+      __BUILD_TIMESTAMP__: JSON.stringify(BUILD_TIMESTAMP),
+    },
     build: {
       target: 'esnext',
       outDir: 'dist',
       chunkSizeWarningLimit: 600, // Increased slightly to avoid warning for index chunk
       assetsInlineLimit: 4096,
+      // Enable source maps for production debugging
+      sourcemap: true,
       rollupOptions: {
         output: {
           chunkFileNames: 'static/js/[name]-[hash].js',

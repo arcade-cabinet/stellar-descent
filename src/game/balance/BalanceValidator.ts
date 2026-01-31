@@ -178,9 +178,10 @@ export class BalanceValidator {
     // and weapon switching (player uses all 3 weapons, not just one)
     const AMMO_PARAMS: Record<string, { missRate: number; failRatio: number; warnRatio: number }> =
       {
+        easy: { missRate: 1.6, failRatio: 0.9, warnRatio: 1.1 },
         normal: { missRate: 1.5, failRatio: 0.8, warnRatio: 1.0 },
-        veteran: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
-        legendary: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
+        hard: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
+        nightmare: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
       };
 
     for (const difficulty of DIFFICULTY_ORDER) {
@@ -329,32 +330,32 @@ export class BalanceValidator {
 
   /**
    * Difficulty scaling should produce meaningful differences.
-   * Veteran should be noticeably harder than Normal, Legendary harder still.
+   * Hard should be noticeably harder than Normal, Nightmare harder still.
    */
   private validateDifficultyScaling(): void {
     const enemyIds = Object.keys(ENEMY_BALANCE);
 
     for (const enemyId of enemyIds) {
       const normalHP = getScaledEnemyHealth(enemyId, 'normal');
-      const veteranHP = getScaledEnemyHealth(enemyId, 'veteran');
-      const legendaryHP = getScaledEnemyHealth(enemyId, 'legendary');
+      const hardHP = getScaledEnemyHealth(enemyId, 'hard');
+      const nightmareHP = getScaledEnemyHealth(enemyId, 'nightmare');
 
-      // Veteran should be at least 20% harder
-      const vetRatio = veteranHP / normalHP;
+      // Hard should be at least 20% harder
+      const hardRatio = hardHP / normalHP;
       this.addEntry({
         check: 'difficulty_scaling',
-        description: `${ENEMY_BALANCE[enemyId].name} veteran/normal HP ratio`,
-        severity: vetRatio >= 1.2 ? 'pass' : 'warn',
-        details: `ratio=${vetRatio.toFixed(2)} (want >= 1.20)`,
+        description: `${ENEMY_BALANCE[enemyId].name} hard/normal HP ratio`,
+        severity: hardRatio >= 1.2 ? 'pass' : 'warn',
+        details: `ratio=${hardRatio.toFixed(2)} (want >= 1.20)`,
       });
 
-      // Legendary should be at least 50% harder than normal
-      const legRatio = legendaryHP / normalHP;
+      // Nightmare should be at least 50% harder than normal
+      const nightmareRatio = nightmareHP / normalHP;
       this.addEntry({
         check: 'difficulty_scaling',
-        description: `${ENEMY_BALANCE[enemyId].name} legendary/normal HP ratio`,
-        severity: legRatio >= 1.5 ? 'pass' : 'warn',
-        details: `ratio=${legRatio.toFixed(2)} (want >= 1.50)`,
+        description: `${ENEMY_BALANCE[enemyId].name} nightmare/normal HP ratio`,
+        severity: nightmareRatio >= 1.5 ? 'pass' : 'warn',
+        details: `ratio=${nightmareRatio.toFixed(2)} (want >= 1.50)`,
       });
     }
   }

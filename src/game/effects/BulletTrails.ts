@@ -63,6 +63,13 @@ export interface WeaponTrailConfig {
  * Default trail configurations by weapon category
  */
 const DEFAULT_TRAIL_CONFIGS: Record<WeaponCategory, WeaponTrailConfig> = {
+  melee: {
+    trailColor: new Color3(1, 1, 1), // Not used
+    trailDuration: 0,
+    tracerFrequency: 0, // No projectiles
+    tracerColor: new Color3(1, 1, 1),
+    tracerDuration: 0,
+  },
   sidearm: {
     trailColor: new Color3(1, 0.85, 0.3), // Yellow-orange
     trailDuration: 100,
@@ -104,6 +111,13 @@ const DEFAULT_TRAIL_CONFIGS: Record<WeaponCategory, WeaponTrailConfig> = {
     tracerFrequency: 3, // Every 3rd round
     tracerColor: new Color3(1, 1, 0.7),
     tracerDuration: 280,
+  },
+  vehicle: {
+    trailColor: new Color3(1, 1, 1), // Not used for vehicle yoke
+    trailDuration: 0,
+    tracerFrequency: 0, // No projectiles from yoke itself
+    tracerColor: new Color3(1, 1, 1),
+    tracerDuration: 0,
   },
 };
 

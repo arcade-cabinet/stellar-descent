@@ -3,7 +3,8 @@
  *
  * Provides the Phantom Dropship (player-pilotable alien craft),
  * the Wraith Tank (AI enemy vehicle, hijackable), the shared
- * VehicleBase class, and the VehicleHUD React overlay.
+ * VehicleBase class, VehicleUtils for common functionality,
+ * and the VehicleHUD React overlay.
  */
 
 export type { PhantomFlightMode, PhantomLandingState } from './PhantomDropship';
@@ -22,3 +23,25 @@ export { VehicleHUD } from './VehicleHUD';
 export type { WraithAIState } from './WraithTank';
 // Wraith Tank
 export { WraithTank } from './WraithTank';
+// Vehicle utilities for shared functionality
+export {
+  applyVehicleDamage,
+  buildVehicleInput,
+  createTransitionHandler,
+  createVehicleDestructionEffect,
+  disposeVehicle,
+  getVehicleExitPosition,
+  healVehicle,
+  isNearVehicle,
+  preloadVehicleAssets,
+  spawnVehicle,
+  updateVehicleDamageVisuals,
+} from './VehicleUtils';
+export type {
+  SpawnedVehicle,
+  TransitionConfig,
+  TransitionState,
+  VehicleDamageResult,
+  VehicleSpawnConfig,
+  VehicleType,
+} from './VehicleUtils';

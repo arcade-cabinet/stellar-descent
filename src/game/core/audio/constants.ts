@@ -120,6 +120,66 @@ export const LEVEL_AUDIO_CONFIGS: Partial<Record<LevelId, LevelAudioConfig>> = {
       volume: 0.55,
     },
   },
+  southern_ice: {
+    ambientTrack: 'ambient',
+    combatTrack: 'combat',
+    ambientVolume: 0.45,
+    combatVolume: 0.7,
+    proceduralAmbient: {
+      type: 'ice',
+      intensity: 0.6,
+    },
+    proceduralMusic: {
+      enabled: true,
+      environment: 'surface',
+      volume: 0.4,
+    },
+  },
+  canyon_run: {
+    ambientTrack: 'exploration',
+    combatTrack: 'combat',
+    ambientVolume: 0.5,
+    combatVolume: 0.75,
+    proceduralAmbient: {
+      type: 'wind',
+      intensity: 0.5,
+    },
+    proceduralMusic: {
+      enabled: true,
+      environment: 'surface',
+      volume: 0.45,
+    },
+  },
+  hive_assault: {
+    ambientTrack: 'ambient',
+    combatTrack: 'boss',
+    ambientVolume: 0.35,
+    combatVolume: 0.8,
+    proceduralAmbient: {
+      type: 'hive',
+      intensity: 0.65,
+    },
+    proceduralMusic: {
+      enabled: true,
+      environment: 'hive',
+      volume: 0.5,
+    },
+  },
+  final_escape: {
+    ambientTrack: 'combat',
+    combatTrack: 'boss',
+    ambientVolume: 0.55,
+    combatVolume: 0.9,
+    proceduralAmbient: {
+      type: 'extraction',
+      intensity: 0.8,
+    },
+    proceduralMusic: {
+      enabled: true,
+      environment: 'extraction',
+      volume: 0.6,
+    },
+  },
 };
 
 // Default volume levels

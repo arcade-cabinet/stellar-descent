@@ -17,6 +17,11 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TouchInput } from '../../game/types';
+import {
+  DYNAMIC_ACTION_LABELS,
+  type DynamicAction,
+  useKeybindings,
+} from '../../game/context/KeybindingsContext';
 import { getScreenInfo } from '../../game/utils/responsive';
 import {
   applyAccelerationCurve,
@@ -47,6 +52,147 @@ interface TouchControlsProps {
   interactionLabel?: string;
   /** Callback when pause button is pressed */
   onPause?: () => void;
+  /** Callback when a dynamic action button is pressed */
+  onDynamicAction?: (action: DynamicAction) => void;
+}
+
+/**
+ * Configuration for dynamic action button appearance
+ */
+interface DynamicActionConfig {
+  icon: string;
+  shortLabel: string;
+  category: 'vehicle' | 'squad' | 'ability' | 'weapon' | 'movement';
+  color: string;
+  borderColor: string;
+}
+
+/**
+ * Map of dynamic actions to their button configurations
+ */
+const DYNAMIC_ACTION_CONFIG: Record<DynamicAction, DynamicActionConfig> = {
+  // Vehicle controls - blue/cyan theme
+  vehicleBoost: {
+    icon: '>',
+    shortLabel: 'BOOST',
+    category: 'vehicle',
+    color: 'rgba(0, 188, 212, 0.3)',
+    borderColor: '#00bcd4',
+  },
+  vehicleBrake: {
+    icon: '||',
+    shortLabel: 'BRAKE',
+    category: 'vehicle',
+    color: 'rgba(255, 152, 0, 0.3)',
+    borderColor: '#ff9800',
+  },
+  vehicleEject: {
+    icon: '^',
+    shortLabel: 'EJECT',
+    category: 'vehicle',
+    color: 'rgba(244, 67, 54, 0.3)',
+    borderColor: '#f44336',
+  },
+  // Squad commands - purple/magenta theme
+  squadFollow: {
+    icon: 'F',
+    shortLabel: 'FOLLOW',
+    category: 'squad',
+    color: 'rgba(156, 39, 176, 0.3)',
+    borderColor: '#9c27b0',
+  },
+  squadHold: {
+    icon: 'H',
+    shortLabel: 'HOLD',
+    category: 'squad',
+    color: 'rgba(156, 39, 176, 0.3)',
+    borderColor: '#9c27b0',
+  },
+  squadAttack: {
+    icon: '!',
+    shortLabel: 'ATTACK',
+    category: 'squad',
+    color: 'rgba(233, 30, 99, 0.3)',
+    borderColor: '#e91e63',
+  },
+  squadRegroup: {
+    icon: 'R',
+    shortLabel: 'REGROUP',
+    category: 'squad',
+    color: 'rgba(156, 39, 176, 0.3)',
+    borderColor: '#9c27b0',
+  },
+  // Abilities - teal theme
+  useAbility1: {
+    icon: '1',
+    shortLabel: 'ABILITY',
+    category: 'ability',
+    color: 'rgba(0, 150, 136, 0.3)',
+    borderColor: '#009688',
+  },
+  useAbility2: {
+    icon: '2',
+    shortLabel: 'ABILITY',
+    category: 'ability',
+    color: 'rgba(0, 150, 136, 0.3)',
+    borderColor: '#009688',
+  },
+  useAbility3: {
+    icon: '3',
+    shortLabel: 'ABILITY',
+    category: 'ability',
+    color: 'rgba(0, 150, 136, 0.3)',
+    borderColor: '#009688',
+  },
+  // Weapon controls - red/orange theme
+  weaponMelee: {
+    icon: 'M',
+    shortLabel: 'MELEE',
+    category: 'weapon',
+    color: 'rgba(255, 87, 34, 0.3)',
+    borderColor: '#ff5722',
+  },
+  weaponGrenade: {
+    icon: 'G',
+    shortLabel: 'NADE',
+    category: 'weapon',
+    color: 'rgba(255, 152, 0, 0.3)',
+    borderColor: '#ff9800',
+  },
+  // Movement abilities - green theme
+  mantle: {
+    icon: '^',
+    shortLabel: 'MANTLE',
+    category: 'movement',
+    color: 'rgba(76, 175, 80, 0.3)',
+    borderColor: '#4caf50',
+  },
+  slide: {
+    icon: '_',
+    shortLabel: 'SLIDE',
+    category: 'movement',
+    color: 'rgba(76, 175, 80, 0.3)',
+    borderColor: '#4caf50',
+  },
+};
+
+/**
+ * Groups dynamic actions by category for organized display
+ */
+function groupDynamicActionsByCategory(
+  actions: DynamicAction[]
+): Map<string, DynamicAction[]> {
+  const grouped = new Map<string, DynamicAction[]>();
+
+  for (const action of actions) {
+    const config = DYNAMIC_ACTION_CONFIG[action];
+    const category = config.category;
+    const existing = grouped.get(category) || [];
+    existing.push(action);
+    grouped.set(category, existing);
+  }
+
+  return grouped;
 }
 
 interface JoystickState {
@@ -73,7 +219,22 @@ export function TouchControls({
   interactionAvailable = false,
   interactionLabel = 'USE',
   onPause,
+  onDynamicAction,
 }: TouchControlsProps) {
+  // Get active dynamic actions from keybindings context
+  const { activeDynamicActions, getRegisteredDynamicActions } = useKeybindings();
+
+  // Group dynamic actions by category for organized display
+  const groupedDynamicActions = useMemo(
+    () => groupDynamicActionsByCategory(activeDynamicActions),
+    [activeDynamicActions]
+  );
+
+  // Track which dynamic action buttons are currently pressed
+  const [activeDynamicButtons, setActiveDynamicButtons] = useState<Set<DynamicAction>>(
+    new Set()
+  );
+
   // Settings
   const [settings, setSettings] = useState<TouchControlSettings>(() => loadTouchSettings());
   const [isSettingsOpen, setIsSettingsOpen] = useState(showSettings);
@@ -104,6 +265,28 @@ export function TouchControls({
   const [isCrouching, setIsCrouching] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [isMelee, setIsMelee] = useState(false);
+  const [isGrenade, setIsGrenade] = useState(false);
+  const [isAimingGrenade, setIsAimingGrenade] = useState(false);
+  const [isSliding, setIsSliding] = useState(false);
+
+  // Melee cooldown tracking
+  const [meleeCooldown, setMeleeCooldown] = useState(0);
+  const meleeCooldownDuration = 800; // ms
+  const lastMeleeTimeRef = useRef(0);
+
+  // Grenade long-press tracking
+  const grenadeTimerRef = useRef<number | null>(null);
+  const grenadeAimStartTime = useRef(0);
+  const [grenadeCount, setGrenadeCount] = useState(3); // TODO: Get from game state
+
+  // Slide double-tap tracking
+  const lastCrouchTapRef = useRef(0);
+  const doubleTapThreshold = 250; // ms - reduced from 300ms for faster response
+
+  // Track active slide visual state (for button highlighting)
+  const [isSlideActive, setIsSlideActive] = useState(false);
+  const slideVisualTimerRef = useRef<number | null>(null);
 
   // Weapon switching
   const [activeWeapon, setActiveWeapon] = useState(0);
@@ -128,9 +311,10 @@ export function TouchControls({
   }, [showSettings]);
 
   // Calculate joystick output with dead zone and acceleration
+  // Also returns whether joystick is at edge (for sprint)
   const getJoystickOutput = useCallback(
-    (stick: JoystickState) => {
-      if (!stick.active) return { x: 0, y: 0 };
+    (stick: JoystickState): { x: number; y: number; atEdge: boolean } => {
+      if (!stick.active) return { x: 0, y: 0, atEdge: false };
 
       const dx = stick.currentX - stick.startX;
       const dy = stick.currentY - stick.startY;
@@ -138,7 +322,7 @@ export function TouchControls({
 
       // Apply dead zone
       const deadZone = settings.movementDeadZone * maxDistance;
-      if (distance < deadZone) return { x: 0, y: 0 };
+      if (distance < deadZone) return { x: 0, y: 0, atEdge: false };
 
       // Normalize and apply dead zone scaling
       const effectiveDistance = distance - deadZone;
@@ -153,9 +337,13 @@ export function TouchControls({
       // Apply acceleration curve based on user preference
       const curvedMagnitude = applyAccelerationCurve(normalizedDist, settings.joystickCurve);
 
+      // Check if joystick is pushed to edge (>90% of max distance) for sprint
+      const atEdge = normalizedDist > 0.9;
+
       return {
         x: dirX * curvedMagnitude,
         y: dirY * curvedMagnitude,
+        atEdge,
       };
     },
     [maxDistance, settings.movementDeadZone, settings.joystickCurve]
@@ -187,11 +375,14 @@ export function TouchControls({
       y: finalLook.y * settings.lookSensitivity * (settings.invertedY ? -1 : 1),
     };
 
+    // Sprint if button pressed OR joystick pushed to edge
+    const shouldSprint = isSprinting || movement.atEdge;
+
     onInput({
       movement: { x: movement.x, y: -movement.y }, // Invert Y for forward
       look: scaledLook,
       isFiring,
-      isSprinting,
+      isSprinting: shouldSprint,
       isJumping,
       isCrouching,
       weaponSlot: weaponSwitchRequest,
@@ -199,6 +390,10 @@ export function TouchControls({
       isInteracting,
       aimAssist: settings.aimAssist,
       aimAssistStrength: settings.aimAssistStrength,
+      isMelee,
+      isGrenade,
+      isAimingGrenade,
+      isSliding,
     });
 
     // Reset look delta after sending
@@ -215,6 +410,15 @@ export function TouchControls({
     if (isInteracting) {
       setIsInteracting(false);
     }
+    if (isMelee) {
+      setIsMelee(false);
+    }
+    if (isGrenade) {
+      setIsGrenade(false);
+    }
+    if (isSliding) {
+      setIsSliding(false);
+    }
   }, [
     moveStick,
     lookDelta,
@@ -225,6 +429,10 @@ export function TouchControls({
     weaponSwitchRequest,
     isReloading,
     isInteracting,
+    isMelee,
+    isGrenade,
+    isAimingGrenade,
+    isSliding,
     getJoystickOutput,
     onInput,
     settings.lookSensitivity,
@@ -433,6 +641,121 @@ export function TouchControls({
     [settings.hapticFeedback, settings.hapticIntensity]
   );
 
+  // Melee button handler with cooldown
+  const handleMelee = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      const now = performance.now();
+      if (now - lastMeleeTimeRef.current < meleeCooldownDuration) {
+        return; // Still on cooldown
+      }
+      lastMeleeTimeRef.current = now;
+      setIsMelee(true);
+      setMeleeCooldown(100);
+      triggerHaptic('fire', settings.hapticFeedback, settings.hapticIntensity);
+
+      // Animate cooldown
+      const startTime = now;
+      const animateCooldown = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(100, (elapsed / meleeCooldownDuration) * 100);
+        setMeleeCooldown(progress);
+        if (progress < 100) {
+          requestAnimationFrame(animateCooldown);
+        }
+      };
+      requestAnimationFrame(animateCooldown);
+    },
+    [settings.hapticFeedback, settings.hapticIntensity]
+  );
+
+  // Grenade button handlers - tap to throw, long press to aim
+  const handleGrenadeStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      if (grenadeCount <= 0) {
+        triggerHaptic('emptyClip', settings.hapticFeedback, settings.hapticIntensity);
+        return;
+      }
+      grenadeAimStartTime.current = performance.now();
+      // Start timer for aim mode activation (300ms hold)
+      grenadeTimerRef.current = window.setTimeout(() => {
+        setIsAimingGrenade(true);
+        triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
+      }, 300);
+    },
+    [settings.hapticFeedback, settings.hapticIntensity, grenadeCount]
+  );
+
+  const handleGrenadeEnd = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      // Clear aim timer if still pending
+      if (grenadeTimerRef.current) {
+        clearTimeout(grenadeTimerRef.current);
+        grenadeTimerRef.current = null;
+      }
+
+      const holdDuration = performance.now() - grenadeAimStartTime.current;
+
+      if (isAimingGrenade) {
+        // Release after aiming - throw grenade with arc
+        setIsAimingGrenade(false);
+        setIsGrenade(true);
+        setGrenadeCount((prev) => Math.max(0, prev - 1));
+        triggerHaptic('fire', settings.hapticFeedback, settings.hapticIntensity);
+      } else if (holdDuration < 300 && grenadeCount > 0) {
+        // Quick tap - throw immediately
+        setIsGrenade(true);
+        setGrenadeCount((prev) => Math.max(0, prev - 1));
+        triggerHaptic('fire', settings.hapticFeedback, settings.hapticIntensity);
+      }
+    },
+    [settings.hapticFeedback, settings.hapticIntensity, isAimingGrenade, grenadeCount]
+  );
+
+  // Crouch button with double-tap slide detection
+  // Enhanced for mobile: faster double-tap detection, instant slide initiation
+  const handleCrouchStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      const now = performance.now();
+      const timeSinceLast = now - lastCrouchTapRef.current;
+
+      // Check for double-tap to trigger slide (instant initiation on second tap)
+      if (timeSinceLast < doubleTapThreshold && timeSinceLast > 50) {
+        // Double-tap detected - instant slide
+        setIsSliding(true);
+        setIsCrouching(false); // Clear crouch since we're sliding
+
+        // Set visual slide state with auto-clear (slide lasts ~0.8s)
+        setIsSlideActive(true);
+        if (slideVisualTimerRef.current) {
+          clearTimeout(slideVisualTimerRef.current);
+        }
+        slideVisualTimerRef.current = window.setTimeout(() => {
+          setIsSlideActive(false);
+        }, 800); // Match slide duration
+
+        // Strong haptic feedback for slide
+        triggerHaptic('sprint', settings.hapticFeedback, settings.hapticIntensity);
+      } else {
+        // Single tap - crouch with immediate visual feedback
+        setIsCrouching(true);
+        // Light haptic feedback for crouch
+        triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
+      }
+      lastCrouchTapRef.current = now;
+    },
+    [settings.hapticFeedback, settings.hapticIntensity]
+  );
+
+  const handleCrouchEnd = useCallback(() => {
+    setIsCrouching(false);
+    // Haptic feedback on stand
+    triggerHaptic('buttonRelease', settings.hapticFeedback, settings.hapticIntensity);
+  }, [settings.hapticFeedback, settings.hapticIntensity]);
+
   // Pause button handler
   const handlePause = useCallback(
     (e: React.PointerEvent) => {
@@ -442,6 +765,25 @@ export function TouchControls({
     },
     [settings.hapticFeedback, settings.hapticIntensity, onPause]
   );
+
+  // Dynamic action button handlers
+  const handleDynamicActionStart = useCallback(
+    (e: React.PointerEvent, action: DynamicAction) => {
+      e.stopPropagation();
+      setActiveDynamicButtons((prev) => new Set(prev).add(action));
+      triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
+      onDynamicAction?.(action);
+    },
+    [settings.hapticFeedback, settings.hapticIntensity, onDynamicAction]
+  );
+
+  const handleDynamicActionEnd = useCallback((action: DynamicAction) => {
+    setActiveDynamicButtons((prev) => {
+      const next = new Set(prev);
+      next.delete(action);
+      return next;
+    });
+  }, []);
 
   // Settings handlers
   const handleSettingChange = useCallback(
@@ -614,27 +956,23 @@ export function TouchControls({
             <span className={styles.buttonLabel} aria-hidden="true">JUMP</span>
           </button>
 
-          {/* Crouch Button */}
+          {/* Crouch Button - Double tap for slide */}
           <button
             type="button"
-            className={`${styles.actionButton} ${styles.smallButton} ${isCrouching ? styles.active : ''}`}
+            className={`${styles.actionButton} ${styles.smallButton} ${isCrouching ? styles.active : ''} ${isSlideActive ? styles.sliding : ''}`}
             style={{
               width: `${controlSizes.smallButtonSize}px`,
               height: `${controlSizes.smallButtonSize}px`,
             }}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              setIsCrouching(true);
-              triggerHaptic('buttonPress', settings.hapticFeedback, settings.hapticIntensity);
-            }}
-            onPointerUp={() => setIsCrouching(false)}
-            onPointerCancel={() => setIsCrouching(false)}
-            onPointerLeave={() => setIsCrouching(false)}
-            aria-label="Crouch"
-            aria-pressed={isCrouching}
+            onPointerDown={handleCrouchStart}
+            onPointerUp={handleCrouchEnd}
+            onPointerCancel={handleCrouchEnd}
+            onPointerLeave={handleCrouchEnd}
+            aria-label="Crouch (double-tap to slide)"
+            aria-pressed={isCrouching || isSlideActive}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">v</span>
-            <span className={styles.buttonLabel} aria-hidden="true">DUCK</span>
+            <span className={styles.buttonIcon} aria-hidden="true">{isSlideActive ? '_' : 'v'}</span>
+            <span className={styles.buttonLabel} aria-hidden="true">{isSlideActive ? 'SLIDE' : 'DUCK'}</span>
           </button>
         </div>
 
@@ -661,6 +999,53 @@ export function TouchControls({
           <span className={styles.buttonLabel} aria-hidden="true">RUN</span>
         </button>
 
+        {/* Combat buttons row - Melee and Grenade */}
+        <div className={styles.secondaryButtonRow} role="group" aria-label="Combat actions">
+          {/* Melee Button with cooldown indicator */}
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.meleeButton} ${meleeCooldown < 100 && meleeCooldown > 0 ? styles.onCooldown : ''}`}
+            style={{
+              width: `${controlSizes.smallButtonSize}px`,
+              height: `${controlSizes.smallButtonSize}px`,
+            }}
+            onPointerDown={handleMelee}
+            aria-label={meleeCooldown < 100 ? `Melee (cooldown: ${Math.round(100 - meleeCooldown)}%)` : 'Melee attack'}
+            disabled={meleeCooldown < 100 && meleeCooldown > 0}
+          >
+            {meleeCooldown > 0 && meleeCooldown < 100 && (
+              <div
+                className={styles.cooldownProgress}
+                style={{ '--progress': `${meleeCooldown}%` } as React.CSSProperties}
+                aria-hidden="true"
+              />
+            )}
+            <span className={styles.buttonIcon} aria-hidden="true">M</span>
+            <span className={styles.buttonLabel} aria-hidden="true">MELEE</span>
+          </button>
+
+          {/* Grenade Button with count - Long press to aim */}
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.grenadeButton} ${isAimingGrenade ? styles.aiming : ''} ${grenadeCount <= 0 ? styles.empty : ''}`}
+            style={{
+              width: `${controlSizes.smallButtonSize}px`,
+              height: `${controlSizes.smallButtonSize}px`,
+            }}
+            onPointerDown={handleGrenadeStart}
+            onPointerUp={handleGrenadeEnd}
+            onPointerCancel={handleGrenadeEnd}
+            onPointerLeave={handleGrenadeEnd}
+            aria-label={`Throw grenade (${grenadeCount} remaining). Hold to aim.`}
+          >
+            <span className={styles.buttonIcon} aria-hidden="true">G</span>
+            <span className={styles.buttonLabel} aria-hidden="true">{grenadeCount}</span>
+            {isAimingGrenade && (
+              <div className={styles.aimIndicator} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
         {/* Context-sensitive Interaction Button */}
         {interactionAvailable && (
           <button
@@ -676,6 +1061,186 @@ export function TouchControls({
             <span className={styles.buttonIcon} aria-hidden="true">E</span>
             <span className={styles.buttonLabel} aria-hidden="true">{interactionLabel}</span>
           </button>
+        )}
+
+        {/* Dynamic Action Buttons - Grouped by Category */}
+        {activeDynamicActions.length > 0 && (
+          <div className={styles.dynamicActionsContainer} role="group" aria-label="Dynamic actions">
+            {/* Vehicle Controls Group */}
+            {groupedDynamicActions.has('vehicle') && (
+              <div className={styles.dynamicActionGroup} role="group" aria-label="Vehicle controls">
+                <span className={styles.dynamicGroupLabel}>VEHICLE</span>
+                <div className={styles.dynamicActionRow}>
+                  {groupedDynamicActions.get('vehicle')!.map((action) => {
+                    const config = DYNAMIC_ACTION_CONFIG[action];
+                    const isActive = activeDynamicButtons.has(action);
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        className={`${styles.actionButton} ${styles.dynamicActionButton} ${isActive ? styles.active : ''}`}
+                        style={{
+                          width: `${controlSizes.smallButtonSize}px`,
+                          height: `${controlSizes.smallButtonSize}px`,
+                          background: config.color,
+                          borderColor: config.borderColor,
+                        }}
+                        onPointerDown={(e) => handleDynamicActionStart(e, action)}
+                        onPointerUp={() => handleDynamicActionEnd(action)}
+                        onPointerCancel={() => handleDynamicActionEnd(action)}
+                        onPointerLeave={() => handleDynamicActionEnd(action)}
+                        aria-label={DYNAMIC_ACTION_LABELS[action]}
+                        aria-pressed={isActive}
+                      >
+                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
+                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Squad Commands Group */}
+            {groupedDynamicActions.has('squad') && (
+              <div className={styles.dynamicActionGroup} role="group" aria-label="Squad commands">
+                <span className={styles.dynamicGroupLabel}>SQUAD</span>
+                <div className={styles.dynamicActionRow}>
+                  {groupedDynamicActions.get('squad')!.map((action) => {
+                    const config = DYNAMIC_ACTION_CONFIG[action];
+                    const isActive = activeDynamicButtons.has(action);
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        className={`${styles.actionButton} ${styles.dynamicActionButton} ${isActive ? styles.active : ''}`}
+                        style={{
+                          width: `${controlSizes.smallButtonSize}px`,
+                          height: `${controlSizes.smallButtonSize}px`,
+                          background: config.color,
+                          borderColor: config.borderColor,
+                        }}
+                        onPointerDown={(e) => handleDynamicActionStart(e, action)}
+                        onPointerUp={() => handleDynamicActionEnd(action)}
+                        onPointerCancel={() => handleDynamicActionEnd(action)}
+                        onPointerLeave={() => handleDynamicActionEnd(action)}
+                        aria-label={DYNAMIC_ACTION_LABELS[action]}
+                        aria-pressed={isActive}
+                      >
+                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
+                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Ability Controls Group */}
+            {groupedDynamicActions.has('ability') && (
+              <div className={styles.dynamicActionGroup} role="group" aria-label="Abilities">
+                <span className={styles.dynamicGroupLabel}>ABILITY</span>
+                <div className={styles.dynamicActionRow}>
+                  {groupedDynamicActions.get('ability')!.map((action) => {
+                    const config = DYNAMIC_ACTION_CONFIG[action];
+                    const isActive = activeDynamicButtons.has(action);
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        className={`${styles.actionButton} ${styles.dynamicActionButton} ${isActive ? styles.active : ''}`}
+                        style={{
+                          width: `${controlSizes.smallButtonSize}px`,
+                          height: `${controlSizes.smallButtonSize}px`,
+                          background: config.color,
+                          borderColor: config.borderColor,
+                        }}
+                        onPointerDown={(e) => handleDynamicActionStart(e, action)}
+                        onPointerUp={() => handleDynamicActionEnd(action)}
+                        onPointerCancel={() => handleDynamicActionEnd(action)}
+                        onPointerLeave={() => handleDynamicActionEnd(action)}
+                        aria-label={DYNAMIC_ACTION_LABELS[action]}
+                        aria-pressed={isActive}
+                      >
+                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
+                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Weapon Controls Group */}
+            {groupedDynamicActions.has('weapon') && (
+              <div className={styles.dynamicActionGroup} role="group" aria-label="Weapon controls">
+                <span className={styles.dynamicGroupLabel}>WEAPON</span>
+                <div className={styles.dynamicActionRow}>
+                  {groupedDynamicActions.get('weapon')!.map((action) => {
+                    const config = DYNAMIC_ACTION_CONFIG[action];
+                    const isActive = activeDynamicButtons.has(action);
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        className={`${styles.actionButton} ${styles.dynamicActionButton} ${isActive ? styles.active : ''}`}
+                        style={{
+                          width: `${controlSizes.smallButtonSize}px`,
+                          height: `${controlSizes.smallButtonSize}px`,
+                          background: config.color,
+                          borderColor: config.borderColor,
+                        }}
+                        onPointerDown={(e) => handleDynamicActionStart(e, action)}
+                        onPointerUp={() => handleDynamicActionEnd(action)}
+                        onPointerCancel={() => handleDynamicActionEnd(action)}
+                        onPointerLeave={() => handleDynamicActionEnd(action)}
+                        aria-label={DYNAMIC_ACTION_LABELS[action]}
+                        aria-pressed={isActive}
+                      >
+                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
+                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Movement Abilities Group */}
+            {groupedDynamicActions.has('movement') && (
+              <div className={styles.dynamicActionGroup} role="group" aria-label="Movement abilities">
+                <span className={styles.dynamicGroupLabel}>MOVE</span>
+                <div className={styles.dynamicActionRow}>
+                  {groupedDynamicActions.get('movement')!.map((action) => {
+                    const config = DYNAMIC_ACTION_CONFIG[action];
+                    const isActive = activeDynamicButtons.has(action);
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        className={`${styles.actionButton} ${styles.dynamicActionButton} ${isActive ? styles.active : ''}`}
+                        style={{
+                          width: `${controlSizes.smallButtonSize}px`,
+                          height: `${controlSizes.smallButtonSize}px`,
+                          background: config.color,
+                          borderColor: config.borderColor,
+                        }}
+                        onPointerDown={(e) => handleDynamicActionStart(e, action)}
+                        onPointerUp={() => handleDynamicActionEnd(action)}
+                        onPointerCancel={() => handleDynamicActionEnd(action)}
+                        onPointerLeave={() => handleDynamicActionEnd(action)}
+                        aria-label={DYNAMIC_ACTION_LABELS[action]}
+                        aria-pressed={isActive}
+                      >
+                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
+                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

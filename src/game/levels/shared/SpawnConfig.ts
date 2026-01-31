@@ -560,3 +560,6 @@ export const HIVE_ASSAULT_SPAWN_CONFIG: LevelSpawnConfig = {
     },
   ],
 };
+
+// Re-export all level configs from the dedicated config file
+export * from './LevelSpawnConfigs';

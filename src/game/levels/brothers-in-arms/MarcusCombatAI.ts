@@ -29,6 +29,13 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import type { SquadCommandData } from '../../ai/SquadCommandSystem';
+import {
+  MarcusSteeringAI,
+  type SteeringMode,
+  type SteeringResult,
+  type TargetCallout,
+} from '../../ai/MarcusSteeringAI';
 import type { Entity } from '../../core/ecs';
 import { createEntity, removeEntity } from '../../core/ecs';
 import type { CommsMessage } from '../../types';
@@ -63,6 +70,7 @@ export interface MarcusCombatConfig {
   repairRate: number;
   lowHealthThreshold: number;
   criticalHealthThreshold: number;
+  useSteeringAI: boolean; // Enable YukaAI steering behaviors
 }
 
 export interface CombatTarget {
@@ -106,6 +114,7 @@ const DEFAULT_CONFIG: MarcusCombatConfig = {
   repairRate: 5, // HP per second when repairing
   lowHealthThreshold: 0.4, // 40% health
   criticalHealthThreshold: 0.15, // 15% health
+  useSteeringAI: true, // Enable YukaAI steering by default
 };
 
 // Marcus character for comms messages
@@ -322,11 +331,17 @@ export class MarcusCombatAI {
   // Player reference
   private playerPosition: Vector3 = Vector3.Zero();
   private playerForward: Vector3 = Vector3.Forward();
+  private playerVelocity: Vector3 = Vector3.Zero();
 
   // Statistics
   private killCount: number = 0;
   private damageDealt: number = 0;
   private assistCount: number = 0;
+
+  // YukaAI Steering System
+  private steeringAI: MarcusSteeringAI | null = null;
+  private lastSteeringResult: SteeringResult | null = null;
+  private activeSquadCommand: SquadCommandData | null = null;
 
   constructor(
     scene: Scene,
@@ -353,6 +368,20 @@ export class MarcusCombatAI {
         this.coordinationCombatState = state;
       },
     });
+
+    // Initialize YukaAI steering system
+    if (this.config.useSteeringAI) {
+      this.steeringAI = new MarcusSteeringAI(this.position, {
+        maxSpeed: this.config.moveSpeed,
+        followDistance: 15,
+        separationRadius: 8,
+      });
+
+      // Set up target callout callback
+      this.steeringAI.setTargetCalloutCallback((callout: TargetCallout) => {
+        this.handleTargetCallout(callout);
+      });
+    }
   }
 
   // ============================================================================
@@ -980,13 +1009,84 @@ export class MarcusCombatAI {
   // ============================================================================
 
   private updateMovement(deltaTime: number): void {
-    const moveSpeed = this.config.moveSpeed;
     const rotSpeed = this.config.rotationSpeed;
 
     // No movement when downed
     if (this.state === 'downed') {
       return;
     }
+
+    // Use YukaAI steering if enabled and available
+    if (this.config.useSteeringAI && this.steeringAI) {
+      this.updateMovementWithSteering(deltaTime);
+      return;
+    }
+
+    // Fallback: Legacy movement using simple vector math
+    this.updateMovementLegacy(deltaTime, rotSpeed);
+  }
+
+  /**
+   * Movement using YukaAI steering behaviors
+   * Provides smoother, more realistic movement with proper physics
+   */
+  private updateMovementWithSteering(deltaTime: number): void {
+    if (!this.steeringAI) return;
+
+    const rotSpeed = this.config.rotationSpeed;
+
+    // Reduce effectiveness when damaged or repairing
+    if (this.state === 'repairing') {
+      // No movement while repairing
+      return;
+    }
+
+    // Update steering AI with current state
+    this.steeringAI.updatePlayerState(
+      this.playerPosition,
+      this.playerForward,
+      this.playerVelocity
+    );
+    this.steeringAI.setPosition(this.position);
+
+    // Update target selection
+    const enemyEntities = this.targets.map((t) => t.entity);
+    this.steeringAI.updateTargetSelection(enemyEntities);
+
+    // Get steering result
+    const result = this.steeringAI.update(deltaTime);
+    this.lastSteeringResult = result;
+
+    // Apply speed reduction when damaged
+    const speedMultiplier = this.state === 'damaged' ? 0.5 : 1;
+
+    // Apply movement
+    if (result.isMoving) {
+      const movement = result.velocity.scale(deltaTime * speedMultiplier);
+      this.position.addInPlace(movement);
+    }
+
+    // Update rotation based on steering facing direction
+    if (result.facingDirection.length() > 0.1) {
+      this.targetRotation = Math.atan2(result.facingDirection.x, result.facingDirection.z);
+    }
+
+    // Smooth rotation
+    let rotDiff = this.targetRotation - this.currentRotation;
+    while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+    while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+    this.currentRotation += rotDiff * rotSpeed * deltaTime;
+
+    // Clamp position to arena bounds
+    this.clampPositionToArena();
+  }
+
+  /**
+   * Legacy movement using simple vector math
+   * Kept for backwards compatibility and fallback
+   */
+  private updateMovementLegacy(deltaTime: number, rotSpeed: number): void {
+    const moveSpeed = this.config.moveSpeed;
 
     // Reduce speed when damaged or repairing
     const speedMultiplier = this.state === 'repairing' ? 0 : this.state === 'damaged' ? 0.5 : 1;
@@ -1060,7 +1160,14 @@ export class MarcusCombatAI {
       this.currentRotation += rotDiff * rotSpeed * deltaTime;
     }
 
-    // Clamp position to arena bounds (assume 200x150 arena)
+    // Clamp position to arena bounds
+    this.clampPositionToArena();
+  }
+
+  /**
+   * Clamp Marcus position to arena bounds
+   */
+  private clampPositionToArena(): void {
     const ARENA_WIDTH = 200;
     const ARENA_DEPTH = 150;
     this.position.x = Math.max(
@@ -1435,6 +1542,132 @@ export class MarcusCombatAI {
   }
 
   // ============================================================================
+  // STEERING AI INTEGRATION
+  // ============================================================================
+
+  /**
+   * Set squad command from SquadCommandSystem
+   * This integrates with YukaAI steering behaviors
+   */
+  setSquadCommand(command: SquadCommandData | null): void {
+    this.activeSquadCommand = command;
+
+    if (this.steeringAI) {
+      this.steeringAI.setCommand(command);
+    }
+  }
+
+  /**
+   * Get the current squad command
+   */
+  getSquadCommand(): SquadCommandData | null {
+    return this.activeSquadCommand;
+  }
+
+  /**
+   * Get the current steering mode from YukaAI
+   */
+  getSteeringMode(): SteeringMode | null {
+    return this.steeringAI?.getSteeringMode() ?? null;
+  }
+
+  /**
+   * Set player's marked target (from crosshair)
+   * Marcus will prioritize this target when using steering AI
+   */
+  setPlayerMarkedTarget(target: Entity | null): void {
+    if (this.steeringAI) {
+      this.steeringAI.setPlayerMarkedTarget(target);
+    }
+  }
+
+  /**
+   * Get the steering-based movement vector
+   * Use this instead of getIdlePosition(), getSupportPosition(), etc.
+   */
+  getSteeringMovement(deltaTime: number): Vector3 | null {
+    if (!this.steeringAI) return null;
+
+    // Update steering AI with latest player state
+    this.steeringAI.updatePlayerState(
+      this.playerPosition,
+      this.playerForward,
+      this.playerVelocity
+    );
+
+    // Update steering AI position
+    this.steeringAI.setPosition(this.position);
+
+    // Update target selection with current enemies
+    const enemyEntities = this.targets.map((t) => t.entity);
+    this.steeringAI.updateTargetSelection(enemyEntities);
+
+    // Get movement vector
+    return this.steeringAI.getSteeringMovementVector(deltaTime);
+  }
+
+  /**
+   * Get the last steering result for inspection
+   */
+  getLastSteeringResult(): SteeringResult | null {
+    return this.lastSteeringResult;
+  }
+
+  /**
+   * Get flanking position calculated by steering AI
+   */
+  getFlankingPosition(): Vector3 | null {
+    return this.steeringAI?.getFlankingPosition() ?? null;
+  }
+
+  /**
+   * Check if steering AI is actively flanking
+   */
+  isFlankingActive(): boolean {
+    return this.steeringAI?.getSteeringMode() === 'flank';
+  }
+
+  /**
+   * Handle target callout from steering AI
+   */
+  private handleTargetCallout(callout: TargetCallout): void {
+    // Find the target entity
+    const target = this.targets.find((t) => t.entity.id === callout.entityId);
+    if (!target) return;
+
+    // Generate appropriate callout based on type
+    switch (callout.type) {
+      case 'priority':
+        // Player marked target
+        this.callbacks.onCommsMessage({
+          ...MARCUS_CHARACTER,
+          text: 'Roger, focusing on your target!',
+        });
+        break;
+
+      case 'switching':
+        // Marcus switching to new target
+        if (target.threatLevel === 'critical') {
+          this.sendCallout('BRUTE_SPOTTED');
+        } else {
+          this.sendCallout('TARGET_ACQUIRED');
+        }
+        break;
+
+      case 'engaging':
+        this.sendCallout('TARGET_ACQUIRED');
+        break;
+    }
+  }
+
+  /**
+   * Update player velocity for steering calculations
+   */
+  setPlayerVelocity(velocity: Vector3): void {
+    this.playerVelocity = velocity.clone();
+  }
+
+  // ============================================================================
   // CLEANUP
   // ============================================================================
 
@@ -1443,6 +1676,12 @@ export class MarcusCombatAI {
     this.currentTarget = null;
     this.activeCoordinatedAttack = null;
     this.lastCalloutTime.clear();
+
+    // Dispose steering AI
+    if (this.steeringAI) {
+      this.steeringAI.dispose();
+      this.steeringAI = null;
+    }
 
     // Dispose coordinator
     if (this.coordinator) {

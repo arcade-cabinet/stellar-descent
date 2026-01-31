@@ -46,15 +46,15 @@ export interface WeaponBalanceEntry {
 }
 
 export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
-  // Sidearms
+  // Sidearms - Pistol: 25 damage, 2.0x headshot
   sidearm: {
     id: 'sidearm',
     name: 'M6C Sidearm',
-    damage: 15,
+    damage: 25,
     fireRate: 5,
     projectileSpeed: 70,
     range: 40,
-    critMultiplier: 1.5,
+    critMultiplier: 2.0, // Headshot multiplier
     magazineSize: 12,
     maxReserveAmmo: 96,
     defaultReserveAmmo: 48,
@@ -63,11 +63,11 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   heavy_pistol: {
     id: 'heavy_pistol',
     name: 'M7 Heavy Pistol',
-    damage: 28,
+    damage: 35,
     fireRate: 3,
     projectileSpeed: 75,
     range: 50,
-    critMultiplier: 1.8,
+    critMultiplier: 2.0,
     magazineSize: 8,
     maxReserveAmmo: 64,
     defaultReserveAmmo: 32,
@@ -76,7 +76,7 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   revolver: {
     id: 'revolver',
     name: 'S&W Executor',
-    damage: 45,
+    damage: 55,
     fireRate: 1.5,
     projectileSpeed: 80,
     range: 55,
@@ -90,11 +90,11 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   pulse_smg: {
     id: 'pulse_smg',
     name: 'P2025 Pulse SMG',
-    damage: 12,
+    damage: 14,
     fireRate: 15,
     projectileSpeed: 100,
     range: 60,
-    critMultiplier: 1.5,
+    critMultiplier: 1.8,
     magazineSize: 48,
     maxReserveAmmo: 1200,
     defaultReserveAmmo: 192,
@@ -103,25 +103,25 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   pdw: {
     id: 'pdw',
     name: 'P90 PDW',
-    damage: 14,
+    damage: 16,
     fireRate: 13,
     projectileSpeed: 95,
     range: 55,
-    critMultiplier: 1.5,
+    critMultiplier: 1.8,
     magazineSize: 50,
     maxReserveAmmo: 300,
     defaultReserveAmmo: 150,
     reloadTimeMs: 1800,
   },
-  // Rifles
+  // Rifles - Assault Rifle: 18 damage, 1.8x headshot
   assault_rifle: {
     id: 'assault_rifle',
     name: 'MA5K Assault Rifle',
-    damage: 25,
-    fireRate: 8,
+    damage: 18,
+    fireRate: 10,
     projectileSpeed: 80,
     range: 100,
-    critMultiplier: 1.5,
+    critMultiplier: 1.8, // Headshot multiplier
     magazineSize: 32,
     maxReserveAmmo: 640,
     defaultReserveAmmo: 128,
@@ -130,11 +130,11 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   battle_rifle: {
     id: 'battle_rifle',
     name: 'BR55 Battle Rifle',
-    damage: 35,
-    fireRate: 5,
+    damage: 28,
+    fireRate: 6,
     projectileSpeed: 90,
     range: 120,
-    critMultiplier: 1.8,
+    critMultiplier: 2.0,
     magazineSize: 20,
     maxReserveAmmo: 160,
     defaultReserveAmmo: 80,
@@ -143,11 +143,11 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   carbine: {
     id: 'carbine',
     name: 'M4 Carbine',
-    damage: 22,
+    damage: 20,
     fireRate: 10,
     projectileSpeed: 85,
     range: 90,
-    critMultiplier: 1.5,
+    critMultiplier: 1.8,
     magazineSize: 30,
     maxReserveAmmo: 240,
     defaultReserveAmmo: 120,
@@ -157,38 +157,39 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   dmr: {
     id: 'dmr',
     name: 'M14 DMR',
-    damage: 55,
+    damage: 65,
     fireRate: 3,
     projectileSpeed: 120,
     range: 150,
-    critMultiplier: 2.0,
+    critMultiplier: 2.5,
     magazineSize: 10,
     maxReserveAmmo: 80,
     defaultReserveAmmo: 40,
     reloadTimeMs: 2500,
   },
+  // Sniper: 150 damage, 3.0x headshot
   sniper_rifle: {
     id: 'sniper_rifle',
     name: 'SRS99 Sniper',
-    damage: 120,
+    damage: 150,
     fireRate: 0.8,
     projectileSpeed: 200,
     range: 250,
-    critMultiplier: 3.0,
+    critMultiplier: 3.0, // Headshot multiplier
     magazineSize: 4,
     maxReserveAmmo: 32,
     defaultReserveAmmo: 16,
     reloadTimeMs: 3500,
   },
-  // Shotguns
+  // Shotguns - Shotgun: 12 x 8 pellets = 96 total, 1.5x headshot
   auto_shotgun: {
     id: 'auto_shotgun',
     name: 'M90 Auto Shotgun',
-    damage: 60, // Total damage per shot (8 pellets)
+    damage: 96, // 12 damage x 8 pellets
     fireRate: 3,
     projectileSpeed: 60,
     range: 30,
-    critMultiplier: 1.2,
+    critMultiplier: 1.5, // Headshot multiplier
     magazineSize: 8,
     maxReserveAmmo: 64,
     defaultReserveAmmo: 32,
@@ -197,38 +198,38 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   double_barrel: {
     id: 'double_barrel',
     name: 'DB-12 Double Barrel',
-    damage: 110,
+    damage: 144, // 18 damage x 8 pellets
     fireRate: 1.5,
     projectileSpeed: 55,
     range: 20,
-    critMultiplier: 1.3,
+    critMultiplier: 1.5,
     magazineSize: 2,
     maxReserveAmmo: 40,
     defaultReserveAmmo: 20,
     reloadTimeMs: 2200,
   },
-  // Heavy
+  // Heavy - Plasma Rifle: 22 damage, 1.5x headshot
   plasma_cannon: {
     id: 'plasma_cannon',
-    name: 'M99 Plasma Cannon',
-    damage: 75,
-    fireRate: 2,
+    name: 'M99 Plasma Rifle',
+    damage: 22,
+    fireRate: 8,
     projectileSpeed: 50,
     range: 80,
-    critMultiplier: 1.5,
-    magazineSize: 8,
-    maxReserveAmmo: 64,
-    defaultReserveAmmo: 32,
-    reloadTimeMs: 3500,
+    critMultiplier: 1.5, // Headshot multiplier
+    magazineSize: 40,
+    maxReserveAmmo: 200,
+    defaultReserveAmmo: 80,
+    reloadTimeMs: 3000,
   },
   heavy_lmg: {
     id: 'heavy_lmg',
     name: 'PKP Heavy LMG',
-    damage: 30,
-    fireRate: 10,
+    damage: 24,
+    fireRate: 12,
     projectileSpeed: 75,
     range: 100,
-    critMultiplier: 1.3,
+    critMultiplier: 1.5,
     magazineSize: 100,
     maxReserveAmmo: 400,
     defaultReserveAmmo: 200,
@@ -237,15 +238,29 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   saw_lmg: {
     id: 'saw_lmg',
     name: 'M249 SAW',
-    damage: 22,
-    fireRate: 12,
+    damage: 20,
+    fireRate: 14,
     projectileSpeed: 80,
     range: 90,
-    critMultiplier: 1.3,
+    critMultiplier: 1.5,
     magazineSize: 150,
     maxReserveAmmo: 600,
     defaultReserveAmmo: 300,
     reloadTimeMs: 5000,
+  },
+  // Rocket Launcher: 200 AOE damage, 1.0x headshot (no bonus for explosives)
+  rocket_launcher: {
+    id: 'rocket_launcher' as WeaponId,
+    name: 'M41 Rocket Launcher',
+    damage: 200,
+    fireRate: 0.5,
+    projectileSpeed: 40,
+    range: 150,
+    critMultiplier: 1.0, // No headshot bonus for explosives
+    magazineSize: 1,
+    maxReserveAmmo: 8,
+    defaultReserveAmmo: 4,
+    reloadTimeMs: 3500,
   },
 };
 
@@ -278,11 +293,83 @@ export interface EnemyBalanceEntry {
   isBoss: boolean;
 }
 
+/**
+ * Enemy health values by difficulty level
+ * Base values are for Normal difficulty, scaled by difficulty modifiers
+ *
+ * | Enemy       | Easy | Normal | Hard | Nightmare |
+ * |-------------|------|--------|------|-----------|
+ * | Skitterer   | 50   | 80     | 100  | 130       |
+ * | Spitter     | 80   | 120    | 150  | 200       |
+ * | Warrior     | 150  | 200    | 250  | 350       |
+ * | Heavy       | 300  | 400    | 500  | 700       |
+ * | Stalker     | 100  | 150    | 180  | 250       |
+ * | Broodmother | 500  | 700    | 900  | 1200      |
+ * | Queen       | 2000 | 3000   | 4000 | 6000      |
+ */
+export const ENEMY_HEALTH_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, number>> = {
+  skitterer: { easy: 50, normal: 80, hard: 100, nightmare: 130 },
+  spitter: { easy: 80, normal: 120, hard: 150, nightmare: 200 },
+  warrior: { easy: 150, normal: 200, hard: 250, nightmare: 350 },
+  heavy: { easy: 300, normal: 400, hard: 500, nightmare: 700 },
+  stalker: { easy: 100, normal: 150, hard: 180, nightmare: 250 },
+  broodmother: { easy: 500, normal: 700, hard: 900, nightmare: 1200 },
+  queen: { easy: 2000, normal: 3000, hard: 4000, nightmare: 6000 },
+  // Legacy mappings for backward compatibility
+  lurker: { easy: 100, normal: 150, hard: 180, nightmare: 250 }, // Maps to Stalker
+  spewer: { easy: 80, normal: 120, hard: 150, nightmare: 200 },  // Maps to Spitter
+  husk: { easy: 150, normal: 200, hard: 250, nightmare: 350 },   // Maps to Warrior
+};
+
+/**
+ * Enemy damage values by difficulty level
+ *
+ * | Enemy     | Easy | Normal | Hard | Nightmare |
+ * |-----------|------|--------|------|-----------|
+ * | Skitterer | 5    | 8      | 12   | 18        |
+ * | Spitter   | 12   | 18     | 25   | 35        |
+ * | Warrior   | 15   | 22     | 30   | 45        |
+ * | Heavy     | 25   | 35     | 50   | 70        |
+ * | Queen     | 30   | 50     | 75   | 100       |
+ */
+export const ENEMY_DAMAGE_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, number>> = {
+  skitterer: { easy: 5, normal: 8, hard: 12, nightmare: 18 },
+  spitter: { easy: 12, normal: 18, hard: 25, nightmare: 35 },
+  warrior: { easy: 15, normal: 22, hard: 30, nightmare: 45 },
+  heavy: { easy: 25, normal: 35, hard: 50, nightmare: 70 },
+  stalker: { easy: 10, normal: 15, hard: 20, nightmare: 30 },
+  broodmother: { easy: 20, normal: 30, hard: 45, nightmare: 60 },
+  queen: { easy: 30, normal: 50, hard: 75, nightmare: 100 },
+  // Legacy mappings
+  lurker: { easy: 10, normal: 15, hard: 20, nightmare: 30 },
+  spewer: { easy: 12, normal: 18, hard: 25, nightmare: 35 },
+  husk: { easy: 15, normal: 22, hard: 30, nightmare: 45 },
+};
+
+/**
+ * Melee damage multipliers by enemy type
+ * Allows melee to be more effective against certain enemy types
+ */
+export const MELEE_DAMAGE_MULTIPLIER: Record<string, number> = {
+  skitterer: 1.5,   // Dies in 1-2 melee hits (100 * 1.5 = 150 vs 80 HP)
+  spitter: 1.2,     // Medium vulnerability
+  warrior: 1.0,     // Standard damage
+  heavy: 0.8,       // Armored, takes reduced melee damage
+  stalker: 1.3,     // Agile but fragile
+  broodmother: 0.6, // Boss tier, heavily armored
+  queen: 0.5,       // Boss tier, extremely armored
+  // Legacy mappings
+  lurker: 1.3,
+  spewer: 1.2,
+  husk: 1.0,
+};
+
 export const ENEMY_BALANCE: Record<string, EnemyBalanceEntry> = {
+  // Skitterer - Fast, weak, swarm creatures (dies in 1-2 melee hits, 0.5-1s TTK)
   skitterer: {
     id: 'skitterer',
     name: 'Skitterer',
-    baseHealth: 170,
+    baseHealth: 80, // Normal difficulty base
     baseDamage: 8,
     moveSpeed: 18,
     attackRange: 8,
@@ -292,10 +379,95 @@ export const ENEMY_BALANCE: Record<string, EnemyBalanceEntry> = {
     xpValue: 10,
     isBoss: false,
   },
+  // Spitter - Ranged acid attacker (1-2s TTK)
+  spitter: {
+    id: 'spitter',
+    name: 'Spitter',
+    baseHealth: 120, // Normal difficulty base
+    baseDamage: 18,
+    moveSpeed: 8,
+    attackRange: 25,
+    alertRadius: 40,
+    fireRate: 1.5,
+    projectileSpeed: 30,
+    xpValue: 25,
+    isBoss: false,
+  },
+  // Warrior - Melee bruiser (2-3s TTK)
+  warrior: {
+    id: 'warrior',
+    name: 'Warrior',
+    baseHealth: 200, // Normal difficulty base
+    baseDamage: 22,
+    moveSpeed: 12,
+    attackRange: 10,
+    alertRadius: 45,
+    fireRate: 2,
+    projectileSpeed: 0, // Melee only
+    xpValue: 40,
+    isBoss: false,
+  },
+  // Heavy - Tanky armored enemy (4-6s TTK, 3-4 melee hits)
+  heavy: {
+    id: 'heavy',
+    name: 'Heavy',
+    baseHealth: 400, // Normal difficulty base
+    baseDamage: 35,
+    moveSpeed: 6,
+    attackRange: 15,
+    alertRadius: 35,
+    fireRate: 1,
+    projectileSpeed: 20,
+    xpValue: 75,
+    isBoss: false,
+  },
+  // Stalker - Stealthy, fast hunter
+  stalker: {
+    id: 'stalker',
+    name: 'Stalker',
+    baseHealth: 150, // Normal difficulty base
+    baseDamage: 15,
+    moveSpeed: 16,
+    attackRange: 12,
+    alertRadius: 60,
+    fireRate: 2.5,
+    projectileSpeed: 35,
+    xpValue: 35,
+    isBoss: false,
+  },
+  // Broodmother - Mini-boss, spawns skitterers (60-90s TTK with mechanics)
+  broodmother: {
+    id: 'broodmother',
+    name: 'Broodmother',
+    baseHealth: 700, // Normal difficulty base
+    baseDamage: 30,
+    moveSpeed: 4,
+    attackRange: 20,
+    alertRadius: 45,
+    fireRate: 0.5,
+    projectileSpeed: 15,
+    xpValue: 200,
+    isBoss: true,
+  },
+  // Queen - Final boss (60-90s TTK with mechanics)
+  queen: {
+    id: 'queen',
+    name: 'Hive Queen',
+    baseHealth: 3000, // Normal difficulty base
+    baseDamage: 50,
+    moveSpeed: 3,
+    attackRange: 30,
+    alertRadius: 80,
+    fireRate: 0.3,
+    projectileSpeed: 25,
+    xpValue: 500,
+    isBoss: true,
+  },
+  // Legacy enemies for backward compatibility
   lurker: {
     id: 'lurker',
     name: 'Lurker',
-    baseHealth: 380,
+    baseHealth: 150,
     baseDamage: 15,
     moveSpeed: 10,
     attackRange: 15,
@@ -308,8 +480,8 @@ export const ENEMY_BALANCE: Record<string, EnemyBalanceEntry> = {
   spewer: {
     id: 'spewer',
     name: 'Spewer',
-    baseHealth: 680,
-    baseDamage: 12,
+    baseHealth: 120,
+    baseDamage: 18,
     moveSpeed: 6,
     attackRange: 25,
     alertRadius: 35,
@@ -321,8 +493,8 @@ export const ENEMY_BALANCE: Record<string, EnemyBalanceEntry> = {
   husk: {
     id: 'husk',
     name: 'Husk',
-    baseHealth: 340,
-    baseDamage: 18,
+    baseHealth: 200,
+    baseDamage: 22,
     moveSpeed: 14,
     attackRange: 10,
     alertRadius: 60,
@@ -330,19 +502,6 @@ export const ENEMY_BALANCE: Record<string, EnemyBalanceEntry> = {
     projectileSpeed: 30,
     xpValue: 40,
     isBoss: false,
-  },
-  broodmother: {
-    id: 'broodmother',
-    name: 'Broodmother',
-    baseHealth: 2500,
-    baseDamage: 25,
-    moveSpeed: 4,
-    attackRange: 20,
-    alertRadius: 45,
-    fireRate: 0.5,
-    projectileSpeed: 15,
-    xpValue: 150,
-    isBoss: true,
   },
 };
 
@@ -514,6 +673,28 @@ export const LEVEL_SPAWN_CONFIG: Record<string, LevelSpawnConfig> = {
 };
 
 // ---------------------------------------------------------------------------
+// Melee balance configuration
+// ---------------------------------------------------------------------------
+
+export interface MeleeBalanceConfig {
+  /** Base melee damage */
+  baseDamage: number;
+  /** Headshot/critical hit multiplier for melee */
+  critMultiplier: number;
+  /** Attack range in meters */
+  attackRange: number;
+  /** Cooldown between attacks in seconds */
+  cooldown: number;
+}
+
+export const MELEE_BALANCE: MeleeBalanceConfig = {
+  baseDamage: 100, // Was 50, now 100 for satisfying quick kills
+  critMultiplier: 2.0,
+  attackRange: 2.0,
+  cooldown: 0.8,
+};
+
+// ---------------------------------------------------------------------------
 // TTK (Time-To-Kill) targets per difficulty
 // ---------------------------------------------------------------------------
 
@@ -521,39 +702,52 @@ export const LEVEL_SPAWN_CONFIG: Record<string, LevelSpawnConfig> = {
 export type TTKRange = [number, number];
 
 export interface TTKTargets {
-  /** TTK for basic enemies (skitterer) */
+  /** TTK for basic enemies (skitterer) - target: 0.5-1s */
   basicEnemy: TTKRange;
-  /** TTK for medium enemies (lurker, husk) */
+  /** TTK for medium enemies (spitter, stalker, warrior) - target: 1-3s */
   mediumEnemy: TTKRange;
-  /** TTK for heavy enemies (spewer) */
+  /** TTK for heavy enemies - target: 4-6s */
   heavyEnemy: TTKRange;
-  /** TTK for boss enemies (broodmother) */
+  /** TTK for boss enemies (broodmother, queen) - target: 60-90s with mechanics */
   bossEnemy: TTKRange;
   /** How many enemy hits the player should survive */
   playerSurvivesHits: [number, number];
+  /** Player time-to-death in seconds (8-12s for Normal) */
+  playerTTD: TTKRange;
 }
 
 export const TTK_TARGETS: Record<DifficultyLevel, TTKTargets> = {
+  easy: {
+    basicEnemy: [0.3, 0.8],      // Quick kills
+    mediumEnemy: [0.8, 2.0],     // Satisfying kills
+    heavyEnemy: [2.5, 4.0],      // Manageable tanks
+    bossEnemy: [30.0, 60.0],     // Forgiving boss fights
+    playerSurvivesHits: [10, 15], // Very forgiving
+    playerTTD: [15, 20],         // Generous survival time
+  },
   normal: {
-    basicEnemy: [0.8, 1.2],
-    mediumEnemy: [1.5, 3.0],
-    heavyEnemy: [3.0, 5.0],
-    bossEnemy: [10.0, 20.0],
-    playerSurvivesHits: [5, 8],
+    basicEnemy: [0.5, 1.0],      // Skitterer: 0.5-1 second (satisfying quick kills)
+    mediumEnemy: [1.0, 2.0],     // Spitter: 1-2 seconds
+    heavyEnemy: [4.0, 6.0],      // Heavy: 4-6 seconds
+    bossEnemy: [60.0, 90.0],     // Queen: 60-90 seconds (with mechanics)
+    playerSurvivesHits: [8, 12],  // Full health to death: 8-12 seconds
+    playerTTD: [8, 12],          // Allows reaction time but punishes mistakes
   },
-  veteran: {
-    basicEnemy: [1.5, 2.0],
-    mediumEnemy: [2.5, 5.0],
-    heavyEnemy: [5.0, 8.0],
-    bossEnemy: [15.0, 30.0],
-    playerSurvivesHits: [3, 5],
+  hard: {
+    basicEnemy: [0.7, 1.3],      // Slightly tankier
+    mediumEnemy: [1.5, 2.5],     // More time required
+    heavyEnemy: [5.0, 8.0],      // Serious threat
+    bossEnemy: [75.0, 120.0],    // Extended boss fights
+    playerSurvivesHits: [5, 8],   // Less forgiving
+    playerTTD: [5, 8],           // Faster death if careless
   },
-  legendary: {
-    basicEnemy: [2.5, 3.5],
-    mediumEnemy: [4.0, 8.0],
-    heavyEnemy: [8.0, 14.0],
-    bossEnemy: [25.0, 50.0],
-    playerSurvivesHits: [2, 3],
+  nightmare: {
+    basicEnemy: [1.0, 1.8],      // Even basic enemies are dangerous
+    mediumEnemy: [2.0, 3.5],     // Extended fights
+    heavyEnemy: [7.0, 12.0],     // Major threat
+    bossEnemy: [90.0, 150.0],    // Endurance battles
+    playerSurvivesHits: [3, 5],   // Punishing
+    playerTTD: [3, 5],           // Very fast death if mistakes are made
   },
 };
 
@@ -566,12 +760,17 @@ export function getEnemyTier(
   switch (enemyId) {
     case 'skitterer':
       return 'basicEnemy';
-    case 'lurker':
-    case 'husk':
+    case 'spitter':
+    case 'warrior':
+    case 'stalker':
+    case 'lurker':  // Legacy
+    case 'husk':    // Legacy
+    case 'spewer':  // Legacy (maps to medium now)
       return 'mediumEnemy';
-    case 'spewer':
+    case 'heavy':
       return 'heavyEnemy';
     case 'broodmother':
+    case 'queen':
       return 'bossEnemy';
     default:
       return 'mediumEnemy';
@@ -606,8 +805,16 @@ export function calculateSustainedDPS(weaponId: WeaponId): number {
 
 /**
  * Calculate effective enemy HP after difficulty scaling.
+ * Uses the explicit per-difficulty health tables if available.
  */
 export function getScaledEnemyHealth(enemyId: string, difficulty: DifficultyLevel): number {
+  // Check if we have explicit difficulty-specific health values
+  const healthTable = ENEMY_HEALTH_BY_DIFFICULTY[enemyId];
+  if (healthTable && healthTable[difficulty] !== undefined) {
+    return healthTable[difficulty];
+  }
+
+  // Fallback to base health with multiplier
   const enemy = ENEMY_BALANCE[enemyId];
   if (!enemy) return 0;
   const modifiers = DIFFICULTY_PRESETS[difficulty].modifiers;
@@ -616,12 +823,44 @@ export function getScaledEnemyHealth(enemyId: string, difficulty: DifficultyLeve
 
 /**
  * Calculate effective enemy damage after difficulty scaling.
+ * Uses the explicit per-difficulty damage tables if available.
  */
 export function getScaledEnemyDamage(enemyId: string, difficulty: DifficultyLevel): number {
+  // Check if we have explicit difficulty-specific damage values
+  const damageTable = ENEMY_DAMAGE_BY_DIFFICULTY[enemyId];
+  if (damageTable && damageTable[difficulty] !== undefined) {
+    return damageTable[difficulty];
+  }
+
+  // Fallback to base damage with multiplier
   const enemy = ENEMY_BALANCE[enemyId];
   if (!enemy) return 0;
   const modifiers = DIFFICULTY_PRESETS[difficulty].modifiers;
   return Math.round(enemy.baseDamage * modifiers.enemyDamageMultiplier);
+}
+
+/**
+ * Get melee damage multiplier for an enemy type.
+ */
+export function getMeleeDamageMultiplier(enemyId: string): number {
+  return MELEE_DAMAGE_MULTIPLIER[enemyId] ?? 1.0;
+}
+
+/**
+ * Calculate effective melee damage against an enemy type.
+ */
+export function calculateMeleeDamage(enemyId: string, baseMeleeDamage: number = MELEE_BALANCE.baseDamage): number {
+  const multiplier = getMeleeDamageMultiplier(enemyId);
+  return Math.round(baseMeleeDamage * multiplier);
+}
+
+/**
+ * Calculate how many melee hits to kill an enemy at a given difficulty.
+ */
+export function calculateMeleeHitsToKill(enemyId: string, difficulty: DifficultyLevel): number {
+  const enemyHealth = getScaledEnemyHealth(enemyId, difficulty);
+  const meleeDamage = calculateMeleeDamage(enemyId);
+  return Math.ceil(enemyHealth / meleeDamage);
 }
 
 /**

@@ -453,10 +453,13 @@ export class PhantomDropship extends VehicleBase {
   // ------------------------------------------------------------------
 
   protected processInput(deltaTime: number): void {
-    // Throttle
-    if (this.isKeyDown('KeyW') || this.isKeyDown('ArrowUp')) {
+    // Get unified input state
+    const input = this.getVehicleInput();
+
+    // Throttle from input
+    if (input.throttle > 0) {
       this.throttle = Math.min(1, this.throttle + deltaTime * 1.5);
-    } else if (this.isKeyDown('KeyS') || this.isKeyDown('ArrowDown')) {
+    } else if (input.brake > 0) {
       this.throttle = Math.max(-0.3, this.throttle - deltaTime * 2);
     } else {
       // Throttle decay
@@ -464,41 +467,39 @@ export class PhantomDropship extends VehicleBase {
       if (Math.abs(this.throttle) < 0.01) this.throttle = 0;
     }
 
-    // Yaw
-    if (this.isKeyDown('KeyA') || this.isKeyDown('ArrowLeft')) {
+    // Yaw from steering input
+    if (input.steer < 0) {
       this.yaw = -this.stats.turnRate;
-    } else if (this.isKeyDown('KeyD') || this.isKeyDown('ArrowRight')) {
+    } else if (input.steer > 0) {
       this.yaw = this.stats.turnRate;
     } else {
       this.yaw = 0;
     }
 
-    // Strafe (Q = left, no right strafe since E is exit)
-    // Players can use A/D for lateral movement instead
+    // Strafe (Q = left, R = right since E is exit)
     if (this.isKeyDown('KeyQ')) {
       this.strafeInput = -1;
     } else if (this.isKeyDown('KeyR')) {
-      // R for right strafe since E is exit key
       this.strafeInput = 1;
     } else {
       this.strafeInput = 0;
     }
 
-    // Vertical
-    if (this.isKeyDown('Space')) {
+    // Vertical: Space up, Ctrl/Shift down
+    if (input.handbrake) { // Space = handbrake input = vertical up
       this.verticalInput = 1;
-    } else if (this.isKeyDown('ControlLeft') || this.isKeyDown('ShiftLeft')) {
+    } else if (this.isKeyDown('ControlLeft') || input.boost) {
       this.verticalInput = -1;
     } else {
       this.verticalInput = 0;
     }
 
-    // Toggle flight mode
+    // Toggle flight mode with F key
     if (this.isKeyDown('KeyF') && this.landingState === 'airborne') {
       this.flightMode = this.flightMode === 'hover' ? 'forward' : 'hover';
     }
 
-    // Takeoff / Landing
+    // Takeoff / Landing with G key
     if (this.isKeyDown('KeyG')) {
       if (this.landingState === 'grounded') {
         this.beginTakeoff();
@@ -507,11 +508,11 @@ export class PhantomDropship extends VehicleBase {
       }
     }
 
-    // Fire weapons
-    if (this.isFiring) {
+    // Fire weapons from unified input
+    if (input.fire) {
       this.fireWeapon();
     }
-    if (this.isFiringSecondary) {
+    if (input.fireSecondary) {
       this.fireSecondaryWeapon();
     }
   }

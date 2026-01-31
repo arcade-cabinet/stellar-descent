@@ -1,0 +1,276 @@
+/**
+ * CommandWheel - Military-style radial command menu
+ *
+ * Design language:
+ * - Dark tactical backdrop with subtle transparency
+ * - Brass/amber accents for military aesthetic
+ * - Sharp angles and clean typography
+ * - Animated transitions for responsiveness
+ */
+
+/* Overlay background */
+.wheelOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
+  z-index: 1000;
+}
+
+.wheelOverlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Main wheel container */
+.wheel {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(42, 52, 57, 0.95) 0%,
+    rgba(28, 28, 28, 0.98) 70%,
+    rgba(20, 20, 20, 1) 100%
+  );
+  border: 3px solid #b5a642;
+  box-shadow:
+    0 0 40px rgba(181, 166, 66, 0.3),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
+  transform: scale(0.8);
+  opacity: 0;
+  transition: transform 0.2s ease-out, opacity 0.15s ease-out;
+}
+
+.wheel.open {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Center hub */
+.centerHub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3a3a3a, #2d2d2d);
+  border: 2px solid #4a5d23;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.centerLabel {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Command segments */
+.segment {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease-out;
+  z-index: 5;
+}
+
+.segmentContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid transparent;
+  transition: all 0.15s ease-out;
+}
+
+.segment.selected .segmentContent {
+  background: rgba(181, 166, 66, 0.25);
+  border-color: #b5a642;
+  transform: scale(1.15);
+  box-shadow: 0 0 20px rgba(181, 166, 66, 0.4);
+}
+
+.commandIcon {
+  font-size: 24px;
+  color: #e8e8e8;
+  line-height: 1;
+}
+
+.segment.selected .commandIcon {
+  color: #ffbf00;
+}
+
+.commandLabel {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.segment.selected .commandLabel {
+  color: #e8e8e8;
+}
+
+/* Divider lines */
+.divider {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 150px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(74, 93, 35, 0.4) 20%,
+    rgba(74, 93, 35, 0.4) 80%,
+    transparent 100%
+  );
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+/* Selection ring SVG */
+.selectionRing {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.arcSegment {
+  stroke: rgba(74, 93, 35, 0.5);
+  transition: stroke 0.15s ease-out, stroke-width 0.15s ease-out;
+}
+
+.arcSegment.arcSelected {
+  stroke: #b5a642;
+  stroke-width: 12px;
+  filter: drop-shadow(0 0 8px rgba(181, 166, 66, 0.6));
+}
+
+/* Instruction text */
+.instructions {
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.selectedName {
+  font-family: 'Black Ops One', cursive;
+  font-size: 18px;
+  color: #ffbf00;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px 8px rgba(255, 191, 0, 0.4);
+}
+
+.selectedDesc {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  color: #a0a0a0;
+  max-width: 200px;
+}
+
+.hint {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  color: #a0a0a0;
+  font-style: italic;
+}
+
+/* Key hint */
+.keyHint {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: rgba(28, 28, 28, 0.9);
+  border: 2px solid #4a5d23;
+  border-radius: 4px;
+}
+
+.keyIcon {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8e8e8;
+  padding: 6px 12px;
+  background: #3a3a3a;
+  border: 1px solid #5a5a5a;
+  border-radius: 4px;
+}
+
+.keyHint > span:last-child {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .wheel {
+    width: 250px;
+    height: 250px;
+  }
+
+  .segment {
+    width: 70px;
+    height: 70px;
+  }
+
+  .commandIcon {
+    font-size: 20px;
+  }
+
+  .commandLabel {
+    font-size: 9px;
+  }
+
+  .instructions {
+    bottom: -50px;
+  }
+
+  .selectedName {
+    font-size: 16px;
+  }
+}

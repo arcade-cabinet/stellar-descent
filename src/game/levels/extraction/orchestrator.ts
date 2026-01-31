@@ -206,6 +206,11 @@ export class ExtractionLevel extends BaseLevel {
     this.phaseState.phase = newPhase;
     this.phaseState.phaseTime = 0;
 
+    // Save checkpoint on major phase transitions
+    if (newPhase === 'holdout' || newPhase === 'surface_run') {
+      this.saveCheckpoint(newPhase);
+    }
+
     switch (newPhase) {
       case 'escape_tunnel':
         this.callbacks.onObjectiveUpdate('ESCAPE THE HIVE', 'RUN! The collapse is right behind you!');

@@ -52,6 +52,16 @@ export interface WeaponRecoilProfile {
 // ---------------------------------------------------------------------------
 
 const CATEGORY_RECOIL: Record<WeaponCategory, WeaponRecoilProfile> = {
+  melee: {
+    recoilVertical: 0, // No recoil for melee
+    recoilHorizontal: 0,
+    recoilRecovery: 10,
+    screenShakeIntensity: 0.2, // Impact shake when hitting
+    screenShakeDuration: 0.1,
+    fovPunch: 0,
+    fovRecovery: 30,
+    chromaticPulse: 0,
+  },
   sidearm: {
     recoilVertical: 2.5,
     recoilHorizontal: 0.8,
@@ -111,6 +121,16 @@ const CATEGORY_RECOIL: Record<WeaponCategory, WeaponRecoilProfile> = {
     fovPunch: 6.0,
     fovRecovery: 12,
     chromaticPulse: 0.25,
+  },
+  vehicle: {
+    recoilVertical: 0, // No recoil for vehicle yoke
+    recoilHorizontal: 0,
+    recoilRecovery: 10,
+    screenShakeIntensity: 0, // Vehicles handle their own shake
+    screenShakeDuration: 0,
+    fovPunch: 0,
+    fovRecovery: 30,
+    chromaticPulse: 0,
   },
 };
 

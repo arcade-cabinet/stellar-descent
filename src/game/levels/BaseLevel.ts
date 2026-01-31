@@ -46,7 +46,8 @@ import {
   type LowHealthFeedbackManager,
 } from '../effects/LowHealthFeedback';
 import { getLogger } from '../core/Logger';
-import type { ILevel, LevelCallbacks, LevelConfig, LevelId, LevelState, LevelType } from './types';
+import { getMeleeSystem } from '../combat';
+import type { ILevel, LevelCallbacks, LevelConfig, LevelId, LevelState, LevelStats, LevelType, VictoryResult } from './types';
 
 const log = getLogger('BaseLevel');
 
@@ -155,6 +156,35 @@ export abstract class BaseLevel implements ILevel {
   // Achievement tracking
   protected playerDiedInLevel = false;
 
+  // Stats tracking for level completion
+  protected levelStats: LevelStats = {
+    kills: 0,
+    totalShots: 0,
+    shotsHit: 0,
+    accuracy: 0,
+    headshots: 0,
+    meleKills: 0,
+    grenadeKills: 0,
+    timeSpent: 0,
+    parTime: 0,
+    secretsFound: 0,
+    totalSecrets: 0,
+    audioLogsFound: 0,
+    totalAudioLogs: 0,
+    skullsFound: 0,
+    deaths: 0,
+    damageDealt: 0,
+    damageTaken: 0,
+    objectivesCompleted: 0,
+    totalObjectives: 0,
+    bonusObjectivesCompleted: 0,
+  };
+
+  // Victory condition tracking
+  protected victoryConditionsMet = false;
+  protected objectivesRequired: Set<string> = new Set();
+  protected objectivesCompleted: Set<string> = new Set();
+
   // Bound event handlers
   private boundKeyDown: (e: KeyboardEvent) => void;
   private boundKeyUp: (e: KeyboardEvent) => void;
@@ -188,6 +218,10 @@ export abstract class BaseLevel implements ILevel {
 
     // Create camera
     this.camera = this.createCamera();
+
+    // Initialize stats from config
+    this.levelStats.totalSecrets = config.totalSecrets ?? 0;
+    this.levelStats.totalAudioLogs = config.totalAudioLogs ?? 0;
 
     // Initialize input tracker for keybindings
     this.inputTracker = getInputTracker();
@@ -249,6 +283,9 @@ export abstract class BaseLevel implements ILevel {
     // Initialize atmospheric effects (god rays, emergency lights, etc.)
     this.initializeAtmosphericEffects();
 
+    // Initialize melee combat system
+    this.initializeMeleeSystem();
+
     // Create level-specific environment
     log.info(`Calling createEnvironment() for ${this.id}`);
     await this.createEnvironment();
@@ -282,6 +319,12 @@ export abstract class BaseLevel implements ILevel {
 
     // Update level-specific logic
     this.updateLevel(deltaTime);
+
+    // Track time spent in level
+    this.levelStats.timeSpent += deltaTime;
+
+    // Check victory conditions each frame
+    this.checkVictoryConditions();
 
     // Update post-processing effects
     this.postProcess?.update(deltaTime);
@@ -489,11 +532,271 @@ export abstract class BaseLevel implements ILevel {
    */
   protected completeLevel(): void {
     this.state.completed = true;
+    // Calculate accuracy
+    if (this.levelStats.totalShots && this.levelStats.totalShots > 0) {
+      this.levelStats.accuracy = Math.round(
+        ((this.levelStats.shotsHit ?? 0) / this.levelStats.totalShots) * 100
+      );
+    }
+    // Store stats in state
+    this.state.stats = { ...this.levelStats };
     // Play victory music
     getAudioManager().playVictory();
     // Track level completion for achievements
     getAchievementManager().onLevelComplete(this.id, this.playerDiedInLevel);
     this.callbacks.onLevelComplete(this.config.nextLevelId);
+  }
+
+  /**
+   * Complete level with full victory result data.
+   * Use this for expanded completion with bonus tracking.
+   */
+  protected completeLevelWithStats(): VictoryResult {
+    // Calculate accuracy
+    if (this.levelStats.totalShots && this.levelStats.totalShots > 0) {
+      this.levelStats.accuracy = Math.round(
+        ((this.levelStats.shotsHit ?? 0) / this.levelStats.totalShots) * 100
+      );
+    }
+
+    // Determine bonuses
+    const bonuses = {
+      noDeaths: this.levelStats.deaths === 0,
+      speedrun: (this.levelStats.parTime ?? 0) > 0 &&
+                this.levelStats.timeSpent <= (this.levelStats.parTime ?? Infinity),
+      allSecrets: this.levelStats.secretsFound >= (this.levelStats.totalSecrets ?? 0) &&
+                  (this.levelStats.totalSecrets ?? 0) > 0,
+      perfectAccuracy: (this.levelStats.accuracy ?? 0) === 100 &&
+                       (this.levelStats.totalShots ?? 0) > 10,
+    };
+
+    const result: VictoryResult = {
+      success: true,
+      nextLevelId: this.config.nextLevelId,
+      stats: { ...this.levelStats },
+      bonuses,
+    };
+
+    // Mark complete and trigger transition
+    this.state.completed = true;
+    this.state.stats = { ...this.levelStats };
+
+    getAudioManager().playVictory();
+    getAchievementManager().onLevelComplete(this.id, this.playerDiedInLevel);
+    this.callbacks.onLevelComplete(this.config.nextLevelId);
+
+    return result;
+  }
+
+  // ============================================================================
+  // VICTORY CONDITION SYSTEM
+  // ============================================================================
+
+  /**
+   * Check if victory conditions are met.
+   * Override in subclasses to implement level-specific victory conditions.
+   * This is called every frame in the update loop.
+   */
+  protected checkVictoryConditions(): void {
+    // Default: no-op. Subclasses should override to implement:
+    // - Check required objectives
+    // - Call completeLevel() when all conditions met
+  }
+
+  /**
+   * Register a required objective for this level.
+   * Victory conditions are met when all required objectives are completed.
+   */
+  protected registerRequiredObjective(objectiveId: string): void {
+    this.objectivesRequired.add(objectiveId);
+    this.levelStats.totalObjectives = this.objectivesRequired.size;
+  }
+
+  /**
+   * Mark an objective as completed.
+   * Emits 'objective:completed' event via callbacks.
+   */
+  protected completeObjective(objectiveId: string): void {
+    if (this.objectivesCompleted.has(objectiveId)) return;
+
+    this.objectivesCompleted.add(objectiveId);
+    this.levelStats.objectivesCompleted = this.objectivesCompleted.size;
+
+    // Emit objective completed notification
+    this.callbacks.onNotification(`Objective Complete: ${objectiveId}`, 3000);
+
+    log.info(`Objective completed: ${objectiveId} (${this.objectivesCompleted.size}/${this.objectivesRequired.size})`);
+  }
+
+  /**
+   * Check if all required objectives are completed.
+   */
+  protected areAllObjectivesComplete(): boolean {
+    if (this.objectivesRequired.size === 0) return false;
+
+    for (const objective of this.objectivesRequired) {
+      if (!this.objectivesCompleted.has(objective)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check if a specific objective is completed.
+   */
+  protected isObjectiveComplete(objectiveId: string): boolean {
+    return this.objectivesCompleted.has(objectiveId);
+  }
+
+  // ============================================================================
+  // STATS TRACKING HELPERS
+  // ============================================================================
+
+  /**
+   * Record an enemy kill. Call when player kills an enemy.
+   */
+  protected recordKill(options?: {
+    isHeadshot?: boolean;
+    isMelee?: boolean;
+    isGrenade?: boolean;
+  }): void {
+    this.levelStats.kills++;
+    if (options?.isHeadshot) {
+      this.levelStats.headshots = (this.levelStats.headshots ?? 0) + 1;
+    }
+    if (options?.isMelee) {
+      this.levelStats.meleKills = (this.levelStats.meleKills ?? 0) + 1;
+    }
+    if (options?.isGrenade) {
+      this.levelStats.grenadeKills = (this.levelStats.grenadeKills ?? 0) + 1;
+    }
+    // Notify game context
+    this.callbacks.onKill();
+  }
+
+  /**
+   * Record a shot fired. Call when player fires a weapon.
+   */
+  protected recordShot(didHit: boolean): void {
+    this.levelStats.totalShots = (this.levelStats.totalShots ?? 0) + 1;
+    if (didHit) {
+      this.levelStats.shotsHit = (this.levelStats.shotsHit ?? 0) + 1;
+    }
+  }
+
+  /**
+   * Record damage dealt to enemies.
+   */
+  protected recordDamageDealt(damage: number): void {
+    this.levelStats.damageDealt = (this.levelStats.damageDealt ?? 0) + damage;
+  }
+
+  /**
+   * Record damage taken by player.
+   */
+  protected recordDamageTaken(damage: number): void {
+    this.levelStats.damageTaken = (this.levelStats.damageTaken ?? 0) + damage;
+    this.trackPlayerDamage(damage);
+  }
+
+  /**
+   * Record a secret found.
+   */
+  protected recordSecretFound(): void {
+    this.levelStats.secretsFound++;
+  }
+
+  /**
+   * Record an audio log found.
+   */
+  protected recordAudioLogFound(): void {
+    this.levelStats.audioLogsFound = (this.levelStats.audioLogsFound ?? 0) + 1;
+  }
+
+  /**
+   * Record a skull collectible found.
+   */
+  protected recordSkullFound(): void {
+    this.levelStats.skullsFound = (this.levelStats.skullsFound ?? 0) + 1;
+  }
+
+  /**
+   * Record a player death.
+   */
+  protected recordDeath(): void {
+    this.levelStats.deaths++;
+    this.playerDiedInLevel = true;
+    this.onPlayerDeath();
+  }
+
+  /**
+   * Set the par time for speedrun bonus.
+   */
+  protected setParTime(seconds: number): void {
+    this.levelStats.parTime = seconds;
+  }
+
+  // ============================================================================
+  // CHECKPOINT SYSTEM
+  // ============================================================================
+
+  /**
+   * Save a checkpoint at the current position.
+   * Use before boss fights or major encounters.
+   */
+  protected saveCheckpoint(phase?: string): void {
+    this.state.checkpoint = {
+      position: {
+        x: this.camera.position.x,
+        y: this.camera.position.y,
+        z: this.camera.position.z,
+      },
+      rotation: this.rotationY,
+      phase,
+    };
+    log.info(`Checkpoint saved at phase: ${phase ?? 'default'}`);
+    this.callbacks.onNotification('Checkpoint Saved', 2000);
+  }
+
+  /**
+   * Respawn player at the last checkpoint.
+   */
+  protected respawnAtCheckpoint(): void {
+    if (!this.state.checkpoint) {
+      log.warn('No checkpoint to respawn at');
+      return;
+    }
+
+    const cp = this.state.checkpoint;
+    this.camera.position.set(cp.position.x, cp.position.y, cp.position.z);
+    this.rotationY = cp.rotation;
+    this.targetRotationY = cp.rotation;
+    this.camera.rotation.y = cp.rotation;
+
+    log.info(`Respawned at checkpoint (phase: ${cp.phase ?? 'default'})`);
+  }
+
+  /**
+   * Get the current checkpoint phase (if any).
+   */
+  protected getCheckpointPhase(): string | undefined {
+    return this.state.checkpoint?.phase;
+  }
+
+  // ============================================================================
+  // FAILURE HANDLING
+  // ============================================================================
+
+  /**
+   * Handle mission failure (e.g., critical NPC death).
+   * Override in subclasses for specific failure conditions.
+   */
+  protected onMissionFailed(reason: string): void {
+    log.warn(`Mission failed: ${reason}`);
+    getAudioManager().playDefeat();
+    this.callbacks.onNotification(`Mission Failed: ${reason}`, 5000);
+    // Subclasses can override to show failure screen or restart
   }
 
   /**
@@ -1014,6 +1317,20 @@ export abstract class BaseLevel implements ILevel {
    */
   protected getPostProcessManager(): PostProcessManager | null {
     return this.postProcess;
+  }
+
+  /**
+   * Initialize melee combat system.
+   * Sets up the melee system with scene and camera references.
+   */
+  protected initializeMeleeSystem(): void {
+    try {
+      const melee = getMeleeSystem();
+      melee.init(this.scene, this.camera);
+      log.info(`Melee system initialized for ${this.id}`);
+    } catch (error) {
+      log.warn(`Failed to initialize melee system:`, error);
+    }
   }
 
   // ============================================================================

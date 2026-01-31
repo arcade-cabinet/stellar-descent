@@ -155,6 +155,15 @@ pnpm cap open android
 
 ## Key Conventions
 
+### NO FALLBACKS
+**CRITICAL**: Never implement fallback or placeholder code. Every feature must be fully implemented using the proper systems:
+- No "fallback to basic implementation if X fails"
+- No "placeholder until real system is ready"
+- No "basic AI" or "simple implementation" - use proper AI systems (YukaAI)
+- No graceful degradation that hides broken features
+- If something doesn't work, fix it - don't work around it
+- If a system isn't initialized, ensure it gets initialized properly
+
 ### No Skip Tutorial
 The game is a linear campaign. Players unlock levels by completing them. The tutorial (Anchor Station) integrates controls organically into the story - no "skip tutorial" option.
 

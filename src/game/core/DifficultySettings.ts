@@ -13,7 +13,7 @@
 /**
  * Available difficulty levels
  */
-export type DifficultyLevel = 'normal' | 'veteran' | 'legendary';
+export type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'nightmare';
 
 /**
  * Difficulty modifiers that affect gameplay
@@ -53,6 +53,23 @@ export interface DifficultyInfo {
  * Difficulty presets with their modifiers
  */
 export const DIFFICULTY_PRESETS: Record<DifficultyLevel, DifficultyInfo> = {
+  easy: {
+    id: 'easy',
+    name: 'EASY',
+    description:
+      'Reduced challenge for players who want to enjoy the story. Enemies deal less damage and have less health.',
+    modifiers: {
+      enemyHealthMultiplier: 0.625, // Scales base stats to Easy column values
+      enemyDamageMultiplier: 0.625,
+      playerDamageReceivedMultiplier: 0.75,
+      playerHealthRegenMultiplier: 1.5,
+      enemyFireRateMultiplier: 0.8,
+      enemyDetectionMultiplier: 0.8,
+      xpMultiplier: 0.75,
+      spawnRateMultiplier: 0.8,
+      resourceDropMultiplier: 1.3,
+    },
+  },
   normal: {
     id: 'normal',
     name: 'NORMAL',
@@ -70,31 +87,31 @@ export const DIFFICULTY_PRESETS: Record<DifficultyLevel, DifficultyInfo> = {
       resourceDropMultiplier: 1.0,
     },
   },
-  veteran: {
-    id: 'veteran',
-    name: 'VETERAN',
+  hard: {
+    id: 'hard',
+    name: 'HARD',
     description:
       'For experienced drop troopers. Enemies are stronger, faster, and more numerous. +25% XP bonus.',
     modifiers: {
-      enemyHealthMultiplier: 1.4,
-      enemyDamageMultiplier: 1.5,
-      playerDamageReceivedMultiplier: 1.5,
+      enemyHealthMultiplier: 1.25, // Scales base stats to Hard column values
+      enemyDamageMultiplier: 1.39,
+      playerDamageReceivedMultiplier: 1.4,
       playerHealthRegenMultiplier: 0.7,
-      enemyFireRateMultiplier: 1.3,
+      enemyFireRateMultiplier: 1.2,
       enemyDetectionMultiplier: 1.2,
       xpMultiplier: 1.25,
       spawnRateMultiplier: 1.2,
       resourceDropMultiplier: 0.8,
     },
   },
-  legendary: {
-    id: 'legendary',
-    name: 'LEGENDARY',
+  nightmare: {
+    id: 'nightmare',
+    name: 'NIGHTMARE',
     description:
       'Only the most elite survive. Enemies are lethal and relentless. +50% XP bonus. Glory awaits.',
     modifiers: {
-      enemyHealthMultiplier: 2.0,
-      enemyDamageMultiplier: 2.0,
+      enemyHealthMultiplier: 1.625, // Scales base stats to Nightmare column values
+      enemyDamageMultiplier: 1.95,
       playerDamageReceivedMultiplier: 2.0,
       playerHealthRegenMultiplier: 0.3,
       enemyFireRateMultiplier: 1.5,
@@ -114,7 +131,7 @@ export const DEFAULT_DIFFICULTY: DifficultyLevel = 'normal';
 /**
  * Order of difficulty levels for UI display
  */
-export const DIFFICULTY_ORDER: DifficultyLevel[] = ['normal', 'veteran', 'legendary'];
+export const DIFFICULTY_ORDER: DifficultyLevel[] = ['easy', 'normal', 'hard', 'nightmare'];
 
 /**
  * LocalStorage key for persisting difficulty setting
@@ -242,13 +259,189 @@ export function isValidDifficulty(value: string): value is DifficultyLevel {
 
 /**
  * Migrate old difficulty values to new ones
- * Maps: easy -> normal, hard -> veteran, nightmare -> legendary
+ * Maps: veteran -> hard, legendary -> nightmare
  */
 export function migrateDifficulty(oldValue: string): DifficultyLevel {
   const migrations: Record<string, DifficultyLevel> = {
-    easy: 'normal',
-    hard: 'veteran',
-    nightmare: 'legendary',
+    veteran: 'hard',
+    legendary: 'nightmare',
   };
   return migrations[oldValue] ?? (isValidDifficulty(oldValue) ? oldValue : DEFAULT_DIFFICULTY);
+}
+
+// ---------------------------------------------------------------------------
+// DifficultyManager - Singleton for centralized difficulty management
+// ---------------------------------------------------------------------------
+
+export type DifficultyChangeListener = (newDifficulty: DifficultyLevel, oldDifficulty: DifficultyLevel) => void;
+
+/**
+ * DifficultyManager - Singleton that manages game difficulty
+ *
+ * Provides centralized difficulty management:
+ * - All enemy spawns query DifficultyManager for current difficulty
+ * - Difficulty changes can apply immediately (not just on spawn)
+ * - Listeners can react to difficulty changes
+ */
+export class DifficultyManager {
+  private static instance: DifficultyManager | null = null;
+  private currentDifficulty: DifficultyLevel;
+  private listeners: Set<DifficultyChangeListener> = new Set();
+
+  private constructor() {
+    this.currentDifficulty = loadDifficultySetting();
+  }
+
+  /**
+   * Get the singleton instance
+   */
+  static getInstance(): DifficultyManager {
+    if (!DifficultyManager.instance) {
+      DifficultyManager.instance = new DifficultyManager();
+    }
+    return DifficultyManager.instance;
+  }
+
+  /**
+   * Get current difficulty level
+   */
+  getDifficulty(): DifficultyLevel {
+    return this.currentDifficulty;
+  }
+
+  /**
+   * Get current difficulty modifiers
+   */
+  getModifiers(): DifficultyModifiers {
+    return getDifficultyModifiers(this.currentDifficulty);
+  }
+
+  /**
+   * Get current difficulty info
+   */
+  getInfo(): DifficultyInfo {
+    return getDifficultyInfo(this.currentDifficulty);
+  }
+
+  /**
+   * Set difficulty level
+   * @param difficulty - New difficulty level
+   * @param persist - Whether to save to localStorage (default: true)
+   */
+  setDifficulty(difficulty: DifficultyLevel, persist: boolean = true): void {
+    if (difficulty === this.currentDifficulty) return;
+
+    const oldDifficulty = this.currentDifficulty;
+    this.currentDifficulty = difficulty;
+
+    if (persist) {
+      saveDifficultySetting(difficulty);
+    }
+
+    // Notify all listeners of the change
+    this.notifyListeners(difficulty, oldDifficulty);
+  }
+
+  /**
+   * Add a listener for difficulty changes
+   * @returns Cleanup function to remove the listener
+   */
+  addListener(listener: DifficultyChangeListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  /**
+   * Remove a listener for difficulty changes
+   */
+  removeListener(listener: DifficultyChangeListener): void {
+    this.listeners.delete(listener);
+  }
+
+  /**
+   * Notify all listeners of a difficulty change
+   */
+  private notifyListeners(newDifficulty: DifficultyLevel, oldDifficulty: DifficultyLevel): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(newDifficulty, oldDifficulty);
+      } catch (error) {
+        console.error('[DifficultyManager] Listener error:', error);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Convenience methods for scaling values
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Scale enemy health based on current difficulty
+   */
+  scaleHealth(baseHealth: number): number {
+    return scaleEnemyHealth(baseHealth, this.currentDifficulty);
+  }
+
+  /**
+   * Scale enemy damage based on current difficulty
+   */
+  scaleDamage(baseDamage: number): number {
+    return scaleEnemyDamage(baseDamage, this.currentDifficulty);
+  }
+
+  /**
+   * Scale player damage received based on current difficulty
+   */
+  scalePlayerDamage(baseDamage: number): number {
+    return scalePlayerDamageReceived(baseDamage, this.currentDifficulty);
+  }
+
+  /**
+   * Scale enemy fire rate based on current difficulty
+   */
+  scaleFireRate(baseFireRate: number): number {
+    return scaleEnemyFireRate(baseFireRate, this.currentDifficulty);
+  }
+
+  /**
+   * Scale detection range based on current difficulty
+   */
+  scaleDetection(baseRange: number): number {
+    return scaleDetectionRange(baseRange, this.currentDifficulty);
+  }
+
+  /**
+   * Scale XP reward based on current difficulty
+   */
+  scaleXP(baseXP: number): number {
+    return scaleXPReward(baseXP, this.currentDifficulty);
+  }
+
+  /**
+   * Scale spawn count based on current difficulty
+   */
+  scaleSpawn(baseCount: number): number {
+    return scaleSpawnCount(baseCount, this.currentDifficulty);
+  }
+
+  /**
+   * Scale resource drop chance based on current difficulty
+   */
+  scaleDropChance(baseChance: number): number {
+    return scaleResourceDropChance(baseChance, this.currentDifficulty);
+  }
+
+  /**
+   * Reset for testing
+   */
+  static reset(): void {
+    DifficultyManager.instance = null;
+  }
+}
+
+/**
+ * Get the DifficultyManager singleton instance
+ */
+export function getDifficultyManager(): DifficultyManager {
+  return DifficultyManager.getInstance();
 }

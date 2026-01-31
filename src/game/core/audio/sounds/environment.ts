@@ -1051,6 +1051,9 @@ export class ProceduralAmbientGenerator {
       case 'extraction':
         this.createExtractionAmbient(ctx, intensity);
         break;
+      case 'ice':
+        this.createIceAmbient(ctx, intensity);
+        break;
     }
   }
 
@@ -1295,6 +1298,216 @@ export class ProceduralAmbientGenerator {
       }
     }, 3500);
     this.intervalIds.push(explosionInterval);
+  }
+
+  private createIceAmbient(ctx: AudioContext, intensity: number): void {
+    // Frozen wind - higher frequency, more whistling than regular wind
+    const bufferSize = ctx.sampleRate * 4;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      noiseData[i] = (lastOut + 0.02 * white) / 1.02;
+      lastOut = noiseData[i];
+      noiseData[i] *= 3.5;
+    }
+
+    const wind = ctx.createBufferSource();
+    wind.buffer = noiseBuffer;
+    wind.loop = true;
+
+    // Higher resonant filter for icy whistle
+    const windFilter = ctx.createBiquadFilter();
+    windFilter.type = 'bandpass';
+    windFilter.frequency.value = 800;
+    windFilter.Q.value = 4;
+
+    // LFO for gusting
+    const windLfo = ctx.createOscillator();
+    windLfo.frequency.value = 0.15;
+    const windLfoGain = ctx.createGain();
+    windLfoGain.gain.value = 300;
+    windLfo.connect(windLfoGain);
+    windLfoGain.connect(windFilter.frequency);
+
+    const windGain = ctx.createGain();
+    windGain.gain.value = intensity * 0.35;
+
+    wind.connect(windFilter);
+    windFilter.connect(windGain);
+    windGain.connect(this.masterGain!);
+
+    wind.start();
+    windLfo.start();
+    this.activeOscillators.push(windLfo);
+    this.activeNodes.push(wind);
+
+    // Low ice groan/stress - deep creaking of frozen structures
+    const iceGroan = ctx.createOscillator();
+    iceGroan.type = 'sawtooth';
+    iceGroan.frequency.value = 45;
+
+    const iceGroanFilter = ctx.createBiquadFilter();
+    iceGroanFilter.type = 'lowpass';
+    iceGroanFilter.frequency.value = 100;
+
+    const iceGroanGain = ctx.createGain();
+    iceGroanGain.gain.value = intensity * 0.15;
+
+    iceGroan.connect(iceGroanFilter);
+    iceGroanFilter.connect(iceGroanGain);
+    iceGroanGain.connect(this.masterGain!);
+
+    iceGroan.start();
+    this.activeOscillators.push(iceGroan);
+
+    // Occasional ice cracking sounds
+    const crackInterval = setInterval(() => {
+      if (!this.isPlaying) return;
+      if (Math.random() < 0.35) {
+        this.playIceCrack(ctx, intensity);
+      }
+    }, 4000);
+    this.intervalIds.push(crackInterval);
+
+    // Crystalline shimmer ambience
+    const shimmerInterval = setInterval(() => {
+      if (!this.isPlaying) return;
+      if (Math.random() < 0.25) {
+        this.playIceShimmer(ctx, intensity);
+      }
+    }, 6000);
+    this.intervalIds.push(shimmerInterval);
+
+    // Distant ice groans/shifts
+    const shiftInterval = setInterval(() => {
+      if (!this.isPlaying) return;
+      if (Math.random() < 0.2) {
+        this.playIceShift(ctx, intensity);
+      }
+    }, 8000);
+    this.intervalIds.push(shiftInterval);
+  }
+
+  private playIceCrack(ctx: AudioContext, intensity: number): void {
+    const now = ctx.currentTime;
+
+    // Sharp crack - high frequency snap
+    const crack = ctx.createOscillator();
+    crack.type = 'square';
+    crack.frequency.setValueAtTime(3000 + Math.random() * 1500, now);
+    crack.frequency.exponentialRampToValueAtTime(500, now + 0.04);
+
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(intensity * 0.4, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    // Secondary crack for layered effect
+    const crack2 = ctx.createOscillator();
+    crack2.type = 'sawtooth';
+    crack2.frequency.setValueAtTime(2000 + Math.random() * 1000, now + 0.02);
+    crack2.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+
+    const crack2Gain = ctx.createGain();
+    crack2Gain.gain.setValueAtTime(intensity * 0.25, now + 0.02);
+    crack2Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    // Low rumble following crack
+    const rumble = ctx.createOscillator();
+    rumble.type = 'sine';
+    rumble.frequency.setValueAtTime(80, now + 0.03);
+    rumble.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+
+    const rumbleGain = ctx.createGain();
+    rumbleGain.gain.setValueAtTime(intensity * 0.2, now + 0.03);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+    // Connect
+    crack.connect(crackGain);
+    crackGain.connect(this.masterGain!);
+
+    crack2.connect(crack2Gain);
+    crack2Gain.connect(this.masterGain!);
+
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(this.masterGain!);
+
+    // Play
+    crack.start(now);
+    crack.stop(now + 0.08);
+    crack2.start(now + 0.02);
+    crack2.stop(now + 0.12);
+    rumble.start(now + 0.03);
+    rumble.stop(now + 0.3);
+  }
+
+  private playIceShimmer(ctx: AudioContext, intensity: number): void {
+    const now = ctx.currentTime;
+
+    // High crystalline tones
+    const shimmerFreqs = [
+      2400 + Math.random() * 600,
+      3200 + Math.random() * 800,
+      4000 + Math.random() * 1000,
+    ];
+
+    shimmerFreqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+
+      const gain = ctx.createGain();
+      const startTime = now + i * 0.08;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(intensity * 0.08, startTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.45);
+    });
+  }
+
+  private playIceShift(ctx: AudioContext, intensity: number): void {
+    const now = ctx.currentTime;
+
+    // Deep groaning shift
+    const groan = ctx.createOscillator();
+    groan.type = 'sawtooth';
+    groan.frequency.setValueAtTime(50 + Math.random() * 20, now);
+    groan.frequency.linearRampToValueAtTime(70 + Math.random() * 30, now + 0.4);
+    groan.frequency.linearRampToValueAtTime(40 + Math.random() * 15, now + 1.2);
+
+    const groanFilter = ctx.createBiquadFilter();
+    groanFilter.type = 'bandpass';
+    groanFilter.frequency.value = 100 + Math.random() * 50;
+    groanFilter.Q.value = 4;
+
+    // LFO for wavering
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 2 + Math.random() * 2;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 10;
+    lfo.connect(lfoGain);
+    lfoGain.connect(groan.frequency);
+
+    const groanGain = ctx.createGain();
+    groanGain.gain.setValueAtTime(0, now);
+    groanGain.gain.linearRampToValueAtTime(intensity * 0.25, now + 0.2);
+    groanGain.gain.setValueAtTime(intensity * 0.2, now + 0.9);
+    groanGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+    groan.connect(groanFilter);
+    groanFilter.connect(groanGain);
+    groanGain.connect(this.masterGain!);
+
+    groan.start(now);
+    groan.stop(now + 1.6);
+    lfo.start(now);
+    lfo.stop(now + 1.6);
   }
 
   stop(): void {

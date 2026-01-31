@@ -85,6 +85,8 @@ export interface LevelCallbacks {
   onExposureChange?: (exposure: number) => void;
   // Issue #86: Add missing frost damage callback
   onFrostDamage?: (damage: number) => void;
+  // Squad command wheel for Marcus AI companion (Brothers in Arms level)
+  onSquadCommandWheelChange?: (isOpen: boolean, selectedCommand: string | null) => void;
 }
 
 // Weather configuration for levels
@@ -133,13 +135,61 @@ export interface LevelState {
   playerPosition?: { x: number; y: number; z: number };
   playerRotation?: number;
   // Collectibles found, enemies killed, etc.
-  stats?: {
-    kills: number;
-    secretsFound: number;
-    timeSpent: number;
-  };
+  stats?: LevelStats;
   // Story flags
   flags?: Record<string, boolean>;
+  // Checkpoint data for respawn
+  checkpoint?: {
+    position: { x: number; y: number; z: number };
+    rotation: number;
+    phase?: string;
+  };
+}
+
+// Comprehensive stats tracking for level completion screen
+export interface LevelStats {
+  // Combat stats
+  kills: number;
+  totalShots?: number;
+  shotsHit?: number;
+  accuracy?: number; // Calculated as shotsHit / totalShots * 100
+  headshots?: number;
+  meleKills?: number;
+  grenadeKills?: number;
+
+  // Time stats
+  timeSpent: number;
+  parTime?: number; // Target time for bonus
+
+  // Collectibles
+  secretsFound: number;
+  totalSecrets?: number;
+  audioLogsFound?: number;
+  totalAudioLogs?: number;
+  skullsFound?: number;
+
+  // Survival stats
+  deaths: number;
+  damageDealt?: number;
+  damageTaken?: number;
+
+  // Objectives
+  objectivesCompleted?: number;
+  totalObjectives?: number;
+  bonusObjectivesCompleted?: number;
+}
+
+// Victory condition result
+export interface VictoryResult {
+  success: boolean;
+  nextLevelId: LevelId | null;
+  stats: LevelStats;
+  bonuses?: {
+    noDeaths?: boolean;
+    speedrun?: boolean;
+    allSecrets?: boolean;
+    perfectAccuracy?: boolean;
+  };
 }
 
 // Touch input type for levels

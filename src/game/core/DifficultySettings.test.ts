@@ -9,7 +9,9 @@ import {
   DIFFICULTY_PRESETS,
   type DifficultyLevel,
   getDifficultyInfo,
+  getDifficultyManager,
   getDifficultyModifiers,
+  DifficultyManager,
   isValidDifficulty,
   loadDifficultySetting,
   migrateDifficulty,
@@ -39,17 +41,29 @@ describe('DifficultySettings', () => {
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
       delete localStorageMock[key];
     });
+    // Reset DifficultyManager singleton
+    DifficultyManager.reset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    DifficultyManager.reset();
   });
 
   describe('DIFFICULTY_PRESETS', () => {
-    it('should have all three difficulty levels', () => {
+    it('should have all four difficulty levels', () => {
+      expect(DIFFICULTY_PRESETS).toHaveProperty('easy');
       expect(DIFFICULTY_PRESETS).toHaveProperty('normal');
-      expect(DIFFICULTY_PRESETS).toHaveProperty('veteran');
-      expect(DIFFICULTY_PRESETS).toHaveProperty('legendary');
+      expect(DIFFICULTY_PRESETS).toHaveProperty('hard');
+      expect(DIFFICULTY_PRESETS).toHaveProperty('nightmare');
+    });
+
+    it('should have easy difficulty with reduced multipliers', () => {
+      const easy = DIFFICULTY_PRESETS.easy;
+      expect(easy.modifiers.enemyHealthMultiplier).toBeLessThan(1.0);
+      expect(easy.modifiers.enemyDamageMultiplier).toBeLessThan(1.0);
+      expect(easy.modifiers.playerDamageReceivedMultiplier).toBeLessThan(1.0);
+      expect(easy.modifiers.resourceDropMultiplier).toBeGreaterThan(1.0); // More resources
     });
 
     it('should have normal difficulty with 1.0 multipliers', () => {
@@ -63,33 +77,33 @@ describe('DifficultySettings', () => {
       expect(normal.modifiers.resourceDropMultiplier).toBe(1.0);
     });
 
-    it('should have veteran difficulty with increased multipliers', () => {
-      const veteran = DIFFICULTY_PRESETS.veteran;
-      expect(veteran.modifiers.enemyHealthMultiplier).toBeGreaterThan(1.0);
-      expect(veteran.modifiers.enemyDamageMultiplier).toBeGreaterThan(1.0);
-      expect(veteran.modifiers.playerDamageReceivedMultiplier).toBeGreaterThan(1.0);
-      expect(veteran.modifiers.xpMultiplier).toBeGreaterThan(1.0); // XP bonus
-      expect(veteran.modifiers.spawnRateMultiplier).toBeGreaterThan(1.0); // More enemies
-      expect(veteran.modifiers.resourceDropMultiplier).toBeLessThan(1.0); // Fewer resources
+    it('should have hard difficulty with increased multipliers', () => {
+      const hard = DIFFICULTY_PRESETS.hard;
+      expect(hard.modifiers.enemyHealthMultiplier).toBeGreaterThan(1.0);
+      expect(hard.modifiers.enemyDamageMultiplier).toBeGreaterThan(1.0);
+      expect(hard.modifiers.playerDamageReceivedMultiplier).toBeGreaterThan(1.0);
+      expect(hard.modifiers.xpMultiplier).toBeGreaterThan(1.0); // XP bonus
+      expect(hard.modifiers.spawnRateMultiplier).toBeGreaterThan(1.0); // More enemies
+      expect(hard.modifiers.resourceDropMultiplier).toBeLessThan(1.0); // Fewer resources
     });
 
-    it('should have legendary difficulty with highest multipliers', () => {
-      const legendary = DIFFICULTY_PRESETS.legendary;
-      expect(legendary.modifiers.enemyHealthMultiplier).toBeGreaterThan(
-        DIFFICULTY_PRESETS.veteran.modifiers.enemyHealthMultiplier
+    it('should have nightmare difficulty with highest multipliers', () => {
+      const nightmare = DIFFICULTY_PRESETS.nightmare;
+      expect(nightmare.modifiers.enemyHealthMultiplier).toBeGreaterThan(
+        DIFFICULTY_PRESETS.hard.modifiers.enemyHealthMultiplier
       );
-      expect(legendary.modifiers.enemyDamageMultiplier).toBeGreaterThan(
-        DIFFICULTY_PRESETS.veteran.modifiers.enemyDamageMultiplier
+      expect(nightmare.modifiers.enemyDamageMultiplier).toBeGreaterThan(
+        DIFFICULTY_PRESETS.hard.modifiers.enemyDamageMultiplier
       );
-      expect(legendary.modifiers.xpMultiplier).toBeGreaterThan(
-        DIFFICULTY_PRESETS.veteran.modifiers.xpMultiplier
+      expect(nightmare.modifiers.xpMultiplier).toBeGreaterThan(
+        DIFFICULTY_PRESETS.hard.modifiers.xpMultiplier
       );
     });
   });
 
   describe('DIFFICULTY_ORDER', () => {
     it('should list difficulties in order of increasing challenge', () => {
-      expect(DIFFICULTY_ORDER).toEqual(['normal', 'veteran', 'legendary']);
+      expect(DIFFICULTY_ORDER).toEqual(['easy', 'normal', 'hard', 'nightmare']);
     });
   });
 
@@ -128,30 +142,30 @@ describe('DifficultySettings', () => {
 
   describe('isValidDifficulty', () => {
     it('should return true for valid difficulty levels', () => {
+      expect(isValidDifficulty('easy')).toBe(true);
       expect(isValidDifficulty('normal')).toBe(true);
-      expect(isValidDifficulty('veteran')).toBe(true);
-      expect(isValidDifficulty('legendary')).toBe(true);
+      expect(isValidDifficulty('hard')).toBe(true);
+      expect(isValidDifficulty('nightmare')).toBe(true);
     });
 
     it('should return false for old/invalid difficulty levels', () => {
-      expect(isValidDifficulty('easy')).toBe(false);
-      expect(isValidDifficulty('hard')).toBe(false);
-      expect(isValidDifficulty('nightmare')).toBe(false);
+      expect(isValidDifficulty('veteran')).toBe(false);
+      expect(isValidDifficulty('legendary')).toBe(false);
       expect(isValidDifficulty('invalid')).toBe(false);
     });
   });
 
   describe('migrateDifficulty', () => {
     it('should migrate old difficulty values', () => {
-      expect(migrateDifficulty('easy')).toBe('normal');
-      expect(migrateDifficulty('hard')).toBe('veteran');
-      expect(migrateDifficulty('nightmare')).toBe('legendary');
+      expect(migrateDifficulty('veteran')).toBe('hard');
+      expect(migrateDifficulty('legendary')).toBe('nightmare');
     });
 
     it('should keep valid new values unchanged', () => {
+      expect(migrateDifficulty('easy')).toBe('easy');
       expect(migrateDifficulty('normal')).toBe('normal');
-      expect(migrateDifficulty('veteran')).toBe('veteran');
-      expect(migrateDifficulty('legendary')).toBe('legendary');
+      expect(migrateDifficulty('hard')).toBe('hard');
+      expect(migrateDifficulty('nightmare')).toBe('nightmare');
     });
 
     it('should return default for invalid values', () => {
@@ -166,15 +180,15 @@ describe('DifficultySettings', () => {
     });
 
     it('should return stored difficulty', () => {
-      localStorageMock['stellar_descent_difficulty'] = 'veteran';
+      localStorageMock['stellar_descent_difficulty'] = 'hard';
       const result = loadDifficultySetting();
-      expect(result).toBe('veteran');
+      expect(result).toBe('hard');
     });
 
     it('should migrate old difficulty values', () => {
-      localStorageMock['stellar_descent_difficulty'] = 'hard';
+      localStorageMock['stellar_descent_difficulty'] = 'veteran';
       const result = loadDifficultySetting();
-      expect(result).toBe('veteran');
+      expect(result).toBe('hard');
     });
 
     it('should return default for invalid stored value', () => {
@@ -186,8 +200,8 @@ describe('DifficultySettings', () => {
 
   describe('saveDifficultySetting', () => {
     it('should save difficulty to localStorage', () => {
-      saveDifficultySetting('legendary');
-      expect(localStorageMock['stellar_descent_difficulty']).toBe('legendary');
+      saveDifficultySetting('nightmare');
+      expect(localStorageMock['stellar_descent_difficulty']).toBe('nightmare');
     });
   });
 
@@ -196,12 +210,14 @@ describe('DifficultySettings', () => {
       it('should scale health based on difficulty', () => {
         const baseHealth = 100;
 
+        const easyHealth = scaleEnemyHealth(baseHealth, 'easy');
         const normalHealth = scaleEnemyHealth(baseHealth, 'normal');
-        const veteranHealth = scaleEnemyHealth(baseHealth, 'veteran');
-        const legendaryHealth = scaleEnemyHealth(baseHealth, 'legendary');
+        const hardHealth = scaleEnemyHealth(baseHealth, 'hard');
+        const nightmareHealth = scaleEnemyHealth(baseHealth, 'nightmare');
 
-        expect(veteranHealth).toBeGreaterThan(normalHealth);
-        expect(legendaryHealth).toBeGreaterThan(veteranHealth);
+        expect(easyHealth).toBeLessThan(normalHealth);
+        expect(hardHealth).toBeGreaterThan(normalHealth);
+        expect(nightmareHealth).toBeGreaterThan(hardHealth);
         expect(normalHealth).toBe(100); // Normal should be unchanged
       });
     });
@@ -211,9 +227,9 @@ describe('DifficultySettings', () => {
         const baseDamage = 20;
 
         const normalDamage = scaleEnemyDamage(baseDamage, 'normal');
-        const veteranDamage = scaleEnemyDamage(baseDamage, 'veteran');
+        const hardDamage = scaleEnemyDamage(baseDamage, 'hard');
 
-        expect(veteranDamage).toBeGreaterThan(normalDamage);
+        expect(hardDamage).toBeGreaterThan(normalDamage);
         expect(normalDamage).toBe(20);
       });
     });
@@ -223,9 +239,9 @@ describe('DifficultySettings', () => {
         const baseDamage = 15;
 
         const normalDamage = scalePlayerDamageReceived(baseDamage, 'normal');
-        const veteranDamage = scalePlayerDamageReceived(baseDamage, 'veteran');
+        const hardDamage = scalePlayerDamageReceived(baseDamage, 'hard');
 
-        expect(veteranDamage).toBeGreaterThan(normalDamage);
+        expect(hardDamage).toBeGreaterThan(normalDamage);
         expect(normalDamage).toBe(15);
       });
     });
@@ -235,9 +251,9 @@ describe('DifficultySettings', () => {
         const baseRate = 2.0;
 
         const normalRate = scaleEnemyFireRate(baseRate, 'normal');
-        const veteranRate = scaleEnemyFireRate(baseRate, 'veteran');
+        const hardRate = scaleEnemyFireRate(baseRate, 'hard');
 
-        expect(veteranRate).toBeGreaterThan(normalRate);
+        expect(hardRate).toBeGreaterThan(normalRate);
         expect(normalRate).toBe(2.0);
       });
     });
@@ -247,9 +263,9 @@ describe('DifficultySettings', () => {
         const baseRange = 20;
 
         const normalRange = scaleDetectionRange(baseRange, 'normal');
-        const veteranRange = scaleDetectionRange(baseRange, 'veteran');
+        const hardRange = scaleDetectionRange(baseRange, 'hard');
 
-        expect(veteranRange).toBeGreaterThan(normalRange);
+        expect(hardRange).toBeGreaterThan(normalRange);
         expect(normalRange).toBe(20);
       });
     });
@@ -259,11 +275,11 @@ describe('DifficultySettings', () => {
         const baseXP = 50;
 
         const normalXP = scaleXPReward(baseXP, 'normal');
-        const veteranXP = scaleXPReward(baseXP, 'veteran');
-        const legendaryXP = scaleXPReward(baseXP, 'legendary');
+        const hardXP = scaleXPReward(baseXP, 'hard');
+        const nightmareXP = scaleXPReward(baseXP, 'nightmare');
 
-        expect(veteranXP).toBeGreaterThan(normalXP);
-        expect(legendaryXP).toBeGreaterThan(veteranXP);
+        expect(hardXP).toBeGreaterThan(normalXP);
+        expect(nightmareXP).toBeGreaterThan(hardXP);
         expect(normalXP).toBe(50);
       });
     });
@@ -273,11 +289,11 @@ describe('DifficultySettings', () => {
         const baseCount = 10;
 
         const normalCount = scaleSpawnCount(baseCount, 'normal');
-        const veteranCount = scaleSpawnCount(baseCount, 'veteran');
-        const legendaryCount = scaleSpawnCount(baseCount, 'legendary');
+        const hardCount = scaleSpawnCount(baseCount, 'hard');
+        const nightmareCount = scaleSpawnCount(baseCount, 'nightmare');
 
-        expect(veteranCount).toBeGreaterThan(normalCount);
-        expect(legendaryCount).toBeGreaterThan(veteranCount);
+        expect(hardCount).toBeGreaterThan(normalCount);
+        expect(nightmareCount).toBeGreaterThan(hardCount);
         expect(normalCount).toBe(10);
       });
     });
@@ -287,20 +303,69 @@ describe('DifficultySettings', () => {
         const baseChance = 0.5;
 
         const normalChance = scaleResourceDropChance(baseChance, 'normal');
-        const veteranChance = scaleResourceDropChance(baseChance, 'veteran');
-        const legendaryChance = scaleResourceDropChance(baseChance, 'legendary');
+        const hardChance = scaleResourceDropChance(baseChance, 'hard');
+        const nightmareChance = scaleResourceDropChance(baseChance, 'nightmare');
 
-        expect(veteranChance).toBeLessThan(normalChance);
-        expect(legendaryChance).toBeLessThan(veteranChance);
+        expect(hardChance).toBeLessThan(normalChance);
+        expect(nightmareChance).toBeLessThan(hardChance);
         expect(normalChance).toBe(0.5);
       });
 
       it('should cap resource drop chance at 1.0', () => {
-        // This shouldn't happen with our multipliers, but let's ensure the cap works
         const highChance = 0.9;
         const normalChance = scaleResourceDropChance(highChance, 'normal');
         expect(normalChance).toBeLessThanOrEqual(1);
       });
+    });
+  });
+
+  describe('DifficultyManager', () => {
+    it('should return singleton instance', () => {
+      const manager1 = getDifficultyManager();
+      const manager2 = getDifficultyManager();
+      expect(manager1).toBe(manager2);
+    });
+
+    it('should get current difficulty', () => {
+      const manager = getDifficultyManager();
+      expect(manager.getDifficulty()).toBe('normal');
+    });
+
+    it('should set and persist difficulty', () => {
+      const manager = getDifficultyManager();
+      manager.setDifficulty('hard');
+      expect(manager.getDifficulty()).toBe('hard');
+      expect(localStorageMock['stellar_descent_difficulty']).toBe('hard');
+    });
+
+    it('should notify listeners on difficulty change', () => {
+      const manager = getDifficultyManager();
+      const listener = vi.fn();
+      manager.addListener(listener);
+
+      manager.setDifficulty('nightmare');
+
+      expect(listener).toHaveBeenCalledWith('nightmare', 'normal');
+    });
+
+    it('should remove listeners correctly', () => {
+      const manager = getDifficultyManager();
+      const listener = vi.fn();
+      const cleanup = manager.addListener(listener);
+
+      cleanup();
+      manager.setDifficulty('easy');
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('should provide convenience scaling methods', () => {
+      const manager = getDifficultyManager();
+      manager.setDifficulty('hard');
+
+      expect(manager.scaleHealth(100)).toBeGreaterThan(100);
+      expect(manager.scaleDamage(20)).toBeGreaterThan(20);
+      expect(manager.scaleFireRate(2)).toBeGreaterThan(2);
     });
   });
 });

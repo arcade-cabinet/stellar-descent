@@ -32,6 +32,7 @@ import { SubtitleProvider } from './game/context/SubtitleContext';
 import { WeaponProvider } from './game/context/WeaponContext';
 import { useCommsSubtitles } from './game/hooks/useCommsSubtitles';
 import type { LevelId } from './game/levels/types';
+import { shouldShowTouchControls } from './game/utils/PlatformDetector';
 import { usePWA } from './hooks/usePWA';
 import { useSavePersistence } from './hooks/useSavePersistence';
 
@@ -51,16 +52,6 @@ const VALID_LEVELS: LevelId[] = [
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Detect touch capability - works on ALL touch devices including foldables
- */
-function detectTouchCapability(): boolean {
-  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches ?? false;
-  const hasAnyCoarsePointer = window.matchMedia?.('(any-pointer: coarse)')?.matches ?? false;
-  return hasTouch || hasCoarsePointer || hasAnyCoarsePointer;
-}
 
 /**
  * Parse URL parameters for dev/testing level selection
@@ -95,8 +86,9 @@ function GameUI() {
   const [snapshot, dispatch] = useCampaign();
   const phase = snapshot.phase;
 
-  // Touch device detection
-  const [isTouchDevice, setIsTouchDevice] = useState(() => detectTouchCapability());
+  // Touch controls detection - based on device TYPE, not just touch capability
+  // Desktop = no touch controls; Mobile/Tablet/Foldable = custom TouchControls
+  const [isTouchDevice, setIsTouchDevice] = useState(() => shouldShowTouchControls());
 
   // PWA state
   const {
@@ -142,20 +134,15 @@ function GameUI() {
     }
   }, []);
 
-  // ---- Touch detection ----
+  // ---- Touch controls detection ----
+  // Re-check on resize/orientation change since device type can change (e.g., foldable unfold)
   useEffect(() => {
-    const update = () => setIsTouchDevice(detectTouchCapability());
+    const update = () => setIsTouchDevice(shouldShowTouchControls());
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
-    const handleFirstTouch = () => {
-      setIsTouchDevice(true);
-      window.removeEventListener('touchstart', handleFirstTouch);
-    };
-    window.addEventListener('touchstart', handleFirstTouch, { once: true, passive: true });
     return () => {
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
-      window.removeEventListener('touchstart', handleFirstTouch);
     };
   }, []);
 

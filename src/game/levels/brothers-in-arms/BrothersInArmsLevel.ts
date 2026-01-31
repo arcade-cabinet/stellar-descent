@@ -26,6 +26,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
+import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
@@ -49,6 +50,7 @@ import { COMMS, NOTIFICATIONS, OBJECTIVES, ReunionCinematic } from './cinematics
 import { MarcusCombatAI, type MarcusCombatState } from './MarcusCombatAI';
 import type { CoordinationCombatState } from './MarcusCombatCoordinator';
 import { createMarcusBanterManager, type MarcusBanterManager } from './marcusBanter';
+import { SquadCommandSystem, type SquadCommand } from '../../ai/SquadCommandSystem';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -325,6 +327,10 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   // Marcus banter system - situation-aware dialogue
   private marcusBanterManager: MarcusBanterManager | null = null;
+
+  // Squad command system - player-issued orders to Marcus
+  private squadCommandSystem: SquadCommandSystem | null = null;
+  private isCommandWheelOpen = false;
   private previousPlayerHealth = 100;
   private previousMarcusHealth = 500;
   private previousMarcusHealthPercent = 1;
@@ -401,6 +407,9 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Build collectibles
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
     this.collectibleSystem = await buildCollectibles(this.scene, getBrothersCollectibles(), collectibleRoot);
+
+    // Register dynamic actions for squad commands and coordination with Marcus
+    registerDynamicActions('brothers_in_arms', ['squadFollow', 'squadHold', 'squadAttack', 'squadRegroup'], 'squad');
 
     // Start reunion phase
     this.startReunionPhase();
@@ -919,6 +928,24 @@ export class BrothersInArmsLevel extends BaseLevel {
         allowInterrupts: true,
       }
     );
+
+    // Initialize the squad command system for player-issued orders
+    this.squadCommandSystem = new SquadCommandSystem(
+      this.scene,
+      {
+        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
+        onNotification: (text, duration) => this.callbacks.onNotification(text, duration),
+        onCommandIssued: (command) => this.onSquadCommandIssued(command),
+        onCommandExpired: (command) => this.onSquadCommandExpired(command),
+      },
+      {
+        commandDuration: 30000, // 30 seconds
+        followDistance: 12,
+        holdPositionTolerance: 3,
+        suppressionDuration: 5000,
+        regroupSpeedMultiplier: 1.5,
+      }
+    );
   }
 
   /**
@@ -1327,6 +1354,12 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     const playerPos = this.camera.position.clone();
     playerPos.y = 0;
+    const playerForward = this.camera.getDirection(Vector3.Forward());
+
+    // Update squad command system
+    if (this.squadCommandSystem) {
+      this.squadCommandSystem.update(playerPos, playerForward, this.marcus.position);
+    }
 
     // Use the advanced Combat AI system during combat phases
     if (
@@ -1337,12 +1370,47 @@ export class BrothersInArmsLevel extends BaseLevel {
       // Convert ActiveEnemy[] to Entity[] for the combat AI
       const aliveEnemies = this.waveEnemies.filter((e) => e.state !== 'dead').map((e) => e.entity);
 
+      // Check for squad command overrides
+      const movementOverride = this.squadCommandSystem?.getMovementOverride(this.marcus.position);
+      const targetOverride = this.squadCommandSystem?.getTargetOverride();
+      const fireModeOverride = this.squadCommandSystem?.getFireModeOverride();
+      const speedMultiplier = this.squadCommandSystem?.getSpeedMultiplier() ?? 1;
+
+      // Apply squad command effects to combat AI
+      if (targetOverride) {
+        // Force focus fire on specified target
+        this.marcusCombatAI.requestFocusFire(targetOverride);
+      }
+
+      if (fireModeOverride === 'suppression') {
+        // Trigger suppression fire
+        const suppressionDir = this.squadCommandSystem?.getSuppressionDirection();
+        if (suppressionDir) {
+          const suppressionTarget = playerPos.add(suppressionDir.scale(50));
+          this.marcusCombatAI.requestFireSupport(suppressionTarget, 5000);
+        }
+      }
+
       // Pass player forward direction for tactical awareness
-      const playerForward = this.camera.getDirection(Vector3.Forward());
       this.marcusCombatAI.update(deltaTime, playerPos, aliveEnemies, playerForward);
 
-      // Sync position from Combat AI back to legacy marcus struct
-      this.marcus.position = this.marcusCombatAI.getPosition();
+      // Apply movement override from squad commands
+      if (movementOverride) {
+        const toTarget = movementOverride.subtract(this.marcus.position);
+        toTarget.y = 0;
+        const distance = toTarget.length();
+
+        if (distance > 2) {
+          toTarget.normalize();
+          const moveSpeed = 12 * speedMultiplier * deltaTime;
+          this.marcus.position.addInPlace(toTarget.scale(Math.min(moveSpeed, distance)));
+          this.marcus.rootNode.position = this.marcus.position.clone();
+        }
+      } else {
+        // Sync position from Combat AI back to legacy marcus struct
+        this.marcus.position = this.marcusCombatAI.getPosition();
+      }
+
       this.marcus.health = this.marcusCombatAI.getHealth();
       this.marcus.rootNode.position = this.marcus.position.clone();
 
@@ -2213,7 +2281,152 @@ export class BrothersInArmsLevel extends BaseLevel {
       case 'marcus_support':
         this.setMarcusCoordinationState('support');
         break;
+
+      case 'open_command_wheel':
+        this.openCommandWheel();
+        break;
+
+      case 'close_command_wheel':
+        this.closeCommandWheel();
+        break;
+
+      case 'cancel_command':
+        this.squadCommandSystem?.cancelCommand();
+        break;
     }
+  }
+
+  // ============================================================================
+  // SQUAD COMMAND SYSTEM
+  // ============================================================================
+
+  /**
+   * Open the command wheel (called when Tab is pressed)
+   */
+  private openCommandWheel(): void {
+    if (this.isCommandWheelOpen || !this.squadCommandSystem) return;
+    if (this.cinematicInProgress) return;
+    if (this.marcusCombatAI?.isDowned()) {
+      this.callbacks.onNotification('MARCUS IS DOWN - COMMANDS UNAVAILABLE', 1500);
+      return;
+    }
+
+    this.isCommandWheelOpen = true;
+    this.squadCommandSystem.openCommandWheel();
+
+    // Notify UI to show command wheel
+    this.callbacks.onSquadCommandWheelChange?.(true, null);
+  }
+
+  /**
+   * Close the command wheel and issue selected command
+   */
+  private closeCommandWheel(): void {
+    if (!this.isCommandWheelOpen || !this.squadCommandSystem) return;
+
+    const selectedCommand = this.squadCommandSystem.closeCommandWheel();
+    this.isCommandWheelOpen = false;
+
+    // Handle special commands that need target info
+    if (selectedCommand === 'ATTACK_TARGET') {
+      this.issueAttackTargetCommand();
+    } else if (selectedCommand === 'HOLD_POSITION' && this.marcus) {
+      // Set hold position at Marcus's current location
+      this.squadCommandSystem.issueCommand('HOLD_POSITION', undefined, this.marcus.position);
+    }
+
+    // Notify UI to hide command wheel
+    this.callbacks.onSquadCommandWheelChange?.(false, selectedCommand);
+  }
+
+  /**
+   * Update command wheel selection based on mouse position
+   */
+  updateCommandWheelSelection(angle: number, distance: number): void {
+    if (!this.isCommandWheelOpen || !this.squadCommandSystem) return;
+
+    this.squadCommandSystem.updateCommandWheelSelection(angle, distance);
+
+    // Notify UI of selection change
+    const selectedCommand = this.squadCommandSystem.getSelectedCommand();
+    this.callbacks.onSquadCommandWheelChange?.(true, selectedCommand);
+  }
+
+  /**
+   * Issue ATTACK_TARGET command on the enemy under crosshair
+   */
+  private issueAttackTargetCommand(): void {
+    if (!this.squadCommandSystem) return;
+
+    // Find enemy under crosshair
+    const playerPos = this.camera.position.clone();
+    const forward = this.camera.getDirection(Vector3.Forward());
+
+    let bestTarget: ActiveEnemy | null = null;
+    let bestScore = -1;
+
+    for (const enemy of this.waveEnemies) {
+      if (enemy.state === 'dead') continue;
+
+      const toEnemy = enemy.mesh.position.subtract(playerPos);
+      const dist = toEnemy.length();
+      toEnemy.normalize();
+
+      // Score based on alignment with crosshair
+      const alignment = Vector3.Dot(forward, toEnemy);
+      const score = alignment * 100 - dist;
+
+      if (alignment > 0.7 && score > bestScore) {
+        bestScore = score;
+        bestTarget = enemy;
+      }
+    }
+
+    if (bestTarget) {
+      this.squadCommandSystem.issueCommand(
+        'ATTACK_TARGET',
+        bestTarget.entity,
+        bestTarget.mesh.position
+      );
+    } else {
+      this.callbacks.onNotification('NO TARGET IN CROSSHAIRS', 1000);
+    }
+  }
+
+  /**
+   * Called when a squad command is issued
+   */
+  private onSquadCommandIssued(command: SquadCommand): void {
+    log.info(`Squad command issued: ${command}`);
+
+    // Update action buttons to reflect active command
+    if (this.phase === 'wave_combat' || this.phase === 'breach_battle') {
+      this.updateActionButtons('combat');
+    }
+  }
+
+  /**
+   * Called when a squad command expires
+   */
+  private onSquadCommandExpired(command: SquadCommand): void {
+    log.info(`Squad command expired: ${command}`);
+
+    // Return Marcus to autonomous behavior
+    // The SquadCommandSystem will return null for getMovementOverride
+  }
+
+  /**
+   * Check if command wheel is open
+   */
+  isSquadCommandWheelOpen(): boolean {
+    return this.isCommandWheelOpen;
+  }
+
+  /**
+   * Get currently selected command in wheel
+   */
+  getSelectedSquadCommand(): SquadCommand | null {
+    return this.squadCommandSystem?.getSelectedCommand() ?? null;
   }
 
   /**
@@ -2821,6 +3034,38 @@ export class BrothersInArmsLevel extends BaseLevel {
     return levelId === 'the_breach' && this.phase === 'transition';
   }
 
+  // ============================================================================
+  // KEYBOARD INPUT OVERRIDES FOR COMMAND WHEEL
+  // ============================================================================
+
+  protected override handleKeyDown(e: KeyboardEvent): void {
+    super.handleKeyDown(e);
+
+    // Tab key opens command wheel (only during combat phases)
+    if (e.code === 'Tab' && !this.isCommandWheelOpen) {
+      e.preventDefault();
+      if (this.phase === 'wave_combat' || this.phase === 'breach_battle') {
+        this.openCommandWheel();
+      }
+    }
+
+    // Escape cancels active command
+    if (e.code === 'Escape' && this.squadCommandSystem?.getActiveCommand()) {
+      e.preventDefault();
+      this.squadCommandSystem.cancelCommand();
+    }
+  }
+
+  protected override handleKeyUp(e: KeyboardEvent): void {
+    super.handleKeyUp(e);
+
+    // Tab release closes command wheel and issues command
+    if (e.code === 'Tab' && this.isCommandWheelOpen) {
+      e.preventDefault();
+      this.closeCommandWheel();
+    }
+  }
+
   protected disposeLevel(): void {
     log.info('Disposing level resources...');
 
@@ -2840,6 +3085,9 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
 
+    // Unregister dynamic actions
+    unregisterDynamicActions('brothers_in_arms');
+
     // Dispose cinematic
     this.reunionCinematic?.dispose();
     this.reunionCinematic = null;
@@ -2847,6 +3095,10 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Dispose banter manager
     this.marcusBanterManager?.reset();
     this.marcusBanterManager = null;
+
+    // Dispose squad command system
+    this.squadCommandSystem?.dispose();
+    this.squadCommandSystem = null;
 
     // Dispose Marcus Combat AI
     this.marcusCombatAI?.dispose();

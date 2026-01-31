@@ -80,7 +80,20 @@ export type SoundEffect =
   | 'multi_kill'
   // Movement sounds
   | 'slide'
-  | 'slide_end';
+  | 'slide_end'
+  // Melee combat sounds
+  | 'melee_swing'
+  | 'melee_impact'
+  // Platforming sounds
+  | 'land_metal'
+  | 'mantle'
+  | 'ledge_grab'
+  | 'pull_up'
+  // Vehicle weapon sounds
+  | 'rocket_fire'
+  | 'rifle_fire'
+  | 'turret_fire'
+  | 'cannon_fire';
 
 // Music tracks - mapped to actual audio files
 export type MusicTrack =
@@ -121,7 +134,7 @@ export interface LevelAudioConfig {
 }
 
 // Procedural ambient sound types
-export type ProceduralAmbientType = 'station' | 'wind' | 'horror' | 'hive' | 'extraction';
+export type ProceduralAmbientType = 'station' | 'wind' | 'horror' | 'hive' | 'extraction' | 'ice';
 
 // Music environment for procedural music engine
 export type MusicEnvironment = 'station' | 'surface' | 'base' | 'hive' | 'extraction';

@@ -49,13 +49,20 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import '@babylonjs/core/Animations/animatable';
 
 import { getAchievementManager } from '../../achievements';
+import {
+  CinematicSystem,
+  createFinalEscapeIntroCinematic,
+  type CinematicCallbacks,
+} from '../../cinematics';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import { getLogger } from '../../core/Logger';
+import { createVehicleDestructionEffect } from '../../vehicles/VehicleUtils';
 
 const log = getLogger('FinalEscapeLevel');
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
+import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { levelActionParams } from '../../input/InputBridge';
 import { saveSystem } from '../../persistence/SaveSystem';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
@@ -67,6 +74,8 @@ import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import { CollapsingTerrain } from './CollapsingTerrain';
 import { buildEscapeRouteEnvironment, ESCAPE_SECTIONS, type EscapeRouteResult } from './EscapeRouteEnvironment';
 import { EscapeTimer, type TimerUrgency } from './EscapeTimer';
+import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';
+import { GyroscopeManager, type VehicleYokeInput } from '../../weapons/VehicleYoke';
 
 // ============================================================================
 // TYPES
@@ -192,6 +201,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private actionCallback: ((actionId: string) => void) | null = null;
 
   // Cinematic state
+  private cinematicSystem: CinematicSystem | null = null;
   private cinematicActive = false;
   private cinematicTimer = 0;
 
@@ -207,6 +217,12 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
   // Timeouts to clean up on dispose
   private pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+  // Gyroscope manager for mobile controls
+  private gyroscopeManager: GyroscopeManager | null = null;
+
+  // Flag for vehicle yoke mode
+  private vehicleYokeActive = false;
 
   constructor(
     engine: Engine,
@@ -348,11 +364,27 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
     this.collectibleSystem = await buildCollectibles(this.scene, getFinalEscapeCollectibles(), collectibleRoot);
 
+    // Register vehicle-specific dynamic keybindings
+    registerDynamicActions('final_escape', ['vehicleBoost', 'vehicleBrake', 'vehicleEject'], 'vehicle');
+
+    // Initialize gyroscope manager for mobile
+    this.gyroscopeManager = GyroscopeManager.getInstance();
+
     // Start the escape sequence
     this.startEscapeSequence();
   }
 
   protected updateLevel(deltaTime: number): void {
+    // Update cinematic system if active
+    if (this.cinematicSystem) {
+      this.cinematicSystem.update(deltaTime);
+
+      // Skip gameplay updates during cinematic
+      if (this.cinematicSystem.isPlaying()) {
+        return;
+      }
+    }
+
     this.sectionTime += deltaTime;
 
     // Update collectibles
@@ -400,9 +432,38 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Note: Straggler spawning is called within section updates, not here
     this.updateEnvironmentalEffects(deltaTime);
     this.updateHUD();
+
+    // Update vehicle yoke visual feedback
+    if (this.vehicleYokeActive && !this.cinematicActive) {
+      const yokeInput: VehicleYokeInput = {
+        steerInput: this.vehicleSteering,
+        throttleInput: this.vehicleSpeed / (VEHICLE_SPEED * VEHICLE_BOOST_MULTIPLIER),
+        brakeInput: 0,
+        healthNormalized: Math.max(0, this.playerHealth / 100),
+        boostNormalized: this.isBoosting ? 0.5 : (1 - this.boostCooldownTimer / BOOST_COOLDOWN),
+        isBoosting: this.isBoosting,
+        speedNormalized: this.vehicleSpeed / (VEHICLE_SPEED * VEHICLE_BOOST_MULTIPLIER),
+        deltaTime,
+      };
+      firstPersonWeapons.updateVehicleYoke(yokeInput);
+    }
   }
 
   protected override disposeLevel(): void {
+    // Exit vehicle mode before cleanup
+    if (this.vehicleYokeActive) {
+      this.vehicleYokeActive = false;
+      firstPersonWeapons.exitVehicleMode();
+    }
+
+    // Disable gyroscope
+    this.gyroscopeManager?.disable();
+    this.gyroscopeManager = null;
+
+    // Dispose cinematic system
+    this.cinematicSystem?.dispose();
+    this.cinematicSystem = null;
+
     // Dispose flora
     for (const node of this.floraNodes) { node.dispose(false, true); }
     this.floraNodes = [];
@@ -413,6 +474,9 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Unregister action handler
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
+
+    // Unregister vehicle-specific dynamic keybindings
+    unregisterDynamicActions('final_escape');
 
     // Clear pending timeouts
     for (const timeout of this.pendingTimeouts) {
@@ -640,12 +704,46 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.sectionTime = 0;
     this.escapeTimer.pause(); // Pause during intro
 
+    // Initialize the cinematic system
+    this.initializeCinematicSystem();
+
+    // Enter vehicle mode - show yoke instead of weapon
+    if (!this.vehicleYokeActive) {
+      this.vehicleYokeActive = true;
+      firstPersonWeapons.enterVehicleMode();
+
+      // Try to enable gyroscope on mobile
+      if (this.gyroscopeManager?.isAvailable()) {
+        this.gyroscopeManager.enable().catch(() => {
+          log.info('Gyroscope not available, using touch fallback');
+        });
+      }
+    }
+
     // Opening comms
     this.callbacks.onObjectiveUpdate(
       'FINAL ESCAPE',
       'DRIVE TO THE SHUTTLE - THE PLANET IS BREAKING APART'
     );
 
+    // Check if we should play the full intro cinematic (only on first playthrough)
+    const currentSave = saveSystem.getCurrentSave();
+    const hasSeenIntro = currentSave?.objectives['final_escape_intro_seen'] ?? false;
+
+    if (!hasSeenIntro) {
+      // Play the full intro cinematic
+      saveSystem.setObjective('final_escape_intro_seen', true);
+      this.playIntroCinematic();
+    } else {
+      // Skip cinematic, just play the quick opening comms
+      this.playQuickOpening();
+    }
+  }
+
+  /**
+   * Play a quick opening sequence without the full cinematic (for replays).
+   */
+  private playQuickOpening(): void {
     // Stagger opening comms
     this.queueComms(0, {
       sender: 'PROMETHEUS A.I.',
@@ -677,6 +775,72 @@ export class FinalEscapeLevel extends SurfaceLevel {
       this.setBaseShake(0.5);
     }, 8000);
     this.pendingTimeouts.push(startTimeout);
+  }
+
+  // ============================================================================
+  // CINEMATIC SYSTEM
+  // ============================================================================
+
+  /**
+   * Initialize the cinematic system with proper callbacks.
+   */
+  private initializeCinematicSystem(): void {
+    const cinematicCallbacks: CinematicCallbacks = {
+      onCommsMessage: (message) => {
+        // Convert CinematicCallbacks message to LevelCallbacks CommsMessage format
+        this.callbacks.onCommsMessage({
+          sender: message.sender,
+          callsign: message.callsign ?? 'ATHENA',
+          portrait: (message.portrait as 'commander' | 'ai' | 'marcus' | 'armory' | 'player') ?? 'ai',
+          text: message.text,
+        });
+      },
+      onNotification: (text, duration) => {
+        this.callbacks.onNotification(text, duration ?? 3000);
+      },
+      onObjectiveUpdate: (title, instructions) => {
+        this.callbacks.onObjectiveUpdate(title, instructions);
+      },
+      onShakeCamera: (intensity) => {
+        this.triggerShake(intensity);
+      },
+      onCinematicStart: () => {
+        this.cinematicActive = true;
+        this.escapeTimer.pause();
+        this.callbacks.onCinematicStart?.();
+      },
+      onCinematicEnd: () => {
+        this.cinematicActive = false;
+        this.callbacks.onCinematicEnd?.();
+      },
+    };
+
+    this.cinematicSystem = new CinematicSystem(this.scene, this.camera, cinematicCallbacks);
+  }
+
+  /**
+   * Play the intro cinematic for the Final Escape level.
+   * Camera swoops over the collapsing tunnel entrance, then pulls back to the vehicle.
+   */
+  private playIntroCinematic(): void {
+    if (!this.cinematicSystem) {
+      this.initializeCinematicSystem();
+    }
+
+    // Create the intro cinematic sequence
+    const playerStart = this.camera.position.clone();
+    const sequence = createFinalEscapeIntroCinematic(
+      () => {
+        // Cinematic complete - start the escape
+        this.cinematicActive = false;
+        this.escapeTimer.resume();
+        this.callbacks.onNotification('4:00 - ESCAPE TIMER STARTED', 3000);
+        this.setBaseShake(0.5);
+      },
+      playerStart
+    );
+
+    this.cinematicSystem!.play(sequence);
   }
 
   // ============================================================================
@@ -950,6 +1114,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const previousSection = this.section;
     this.section = newSection;
     this.sectionTime = 0;
+
+    // Save checkpoint on major section transitions
+    if (newSection === 'surface_run' || newSection === 'canyon_sprint' || newSection === 'launch_pad') {
+      this.saveCheckpoint(newSection);
+    }
 
     // Debug logging (can be enabled via DevMode)
     if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
@@ -1630,6 +1799,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
    */
   private handlePlayerDeath(): void {
     this.playerDiedInLevel = true;
+
+    // Create destruction effect at current position
+    createVehicleDestructionEffect(this.scene, this.camera.position.clone());
+
     this.playerHealth = 50; // Respawn with half health
     this.escapeTimer.applyDeathPenalty();
 
@@ -1886,6 +2059,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   /**
    * Override movement processing for vehicle controls.
    * The vehicle always moves forward; player only controls steering.
+   * Supports gyroscope for mobile devices.
    */
   protected override processMovement(deltaTime: number): void {
     // Process touch look input
@@ -1912,6 +2086,20 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // We only handle boost input here
     if (this.inputTracker.isActionActive('jump') || this.touchInput?.isJumping) {
       this.activateBoost();
+    }
+
+    // Override steering with gyroscope input on mobile if available
+    if (this.gyroscopeManager?.isEnabled()) {
+      const gyroSteer = this.gyroscopeManager.getSteeringInput();
+      if (Math.abs(gyroSteer) > 0.1) {
+        // Apply gyroscope steering (converted to vehicle steering in updateVehiclePhysics)
+        this.vehicleSteering = gyroSteer * VEHICLE_TURN_SPEED * 0.5;
+      }
+
+      const gyroThrottle = this.gyroscopeManager.getThrottleInput();
+      if (gyroThrottle.throttle > 0.5) {
+        this.activateBoost();
+      }
     }
   }
 

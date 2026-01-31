@@ -191,27 +191,181 @@ export const ARENA_PILLAR_HEIGHT = 4;
 
 /** Base damage for each queen attack type */
 export const QUEEN_ATTACK_DAMAGE: Record<string, number> = {
+  // Legacy attacks (for backwards compatibility)
   acid_spit: 20,
   claw_swipe: 35,
   tail_slam: 40,
   ground_pound: 25,
+  // Phase 1 attacks
+  acid_spray: 15, // Per projectile (5 projectiles = 75 max)
+  tail_swipe: 30,
+  screech: 5, // Minor damage, main effect is stun
+  // Phase 2 attacks
+  egg_burst: 0, // No direct damage, spawns enemies
+  charge: 50,
+  poison_cloud: 8, // Per second while in cloud
+  // Phase 3 attacks
+  frenzy: 25, // Per hit in rapid combo
 };
 
 /** Telegraph duration before attack lands (ms) */
 export const QUEEN_ATTACK_TELEGRAPH: Record<string, number> = {
+  // Legacy
   acid_spit: 800,
   claw_swipe: 400,
   tail_slam: 600,
   ground_pound: 1200,
+  // Phase 1
+  acid_spray: 600,
+  tail_swipe: 500,
+  screech: 800,
+  // Phase 2
+  egg_burst: 1000,
+  charge: 1200,
+  poison_cloud: 700,
+  // Phase 3
+  frenzy: 300,
 };
 
 /** Attack range for each queen attack type */
 export const QUEEN_ATTACK_RANGE: Record<string, number> = {
+  // Legacy
   acid_spit: 30,
   claw_swipe: 6,
   tail_slam: 8,
   ground_pound: 15,
+  // Phase 1
+  acid_spray: 25,
+  tail_swipe: 8, // Frontal arc melee
+  screech: 40, // Entire arena
+  // Phase 2
+  egg_burst: 50, // Entire arena (spawns from walls)
+  charge: 30, // Rush distance
+  poison_cloud: 20,
+  // Phase 3
+  frenzy: 6, // Close range combo
 };
+
+// ============================================================================
+// QUEEN PHASE ATTACK COOLDOWNS
+// ============================================================================
+
+/** Base attack cooldown per phase (ms) */
+export const QUEEN_PHASE_COOLDOWNS: Record<number, number> = {
+  1: 3000, // Phase 1: 3 second cooldown
+  2: 2500, // Phase 2: 2.5 second cooldown
+  3: 1500, // Phase 3: 1.5 second cooldown
+};
+
+/** Stagger duration when weak point is destroyed (ms) */
+export const QUEEN_STAGGER_DURATION = 2000;
+
+/** Phase transition stagger duration (ms) */
+export const QUEEN_PHASE_TRANSITION_DURATION = 3000;
+
+/** Death throes health threshold (percentage) */
+export const QUEEN_DEATH_THROES_THRESHOLD = 0.1;
+
+/** Death throes spawn interval (ms) */
+export const QUEEN_DEATH_THROES_SPAWN_INTERVAL = 4000;
+
+// ============================================================================
+// QUEEN WEAK POINT CONFIGURATION
+// ============================================================================
+
+/** Weak point health values */
+export const QUEEN_WEAK_POINT_HEALTH: Record<string, number> = {
+  head: 500,
+  thorax: 400,
+  egg_sac: 300,
+};
+
+/** Weak point damage multiplier when exposed */
+export const QUEEN_WEAK_POINT_MULTIPLIERS: Record<string, number> = {
+  head: 2.5,
+  thorax: 2.0,
+  egg_sac: 2.0,
+};
+
+/** Weak point glow intensity per phase */
+export const QUEEN_WEAK_POINT_GLOW: Record<number, number> = {
+  1: 0.3,
+  2: 0.5,
+  3: 0.8, // Brighter in phase 3 for easier targeting
+};
+
+// ============================================================================
+// QUEEN ACID SPRAY CONFIGURATION
+// ============================================================================
+
+/** Number of acid projectiles in spray attack */
+export const ACID_SPRAY_PROJECTILE_COUNT = 5;
+
+/** Spread angle for acid spray (degrees) */
+export const ACID_SPRAY_SPREAD_ANGLE = 30;
+
+/** Acid projectile speed */
+export const ACID_SPRAY_SPEED = 18;
+
+// ============================================================================
+// QUEEN CHARGE CONFIGURATION
+// ============================================================================
+
+/** Charge movement speed */
+export const QUEEN_CHARGE_SPEED = 25;
+
+/** Charge collision radius */
+export const QUEEN_CHARGE_RADIUS = 3;
+
+/** Time to return to home position after charge (ms) */
+export const QUEEN_CHARGE_RETURN_TIME = 2000;
+
+// ============================================================================
+// QUEEN SCREECH CONFIGURATION
+// ============================================================================
+
+/** Screech stun duration (ms) */
+export const QUEEN_SCREECH_STUN_DURATION = 1500;
+
+/** Number of skitterers summoned by screech */
+export const QUEEN_SCREECH_SPAWN_COUNT = 2;
+
+// ============================================================================
+// QUEEN POISON CLOUD CONFIGURATION
+// ============================================================================
+
+/** Poison cloud radius */
+export const QUEEN_POISON_CLOUD_RADIUS = 6;
+
+/** Poison cloud duration (ms) */
+export const QUEEN_POISON_CLOUD_DURATION = 8000;
+
+// ============================================================================
+// QUEEN FRENZY CONFIGURATION
+// ============================================================================
+
+/** Number of attacks in frenzy combo */
+export const QUEEN_FRENZY_ATTACK_COUNT = 3;
+
+/** Delay between frenzy attacks (ms) */
+export const QUEEN_FRENZY_ATTACK_DELAY = 400;
+
+// ============================================================================
+// QUEEN EGG BURST CONFIGURATION
+// ============================================================================
+
+/** Number of spitters spawned by egg burst */
+export const QUEEN_EGG_BURST_SPAWN_COUNT = 4;
+
+// ============================================================================
+// QUEEN SLOW-MO DEATH CONFIGURATION
+// ============================================================================
+
+/** Duration of slow-motion effect on queen death (ms) */
+export const QUEEN_DEATH_SLOWMO_DURATION = 2000;
+
+/** Time scale during slow-mo (0.1 = 10% speed) */
+export const QUEEN_DEATH_SLOWMO_SCALE = 0.2;
 
 // ============================================================================
 // VISUAL EFFECT CONSTANTS

@@ -1,0 +1,212 @@
+/* Minimap Tactical Radar */
+
+.minimapContainer {
+  position: absolute;
+  top: max(70px, calc(env(safe-area-inset-top, 20px) + 50px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 24, 16, 0.7);
+  border: 2px solid #4a5d23;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow:
+    0 0 10px rgba(0, 0, 0, 0.5),
+    inset 0 0 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 40;
+}
+
+.minimapContainer:hover {
+  border-color: #6a8d33;
+  box-shadow:
+    0 0 15px rgba(74, 93, 35, 0.4),
+    inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.minimapContainer.expanded {
+  border-color: #8aad53;
+  box-shadow:
+    0 0 20px rgba(74, 93, 35, 0.6),
+    inset 0 0 30px rgba(0, 0, 0, 0.4);
+}
+
+.minimapCanvas {
+  border-radius: 50%;
+  image-rendering: crisp-edges;
+}
+
+/* Range indicator - bottom of minimap */
+.rangeIndicator {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 28, 0.85);
+  border: 1px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.125rem 0.375rem;
+}
+
+.rangeIndicator span {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  font-weight: bold;
+  color: #a0a0a0;
+  letter-spacing: 0.05em;
+}
+
+/* Expand hint - shows on hover/touch devices */
+.expandHint {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #606060;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.minimapContainer:hover .expandHint {
+  opacity: 1;
+}
+
+/* Mobile: Always show expand hint */
+@media (pointer: coarse) {
+  .expandHint {
+    opacity: 0.7;
+  }
+
+  .minimapContainer {
+    /* Position above touch controls */
+    top: max(70px, calc(env(safe-area-inset-top, 20px) + 50px));
+  }
+}
+
+/* Adjust position when kills counter is present */
+.minimapContainer {
+  /* Default position below kills counter area */
+  top: max(90px, calc(env(safe-area-inset-top, 20px) + 70px));
+}
+
+/* Smaller minimap on mobile */
+@media (max-width: 768px) {
+  .minimapContainer {
+    padding: 6px;
+  }
+
+  .rangeIndicator {
+    bottom: 2px;
+    padding: 0.0625rem 0.25rem;
+  }
+
+  .rangeIndicator span {
+    font-size: 0.4375rem;
+  }
+
+  .expandHint {
+    font-size: 0.4375rem;
+    bottom: -16px;
+  }
+}
+
+/* Landscape phone - more compact positioning */
+@media (max-height: 450px) {
+  .minimapContainer {
+    top: max(50px, calc(env(safe-area-inset-top, 10px) + 40px));
+    padding: 4px;
+  }
+}
+
+/* Very small screens - reduce padding further */
+@media (max-width: 360px) {
+  .minimapContainer {
+    padding: 4px;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .minimapContainer {
+    border-width: 3px;
+    border-color: #ffffff;
+  }
+
+  .rangeIndicator {
+    border-color: #ffffff;
+  }
+
+  .rangeIndicator span {
+    color: #ffffff;
+  }
+}
+
+/* Reduced motion - disable sweep animation in canvas via JS */
+@media (prefers-reduced-motion: reduce) {
+  .minimapContainer {
+    transition: none;
+  }
+
+  .expandHint {
+    transition: none;
+  }
+}
+
+/* Glow effect for active state */
+@keyframes minimapPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px rgba(0, 0, 0, 0.5),
+      inset 0 0 20px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 15px rgba(74, 93, 35, 0.4),
+      inset 0 0 25px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Apply subtle pulse when enemies are nearby (controlled via className) */
+.minimapContainer.hasEnemies {
+  animation: minimapPulse 2s ease-in-out infinite;
+}
+
+/* Hide hint when expanded */
+.minimapContainer.expanded .expandHint {
+  opacity: 0.5;
+}
+
+/* Scan line overlay effect */
+.minimapContainer::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+}
+
+.minimapContainer.expanded::after {
+  inset: 10px;
+}
+
+@media (max-width: 768px) {
+  .minimapContainer::after {
+    inset: 6px;
+  }
+}

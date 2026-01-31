@@ -68,6 +68,17 @@ export interface WeaponAnimationProfile {
 // ---------------------------------------------------------------------------
 
 const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
+  melee: {
+    recoilKickBack: 0.08, // Forward punch motion
+    recoilPitchUp: 0.02,
+    recoilRecoverySpeed: 6.0,
+    reloadDuration: 0, // No reload
+    switchHalfDuration: 0.1,
+    bobAmplitude: 0.02,
+    bobFrequency: 1.0,
+    recoilRoll: 0.0,
+    recoilYawSpread: 0.0,
+  },
   sidearm: {
     recoilKickBack: 0.03,
     recoilPitchUp: 0.04,
@@ -133,6 +144,17 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     bobFrequency: 0.85,
     recoilRoll: 0.04,
     recoilYawSpread: 0.025,
+  },
+  vehicle: {
+    recoilKickBack: 0, // No recoil for vehicle controls
+    recoilPitchUp: 0,
+    recoilRecoverySpeed: 0,
+    reloadDuration: 0, // No reload
+    switchHalfDuration: 0.3, // Smooth transition
+    bobAmplitude: 0.003, // Very subtle bob (vehicle vibration)
+    bobFrequency: 0.5,
+    recoilRoll: 0,
+    recoilYawSpread: 0,
   },
 };
 
@@ -269,7 +291,8 @@ export type WeaponAnimState =
   | 'switching'
   | 'ads_in'
   | 'ads_hold'
-  | 'ads_out';
+  | 'ads_out'
+  | 'melee_lunge';
 
 /**
  * Core animation controller.
@@ -311,6 +334,11 @@ export class WeaponAnimationController {
   private adsTarget = 0; // 0 or 1
   private adsCurrent = 0;
   private readonly adsSpeed = 6.0;
+
+  // -- Melee Lunge ------------------------------------------------------------
+  private meleeLungeTimer = 0;
+  private meleeLungeDuration = 0.2; // 200ms lunge
+  private isMeleeLunging = false;
 
   constructor(weaponId: WeaponId) {
     this.profile = getAnimationProfile(weaponId);
@@ -365,6 +393,18 @@ export class WeaponAnimationController {
     this.adsTarget = aiming ? 1 : 0;
   }
 
+  /**
+   * Trigger melee lunge animation.
+   * Weapon thrusts forward briefly then returns.
+   */
+  triggerMeleeLunge(): void {
+    if (this.isMeleeLunging) return;
+    this.isMeleeLunging = true;
+    this.meleeLungeTimer = 0;
+    // Exit ADS when lunging
+    this.setADS(false);
+  }
+
   /** True while a switch animation is playing. */
   get isSwitching(): boolean {
     return this.switchPhase !== 'none';
@@ -373,6 +413,11 @@ export class WeaponAnimationController {
   /** True while reload animation is playing. */
   get isReloadPlaying(): boolean {
     return this.isReloading;
+  }
+
+  /** True while melee lunge animation is playing. */
+  get isMeleeLungePlaying(): boolean {
+    return this.isMeleeLunging;
   }
 
   // -- Frame update -----------------------------------------------------------
@@ -415,7 +460,12 @@ export class WeaponAnimationController {
       this.updateSwitch(dt, pos, rot);
     }
 
-    // 7. ADS blend
+    // 7. Melee lunge animation
+    if (this.isMeleeLunging) {
+      this.updateMeleeLunge(dt, pos, rot);
+    }
+
+    // 8. ADS blend
     this.updateADS(dt);
   }
 
@@ -567,6 +617,50 @@ export class WeaponAnimationController {
         this.switchPhase = 'none';
         this.switchTimer = 0;
       }
+    }
+  }
+
+  /**
+   * Melee lunge animation - weapon thrusts forward then returns
+   * Creates a satisfying punch/stab motion
+   */
+  private updateMeleeLunge(dt: number, pos: Vector3, rot: Vector3): void {
+    this.meleeLungeTimer += dt;
+    const progress = Math.min(this.meleeLungeTimer / this.meleeLungeDuration, 1.0);
+
+    // Animation curve: quick thrust forward (0-0.4), hold (0.4-0.5), return (0.5-1.0)
+    let lungeAmount: number;
+    let rotAmount: number;
+
+    if (progress < 0.4) {
+      // Thrust phase - ease out for snappy motion
+      const t = progress / 0.4;
+      lungeAmount = t * (2 - t); // Quadratic ease out
+      rotAmount = t * (2 - t);
+    } else if (progress < 0.5) {
+      // Hold phase
+      lungeAmount = 1.0;
+      rotAmount = 1.0;
+    } else {
+      // Return phase - ease in for smooth return
+      const t = (progress - 0.5) / 0.5;
+      lungeAmount = 1.0 - t * t;
+      rotAmount = 1.0 - t * t;
+    }
+
+    // Apply lunge: push weapon forward and slightly down
+    pos.z += lungeAmount * 0.15; // Forward thrust
+    pos.y -= lungeAmount * 0.05; // Slight dip
+    pos.x -= lungeAmount * 0.02; // Slight inward motion
+
+    // Rotation: tilt weapon forward during lunge
+    rot.x += rotAmount * 0.2; // Pitch down
+    rot.z -= rotAmount * 0.05; // Slight roll
+
+    // End animation
+    if (progress >= 1.0) {
+      this.isMeleeLunging = false;
+      this.meleeLungeTimer = 0;
     }
   }
 

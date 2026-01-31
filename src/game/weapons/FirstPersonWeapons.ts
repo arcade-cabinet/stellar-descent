@@ -29,6 +29,7 @@ import '@babylonjs/loaders/glTF';
 import { getLogger } from '../core/Logger';
 import { getWeaponActions } from '../context/useWeaponActions';
 import { MuzzleFlashManager, createMuzzleFlashConfigFromWeapon } from '../effects/MuzzleFlash';
+import { shellCasings, categoryToCasingType } from '../effects/ShellCasings';
 import { WeaponEffects, type WeaponType } from '../effects/WeaponEffects';
 import {
   categoryToEffectType,
@@ -39,6 +40,8 @@ import {
 import { WeaponAnimationController, type WeaponMovementInput } from './WeaponAnimations';
 import { WeaponRecoilSystem } from './WeaponRecoilSystem';
 import { getPostProcessManager } from '../core/PostProcessManager';
+import { weaponSoundManager } from '../core/WeaponSoundManager';
+import { VehicleYokeSystem, type VehicleYokeInput } from './VehicleYoke';
 
 const log = getLogger('FirstPersonWeapons');
 
@@ -94,6 +97,12 @@ const DEFAULT_VIEW_TRANSFORM: WeaponViewTransform = {
  * Adjust these after seeing the GLBs in-engine for pixel-perfect placement.
  */
 const VIEW_TRANSFORMS: Partial<Record<WeaponId, Partial<WeaponViewTransform>>> = {
+  bare_hands: {
+    position: new Vector3(0, -0.15, 0.3),
+    rotation: new Vector3(0, Math.PI, 0),
+    scale: new Vector3(0.008, 0.008, 0.008), // Scale down GLB from Blender
+    muzzleOffset: new Vector3(0, 0, 0.2), // Not used for melee
+  },
   sidearm: {
     position: new Vector3(0, -0.02, 0.05),
     scale: new Vector3(0.9, 0.9, 0.9),
@@ -157,6 +166,12 @@ const VIEW_TRANSFORMS: Partial<Record<WeaponId, Partial<WeaponViewTransform>>> =
   saw_lmg: {
     position: new Vector3(0, -0.02, 0),
     muzzleOffset: new Vector3(0, 0.005, 0.50),
+  },
+  vehicle_yoke: {
+    position: new Vector3(0, -0.15, 0.35), // Centered, close to camera
+    rotation: new Vector3(0.3, 0, 0), // Tilted for dashboard view
+    scale: new Vector3(1, 1, 1), // Yoke handles its own scaling
+    muzzleOffset: new Vector3(0, 0, 0), // Not used for yoke
   },
 };
 
@@ -261,6 +276,15 @@ export class FirstPersonWeaponSystem {
   /** Whether init has completed (including initial weapon load). */
   private initialized = false;
 
+  /** Vehicle yoke system for vehicle sections. */
+  private vehicleYokeSystem: VehicleYokeSystem | null = null;
+
+  /** Whether vehicle mode is active. */
+  private isVehicleMode = false;
+
+  /** Stored weapon before entering vehicle. */
+  private preVehicleWeaponId: WeaponId | null = null;
+
   private constructor() {}
 
   static getInstance(): FirstPersonWeaponSystem {
@@ -330,6 +354,13 @@ export class FirstPersonWeaponSystem {
     this.recoilSystem.init(scene, camera);
     this.recoilSystem.setWeapon(startId);
 
+    // Initialize shell casing system with impact sound callback
+    shellCasings.init(scene, (position, velocity) => {
+      // Play casing impact sound based on velocity
+      const volume = Math.min(0.3, velocity * 0.05);
+      weaponSoundManager.playImpact('metal', volume);
+    });
+
     this.equipWeapon(startId, false);
 
     // Register per-frame update
@@ -339,6 +370,23 @@ export class FirstPersonWeaponSystem {
     this.frameObserverDispose = () => {
       scene.onBeforeRenderObservable.remove(observer);
     };
+
+    // Initialize vehicle yoke system
+    this.vehicleYokeSystem = VehicleYokeSystem.getInstance();
+    this.vehicleYokeSystem.init(scene);
+
+    // Attach yoke to weapon anchor (but hidden by default)
+    const yoke = this.vehicleYokeSystem.getYoke();
+    if (yoke && this.weaponAnchor) {
+      yoke.getRoot().parent = this.weaponAnchor;
+      // Apply weapon layer mask to yoke meshes
+      for (const mesh of yoke.getMeshes()) {
+        mesh.layerMask = WEAPON_LAYER_MASK;
+        mesh.isPickable = false;
+        mesh.checkCollisions = false;
+        mesh.renderingGroupId = 1;
+      }
+    }
 
     this.initialized = true;
     log.info('Initialized with weapons:', [...this.inventory.owned].join(', '));
@@ -526,6 +574,79 @@ export class FirstPersonWeaponSystem {
     this.equipWeapon(this.inventory.order[nextIdx], true);
   }
 
+  // -- Vehicle Mode -----------------------------------------------------------
+
+  /**
+   * Enter vehicle mode - show steering yoke and hide current weapon.
+   * Called when the player enters a vehicle.
+   */
+  enterVehicleMode(): void {
+    if (this.isVehicleMode) return;
+
+    // Store current weapon
+    this.preVehicleWeaponId = this.activeWeaponId;
+
+    // Hide all weapons
+    for (const [, w] of this.weapons) {
+      w.root.setEnabled(false);
+    }
+
+    // Show yoke
+    this.vehicleYokeSystem?.getYoke()?.show();
+
+    // Update animation controller for vehicle mode
+    this.animController?.setWeapon('vehicle_yoke');
+
+    this.isVehicleMode = true;
+    this.activeWeaponId = 'vehicle_yoke';
+
+    log.info('Entered vehicle mode');
+  }
+
+  /**
+   * Exit vehicle mode - restore previous weapon and hide yoke.
+   * Called when the player exits a vehicle.
+   */
+  exitVehicleMode(): void {
+    if (!this.isVehicleMode) return;
+
+    // Hide yoke
+    this.vehicleYokeSystem?.getYoke()?.hide();
+
+    // Restore previous weapon
+    const weaponToRestore = this.preVehicleWeaponId ?? this.inventory.order[0];
+    this.preVehicleWeaponId = null;
+    this.isVehicleMode = false;
+
+    if (weaponToRestore) {
+      this.equipWeapon(weaponToRestore, true);
+    }
+
+    log.info('Exited vehicle mode');
+  }
+
+  /**
+   * Update vehicle yoke state (call each frame while in vehicle).
+   */
+  updateVehicleYoke(input: VehicleYokeInput): void {
+    if (!this.isVehicleMode) return;
+    this.vehicleYokeSystem?.update(input);
+  }
+
+  /**
+   * Check if currently in vehicle mode.
+   */
+  get inVehicleMode(): boolean {
+    return this.isVehicleMode;
+  }
+
+  /**
+   * Get the vehicle yoke system for advanced control.
+   */
+  getVehicleYokeSystem(): VehicleYokeSystem | null {
+    return this.vehicleYokeSystem;
+  }
+
   // -- Public API -------------------------------------------------------------
 
   /** Show a weapon immediately (no switch animation) or with animation. */
@@ -551,10 +672,11 @@ export class FirstPersonWeaponSystem {
     this.animController?.setWeapon(weaponId);
   }
 
-  /** Fire the active weapon (triggers recoil + muzzle flash + camera effects). */
+  /** Fire the active weapon (triggers recoil + muzzle flash + shell casing + camera effects). */
   fireWeapon(): void {
     this.animController?.triggerFire();
     this.emitMuzzleFlash();
+    this.ejectShellCasing();
 
     // Trigger camera recoil, screen shake, and FOV punch
     this.recoilSystem?.triggerFire();
@@ -575,6 +697,16 @@ export class FirstPersonWeaponSystem {
     this.animController?.setADS(aiming);
     // Sync ADS state with recoil system for reduced recoil while aiming
     this.recoilSystem?.setADSBlend(aiming ? 1.0 : 0.0);
+  }
+
+  /** Trigger melee lunge animation. */
+  triggerMeleeLunge(): void {
+    this.animController?.triggerMeleeLunge();
+  }
+
+  /** True if melee lunge animation is in progress. */
+  get isMeleeLunging(): boolean {
+    return this.animController?.isMeleeLungePlaying ?? false;
   }
 
   /** True if a switch animation is in progress. */
@@ -765,6 +897,49 @@ export class FirstPersonWeaponSystem {
     flash.emit(muzzleWorldPos, forward, active.effectType, weaponFlashConfig);
   }
 
+  /**
+   * Eject a shell casing from the weapon's ejection port.
+   * Uses weapon category to determine casing size and behavior.
+   */
+  private ejectShellCasing(): void {
+    if (!this.activeWeaponId || !this.scene || !this.camera) return;
+
+    const active = this.weapons.get(this.activeWeaponId);
+    if (!active) return;
+
+    // Get weapon definition for category
+    const weaponDef = WEAPONS[this.activeWeaponId];
+
+    // Skip casings for plasma weapons (energy weapons don't eject brass)
+    if (weaponDef.category === 'heavy' && weaponDef.id === 'plasma_cannon') {
+      return;
+    }
+
+    // Compute ejection port position (slightly behind and right of muzzle)
+    const worldMatrix = active.muzzlePoint.getWorldMatrix();
+    const muzzleWorldPos = Vector3.TransformCoordinates(Vector3.Zero(), worldMatrix);
+
+    // Get camera directions for ejection
+    const cam = this.camera;
+    const right = cam.getDirection(new Vector3(1, 0, 0)).normalize();
+    const back = cam.getDirection(new Vector3(0, 0, -1)).normalize();
+
+    // Ejection port is to the right and slightly back from muzzle
+    const ejectionPort = muzzleWorldPos.add(right.scale(0.08)).add(back.scale(0.1));
+
+    // Ejection direction: right with slight backward and upward components
+    const ejectionDir = right.add(back.scale(0.3)).add(new Vector3(0, 0.2, 0)).normalize();
+
+    // Get player velocity from camera movement
+    const playerVelocity = this.lastCameraPos
+      ? this.camera.position.subtract(this.lastCameraPos).scale(60) // Approximate velocity
+      : Vector3.Zero();
+
+    // Eject the casing
+    const casingType = categoryToCasingType(weaponDef.category);
+    shellCasings.eject(ejectionPort, ejectionDir, casingType, playerVelocity);
+  }
+
   /** Check if React weapon context changed and trigger visual switch. */
   private lastContextWeaponId: WeaponId | null = null;
 
@@ -797,6 +972,15 @@ export class FirstPersonWeaponSystem {
 
     this.recoilSystem?.dispose();
     this.recoilSystem = null;
+
+    // Dispose shell casing system
+    shellCasings.dispose();
+
+    // Dispose vehicle yoke system
+    this.vehicleYokeSystem?.dispose();
+    this.vehicleYokeSystem = null;
+    this.isVehicleMode = false;
+    this.preVehicleWeaponId = null;
 
     for (const [, w] of this.weapons) {
       w.root.dispose();

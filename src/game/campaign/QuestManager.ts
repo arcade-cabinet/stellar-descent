@@ -661,3 +661,158 @@ export function resetQuestManager(): void {
   state.currentLevelId = null;
   logger.info('Quest manager reset');
 }
+
+// ============================================================================
+// TIME-LIMITED OBJECTIVE HANDLING
+// ============================================================================
+
+/** Tracks start times for timed objectives */
+const timedObjectiveStarts: Map<string, number> = new Map();
+
+/**
+ * Update timed objectives - should be called every frame
+ * Returns true if any objective timer expired
+ */
+export function updateTimedObjectives(deltaTimeSeconds: number): boolean {
+  let timerExpired = false;
+
+  for (const [questId, questState] of state.activeQuests) {
+    const quest = QUEST_REGISTRY[questId];
+    if (!quest) continue;
+
+    const currentObjective = quest.objectives[questState.currentObjectiveIndex];
+    if (
+      currentObjective &&
+      currentObjective.timeLimit &&
+      questState.objectiveStatus[currentObjective.id] === 'active'
+    ) {
+      const timerKey = `${questId}_${currentObjective.id}`;
+
+      // Initialize timer if not started
+      if (!timedObjectiveStarts.has(timerKey)) {
+        timedObjectiveStarts.set(timerKey, currentObjective.timeLimit);
+        logger.debug(`Started timer for objective ${currentObjective.id}: ${currentObjective.timeLimit}s`);
+      }
+
+      // Decrement timer
+      const remaining = timedObjectiveStarts.get(timerKey)! - deltaTimeSeconds;
+      timedObjectiveStarts.set(timerKey, remaining);
+
+      // Check for expiry
+      if (remaining <= 0) {
+        timedObjectiveStarts.delete(timerKey);
+
+        if (quest.failOnTimer) {
+          failQuest(questId, 'Time limit expired');
+          timerExpired = true;
+        } else {
+          // Just fail the current objective, not the whole quest
+          questState.objectiveStatus[currentObjective.id] = 'failed';
+          logger.warn(`Timed objective failed: ${currentObjective.description}`);
+          state.onNotification?.('OBJECTIVE FAILED: Time expired', 3000);
+        }
+      }
+    }
+  }
+
+  return timerExpired;
+}
+
+/**
+ * Get time remaining for current objective (if timed)
+ */
+export function getObjectiveTimeRemaining(questId: string): number | null {
+  const questState = state.activeQuests.get(questId);
+  const quest = QUEST_REGISTRY[questId];
+  if (!questState || !quest) return null;
+
+  const currentObjective = quest.objectives[questState.currentObjectiveIndex];
+  if (!currentObjective || !currentObjective.timeLimit) return null;
+
+  const timerKey = `${questId}_${currentObjective.id}`;
+  return timedObjectiveStarts.get(timerKey) ?? null;
+}
+
+/**
+ * Clear timed objective when completed or quest changes
+ */
+function clearTimedObjective(questId: string, objectiveId: string): void {
+  const timerKey = `${questId}_${objectiveId}`;
+  timedObjectiveStarts.delete(timerKey);
+}
+
+// ============================================================================
+// QUEST TRACKER DATA FOR HUD
+// ============================================================================
+
+import type { QuestTrackerData, OptionalObjectiveData } from './QuestTrackerTypes';
+
+/**
+ * Get data for the QuestTracker HUD component
+ */
+export function getQuestTrackerData(levelId: LevelId): QuestTrackerData | null {
+  const mainQuest = getMainQuestForLevel(levelId);
+  if (!mainQuest) return null;
+
+  const questState = state.activeQuests.get(mainQuest.id);
+  if (!questState || questState.status !== 'active') return null;
+
+  const currentObjective = mainQuest.objectives[questState.currentObjectiveIndex];
+  if (!currentObjective) return null;
+
+  // Get optional objectives for this level (branch quests)
+  const branchQuests = getBranchQuestsForLevel(levelId);
+  const optionalObjectives: OptionalObjectiveData[] = [];
+
+  for (const branch of branchQuests) {
+    const branchState = state.activeQuests.get(branch.id);
+    const isCompleted = state.completedQuests.has(branch.id);
+
+    if (branchState || isCompleted) {
+      const branchObjective = branch.objectives[0]; // First objective
+      if (branchObjective) {
+        optionalObjectives.push({
+          id: branch.id,
+          description: branchObjective.description,
+          current: branchState?.objectiveProgress[branchObjective.id],
+          required: branchObjective.required,
+          completed: isCompleted,
+        });
+      }
+    }
+  }
+
+  return {
+    questId: mainQuest.id,
+    questName: mainQuest.briefDescription ?? mainQuest.name,
+    isMain: mainQuest.type === 'main',
+    objectiveDescription: currentObjective.description,
+    objectiveType: currentObjective.type as QuestTrackerData['objectiveType'],
+    current: questState.objectiveProgress[currentObjective.id],
+    required: currentObjective.required,
+    timeRemaining: getObjectiveTimeRemaining(mainQuest.id) ?? undefined,
+    distance: undefined, // Set by level/compass system
+    justCompleted: false, // Set by transition logic
+    optionalObjectives: optionalObjectives.length > 0 ? optionalObjectives : undefined,
+  };
+}
+
+/**
+ * Get objective progress for a specific quest/objective
+ */
+export function getObjectiveProgress(questId: string, objectiveId?: string): { current: number; required: number } | null {
+  const questState = state.activeQuests.get(questId);
+  const quest = QUEST_REGISTRY[questId];
+  if (!questState || !quest) return null;
+
+  const targetObjective = objectiveId
+    ? quest.objectives.find((o) => o.id === objectiveId)
+    : quest.objectives[questState.currentObjectiveIndex];
+
+  if (!targetObjective || !targetObjective.required) return null;
+
+  return {
+    current: questState.objectiveProgress[targetObjective.id] ?? 0,
+    required: targetObjective.required,
+  };
+}

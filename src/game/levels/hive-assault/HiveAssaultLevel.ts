@@ -46,6 +46,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
+import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
@@ -617,6 +618,9 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
     this.collectibleSystem = await buildCollectibles(this.scene, getHiveAssaultCollectibles(), collectibleRoot);
 
+    // Register dynamic actions for squad commands and vehicle controls
+    registerDynamicActions('hive_assault', ['squadFollow', 'squadHold', 'squadAttack', 'vehicleBoost', 'vehicleBrake'], 'squad');
+
     // Start staging phase
     this.startStagingPhase();
   }
@@ -770,6 +774,9 @@ export class HiveAssaultLevel extends SurfaceLevel {
   }
 
   private startFieldAssaultPhase(): void {
+    // Save checkpoint at start of field assault
+    this.saveCheckpoint('field_assault');
+
     this.phase = 'field_assault';
     this.phaseTime = 0;
     this.waveIndex = 0;
@@ -808,6 +815,9 @@ export class HiveAssaultLevel extends SurfaceLevel {
   }
 
   private startBreachPointPhase(): void {
+    // Save checkpoint before breach point (major encounter)
+    this.saveCheckpoint('breach_point');
+
     this.phase = 'breach_point';
     this.phaseTime = 0;
     this.waveIndex = 0;
@@ -2243,6 +2253,9 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
     this.actionCallback = null;
+
+    // Unregister dynamic actions
+    unregisterDynamicActions('hive_assault');
 
     // Remove audio
     this.removeAudioZone('staging');

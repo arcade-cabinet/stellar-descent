@@ -18,11 +18,18 @@ import { createEntity, type Entity } from '../core/ecs';
 
 /** Map each alien species to its GLB file path and scale factor */
 const SPECIES_GLB_CONFIG: Record<string, { path: string; scale: number }> = {
+  // New enemy types
   skitterer: { path: '/models/enemies/chitin/spider.glb', scale: 0.4 },
+  spitter: { path: '/models/enemies/chitin/soldier.glb', scale: 0.5 },
+  warrior: { path: '/models/enemies/chitin/alienmale.glb', scale: 0.7 },
+  heavy: { path: '/models/enemies/chitin/tentakel.glb', scale: 0.8 },
+  stalker: { path: '/models/enemies/chitin/scout.glb', scale: 0.6 },
+  broodmother: { path: '/models/enemies/chitin/tentakel.glb', scale: 1.0 },
+  queen: { path: '/models/enemies/chitin/tentakel.glb', scale: 1.5 },
+  // Legacy mappings for backward compatibility
   lurker: { path: '/models/enemies/chitin/scout.glb', scale: 0.7 },
   spewer: { path: '/models/enemies/chitin/soldier.glb', scale: 0.6 },
   husk: { path: '/models/enemies/chitin/alienmale.glb', scale: 0.6 },
-  broodmother: { path: '/models/enemies/chitin/tentakel.glb', scale: 1.0 },
 };
 
 // Alien species definitions - creepy, surreal, procedurally generated
@@ -54,15 +61,15 @@ export interface LootEntry {
   maxQuantity: number;
 }
 
-// The five alien species of Kepler's Promise
+// The alien species of Kepler's Promise
 export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
-  // Skitterer - Fast, weak, swarm creatures
+  // Skitterer - Fast, weak, swarm creatures (dies in 1-2 melee hits, 0.5-1s TTK)
   skitterer: {
     id: 'skitterer',
     name: 'Skitterer',
     designation: 'STRAIN-X1',
     description: 'Multi-legged crawler. Fast and numerous. Weak individually but deadly in swarms.',
-    baseHealth: 170, // Aligned with CombatBalanceConfig for 0.85s TTK target
+    baseHealth: 80, // Normal: 80 HP, dies in 1-2 melee hits (100 * 1.5 = 150)
     baseDamage: 8,
     moveSpeed: 18,
     attackRange: 8,
@@ -74,20 +81,169 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'chitin_shard', dropChance: 0.8, minQuantity: 1, maxQuantity: 3 },
       { itemId: 'bio_sample', dropChance: 0.2, minQuantity: 1, maxQuantity: 1 },
     ],
-    // Hit reactions - small and light, staggers easily
     hitReactionDuration: 80,
     painSounds: ['alien_chittering', 'organic_squish', 'alien_hiss'],
     deathAnimations: ['death_collapse', 'death_explode', 'death_ragdoll'],
-    knockbackResistance: 0.1, // Very low resistance - flies back easily
+    knockbackResistance: 0.1,
   },
 
-  // Lurker - Tall, thin, stalks from shadows
+  // Spitter - Ranged acid attacker (1-2s TTK)
+  spitter: {
+    id: 'spitter',
+    name: 'Spitter',
+    designation: 'STRAIN-X2',
+    description: 'Ranged attacker that sprays corrosive acid from a distance.',
+    baseHealth: 120, // Normal: 120 HP
+    baseDamage: 18,
+    moveSpeed: 8,
+    attackRange: 25,
+    alertRadius: 40,
+    fireRate: 1.5,
+    projectileSpeed: 30,
+    xpValue: 25,
+    lootTable: [
+      { itemId: 'acid_gland', dropChance: 0.7, minQuantity: 1, maxQuantity: 2 },
+      { itemId: 'bio_sample', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
+    ],
+    hitReactionDuration: 100,
+    painSounds: ['organic_squish', 'alien_hiss', 'alien_gurgle'],
+    deathAnimations: ['death_collapse', 'death_acid_burst', 'death_ragdoll'],
+    knockbackResistance: 0.3,
+  },
+
+  // Warrior - Melee bruiser (2-3s TTK)
+  warrior: {
+    id: 'warrior',
+    name: 'Warrior',
+    designation: 'STRAIN-X3',
+    description: 'Aggressive melee attacker. Charges at prey with razor-sharp claws.',
+    baseHealth: 200, // Normal: 200 HP
+    baseDamage: 22,
+    moveSpeed: 12,
+    attackRange: 10,
+    alertRadius: 45,
+    fireRate: 2,
+    projectileSpeed: 0, // Melee only
+    xpValue: 40,
+    lootTable: [
+      { itemId: 'chitin_plate', dropChance: 0.6, minQuantity: 1, maxQuantity: 2 },
+      { itemId: 'bio_sample', dropChance: 0.4, minQuantity: 1, maxQuantity: 2 },
+    ],
+    hitReactionDuration: 100,
+    painSounds: ['alien_growl', 'alien_screech', 'alien_hiss'],
+    deathAnimations: ['death_collapse', 'death_ragdoll', 'death_shatter'],
+    knockbackResistance: 0.5,
+  },
+
+  // Heavy - Armored tank (4-6s TTK, 3-4 melee hits)
+  heavy: {
+    id: 'heavy',
+    name: 'Heavy',
+    designation: 'STRAIN-X4',
+    description: 'Heavily armored monstrosity. Slow but extremely durable.',
+    baseHealth: 400, // Normal: 400 HP, 3-4 melee hits (100 * 0.8 = 80 per hit)
+    baseDamage: 35,
+    moveSpeed: 6,
+    attackRange: 15,
+    alertRadius: 35,
+    fireRate: 1,
+    projectileSpeed: 20,
+    xpValue: 75,
+    lootTable: [
+      { itemId: 'chitin_plate', dropChance: 0.9, minQuantity: 2, maxQuantity: 4 },
+      { itemId: 'neural_cluster', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
+      { itemId: 'bio_sample', dropChance: 0.5, minQuantity: 1, maxQuantity: 2 },
+    ],
+    hitReactionDuration: 40,
+    painSounds: ['alien_roar', 'organic_squish', 'alien_growl'],
+    deathAnimations: ['death_collapse', 'death_explode', 'death_epic_collapse'],
+    knockbackResistance: 0.85,
+  },
+
+  // Stalker - Stealthy hunter
+  stalker: {
+    id: 'stalker',
+    name: 'Stalker',
+    designation: 'STRAIN-X5',
+    description: 'Elongated humanoid form. Stalks prey silently. Attacks from shadows.',
+    baseHealth: 150, // Normal: 150 HP
+    baseDamage: 15,
+    moveSpeed: 16,
+    attackRange: 12,
+    alertRadius: 60,
+    fireRate: 2.5,
+    projectileSpeed: 35,
+    xpValue: 35,
+    lootTable: [
+      { itemId: 'shadow_membrane', dropChance: 0.5, minQuantity: 1, maxQuantity: 2 },
+      { itemId: 'neural_cluster', dropChance: 0.15, minQuantity: 1, maxQuantity: 1 },
+      { itemId: 'bio_sample', dropChance: 0.4, minQuantity: 1, maxQuantity: 2 },
+    ],
+    hitReactionDuration: 120,
+    painSounds: ['alien_hiss', 'alien_screech', 'alien_growl'],
+    deathAnimations: ['death_collapse', 'death_dissolve', 'death_ragdoll'],
+    knockbackResistance: 0.25,
+  },
+
+  // Broodmother - Mini-boss, spawns skitterers
+  broodmother: {
+    id: 'broodmother',
+    name: 'Broodmother',
+    designation: 'STRAIN-X6',
+    description: 'Massive egg-layer. Produces Skitterers continuously. Priority target.',
+    baseHealth: 700, // Normal: 700 HP
+    baseDamage: 30,
+    moveSpeed: 4,
+    attackRange: 20,
+    alertRadius: 45,
+    fireRate: 0.5,
+    projectileSpeed: 15,
+    xpValue: 200,
+    lootTable: [
+      { itemId: 'brood_sac', dropChance: 1.0, minQuantity: 1, maxQuantity: 1 },
+      { itemId: 'queen_pheromone', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
+      { itemId: 'chitin_plate', dropChance: 0.8, minQuantity: 2, maxQuantity: 4 },
+      { itemId: 'bio_sample', dropChance: 0.5, minQuantity: 2, maxQuantity: 3 },
+    ],
+    hitReactionDuration: 40,
+    painSounds: ['alien_roar', 'alien_growl', 'organic_squish'],
+    deathAnimations: ['death_epic_collapse', 'death_explode_massive', 'death_dissolve'],
+    knockbackResistance: 0.95,
+  },
+
+  // Queen - Final boss (60-90s TTK with mechanics)
+  queen: {
+    id: 'queen',
+    name: 'Hive Queen',
+    designation: 'STRAIN-OMEGA',
+    description: 'The apex of the hive. Devastating attacks and spawns endless reinforcements.',
+    baseHealth: 3000, // Normal: 3000 HP, 60-90s TTK with mechanics
+    baseDamage: 50,
+    moveSpeed: 3,
+    attackRange: 30,
+    alertRadius: 80,
+    fireRate: 0.3,
+    projectileSpeed: 25,
+    xpValue: 500,
+    lootTable: [
+      { itemId: 'queen_heart', dropChance: 1.0, minQuantity: 1, maxQuantity: 1 },
+      { itemId: 'queen_pheromone', dropChance: 1.0, minQuantity: 2, maxQuantity: 3 },
+      { itemId: 'chitin_plate', dropChance: 1.0, minQuantity: 4, maxQuantity: 8 },
+      { itemId: 'neural_cluster', dropChance: 0.8, minQuantity: 2, maxQuantity: 4 },
+    ],
+    hitReactionDuration: 20,
+    painSounds: ['alien_roar', 'alien_growl'],
+    deathAnimations: ['death_epic_collapse', 'death_explode_massive'],
+    knockbackResistance: 1.0, // Immune to knockback
+  },
+
+  // Legacy enemies for backward compatibility
   lurker: {
     id: 'lurker',
     name: 'Lurker',
-    designation: 'STRAIN-X2',
+    designation: 'STRAIN-X2-L',
     description: 'Elongated humanoid form. Stalks prey silently. Attacks with extending limbs.',
-    baseHealth: 380, // Aligned with CombatBalanceConfig for 1.9s TTK target
+    baseHealth: 150,
     baseDamage: 15,
     moveSpeed: 10,
     attackRange: 15,
@@ -100,21 +256,19 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'neural_cluster', dropChance: 0.15, minQuantity: 1, maxQuantity: 1 },
       { itemId: 'bio_sample', dropChance: 0.4, minQuantity: 1, maxQuantity: 2 },
     ],
-    // Hit reactions - lean and agile, moderate stagger
     hitReactionDuration: 120,
     painSounds: ['alien_hiss', 'alien_screech', 'alien_growl'],
     deathAnimations: ['death_collapse', 'death_dissolve', 'death_ragdoll'],
-    knockbackResistance: 0.35, // Moderate resistance
+    knockbackResistance: 0.35,
   },
 
-  // Spewer - Bloated, acid-spitting horror
   spewer: {
     id: 'spewer',
     name: 'Spewer',
-    designation: 'STRAIN-X3',
+    designation: 'STRAIN-X3-L',
     description: 'Bloated sac creature. Sprays corrosive acid from multiple orifices.',
-    baseHealth: 680, // Aligned with CombatBalanceConfig for 3.4s TTK target
-    baseDamage: 12,
+    baseHealth: 120,
+    baseDamage: 18,
     moveSpeed: 6,
     attackRange: 25,
     alertRadius: 35,
@@ -126,21 +280,19 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'caustic_residue', dropChance: 0.4, minQuantity: 2, maxQuantity: 5 },
       { itemId: 'bio_sample', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
     ],
-    // Hit reactions - heavy and bloated, resists stagger
     hitReactionDuration: 60,
     painSounds: ['organic_squish', 'alien_gurgle', 'alien_hiss'],
     deathAnimations: ['death_explode', 'death_acid_burst', 'death_collapse'],
-    knockbackResistance: 0.7, // High resistance - heavy mass
+    knockbackResistance: 0.7,
   },
 
-  // Husk - Dessicated, fast, screaming horror
   husk: {
     id: 'husk',
     name: 'Husk',
-    designation: 'STRAIN-X4',
+    designation: 'STRAIN-X4-L',
     description: 'Dried, mummified form. Emits disorienting screech. Relentless pursuit.',
-    baseHealth: 340, // Aligned with CombatBalanceConfig for 1.7s TTK target
-    baseDamage: 18,
+    baseHealth: 200,
+    baseDamage: 22,
     moveSpeed: 14,
     attackRange: 10,
     alertRadius: 60,
@@ -152,38 +304,10 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'resonance_crystal', dropChance: 0.1, minQuantity: 1, maxQuantity: 1 },
       { itemId: 'bio_sample', dropChance: 0.35, minQuantity: 1, maxQuantity: 2 },
     ],
-    // Hit reactions - dried/brittle, brief stagger with screech
     hitReactionDuration: 100,
     painSounds: ['alien_screech', 'alien_hiss', 'alien_chittering'],
     deathAnimations: ['death_shatter', 'death_collapse', 'death_ragdoll'],
-    knockbackResistance: 0.25, // Light frame, moderate knockback
-  },
-
-  // Broodmother - Large, spawns skitterers, mini-boss
-  broodmother: {
-    id: 'broodmother',
-    name: 'Broodmother',
-    designation: 'STRAIN-X5',
-    description: 'Massive egg-layer. Produces Skitterers continuously. Priority target.',
-    baseHealth: 2500, // Aligned with CombatBalanceConfig - boss tier
-    baseDamage: 25,
-    moveSpeed: 4,
-    attackRange: 20,
-    alertRadius: 45,
-    fireRate: 0.5,
-    projectileSpeed: 15,
-    xpValue: 150,
-    lootTable: [
-      { itemId: 'brood_sac', dropChance: 1.0, minQuantity: 1, maxQuantity: 1 },
-      { itemId: 'queen_pheromone', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
-      { itemId: 'chitin_plate', dropChance: 0.8, minQuantity: 2, maxQuantity: 4 },
-      { itemId: 'bio_sample', dropChance: 0.5, minQuantity: 2, maxQuantity: 3 },
-    ],
-    // Hit reactions - massive boss, barely staggers
-    hitReactionDuration: 40,
-    painSounds: ['alien_roar', 'alien_growl', 'organic_squish'],
-    deathAnimations: ['death_epic_collapse', 'death_explode_massive', 'death_dissolve'],
-    knockbackResistance: 0.95, // Nearly immune to knockback
+    knockbackResistance: 0.25,
   },
 };
 

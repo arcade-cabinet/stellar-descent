@@ -7,8 +7,18 @@ const log = getLogger('EventBus');
 // Game event types
 // ---------------------------------------------------------------------------
 
+// Trigger types for TriggerSystem integration
+export type TriggerType =
+  | 'volume'
+  | 'proximity'
+  | 'interaction'
+  | 'line_of_sight'
+  | 'combat'
+  | 'collectible';
+
 export type GameEvent =
-  | { type: 'ENEMY_KILLED'; position: Vector3; enemyType: string }
+  // Core gameplay events
+  | { type: 'ENEMY_KILLED'; position: Vector3; enemyType: string; enemyId?: string }
   | { type: 'PLAYER_DAMAGED'; amount: number; direction?: number }
   | { type: 'PLAYER_HEALED'; amount: number }
   | { type: 'OBJECTIVE_UPDATED'; title: string; instructions: string }
@@ -25,7 +35,21 @@ export type GameEvent =
   | { type: 'CHECKPOINT_REACHED'; checkpointId: string }
   | { type: 'DIALOGUE_STARTED'; triggerId: string }
   | { type: 'DIALOGUE_ENDED'; triggerId: string }
-  | { type: 'NOTIFICATION'; text: string; duration?: number };
+  | { type: 'NOTIFICATION'; text: string; duration?: number }
+  // Trigger system events
+  | { type: 'TRIGGER_ENTER'; triggerId: string; triggerType: TriggerType }
+  | { type: 'TRIGGER_EXIT'; triggerId: string; triggerType: TriggerType }
+  | { type: 'TRIGGER_STAY'; triggerId: string; triggerType: TriggerType; duration: number }
+  | { type: 'TRIGGER_INTERACT'; triggerId: string }
+  | { type: 'TRIGGER_LINE_OF_SIGHT'; triggerId: string; targetPosition: Vector3 }
+  | { type: 'TRIGGER_COMBAT_COMPLETE'; triggerId: string; enemiesKilled: number }
+  | { type: 'TRIGGER_COLLECTIBLE'; triggerId: string; collectibleId: string }
+  | { type: 'TRIGGER_GROUP_COMPLETE'; groupId: string; mode: 'all' | 'any' }
+  // SpawnManager events (wave-based enemy spawning)
+  | { type: 'ENEMY_SPAWNED'; levelId: string; speciesId: string; entityId: string; position: { x: number; y: number; z: number }; facingAngle: number }
+  | { type: 'WAVE_START'; levelId: string; waveNumber: number; label?: string }
+  | { type: 'WAVE_COMPLETE'; levelId: string; waveNumber: number }
+  | { type: 'ALL_WAVES_COMPLETE'; levelId: string };
 
 // ---------------------------------------------------------------------------
 // Type-safe listener signature

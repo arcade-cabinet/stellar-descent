@@ -3,6 +3,11 @@
  *
  * This is the main audio manager that composes all audio subsystems.
  * The heavy lifting is done by modular subsystems in ./audio/
+ *
+ * Features:
+ * - Seamless crossfade from splash audio to menu music
+ * - Tab visibility pause/resume handling
+ * - Volume persistence across sessions
  */
 
 import type { Sound } from '@babylonjs/core/Audio/sound';
@@ -13,6 +18,15 @@ import type { LevelId } from '../levels/types';
 import { getLogger } from './Logger';
 
 const log = getLogger('AudioManager');
+
+// Storage keys for volume persistence
+const STORAGE_KEYS = {
+  masterVolume: 'stellar_descent_master_volume',
+  musicVolume: 'stellar_descent_music_volume',
+  sfxVolume: 'stellar_descent_sfx_volume',
+  voiceVolume: 'stellar_descent_voice_volume',
+  ambientVolume: 'stellar_descent_ambient_volume',
+} as const;
 import {
   type AudioZone,
   disposeEnvironmentalAudioManager,
@@ -57,18 +71,115 @@ export class AudioManager {
   private ambientVolume: number = DEFAULT_VOLUMES.ambient;
 
   private isMuted = false;
+  private isPausedByVisibility = false;
   private currentMusic: Sound | null = null;
   private currentLevelId: LevelId | null = null;
   private currentLevelConfig: LevelAudioConfig | null = null;
   private isInCombat = false;
   private combatTransitionTimeout: ReturnType<typeof setTimeout> | null = null;
   private useProceduralMusic = true;
+  private isCrossfadingFromSplash = false;
+  private visibilityHandler: (() => void) | null = null;
 
   constructor() {
     this.soundDispatcher = new SoundDispatcher();
     this.musicPlayer = new MusicPlayer();
     this.ambientGenerator = new ProceduralAmbientGenerator();
+
+    // Load saved volume settings
+    this.loadVolumeSettings();
+
     this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
+
+    // Setup tab visibility handling
+    this.setupVisibilityHandling();
+  }
+
+  /**
+   * Load volume settings from localStorage
+   */
+  private loadVolumeSettings(): void {
+    this.masterVolume = this.loadVolumeFromStorage(
+      STORAGE_KEYS.masterVolume,
+      DEFAULT_VOLUMES.master
+    );
+    this.musicVolume = this.loadVolumeFromStorage(STORAGE_KEYS.musicVolume, DEFAULT_VOLUMES.music);
+    this.sfxVolume = this.loadVolumeFromStorage(STORAGE_KEYS.sfxVolume, DEFAULT_VOLUMES.sfx);
+    this.voiceVolume = this.loadVolumeFromStorage(STORAGE_KEYS.voiceVolume, DEFAULT_VOLUMES.voice);
+    this.ambientVolume = this.loadVolumeFromStorage(
+      STORAGE_KEYS.ambientVolume,
+      DEFAULT_VOLUMES.ambient
+    );
+    log.info('Loaded volume settings from storage');
+  }
+
+  /**
+   * Load a single volume value from localStorage
+   */
+  private loadVolumeFromStorage(key: string, defaultValue: number): number {
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored !== null) {
+        const parsed = parseFloat(stored);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      log.warn('Failed to load volume from storage', e);
+    }
+    return defaultValue;
+  }
+
+  /**
+   * Save a volume value to localStorage
+   */
+  private saveVolumeToStorage(key: string, value: number): void {
+    try {
+      localStorage.setItem(key, value.toString());
+    } catch (e) {
+      log.warn('Failed to save volume to storage', e);
+    }
+  }
+
+  /**
+   * Setup tab visibility change handling for pause/resume
+   */
+  private setupVisibilityHandling(): void {
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'hidden') {
+        this.handleVisibilityHidden();
+      } else if (document.visibilityState === 'visible') {
+        this.handleVisibilityVisible();
+      }
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+
+  /**
+   * Handle tab becoming hidden - pause audio
+   */
+  private handleVisibilityHidden(): void {
+    if (this.isMuted) return;
+
+    this.isPausedByVisibility = true;
+    // Fade out quickly when tab is hidden
+    this.musicPlayer.setVolume(0);
+    this.ambientGenerator.setVolume(0);
+    log.debug('Audio paused due to tab visibility');
+  }
+
+  /**
+   * Handle tab becoming visible - resume audio
+   */
+  private handleVisibilityVisible(): void {
+    if (!this.isPausedByVisibility) return;
+
+    this.isPausedByVisibility = false;
+    // Restore volumes
+    this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
+    this.updateAmbientVolume();
+    log.debug('Audio resumed due to tab visibility');
   }
 
   initialize(scene: Scene): void {
@@ -79,6 +190,36 @@ export class AudioManager {
 
   async playMusic(track: MusicTrack, crossfadeDuration = 2): Promise<void> {
     if (!this.isMuted) await this.musicPlayer.play(track, crossfadeDuration);
+  }
+
+  /**
+   * Play music with crossfade from splash audio
+   * This handles the seamless transition from splash screen audio to menu music
+   */
+  async playMusicWithCrossfadeFromSplash(
+    track: MusicTrack,
+    crossfadeDuration = 2
+  ): Promise<void> {
+    if (this.isMuted) return;
+
+    this.isCrossfadingFromSplash = true;
+    log.info('Starting crossfade from splash to menu music', { track, crossfadeDuration });
+
+    // Start the menu music with fade in
+    await this.musicPlayer.play(track, crossfadeDuration);
+
+    // Mark crossfade as complete after duration
+    setTimeout(() => {
+      this.isCrossfadingFromSplash = false;
+      log.info('Crossfade from splash complete');
+    }, crossfadeDuration * 1000);
+  }
+
+  /**
+   * Check if currently crossfading from splash
+   */
+  isCrossfadingFromSplashAudio(): boolean {
+    return this.isCrossfadingFromSplash;
   }
 
   stopMusic(fadeDuration = 1): void {
@@ -139,31 +280,58 @@ export class AudioManager {
 
   // ===== Volume Controls =====
 
-  setMasterVolume(volume: number): void {
+  setMasterVolume(volume: number, persist = true): void {
     this.masterVolume = Math.max(0, Math.min(1, volume));
     this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
+    if (persist) {
+      this.saveVolumeToStorage(STORAGE_KEYS.masterVolume, this.masterVolume);
+    }
   }
 
-  setSFXVolume(volume: number): void {
+  getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  setSFXVolume(volume: number, persist = true): void {
     this.sfxVolume = Math.max(0, Math.min(1, volume));
+    if (persist) {
+      this.saveVolumeToStorage(STORAGE_KEYS.sfxVolume, this.sfxVolume);
+    }
   }
 
-  setMusicVolume(volume: number): void {
+  getSFXVolume(): number {
+    return this.sfxVolume;
+  }
+
+  setMusicVolume(volume: number, persist = true): void {
     this.musicVolume = Math.max(0, Math.min(1, volume));
     this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
+    if (persist) {
+      this.saveVolumeToStorage(STORAGE_KEYS.musicVolume, this.musicVolume);
+    }
   }
 
-  setAmbientVolume(volume: number): void {
+  getMusicVolume(): number {
+    return this.musicVolume;
+  }
+
+  setAmbientVolume(volume: number, persist = true): void {
     this.ambientVolume = Math.max(0, Math.min(1, volume));
     this.updateAmbientVolume();
+    if (persist) {
+      this.saveVolumeToStorage(STORAGE_KEYS.ambientVolume, this.ambientVolume);
+    }
   }
 
   getAmbientVolume(): number {
     return this.ambientVolume;
   }
 
-  setVoiceVolume(volume: number): void {
+  setVoiceVolume(volume: number, persist = true): void {
     this.voiceVolume = Math.max(0, Math.min(1, volume));
+    if (persist) {
+      this.saveVolumeToStorage(STORAGE_KEYS.voiceVolume, this.voiceVolume);
+    }
   }
 
   getVoiceVolume(): number {
@@ -542,6 +710,12 @@ export class AudioManager {
     this.currentLevelId = null;
     this.currentLevelConfig = null;
     this.isInCombat = false;
+
+    // Clean up visibility handler
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
   }
 }
 

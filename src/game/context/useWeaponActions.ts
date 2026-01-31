@@ -8,18 +8,24 @@
 import {
   DEFAULT_WEAPON,
   getWeapon,
-  getWeaponBySlot,
   type WeaponDefinition,
   type WeaponId,
 } from '../entities/weapons';
+import type { WeaponInventoryState } from './WeaponContext';
 
 export interface WeaponActions {
   fire: () => boolean;
   startReload: () => void;
   cancelReload: () => void;
-  addAmmo: (amount: number) => void;
+  addAmmo: (amount: number, weaponId?: WeaponId) => void;
   resetWeapon: () => void;
   switchWeapon: (slot: number) => void;
+  switchToWeaponId: (weaponId: WeaponId) => void;
+  cycleWeapon: (direction: 1 | -1) => void;
+  quickSwap: () => void;
+  grantWeapon: (weaponId: WeaponId) => boolean;
+  hasWeapon: (weaponId: WeaponId) => boolean;
+  getOwnedWeapons: () => WeaponId[];
   getState: () => WeaponStateSnapshot;
 }
 
@@ -29,10 +35,12 @@ export interface WeaponStateSnapshot {
   maxMagazineSize: number;
   maxReserveAmmo: number;
   isReloading: boolean;
+  isSwitching: boolean;
   canFire: boolean;
   isLowAmmo: boolean;
   currentWeaponId: WeaponId;
   currentWeaponSlot: number;
+  inventory: WeaponInventoryState;
 }
 
 // Singleton to hold the current weapon actions
@@ -102,10 +110,60 @@ export function getCurrentAmmo(): number {
 }
 
 /**
- * Switch to weapon by slot (0, 1, 2)
+ * Switch to weapon by slot (0-3)
  */
 export function switchToWeaponSlot(slot: number): void {
   currentWeaponActions?.switchWeapon(slot);
+}
+
+/**
+ * Switch to a specific weapon by ID
+ */
+export function switchToWeapon(weaponId: WeaponId): void {
+  currentWeaponActions?.switchToWeaponId(weaponId);
+}
+
+/**
+ * Cycle to next/previous weapon
+ */
+export function cycleWeapon(direction: 1 | -1): void {
+  currentWeaponActions?.cycleWeapon(direction);
+}
+
+/**
+ * Quick swap to last used weapon
+ */
+export function quickSwapWeapon(): void {
+  currentWeaponActions?.quickSwap();
+}
+
+/**
+ * Grant a weapon to the player
+ */
+export function grantWeapon(weaponId: WeaponId): boolean {
+  return currentWeaponActions?.grantWeapon(weaponId) ?? false;
+}
+
+/**
+ * Check if player owns a weapon
+ */
+export function hasWeapon(weaponId: WeaponId): boolean {
+  return currentWeaponActions?.hasWeapon(weaponId) ?? false;
+}
+
+/**
+ * Get list of owned weapons
+ */
+export function getOwnedWeapons(): WeaponId[] {
+  return currentWeaponActions?.getOwnedWeapons() ?? [];
+}
+
+/**
+ * Check if weapon switch animation is in progress
+ */
+export function isSwitchingWeapon(): boolean {
+  if (!currentWeaponActions) return false;
+  return currentWeaponActions.getState().isSwitching;
 }
 
 /**
@@ -125,8 +183,11 @@ export function getCurrentWeaponSlot(): number {
 }
 
 /**
- * Get weapon definition by slot
+ * Get weapon definition by ID from inventory slot
  */
-export function getWeaponDefBySlot(slot: number): WeaponDefinition | null {
-  return getWeaponBySlot(slot);
+export function getWeaponInSlot(slot: number): WeaponDefinition | null {
+  if (!currentWeaponActions) return null;
+  const inventory = currentWeaponActions.getState().inventory;
+  const weaponId = inventory.slots[slot];
+  return weaponId ? getWeapon(weaponId) : null;
 }

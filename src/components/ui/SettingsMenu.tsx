@@ -28,6 +28,7 @@ import { getAudioManager } from '../../game/core/AudioManager';
 import { DifficultySelector } from './DifficultySelector';
 import styles from './SettingsMenu.module.css';
 import { SubtitleSettings } from './SubtitleSettings';
+import { KeybindingsSettings } from './KeybindingsSettings';
 
 /**
  * Settings tab categories
@@ -86,6 +87,9 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
 
   // Track which action is currently being rebound
   const [listeningFor, setListeningFor] = useState<BindableAction | null>(null);
+
+  // Track if the dedicated keybindings panel is open
+  const [showAdvancedKeybindings, setShowAdvancedKeybindings] = useState(false);
 
   /**
    * Convert keybindings to single-key format for the settings UI.
@@ -530,6 +534,28 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
 
   const renderControlsTab = () => (
     <div className={styles.tabContent}>
+      {/* Advanced Keybindings Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Key Bindings</h3>
+        <div className={styles.advancedKeybindingsRow}>
+          <div className={styles.keybindingsDescription}>
+            <span className={styles.keybindingsLabel}>Advanced Key Binding Editor</span>
+            <span className={styles.keybindingsHint}>Full rebinding with conflict detection and alternative keys</span>
+          </div>
+          <button
+            type="button"
+            className={styles.openAdvancedButton}
+            onClick={() => {
+              playClickSound();
+              setShowAdvancedKeybindings(true);
+            }}
+            aria-label="Open advanced key bindings editor"
+          >
+            OPEN EDITOR
+          </button>
+        </div>
+      </div>
+
       {/* Sensitivity Settings */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Sensitivity</h3>
@@ -1084,6 +1110,15 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
           </div>
         </div>
       )}
+
+      {/* Advanced Keybindings Panel */}
+      <KeybindingsSettings
+        isOpen={showAdvancedKeybindings}
+        onClose={() => {
+          playClickSound();
+          setShowAdvancedKeybindings(false);
+        }}
+      />
     </>
   );
 }

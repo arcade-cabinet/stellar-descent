@@ -29,6 +29,11 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { getLogger } from '../../core/Logger';
+import {
+  CinematicSystem,
+  createLandfallIntroCinematic,
+  type CinematicCallbacks,
+} from '../../cinematics';
 
 const log = getLogger('Landfall');
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
@@ -61,6 +66,11 @@ import {
 
 // Import modular components
 import type { DropPhase, LandingOutcome, Asteroid, DistantThreat, SurfaceEnemy } from './types';
+import { VehicleController } from '../canyon-run/VehicleController';
+import {
+  preloadVehicleAssets,
+  type SpawnedVehicle,
+} from '../../vehicles/VehicleUtils';
 import {
   ALL_LANDFALL_GLB_PATHS,
   SURFACE_GLB_PATHS,
@@ -111,6 +121,9 @@ export class LandfallLevel extends BaseLevel {
   // Flora & collectibles
   private floraNodes: TransformNode[] = [];
   private collectibleSystem: CollectibleSystemResult | null = null;
+
+  // Cinematic system for intro sequence
+  private cinematicSystem: CinematicSystem | null = null;
 
   // Phase management
   private phase: DropPhase = 'freefall_start';
@@ -216,6 +229,13 @@ export class LandfallLevel extends BaseLevel {
   private hasShownCoverTutorial = false;
   private combatTutorialActive = false;
 
+  // Vehicle transit section (brief ATV drive after landing)
+  private transitVehicle: VehicleController | null = null;
+  private vehicleTransitActive = false;
+  private vehicleTransitDistance = 0;
+  private vehicleTransitTargetDistance = 80; // ~30 seconds at moderate speed
+  private vehicleObjectiveMarker: Mesh | null = null;
+
   constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig, callbacks: LevelCallbacks) {
     super(engine, canvas, config, callbacks);
   }
@@ -229,6 +249,7 @@ export class LandfallLevel extends BaseLevel {
       case 'powered_descent':
         return new Color4(0.5, 0.3, 0.2, 1);
       case 'landing':
+      case 'vehicle_transit':
       case 'surface':
         return new Color4(0.75, 0.5, 0.35, 1);
       default:
@@ -273,7 +294,68 @@ export class LandfallLevel extends BaseLevel {
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
     this.collectibleSystem = await buildCollectibles(this.scene, getLandfallCollectibles(), collectibleRoot);
 
-    this.startJump();
+    // Initialize cinematic system
+    this.initializeCinematicSystem();
+
+    // Play intro cinematic (or start drop directly if already viewed)
+    this.playIntroCinematic();
+  }
+
+  /**
+   * Initialize the cinematic system with appropriate callbacks.
+   */
+  private initializeCinematicSystem(): void {
+    const cinematicCallbacks: CinematicCallbacks = {
+      onCommsMessage: (message) => {
+        this.callbacks.onCommsMessage({
+          sender: message.sender,
+          callsign: message.callsign ?? '',
+          portrait: (message.portrait ?? 'ai') as 'commander' | 'ai' | 'marcus' | 'armory' | 'player',
+          text: message.text,
+        });
+      },
+      onNotification: (text, duration) => {
+        this.callbacks.onNotification(text, duration ?? 3000);
+      },
+      onObjectiveUpdate: (title, instructions) => {
+        this.callbacks.onObjectiveUpdate(title, instructions);
+      },
+      onShakeCamera: (intensity) => {
+        this.triggerShake(intensity);
+      },
+      onCinematicStart: () => {
+        this.callbacks.onCinematicStart?.();
+      },
+      onCinematicEnd: () => {
+        this.callbacks.onCinematicEnd?.();
+      },
+    };
+
+    this.cinematicSystem = new CinematicSystem(this.scene, this.camera, cinematicCallbacks);
+  }
+
+  /**
+   * Play the level intro cinematic sequence.
+   * Cinematic is skipped if already viewed in the current save.
+   */
+  private playIntroCinematic(): void {
+    if (!this.cinematicSystem) {
+      this.startJump();
+      return;
+    }
+
+    // Planet position for the intro cinematic
+    const planetPosition = this.planet?.position ?? new Vector3(0, -150, 0);
+
+    const sequence = createLandfallIntroCinematic(
+      () => {
+        // Cinematic complete - start the HALO drop
+        this.startJump();
+      },
+      planetPosition
+    );
+
+    this.cinematicSystem.play(sequence);
   }
 
   private async preloadAssets(): Promise<void> {
@@ -282,6 +364,9 @@ export class LandfallLevel extends BaseLevel {
     );
     const loaded = results.filter((r) => r.status === 'fulfilled' && r.value).length;
     log.info(`Preloaded ${loaded}/${ALL_LANDFALL_GLB_PATHS.length} GLBs`);
+
+    // Preload vehicle assets for the transit section
+    await preloadVehicleAssets(this.scene, ['buggy']);
   }
 
   private async preloadSurfaceEnemyModels(): Promise<void> {
@@ -701,7 +786,7 @@ export class LandfallLevel extends BaseLevel {
     }
   }
 
-  private updateActionButtons(mode: 'ignite' | 'descent' | 'combat' | 'none'): void {
+  private updateActionButtons(mode: 'ignite' | 'descent' | 'combat' | 'vehicle' | 'none'): void {
     let groups: ActionButtonGroup[] = [];
     const jets = levelActionParams('igniteJets');
     const boost = levelActionParams('boost');
@@ -721,6 +806,11 @@ export class LandfallLevel extends BaseLevel {
           createAction('stabilize', 'STABILIZE', stabilize.key, { keyDisplay: stabilize.keyDisplay, variant: 'secondary' }),
         ]}];
         break;
+      case 'vehicle':
+        groups = [{ id: 'vehicle', label: 'VEHICLE', position: 'right', buttons: [
+          createAction('boost', 'BOOST', boost.key, { keyDisplay: boost.keyDisplay, variant: 'primary', size: 'large' }),
+        ]}];
+        break;
       case 'combat':
         groups = [{ id: 'combat', label: 'COMBAT', position: 'right', buttons: [
           createAction('grenade', 'GRENADE', grenade.key, { keyDisplay: grenade.keyDisplay, variant: 'danger', cooldown: 5000 }),
@@ -738,6 +828,11 @@ export class LandfallLevel extends BaseLevel {
   }
 
   protected override processMovement(deltaTime: number): void {
+    // Vehicle transit phase handles its own movement
+    if (this.phase === 'vehicle_transit') {
+      return;
+    }
+
     const input: Descent.MovementInput = {
       moveLeft: this.inputTracker.isActionActive('moveLeft'),
       moveRight: this.inputTracker.isActionActive('moveRight'),
@@ -765,6 +860,16 @@ export class LandfallLevel extends BaseLevel {
   }
 
   protected updateLevel(deltaTime: number): void {
+    // Update cinematic system
+    if (this.cinematicSystem) {
+      this.cinematicSystem.update(deltaTime);
+
+      // Don't update gameplay if cinematic is playing
+      if (this.cinematicSystem.isPlaying()) {
+        return;
+      }
+    }
+
     this.phaseTime += deltaTime;
 
     if (this.collectibleSystem) {
@@ -857,6 +962,9 @@ export class LandfallLevel extends BaseLevel {
           this.landingOutcome = Descent.determineLandingOutcome(this.positionX, this.positionZ, this.velocity);
           this.transitionToPhase('surface');
         }
+        break;
+      case 'vehicle_transit':
+        this.updateVehicleTransit(deltaTime);
         break;
     }
 
@@ -1043,8 +1151,165 @@ export class LandfallLevel extends BaseLevel {
 
     this.scene.clearColor = new Color4(0.75, 0.5, 0.35, 1);
 
+    // Start vehicle transit phase (brief ATV section)
+    setTimeout(() => this.startVehicleTransit(combatRequired), 2000);
+  }
+
+  /**
+   * Start the brief ATV transit section after landing.
+   * Player drives ~30 seconds to reach the combat zone.
+   */
+  private async startVehicleTransit(combatRequired: boolean): Promise<void> {
+    this.phase = 'vehicle_transit';
+    this.phaseTime = 0;
+    this.vehicleTransitActive = true;
+    this.vehicleTransitDistance = 0;
+
+    // Create vehicle at player position
+    const spawnPos = this.camera.position.clone();
+    spawnPos.y = 2;
+
+    try {
+      this.transitVehicle = await VehicleController.create(this.scene, this.camera, spawnPos, {
+        maxSpeed: 40,
+        acceleration: 30,
+        boostMultiplier: 1.5,
+        maxHealth: 80,
+      });
+    } catch (error) {
+      log.warn('Failed to create transit vehicle, skipping to combat:', error);
+      this.endVehicleTransit(combatRequired);
+      return;
+    }
+
+    // Create objective marker for the combat zone
+    this.createVehicleObjectiveMarker();
+
+    // Update action buttons for vehicle
+    this.updateActionButtons('vehicle');
+
+    this.callbacks.onObjectiveUpdate('REACH FORWARD POSITION', 'Drive the ATV to the waypoint ahead.');
+    this.callbacks.onCommsMessage({
+      sender: 'PROMETHEUS A.I.',
+      callsign: 'ATHENA',
+      portrait: 'ai',
+      text: 'ATV located near LZ. Use it to reach the forward observation post. WASD to drive, SHIFT to boost.',
+    });
+
+    // Store combat requirement for later
+    (this as unknown as { _combatRequired: boolean })._combatRequired = combatRequired;
+  }
+
+  /**
+   * Update the vehicle transit phase.
+   */
+  private updateVehicleTransit(deltaTime: number): void {
+    if (!this.transitVehicle || !this.vehicleTransitActive) return;
+
+    // Build and apply input
+    const input = VehicleController.buildInput(this.keys, this.touchInput);
+    this.transitVehicle.setInput(input);
+
+    // Update vehicle physics with simple terrain sampling
+    this.transitVehicle.update(deltaTime, (x: number, z: number) => {
+      // Simple flat terrain with slight variation
+      return Math.sin(x * 0.05) * 0.5 + Math.cos(z * 0.05) * 0.5;
+    });
+
+    // Track distance traveled
+    const vehiclePos = this.transitVehicle.getPosition();
+    const speed = Math.abs(this.transitVehicle.getSpeed());
+    this.vehicleTransitDistance += speed * deltaTime;
+
+    // Update objective marker position
+    if (this.vehicleObjectiveMarker) {
+      const targetZ = -this.vehicleTransitTargetDistance;
+      this.vehicleObjectiveMarker.position.z = targetZ;
+
+      // Pulse the marker
+      const pulse = Math.sin(this.phaseTime * 4) * 0.3 + 1.0;
+      this.vehicleObjectiveMarker.scaling.setAll(pulse);
+    }
+
+    // Update HUD
+    const distRemaining = Math.max(0, this.vehicleTransitTargetDistance - this.vehicleTransitDistance);
+    const speedDisplay = Math.round(speed);
+    this.callbacks.onObjectiveUpdate(
+      'REACH FORWARD POSITION',
+      `SPEED: ${speedDisplay} m/s | DISTANCE: ${Math.round(distRemaining)}m`
+    );
+
+    // Check if reached destination
+    if (this.vehicleTransitDistance >= this.vehicleTransitTargetDistance) {
+      const combatRequired = (this as unknown as { _combatRequired: boolean })._combatRequired ?? true;
+      this.endVehicleTransit(combatRequired);
+    }
+
+    // Vehicle damage feedback
+    const vehicleState = this.transitVehicle.getState();
+    this.callbacks.onHealthChange(Math.round(vehicleState.health));
+
+    if (vehicleState.isDead) {
+      this.callbacks.onNotification('VEHICLE DESTROYED', 2000);
+      const combatRequired = (this as unknown as { _combatRequired: boolean })._combatRequired ?? true;
+      this.endVehicleTransit(combatRequired);
+    }
+  }
+
+  /**
+   * Create the objective marker for the vehicle transit section.
+   */
+  private createVehicleObjectiveMarker(): void {
+    this.vehicleObjectiveMarker = MeshBuilder.CreateTorus(
+      'vehicleObjective',
+      { diameter: 8, thickness: 0.5, tessellation: 24 },
+      this.scene
+    );
+    const markerMat = new StandardMaterial('vehicleObjMat', this.scene);
+    markerMat.emissiveColor = new Color3(0.2, 0.8, 0.3);
+    markerMat.alpha = 0.6;
+    markerMat.disableLighting = true;
+    this.vehicleObjectiveMarker.material = markerMat;
+    this.vehicleObjectiveMarker.rotation.x = Math.PI / 2;
+    this.vehicleObjectiveMarker.position.set(0, 0.3, -this.vehicleTransitTargetDistance);
+  }
+
+  /**
+   * End the vehicle transit and transition to combat.
+   */
+  private endVehicleTransit(combatRequired: boolean): void {
+    this.vehicleTransitActive = false;
+
+    // Dispose vehicle
+    if (this.transitVehicle) {
+      // Position camera at vehicle location before disposing
+      const exitPos = this.transitVehicle.getPosition();
+      this.camera.position.set(exitPos.x, MIN_PLAYER_HEIGHT, exitPos.z);
+
+      this.transitVehicle.dispose();
+      this.transitVehicle = null;
+    }
+
+    // Dispose objective marker
+    if (this.vehicleObjectiveMarker) {
+      this.vehicleObjectiveMarker.dispose();
+      this.vehicleObjectiveMarker = null;
+    }
+
+    // Transition to surface combat
+    this.phase = 'surface';
+    this.phaseTime = 0;
+
+    this.callbacks.onNotification('DISMOUNTING - PROCEED ON FOOT', 2000);
+    this.callbacks.onCommsMessage({
+      sender: 'PROMETHEUS A.I.',
+      callsign: 'ATHENA',
+      portrait: 'ai',
+      text: 'Forward position reached. Terrain too rough for vehicle. Proceed on foot.',
+    });
+
     if (combatRequired) {
-      setTimeout(() => this.callbacks.onObjectiveUpdate('GET YOUR BEARINGS', 'Assess the situation. LZ pad is ahead.'), 1000);
+      setTimeout(() => this.callbacks.onObjectiveUpdate('GET YOUR BEARINGS', 'Assess the situation. Cover positions ahead.'), 1000);
       setTimeout(() => comms.sendSeismicWarningMessage(this.callbacks), 4000);
       setTimeout(() => { this.callbacks.onNotification('SEISMIC WARNING', 1500); this.triggerShake(2); }, 6000);
       setTimeout(() => {
@@ -1060,7 +1325,7 @@ export class LandfallLevel extends BaseLevel {
         this.spawnFirstCombatEncounter();
       }, 8000);
     } else {
-      setTimeout(() => { this.callbacks.onObjectiveUpdate('PROCEED TO FOB DELTA', 'LZ secure. Move out.'); setTimeout(() => this.completeLevel(), 5000); }, 3000);
+      setTimeout(() => { this.callbacks.onObjectiveUpdate('PROCEED TO FOB DELTA', 'Area secure. Move out.'); setTimeout(() => this.completeLevel(), 5000); }, 3000);
     }
   }
 
@@ -1238,16 +1503,30 @@ export class LandfallLevel extends BaseLevel {
   }
 
   override canTransitionTo(levelId: LevelId): boolean {
-    return levelId === 'fob_delta' && this.phase === 'surface';
+    return levelId === 'fob_delta' && (this.phase === 'surface' || this.phase === 'vehicle_transit');
   }
 
   protected disposeLevel(): void {
+    // Dispose cinematic system
+    this.cinematicSystem?.dispose();
+    this.cinematicSystem = null;
+
     for (const node of this.floraNodes) node.dispose(false, true);
     this.floraNodes = [];
     this.collectibleSystem?.dispose();
     this.collectibleSystem = null;
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
+
+    // Dispose transit vehicle
+    if (this.transitVehicle) {
+      this.transitVehicle.dispose();
+      this.transitVehicle = null;
+    }
+    if (this.vehicleObjectiveMarker) {
+      this.vehicleObjectiveMarker.dispose();
+      this.vehicleObjectiveMarker = null;
+    }
 
     // Dispose skybox using SkyboxResult
     this.skyboxResult?.dispose();

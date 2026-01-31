@@ -4,6 +4,7 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { disposeSplashAudioManager, getSplashAudioManager } from '../../game/core/audio/SplashAudioManager';
 import { type DifficultyLevel, getDifficultyDisplayName } from '../../game/core/DifficultySettings';
 import { GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, LORE } from '../../game/core/lore';
 import type { LevelId } from '../../game/levels/types';
@@ -70,10 +71,28 @@ export function MainMenu({
     checkSave();
   }, []);
 
-  // Start menu music
+  // Start menu music with crossfade from splash audio
   useEffect(() => {
     const audioManager = getAudioManager();
-    audioManager.playMusic('menu', 1.5);
+    const splashAudioManager = getSplashAudioManager();
+
+    // Check if splash audio is still playing (indicates we came from splash screen)
+    const isFromSplash = splashAudioManager.isCurrentlyPlaying();
+
+    if (isFromSplash) {
+      // Use crossfade transition from splash audio
+      log.info('Starting menu music with crossfade from splash');
+      audioManager.playMusicWithCrossfadeFromSplash('menu', 2);
+
+      // Dispose splash audio manager after crossfade completes
+      setTimeout(() => {
+        disposeSplashAudioManager();
+        log.info('Splash audio manager disposed after crossfade');
+      }, 2500);
+    } else {
+      // Normal menu music start (e.g., returning from game)
+      audioManager.playMusic('menu', 1.5);
+    }
 
     return () => {
       // Don't stop music on unmount - let it crossfade to next track

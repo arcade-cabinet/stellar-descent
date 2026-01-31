@@ -15,6 +15,16 @@ export interface TouchInput {
   aimAssist?: boolean;
   /** Aim assist strength (0-1) */
   aimAssistStrength?: number;
+  /** Jetpack boost active (hold jump in air) */
+  isJetpacking?: boolean;
+  /** Melee attack triggered */
+  isMelee?: boolean;
+  /** Grenade throw triggered */
+  isGrenade?: boolean;
+  /** Grenade aiming mode (long press to aim arc) */
+  isAimingGrenade?: boolean;
+  /** Slide triggered (double-tap crouch or swipe down while moving) */
+  isSliding?: boolean;
 }
 
 export interface CommsMessage {

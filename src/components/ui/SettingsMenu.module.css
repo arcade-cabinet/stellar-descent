@@ -739,6 +739,64 @@
   border-color: #3a3a3a;
 }
 
+/* Advanced Keybindings Row */
+.advancedKeybindingsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: rgba(74, 93, 35, 0.1);
+  border: 1px solid #4a5d23;
+  gap: 1rem;
+  transition: all 0.15s ease;
+}
+
+.advancedKeybindingsRow:hover {
+  background: rgba(74, 93, 35, 0.15);
+  border-color: #5a7030;
+}
+
+.keybindingsDescription {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.keybindingsLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #b5a642;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.keybindingsHint {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #666;
+}
+
+.openAdvancedButton {
+  padding: 0.5rem 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+  background: rgba(74, 93, 35, 0.2);
+  border: 1px solid #4a5d23;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.openAdvancedButton:hover {
+  background: rgba(74, 93, 35, 0.4);
+  border-color: #5a7030;
+  color: #e8e8e8;
+}
+
 /* Mobile adjustments */
 @media (max-width: 480px) {
   .container {
@@ -795,6 +853,16 @@
 
   .qualityGrid {
     grid-template-columns: 1fr;
+  }
+
+  .advancedKeybindingsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .openAdvancedButton {
+    width: 100%;
+    text-align: center;
   }
 
   .volumeRow {

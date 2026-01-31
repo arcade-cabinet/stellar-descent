@@ -1,0 +1,237 @@
+/**
+ * KeyboardRemapper Styles - Military/tactical theme
+ */
+
+.container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.actionLabel {
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ff88;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+.currentKey {
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.instruction {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  color: #ffcc00;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.keyboardContainer {
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: 1.5rem;
+}
+
+/* Override simple-keyboard styles for military theme */
+.keyboardContainer :global(.simple-keyboard) {
+  background: linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%);
+  border: 2px solid #00ff88;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow:
+    0 0 20px rgba(0, 255, 136, 0.2),
+    inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.keyboardContainer :global(.hg-button) {
+  background: linear-gradient(180deg, #2a2a4a 0%, #1a1a2e 100%);
+  border: 1px solid #444;
+  color: #ccc;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 4px;
+  box-shadow:
+    0 2px 0 #000,
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.1s ease;
+  min-width: 40px;
+  height: 45px;
+}
+
+.keyboardContainer :global(.hg-button:active),
+.keyboardContainer :global(.hg-button:hover) {
+  background: linear-gradient(180deg, #00ff88 0%, #00cc6a 100%);
+  color: #000;
+  border-color: #00ff88;
+  box-shadow:
+    0 0 15px rgba(0, 255, 136, 0.5),
+    0 2px 0 #006644;
+  transform: translateY(1px);
+}
+
+/* WASD highlight */
+.highlightWasd {
+  background: linear-gradient(180deg, #3a3a6a 0%, #2a2a4a 100%) !important;
+  border-color: #00aaff !important;
+  color: #00aaff !important;
+}
+
+/* Action keys highlight */
+.highlightAction {
+  background: linear-gradient(180deg, #4a3a3a 0%, #3a2a2a 100%) !important;
+  border-color: #ff6600 !important;
+  color: #ff6600 !important;
+}
+
+/* Modifier keys highlight */
+.highlightModifier {
+  background: linear-gradient(180deg, #3a4a3a 0%, #2a3a2a 100%) !important;
+  border-color: #88ff00 !important;
+  color: #88ff00 !important;
+}
+
+/* Desktop listening mode */
+.listeningOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.listeningBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 4rem;
+  background: linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%);
+  border: 2px solid #00ff88;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+}
+
+.listeningPulse {
+  width: 60px;
+  height: 60px;
+  border: 3px solid #00ff88;
+  border-radius: 50%;
+  animation: listeningPulse 1s ease-in-out infinite;
+}
+
+@keyframes listeningPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    opacity: 0.7;
+    box-shadow: 0 0 0 20px rgba(0, 255, 136, 0);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
+  }
+}
+
+.listeningText {
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ff88;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.listeningHint {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Buttons */
+.rebindButton,
+.cancelButton {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 2rem;
+  border: 2px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 0.5rem;
+}
+
+.rebindButton {
+  background: linear-gradient(180deg, #00ff88 0%, #00cc6a 100%);
+  border-color: #00ff88;
+  color: #000;
+}
+
+.rebindButton:hover {
+  background: linear-gradient(180deg, #00ffaa 0%, #00ff88 100%);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.cancelButton {
+  background: transparent;
+  border-color: #666;
+  color: #888;
+}
+
+.cancelButton:hover {
+  border-color: #ff4444;
+  color: #ff4444;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .keyboardContainer :global(.hg-button) {
+    min-width: 28px;
+    height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .actionLabel {
+    font-size: 1.2rem;
+  }
+}

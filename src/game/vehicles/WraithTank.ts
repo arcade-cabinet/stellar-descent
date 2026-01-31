@@ -608,15 +608,21 @@ export class WraithTank extends VehicleBase {
   // ------------------------------------------------------------------
 
   protected processInput(deltaTime: number): void {
+    // Get unified input state
+    const input = this.getVehicleInput();
+
     // Only processes when player is in the vehicle
     const moveDir = Vector3.Zero();
     const forward = this.getForward();
     const right = this.getRight();
 
-    if (this.isKeyDown('KeyW')) moveDir.addInPlace(forward);
-    if (this.isKeyDown('KeyS')) moveDir.subtractInPlace(forward);
-    if (this.isKeyDown('KeyA')) moveDir.subtractInPlace(right);
-    if (this.isKeyDown('KeyD')) moveDir.addInPlace(right);
+    // Use throttle/brake for forward/backward
+    if (input.throttle > 0) moveDir.addInPlace(forward.scale(input.throttle));
+    if (input.brake > 0) moveDir.subtractInPlace(forward.scale(input.brake));
+
+    // Use steer for lateral movement
+    if (input.steer < 0) moveDir.subtractInPlace(right.scale(-input.steer));
+    if (input.steer > 0) moveDir.addInPlace(right.scale(input.steer));
 
     if (moveDir.length() > 0.01) {
       moveDir.normalize();
@@ -625,13 +631,13 @@ export class WraithTank extends VehicleBase {
       this.moveToward(moveDir, speed, deltaTime);
     }
 
-    // Boost on shift
-    if (this.isKeyDown('ShiftLeft') || this.isKeyDown('ShiftRight')) {
+    // Boost on shift (from input.boost)
+    if (input.boost) {
       this.activateBoost();
     }
 
-    // Fire mortar on click
-    if (this.isFiring) {
+    // Fire mortar on primary fire
+    if (input.fire) {
       this.fireMortar();
     }
   }

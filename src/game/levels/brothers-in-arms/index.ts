@@ -19,3 +19,13 @@ export type {
 export { MarcusCombatCoordinator } from './MarcusCombatCoordinator';
 export type { BanterConfig, DialogueTrigger } from './marcusBanter';
 export { createMarcusBanterManager, MarcusBanterManager } from './marcusBanter';
+
+// Re-export steering AI from the ai folder for convenience
+export type {
+  FlankingState,
+  MarcusSteeringConfig,
+  SteeringMode,
+  SteeringResult,
+  TargetCallout,
+} from '../../ai/MarcusSteeringAI';
+export { MarcusSteeringAI } from '../../ai/MarcusSteeringAI';

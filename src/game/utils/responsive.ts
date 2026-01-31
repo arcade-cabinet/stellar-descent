@@ -1,4 +1,15 @@
+/**
+ * Responsive utilities for screen detection, viewport management, and device orientation.
+ *
+ * NOTE: Platform detection (native vs web, iOS vs Android) has moved to PlatformDetector.ts
+ * Use PlatformDetector for:
+ * - isNative() - check if running in Capacitor native app
+ * - getPlatform() - get 'ios', 'android', 'electron', or 'web'
+ * - shouldShowTouchControls() - determine if touch UI should be shown
+ */
+
 import type { DeviceType, Orientation, ScreenInfo } from '../types';
+import { isNative } from './PlatformDetector';
 
 /**
  * Device size breakpoints
@@ -244,16 +255,6 @@ export async function releaseWakeLock(): Promise<void> {
 }
 
 /**
- * Check if running in a Capacitor native app context
- */
-export function isCapacitorNative(): boolean {
-  // Check for Capacitor native bridge
-  // Use unknown cast first then to specific type to satisfy TypeScript
-  const win = window as unknown as { Capacitor?: { isNativePlatform?: boolean } };
-  return !!(typeof window !== 'undefined' && win.Capacitor?.isNativePlatform);
-}
-
-/**
  * Lock screen orientation to landscape using Capacitor plugin (if available)
  * Falls back to web Screen Orientation API if Capacitor is not available
  *
@@ -262,7 +263,7 @@ export function isCapacitorNative(): boolean {
  */
 export async function lockToLandscape(): Promise<boolean> {
   // Try Capacitor ScreenOrientation plugin first (for native iOS/Android)
-  if (isCapacitorNative()) {
+  if (isNative()) {
     try {
       const { ScreenOrientation } = await import('@capacitor/screen-orientation');
       await ScreenOrientation.lock({ orientation: 'landscape' });
@@ -295,7 +296,7 @@ export async function lockToLandscape(): Promise<boolean> {
  */
 export async function unlockOrientation(): Promise<boolean> {
   // Try Capacitor ScreenOrientation plugin first
-  if (isCapacitorNative()) {
+  if (isNative()) {
     try {
       const { ScreenOrientation } = await import('@capacitor/screen-orientation');
       await ScreenOrientation.unlock();
@@ -323,7 +324,7 @@ export async function unlockOrientation(): Promise<boolean> {
  */
 export async function getCurrentOrientation(): Promise<Orientation> {
   // Try Capacitor first
-  if (isCapacitorNative()) {
+  if (isNative()) {
     try {
       const { ScreenOrientation } = await import('@capacitor/screen-orientation');
       const { type } = await ScreenOrientation.orientation();

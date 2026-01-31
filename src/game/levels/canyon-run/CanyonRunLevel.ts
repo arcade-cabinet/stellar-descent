@@ -45,6 +45,7 @@ import { getAudioManager } from '../../core/AudioManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('CanyonRun');
+import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
@@ -73,6 +74,8 @@ import {
   updateRockslide,
 } from './environment';
 import { VehicleController } from './VehicleController';
+import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';
+import { GyroscopeManager } from '../../weapons/VehicleYoke';
 
 // ============================================================================
 // TYPES
@@ -292,6 +295,25 @@ export class CanyonRunLevel extends SurfaceLevel {
   // [FIX #3] Chase music intensity
   private chaseMusicIntensity = 0;
 
+  // Mouse state for turret control
+  private mouseState: {
+    movementX: number;
+    movementY: number;
+    leftButton: boolean;
+    rightButton: boolean;
+  } | undefined = undefined;
+
+  // Mouse event handlers (for cleanup)
+  private boundMouseMoveHandler: ((e: MouseEvent) => void) | null = null;
+  private boundMouseDownHandler: ((e: MouseEvent) => void) | null = null;
+  private boundMouseUpHandler: ((e: MouseEvent) => void) | null = null;
+
+  // Gyroscope manager for mobile controls
+  private gyroscopeManager: GyroscopeManager | null = null;
+
+  // Flag for vehicle yoke mode
+  private vehicleYokeActive = false;
+
   constructor(
     engine: Engine,
     canvas: HTMLCanvasElement,
@@ -391,11 +413,75 @@ export class CanyonRunLevel extends SurfaceLevel {
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
     this.collectibleSystem = await buildCollectibles(this.scene, getCanyonRunCollectibles(), collectibleRoot);
 
+    // Register vehicle-specific dynamic keybindings
+    registerDynamicActions('canyon_run', ['vehicleBoost', 'vehicleBrake', 'vehicleEject'], 'vehicle');
+
     // [FIX #1] Initialize checkpoint system
     this.initCheckpoints();
 
+    // Setup mouse input for turret control
+    this.setupMouseInput();
+
+    // Initialize gyroscope manager for mobile
+    this.gyroscopeManager = GyroscopeManager.getInstance();
+
     // Start intro sequence
     this.startIntro();
+  }
+
+  /**
+   * Setup mouse event listeners for turret control.
+   */
+  private setupMouseInput(): void {
+    this.mouseState = {
+      movementX: 0,
+      movementY: 0,
+      leftButton: false,
+      rightButton: false,
+    };
+
+    this.boundMouseMoveHandler = (e: MouseEvent) => {
+      if (this.mouseState) {
+        this.mouseState.movementX += e.movementX;
+        this.mouseState.movementY += e.movementY;
+      }
+    };
+
+    this.boundMouseDownHandler = (e: MouseEvent) => {
+      if (this.mouseState) {
+        if (e.button === 0) this.mouseState.leftButton = true;
+        if (e.button === 2) this.mouseState.rightButton = true;
+      }
+    };
+
+    this.boundMouseUpHandler = (e: MouseEvent) => {
+      if (this.mouseState) {
+        if (e.button === 0) this.mouseState.leftButton = false;
+        if (e.button === 2) this.mouseState.rightButton = false;
+      }
+    };
+
+    document.addEventListener('mousemove', this.boundMouseMoveHandler);
+    document.addEventListener('mousedown', this.boundMouseDownHandler);
+    document.addEventListener('mouseup', this.boundMouseUpHandler);
+
+    // Prevent context menu on right-click
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  /**
+   * Cleanup mouse event listeners.
+   */
+  private cleanupMouseInput(): void {
+    if (this.boundMouseMoveHandler) {
+      document.removeEventListener('mousemove', this.boundMouseMoveHandler);
+    }
+    if (this.boundMouseDownHandler) {
+      document.removeEventListener('mousedown', this.boundMouseDownHandler);
+    }
+    if (this.boundMouseUpHandler) {
+      document.removeEventListener('mouseup', this.boundMouseUpHandler);
+    }
   }
 
   /**
@@ -480,6 +566,12 @@ export class CanyonRunLevel extends SurfaceLevel {
       this.vehicle.update(deltaTime, sampleTerrainHeight);
       this.updateVehicleDamageFeedback();
       this.syncVehicleHUD(); // [FIX #11]
+
+      // Update vehicle yoke visual feedback
+      if (this.vehicleYokeActive) {
+        const yokeInput = this.vehicle.getYokeInput(deltaTime);
+        firstPersonWeapons.updateVehicleYoke(yokeInput);
+      }
     }
 
     // Update enemies
@@ -508,6 +600,19 @@ export class CanyonRunLevel extends SurfaceLevel {
   }
 
   protected override disposeLevel(): void {
+    // Exit vehicle mode before cleanup
+    if (this.vehicleYokeActive) {
+      this.vehicleYokeActive = false;
+      firstPersonWeapons.exitVehicleMode();
+    }
+
+    // Disable gyroscope
+    this.gyroscopeManager?.disable();
+    this.gyroscopeManager = null;
+
+    // Cleanup mouse input
+    this.cleanupMouseInput();
+
     // Dispose flora
     for (const node of this.floraNodes) { node.dispose(false, true); }
     this.floraNodes = [];
@@ -574,6 +679,9 @@ export class CanyonRunLevel extends SurfaceLevel {
     // Unregister action handler
     this.callbacks.onActionHandlerRegister(null);
 
+    // Unregister vehicle-specific dynamic keybindings
+    unregisterDynamicActions('canyon_run');
+
     // Call parent dispose
     super.disposeLevel();
   }
@@ -613,6 +721,19 @@ export class CanyonRunLevel extends SurfaceLevel {
       // Transition to driving
       this.callbacks.onCinematicEnd?.();
       this.transitionToPhase('canyon_approach');
+
+      // Enter vehicle mode - show yoke instead of weapon
+      if (!this.vehicleYokeActive) {
+        this.vehicleYokeActive = true;
+        firstPersonWeapons.enterVehicleMode();
+
+        // Try to enable gyroscope on mobile
+        if (this.gyroscopeManager?.isAvailable()) {
+          this.gyroscopeManager.enable().catch(() => {
+            log.info('Gyroscope not available, using touch fallback');
+          });
+        }
+      }
     }
   }
 
@@ -796,8 +917,41 @@ export class CanyonRunLevel extends SurfaceLevel {
   private updateVehicleInput(): void {
     if (!this.vehicle) return;
 
-    const input = VehicleController.buildInput(this.keys, this.touchInput);
+    // Build input with mouse state for turret control
+    let input = VehicleController.buildInput(
+      this.keys,
+      this.touchInput,
+      this.mouseState
+    );
+
+    // Override with gyroscope input on mobile if available
+    if (this.gyroscopeManager?.isEnabled()) {
+      const gyroSteer = this.gyroscopeManager.getSteeringInput();
+      const gyroThrottle = this.gyroscopeManager.getThrottleInput();
+
+      // Use gyroscope for steering if it has significant input
+      if (Math.abs(gyroSteer) > 0.1) {
+        input = { ...input, steer: gyroSteer };
+      }
+
+      // Use gyroscope for throttle/brake if touch joystick isn't being used
+      if (!this.touchInput || Math.abs(this.touchInput.movement.y) < 0.2) {
+        if (gyroThrottle.throttle > 0.1) {
+          input = { ...input, throttle: gyroThrottle.throttle };
+        }
+        if (gyroThrottle.brake > 0.1) {
+          input = { ...input, brake: gyroThrottle.brake };
+        }
+      }
+    }
+
     this.vehicle.setInput(input);
+
+    // Clear mouse movement after consuming (delta-based)
+    if (this.mouseState) {
+      this.mouseState.movementX = 0;
+      this.mouseState.movementY = 0;
+    }
 
     // [FIX #2] Manage engine sound based on throttle
     if (input.throttle > 0 && !this.engineSoundActive) {
@@ -820,8 +974,36 @@ export class CanyonRunLevel extends SurfaceLevel {
     if (input.boost && this.vehicle.getBoostFuelNormalized() > 0) {
       if (!this.vehicle.getState().isBoosting) {
         // About to start boosting
+        try {
+          getAudioManager().play('rocket_fire', { volume: 0.4 });
+        } catch {
+          // Audio not available
+        }
       }
     }
+
+    // Check for exit request
+    if (input.exitRequest && this.vehicle.canExit()) {
+      this.handleVehicleExit();
+    }
+  }
+
+  /**
+   * Handle player exiting the vehicle.
+   */
+  private handleVehicleExit(): void {
+    if (!this.vehicle) return;
+
+    // Get exit position
+    const exitPos = this.vehicle.getExitPosition();
+
+    // Teleport camera to exit position
+    this.camera.position.copyFrom(exitPos);
+    this.camera.position.y += 1.5; // Eye height
+
+    // Note: In a full implementation, this would transition to on-foot gameplay
+    // For Canyon Run, we don't allow exiting during the chase
+    this.callbacks.onNotification('STAY IN THE VEHICLE!', 1500);
   }
 
   private updateVehicleDamageFeedback(): void {
@@ -1360,11 +1542,66 @@ export class CanyonRunLevel extends SurfaceLevel {
 
     const state = this.vehicle.getState();
 
-    // [FIX #11] Update boost meter via notification or custom callback
-    // For now, we can encode boost in the armor display
+    // Update boost meter
     const boostPct = Math.round(state.boostFuel / state.boostFuelMax * 100);
     if (boostPct <= 20 && state.isBoosting) {
       this.callbacks.onNotification('BOOST LOW', 500);
+    }
+
+    // Boost cooldown notification
+    if (state.boostCooldown > 0) {
+      // Boost is on cooldown
+    }
+
+    // Turret heat warning
+    if (state.turretHeat > 0.8 && !state.turretOverheated) {
+      this.callbacks.onNotification('TURRET HEAT WARNING', 300);
+    }
+
+    // Turret overheated
+    if (state.turretOverheated) {
+      // Could show on HUD
+    }
+
+    // Speed indicator - shown in objective subtitle
+    const speedMPH = Math.round(Math.abs(state.speed) * 2.23694); // Convert to MPH
+    const boostStatus = state.isBoosting
+      ? ' [BOOST]'
+      : state.boostCooldown > 0
+        ? ` [COOLDOWN ${Math.ceil(state.boostCooldown)}s]`
+        : '';
+    const turretStatus = state.turretOverheated
+      ? ' | TURRET OVERHEATED'
+      : state.turretHeat > 0.5
+        ? ` | HEAT ${Math.round(state.turretHeat * 100)}%`
+        : '';
+
+    // Handbrake indicator
+    const handbrakeStatus = state.isHandbraking ? ' [DRIFT]' : '';
+
+    this.callbacks.onObjectiveUpdate(
+      this.getPhaseObjective(),
+      `${speedMPH} MPH${boostStatus}${handbrakeStatus}${turretStatus}`
+    );
+  }
+
+  /**
+   * Get current phase objective text.
+   */
+  private getPhaseObjective(): string {
+    switch (this.phase) {
+      case 'intro':
+        return 'BOARD VEHICLE';
+      case 'canyon_approach':
+        return 'REACH THE BRIDGE';
+      case 'bridge_crossing':
+        return 'CROSS THE BRIDGE';
+      case 'final_stretch':
+        return 'REACH EXTRACTION';
+      case 'extraction':
+        return 'EXTRACTION COMPLETE';
+      default:
+        return 'DRIVE';
     }
 
     // [FIX #52] Vehicle health is already sent via onHealthChange
@@ -1386,6 +1623,7 @@ export class CanyonRunLevel extends SurfaceLevel {
       kills: this.kills,
       secretsFound: getAchievementManager().getLevelSecretsFound(),
       timeSpent: this.phaseTime,
+      deaths: this.levelStats.deaths,
     };
     return state;
   }

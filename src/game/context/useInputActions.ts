@@ -7,9 +7,13 @@
  *
  * For non-React contexts (like Babylon.js levels), we need to access
  * keybindings differently since we can't use hooks directly.
+ *
+ * This module also provides singleton accessors for dynamic action
+ * registration, allowing BabylonJS levels to register context-specific
+ * keybindings (e.g., vehicle controls, squad commands).
  */
 
-import type { BindableAction, Keybindings } from './KeybindingsContext';
+import type { BindableAction, DynamicAction, Keybindings } from './KeybindingsContext';
 import { DEFAULT_KEYBINDINGS, getKeysForAction, getPrimaryKey } from './KeybindingsContext';
 
 const STORAGE_KEY = 'stellar-descent-keybindings';
@@ -178,4 +182,117 @@ export function disposeInputTracker(): void {
     globalInputTracker.dispose();
     globalInputTracker = null;
   }
+}
+
+// ============================================================================
+// DYNAMIC ACTION REGISTRATION (for non-React contexts)
+// ============================================================================
+
+/**
+ * Registered dynamic action with metadata.
+ * Mirrors the structure in KeybindingsContext.
+ */
+interface RegisteredDynamicAction {
+  action: DynamicAction;
+  levelId: string;
+  category?: string;
+}
+
+/**
+ * Registry for dynamic actions.
+ * This is a simple in-memory store that levels can use to register/unregister
+ * their context-specific actions. The React KeybindingsContext provider
+ * observes this registry via the bridge functions below.
+ */
+const dynamicActionsRegistry = new Map<string, RegisteredDynamicAction[]>();
+
+/**
+ * Callbacks registered by the React KeybindingsProvider to sync state.
+ * When levels register/unregister actions, these callbacks notify the
+ * React context to update its state.
+ */
+type RegistryChangeCallback = () => void;
+let registryChangeCallback: RegistryChangeCallback | null = null;
+
+/**
+ * Set the callback that gets invoked when the registry changes.
+ * This is called by the KeybindingsProvider to stay in sync.
+ */
+export function setDynamicActionsRegistryCallback(callback: RegistryChangeCallback | null): void {
+  registryChangeCallback = callback;
+}
+
+/**
+ * Get all currently registered dynamic actions.
+ * Used by the React context to read the current state.
+ */
+export function getRegisteredDynamicActions(): RegisteredDynamicAction[] {
+  const all: RegisteredDynamicAction[] = [];
+  dynamicActionsRegistry.forEach((levelActions) => {
+    all.push(...levelActions);
+  });
+  return all;
+}
+
+/**
+ * Get the list of currently active dynamic action names.
+ */
+export function getActiveDynamicActions(): DynamicAction[] {
+  const actions: DynamicAction[] = [];
+  dynamicActionsRegistry.forEach((levelActions) => {
+    for (const reg of levelActions) {
+      if (!actions.includes(reg.action)) {
+        actions.push(reg.action);
+      }
+    }
+  });
+  return actions;
+}
+
+/**
+ * Register dynamic actions for a level.
+ * Call this in level initialize() to make context-specific keybindings active.
+ *
+ * @param levelId - Unique identifier for the level (e.g., 'canyon_run', 'final_escape')
+ * @param actions - Array of dynamic actions to register
+ * @param category - Optional category for grouping (e.g., 'vehicle', 'squad')
+ */
+export function registerDynamicActions(
+  levelId: string,
+  actions: DynamicAction[],
+  category?: string
+): void {
+  const registrations: RegisteredDynamicAction[] = actions.map((action) => ({
+    action,
+    levelId,
+    category,
+  }));
+  dynamicActionsRegistry.set(levelId, registrations);
+
+  // Notify React context of the change
+  registryChangeCallback?.();
+}
+
+/**
+ * Unregister all dynamic actions for a level.
+ * Call this in level dispose() to clean up context-specific keybindings.
+ *
+ * @param levelId - Unique identifier for the level
+ */
+export function unregisterDynamicActions(levelId: string): void {
+  dynamicActionsRegistry.delete(levelId);
+
+  // Notify React context of the change
+  registryChangeCallback?.();
+}
+
+/**
+ * Clear all registered dynamic actions.
+ * Useful when resetting the game state.
+ */
+export function clearAllDynamicActions(): void {
+  dynamicActionsRegistry.clear();
+
+  // Notify React context of the change
+  registryChangeCallback?.();
 }

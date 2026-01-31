@@ -13,6 +13,9 @@
  * - AtmosphericEffects: God rays, emergency lighting, dust storms, spore clouds
  * - FrostEffect: Screen frost overlay and movement slow debuff (Southern Ice level)
  * - IceShardProjectile: Ice crystal ranged projectile with frost AOE
+ * - ShellCasings: Physical brass casing ejection with SPS and ground physics
+ * - ImpactDecals: Pool-based bullet hole decals with surface-specific visuals
+ * - ImpactParticles: Multi-layer surface-specific impact VFX (metal sparks, concrete dust, etc.)
  */
 
 export type {
@@ -50,6 +53,13 @@ export {
 } from './LowHealthFeedback';
 export type { IceShardConfig } from './IceShardProjectile';
 export { destroyIceShardInAir, fireIceShard } from './IceShardProjectile';
+// Impact particles - surface-specific impact VFX
+export type {
+  ImpactParticleLayerConfig,
+  ImpactSurfaceConfig,
+  ImpactSurfaceType,
+} from './ImpactParticles';
+export { ImpactParticles, impactParticles } from './ImpactParticles';
 export type { MuzzleFlashConfig } from './MuzzleFlash';
 export { MuzzleFlashManager, muzzleFlash, WEAPON_FLASH_CONFIGS } from './MuzzleFlash';
 export type { ParticleEffectConfig } from './ParticleManager';
@@ -67,3 +77,14 @@ export type {
   WeatherType,
 } from './WeatherSystem';
 export { disposeWeatherSystem, getWeatherSystem, WeatherSystem } from './WeatherSystem';
+// Shell casing ejection system
+export type { CasingConfig, CasingWeaponType } from './ShellCasings';
+export { ShellCasingSystem, shellCasings, categoryToCasingType } from './ShellCasings';
+// Impact decals - bullet hole and damage marks
+export type { DecalConfig, DecalSurfaceType } from './ImpactDecals';
+export {
+  ImpactDecalSystem,
+  impactDecals,
+  createImpactDecal,
+  detectMeshSurfaceType,
+} from './ImpactDecals';

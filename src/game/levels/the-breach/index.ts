@@ -55,6 +55,30 @@ export {
   WEAK_POINT_MAX_ALPHA,
   GROUND_POUND_INDICATOR_DURATION,
   ACID_SPIT_PROJECTILE_SPEED,
+  // New phase-based attack system constants
+  QUEEN_PHASE_COOLDOWNS,
+  QUEEN_STAGGER_DURATION,
+  QUEEN_PHASE_TRANSITION_DURATION,
+  QUEEN_DEATH_THROES_THRESHOLD,
+  QUEEN_DEATH_THROES_SPAWN_INTERVAL,
+  QUEEN_WEAK_POINT_HEALTH,
+  QUEEN_WEAK_POINT_MULTIPLIERS,
+  QUEEN_WEAK_POINT_GLOW,
+  ACID_SPRAY_PROJECTILE_COUNT,
+  ACID_SPRAY_SPREAD_ANGLE,
+  ACID_SPRAY_SPEED,
+  QUEEN_CHARGE_SPEED,
+  QUEEN_CHARGE_RADIUS,
+  QUEEN_CHARGE_RETURN_TIME,
+  QUEEN_SCREECH_STUN_DURATION,
+  QUEEN_SCREECH_SPAWN_COUNT,
+  QUEEN_POISON_CLOUD_RADIUS,
+  QUEEN_POISON_CLOUD_DURATION,
+  QUEEN_FRENZY_ATTACK_COUNT,
+  QUEEN_FRENZY_ATTACK_DELAY,
+  QUEEN_EGG_BURST_SPAWN_COUNT,
+  QUEEN_DEATH_SLOWMO_DURATION,
+  QUEEN_DEATH_SLOWMO_SCALE,
 } from './constants';
 // Enemies
 export {
@@ -85,6 +109,7 @@ export {
 } from './hazards';
 // Queen Boss
 export {
+  // Legacy exports for backwards compatibility
   animateClawSwipe,
   animateTailSlam,
   animateGroundPound,
@@ -106,7 +131,31 @@ export {
   getScaledQueenHealth,
   getScaledQueenDamage,
   getScaledCooldown,
+  // New attack system exports
+  selectNextAttack,
+  updateQueenAI,
+  animateAcidSpray,
+  animateTailSwipe,
+  animateScreech,
+  animateCharge,
+  animateEggBurst,
+  animatePoisonCloud,
+  animateFrenzyAttack,
+  animatePhaseTransition,
+  getAcidSprayPositions,
+  checkChargeCollision,
+  checkPoisonCloudCollision,
+  getEggBurstSpawnPositions,
+  revealWeakPoints,
+  hideWeakPoints,
+  startFrenzy,
+  activateDeathThroes,
+  shouldEnterDeathThroes,
+  getPhaseAttackCooldown,
+  checkWeakPointHit,
+  damageWeakPoint,
 } from './queen';
+export type { QueenEventType } from './queen';
 // Main level class
 export { TheBreachLevel } from './TheBreachLevel';
 // Types
@@ -128,4 +177,9 @@ export type {
   QueenBodyParts,
   QueenPhase,
   TunnelSegment,
+  // New types for enhanced boss system
+  QueenWeakPoint,
+  QueenWeakPointId,
+  QueenAIState,
+  LegacyQueenAttackType,
 } from './types';

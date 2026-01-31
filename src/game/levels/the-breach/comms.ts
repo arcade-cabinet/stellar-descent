@@ -76,11 +76,31 @@ export const NOTIFICATIONS = {
   BOSS_PHASE_2: 'QUEEN ENRAGED - PHASE 2',
   BOSS_PHASE_3: 'QUEEN CRITICAL - PHASE 3',
 
-  // Queen attacks
+  // Queen attacks (legacy)
   ACID_INCOMING: 'ACID INCOMING!',
   CLAW_ATTACK: 'CLAW ATTACK!',
   TAIL_SLAM: 'TAIL SLAM!',
   GROUND_POUND: 'GROUND POUND!',
+
+  // Phase 1 attacks
+  ACID_SPRAY: 'ACID SPRAY INCOMING!',
+  TAIL_SWIPE: 'TAIL SWIPE!',
+  SCREECH: 'QUEEN SCREECH!',
+
+  // Phase 2 attacks
+  EGG_BURST: 'EGG BURST!',
+  CHARGE: 'QUEEN CHARGING!',
+  POISON_CLOUD: 'POISON CLOUD!',
+
+  // Phase 3 attacks
+  FRENZY: 'FRENZY ATTACK!',
+  DEATH_THROES: 'DEATH THROES: DRONES SPAWNED!',
+
+  // Weak point notifications
+  WEAK_POINT_HIT: (damage: number) => `WEAK POINT HIT! ${damage} damage!`,
+  WEAK_POINT_DESTROYED: (name: string) => `${name.toUpperCase()} WEAK POINT DESTROYED!`,
+  STAGGER_START: 'QUEEN STAGGERED!',
+  STAGGER_END: 'QUEEN RECOVERED!',
 
   // Phase transition warnings
   PHASE_2_WARNING: 'QUEEN HEALTH AT 66% - ENTERING PHASE 2!',

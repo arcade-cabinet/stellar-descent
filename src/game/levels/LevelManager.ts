@@ -7,13 +7,14 @@
  * - Transitioning between levels with proper cleanup
  * - Persisting level state to database
  * - Engine render loop management
+ * - Restoring saved state on level load (player position, collectibles, etc.)
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { getMissionDefinition } from '../campaign/MissionDefinitions';
 import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
-import { saveSystem } from '../persistence';
+import { type GameSave, saveSystem } from '../persistence';
 import {
   CAMPAIGN_LEVELS,
   type ILevel,
@@ -43,15 +44,30 @@ export class LevelManager {
   private currentLevel: ILevel | null = null;
   private levelStates: Map<LevelId, LevelState> = new Map();
   private isTransitioning = false;
+  private savedStatesLoaded = false;
 
   // Render loop handle
   private renderLoopHandle: number | null = null;
+
+  // Callbacks for state restoration
+  private onStateRestored: ((save: GameSave) => void) | null = null;
 
   constructor(config: LevelManagerConfig) {
     this.engine = config.engine;
     this.canvas = config.canvas;
     this.callbacks = config.callbacks;
     this.factories = config.levelFactories;
+  }
+
+  /**
+   * Register a callback to be called when saved state is restored
+   * This allows external systems (WeaponContext, GrenadeSystem, etc.) to restore their state
+   */
+  onSaveStateRestored(callback: (save: GameSave) => void): () => void {
+    this.onStateRestored = callback;
+    return () => {
+      this.onStateRestored = null;
+    };
   }
 
   /**
@@ -71,6 +87,11 @@ export class LevelManager {
         await this.disposeCurrentLevel();
       }
 
+      // Ensure saved states are loaded before starting level
+      if (!this.savedStatesLoaded) {
+        await this.loadSavedStates();
+      }
+
       // Get level config
       const config = this.getLevelConfig(levelId);
       if (!config) {
@@ -86,10 +107,39 @@ export class LevelManager {
       // Create the level
       const level = factory(this.engine, this.canvas, config, this.callbacks);
 
-      // Restore state if we have it
-      const savedState = this.levelStates.get(levelId);
-      if (savedState) {
-        level.setState(savedState);
+      // Restore state if we have it (from level states map)
+      const savedLevelState = this.levelStates.get(levelId);
+      if (savedLevelState) {
+        level.setState(savedLevelState);
+      }
+
+      // Additionally, check for checkpoint/save system state and apply
+      const gameSave = saveSystem.getCurrentSave();
+      if (gameSave && gameSave.currentLevel === levelId) {
+        // Apply checkpoint position if available
+        if (gameSave.checkpoint) {
+          level.setState({
+            id: levelId,
+            visited: true,
+            completed: gameSave.levelsCompleted.includes(levelId),
+            playerPosition: gameSave.checkpoint.position,
+            playerRotation: gameSave.checkpoint.rotation,
+          });
+        } else if (gameSave.playerPosition) {
+          // Use saved player position
+          level.setState({
+            id: levelId,
+            visited: true,
+            completed: gameSave.levelsCompleted.includes(levelId),
+            playerPosition: gameSave.playerPosition,
+            playerRotation: gameSave.playerRotation,
+          });
+        }
+
+        // Notify external systems to restore their state
+        if (this.onStateRestored) {
+          this.onStateRestored(gameSave);
+        }
       }
 
       // Initialize the level
@@ -197,20 +247,119 @@ export class LevelManager {
 
   /**
    * Load saved states from database
-   * Issue #61: Actually implement saved state loading
+   * Implements full state restoration from IndexedDB
    */
   async loadSavedStates(): Promise<void> {
-    // Load level states from database for all campaign levels
+    try {
+      // Load level states from database for all campaign levels
+      const levelIds = Object.keys(CAMPAIGN_LEVELS) as LevelId[];
+      let loadedCount = 0;
+      let errorCount = 0;
+
+      for (const levelId of levelIds) {
+        try {
+          const state = await this.loadLevelState(levelId);
+          if (state) {
+            this.levelStates.set(levelId, state);
+            loadedCount++;
+          }
+        } catch (error) {
+          log.warn(`Failed to load state for level ${levelId}:`, error);
+          errorCount++;
+        }
+      }
+
+      // Also sync with the current game save if available
+      const gameSave = saveSystem.getCurrentSave();
+      if (gameSave) {
+        // Merge save system data with level states
+        for (const levelId of gameSave.levelsVisited) {
+          if (!this.levelStates.has(levelId)) {
+            // Create a basic state from the save
+            const levelState: LevelState = {
+              id: levelId,
+              visited: true,
+              completed: gameSave.levelsCompleted.includes(levelId),
+            };
+
+            // If this is the current level, include position
+            if (levelId === gameSave.currentLevel) {
+              levelState.playerPosition = gameSave.playerPosition;
+              levelState.playerRotation = gameSave.playerRotation;
+            }
+
+            this.levelStates.set(levelId, levelState);
+          }
+        }
+
+        // Mark completed levels as completed in their states
+        for (const levelId of gameSave.levelsCompleted) {
+          const state = this.levelStates.get(levelId);
+          if (state) {
+            state.completed = true;
+          }
+        }
+      }
+
+      this.savedStatesLoaded = true;
+
+      if (errorCount > 0) {
+        log.warn(`Loaded ${loadedCount} level states with ${errorCount} errors`);
+      } else {
+        log.info(`Loaded ${loadedCount} level states from database`);
+      }
+    } catch (error) {
+      log.error('Failed to load saved states:', error);
+      // Mark as loaded anyway to prevent repeated failures
+      this.savedStatesLoaded = true;
+    }
+  }
+
+  /**
+   * Force reload of saved states (useful after loading a save)
+   */
+  async reloadSavedStates(): Promise<void> {
+    this.savedStatesLoaded = false;
+    this.levelStates.clear();
+    await this.loadSavedStates();
+  }
+
+  /**
+   * Get restored state for a specific level
+   */
+  getSavedLevelState(levelId: LevelId): LevelState | null {
+    return this.levelStates.get(levelId) ?? null;
+  }
+
+  /**
+   * Get all saved level states
+   */
+  getAllSavedStates(): Map<LevelId, LevelState> {
+    return new Map(this.levelStates);
+  }
+
+  /**
+   * Manually set a level state (useful for loading from external sources)
+   */
+  setLevelState(levelId: LevelId, state: LevelState): void {
+    this.levelStates.set(levelId, state);
+    this.persistLevelState(state);
+  }
+
+  /**
+   * Clear all saved states (for new game)
+   */
+  async clearAllSavedStates(): Promise<void> {
     const levelIds = Object.keys(CAMPAIGN_LEVELS) as LevelId[];
 
     for (const levelId of levelIds) {
-      const state = await this.loadLevelState(levelId);
-      if (state) {
-        this.levelStates.set(levelId, state);
-      }
+      const key = `level_${levelId}`;
+      await worldDb.deleteChunkData(key);
     }
 
-    log.info(`Loaded ${this.levelStates.size} level states from database`);
+    this.levelStates.clear();
+    this.savedStatesLoaded = false;
+    log.info('Cleared all saved level states');
   }
 
   /**

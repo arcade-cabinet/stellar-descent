@@ -21,7 +21,8 @@ export type DropPhase =
   | 'freefall_clear'    // Past asteroids, waiting for jets
   | 'powered_descent'   // Jets active, targeting LZ
   | 'landing'           // Final approach
-  | 'surface';          // On ground
+  | 'vehicle_transit'   // Brief ATV section to first objective
+  | 'surface';          // On ground (foot combat)
 
 /**
  * The outcome of the landing based on velocity and position.

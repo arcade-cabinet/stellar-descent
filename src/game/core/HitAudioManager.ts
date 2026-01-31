@@ -618,6 +618,376 @@ export class HitAudioManager {
   }
 
   // ============================================================================
+  // PLAYER DAMAGE FEEDBACK
+  // ============================================================================
+
+  /**
+   * Play player hit sound - dull thud indicating player took damage
+   * @param damage - Amount of damage taken
+   */
+  playPlayerHitSound(damage: number): void {
+    if (this.isMuted) return;
+
+    const ctx = this.getContext();
+    const output = this.getOutputNode();
+    const now = ctx.currentTime;
+
+    // Scale intensity based on damage (higher damage = more intense)
+    const intensity = Math.min(1.5, 0.6 + damage / 40);
+    const vol = 0.4 * intensity;
+
+    // Dull impact thud - body hit feel
+    const thud = ctx.createOscillator();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(100, now);
+    thud.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+
+    const thudGain = ctx.createGain();
+    thudGain.gain.setValueAtTime(vol, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+    // Distortion for impact feel
+    const distortion = ctx.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) {
+      const x = i / 128 - 1;
+      curve[i] = Math.tanh(x * 2.5);
+    }
+    distortion.curve = curve;
+
+    // Muffled noise for flesh impact
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.value = 600;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(vol * 0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    // Pain grunt component - subtle vocalization
+    const grunt = ctx.createOscillator();
+    grunt.type = 'sawtooth';
+    grunt.frequency.setValueAtTime(150 + Math.random() * 50, now);
+    grunt.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+
+    const gruntFilter = ctx.createBiquadFilter();
+    gruntFilter.type = 'bandpass';
+    gruntFilter.frequency.value = 200;
+    gruntFilter.Q.value = 3;
+
+    const gruntGain = ctx.createGain();
+    gruntGain.gain.setValueAtTime(vol * 0.25, now);
+    gruntGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+    // Connect
+    thud.connect(distortion);
+    distortion.connect(thudGain);
+    thudGain.connect(output);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(output);
+
+    grunt.connect(gruntFilter);
+    gruntFilter.connect(gruntGain);
+    gruntGain.connect(output);
+
+    // Play
+    thud.start(now);
+    thud.stop(now + 0.25);
+    noise.start(now);
+    noise.stop(now + 0.15);
+    grunt.start(now);
+    grunt.stop(now + 0.12);
+  }
+
+  /**
+   * Play heartbeat sound for low health warning
+   * Creates tension when player health is critical
+   */
+  playHeartbeat(volume = 0.3): void {
+    if (this.isMuted) return;
+
+    const ctx = this.getContext();
+    const output = this.getOutputNode();
+    const now = ctx.currentTime;
+
+    // First beat (lub)
+    const lub = ctx.createOscillator();
+    lub.type = 'sine';
+    lub.frequency.setValueAtTime(80, now);
+    lub.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+
+    const lubGain = ctx.createGain();
+    lubGain.gain.setValueAtTime(volume, now);
+    lubGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    // Second beat (dub) - slightly quieter and higher
+    const dub = ctx.createOscillator();
+    dub.type = 'sine';
+    dub.frequency.setValueAtTime(70, now + 0.15);
+    dub.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+
+    const dubGain = ctx.createGain();
+    dubGain.gain.setValueAtTime(volume * 0.7, now + 0.15);
+    dubGain.gain.exponentialRampToValueAtTime(0.01, now + 0.27);
+
+    // Sub-bass pulse for chest feel
+    const subPulse = ctx.createOscillator();
+    subPulse.type = 'sine';
+    subPulse.frequency.value = 30;
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0, now);
+    subGain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.02);
+    subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+    // Connect
+    lub.connect(lubGain);
+    lubGain.connect(output);
+
+    dub.connect(dubGain);
+    dubGain.connect(output);
+
+    subPulse.connect(subGain);
+    subGain.connect(output);
+
+    // Play
+    lub.start(now);
+    lub.stop(now + 0.15);
+    dub.start(now + 0.15);
+    dub.stop(now + 0.3);
+    subPulse.start(now);
+    subPulse.stop(now + 0.2);
+  }
+
+  /**
+   * Play heavy breathing sound for low health / exhaustion
+   */
+  playHeavyBreathing(volume = 0.25): void {
+    if (this.isMuted) return;
+
+    const ctx = this.getContext();
+    const output = this.getOutputNode();
+    const now = ctx.currentTime;
+
+    // Inhale - filtered noise rising
+    const inhaleBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
+    const inhaleData = inhaleBuffer.getChannelData(0);
+    for (let i = 0; i < inhaleData.length; i++) {
+      inhaleData[i] = Math.random() * 2 - 1;
+    }
+    const inhale = ctx.createBufferSource();
+    inhale.buffer = inhaleBuffer;
+
+    const inhaleFilter = ctx.createBiquadFilter();
+    inhaleFilter.type = 'bandpass';
+    inhaleFilter.frequency.setValueAtTime(400, now);
+    inhaleFilter.frequency.linearRampToValueAtTime(800, now + 0.4);
+    inhaleFilter.Q.value = 2;
+
+    const inhaleGain = ctx.createGain();
+    inhaleGain.gain.setValueAtTime(0, now);
+    inhaleGain.gain.linearRampToValueAtTime(volume, now + 0.15);
+    inhaleGain.gain.setValueAtTime(volume * 0.8, now + 0.35);
+    inhaleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+    // Exhale - filtered noise falling
+    const exhaleBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.7, ctx.sampleRate);
+    const exhaleData = exhaleBuffer.getChannelData(0);
+    for (let i = 0; i < exhaleData.length; i++) {
+      exhaleData[i] = Math.random() * 2 - 1;
+    }
+    const exhale = ctx.createBufferSource();
+    exhale.buffer = exhaleBuffer;
+
+    const exhaleFilter = ctx.createBiquadFilter();
+    exhaleFilter.type = 'bandpass';
+    exhaleFilter.frequency.setValueAtTime(700, now + 0.6);
+    exhaleFilter.frequency.linearRampToValueAtTime(300, now + 1.1);
+    exhaleFilter.Q.value = 2;
+
+    const exhaleGain = ctx.createGain();
+    exhaleGain.gain.setValueAtTime(0, now + 0.6);
+    exhaleGain.gain.linearRampToValueAtTime(volume * 0.8, now + 0.75);
+    exhaleGain.gain.setValueAtTime(volume * 0.6, now + 1);
+    exhaleGain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+
+    // Subtle wheeze undertone
+    const wheeze = ctx.createOscillator();
+    wheeze.type = 'sawtooth';
+    wheeze.frequency.setValueAtTime(150, now);
+    wheeze.frequency.linearRampToValueAtTime(200, now + 0.4);
+
+    const wheezeFilter = ctx.createBiquadFilter();
+    wheezeFilter.type = 'bandpass';
+    wheezeFilter.frequency.value = 250;
+    wheezeFilter.Q.value = 8;
+
+    const wheezeGain = ctx.createGain();
+    wheezeGain.gain.setValueAtTime(0, now);
+    wheezeGain.gain.linearRampToValueAtTime(volume * 0.15, now + 0.2);
+    wheezeGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+    // Connect
+    inhale.connect(inhaleFilter);
+    inhaleFilter.connect(inhaleGain);
+    inhaleGain.connect(output);
+
+    exhale.connect(exhaleFilter);
+    exhaleFilter.connect(exhaleGain);
+    exhaleGain.connect(output);
+
+    wheeze.connect(wheezeFilter);
+    wheezeFilter.connect(wheezeGain);
+    wheezeGain.connect(output);
+
+    // Play
+    inhale.start(now);
+    inhale.stop(now + 0.55);
+    exhale.start(now + 0.6);
+    exhale.stop(now + 1.25);
+    wheeze.start(now);
+    wheeze.stop(now + 0.5);
+  }
+
+  /**
+   * Play shield break sound - energy shield depleted
+   */
+  playShieldBreak(volume = 0.45): void {
+    if (this.isMuted) return;
+
+    const ctx = this.getContext();
+    const output = this.getOutputNode();
+    const now = ctx.currentTime;
+
+    // Energy crackle
+    const crackle = ctx.createOscillator();
+    crackle.type = 'sawtooth';
+    crackle.frequency.setValueAtTime(2500, now);
+    crackle.frequency.exponentialRampToValueAtTime(300, now + 0.15);
+
+    const crackleGain = ctx.createGain();
+    crackleGain.gain.setValueAtTime(volume * 0.6, now);
+    crackleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+    // Electric zap
+    const zap = ctx.createOscillator();
+    zap.type = 'square';
+    zap.frequency.setValueAtTime(1500, now);
+    zap.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+
+    const zapGain = ctx.createGain();
+    zapGain.gain.setValueAtTime(volume * 0.4, now);
+    zapGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+    // Descending power-down tone
+    const powerDown = ctx.createOscillator();
+    powerDown.type = 'sine';
+    powerDown.frequency.setValueAtTime(800, now);
+    powerDown.frequency.exponentialRampToValueAtTime(150, now + 0.3);
+
+    const powerDownGain = ctx.createGain();
+    powerDownGain.gain.setValueAtTime(volume * 0.5, now);
+    powerDownGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+    // Noise burst
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 2000;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(volume * 0.35, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    // Connect
+    crackle.connect(crackleGain);
+    crackleGain.connect(output);
+
+    zap.connect(zapGain);
+    zapGain.connect(output);
+
+    powerDown.connect(powerDownGain);
+    powerDownGain.connect(output);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(output);
+
+    // Play
+    crackle.start(now);
+    crackle.stop(now + 0.2);
+    zap.start(now);
+    zap.stop(now + 0.12);
+    powerDown.start(now);
+    powerDown.stop(now + 0.4);
+    noise.start(now);
+    noise.stop(now + 0.15);
+  }
+
+  /**
+   * Play critical health warning - urgent alarm
+   */
+  playCriticalHealthWarning(volume = 0.3): void {
+    if (this.isMuted) return;
+
+    const ctx = this.getContext();
+    const output = this.getOutputNode();
+    const now = ctx.currentTime;
+
+    // Two-tone alarm
+    const alarm1 = ctx.createOscillator();
+    alarm1.type = 'sine';
+    alarm1.frequency.value = 600;
+
+    const alarm2 = ctx.createOscillator();
+    alarm2.type = 'sine';
+    alarm2.frequency.value = 450;
+
+    const alarm1Gain = ctx.createGain();
+    alarm1Gain.gain.setValueAtTime(volume, now);
+    alarm1Gain.gain.setValueAtTime(0, now + 0.15);
+    alarm1Gain.gain.setValueAtTime(volume, now + 0.3);
+    alarm1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+    const alarm2Gain = ctx.createGain();
+    alarm2Gain.gain.setValueAtTime(0, now);
+    alarm2Gain.gain.setValueAtTime(volume * 0.8, now + 0.15);
+    alarm2Gain.gain.setValueAtTime(0, now + 0.3);
+    alarm2Gain.gain.setValueAtTime(volume * 0.8, now + 0.45);
+    alarm2Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+
+    // Connect
+    alarm1.connect(alarm1Gain);
+    alarm1Gain.connect(output);
+
+    alarm2.connect(alarm2Gain);
+    alarm2Gain.connect(output);
+
+    // Play
+    alarm1.start(now);
+    alarm1.stop(now + 0.5);
+    alarm2.start(now);
+    alarm2.stop(now + 0.65);
+  }
+
+  // ============================================================================
   // CLEANUP
   // ============================================================================
 
@@ -661,4 +1031,24 @@ export function playMultiKillSound(killCount: number): void {
 
 export function playArmorBreakSound(): void {
   hitAudioManager.playArmorBreakSound();
+}
+
+export function playPlayerHitSound(damage: number): void {
+  hitAudioManager.playPlayerHitSound(damage);
+}
+
+export function playHeartbeat(volume?: number): void {
+  hitAudioManager.playHeartbeat(volume);
+}
+
+export function playHeavyBreathing(volume?: number): void {
+  hitAudioManager.playHeavyBreathing(volume);
+}
+
+export function playShieldBreak(volume?: number): void {
+  hitAudioManager.playShieldBreak(volume);
+}
+
+export function playCriticalHealthWarning(volume?: number): void {
+  hitAudioManager.playCriticalHealthWarning(volume);
 }

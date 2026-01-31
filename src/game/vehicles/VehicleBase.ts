@@ -69,6 +69,32 @@ export interface VehicleStats {
   mass: number;
 }
 
+/**
+ * Vehicle input state from keyboard/mouse/touch
+ */
+export interface VehicleInputState {
+  /** Throttle input (0-1 forward, negative for reverse) */
+  throttle: number;
+  /** Steering input (-1 left to 1 right) */
+  steer: number;
+  /** Brake input (0-1) */
+  brake: number;
+  /** Boost button pressed */
+  boost: boolean;
+  /** Handbrake pressed */
+  handbrake: boolean;
+  /** Turret aim delta X (mouse/stick movement) */
+  turretAimX: number;
+  /** Turret aim delta Y (mouse/stick movement) */
+  turretAimY: number;
+  /** Primary fire button */
+  fire: boolean;
+  /** Secondary fire button */
+  fireSecondary: boolean;
+  /** Exit vehicle request */
+  exitRequest: boolean;
+}
+
 // --------------------------------------------------------------------------
 // Abstract base
 // --------------------------------------------------------------------------
@@ -312,11 +338,14 @@ export abstract class VehicleBase {
   private vehicleKeysPressed = new Set<string>();
   private vehicleMouseDown = false;
   private vehicleRightMouseDown = false;
+  private vehicleMouseMovementX = 0;
+  private vehicleMouseMovementY = 0;
 
   private setupVehicleInput(): void {
     const onKeyDown = (e: KeyboardEvent) => {
       this.vehicleKeysPressed.add(e.code);
-      if (e.code === 'KeyE') {
+      // Exit on E only when nearly stopped
+      if (e.code === 'KeyE' && this.linearVelocity.length() < 3) {
         this.exit();
       }
     };
@@ -343,9 +372,59 @@ export abstract class VehicleBase {
     window.addEventListener('mouseup', onMouseUp);
     this._listeners.push(() => window.removeEventListener('mouseup', onMouseUp));
 
+    const onMouseMove = (e: MouseEvent) => {
+      this.vehicleMouseMovementX += e.movementX;
+      this.vehicleMouseMovementY += e.movementY;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    this._listeners.push(() => window.removeEventListener('mousemove', onMouseMove));
+
     const onContextMenu = (e: Event) => e.preventDefault();
     window.addEventListener('contextmenu', onContextMenu);
     this._listeners.push(() => window.removeEventListener('contextmenu', onContextMenu));
+  }
+
+  /**
+   * Get the current vehicle input state from keyboard/mouse.
+   */
+  protected getVehicleInput(): VehicleInputState {
+    // Build input from current key state
+    let throttle = 0;
+    let steer = 0;
+    let brake = 0;
+
+    // W/S or Up/Down for throttle
+    if (this.isKeyDown('KeyW') || this.isKeyDown('ArrowUp')) throttle = 1;
+    if (this.isKeyDown('KeyS') || this.isKeyDown('ArrowDown')) brake = 1;
+
+    // A/D or Left/Right for steering
+    if (this.isKeyDown('KeyA') || this.isKeyDown('ArrowLeft')) steer = -1;
+    if (this.isKeyDown('KeyD') || this.isKeyDown('ArrowRight')) steer = 1;
+
+    // Boost on Shift
+    const boost = this.isKeyDown('ShiftLeft') || this.isKeyDown('ShiftRight');
+
+    // Handbrake on Space
+    const handbrake = this.isKeyDown('Space');
+
+    // Consume mouse movement
+    const turretAimX = this.vehicleMouseMovementX * 0.003;
+    const turretAimY = this.vehicleMouseMovementY * 0.003;
+    this.vehicleMouseMovementX = 0;
+    this.vehicleMouseMovementY = 0;
+
+    return {
+      throttle,
+      steer,
+      brake,
+      boost,
+      handbrake,
+      turretAimX,
+      turretAimY,
+      fire: this.vehicleMouseDown,
+      fireSecondary: this.vehicleRightMouseDown,
+      exitRequest: this.isKeyDown('KeyE'),
+    };
   }
 
   private teardownVehicleInput(): void {
