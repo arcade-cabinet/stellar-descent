@@ -265,7 +265,7 @@ export function GameCanvas({
   const engineRef = useRef<Engine | null>(null);
   const sceneRef = useRef<Scene | null>(null);
   const gameManagerRef = useRef<GameManager | null>(null);
-  const tutorialLevelRef = useRef<(ILevel & { onCommsDismissed?: () => void }) | null>(null);
+  const currentLevelRef = useRef<(ILevel & { onCommsDismissed?: () => void }) | null>(null);
   const prevGameStateRef = useRef<GameState>('menu');
   const planetRef = useRef<{
     planet: ReturnType<typeof MeshBuilder.CreateSphere>;
@@ -298,8 +298,8 @@ export function GameCanvas({
 
   // Pass touch input to active level/game
   useEffect(() => {
-    if (gameState === 'tutorial' && tutorialLevelRef.current) {
-      tutorialLevelRef.current.setTouchInput(touchInput);
+    if (gameState === 'tutorial' && currentLevelRef.current) {
+      currentLevelRef.current.setTouchInput(touchInput);
     } else if ((gameState === 'playing' || gameState === 'dropping') && gameManagerRef.current) {
       gameManagerRef.current.setTouchInput(touchInput);
     }
@@ -307,8 +307,8 @@ export function GameCanvas({
 
   // Notify tutorial level when comms are dismissed
   useEffect(() => {
-    if (commsDismissedFlag > 0 && tutorialLevelRef.current?.onCommsDismissed) {
-      tutorialLevelRef.current.onCommsDismissed();
+    if (commsDismissedFlag > 0 && currentLevelRef.current?.onCommsDismissed) {
+      currentLevelRef.current.onCommsDismissed();
     }
   }, [commsDismissedFlag]);
 
@@ -509,13 +509,13 @@ export function GameCanvas({
         // Update active level/game based on current refs (not state)
         const deltaTime = engine.getDeltaTime() / 1000;
 
-        if (tutorialLevelRef.current) {
+        if (currentLevelRef.current) {
           // Only update game logic if not paused
           if (!isPaused) {
-            tutorialLevelRef.current.update(deltaTime);
+            currentLevelRef.current.update(deltaTime);
           }
           // Always render the level's own scene (levels create their own scene in ILevel architecture)
-          tutorialLevelRef.current.getScene().render();
+          currentLevelRef.current.getScene().render();
         } else if (gameManagerRef.current) {
           // Only update game logic if not paused
           if (!isPaused) {
@@ -545,8 +545,8 @@ export function GameCanvas({
     return () => {
       window.removeEventListener('resize', handleResize);
       mounted = false;
-      tutorialLevelRef.current?.dispose();
-      tutorialLevelRef.current = null;
+      currentLevelRef.current?.dispose();
+      currentLevelRef.current = null;
       gameManagerRef.current?.dispose();
       gameManagerRef.current = null;
       sceneRef.current?.dispose();
@@ -673,12 +673,16 @@ export function GameCanvas({
       // Use factory system to create the tutorial level
       const levelConfig = CAMPAIGN_LEVELS.anchor_station;
       const factory = defaultLevelFactories[levelConfig.type];
+      if (!factory) {
+        log.error(`No factory found for level type: ${levelConfig.type}`);
+        return;
+      }
       log.info(
         `Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`
       );
-      tutorialLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
+      currentLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
       log.debug('Calling initialize()');
-      tutorialLevelRef.current
+      currentLevelRef.current
         .initialize()
         .then(() => {
           log.info('initialize() completed');
@@ -691,9 +695,9 @@ export function GameCanvas({
     // Transition: tutorial -> dropping OR menu -> dropping (skip)
     if (gameState === 'dropping' && prevState !== 'dropping' && prevState !== 'playing') {
       // Clean up tutorial
-      if (tutorialLevelRef.current) {
-        tutorialLevelRef.current.dispose();
-        tutorialLevelRef.current = null;
+      if (currentLevelRef.current) {
+        currentLevelRef.current.dispose();
+        currentLevelRef.current = null;
       }
       hideComms();
       setObjective('', '');
@@ -725,9 +729,9 @@ export function GameCanvas({
       const levelId = startLevelId as LevelId;
       if (levelId && levelId !== 'anchor_station' && levelId !== 'landfall') {
         // Clean up any existing level
-        if (tutorialLevelRef.current) {
-          tutorialLevelRef.current.dispose();
-          tutorialLevelRef.current = null;
+        if (currentLevelRef.current) {
+          currentLevelRef.current.dispose();
+          currentLevelRef.current = null;
         }
         if (gameManagerRef.current) {
           gameManagerRef.current.dispose();
@@ -738,6 +742,10 @@ export function GameCanvas({
 
         const levelConfig = CAMPAIGN_LEVELS[levelId];
         const factory = defaultLevelFactories[levelConfig.type];
+        if (!factory) {
+          log.error(`No factory found for level type: ${levelConfig.type} (level: ${levelId})`);
+          return;
+        }
         const levelCallbacks: LevelCallbacks = {
           onCommsMessage: (msg) => showComms(msg),
           onObjectiveUpdate: (title, instructions) => setObjective(title, instructions),
@@ -759,8 +767,8 @@ export function GameCanvas({
         log.info(
           `Creating level via factory: ${levelId} (type: ${levelConfig.type})`
         );
-        tutorialLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
-        tutorialLevelRef.current
+        currentLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
+        currentLevelRef.current
           .initialize()
           .then(() => {
             log.info(`Level ${levelId} initialized`);

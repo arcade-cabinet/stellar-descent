@@ -31,6 +31,7 @@ import { SettingsProvider } from './game/context/SettingsContext';
 import { SubtitleProvider } from './game/context/SubtitleContext';
 import { WeaponProvider } from './game/context/WeaponContext';
 import { useCommsSubtitles } from './game/hooks/useCommsSubtitles';
+import { CAMPAIGN_LEVELS } from './game/levels/types';
 import type { LevelId } from './game/levels/types';
 import { shouldShowTouchControls } from './game/utils/PlatformDetector';
 import { usePWA } from './hooks/usePWA';
@@ -44,10 +45,8 @@ const log = getLogger('App');
 
 const TITLE_SHOWN_KEY = 'stellar_descent_title_shown';
 
-const VALID_LEVELS: LevelId[] = [
-  'anchor_station', 'landfall', 'canyon_run', 'fob_delta', 'brothers_in_arms',
-  'southern_ice', 'the_breach', 'hive_assault', 'extraction', 'final_escape',
-];
+// Derive VALID_LEVELS from CAMPAIGN_LEVELS to keep them in sync
+const VALID_LEVELS = Object.keys(CAMPAIGN_LEVELS) as LevelId[];
 
 // ============================================================================
 // Utility Functions
