@@ -10,11 +10,11 @@ name: "New Game Start - Campaign Entry"
 - openLink: "http://localhost:8080"
 
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Wait for difficulty selection or loading screen
 - extendedWaitUntil:

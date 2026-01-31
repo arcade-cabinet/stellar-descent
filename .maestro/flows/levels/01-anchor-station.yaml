@@ -16,12 +16,12 @@ name: "Campaign Level 1 - Anchor Station Prometheus"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 # Start new campaign
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Wait for difficulty selection (if no save exists)
 - assertVisible:

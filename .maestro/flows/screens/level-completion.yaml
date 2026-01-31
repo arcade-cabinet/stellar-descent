@@ -16,12 +16,12 @@ name: "Level Completion Screen - Stats and Rating"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 # Start new campaign (will go through tutorial)
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Handle difficulty selection
 - tapOn:

@@ -180,7 +180,7 @@ name: "Mission Briefing - Objectives, Intel, Loadout"
 - wait: 500
 
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
     timeout: 5000
 
 - takeScreenshot: "main_menu_after_briefing"

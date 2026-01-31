@@ -16,12 +16,12 @@ name: "Death Screen - Game Over and Retry"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "HALO DROP"
+    visible: "NEW GAME"
     timeout: 30000
 
-# Use HALO DROP to get into combat quickly
+# Use NEW GAME to get into combat quickly
 - tapOn:
-    text: "HALO DROP"
+    text: "NEW GAME"
 
 # Wait for loading
 - extendedWaitUntil:

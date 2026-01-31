@@ -201,7 +201,7 @@ name: "Level Select - Mission Selection"
 
 # Verify we're back at main menu
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
     timeout: 5000
 
 - takeScreenshot: "main_menu_after_level_select"

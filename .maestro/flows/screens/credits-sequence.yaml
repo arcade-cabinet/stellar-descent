@@ -198,7 +198,7 @@ name: "Credits Sequence - Campaign End"
 
 # Should be back at main menu
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
     optional: true
     timeout: 10000
 

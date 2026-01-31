@@ -76,8 +76,10 @@ export function usePWA(): PWAState & PWAActions {
           setIsOfflineReady(true);
         },
         onNeedRefresh() {
-          console.log('[PWA] New content available, please refresh');
-          setNeedsUpdate(true);
+          // Auto-update: immediately apply new service worker without prompting
+          console.log('[PWA] New content available, auto-updating...');
+          // The registerType: 'autoUpdate' in vite.config.ts handles this automatically
+          // No dialog needed - page will refresh automatically when safe
         },
       });
 

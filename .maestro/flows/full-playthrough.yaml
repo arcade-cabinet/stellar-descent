@@ -15,11 +15,11 @@ name: "Full Campaign Playthrough"
     clearState: true
 
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Wait for initial load
 - extendedWaitUntil:

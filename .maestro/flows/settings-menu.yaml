@@ -1,4 +1,4 @@
-# Settings Menu Flow - Tests settings/controls accessibility
+# Settings Menu Flow - Tests settings accessibility
 # Cross-platform: Web, Android, iOS
 
 appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
@@ -13,29 +13,29 @@ name: "Settings Menu Navigation"
     clearState: true
 
 - extendedWaitUntil:
-    visible: "CONTROLS"
+    visible: "SETTINGS"
     timeout: 30000
 
 - tapOn:
-    text: "CONTROLS"
+    text: "SETTINGS"
 
-# Verify controls/operations manual
+# Verify settings modal opens
 - extendedWaitUntil:
-    visible: "OPERATIONS MANUAL"
+    visible: "SYSTEM PREFERENCES"
     timeout: 5000
 
 - assertVisible:
-    text: "Move"
+    text: "Audio"
     optional: true
 
-- takeScreenshot: "controls_menu"
+- takeScreenshot: "settings_menu"
 
-# Close controls
+# Close settings
 - tapOn:
     text: "CLOSE"
 
 - extendedWaitUntil:
-    notVisible: "OPERATIONS MANUAL"
+    notVisible: "SYSTEM PREFERENCES"
     timeout: 5000
 
 - takeScreenshot: "back_to_menu"

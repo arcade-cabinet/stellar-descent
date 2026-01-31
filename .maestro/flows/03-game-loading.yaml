@@ -14,12 +14,12 @@ name: "Game Loading - New Campaign Flow"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 # Start new campaign
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Should see loading screen
 - extendedWaitUntil:

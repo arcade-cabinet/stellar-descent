@@ -17,12 +17,12 @@ name: "Campaign Level 2 - Landfall"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "HALO DROP"
+    visible: "NEW GAME"
     timeout: 30000
 
-# Use HALO DROP to skip tutorial and go directly to Landfall
+# Use NEW GAME to skip tutorial and go directly to Landfall
 - tapOn:
-    text: "HALO DROP"
+    text: "NEW GAME"
 
 # Wait for loading screen
 - extendedWaitUntil:

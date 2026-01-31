@@ -20,7 +20,7 @@ name: "Responsive Design Tests"
 
 # Main menu should be visible on initial load
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 - takeScreenshot: "responsive-default"
 

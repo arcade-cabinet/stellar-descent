@@ -17,7 +17,7 @@ name: "Orientation Check - Landscape Enforcement"
 
 # Verify main menu is accessible
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 # Test rotating to portrait (should show error or auto-rotate back)
@@ -44,7 +44,7 @@ name: "Orientation Check - Landscape Enforcement"
 
 # Verify game is still functional
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
     timeout: 5000
 
 - takeScreenshot: "landscape_restored"

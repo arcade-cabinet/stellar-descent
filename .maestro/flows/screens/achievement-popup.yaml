@@ -17,12 +17,12 @@ name: "Achievement Popup - In-Game Unlock Notification"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 # Start fresh campaign to trigger first achievements
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Handle difficulty selection
 - tapOn:

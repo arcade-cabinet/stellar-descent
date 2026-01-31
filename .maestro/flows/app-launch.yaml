@@ -17,12 +17,12 @@ name: "App Launch - Main Menu Verification"
     timeout: 30000
 
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 - assertVisible:
-    text: "HALO DROP"
+    text: "SETTINGS"
 
 - assertVisible:
-    text: "CONTROLS"
+    text: "HELP"
 
 - takeScreenshot: "main_menu"

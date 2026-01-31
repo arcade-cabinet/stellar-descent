@@ -13,11 +13,11 @@ name: "Touch Controls Test"
     clearState: true
 
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 - extendedWaitUntil:
     visible: "SYSTEMS ONLINE"

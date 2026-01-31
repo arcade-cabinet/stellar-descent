@@ -17,7 +17,7 @@ name: "Save and Load - Progress Persistence"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
 # Check if CONTINUE button exists (indicates existing save)
@@ -29,7 +29,7 @@ name: "Save and Load - Progress Persistence"
 
 # Start new campaign to create save data
 - tapOn:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 # Handle difficulty selection
 - tapOn:
@@ -103,7 +103,7 @@ name: "Save and Load - Progress Persistence"
 
 # Verify we're at main menu
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
     timeout: 10000
 
 # CONTINUE button should now be visible

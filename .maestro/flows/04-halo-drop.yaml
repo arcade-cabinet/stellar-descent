@@ -13,12 +13,12 @@ name: "HALO Drop - Skip Tutorial"
 
 # Wait for main menu
 - extendedWaitUntil:
-    visible: "HALO DROP"
+    visible: "NEW GAME"
     timeout: 30000
 
-# Select HALO DROP
+# Select NEW GAME
 - tapOn:
-    text: "HALO DROP"
+    text: "NEW GAME"
 
 # Should see loading
 - extendedWaitUntil:

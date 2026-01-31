@@ -20,7 +20,7 @@ export default ({ mode }: any) => {
       react(),
       ...vitePlugins(env),
       VitePWA({
-        registerType: 'prompt', // Prompt user before updating
+        registerType: 'autoUpdate', // Automatically apply updates without prompting
         includeAssets: [
           'logo_babylonpress.png',
           'pwa-192x192.png',
