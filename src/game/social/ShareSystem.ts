@@ -461,4 +461,13 @@ export function initShareSystem(canvas: HTMLCanvasElement): void {
   getShareSystem().setGameCanvas(canvas);
 }
 
+/**
+ * Dispose the ShareSystem singleton
+ */
+export function disposeShareSystem(): void {
+  if (shareSystemInstance) {
+    shareSystemInstance = null;
+  }
+}
+
 export type ShareSystem = ShareSystemImpl;

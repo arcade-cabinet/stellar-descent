@@ -653,5 +653,14 @@ export function initChallenges(): void {
   getChallengeManager().init();
 }
 
+/**
+ * Dispose the challenge manager singleton
+ */
+export function disposeChallengeManager(): void {
+  if (challengeManagerInstance) {
+    challengeManagerInstance = null;
+  }
+}
+
 // Re-export types
 export type ChallengeManager = ChallengeManagerImpl;

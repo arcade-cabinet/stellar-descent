@@ -395,14 +395,14 @@ describe('Level Progression Integration', () => {
       expect(isComplete).toBe(false);
     });
 
-    it('should have hive level type', () => {
+    it('should have boss level type', () => {
       const level = CAMPAIGN_LEVELS.the_breach;
-      expect(level.type).toBe('hive');
+      expect(level.type).toBe('boss');
     });
 
     it('should have boss combat track', () => {
       const level = CAMPAIGN_LEVELS.the_breach;
-      expect(level.combatTrack).toBe('boss_combat');
+      expect(level.combatTrack).toBe('combat_boss');
     });
   });
 
@@ -423,9 +423,9 @@ describe('Level Progression Integration', () => {
       expect(isComplete).toBe(false);
     });
 
-    it('should have combined_arms level type', () => {
+    it('should have assault level type', () => {
       const level = CAMPAIGN_LEVELS.hive_assault;
-      expect(level.type).toBe('combined_arms');
+      expect(level.type).toBe('assault');
     });
   });
 
@@ -469,9 +469,9 @@ describe('Level Progression Integration', () => {
       expect(isComplete).toBe(false);
     });
 
-    it('should have finale level type', () => {
+    it('should have escape level type', () => {
       const level = CAMPAIGN_LEVELS.final_escape;
-      expect(level.type).toBe('finale');
+      expect(level.type).toBe('escape');
     });
 
     it('should be the last level (no nextLevelId)', () => {

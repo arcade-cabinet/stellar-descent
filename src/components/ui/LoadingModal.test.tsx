@@ -127,9 +127,9 @@ describe('LoadingModal', () => {
     expect(screen.getByText('ANCHOR STATION PROMETHEUS')).toBeTruthy();
     unmount();
 
-    // Hive level
+    // Hive level (boss level type)
     render(<LoadingModal isOpen={true} onLoadComplete={vi.fn()} levelId="the_breach" />);
-    expect(screen.getByText('INTO THE BREACH')).toBeTruthy();
+    expect(screen.getByText('THE BREACH')).toBeTruthy();
   });
 
   it('displays act name in header when level is provided', () => {

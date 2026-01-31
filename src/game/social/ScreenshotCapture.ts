@@ -462,4 +462,13 @@ export function getScreenshotCapture(): ScreenshotCaptureImpl {
   return screenshotCaptureInstance;
 }
 
+/**
+ * Dispose the ScreenshotCapture singleton
+ */
+export function disposeScreenshotCapture(): void {
+  if (screenshotCaptureInstance) {
+    screenshotCaptureInstance = null;
+  }
+}
+
 export type ScreenshotCapture = ScreenshotCaptureImpl;

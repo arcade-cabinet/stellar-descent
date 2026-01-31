@@ -781,5 +781,14 @@ export function initNewGamePlus(): void {
   getNewGamePlusSystem().init();
 }
 
+/**
+ * Dispose the NG+ system singleton
+ */
+export function disposeNewGamePlusSystem(): void {
+  if (ngPlusInstance) {
+    ngPlusInstance = null;
+  }
+}
+
 // Export class type for external typing
 export type NewGamePlusSystem = NewGamePlusSystemImpl;

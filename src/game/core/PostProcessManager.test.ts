@@ -615,7 +615,9 @@ describe('PostProcessManager Unit Tests', () => {
       initializePostProcessManager(mockScene, mockCamera);
       disposePostProcessManager();
 
-      expect(getPostProcessManager()).toBeNull();
+      expect(() => getPostProcessManager()).toThrow(
+        'PostProcessManager not initialized. Call initializePostProcessManager(scene, camera) first.'
+      );
     });
 
     it('should replace singleton on reinitialize', () => {

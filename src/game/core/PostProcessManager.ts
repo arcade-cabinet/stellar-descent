@@ -222,6 +222,17 @@ const COLOR_GRADES: Record<LevelType, ColorGradeConfig> = {
     toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
   },
 
+  // Boss fight (Queen's Lair) - deeper purple/green horror, intense
+  boss: {
+    contrast: 1.3,
+    exposure: 0.75,
+    saturation: 0.8,
+    colorCurvesEnabled: true,
+    vignetteColor: new Color4(0.15, 0.18, 0.12, 0.0), // Purple-green horror
+    toneMappingEnabled: true,
+    toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
+  },
+
   // Extraction - high intensity, urgent feeling
   extraction: {
     contrast: 1.15,
@@ -255,6 +266,17 @@ const COLOR_GRADES: Record<LevelType, ColorGradeConfig> = {
     toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
   },
 
+  // Assault (Hive Assault) - intense, red-tinted urgency
+  assault: {
+    contrast: 1.2,
+    exposure: 0.9,
+    saturation: 0.9,
+    colorCurvesEnabled: true,
+    vignetteColor: new Color4(0.2, 0.08, 0.1, 0.0),
+    toneMappingEnabled: true,
+    toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
+  },
+
   // Combined arms - intense, red-tinted urgency
   combined_arms: {
     contrast: 1.2,
@@ -262,6 +284,17 @@ const COLOR_GRADES: Record<LevelType, ColorGradeConfig> = {
     saturation: 0.9,
     colorCurvesEnabled: true,
     vignetteColor: new Color4(0.2, 0.08, 0.1, 0.0),
+    toneMappingEnabled: true,
+    toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
+  },
+
+  // Escape (timed escape sequence) - maximum intensity, fiery collapse
+  escape: {
+    contrast: 1.25,
+    exposure: 1.1,
+    saturation: 1.1,
+    colorCurvesEnabled: true,
+    vignetteColor: new Color4(0.3, 0.1, 0.05, 0.0),
     toneMappingEnabled: true,
     toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
   },
@@ -1363,9 +1396,22 @@ export function initializePostProcessManager(
 
 /**
  * Get the global post-process manager instance
+ * @throws Error if not initialized - call initializePostProcessManager first
  */
-export function getPostProcessManager(): PostProcessManager | null {
+export function getPostProcessManager(): PostProcessManager {
+  if (!postProcessManagerInstance) {
+    throw new Error(
+      'PostProcessManager not initialized. Call initializePostProcessManager(scene, camera) first.'
+    );
+  }
   return postProcessManagerInstance;
+}
+
+/**
+ * Check if post-process manager is initialized (use for optional access)
+ */
+export function isPostProcessManagerInitialized(): boolean {
+  return postProcessManagerInstance !== null;
 }
 
 /**

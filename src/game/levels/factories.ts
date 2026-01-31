@@ -102,10 +102,23 @@ export const brothersLevelFactory: LevelFactory = (
 };
 
 /**
- * Factory for hive (underground + Queen boss) levels
- * Underground alien tunnels with Chitin Queen boss fight
+ * Factory for hive (underground) levels
+ * Underground alien tunnels
  */
 export const hiveLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
+): ILevel => {
+  return new TheBreachLevel(engine, canvas, config, callbacks);
+};
+
+/**
+ * Factory for boss fight levels (The Breach - Queen boss)
+ * Underground alien tunnels with Chitin Queen boss fight
+ */
+export const bossLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
   config: LevelConfig,
@@ -154,6 +167,19 @@ export const iceLevelFactory: LevelFactory = (
 };
 
 /**
+ * Factory for assault levels (Hive Assault)
+ * Combined arms assault with vehicle and infantry gameplay
+ */
+export const assaultLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
+): ILevel => {
+  return new HiveAssaultLevel(engine, canvas, config, callbacks);
+};
+
+/**
  * Factory for combined arms levels (Hive Assault)
  * Mixed vehicle and infantry gameplay pushing into the hive
  */
@@ -164,6 +190,19 @@ export const combinedArmsLevelFactory: LevelFactory = (
   callbacks: LevelCallbacks
 ): ILevel => {
   return new HiveAssaultLevel(engine, canvas, config, callbacks);
+};
+
+/**
+ * Factory for escape levels (Final Escape)
+ * Timed escape sequence - outrun the collapse
+ */
+export const escapeLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
+): ILevel => {
+  return new FinalEscapeLevel(engine, canvas, config, callbacks);
 };
 
 /**
@@ -189,10 +228,13 @@ export const defaultLevelFactories: LevelFactoryRegistry = {
   base: baseLevelFactory,
   brothers: brothersLevelFactory,
   hive: hiveLevelFactory,
+  boss: bossLevelFactory,
   extraction: extractionLevelFactory,
   vehicle: vehicleLevelFactory,
   ice: iceLevelFactory,
+  assault: assaultLevelFactory,
   combined_arms: combinedArmsLevelFactory,
+  escape: escapeLevelFactory,
   finale: finaleLevelFactory,
   mine: mineLevelFactory,
 };

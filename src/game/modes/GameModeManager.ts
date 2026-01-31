@@ -548,5 +548,15 @@ export function initGameModeManager(): void {
   getGameModeManager().init();
 }
 
+/**
+ * Dispose the game mode manager singleton
+ */
+export function disposeGameModeManager(): void {
+  if (gameModeManagerInstance) {
+    // Reset to default state
+    gameModeManagerInstance = null;
+  }
+}
+
 // Export class type for external typing
 export type GameModeManager = GameModeManagerImpl;

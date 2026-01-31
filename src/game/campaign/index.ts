@@ -6,13 +6,12 @@ export { CampaignDirector, disposeCampaignDirector, getCampaignDirector } from '
 export {
   BONUS_LEVELS,
   getMissionDefinition,
-  getTotalAudioLogCount, // Issue #77: Export new helper
-  getTotalSecretCount, // Issue #78: Export new helper
-  getTotalSkullCount, // Issue #79: Export new helper
+  getTotalAudioLogCount,
+  getTotalSecretCount,
+  getTotalSkullCount,
   MISSION_DEFINITIONS,
-  validateMissionDefinitions, // Issue #80: Export validation helper
 } from './MissionDefinitions';
-export type { BonusLevelDefinition } from './MissionDefinitions'; // Issue #81: Export type
+export type { BonusLevelDefinition } from './MissionDefinitions';
 export type {
   CampaignCommand,
   CampaignPhase,
