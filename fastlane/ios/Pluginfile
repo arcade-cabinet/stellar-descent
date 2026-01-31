@@ -1,0 +1,6 @@
+# Stellar Descent Fastlane Plugins
+# https://docs.fastlane.tools/plugins/available-plugins/
+
+# Uncomment plugins as needed:
+# gem 'fastlane-plugin-firebase_app_distribution'  # Firebase beta distribution
+# gem 'fastlane-plugin-versioning'                 # Advanced version management

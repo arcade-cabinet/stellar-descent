@@ -56,8 +56,7 @@ runs:
       uses: ruby/setup-ruby@8d27f39a5e7ad39aebbcbd1324f7af020229645c # v1.287.0
       with:
         ruby-version: '3.2'
-        bundler-cache: true
-        working-directory: ios/App
+        bundler-cache: false
 
     - name: Build web assets
       shell: bash
@@ -71,6 +70,12 @@ runs:
       shell: bash
       run: npx cap sync ios
 
+    - name: Copy fastlane configs
+      shell: bash
+      run: |
+        cp -r fastlane/ios/* ios/App/ 2>/dev/null || true
+        ls -la ios/App/fastlane/ || echo "No fastlane dir"
+
     - name: Install CocoaPods dependencies
       shell: bash
       run: |
@@ -81,7 +86,11 @@ runs:
       shell: bash
       run: |
         cd ios/App
-        bundle install
+        if [ -f "Gemfile" ]; then
+          bundle install
+        else
+          gem install fastlane
+        fi
 
     - name: Build and optionally upload
       id: build

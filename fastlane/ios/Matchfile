@@ -1,0 +1,26 @@
+# Stellar Descent iOS Matchfile
+# https://docs.fastlane.tools/actions/match/
+
+# Git repo where certificates and profiles are stored (private repo)
+git_url(ENV["MATCH_GIT_URL"] || "git@github.com:jbogaty/stellar-descent-certs.git")
+
+# Default storage mode
+storage_mode("git")
+
+# App identifier
+app_identifier(["com.jbcom.stellardescent"])
+
+# Apple Developer Portal team
+team_id(ENV["APPLE_TEAM_ID"])
+
+# Certificate types to manage
+type("appstore") # Can be: appstore, adhoc, development, enterprise
+
+# Username (Apple ID)
+username(ENV["APPLE_ID"] || "your-apple-id@example.com")
+
+# Clone using SSH key (for CI)
+git_basic_authorization(ENV["MATCH_GIT_BASIC_AUTH"]) if ENV["MATCH_GIT_BASIC_AUTH"]
+
+# Don't generate new certs/profiles in CI (readonly mode)
+readonly(true) if ENV["CI"]

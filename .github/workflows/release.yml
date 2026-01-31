@@ -33,13 +33,16 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # ============================================================================
-  # Web Deployment
+  # STAGING: Always runs on release (GitHub Releases + Netlify)
   # ============================================================================
+
+  # Web Deployment (Staging/Production share same Netlify)
   deploy-web:
-    name: Deploy to Netlify
+    name: Deploy Web
     runs-on: ubuntu-latest
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -75,14 +78,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ============================================================================
-  # Android Builds (Debug APKs for GitHub Release)
-  # ============================================================================
-  build-android:
-    name: Build Android APKs
+  # Android Debug APKs (Staging - always released to GitHub)
+  build-android-debug:
+    name: Build Android (Debug APKs)
     runs-on: ubuntu-latest
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -107,127 +109,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ============================================================================
-  # Google Play Store (Android)
-  # ============================================================================
-  publish-play-store:
-    name: Publish to Google Play (Internal)
-    runs-on: ubuntu-latest
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          lfs: true
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Publish to Google Play
-        uses: ./.github/actions/publish-play-store
-        with:
-          track: internal
-          release-status: completed
-          service-account-json-base64: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_BASE64 }}
-          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
-          keystore-password: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
-          key-alias: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
-          key-password: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
-          version: ${{ needs.release-please.outputs.version }}
-
-  # ============================================================================
-  # Steam (Desktop Platforms)
-  # ============================================================================
-  publish-steam:
-    name: Publish to Steam (${{ matrix.platform }})
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows
-            os: windows-latest
-            depot-id-var: STEAM_DEPOT_WINDOWS
-          - platform: macos
-            os: macos-latest
-            depot-id-var: STEAM_DEPOT_MACOS
-          - platform: linux
-            os: ubuntu-latest
-            depot-id-var: STEAM_DEPOT_LINUX
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          lfs: true
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Build and upload to Steam
-        uses: ./.github/actions/build-steam
-        with:
-          platform: ${{ matrix.platform }}
-          steam-username: ${{ secrets.STEAM_USERNAME }}
-          steam-config-vdf: ${{ secrets.STEAM_CONFIG_VDF_BASE64 }}
-          steam-app-id: ${{ vars.STEAM_APP_ID }}
-          steam-depot-id: ${{ vars[matrix.depot-id-var] }}
-          branch: beta
-          version: ${{ needs.release-please.outputs.version }}
-
-  # ============================================================================
-  # iOS Build (TestFlight)
-  # ============================================================================
-  build-ios:
-    name: Build iOS (TestFlight)
-    runs-on: macos-latest
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          lfs: true
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Build iOS and upload to TestFlight
-        uses: ./.github/actions/build-ios
-        with:
-          upload-testflight: true
-          distribute-external: false
-          apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
-          apple-api-issuer-id: ${{ secrets.APPLE_API_ISSUER_ID }}
-          apple-api-key-base64: ${{ secrets.APPLE_API_KEY_BASE64 }}
-          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
-          match-password: ${{ secrets.MATCH_PASSWORD }}
-          match-git-url: ${{ secrets.MATCH_GIT_URL }}
-          match-git-basic-auth: ${{ secrets.MATCH_GIT_BASIC_AUTH }}
-          version: ${{ needs.release-please.outputs.version }}
-
-  # ============================================================================
-  # Desktop Builds (Electron Matrix)
-  # ============================================================================
+  # Desktop Builds (Staging - always released to GitHub)
   build-desktop:
     name: Build Desktop (${{ matrix.platform }})
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    environment: staging
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: linux
             os: ubuntu-latest
-            artifact-ext: 'AppImage,deb'
           - platform: mac
             os: macos-latest
-            artifact-ext: 'dmg'
           - platform: win
             os: windows-latest
-            artifact-ext: 'exe'
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -254,12 +151,146 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ============================================================================
-  # E2E Tests (Android)
+  # PRODUCTION: Only runs when PRODUCTION_ENABLED=true in environment
+  # These jobs deploy to app stores (Google Play, App Store, Steam)
+  # ============================================================================
+
+  # Google Play Store (Production)
+  publish-play-store:
+    name: Publish to Google Play
+    runs-on: ubuntu-latest
+    needs: [release-please, build-android-debug]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    environment: production
+    steps:
+      - name: Check production enabled
+        run: |
+          if [ "${{ vars.PRODUCTION_ENABLED }}" != "true" ]; then
+            echo "::notice::Production releases are disabled. Set PRODUCTION_ENABLED=true in the 'production' environment to enable."
+            exit 0
+          fi
+
+      - name: Checkout
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          lfs: true
+
+      - name: Setup Node.js and pnpm
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Publish to Google Play
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: ./.github/actions/publish-play-store
+        with:
+          track: internal
+          release-status: completed
+          service-account-json-base64: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_BASE64 }}
+          keystore-base64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          keystore-password: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          key-alias: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          key-password: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+          version: ${{ needs.release-please.outputs.version }}
+
+  # iOS TestFlight (Production)
+  build-ios:
+    name: Build iOS (TestFlight)
+    runs-on: macos-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    environment: production
+    steps:
+      - name: Check production enabled
+        run: |
+          if [ "${{ vars.PRODUCTION_ENABLED }}" != "true" ]; then
+            echo "::notice::Production releases are disabled. Set PRODUCTION_ENABLED=true in the 'production' environment to enable."
+            exit 0
+          fi
+
+      - name: Checkout
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          lfs: true
+
+      - name: Setup Node.js and pnpm
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build iOS and upload to TestFlight
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: ./.github/actions/build-ios
+        with:
+          upload-testflight: true
+          distribute-external: false
+          apple-api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          apple-api-issuer-id: ${{ secrets.APPLE_API_ISSUER_ID }}
+          apple-api-key-base64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          match-password: ${{ secrets.MATCH_PASSWORD }}
+          match-git-url: ${{ secrets.MATCH_GIT_URL }}
+          match-git-basic-auth: ${{ secrets.MATCH_GIT_BASIC_AUTH }}
+          version: ${{ needs.release-please.outputs.version }}
+
+  # Steam (Production)
+  publish-steam:
+    name: Publish to Steam (${{ matrix.platform }})
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            depot-id-var: STEAM_DEPOT_WINDOWS
+          - platform: macos
+            os: macos-latest
+            depot-id-var: STEAM_DEPOT_MACOS
+          - platform: linux
+            os: ubuntu-latest
+            depot-id-var: STEAM_DEPOT_LINUX
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check production enabled
+        shell: bash
+        run: |
+          if [ "${{ vars.PRODUCTION_ENABLED }}" != "true" ]; then
+            echo "::notice::Production releases are disabled. Set PRODUCTION_ENABLED=true in the 'production' environment to enable."
+            exit 0
+          fi
+
+      - name: Checkout
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          lfs: true
+
+      - name: Setup Node.js and pnpm
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build and upload to Steam
+        if: ${{ vars.PRODUCTION_ENABLED == 'true' }}
+        uses: ./.github/actions/build-steam
+        with:
+          platform: ${{ matrix.platform }}
+          steam-username: ${{ secrets.STEAM_USERNAME }}
+          steam-config-vdf: ${{ secrets.STEAM_CONFIG_VDF_BASE64 }}
+          steam-app-id: ${{ vars.STEAM_APP_ID }}
+          steam-depot-id: ${{ vars[matrix.depot-id-var] }}
+          branch: beta
+          version: ${{ needs.release-please.outputs.version }}
+
+  # ============================================================================
+  # E2E Tests (Run after staging builds)
   # ============================================================================
   e2e-android:
     name: E2E Tests (Android)
     runs-on: ubuntu-latest
-    needs: [release-please, build-android]
+    needs: [release-please, build-android-debug]
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1

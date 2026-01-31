@@ -1,0 +1,5 @@
+# Stellar Descent Android Fastlane Plugins
+
+# Uncomment as needed:
+# gem 'fastlane-plugin-firebase_app_distribution'
+# gem 'fastlane-plugin-versioning_android'

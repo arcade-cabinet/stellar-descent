@@ -1,0 +1,12 @@
+# Stellar Descent iOS Appfile
+# https://docs.fastlane.tools/advanced/Appfile/
+
+app_identifier("com.jbcom.stellardescent")
+apple_id(ENV["APPLE_ID"] || "your-apple-id@example.com")
+team_id(ENV["APPLE_TEAM_ID"])
+
+# App Store Connect Team (if different from Developer Portal team)
+itc_team_id(ENV["APPLE_ITC_TEAM_ID"] || ENV["APPLE_TEAM_ID"])
+
+# For App Store Connect API authentication (preferred for CI)
+# These are set via environment variables in CI
