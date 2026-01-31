@@ -927,6 +927,168 @@ class SaveSystem {
   }
 
   // ============================================================================
+  // NEW GAME PLUS
+  // ============================================================================
+
+  /**
+   * Check if this save is a New Game Plus run
+   */
+  isNewGamePlus(): boolean {
+    return this.currentSave?.isNewGamePlus ?? false;
+  }
+
+  /**
+   * Get current NG+ tier (0 = normal game)
+   */
+  getNgPlusTier(): number {
+    return this.currentSave?.ngPlusTier ?? 0;
+  }
+
+  /**
+   * Get total campaign completions
+   */
+  getCampaignCompletions(): number {
+    return this.currentSave?.campaignCompletions ?? 0;
+  }
+
+  /**
+   * Get highest NG+ tier completed
+   */
+  getHighestNgPlusTierCompleted(): number {
+    return this.currentSave?.highestNgPlusTierCompleted ?? 0;
+  }
+
+  /**
+   * Get NG+ unlocked weapons
+   */
+  getNgPlusUnlockedWeapons(): string[] {
+    return this.currentSave?.ngPlusUnlockedWeapons ?? [];
+  }
+
+  /**
+   * Get NG+ unlocked skulls
+   */
+  getNgPlusUnlockedSkulls(): string[] {
+    return this.currentSave?.ngPlusUnlockedSkulls ?? [];
+  }
+
+  /**
+   * Start a New Game Plus run
+   * @param tier The NG+ tier to start (1 = NG+, 2 = NG++, etc.)
+   * @param difficulty The difficulty level
+   * @param startLevel The starting level
+   */
+  async startNewGamePlus(
+    tier: number,
+    difficulty?: DifficultyLevel,
+    startLevel?: LevelId
+  ): Promise<GameSave> {
+    // Preserve NG+ state from current save before reset
+    const previousSave = this.currentSave;
+    const unlockedWeapons = previousSave?.ngPlusUnlockedWeapons ?? [];
+    const unlockedSkulls = previousSave?.ngPlusUnlockedSkulls ?? [];
+    const exclusiveSkulls = previousSave?.ngPlusExclusiveSkulls ?? [];
+    const completions = previousSave?.campaignCompletions ?? 0;
+    const highestTier = previousSave?.highestNgPlusTierCompleted ?? 0;
+
+    // Reset the world database for fresh run
+    await worldDb.resetDatabase();
+
+    // Use provided difficulty or load from settings
+    const gameDifficulty = difficulty ?? loadDifficultySetting();
+    const startingLevel = startLevel ?? 'anchor_station';
+
+    // Create new save with NG+ state
+    const save = createNewSave(
+      `ngplus_${Date.now()}`,
+      gameDifficulty,
+      startingLevel,
+      SAVE_SLOT_AUTOSAVE,
+      'auto'
+    );
+
+    // Apply NG+ state
+    save.isNewGamePlus = true;
+    save.ngPlusTier = tier;
+    save.campaignCompletions = completions;
+    save.ngPlusUnlockedWeapons = [...unlockedWeapons];
+    save.ngPlusUnlockedSkulls = [...unlockedSkulls];
+    save.ngPlusExclusiveSkulls = [...exclusiveSkulls];
+    save.highestNgPlusTierCompleted = highestTier;
+
+    // Apply NG+ starting bonuses
+    const healthBonus = Math.min(50 * tier, 150);
+    const armorBonus = Math.min(25 * tier, 75);
+    save.maxPlayerHealth = 100 + healthBonus;
+    save.playerHealth = save.maxPlayerHealth;
+    save.playerArmor = armorBonus;
+
+    this.currentSave = save;
+    this.sessionStartTime = Date.now();
+
+    // Save difficulty setting
+    saveDifficultySetting(gameDifficulty);
+
+    // Persist the new save
+    await this.persistSave(save, SAVE_SLOT_AUTOSAVE);
+
+    this.emit({ type: 'save_created', save: extractSaveMetadata(save), slotNumber: SAVE_SLOT_AUTOSAVE });
+    log.info(`New Game Plus Tier ${tier} started with difficulty: ${gameDifficulty}`);
+
+    return save;
+  }
+
+  /**
+   * Called when the campaign is completed
+   * Updates NG+ state and unlocks next tier
+   * @param weapons Weapons collected during the run
+   * @param skulls Skulls collected during the run
+   */
+  onCampaignComplete(weapons: string[], skulls: string[]): void {
+    if (!this.currentSave) return;
+
+    // Increment completions
+    this.currentSave.campaignCompletions++;
+
+    // Update highest tier if applicable
+    if (this.currentSave.ngPlusTier > this.currentSave.highestNgPlusTierCompleted) {
+      this.currentSave.highestNgPlusTierCompleted = this.currentSave.ngPlusTier;
+    }
+
+    // Add unlocked weapons
+    for (const weapon of weapons) {
+      if (!this.currentSave.ngPlusUnlockedWeapons.includes(weapon as any)) {
+        this.currentSave.ngPlusUnlockedWeapons.push(weapon as any);
+      }
+    }
+
+    // Add unlocked skulls
+    for (const skull of skulls) {
+      if (!this.currentSave.ngPlusUnlockedSkulls.includes(skull as any)) {
+        this.currentSave.ngPlusUnlockedSkulls.push(skull as any);
+      }
+    }
+
+    // Auto-save
+    this.autoSave();
+
+    log.info(
+      `Campaign completed! Completions: ${this.currentSave.campaignCompletions}, ` +
+        `Tier: ${this.currentSave.ngPlusTier}`
+    );
+  }
+
+  /**
+   * Get the NG+ tier display name
+   */
+  getNgPlusTierDisplay(): string {
+    const tier = this.getNgPlusTier();
+    if (tier === 0) return 'Normal';
+    if (tier === 1) return 'NG+';
+    return `NG${'+'.repeat(tier)}`;
+  }
+
+  // ============================================================================
   // LEVEL FLAGS & TIMES
   // ============================================================================
 
@@ -1247,6 +1409,18 @@ class SaveSystem {
       save.savedSettings = save.savedSettings ?? null;
       save.checkpoint = save.checkpoint ?? null;
       log.info('Migrated save to v6, added full player state and collectibles');
+    }
+
+    // v6 -> v7: Add New Game Plus state
+    if (save.version < 7) {
+      save.isNewGamePlus = save.isNewGamePlus ?? false;
+      save.ngPlusTier = save.ngPlusTier ?? 0;
+      save.campaignCompletions = save.campaignCompletions ?? 0;
+      save.ngPlusUnlockedWeapons = save.ngPlusUnlockedWeapons ?? [];
+      save.ngPlusUnlockedSkulls = save.ngPlusUnlockedSkulls ?? [];
+      save.ngPlusExclusiveSkulls = save.ngPlusExclusiveSkulls ?? [];
+      save.highestNgPlusTierCompleted = save.highestNgPlusTierCompleted ?? 0;
+      log.info('Migrated save to v7, added New Game Plus state');
     }
 
     // Update version

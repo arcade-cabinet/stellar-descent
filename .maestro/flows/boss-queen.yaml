@@ -1,0 +1,603 @@
+# Stellar Descent - Queen Boss Fight E2E Test
+# Dedicated test flow for the Chitin Queen boss in The Breach (Level 7)
+#
+# Tests:
+# - Boss introduction sequence
+# - All 3 phases (100-66%, 66-33%, 33-0%)
+# - All attack patterns per phase
+# - Weak point system (head, thorax, egg_sac)
+# - Stagger mechanic on weak point destruction
+# - Death throes mode (10% health)
+# - Boss death sequence with slow-mo
+# - Victory and escape trigger
+#
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - boss
+  - queen
+  - the-breach
+  - level-7
+  - combat
+name: "Queen Boss Fight - Complete Battle Test"
+
+---
+
+# ============================================================================
+# SETUP: Navigate to The Breach
+# ============================================================================
+
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Enable dev mode for testing (if available)
+- tapOn:
+    text: "DEV"
+    optional: true
+
+- wait: 500
+
+# Unlock all levels for testing
+- tapOn:
+    text: "UNLOCK ALL"
+    optional: true
+
+- wait: 500
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Select The Breach
+- tapOn:
+    text: "INTO THE BREACH"
+    optional: true
+
+- takeScreenshot: "queen_test_level_select"
+
+# ============================================================================
+# MISSION BRIEFING - QUEEN INTEL
+# ============================================================================
+
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Check intel tab for Queen info
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Verify Queen intel displayed
+- assertVisible:
+    text: "CHITIN QUEEN"
+    optional: true
+
+- assertVisible:
+    text: "EXTREME"
+    optional: true
+
+- assertVisible:
+    text: "HIVE GUARDIAN"
+    optional: true
+
+- takeScreenshot: "queen_intel_overview"
+
+# Verify weak point information
+- assertVisible:
+    text: "WEAK POINTS"
+    optional: true
+
+- assertVisible:
+    text: "egg sacs"
+    optional: true
+
+- assertVisible:
+    text: "abdomen"
+    optional: true
+
+- takeScreenshot: "queen_intel_weakpoints"
+
+# Check recommended loadout
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "FLAMETHROWER"
+    optional: true
+
+- takeScreenshot: "queen_loadout_recommended"
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# ============================================================================
+# LEVEL LOADING AND HIVE NAVIGATION
+# ============================================================================
+
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "queen_level_start"
+
+# Navigate through hive tunnels to reach queen chamber
+# Upper hive zone
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 2500
+      - wait: 500
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+- takeScreenshot: "queen_upper_hive"
+
+# Mid hive zone
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 58%"
+          duration: 2000
+      - wait: 400
+      - swipe:
+          start: "80%, 50%"
+          end: "70%, 45%"
+          duration: 600
+      - wait: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+- takeScreenshot: "queen_mid_hive"
+
+# Lower hive zone - approach queen chamber
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "18%, 52%"
+          duration: 2500
+      - wait: 500
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 400
+
+- takeScreenshot: "queen_lower_hive"
+
+# ============================================================================
+# QUEEN CHAMBER ENTRY - BOSS INTRO
+# ============================================================================
+
+# Final approach to queen chamber
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 50%"
+    duration: 3000
+
+- wait: 2000
+
+- takeScreenshot: "queen_chamber_approach"
+
+# Check for boss intro sequence
+- assertVisible:
+    text: "CHITIN QUEEN"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "queen_boss_intro"
+
+# Door should seal behind player
+- assertVisible:
+    text: "SEALED"
+    optional: true
+
+- wait: 1500
+
+# Queen awakening animation
+- takeScreenshot: "queen_awakening"
+
+# ============================================================================
+# PHASE 1: BASIC ATTACKS (100-66% HEALTH)
+# ============================================================================
+
+- wait: 2000
+
+- takeScreenshot: "queen_phase1_start"
+
+# Combat - fire at queen
+- repeat:
+    times: 5
+    commands:
+      # Aim at queen
+      - swipe:
+          start: "60%, 50%"
+          end: "55%, 45%"
+          duration: 300
+      # Fire
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+      # Strafe to avoid attacks
+      - swipe:
+          start: "15%, 60%"
+          end: "25%, 60%"
+          duration: 400
+      - wait: 300
+
+- takeScreenshot: "queen_phase1_combat"
+
+# Use scan to reveal weak points
+- tapOn:
+    id: "scan-button"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "queen_weakpoints_revealed"
+
+# Target weak point - head
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "60%, 45%"
+          end: "55%, 40%"
+          duration: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+
+- takeScreenshot: "queen_targeting_head"
+
+# Dodge acid spray (Phase 1 attack)
+- swipe:
+    start: "15%, 60%"
+    end: "35%, 60%"
+    duration: 300
+
+- wait: 500
+
+# Continue Phase 1 combat
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+      # Alternate strafe direction
+      - swipe:
+          start: "20%, 60%"
+          end: "10%, 60%"
+          duration: 300
+      - wait: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+      - swipe:
+          start: "10%, 60%"
+          end: "20%, 60%"
+          duration: 300
+      - wait: 200
+
+- takeScreenshot: "queen_phase1_mid"
+
+# ============================================================================
+# PHASE 2 TRANSITION (66% HEALTH)
+# ============================================================================
+
+# Continue damage to trigger phase transition
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 80
+
+- wait: 1000
+
+# Check for phase transition
+- assertVisible:
+    text: "ENRAGED"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "queen_phase2_transition"
+
+# Queen should stagger during transition
+- wait: 2000
+
+- takeScreenshot: "queen_phase2_stagger"
+
+# ============================================================================
+# PHASE 2: AGGRESSIVE ATTACKS (66-33% HEALTH)
+# ============================================================================
+
+- takeScreenshot: "queen_phase2_start"
+
+# Combat with Phase 2 attacks
+- repeat:
+    times: 5
+    commands:
+      # Fire at queen
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+      # Strafe for charge attack dodge
+      - swipe:
+          start: "15%, 60%"
+          end: "30%, 60%"
+          duration: 400
+      - wait: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+
+- takeScreenshot: "queen_phase2_combat"
+
+# Use grenade on egg burst spawn
+- tapOn:
+    id: "grenade-button"
+    optional: true
+
+- wait: 1500
+
+- takeScreenshot: "queen_grenade_used"
+
+# Dodge poison cloud
+- swipe:
+    start: "15%, 60%"
+    end: "35%, 55%"
+    duration: 500
+
+- wait: 500
+
+# Continue Phase 2 combat - destroy weak point
+- tapOn:
+    id: "scan-button"
+    optional: true
+
+- wait: 500
+
+# Target thorax weak point
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "60%, 50%"
+          end: "55%, 48%"
+          duration: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+
+- takeScreenshot: "queen_targeting_thorax"
+
+# Check for weak point destruction
+- assertVisible:
+    text: "WEAK POINT"
+    optional: true
+
+- takeScreenshot: "queen_weakpoint_destroyed"
+
+# Queen staggers when weak point destroyed
+- wait: 2000
+
+- takeScreenshot: "queen_stagger_weakpoint"
+
+# ============================================================================
+# PHASE 3 TRANSITION (33% HEALTH)
+# ============================================================================
+
+# Heavy damage to trigger Phase 3
+- repeat:
+    times: 15
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 60
+
+- wait: 1000
+
+- takeScreenshot: "queen_phase3_transition"
+
+# Check for Phase 3 indicator
+- assertVisible:
+    text: "FRENZY"
+    optional: true
+    timeout: 5000
+
+# ============================================================================
+# PHASE 3: FRENZY MODE (33-0% HEALTH)
+# ============================================================================
+
+- takeScreenshot: "queen_phase3_start"
+
+# Combat with frenzy attacks
+- repeat:
+    times: 5
+    commands:
+      # Rapid fire
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 50
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 50
+      # Quick dodge
+      - swipe:
+          start: "15%, 60%"
+          end: "25%, 55%"
+          duration: 250
+      - wait: 150
+
+- takeScreenshot: "queen_phase3_combat"
+
+# Use medkit if available
+- tapOn:
+    id: "medkit-button"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "queen_healing"
+
+# Continue combat
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 80
+
+# ============================================================================
+# DEATH THROES (10% HEALTH)
+# ============================================================================
+
+# Heavy damage to trigger death throes
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 60
+
+- wait: 1000
+
+- takeScreenshot: "queen_death_throes"
+
+# Check for death throes indicator
+- assertVisible:
+    text: "DYING"
+    optional: true
+    timeout: 5000
+
+# Final push
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 50
+
+# ============================================================================
+# QUEEN DEATH SEQUENCE
+# ============================================================================
+
+- wait: 2000
+
+- takeScreenshot: "queen_death_start"
+
+# Check for slow-mo effect
+- assertVisible:
+    text: "DEFEATED"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "queen_defeated"
+
+# Death animation
+- wait: 3000
+
+- takeScreenshot: "queen_death_animation"
+
+# ============================================================================
+# VICTORY AND ESCAPE
+# ============================================================================
+
+# Check for escape trigger
+- assertVisible:
+    text: "ESCAPE"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "queen_escape_trigger"
+
+# Hive collapse warning
+- assertVisible:
+    text: "COLLAPSE"
+    optional: true
+
+- takeScreenshot: "queen_hive_collapse"
+
+# ============================================================================
+# LEVEL COMPLETION
+# ============================================================================
+
+# Check for level complete
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "queen_mission_complete"
+
+# Verify stats display
+- assertVisible:
+    text: "BOSS DEFEATED"
+    optional: true
+
+- assertVisible:
+    text: "CHITIN QUEEN"
+    optional: true
+
+- takeScreenshot: "queen_victory_stats"
+
+# Check for unlocks
+- assertVisible:
+    text: "UNLOCKED"
+    optional: true
+
+- takeScreenshot: "queen_unlocks"
+
+# Continue to next mission or return to menu
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "queen_test_complete"

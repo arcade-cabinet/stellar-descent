@@ -14,9 +14,12 @@ import {
   getLevelDisplayName,
   saveSystem,
 } from '../../game/persistence';
+import { getNewGamePlusSystem, initNewGamePlus, MAX_NG_PLUS_TIER, initChallenges } from '../../game/modes';
 import { AchievementsPanel } from './AchievementsPanel';
+import { ChallengeScreen } from './ChallengeScreen';
 import { DifficultySelector } from './DifficultySelector';
 import { HelpModal } from './HelpModal';
+import { LeaderboardScreen } from './LeaderboardScreen';
 // PWA install is handled transparently - no button or prompt needed
 import { LevelSelect } from './LevelSelect';
 import styles from './MainMenu.module.css';
@@ -43,14 +46,20 @@ export function MainMenu({
   const [showSettings, setShowSettings] = useState(false);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showChallenges, setShowChallenges] = useState(false);
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
   const [showCampaignSelect, setShowCampaignSelect] = useState(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showNgPlusConfirm, setShowNgPlusConfirm] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const [saveMetadata, setSaveMetadata] = useState<GameSaveMetadata | null>(null);
   const [selectedStartLevel, setSelectedStartLevel] = useState<LevelId | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | null>(null);
+  const [ngPlusUnlocked, setNgPlusUnlocked] = useState(false);
+  const [ngPlusTier, setNgPlusTier] = useState(0);
+  const [isNgPlusMode, setIsNgPlusMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { difficulty } = useGame();
@@ -67,6 +76,12 @@ export function MainMenu({
         const metadata = await saveSystem.getSaveMetadata();
         setSaveMetadata(metadata);
       }
+
+      // Initialize and check NG+ status
+      initNewGamePlus();
+      const ngPlus = getNewGamePlusSystem();
+      setNgPlusUnlocked(ngPlus.isUnlocked());
+      setNgPlusTier(ngPlus.getCompletions());
     };
     checkSave();
   }, []);
@@ -265,6 +280,84 @@ export function MainMenu({
     setShowHelp(false);
   }, [playClickSound]);
 
+  const handleShowLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(true);
+  }, [playClickSound]);
+
+  const handleCloseLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(false);
+  }, [playClickSound]);
+
+  const handleShowChallenges = useCallback(() => {
+    playClickSound();
+    initChallenges(); // Initialize challenge system when opening
+    setShowChallenges(true);
+  }, [playClickSound]);
+
+  const handleCloseChallenges = useCallback(() => {
+    playClickSound();
+    setShowChallenges(false);
+  }, [playClickSound]);
+
+  // Handle NG+ button click
+  const handleNewGamePlus = useCallback(() => {
+    playClickSound();
+    if (!ngPlusUnlocked) return;
+    setShowNgPlusConfirm(true);
+  }, [ngPlusUnlocked, playClickSound]);
+
+  const handleCancelNgPlus = useCallback(() => {
+    playClickSound();
+    setShowNgPlusConfirm(false);
+    setIsNgPlusMode(false);
+  }, [playClickSound]);
+
+  // Start NG+ after confirming
+  const handleConfirmNgPlus = useCallback(() => {
+    playClickSound();
+    setShowNgPlusConfirm(false);
+    setIsNgPlusMode(true);
+    // Show difficulty selection for NG+
+    setSelectedStartLevel('anchor_station');
+    setShowDifficultySelect(true);
+  }, [playClickSound]);
+
+  // Modified start campaign to handle NG+ mode
+  const handleStartCampaignOrNgPlus = useCallback(() => {
+    playClickSound();
+    if (!selectedStartLevel || !selectedDifficulty) return;
+
+    setShowDifficultySelect(false);
+
+    if (isNgPlusMode) {
+      // Start NG+ run
+      const ngPlus = getNewGamePlusSystem();
+      const nextTier = Math.min(ngPlus.getCompletions(), MAX_NG_PLUS_TIER);
+      saveSystem.startNewGamePlus(nextTier, selectedDifficulty, selectedStartLevel).then(() => {
+        onStart();
+      });
+      setIsNgPlusMode(false);
+    } else if (onNewGame) {
+      // Normal new game
+      onNewGame(selectedDifficulty, selectedStartLevel);
+    } else {
+      // Fallback to legacy behavior
+      saveSystem.newGame(selectedDifficulty, selectedStartLevel).then(() => {
+        onStart();
+      });
+    }
+  }, [selectedStartLevel, selectedDifficulty, isNgPlusMode, onStart, onNewGame, playClickSound]);
+
+  // Get NG+ tier display string
+  const getNgPlusTierDisplay = (): string => {
+    const tier = Math.min(ngPlusTier, MAX_NG_PLUS_TIER);
+    if (tier === 0) return 'NG+';
+    if (tier === 1) return 'NG+';
+    return `NG${'+'.repeat(tier)}`;
+  };
+
   return (
     <div className={styles.overlay}>
       <input
@@ -327,6 +420,18 @@ export function MainMenu({
             <MilitaryButton onClick={handleLoadClick} icon={<>{'\u2191'}</>}>
               LOAD GAME
             </MilitaryButton>
+
+            {/* New Game Plus Button - only shown when unlocked */}
+            {ngPlusUnlocked && (
+              <MilitaryButton
+                variant="primary"
+                onClick={handleNewGamePlus}
+                icon={<>{'\u2B50'}</>}
+                info={`Tier ${Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)}`}
+              >
+                {getNgPlusTierDisplay()}
+              </MilitaryButton>
+            )}
           </div>
 
           {/* Right Column - System */}
@@ -335,8 +440,16 @@ export function MainMenu({
               SETTINGS
             </MilitaryButton>
 
-            <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2605'}</>}>
+            <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2606'}</>}>
               ACHIEVEMENTS
+            </MilitaryButton>
+
+            <MilitaryButton onClick={handleShowChallenges} icon={<>{'\u26A1'}</>}>
+              CHALLENGES
+            </MilitaryButton>
+
+            <MilitaryButton onClick={handleShowLeaderboard} icon={<>{'\u2605'}</>}>
+              LEADERBOARDS
             </MilitaryButton>
 
             <MilitaryButton onClick={handleShowHelp} icon={<>{'\u003F'}</>}>
@@ -365,6 +478,12 @@ export function MainMenu({
 
       {/* Achievements Panel */}
       <AchievementsPanel isOpen={showAchievements} onClose={handleCloseAchievements} />
+
+      {/* Leaderboard Screen */}
+      <LeaderboardScreen isOpen={showLeaderboard} onClose={handleCloseLeaderboard} />
+
+      {/* Challenge Screen */}
+      <ChallengeScreen isOpen={showChallenges} onClose={handleCloseChallenges} />
 
       {/* New Game Confirmation Modal */}
       {showNewGameConfirm && (
@@ -471,17 +590,93 @@ export function MainMenu({
               <button
                 type="button"
                 className={styles.modalButton}
-                onClick={handleBackToCampaign}
+                onClick={isNgPlusMode ? handleCancelNgPlus : handleBackToCampaign}
               >
-                ← BACK
+                {isNgPlusMode ? 'CANCEL' : '\u2190 BACK'}
               </button>
               <button
                 type="button"
                 className={`${styles.modalButton} ${styles.primaryButton}`}
-                onClick={handleStartCampaign}
+                onClick={handleStartCampaignOrNgPlus}
                 disabled={!selectedDifficulty}
               >
-                START CAMPAIGN →
+                {isNgPlusMode ? `START ${getNgPlusTierDisplay()} \u2192` : 'START CAMPAIGN \u2192'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NG+ Confirmation Modal */}
+      {showNgPlusConfirm && (
+        // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
+        <div
+          className={styles.modalOverlay}
+          onClick={handleCancelNgPlus}
+          onKeyDown={(e) => e.key === 'Escape' && handleCancelNgPlus()}
+          role="presentation"
+        >
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="ngplus-confirm-title"
+            aria-describedby="ngplus-confirm-desc"
+          >
+            <div className={styles.modalHeader}>
+              <span id="ngplus-confirm-title">START {getNgPlusTierDisplay()}?</span>
+            </div>
+
+            <div className={styles.modalContent}>
+              <p id="ngplus-confirm-desc" className={styles.confirmText}>
+                Begin a New Game Plus run with increased difficulty and rewards.
+              </p>
+              <div className={styles.savePreview}>
+                <div className={styles.savePreviewRow}>
+                  <span>NG+ Tier:</span>
+                  <span>{Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)}</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Enemy Health:</span>
+                  <span>+{Math.round((Math.pow(1.5, Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)) - 1) * 100)}%</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Enemy Damage:</span>
+                  <span>+{Math.round((Math.pow(1.25, Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)) - 1) * 100)}%</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Starting Health Bonus:</span>
+                  <span>+{Math.min(50 * (ngPlusTier + 1), 150)}</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Starting Armor:</span>
+                  <span>+{Math.min(25 * (ngPlusTier + 1), 75)}</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Score Multiplier:</span>
+                  <span>x{(1 + 0.5 * (ngPlusTier + 1)).toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.modalButtons}>
+              <button
+                type="button"
+                className={styles.modalButton}
+                onClick={handleCancelNgPlus}
+                aria-label="Cancel NG+"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                className={`${styles.modalButton} ${styles.primaryButton}`}
+                onClick={handleConfirmNgPlus}
+                aria-label="Confirm start NG+"
+              >
+                SELECT DIFFICULTY
               </button>
             </div>
           </div>

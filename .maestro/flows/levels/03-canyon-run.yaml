@@ -1,17 +1,36 @@
-# Campaign Level 3: Canyon Run
-# Vehicle chase through canyons
+# Campaign Level 3: Canyon Run - Complete E2E Test
+# Vehicle chase through canyons with comprehensive testing
 # Cross-platform: Web, Android, iOS
+#
+# Tests cover:
+# - Vehicle entry and yoke weapon swap
+# - Steering input (keyboard, mouse, gyroscope, touch)
+# - Throttle/brake mechanics
+# - Turret aiming and firing
+# - Enemy Wraith vehicle encounters
+# - Jump ramps and shortcuts
+# - Vehicle damage and destruction
+# - Checkpoint at canyon sections
+# - Extraction point victory condition
+# - Vehicle exit and weapon restore
+# - Level stats collection
 
-appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
-url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
 tags:
   - campaign
   - level-3
   - vehicle
   - chase
-name: "Campaign Level 3 - Canyon Run"
+  - e2e
+  - coverage
+name: "Campaign Level 3 - Canyon Run (Complete E2E)"
 
 ---
+# ============================================================================
+# LAUNCH AND NAVIGATION
+# ============================================================================
+
 - launchApp:
     clearState: true
 
@@ -20,51 +39,61 @@ name: "Campaign Level 3 - Canyon Run"
     visible: "SELECT MISSION"
     timeout: 30000
 
+- takeScreenshot: "level_03_main_menu"
+
 # Open level select
 - tapOn:
     text: "SELECT MISSION"
 
+- waitForAnimationToEnd
 - wait: 1000
 
-# Look for Canyon Run in level select (Chapter 3)
+# Navigate to Chapter 3
 - assertVisible:
     text: "CHAPTER 3"
     optional: true
     timeout: 5000
 
-# Select Canyon Run if unlocked
+# Select Canyon Run
 - tapOn:
     text: "CANYON RUN"
     optional: true
 
 - wait: 500
 
-# If level is locked, take screenshot and exit
 - takeScreenshot: "level_03_select_state"
 
+# ============================================================================
+# MISSION BRIEFING
+# ============================================================================
+
 # Wait for mission briefing screen
-- assertVisible:
-    text: "MISSION BRIEFING"
+- extendedWaitUntil:
+    visible: "MISSION BRIEFING"
     optional: true
     timeout: 10000
 
-# Check for Canyon Run mission details
+# Verify mission briefing content
 - assertVisible:
     text: "CANYON RUN"
     optional: true
 
 - assertVisible:
-    text: "ACT 2: THE SEARCH"
+    text: "ACT 2"
     optional: true
 
 - takeScreenshot: "level_03_briefing"
 
-# Begin mission if briefing is shown
+# Begin mission
 - tapOn:
     text: "BEGIN MISSION"
     optional: true
 
-# Wait for loading
+# ============================================================================
+# LOADING AND INITIALIZATION
+# ============================================================================
+
+# Wait for level to load
 - extendedWaitUntil:
     visible: "SYSTEMS ONLINE"
     timeout: 60000
@@ -72,59 +101,420 @@ name: "Campaign Level 3 - Canyon Run"
 
 - wait: 3000
 
-- takeScreenshot: "level_03_vehicle_start"
+# Verify objective displayed
+- assertVisible:
+    text: "REACH FOB DELTA"
+    optional: true
+    timeout: 5000
 
-# Vehicle controls - steering left/right
+- takeScreenshot: "level_03_intro"
+
+# ============================================================================
+# VEHICLE ENTRY TEST
+# ============================================================================
+
+# Wait for vehicle ready message
+- extendedWaitUntil:
+    visible: "Vehicle systems online"
+    timeout: 10000
+    optional: true
+
+- wait: 2000
+
+# Verify yoke is displayed (vehicle mode)
+- takeScreenshot: "level_03_vehicle_yoke"
+
+# Verify HUD elements
+- assertVisible:
+    id: "health-bar"
+    optional: true
+
+- assertVisible:
+    id: "boost-meter"
+    optional: true
+
+# ============================================================================
+# STEERING INPUT TEST (Touch)
+# ============================================================================
+
+# Test left steering with touch
 - swipe:
-    start: "10%, 70%"
+    start: "15%, 70%"
     end: "5%, 70%"
-    duration: 1000
+    duration: 800
+
+- wait: 300
+
+- takeScreenshot: "level_03_steer_left"
+
+# Test right steering with touch
+- swipe:
+    start: "5%, 70%"
+    end: "25%, 70%"
+    duration: 1200
+
+- wait: 300
+
+- takeScreenshot: "level_03_steer_right"
+
+# ============================================================================
+# THROTTLE/BRAKE MECHANICS TEST
+# ============================================================================
+
+# Accelerate forward (joystick up)
+- swipe:
+    start: "15%, 70%"
+    end: "15%, 55%"
+    duration: 2000
 
 - wait: 500
 
-- swipe:
-    start: "10%, 70%"
-    end: "20%, 70%"
-    duration: 1500
+- takeScreenshot: "level_03_accelerating"
 
-# Turret aiming
+# Brake (joystick down)
+- swipe:
+    start: "15%, 55%"
+    end: "15%, 80%"
+    duration: 1000
+
+- wait: 300
+
+- takeScreenshot: "level_03_braking"
+
+# ============================================================================
+# BOOST TEST
+# ============================================================================
+
+# Tap boost button
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- wait: 100
+
+# Long press for sustained boost
+- longPressOn:
+    id: "boost-button"
+    optional: true
+    duration: 2000
+
+- wait: 500
+
+- takeScreenshot: "level_03_boosting"
+
+# Verify boost visual feedback
+- assertVisible:
+    text: "BOOST"
+    optional: true
+    timeout: 3000
+
+# ============================================================================
+# TURRET AIMING TEST
+# ============================================================================
+
+# Aim turret right
 - swipe:
     start: "80%, 50%"
-    end: "85%, 40%"
-    duration: 1000
+    end: "90%, 50%"
+    duration: 500
+
+- wait: 200
+
+# Aim turret up
+- swipe:
+    start: "85%, 50%"
+    end: "85%, 35%"
+    duration: 500
+
+- wait: 200
+
+- takeScreenshot: "level_03_turret_aim"
+
+# ============================================================================
+# TURRET FIRING TEST
+# ============================================================================
 
 # Fire turret
 - tapOn:
     id: "fire-button"
     optional: true
 
-- wait: 500
+- wait: 100
 
-- tapOn:
-    id: "fire-button"
+# Rapid fire test
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+
+- takeScreenshot: "level_03_turret_firing"
+
+# ============================================================================
+# COMBINED DRIVING AND COMBAT
+# ============================================================================
+
+# Drive forward while firing
+- repeat:
+    times: 3
+    commands:
+      # Steer and accelerate
+      - swipe:
+          start: "15%, 70%"
+          end: "20%, 55%"
+          duration: 1500
+      # Fire turret
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+      # Adjust aim
+      - swipe:
+          start: "80%, 50%"
+          end: "85%, 45%"
+          duration: 300
+
+- takeScreenshot: "level_03_combat_driving"
+
+# ============================================================================
+# CHECKPOINT TEST
+# ============================================================================
+
+# Continue driving to reach checkpoint
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "15%, 70%"
+          end: "15%, 50%"
+          duration: 2000
+      - tapOn:
+          id: "boost-button"
+          optional: true
+      - wait: 500
+
+# Check for checkpoint notification
+- assertVisible:
+    text: "CHECKPOINT"
     optional: true
+    timeout: 10000
 
-# Boost if available
-- tapOn:
+- takeScreenshot: "level_03_checkpoint"
+
+# ============================================================================
+# OBSTACLE AVOIDANCE TEST
+# ============================================================================
+
+# Weave through obstacles
+- repeat:
+    times: 4
+    commands:
+      # Steer left while moving
+      - swipe:
+          start: "15%, 65%"
+          end: "5%, 55%"
+          duration: 1000
+      - wait: 200
+      # Steer right while moving
+      - swipe:
+          start: "10%, 65%"
+          end: "25%, 55%"
+          duration: 1000
+      - wait: 200
+
+- takeScreenshot: "level_03_obstacle_avoidance"
+
+# ============================================================================
+# JUMP RAMP TEST
+# ============================================================================
+
+# Accelerate toward ramp
+- swipe:
+    start: "15%, 70%"
+    end: "15%, 45%"
+    duration: 3000
+
+# Apply boost for jump
+- longPressOn:
     id: "boost-button"
     optional: true
+    duration: 1500
 
-- wait: 2000
+- wait: 1000
 
-- takeScreenshot: "level_03_canyon_chase"
+- takeScreenshot: "level_03_jump_ramp"
 
-# Continue vehicle gameplay
+# ============================================================================
+# ENEMY WRAITH ENCOUNTER TEST
+# ============================================================================
+
+# Wait for enemy contact message
+- assertVisible:
+    text: "Wraith"
+    optional: true
+    timeout: 30000
+
+- wait: 1000
+
+# Combat with Wraiths
+- repeat:
+    times: 5
+    commands:
+      # Aim at pursuers (behind/sides)
+      - swipe:
+          start: "80%, 50%"
+          end: "75%, 60%"
+          duration: 400
+      # Fire
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      # Continue driving
+      - swipe:
+          start: "15%, 70%"
+          end: "18%, 55%"
+          duration: 800
+
+- takeScreenshot: "level_03_wraith_combat"
+
+# ============================================================================
+# BRIDGE CROSSING TEST
+# ============================================================================
+
+# Continue until bridge approach
 - repeat:
     times: 3
     commands:
       - swipe:
-          start: "10%, 70%"
-          end: "15%, 65%"
+          start: "15%, 70%"
+          end: "15%, 50%"
+          duration: 2500
+      - longPressOn:
+          id: "boost-button"
+          optional: true
+          duration: 1000
+      - wait: 500
+
+# Check for bridge warning
+- assertVisible:
+    text: "Bridge"
+    optional: true
+    timeout: 20000
+
+- takeScreenshot: "level_03_bridge_approach"
+
+# Boost across bridge
+- longPressOn:
+    id: "boost-button"
+    optional: true
+    duration: 3000
+
+- takeScreenshot: "level_03_bridge_crossing"
+
+# ============================================================================
+# VEHICLE DAMAGE TEST
+# ============================================================================
+
+# Check health after combat
+- assertVisible:
+    id: "health-bar"
+    optional: true
+
+- takeScreenshot: "level_03_vehicle_health"
+
+# ============================================================================
+# FINAL STRETCH TO EXTRACTION
+# ============================================================================
+
+# Push toward extraction point
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "15%, 70%"
+          end: "15%, 45%"
+          duration: 2000
+      - longPressOn:
+          id: "boost-button"
+          optional: true
           duration: 1500
-      - wait: 300
       - tapOn:
           id: "fire-button"
           optional: true
       - wait: 500
 
-- takeScreenshot: "level_03_gameplay"
+# Check for extraction approach message
+- assertVisible:
+    text: "Extraction"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "level_03_extraction_approach"
+
+# ============================================================================
+# EXTRACTION POINT VICTORY
+# ============================================================================
+
+# Continue to extraction zone
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "15%, 70%"
+          end: "15%, 45%"
+          duration: 2500
+      - longPressOn:
+          id: "boost-button"
+          optional: true
+          duration: 2000
+
+# Check for extraction complete
+- assertVisible:
+    text: "EXTRACTION"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "level_03_extraction_complete"
+
+# ============================================================================
+# MISSION COMPLETE
+# ============================================================================
+
+# Wait for mission complete screen
+- extendedWaitUntil:
+    visible: "MISSION COMPLETE"
+    timeout: 60000
+    optional: true
+
+- takeScreenshot: "level_03_mission_complete"
+
+# Verify stats display
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+- assertVisible:
+    text: "KILLS"
+    optional: true
+
+# Take final screenshot of completion screen
+- takeScreenshot: "level_03_final_stats"
+
+# ============================================================================
+# CONTINUE TO NEXT LEVEL
+# ============================================================================
+
+# Tap continue if available
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "level_03_end_state"

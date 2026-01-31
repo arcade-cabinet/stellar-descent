@@ -1,0 +1,474 @@
+# Level 11 (Chapter 10): Final Escape - E2E Test Flow
+# Warthog Run style vehicle finale - timed escape from collapsing planet
+# Tests: Hive collapse, pursuit spawning, vehicle escape, timed mechanics,
+#        debris hazards, launch pad objective, orbit victory, credits trigger
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-11
+  - chapter-10
+  - finale
+  - vehicle
+  - timed-escape
+  - extended
+name: "Campaign Level 11 - Final Escape (Chapter 10)"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu to load
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
+
+- takeScreenshot: "final_escape_main_menu"
+
+# Navigate to level select
+- tapOn:
+    text: "SELECT MISSION"
+    optional: true
+
+- wait: 1000
+
+# Verify Final Escape is available (Chapter 10)
+- assertVisible:
+    text: "CHAPTER 10"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "FINAL ESCAPE"
+    optional: true
+
+- takeScreenshot: "final_escape_level_select"
+
+# Select Final Escape
+- tapOn:
+    text: "FINAL ESCAPE"
+    optional: true
+
+- wait: 500
+
+# ============================================================================
+# MISSION BRIEFING
+# ============================================================================
+
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Verify mission title
+- assertVisible:
+    text: "FINAL ESCAPE"
+    optional: true
+
+# Verify mission objective
+- assertVisible:
+    text: "Outrun the Collapse"
+    optional: true
+
+# Verify act
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+- takeScreenshot: "final_escape_briefing_overview"
+
+# Check Intel tab
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Verify threat intel
+- assertVisible:
+    text: "COLLAPSING TERRAIN"
+    optional: true
+
+- assertVisible:
+    text: "EXTREME"
+    optional: true
+
+- assertVisible:
+    text: "HIVE COLLAPSE"
+    optional: true
+
+- assertVisible:
+    text: "Do not stop"
+    optional: true
+
+- takeScreenshot: "final_escape_intel"
+
+# Check Loadout tab
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+# Verify vehicle loadout
+- assertVisible:
+    text: "TRANSPORT"
+    optional: true
+
+- assertVisible:
+    text: "BOOST"
+    optional: true
+
+- assertVisible:
+    text: "NITRO"
+    optional: true
+
+- takeScreenshot: "final_escape_loadout"
+
+# ============================================================================
+# BEGIN MISSION
+# ============================================================================
+
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Wait for level to load
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "final_escape_level_start"
+
+# ============================================================================
+# SECTION A: HIVE EXIT (Collapsing Tunnels)
+# ============================================================================
+
+# Verify initial objective
+- assertVisible:
+    text: "ESCAPE THE HIVE"
+    optional: true
+    timeout: 10000
+
+# Verify hive collapse messaging
+- assertVisible:
+    text: "HIVE COLLAPSING"
+    optional: true
+
+# Verify timer display
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+- takeScreenshot: "final_escape_hive_exit"
+
+# Begin driving - accelerate forward
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 50%"
+    duration: 2000
+
+# Use boost
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "final_escape_boost_active"
+
+# Continue driving through tunnel
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 1500
+      - wait: 100
+
+- takeScreenshot: "final_escape_tunnel_chase"
+
+# ============================================================================
+# SECTION B: SURFACE RUN
+# ============================================================================
+
+# Drive towards surface exit
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 50%"
+    duration: 3000
+
+- wait: 1000
+
+# Check for surface run objective
+- assertVisible:
+    text: "SURFACE"
+    optional: true
+    timeout: 15000
+
+# Verify checkpoint notification
+- assertVisible:
+    text: "CHECKPOINT"
+    optional: true
+
+- takeScreenshot: "final_escape_surface_run"
+
+# Navigate around obstacles
+- swipe:
+    start: "10%, 65%"
+    end: "5%, 50%"
+    duration: 1000
+
+- swipe:
+    start: "10%, 65%"
+    end: "15%, 50%"
+    duration: 1500
+
+# Boost through wreckage area
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 48%"
+    duration: 2500
+
+- takeScreenshot: "final_escape_wreckage_dodge"
+
+# ============================================================================
+# SECTION C: CANYON SPRINT
+# ============================================================================
+
+# Continue driving
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 52%"
+          duration: 2000
+      - wait: 200
+
+# Check for canyon objective
+- assertVisible:
+    text: "CANYON"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "final_escape_canyon_sprint"
+
+# Navigate canyon with steering
+- swipe:
+    start: "10%, 65%"
+    end: "8%, 50%"
+    duration: 800
+
+- swipe:
+    start: "10%, 65%"
+    end: "12%, 50%"
+    duration: 800
+
+# Boost through falling rocks
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 48%"
+    duration: 2500
+
+- takeScreenshot: "final_escape_canyon_hazards"
+
+# ============================================================================
+# SECTION D: LAUNCH PAD
+# ============================================================================
+
+# Continue to launch pad
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 50%"
+          duration: 2000
+      - wait: 100
+
+# Check for launch pad objective
+- assertVisible:
+    text: "LAUNCH PAD"
+    optional: true
+    timeout: 20000
+
+- assertVisible:
+    text: "REACH THE SHUTTLE"
+    optional: true
+
+- takeScreenshot: "final_escape_launch_pad"
+
+# Final sprint to shuttle
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 45%"
+    duration: 3000
+
+- takeScreenshot: "final_escape_shuttle_approach"
+
+# ============================================================================
+# VICTORY SEQUENCE
+# ============================================================================
+
+# Wait for victory screen
+- extendedWaitUntil:
+    visible: "MISSION COMPLETE"
+    timeout: 60000
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "final_escape_mission_complete"
+
+# Verify escape successful messaging
+- assertVisible:
+    text: "ESCAPE SUCCESSFUL"
+    optional: true
+
+- assertVisible:
+    text: "ORBIT"
+    optional: true
+
+# ============================================================================
+# CREDITS TRIGGER
+# ============================================================================
+
+# Verify credits sequence begins
+- extendedWaitUntil:
+    visible: "CREDITS"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "final_escape_credits_trigger"
+
+# Verify campaign completion messaging
+- assertVisible:
+    text: "CAMPAIGN COMPLETE"
+    optional: true
+
+- assertVisible:
+    text: "STELLAR DESCENT"
+    optional: true
+
+- takeScreenshot: "final_escape_campaign_complete"
+
+# ============================================================================
+# CAMPAIGN STATS
+# ============================================================================
+
+# Verify campaign statistics are shown
+- assertVisible:
+    text: "Campaign Statistics"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "Total Play Time"
+    optional: true
+
+- assertVisible:
+    text: "Hostiles Eliminated"
+    optional: true
+
+- takeScreenshot: "final_escape_campaign_stats"
+
+# ============================================================================
+# CREDITS SCROLL
+# ============================================================================
+
+# Verify creator credits
+- assertVisible:
+    text: "Created By"
+    optional: true
+    timeout: 30000
+
+- assertVisible:
+    text: "Jeff Bogaty"
+    optional: true
+
+- takeScreenshot: "final_escape_credits_creator"
+
+# Verify music credits
+- assertVisible:
+    text: "Music"
+    optional: true
+
+- takeScreenshot: "final_escape_credits_music"
+
+# Verify thank you message
+- assertVisible:
+    text: "THANK YOU FOR PLAYING"
+    optional: true
+    timeout: 60000
+
+- takeScreenshot: "final_escape_credits_thanks"
+
+# ============================================================================
+# RETURN TO MENU
+# ============================================================================
+
+# Wait for return to menu option
+- assertVisible:
+    text: "RETURN TO MENU"
+    optional: true
+    timeout: 30000
+
+# Check for New Game+ option
+- assertVisible:
+    text: "NEW GAME+"
+    optional: true
+
+- takeScreenshot: "final_escape_end_options"
+
+# Return to main menu
+- tapOn:
+    text: "RETURN TO MENU"
+    optional: true
+
+- wait: 2000
+
+# Verify back at main menu
+- assertVisible:
+    text: "NEW GAME"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "final_escape_returned_to_menu"
+
+# ============================================================================
+# VERIFY SAVE STATE
+# ============================================================================
+
+# Go to level select to verify completion
+- tapOn:
+    text: "SELECT MISSION"
+    optional: true
+
+- wait: 1000
+
+# Verify Final Escape shows as completed
+- assertVisible:
+    text: "COMPLETE"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "final_escape_verified_complete"

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Achievement, getAchievementManager } from '../../game/achievements';
 import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
-import type { LevelId } from '../../game/levels/types';
+import type { LevelId, LevelStats as LevelStatsFromTypes } from '../../game/levels/types';
+import { leaderboardSystem, getPlayerName } from '../../game/social';
+import type { LeaderboardSubmission } from '../../game/social/LeaderboardTypes';
+import { LeaderboardScreen } from './LeaderboardScreen';
+import { ShareDialog } from './ShareDialog';
 import styles from './LevelCompletionScreen.module.css';
 import { MilitaryButton } from './MilitaryButton';
 
@@ -339,10 +343,13 @@ export function LevelCompletionScreen({
   stats,
   isFinalLevel = false,
 }: LevelCompletionScreenProps) {
-  const { kills } = useGame();
+  const { kills, difficulty } = useGame();
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
 
   // Calculate rating and breakdown
@@ -514,6 +521,50 @@ export function LevelCompletionScreen({
     };
   }, [hasPlayedSound]);
 
+  // Submit score to leaderboard
+  useEffect(() => {
+    if (hasSubmittedScore) return;
+
+    const submitToLeaderboard = async () => {
+      try {
+        await leaderboardSystem.initialize();
+
+        const submission: LeaderboardSubmission = {
+          levelId,
+          playerName: getPlayerName(),
+          completionTime: stats.timeElapsed,
+          difficulty,
+          accuracy: accuracy ?? 0,
+          enemiesKilled: kills,
+          damageDealt: 0, // Not tracked currently
+          damageTaken: stats.damageTaken ?? 0,
+          deaths: stats.deaths ?? 0,
+          headshots: stats.headshots ?? 0,
+          secretsFound: stats.secretsFound ?? 0,
+          totalSecrets: stats.totalSecrets ?? 0,
+          rating,
+          totalScore: breakdown.totalScore,
+        };
+
+        await leaderboardSystem.submitScore(submission);
+        setHasSubmittedScore(true);
+      } catch (error) {
+        console.error('Failed to submit score to leaderboard:', error);
+      }
+    };
+
+    submitToLeaderboard();
+  }, [
+    hasSubmittedScore,
+    levelId,
+    stats,
+    kills,
+    accuracy,
+    rating,
+    breakdown.totalScore,
+    difficulty,
+  ]);
+
   const playClickSound = useCallback(() => {
     getAudioManager().play('ui_click', { volume: 0.3 });
   }, []);
@@ -532,6 +583,26 @@ export function LevelCompletionScreen({
     playClickSound();
     onMainMenu();
   }, [onMainMenu, playClickSound]);
+
+  const handleShowLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(true);
+  }, [playClickSound]);
+
+  const handleCloseLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(false);
+  }, [playClickSound]);
+
+  const handleShowShare = useCallback(() => {
+    playClickSound();
+    setShowShareDialog(true);
+  }, [playClickSound]);
+
+  const handleCloseShare = useCallback(() => {
+    playClickSound();
+    setShowShareDialog(false);
+  }, [playClickSound]);
 
   // Get rating color class
   const ratingClass = useMemo(() => {
@@ -893,6 +964,14 @@ export function LevelCompletionScreen({
             {isFinalLevel ? 'VIEW CREDITS' : 'CONTINUE'}
           </MilitaryButton>
 
+          <MilitaryButton onClick={handleShowShare} icon={<>{'\u2197'}</>}>
+            SHARE
+          </MilitaryButton>
+
+          <MilitaryButton onClick={handleShowLeaderboard} icon={<>{'\u2605'}</>}>
+            LEADERBOARDS
+          </MilitaryButton>
+
           {onRetry && (
             <MilitaryButton onClick={handleRetry} icon={<>{'\u21BB'}</>}>
               RETRY MISSION
@@ -911,6 +990,37 @@ export function LevelCompletionScreen({
           <span>MISSION DEBRIEF</span>
         </div>
       </div>
+
+      {/* Leaderboard Screen */}
+      <LeaderboardScreen
+        isOpen={showLeaderboard}
+        onClose={handleCloseLeaderboard}
+        initialLevel={levelId}
+        initialType="score"
+      />
+
+      {/* Share Dialog */}
+      <ShareDialog
+        isOpen={showShareDialog}
+        onClose={handleCloseShare}
+        levelId={levelId}
+        missionName={missionName}
+        stats={{
+          timeSpent: stats.timeElapsed,
+          kills: kills,
+          totalShots: stats.shotsFired,
+          shotsHit: stats.shotsHit,
+          headshots: stats.headshots,
+          deaths: stats.deaths,
+          secretsFound: stats.secretsFound ?? 0,
+          totalSecrets: stats.totalSecrets,
+        }}
+        kills={kills}
+        rating={rating}
+        trigger={isFinalLevel ? 'campaign_complete' : 'level_complete'}
+        isPersonalBest={newRecords.rating}
+        isCampaignComplete={isFinalLevel}
+      />
     </div>
   );
 }

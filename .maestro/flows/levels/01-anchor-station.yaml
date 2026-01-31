@@ -1,6 +1,10 @@
 # Campaign Level 1: Anchor Station Prometheus
-# Tutorial level - tests level loading, tutorial flow, and level completion
+# Complete E2E test for tutorial level
+# Tests: Level loading, tutorial system, all room transitions,
+# objective completion, platforming, shooting range, and level completion
+#
 # Cross-platform: Web, Android, iOS
+# Minimum test coverage: All tutorial phases (0-4), all objectives
 
 appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
 url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
@@ -8,52 +12,64 @@ tags:
   - campaign
   - level-1
   - tutorial
-name: "Campaign Level 1 - Anchor Station Prometheus"
+  - smoke
+  - critical
+name: "Campaign Level 1 - Anchor Station Prometheus (Complete Tutorial)"
 
 ---
+# ============================================================================
+# PHASE 0: Launch and Initial Setup
+# ============================================================================
 - launchApp:
     clearState: true
 
-# Wait for main menu
+# Wait for main menu to fully load
 - extendedWaitUntil:
     visible: "NEW GAME"
     timeout: 30000
 
-# Start new campaign
+- takeScreenshot: "01_main_menu"
+
+# ============================================================================
+# Start New Campaign
+# ============================================================================
 - tapOn:
     text: "NEW GAME"
 
-# Wait for difficulty selection (if no save exists)
+# Handle difficulty selection if shown (first time play)
 - assertVisible:
     text: "SELECT DIFFICULTY"
     optional: true
     timeout: 5000
 
-# Select Normal difficulty if shown
 - tapOn:
     text: "NORMAL"
     optional: true
 
 - wait: 500
 
-# Confirm difficulty selection
 - tapOn:
     text: "BEGIN"
     optional: true
 
-# Wait for loading screen - Anchor Station
+# ============================================================================
+# Loading Screen - Anchor Station
+# ============================================================================
 - extendedWaitUntil:
     visible: "ANCHOR STATION PROMETHEUS"
     timeout: 15000
 
-- takeScreenshot: "level_01_loading"
+- takeScreenshot: "02_loading_screen"
 
 # Wait for loading to complete
 - extendedWaitUntil:
     visible: "SYSTEMS ONLINE"
     timeout: 60000
 
-# Should see tutorial intro comms
+# ============================================================================
+# PHASE 0: Briefing - Initial Comms
+# ============================================================================
+# First comms message from ATHENA
 - extendedWaitUntil:
     visible: "Good morning"
     timeout: 30000
@@ -61,63 +77,503 @@ name: "Campaign Level 1 - Anchor Station Prometheus"
 - assertVisible:
     text: "ATHENA"
 
-- takeScreenshot: "level_01_tutorial_start"
+- assertVisible:
+    text: "PROMETHEUS A.I."
 
-# Acknowledge tutorial message
+- takeScreenshot: "03_tutorial_athena_intro"
+
+# Acknowledge first message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# Commander briefing message
+- extendedWaitUntil:
+    visible: "Vasquez"
+    timeout: 15000
+    optional: true
+
+- assertVisible:
+    text: "FOB Delta"
+    optional: true
+
+- assertVisible:
+    text: "weapons free"
+    optional: true
+
+- takeScreenshot: "04_commander_briefing"
+
+# Acknowledge commander message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# ============================================================================
+# PHASE 1: Movement Tutorial
+# ============================================================================
+# Movement controls should now be enabled
+- extendedWaitUntil:
+    visible: "MOVEMENT"
+    timeout: 10000
+    optional: true
+
+- takeScreenshot: "05_movement_tutorial"
+
+# Movement tutorial - use touch controls on mobile
+# Move forward using left side of screen (movement joystick area)
+- swipe:
+    start: "15%, 70%"
+    end: "15%, 50%"
+    duration: 2000
+
+- wait: 500
+
+# Move right
+- swipe:
+    start: "15%, 60%"
+    end: "25%, 60%"
+    duration: 1500
+
+- wait: 500
+
+# Continue forward toward corridor
+- swipe:
+    start: "15%, 70%"
+    end: "15%, 40%"
+    duration: 3000
+
+- wait: 1000
+
+- takeScreenshot: "06_corridor_progress"
+
+# ============================================================================
+# PHASE 1.5: Platforming Tutorial (Training Room)
+# ============================================================================
+# Enter platforming room
+- swipe:
+    start: "15%, 60%"
+    end: "5%, 60%"
+    duration: 2000
+
+- wait: 1000
+
+# Look for platforming tutorial prompts
+- assertVisible:
+    text: "TRAINING"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "07_platforming_room"
+
+# Jump tutorial
+- assertVisible:
+    text: "JUMP"
+    optional: true
+    timeout: 5000
+
+# Perform jump action (tap jump button or use gesture)
+- tapOn:
+    text: "JUMP"
+    optional: true
+
+- wait: 500
+
+# Alternative: tap center screen for jump
+- tapOn:
+    point: "50%, 50%"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "08_jump_complete"
+
+# Crouch tutorial
+- assertVisible:
+    text: "CROUCH"
+    optional: true
+    timeout: 5000
+
+# Perform crouch action
+- tapOn:
+    text: "CROUCH"
+    optional: true
+
+- wait: 500
+
+# Move through crouch passage
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 40%"
+    duration: 2000
+
+- wait: 1000
+
+- takeScreenshot: "09_crouch_complete"
+
+# Exit platforming room
+- swipe:
+    start: "15%, 60%"
+    end: "25%, 60%"
+    duration: 2000
+
+- wait: 1000
+
+# ============================================================================
+# Continue to Equipment Bay
+# ============================================================================
+- swipe:
+    start: "15%, 70%"
+    end: "15%, 40%"
+    duration: 3000
+
+- wait: 1500
+
+# ============================================================================
+# PHASE 2: Equipment Bay - Suit and Look Controls
+# ============================================================================
+- assertVisible:
+    text: "EQUIPMENT"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "10_equipment_bay"
+
+# Look around using right side of screen (look controls)
+- swipe:
+    start: "80%, 50%"
+    end: "70%, 45%"
+    duration: 1000
+
+- wait: 500
+
+- swipe:
+    start: "75%, 50%"
+    end: "85%, 55%"
+    duration: 1000
+
+- wait: 1000
+
+# Move toward suit locker
+- swipe:
+    start: "15%, 60%"
+    end: "5%, 60%"
+    duration: 2000
+
+- wait: 1000
+
+# Look for equip suit prompt
+- assertVisible:
+    text: "EQUIP"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "11_suit_locker"
+
+# Equip suit
+- tapOn:
+    text: "EQUIP SUIT"
+    optional: true
+
+- tapOn:
+    text: "EQUIP"
+    optional: true
+
+- wait: 500
+
+# Alternative: tap interact button
+- tapOn:
+    id: "interact_button"
+    optional: true
+
+- wait: 2000
+
+# Suit equipped notification
+- assertVisible:
+    text: "EVA SUIT"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "12_suit_equipped"
+
+# Acknowledge suit message
 - tapOn:
     text: "ACKNOWLEDGE"
     optional: true
 
 - wait: 1500
 
-# Continue through tutorial prompts
+# ============================================================================
+# Move to Weapon Rack
+# ============================================================================
+# Armory sergeant comms
+- assertVisible:
+    text: "Kowalski"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "weapon"
+    optional: true
+
+- takeScreenshot: "13_armory_sergeant"
+
+# Acknowledge armory message
 - tapOn:
     text: "ACKNOWLEDGE"
     optional: true
 
 - wait: 1000
 
-# Basic movement tutorial (mobile touch input)
+# Move toward weapon rack
 - swipe:
-    start: "10%, 70%"
-    end: "15%, 60%"
+    start: "15%, 60%"
+    end: "25%, 60%"
     duration: 2000
-
-- wait: 500
-
-# Look around (mobile)
-- swipe:
-    start: "80%, 50%"
-    end: "70%, 45%"
-    duration: 1000
 
 - wait: 1000
 
-# Continue tutorial
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 50%"
+    duration: 1500
+
+- wait: 1000
+
+# Pick up weapon
 - tapOn:
-    text: "CONTINUE"
+    text: "PICK UP"
     optional: true
 
 - tapOn:
-    text: "Continue"
+    id: "interact_button"
+    optional: true
+
+- wait: 1500
+
+# Weapon acquired notification
+- assertVisible:
+    text: "M7 RIFLE"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "14_weapon_acquired"
+
+# ============================================================================
+# PHASE 3: Shooting Range
+# ============================================================================
+# Move to shooting range
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 30%"
+    duration: 3000
+
+- wait: 2000
+
+- assertVisible:
+    text: "SHOOTING"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "RANGE"
+    optional: true
+
+- takeScreenshot: "15_shooting_range"
+
+# Calibration start message
+- assertVisible:
+    text: "Calibration"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "targets"
+    optional: true
+
+- takeScreenshot: "16_calibration_start"
+
+# Acknowledge calibration message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+# Fire at targets (tap center screen to shoot)
+# Target 1
+- tapOn:
+    point: "50%, 45%"
+
+- wait: 300
+
+# Target 2
+- tapOn:
+    point: "40%, 45%"
+
+- wait: 300
+
+# Target 3
+- tapOn:
+    point: "60%, 45%"
+
+- wait: 300
+
+# Target 4
+- tapOn:
+    point: "45%, 50%"
+
+- wait: 300
+
+# Target 5
+- tapOn:
+    point: "55%, 40%"
+
+- wait: 1500
+
+# Calibration complete
+- assertVisible:
+    text: "CALIBRATION COMPLETE"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "17_calibration_complete"
+
+# Kowalski response
+- assertVisible:
+    text: "Still got it"
+    optional: true
+    timeout: 5000
+
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1500
+
+# ============================================================================
+# PHASE 4: Hangar Bay and Launch
+# ============================================================================
+# Move to hangar
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 30%"
+    duration: 3000
+
+- wait: 2000
+
+- assertVisible:
+    text: "HANGAR"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "18_hangar_bay"
+
+# Depressurization warning
+- assertVisible:
+    text: "DEPRESSURIZATION"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "19_depressurization"
+
+- wait: 4000
+
+# Bay doors opening
+- assertVisible:
+    text: "bay doors"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "20_bay_doors"
+
+- wait: 5000
+
+# Move to drop pod
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 40%"
+    duration: 2000
+
+- wait: 2000
+
+# Commander final message
+- assertVisible:
+    text: "view never gets old"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "Marcus"
+    optional: true
+
+- takeScreenshot: "21_commander_final"
+
+- tapOn:
+    text: "ACKNOWLEDGE"
     optional: true
 
 - wait: 2000
 
-- takeScreenshot: "level_01_tutorial_progress"
+# Enter pod
+- assertVisible:
+    text: "DROP POD"
+    optional: true
+    timeout: 10000
 
-# Additional tutorial steps
+- takeScreenshot: "22_drop_pod"
+
+- wait: 3000
+
+# Launch button should appear
+- assertVisible:
+    text: "BEGIN ORBITAL DROP"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "23_launch_ready"
+
+# Execute launch
 - tapOn:
-    text: "ACKNOWLEDGE"
+    text: "BEGIN ORBITAL DROP"
     optional: true
 
-- wait: 1000
-
-# Skip remaining tutorial if option available
+# Alternative: tap the large launch button
 - tapOn:
-    text: "SKIP"
+    id: "launch_button"
+    optional: true
+
+# Alternative: press space equivalent
+- tapOn:
+    point: "50%, 50%"
     optional: true
 
 - wait: 3000
 
-- takeScreenshot: "level_01_anchor_station"
+# ============================================================================
+# Level Complete - Transition to Landfall
+# ============================================================================
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 30000
+
+- assertVisible:
+    text: "LANDFALL"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "24_mission_complete"
+
+# Final verification
+- extendedWaitUntil:
+    visible: "LOADING"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "25_loading_landfall"
+
+# Success - tutorial level completed

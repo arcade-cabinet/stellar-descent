@@ -8,10 +8,13 @@
  * - Inventory items and collectibles
  * - Objective progress
  * - Difficulty and game settings
+ * - New Game Plus (NG+) state
  */
 
 import type { DifficultyLevel } from '../core/DifficultySettings';
 import type { LevelId } from '../levels/types';
+import type { WeaponId } from '../entities/weapons';
+import type { SkullId } from '../collectibles/SkullSystem';
 
 // ============================================================================
 // WEAPON STATE
@@ -294,6 +297,29 @@ export interface GameSave {
     rotation: number;
     timestamp: number;
   } | null;
+
+  // ========== NEW GAME PLUS FIELDS ==========
+
+  /** Whether this save is a New Game Plus run */
+  isNewGamePlus: boolean;
+
+  /** Current NG+ tier (0 = normal, 1 = NG+, 2 = NG++, etc.) */
+  ngPlusTier: number;
+
+  /** Total campaign completions across all saves */
+  campaignCompletions: number;
+
+  /** Weapons unlocked through NG+ progression */
+  ngPlusUnlockedWeapons: WeaponId[];
+
+  /** Skulls unlocked through NG+ progression */
+  ngPlusUnlockedSkulls: SkullId[];
+
+  /** NG+ exclusive skulls discovered */
+  ngPlusExclusiveSkulls: string[];
+
+  /** Highest NG+ tier completed */
+  highestNgPlusTierCompleted: number;
 }
 
 /**
@@ -312,6 +338,10 @@ export interface GameSaveMetadata {
   difficulty: DifficultyLevel;
   playerHealth: number;
   playerArmor: number;
+  /** Whether this is a New Game Plus save */
+  isNewGamePlus: boolean;
+  /** NG+ tier (0 = normal) */
+  ngPlusTier: number;
 }
 
 /**
@@ -333,8 +363,9 @@ export const SAVE_SLOT_QUICKSAVE = -1;
  * v4: Added levelBestTimes field
  * v5: Added quest chain state (completedQuests, activeQuests, failedQuests)
  * v6: Added full player state (weapons, armor, grenades), collectibles, achievements, settings
+ * v7: Added New Game Plus state
  */
-export const SAVE_FORMAT_VERSION = 6;
+export const SAVE_FORMAT_VERSION = 7;
 
 /**
  * Level ID to chapter mapping (avoids circular dependency with levels/types)
@@ -458,6 +489,14 @@ export function createNewSave(
     unlockedAchievements: [],
     savedSettings: null,
     checkpoint: null,
+    // New v7 fields - New Game Plus
+    isNewGamePlus: false,
+    ngPlusTier: 0,
+    campaignCompletions: 0,
+    ngPlusUnlockedWeapons: [],
+    ngPlusUnlockedSkulls: [],
+    ngPlusExclusiveSkulls: [],
+    highestNgPlusTierCompleted: 0,
   };
 }
 
@@ -513,6 +552,8 @@ export function extractSaveMetadata(save: GameSave): GameSaveMetadata {
     difficulty: save.difficulty ?? 'normal',
     playerHealth: save.playerHealth,
     playerArmor: save.playerArmor ?? 0,
+    isNewGamePlus: save.isNewGamePlus ?? false,
+    ngPlusTier: save.ngPlusTier ?? 0,
   };
 }
 

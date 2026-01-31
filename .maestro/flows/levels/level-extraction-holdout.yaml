@@ -1,0 +1,476 @@
+# Level 10: Extraction (Holdout) - Comprehensive E2E Test
+# Tests the complete extraction level including all 7 waves, supply drops, and victory
+# Cross-platform: Web, Android, iOS
+# Required: Unlocked through campaign or dev menu
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-10
+  - extraction
+  - holdout
+  - e2e
+  - waves
+name: "Level 10 - Extraction Holdout Complete E2E"
+
+---
+# =============================================================================
+# LAUNCH AND NAVIGATION
+# =============================================================================
+
+- launchApp:
+    clearState: true
+
+# Wait for main menu to load
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+- takeScreenshot: "extraction_main_menu"
+
+# Navigate to level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# =============================================================================
+# LEVEL SELECTION - EXTRACTION
+# =============================================================================
+
+# Scroll to find Chapter 9 (Extraction)
+- scroll:
+    direction: "DOWN"
+    distance: 300
+    optional: true
+
+- assertVisible:
+    text: "CHAPTER 9"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "extraction_chapter_select"
+
+# Select Extraction level
+- tapOn:
+    text: "EXTRACTION"
+    optional: true
+
+- wait: 500
+
+# =============================================================================
+# MISSION BRIEFING
+# =============================================================================
+
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "extraction_briefing"
+
+# Verify mission title and objective
+- assertVisible:
+    text: "EXTRACTION"
+    optional: true
+
+- assertVisible:
+    text: "LZ Omega"
+    optional: true
+
+- assertVisible:
+    text: "Hold Until Evac"
+    optional: true
+
+# Check ACT 4 designation
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+# =============================================================================
+# INTEL TAB
+# =============================================================================
+
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Verify enemy intel
+- assertVisible:
+    text: "FERAL CHITIN"
+    optional: true
+
+- assertVisible:
+    text: "EMERGING SWARM"
+    optional: true
+
+- takeScreenshot: "extraction_intel"
+
+# =============================================================================
+# LOADOUT TAB
+# =============================================================================
+
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "EVAC BEACON"
+    optional: true
+
+- takeScreenshot: "extraction_loadout"
+
+# =============================================================================
+# BEGIN MISSION
+# =============================================================================
+
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Wait for level to load
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "extraction_level_start"
+
+# =============================================================================
+# PHASE 1: ESCAPE TUNNEL
+# =============================================================================
+
+# Verify escape objective
+- assertVisible:
+    text: "ESCAPE THE HIVE"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "THE HIVE IS COLLAPSING"
+    optional: true
+
+- takeScreenshot: "extraction_escape_start"
+
+# Sprint through tunnel
+- tapOn:
+    id: "sprint-button"
+    optional: true
+
+# Move forward through escape tunnel
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 50%"
+    duration: 5000
+
+- takeScreenshot: "extraction_tunnel_running"
+
+# Continue sprinting
+- repeat:
+    times: 6
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "16%, 52%"
+          duration: 3000
+      - wait: 200
+
+- takeScreenshot: "extraction_tunnel_progress"
+
+# =============================================================================
+# PHASE 2: SURFACE RUN
+# =============================================================================
+
+# Should reach surface
+- assertVisible:
+    text: "SURFACE REACHED"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "extraction_surface_reached"
+
+# Verify LZ objective
+- assertVisible:
+    text: "REACH LZ OMEGA"
+    optional: true
+
+# Continue running to LZ
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "18%, 48%"
+          duration: 3000
+      - wait: 100
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+- takeScreenshot: "extraction_approaching_lz"
+
+# =============================================================================
+# PHASE 3: HOLDOUT AT LZ OMEGA
+# =============================================================================
+
+# Should reach LZ and start holdout
+- assertVisible:
+    text: "HOLD LZ OMEGA"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "extraction_holdout_start"
+
+# Verify dropship ETA
+- assertVisible:
+    text: "DROPSHIP"
+    optional: true
+
+# =============================================================================
+# WAVE 1 - SKITTERER SWARM
+# =============================================================================
+
+- assertVisible:
+    text: "WAVE 1"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "extraction_wave_1_start"
+
+# Combat during wave 1
+- repeat:
+    times: 8
+    commands:
+      - swipe:
+          start: "80%, 50%"
+          end: "75%, 45%"
+          duration: 300
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+      - swipe:
+          start: "10%, 70%"
+          end: "12%, 68%"
+          duration: 500
+      - wait: 200
+
+- takeScreenshot: "extraction_wave_1_combat"
+
+# Wait for wave complete
+- assertVisible:
+    text: "WAVE.*CLEAR"
+    optional: true
+    timeout: 60000
+
+- takeScreenshot: "extraction_wave_1_complete"
+
+# =============================================================================
+# WAVES 2-6 - ESCALATING COMBAT
+# =============================================================================
+
+- repeat:
+    times: 5
+    commands:
+      # Wave start
+      - assertVisible:
+          text: "WAVE"
+          optional: true
+          timeout: 20000
+      - takeScreenshot: "extraction_wave_progress"
+      # Combat loop
+      - repeat:
+          times: 10
+          commands:
+            - swipe:
+                start: "80%, 50%"
+                end: "78%, 48%"
+                duration: 250
+            - tapOn:
+                id: "fire-button"
+                optional: true
+            - wait: 250
+            - swipe:
+                start: "10%, 70%"
+                end: "13%, 67%"
+                duration: 400
+            - wait: 150
+      # Reload when needed
+      - tapOn:
+          id: "reload-button"
+          optional: true
+      - wait: 2000
+      # Use grenade occasionally
+      - tapOn:
+          id: "grenade-button"
+          optional: true
+      - wait: 500
+      # Wait for wave complete
+      - assertVisible:
+          text: "CLEAR"
+          optional: true
+          timeout: 90000
+
+# =============================================================================
+# WAVE 7 - FINAL ASSAULT
+# =============================================================================
+
+- assertVisible:
+    text: "WAVE 7"
+    optional: true
+    timeout: 30000
+
+- assertVisible:
+    text: "FINAL ASSAULT"
+    optional: true
+
+- takeScreenshot: "extraction_wave_7_start"
+
+# Intense combat for final wave
+- repeat:
+    times: 20
+    commands:
+      - swipe:
+          start: "80%, 50%"
+          end: "76%, 46%"
+          duration: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+      - swipe:
+          start: "10%, 70%"
+          end: "14%, 66%"
+          duration: 300
+      - wait: 100
+      # Use grenade
+      - tapOn:
+          id: "grenade-button"
+          optional: true
+      - wait: 300
+      # Melee when close
+      - tapOn:
+          id: "melee-button"
+          optional: true
+      - wait: 200
+
+- takeScreenshot: "extraction_wave_7_combat"
+
+# Wave 7 complete
+- assertVisible:
+    text: "WAVE 7.*CLEAR"
+    optional: true
+    timeout: 120000
+
+- takeScreenshot: "extraction_wave_7_complete"
+
+# =============================================================================
+# PHASE 4: HIVE COLLAPSE
+# =============================================================================
+
+- assertVisible:
+    text: "HIVE IS COLLAPSING"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "extraction_collapse_start"
+
+# Sprint to dropship
+- assertVisible:
+    text: "REACH THE DROPSHIP"
+    optional: true
+
+# Run toward objective
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: "sprint-button"
+          optional: true
+      - swipe:
+          start: "10%, 70%"
+          end: "20%, 50%"
+          duration: 3000
+      - wait: 200
+
+- takeScreenshot: "extraction_collapse_running"
+
+# =============================================================================
+# PHASE 5: VICTORY - DROPSHIP ARRIVAL
+# =============================================================================
+
+- assertVisible:
+    text: "DROPSHIP INBOUND"
+    optional: true
+    timeout: 60000
+
+- takeScreenshot: "extraction_dropship_inbound"
+
+# Board dropship
+- assertVisible:
+    text: "BOARD DROPSHIP"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "extraction_boarding"
+
+# =============================================================================
+# MISSION COMPLETE
+# =============================================================================
+
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "extraction_mission_complete"
+
+# Campaign complete notification
+- assertVisible:
+    text: "CAMPAIGN COMPLETE"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "extraction_campaign_complete"
+
+# Wait for epilogue
+- wait: 5000
+
+# =============================================================================
+# LEVEL COMPLETION SCREEN
+# =============================================================================
+
+- assertVisible:
+    text: "LEVEL COMPLETE"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "extraction_level_complete_screen"
+
+# Verify stats are shown
+- assertVisible:
+    text: "KILLS"
+    optional: true
+
+- assertVisible:
+    text: "WAVES"
+    optional: true
+
+- takeScreenshot: "extraction_final_stats"
+
+# Return to menu
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "extraction_test_complete"

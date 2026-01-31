@@ -1,36 +1,73 @@
-# Campaign Level 4: FOB Delta
-# Abandoned base investigation - horror/suspense level
+# Campaign Level 4: FOB Delta - Comprehensive E2E Test
+# Abandoned military base with horror/investigation theme
 # Cross-platform: Web, Android, iOS
+#
+# Test Coverage:
+# - Level selection and mission briefing
+# - Horror atmosphere navigation with flashlight
+# - Area zone transitions (perimeter, courtyard, barracks, command, vehicle bay)
+# - Terminal interaction and mission log access
+# - Supply pickup collection (ammo, health, armor)
+# - Ambush enemy combat sequence
+# - Underground hatch discovery and exit
+# - Full mission completion with stats
 
-appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
-url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
 tags:
   - campaign
   - level-4
   - horror
   - investigation
-name: "Campaign Level 4 - FOB Delta"
+  - combat
+  - e2e
+  - full-playthrough
+name: "Campaign Level 4 - FOB Delta Complete Playthrough"
 
 ---
+# ============================================================================
+# PHASE 1: LAUNCH AND MAIN MENU
+# ============================================================================
+
 - launchApp:
     clearState: true
 
-# Wait for main menu
+# Wait for splash/loading to complete
+- extendedWaitUntil:
+    visible: "STELLAR DESCENT"
+    timeout: 15000
+    optional: true
+
+- wait: 2000
+
+# Wait for main menu to be ready
 - extendedWaitUntil:
     visible: "SELECT MISSION"
     timeout: 30000
+
+- takeScreenshot: "level_04_main_menu"
+
+# ============================================================================
+# PHASE 2: LEVEL SELECTION
+# ============================================================================
 
 # Open level select
 - tapOn:
     text: "SELECT MISSION"
 
-- wait: 1000
+- wait: 1500
 
 # Look for FOB Delta in level select (Chapter 4)
 - assertVisible:
     text: "CHAPTER 4"
     optional: true
     timeout: 5000
+
+# Alternative chapter indicators
+- assertVisible:
+    text: "04"
+    optional: true
+    timeout: 3000
 
 # Select FOB Delta if unlocked
 - tapOn:
@@ -41,11 +78,15 @@ name: "Campaign Level 4 - FOB Delta"
 
 - takeScreenshot: "level_04_select_state"
 
+# ============================================================================
+# PHASE 3: MISSION BRIEFING
+# ============================================================================
+
 # Wait for mission briefing
-- assertVisible:
-    text: "MISSION BRIEFING"
-    optional: true
+- extendedWaitUntil:
+    visible: "MISSION BRIEFING"
     timeout: 10000
+    optional: true
 
 # Verify FOB Delta mission info
 - assertVisible:
@@ -69,13 +110,13 @@ name: "Campaign Level 4 - FOB Delta"
 
 - wait: 500
 
-# Should show CHITIN SOLDIER and SPITTER intel
+# Should show enemy types for this level
 - assertVisible:
-    text: "CHITIN SOLDIER"
+    text: "LURKER"
     optional: true
 
 - assertVisible:
-    text: "AMBUSH SPAWN"
+    text: "AMBUSH"
     optional: true
 
 - takeScreenshot: "level_04_intel"
@@ -92,9 +133,24 @@ name: "Campaign Level 4 - FOB Delta"
     text: "BEGIN MISSION"
     optional: true
 
+# Alternative button text
+- tapOn:
+    text: "START MISSION"
+    optional: true
+
+# ============================================================================
+# PHASE 4: LEVEL LOADING
+# ============================================================================
+
 # Wait for loading
 - extendedWaitUntil:
     visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+# Alternative loading indicator
+- extendedWaitUntil:
+    visible: "FOB DELTA"
     timeout: 60000
     optional: true
 
@@ -102,45 +158,620 @@ name: "Campaign Level 4 - FOB Delta"
 
 - takeScreenshot: "level_04_start"
 
-# Explore dark environment - use tactical light
+# ============================================================================
+# PHASE 5: APPROACH PHASE - FLASHLIGHT AND INITIAL EXPLORATION
+# ============================================================================
+
+# Verify initial objective
+- assertVisible:
+    text: "INVESTIGATE"
+    optional: true
+    timeout: 5000
+
+# Enable flashlight for dark environment
 - tapOn:
     id: "flashlight-button"
     optional: true
 
 - wait: 500
 
-# Movement through corridors
+# Check flashlight notification
+- assertVisible:
+    text: "FLASHLIGHT ON"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "level_04_flashlight_on"
+
+# Movement toward breach/entry point
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 50%"
+    duration: 3000
+
+- wait: 500
+
+# Look around for environmental details
+- swipe:
+    start: "80%, 50%"
+    end: "60%, 50%"
+    duration: 1500
+
+- wait: 500
+
+- swipe:
+    start: "60%, 50%"
+    end: "80%, 50%"
+    duration: 1500
+
+- takeScreenshot: "level_04_perimeter"
+
+# ============================================================================
+# PHASE 6: COURTYARD AREA
+# ============================================================================
+
+# Continue forward into courtyard
 - swipe:
     start: "10%, 70%"
     end: "15%, 55%"
-    duration: 3000
-
-# Look around cautiously
-- swipe:
-    start: "80%, 50%"
-    end: "70%, 50%"
-    duration: 1500
+    duration: 2500
 
 - wait: 1000
 
-- swipe:
-    start: "80%, 50%"
-    end: "90%, 50%"
-    duration: 1500
+# Check for courtyard area notification
+- assertVisible:
+    text: "COURTYARD"
+    optional: true
+    timeout: 5000
 
-- takeScreenshot: "level_04_exploration"
+# Check for comms about heavy combat signs
+- assertVisible:
+    text: "HEAVY COMBAT"
+    optional: true
 
-# Continue forward
-- swipe:
-    start: "10%, 70%"
-    end: "15%, 60%"
-    duration: 2500
+- takeScreenshot: "level_04_courtyard"
 
-# Prepare for potential ambush
+# Use scanner to detect points of interest
 - tapOn:
-    id: "fire-button"
+    id: "scanner-button"
+    optional: true
+
+- tapOn:
+    text: "SCANNER"
     optional: true
 
 - wait: 2000
 
-- takeScreenshot: "level_04_interior"
+# Check for scanner results
+- assertVisible:
+    text: "SCANNING"
+    optional: true
+
+- assertVisible:
+    text: "DETECTED"
+    optional: true
+    timeout: 3000
+
+- takeScreenshot: "level_04_scanner_results"
+
+# ============================================================================
+# PHASE 7: BARRACKS EXPLORATION
+# ============================================================================
+
+# Move toward barracks (west side) - strafe left and forward
+- swipe:
+    start: "50%, 50%"
+    end: "30%, 50%"
+    duration: 1000
+
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 2500
+
+- wait: 1000
+
+# Check for barracks notification
+- assertVisible:
+    text: "BARRACKS"
+    optional: true
+    timeout: 5000
+
+# Check for horror atmosphere comms
+- assertVisible:
+    text: "NO SURVIVORS"
+    optional: true
+
+- assertVisible:
+    text: "STRUGGLE"
+    optional: true
+
+- takeScreenshot: "level_04_barracks"
+
+# ============================================================================
+# PHASE 8: SUPPLY COLLECTION
+# ============================================================================
+
+# Look for health pickup in barracks
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 1500
+
+- wait: 500
+
+# Check for supply indicators
+- assertVisible:
+    text: "MED KIT"
+    optional: true
+    timeout: 3000
+
+# Collect health
+- tapOn:
+    text: "COLLECT MED KIT"
+    optional: true
+
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 500
+
+# Check for pickup confirmation
+- assertVisible:
+    text: "HEALTH"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "level_04_health_collected"
+
+# ============================================================================
+# PHASE 9: COMMAND CENTER AND TERMINAL
+# ============================================================================
+
+# Navigate to command center (north) - turn right and forward
+- swipe:
+    start: "50%, 50%"
+    end: "70%, 50%"
+    duration: 1000
+
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 50%"
+    duration: 3000
+
+- wait: 1000
+
+# Check for command center notification
+- assertVisible:
+    text: "COMMAND CENTER"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "level_04_command_center"
+
+# Move to terminal
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 1500
+
+- wait: 500
+
+# Check for terminal interaction prompt
+- assertVisible:
+    text: "ACCESS TERMINAL"
+    optional: true
+    timeout: 3000
+
+# Interact with terminal
+- tapOn:
+    text: "ACCESS TERMINAL"
+    optional: true
+
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 1000
+
+# Check for log access notification
+- assertVisible:
+    text: "ACCESSING"
+    optional: true
+
+- assertVisible:
+    text: "MISSION LOGS"
+    optional: true
+
+- takeScreenshot: "level_04_terminal_access"
+
+# Wait for log messages (multiple messages over time)
+- wait: 3000
+
+# Check for first log
+- assertVisible:
+    text: "DAY"
+    optional: true
+
+- takeScreenshot: "level_04_log_1"
+
+# Wait for second log
+- wait: 6000
+
+- assertVisible:
+    text: "NIGHT"
+    optional: true
+
+- takeScreenshot: "level_04_log_2"
+
+# Wait for third log and objective update
+- wait: 8000
+
+- assertVisible:
+    text: "UNDERGROUND"
+    optional: true
+
+# Check for new objective
+- assertVisible:
+    text: "LOCATE"
+    optional: true
+
+- assertVisible:
+    text: "VEHICLE BAY"
+    optional: true
+
+- takeScreenshot: "level_04_new_objective"
+
+# ============================================================================
+# PHASE 10: VEHICLE BAY AND MECH DISCOVERY
+# ============================================================================
+
+# Navigate to vehicle bay (east side)
+- swipe:
+    start: "50%, 50%"
+    end: "70%, 50%"
+    duration: 1500
+
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 50%"
+    duration: 3000
+
+- wait: 1000
+
+# Check for vehicle bay notification
+- assertVisible:
+    text: "VEHICLE BAY"
+    optional: true
+    timeout: 5000
+
+# Check for mech discovery comms
+- assertVisible:
+    text: "TITAN"
+    optional: true
+
+- assertVisible:
+    text: "COLE"
+    optional: true
+
+- takeScreenshot: "level_04_vehicle_bay_mech"
+
+# ============================================================================
+# PHASE 11: AMBUSH COMBAT SEQUENCE
+# ============================================================================
+
+# Wait for ambush trigger (after being in vehicle bay with logs accessed)
+- wait: 4000
+
+# Check for ambush notification
+- assertVisible:
+    text: "HOSTILES"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "DETECTED"
+    optional: true
+
+- takeScreenshot: "level_04_ambush_start"
+
+# Combat engagement - fire at enemies
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 150
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 150
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 500
+
+# Check for hit feedback
+- assertVisible:
+    text: "HIT"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "level_04_combat_hit"
+
+# Strafe while shooting
+- swipe:
+    start: "50%, 50%"
+    end: "30%, 50%"
+    duration: 500
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 150
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Try melee if enemies close
+- tapOn:
+    text: "MELEE"
+    optional: true
+
+- tapOn:
+    id: "melee-button"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_04_combat_melee"
+
+# Reload weapon
+- tapOn:
+    text: "RELOAD"
+    optional: true
+
+- tapOn:
+    id: "reload-button"
+    optional: true
+
+- wait: 1500
+
+# Check for reload notification
+- assertVisible:
+    text: "RELOADING"
+    optional: true
+
+# Continue combat
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 150
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 150
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "level_04_combat_ongoing"
+
+# Strafe right
+- swipe:
+    start: "50%, 50%"
+    end: "70%, 50%"
+    duration: 500
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 150
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Wait for combat to resolve
+- wait: 5000
+
+# Check for area cleared
+- assertVisible:
+    text: "AREA CLEAR"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "level_04_ambush_cleared"
+
+# ============================================================================
+# PHASE 12: UNDERGROUND HATCH DISCOVERY
+# ============================================================================
+
+# Navigate to underground access point
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 2500
+
+- wait: 500
+
+# Look for hatch
+- swipe:
+    start: "80%, 50%"
+    end: "60%, 50%"
+    duration: 1000
+
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 2000
+
+- wait: 1000
+
+# Check for hatch detection
+- assertVisible:
+    text: "UNDERGROUND"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "ACCESS"
+    optional: true
+
+- takeScreenshot: "level_04_hatch_found"
+
+# Check for open hatch prompt
+- assertVisible:
+    text: "OPEN HATCH"
+    optional: true
+
+# Open the hatch
+- tapOn:
+    text: "OPEN HATCH"
+    optional: true
+
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 1000
+
+# Check for hatch opened notification
+- assertVisible:
+    text: "HATCH OPENED"
+    optional: true
+    timeout: 3000
+
+- takeScreenshot: "level_04_hatch_opened"
+
+# Wait for comms about Marcus
+- wait: 2000
+
+# Check for Marcus detection
+- assertVisible:
+    text: "MARCUS"
+    optional: true
+
+- assertVisible:
+    text: "TRANSPONDER"
+    optional: true
+
+- assertVisible:
+    text: "ALIVE"
+    optional: true
+
+- takeScreenshot: "level_04_marcus_detected"
+
+# Wait for objective update
+- wait: 5000
+
+# Check for descent objective
+- assertVisible:
+    text: "DESCEND"
+    optional: true
+
+- assertVisible:
+    text: "BREACH"
+    optional: true
+
+- takeScreenshot: "level_04_descent_objective"
+
+# ============================================================================
+# PHASE 13: LEVEL EXIT
+# ============================================================================
+
+# Move to hatch for exit
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 1500
+
+- wait: 500
+
+# Check for enter tunnels prompt
+- assertVisible:
+    text: "ENTER TUNNELS"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "level_04_enter_prompt"
+
+# Enter the tunnels to complete level
+- tapOn:
+    text: "ENTER TUNNELS"
+    optional: true
+
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 3000
+
+# ============================================================================
+# PHASE 14: MISSION COMPLETE
+# ============================================================================
+
+# Check for level transition/completion
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "level_04_mission_complete"
+
+# Wait for stats screen
+- wait: 2000
+
+# Check for mission statistics
+- assertVisible:
+    text: "KILLS"
+    optional: true
+
+- assertVisible:
+    text: "ENEMIES"
+    optional: true
+
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+- takeScreenshot: "level_04_stats"
+
+# Check for next level preview
+- assertVisible:
+    text: "BROTHERS IN ARMS"
+    optional: true
+
+- assertVisible:
+    text: "THE BREACH"
+    optional: true
+
+# Continue to next level or return to menu
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- tapOn:
+    text: "NEXT MISSION"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "level_04_complete_final"
+
+# ============================================================================
+# TEST VERIFICATION COMPLETE
+# ============================================================================

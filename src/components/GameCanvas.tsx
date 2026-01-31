@@ -34,6 +34,7 @@ import {
   type LevelCallbacks,
   type LevelId,
 } from '../game/levels/types';
+import { initShareSystem } from '../game/social';
 import styles from './GameCanvas.module.css';
 
 // ---------------------------------------------------------------------------
@@ -535,6 +536,11 @@ export function GameCanvas({
       if (engineRef.current) engineRef.current.resize();
     };
     window.addEventListener('resize', handleResize);
+
+    // Initialize share system with canvas reference
+    if (canvas) {
+      initShareSystem(canvas);
+    }
 
     return () => {
       window.removeEventListener('resize', handleResize);

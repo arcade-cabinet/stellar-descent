@@ -32,9 +32,9 @@ import {
 // Constants for validation
 // ---------------------------------------------------------------------------
 
-/** Expected weapon count - 18 unique ranged weapons, 19 total including bare_hands */
+/** Expected weapon count - 18 unique ranged weapons, 20 total including bare_hands and vehicle_yoke */
 const EXPECTED_WEAPON_COUNT = 18;
-const EXPECTED_TOTAL_WEAPONS = 19; // Including bare_hands
+const EXPECTED_TOTAL_WEAPONS = 20; // Including bare_hands and vehicle_yoke
 
 /** Damage range bounds (no weapon should exceed these) */
 const MIN_DAMAGE = 1;

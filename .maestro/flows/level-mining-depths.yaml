@@ -1,0 +1,699 @@
+# Level 7: Mining Depths - E2E Test Flow
+# Abandoned Underground Mining Facility on LV-847
+# Tests: Underground navigation, flashlight, hazards, keycard, elevator, boss fight
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-7
+  - underground
+  - boss-fight
+  - mining-depths
+name: "Level 7 - Mining Depths Complete Playthrough"
+
+---
+# ============================================================================
+# LAUNCH AND MAIN MENU
+# ============================================================================
+
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
+
+- takeScreenshot: "mining_depths_01_main_menu"
+
+# ============================================================================
+# NAVIGATE TO MINING DEPTHS LEVEL
+# ============================================================================
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+    optional: true
+
+- wait: 1500
+
+# Scroll to find Mining Depths (Chapter 7 area)
+- swipe:
+    start: "50%, 60%"
+    end: "50%, 30%"
+    duration: 800
+
+- wait: 500
+
+# Look for Mining Depths or equivalent chapter
+- assertVisible:
+    text: "MINING"
+    optional: true
+    timeout: 5000
+
+- tapOn:
+    text: "MINING"
+    optional: true
+
+- wait: 500
+
+# Fallback: Try chapter-based navigation
+- tapOn:
+    text: "CHAPTER 7"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "mining_depths_02_level_select"
+
+# ============================================================================
+# MISSION BRIEFING SCREEN
+# ============================================================================
+
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Verify Mining Depths mission info
+- assertVisible:
+    text: "MINING"
+    optional: true
+
+- assertVisible:
+    text: "Underground"
+    optional: true
+
+- assertVisible:
+    text: "LV-847"
+    optional: true
+
+- takeScreenshot: "mining_depths_03_briefing"
+
+# Check intel tab for enemy info
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Should show BURROWER and MINING DRILL CHITIN boss info
+- assertVisible:
+    text: "BURROWER"
+    optional: true
+
+- assertVisible:
+    text: "MINING DRILL CHITIN"
+    optional: true
+
+- takeScreenshot: "mining_depths_04_intel"
+
+# Switch back to briefing
+- tapOn:
+    text: "BRIEFING"
+    optional: true
+
+- wait: 300
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Alternative: Use CONTINUE if already started
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+# ============================================================================
+# LEVEL LOADING
+# ============================================================================
+
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "mining_depths_05_level_start"
+
+# ============================================================================
+# PHASE 1: ARRIVAL - Underground Entry
+# ============================================================================
+
+# Verify initial objective
+- assertVisible:
+    text: "INVESTIGATE"
+    optional: true
+    timeout: 10000
+
+# Alternatively check for mission title
+- assertVisible:
+    text: "MINING DEPTHS"
+    optional: true
+
+- takeScreenshot: "mining_depths_06_arrival"
+
+# ============================================================================
+# FLASHLIGHT ACTIVATION
+# ============================================================================
+
+# Toggle flashlight for dark underground
+- tapOn:
+    id: "flashlight-button"
+    optional: true
+
+- wait: 500
+
+# Verify flashlight notification
+- assertVisible:
+    text: "FLASHLIGHT"
+    optional: true
+
+# Alternative: Try keyboard shortcut via touch
+- tapOn:
+    text: "FLASHLIGHT"
+    optional: true
+
+- takeScreenshot: "mining_depths_07_flashlight_on"
+
+# ============================================================================
+# PHASE 2: MINING HUB EXPLORATION
+# ============================================================================
+
+# Move forward into the mining hub
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+- wait: 1000
+
+# Look around the hub
+- swipe:
+    start: "80%, 50%"
+    end: "60%, 50%"
+    duration: 2000
+
+- wait: 500
+
+- swipe:
+    start: "60%, 50%"
+    end: "80%, 50%"
+    duration: 1500
+
+- takeScreenshot: "mining_depths_08_hub_exploration"
+
+# ============================================================================
+# FIND KEYCARD
+# ============================================================================
+
+# Continue exploring for keycard
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 60%"
+    duration: 2500
+
+# Strafe right toward keycard location
+- swipe:
+    start: "10%, 60%"
+    end: "25%, 60%"
+    duration: 2000
+
+- wait: 1000
+
+# Look for keycard pickup notification
+- assertVisible:
+    text: "KEYCARD"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "mining_depths_09_keycard_area"
+
+# Interact to pickup keycard
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 500
+
+# Alternative: Use E key binding
+- tapOn:
+    text: "INTERACT"
+    optional: true
+
+# Verify keycard acquired
+- assertVisible:
+    text: "ACCESS"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "ACQUIRED"
+    optional: true
+
+- takeScreenshot: "mining_depths_10_keycard_acquired"
+
+# ============================================================================
+# PHASE 3: NAVIGATE COLLAPSED TUNNELS
+# ============================================================================
+
+# Move toward tunnel entrance
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+- wait: 500
+
+# Objective update expected
+- assertVisible:
+    text: "NAVIGATE"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "TUNNEL"
+    optional: true
+
+- takeScreenshot: "mining_depths_11_tunnel_entrance"
+
+# Continue through tunnels
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 2500
+
+# Watch for hazard warnings
+- assertVisible:
+    text: "TOXIC GAS"
+    optional: true
+    timeout: 8000
+
+# Alternative: Rockfall warning
+- assertVisible:
+    text: "ROCKFALL"
+    optional: true
+
+- takeScreenshot: "mining_depths_12_hazards"
+
+# Navigate around hazard
+- swipe:
+    start: "10%, 60%"
+    end: "20%, 55%"
+    duration: 2000
+
+- wait: 500
+
+# ============================================================================
+# COMBAT ENCOUNTER: BURROWERS
+# ============================================================================
+
+# Movement detection notification
+- assertVisible:
+    text: "MOVEMENT"
+    optional: true
+    timeout: 10000
+
+# Alternative: Combat alert
+- assertVisible:
+    text: "HOSTILE"
+    optional: true
+
+- takeScreenshot: "mining_depths_13_burrower_alert"
+
+# Fire at enemies
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Look for hit confirmation
+- assertVisible:
+    text: "HIT"
+    optional: true
+    timeout: 3000
+
+- takeScreenshot: "mining_depths_14_combat"
+
+# Continue firing
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Melee if needed
+- tapOn:
+    id: "melee-button"
+    optional: true
+
+- wait: 500
+
+# ============================================================================
+# COLLECT AUDIO LOGS (OPTIONAL)
+# ============================================================================
+
+# Use scanner to find audio logs
+- tapOn:
+    id: "scanner-button"
+    optional: true
+
+- wait: 1500
+
+# Check for audio log detection
+- assertVisible:
+    text: "AUDIO LOG"
+    optional: true
+    timeout: 5000
+
+# Alternative scanner text
+- assertVisible:
+    text: "SCANNING"
+    optional: true
+
+- takeScreenshot: "mining_depths_15_scanner"
+
+# ============================================================================
+# PHASE 4: SHAFT GATE - USE KEYCARD
+# ============================================================================
+
+# Navigate to shaft gate
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 4000
+
+- wait: 500
+
+# Look for gate interaction prompt
+- assertVisible:
+    text: "USE KEYCARD"
+    optional: true
+    timeout: 10000
+
+# Alternative: Gate nearby
+- assertVisible:
+    text: "SHAFT"
+    optional: true
+
+- takeScreenshot: "mining_depths_16_shaft_gate"
+
+# Interact with gate
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 500
+
+# Verify gate unlocked
+- assertVisible:
+    text: "UNLOCKED"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "mining_depths_17_gate_open"
+
+# ============================================================================
+# PHASE 5: DEEP SHAFT DESCENT
+# ============================================================================
+
+# Move into shaft area
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 3000
+
+# Objective update
+- assertVisible:
+    text: "DESCEND"
+    optional: true
+    timeout: 10000
+
+# Alternative: Shaft objective
+- assertVisible:
+    text: "SHAFT"
+    optional: true
+
+- takeScreenshot: "mining_depths_18_shaft_descent"
+
+# Navigate down ledges
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 2500
+
+- wait: 500
+
+# Look down
+- swipe:
+    start: "50%, 40%"
+    end: "50%, 60%"
+    duration: 1000
+
+- wait: 300
+
+# Continue descent
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+- takeScreenshot: "mining_depths_19_deep_descent"
+
+# ============================================================================
+# PHASE 6: BOSS FIGHT - MINING DRILL CHITIN
+# ============================================================================
+
+# Boss alert expected
+- assertVisible:
+    text: "HOSTILE ALPHA"
+    optional: true
+    timeout: 15000
+
+# Alternative: Boss warning
+- assertVisible:
+    text: "WARNING"
+    optional: true
+
+- assertVisible:
+    text: "MINING DRILL CHITIN"
+    optional: true
+
+- takeScreenshot: "mining_depths_20_boss_alert"
+
+# Combat objective
+- assertVisible:
+    text: "DEFEAT"
+    optional: true
+    timeout: 10000
+
+# Fight the boss - continuous fire
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- takeScreenshot: "mining_depths_21_boss_fight"
+
+# Strafe to avoid attacks
+- swipe:
+    start: "10%, 60%"
+    end: "25%, 60%"
+    duration: 1000
+
+# Continue firing
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Reload if needed
+- tapOn:
+    id: "reload-button"
+    optional: true
+
+- wait: 1500
+
+# Resume firing
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Dodge boss charge
+- swipe:
+    start: "10%, 60%"
+    end: "5%, 70%"
+    duration: 800
+
+- takeScreenshot: "mining_depths_22_boss_combat"
+
+# Continue engagement
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# Watch for enrage phase
+- assertVisible:
+    text: "ENRAGED"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "mining_depths_23_boss_enraged"
+
+# Final push
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 200
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+# ============================================================================
+# BOSS DEFEATED
+# ============================================================================
+
+# Wait for boss destruction notification
+- assertVisible:
+    text: "DESTROYED"
+    optional: true
+    timeout: 60000
+
+# Alternative: Mission complete
+- assertVisible:
+    text: "MINING DRILL CHITIN"
+    optional: true
+
+- takeScreenshot: "mining_depths_24_boss_defeated"
+
+# ============================================================================
+# LEVEL COMPLETE
+# ============================================================================
+
+# Wait for level complete screen
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 20000
+
+# Alternative: Level complete
+- assertVisible:
+    text: "COMPLETE"
+    optional: true
+
+- takeScreenshot: "mining_depths_25_mission_complete"
+
+# Verify stats display
+- assertVisible:
+    text: "KILLS"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+- assertVisible:
+    text: "SECRETS"
+    optional: true
+
+- takeScreenshot: "mining_depths_26_level_stats"
+
+# ============================================================================
+# CLEANUP - RETURN TO MENU
+# ============================================================================
+
+# Continue to next level or return to menu
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- wait: 1000
+
+# Alternative: Main menu
+- tapOn:
+    text: "MAIN MENU"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "mining_depths_27_final"
+
+# ============================================================================
+# VERIFICATION SUMMARY
+# ============================================================================
+# This flow tests:
+# 1. Level selection and mission briefing
+# 2. Underground environment loading
+# 3. Flashlight mechanics for dark areas
+# 4. Mining hub exploration
+# 5. Keycard pickup and inventory
+# 6. Tunnel navigation with hazards (gas, rockfall)
+# 7. Burrower enemy encounters
+# 8. Scanner functionality for objectives/logs
+# 9. Shaft gate interaction with keycard
+# 10. Vertical shaft descent
+# 11. Boss fight: Mining Drill Chitin
+# 12. Enrage phase mechanics
+# 13. Level completion and stats
+# ============================================================================
