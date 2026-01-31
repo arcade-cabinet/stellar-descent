@@ -17,13 +17,13 @@ import {
 } from './GameSave';
 import { saveSystem } from './SaveSystem';
 
-// Mock worldDb
+// Mock worldDb - all methods are now async
 vi.mock('../db/worldDatabase', () => ({
   worldDb: {
     init: vi.fn().mockResolvedValue(undefined),
-    getChunkData: vi.fn(),
-    setChunkData: vi.fn(),
-    deleteChunkData: vi.fn(),
+    getChunkData: vi.fn().mockResolvedValue(null),
+    setChunkData: vi.fn().mockResolvedValue(undefined),
+    deleteChunkData: vi.fn().mockResolvedValue(undefined),
     resetDatabase: vi.fn().mockResolvedValue(undefined),
     persistToIndexedDB: vi.fn(),
     flushPersistence: vi.fn().mockResolvedValue(undefined),
@@ -135,17 +135,17 @@ describe('SaveSystem', () => {
   });
 
   describe('hasSave', () => {
-    it('returns false when no save exists', () => {
-      vi.mocked(worldDb.getChunkData).mockReturnValue(null);
+    it('returns false when no save exists', async () => {
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(null);
 
-      expect(saveSystem.hasSave()).toBe(false);
+      expect(await saveSystem.hasSave()).toBe(false);
     });
 
-    it('returns true when save exists', () => {
+    it('returns true when save exists', async () => {
       const save = createNewSave('primary');
-      vi.mocked(worldDb.getChunkData).mockReturnValue(JSON.stringify(save));
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(JSON.stringify(save));
 
-      expect(saveSystem.hasSave()).toBe(true);
+      expect(await saveSystem.hasSave()).toBe(true);
     });
   });
 
@@ -163,7 +163,7 @@ describe('SaveSystem', () => {
 
   describe('loadGame', () => {
     it('returns null when no save exists', async () => {
-      vi.mocked(worldDb.getChunkData).mockReturnValue(null);
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(null);
 
       const result = await saveSystem.loadGame();
 
@@ -174,7 +174,7 @@ describe('SaveSystem', () => {
       const mockSave = createNewSave('primary');
       mockSave.currentLevel = 'landfall';
       mockSave.playerHealth = 75;
-      vi.mocked(worldDb.getChunkData).mockReturnValue(JSON.stringify(mockSave));
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(JSON.stringify(mockSave));
 
       const result = await saveSystem.loadGame();
 
@@ -285,7 +285,7 @@ describe('SaveSystem', () => {
   describe('deleteSave', () => {
     it('deletes the save and clears current save', async () => {
       await saveSystem.newGame();
-      saveSystem.deleteSave();
+      await saveSystem.deleteSave();
 
       expect(worldDb.deleteChunkData).toHaveBeenCalledWith('save_primary');
       expect(saveSystem.getCurrentSave()).toBeNull();
@@ -325,7 +325,7 @@ describe('SaveSystem', () => {
   describe('export/import JSON', () => {
     it('exports save as JSON', async () => {
       await saveSystem.newGame();
-      const json = saveSystem.exportSaveJSON();
+      const json = await saveSystem.exportSaveJSON();
 
       expect(json).toBeDefined();
       const parsed = JSON.parse(json!);

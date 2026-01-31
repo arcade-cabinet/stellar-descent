@@ -25,12 +25,21 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
+import { AssetManager } from '../../core/AssetManager';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { tokens } from '../../utils/designTokens';
 import { BaseLevel } from '../BaseLevel';
+import { buildFloraFromPlacements, getBrothersFlora } from '../shared/AlienFloraBuilder';
+import { buildCollectibles, type CollectibleSystemResult, getBrothersCollectibles } from '../shared/CollectiblePlacer';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import {
+  buildBattlefieldEnvironment,
+  updateBattlefieldLights,
+  type BattlefieldResult,
+} from './BattlefieldEnvironment';
 import { COMMS, NOTIFICATIONS, OBJECTIVES, ReunionCinematic } from './cinematics';
 import { MarcusCombatAI, type MarcusCombatState } from './MarcusCombatAI';
 import type { CoordinationCombatState } from './MarcusCombatCoordinator';
@@ -184,11 +193,67 @@ const BREACH_POSITION = new Vector3(0, 0, -60);
 const MARCUS_START_POSITION = new Vector3(15, 0, 10);
 const WAVE_REST_DURATION = 30000; // 30 seconds between waves
 
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS -- canyon walls & breach rim debris
+// ---------------------------------------------------------------------------
+
+const CANYON_WALL_PATHS = {
+  /** Long horizontal wall segment, tiled along N/S boundaries */
+  wall_long: '/models/environment/station/wall_hr_15_double.glb',
+  /** Shorter wall segment used to fill gaps at E/W boundaries */
+  wall_short: '/models/environment/station/wall_hr_1.glb',
+  /** Pillar segments placed at wall junctions for visual variety */
+  pillar: '/models/environment/station/pillar_hr_8.glb',
+} as const;
+
+const BREACH_RIM_PATHS = {
+  /** Debris bricks scattered around breach lip */
+  debris_bricks: '/models/props/debris/debris_bricks_mx_1.glb',
+  /** Gravel piles at breach edge */
+  gravel: '/models/props/debris/gravel_pile_hr_1.glb',
+  /** Scrap metal fragments */
+  scrap: '/models/props/containers/scrap_metal_mx_1.glb',
+} as const;
+
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS -- enemy models (Chitin aliens)
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps enemy types to GLB model paths. These replace the old MeshBuilder
+ * primitives (spheres, capsules, boxes) with proper 3D alien models.
+ */
+const ENEMY_GLB_PATHS: Record<EnemyType, string> = {
+  /** Flying drone - fast, small flyer */
+  drone: '/models/enemies/chitin/flyingalien.glb',
+  /** Grunt - standard ground enemy (lurker/scout type) */
+  grunt: '/models/enemies/chitin/scout.glb',
+  /** Spitter - ranged acid attacker (spewer/soldier type) */
+  spitter: '/models/enemies/chitin/soldier.glb',
+  /** Brute - heavy tank enemy (large alien monster) */
+  brute: '/models/enemies/chitin/alienmonster.glb',
+} as const;
+
+/**
+ * Scale factors for enemy GLB models to match gameplay sizes.
+ * These are tuned so hitbox and visual size align with ENEMY_CONFIGS.size values.
+ */
+const ENEMY_GLB_SCALES: Record<EnemyType, number> = {
+  drone: 0.4, // Small flying alien scaled down
+  grunt: 0.8, // Standard humanoid-sized alien
+  spitter: 0.7, // Medium ranged alien
+  brute: 1.5, // Large heavy alien
+} as const;
+
 // ============================================================================
 // LEVEL CLASS
 // ============================================================================
 
 export class BrothersInArmsLevel extends BaseLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Phase management
   private phase: LevelPhase = 'reunion';
   private phaseTime = 0;
@@ -209,8 +274,9 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   // Environment
   private terrain: Mesh | null = null;
+  private terrainMaterial: StandardMaterial | null = null;
   private canyonWalls: Mesh[] = [];
-  private rockPillars: Mesh[] = [];
+  private battlefield: BattlefieldResult | null = null;
   private breachMesh: Mesh | null = null;
   private breachGlow: PointLight | null = null;
   private skyDome: Mesh | null = null;
@@ -266,19 +332,33 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   protected async createEnvironment(): Promise<void> {
+    // Initialize AssetManager for GLB loading
+    AssetManager.init(this.scene);
+
     // Override default lighting with sunset-style
     this.setupSunsetLighting();
 
-    // Create environment
+    // Create base environment
     this.createTerrain();
-    this.createCanyonWalls();
-    this.createRockPillars();
-    this.createBreach();
+    await this.createCanyonWalls();
+    await this.createBreach();
     this.createSkyDome();
     this.generateSpawnPoints();
 
-    // Create Marcus
-    this.createMarcusMech();
+    // Build GLB-based battlefield (replaces old MeshBuilder rock pillars)
+    // Loads barricades, industrial structures, containers, debris, and decals
+    this.battlefield = await buildBattlefieldEnvironment(this.scene);
+    console.log(
+      `[BrothersInArms] Battlefield built with ${this.battlefield.meshes.length} meshes, ` +
+        `${this.battlefield.lights.length} lights, ` +
+        `${this.battlefield.supplyCratePositions.length} supply positions`
+    );
+
+    // Preload enemy GLB models for wave combat
+    await this.preloadEnemyModels();
+
+    // Create Marcus (GLB-based mech model)
+    await this.createMarcusMech();
 
     // Setup camera for FPS
     this.camera.position.set(0, 1.7, 50);
@@ -288,6 +368,14 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Setup action handler
     this.actionCallback = this.handleAction.bind(this);
     this.callbacks.onActionHandlerRegister(this.actionCallback);
+
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getBrothersFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(this.scene, getBrothersCollectibles(), collectibleRoot);
 
     // Start reunion phase
     this.startReunionPhase();
@@ -318,120 +406,149 @@ export class BrothersInArmsLevel extends BaseLevel {
     ambient.diffuse = new Color3(0.5, 0.35, 0.25);
   }
 
-  private createTerrain(): void {
-    this.terrain = MeshBuilder.CreateGround(
-      'terrain',
-      {
-        width: ARENA_WIDTH * 1.5,
-        height: ARENA_DEPTH * 1.5,
-        subdivisions: 64,
-      },
-      this.scene
-    );
+  /**
+   * Preload all enemy GLB models so spawnEnemy can create instances synchronously.
+   * Uses parallel loading for better performance during level init.
+   */
+  private async preloadEnemyModels(): Promise<void> {
+    const enemyPaths = Object.values(ENEMY_GLB_PATHS);
+    const uniquePaths = [...new Set(enemyPaths)];
 
-    const terrainMat = new StandardMaterial('terrainMat', this.scene);
-    terrainMat.diffuseColor = Color3.FromHexString('#9B7B5A'); // Rust brown
-    terrainMat.specularColor = new Color3(0.05, 0.04, 0.03);
-    this.terrain.material = terrainMat;
+    const loadPromises = uniquePaths.map(async (path) => {
+      try {
+        if (!AssetManager.isPathCached(path)) {
+          await AssetManager.loadAssetByPath(path, this.scene);
+        }
+      } catch (err) {
+        console.warn(`[BrothersInArms] Failed to load enemy GLB: ${path}`, err);
+      }
+    });
+
+    await Promise.all(loadPromises);
+
+    const loaded = uniquePaths.filter((p) => AssetManager.isPathCached(p)).length;
+    console.log(
+      `[BrothersInArms] Preloaded ${loaded}/${uniquePaths.length} enemy models`
+    );
   }
 
-  private createCanyonWalls(): void {
-    const wallMat = new StandardMaterial('wallMat', this.scene);
-    wallMat.diffuseColor = Color3.FromHexString('#6B4423'); // Dark brown
+  private createTerrain(): void {
+    // Use SurfaceTerrainFactory for procedural heightmap terrain.
+    // Canyon arena rust-brown rock with moderate height variation.
+    const { mesh, material } = createDynamicTerrain(this.scene, {
+      ...ROCK_TERRAIN,
+      size: 200,
+      heightScale: 15,
+      seed: 54321,
+      materialName: 'brothersCanyonTerrain',
+      tintColor: '#9B7B5A', // Rust brown matching original canyon palette
+    });
 
-    // North wall
-    const northWall = MeshBuilder.CreateBox(
-      'northWall',
-      { width: ARENA_WIDTH * 1.5, height: 80, depth: 30 },
-      this.scene
-    );
-    northWall.position.set(0, 40, -ARENA_DEPTH / 2 - 30);
-    northWall.material = wallMat;
-    this.canyonWalls.push(northWall);
+    this.terrain = mesh;
+    this.terrainMaterial = material;
+  }
 
-    // South wall
-    const southWall = MeshBuilder.CreateBox(
-      'southWall',
-      { width: ARENA_WIDTH * 1.5, height: 80, depth: 30 },
-      this.scene
-    );
-    southWall.position.set(0, 40, ARENA_DEPTH / 2 + 30);
-    southWall.material = wallMat;
-    this.canyonWalls.push(southWall);
+  private async createCanyonWalls(): Promise<void> {
+    // Preload canyon wall GLBs
+    await Promise.all([
+      AssetManager.loadAssetByPath(CANYON_WALL_PATHS.wall_long, this.scene),
+      AssetManager.loadAssetByPath(CANYON_WALL_PATHS.wall_short, this.scene),
+      AssetManager.loadAssetByPath(CANYON_WALL_PATHS.pillar, this.scene),
+    ]);
+
+    const longLoaded = AssetManager.isPathCached(CANYON_WALL_PATHS.wall_long);
+    const shortLoaded = AssetManager.isPathCached(CANYON_WALL_PATHS.wall_short);
+    const pillarLoaded = AssetManager.isPathCached(CANYON_WALL_PATHS.pillar);
+
+    if (!longLoaded && !shortLoaded) {
+      throw new Error(
+        '[BrothersInArms] FATAL: Canyon wall GLBs failed to load. ' +
+        `Tried: ${CANYON_WALL_PATHS.wall_long}, ${CANYON_WALL_PATHS.wall_short}`
+      );
+    }
+
+    // Each GLB wall segment is ~6m wide at scale 1; we tile them along each boundary.
+    // We use scale 8 so each segment spans ~48m, and place multiple to cover 300m (1.5x arena).
+    const wallScale = 8;
+    const segmentWidth = 48; // approximate visual width per instance at scale 8
+    const totalLengthNS = ARENA_WIDTH * 1.5; // 300m for N/S walls
+    const totalLengthEW = ARENA_DEPTH * 1.5; // 225m for E/W walls
+    const wallPath = longLoaded ? CANYON_WALL_PATHS.wall_long : CANYON_WALL_PATHS.wall_short;
+
+    // Helper: tile wall instances along a line
+    const tileWall = (
+      baseName: string,
+      totalLength: number,
+      centerX: number,
+      centerZ: number,
+      rotY: number,
+      isEW: boolean,
+    ) => {
+      const count = Math.ceil(totalLength / segmentWidth) + 1;
+      const startOffset = -(count * segmentWidth) / 2;
+
+      for (let i = 0; i < count; i++) {
+        const instance = AssetManager.createInstanceByPath(
+          wallPath,
+          `${baseName}_seg_${i}`,
+          this.scene,
+          true,
+          'environment'
+        );
+        if (!instance) continue;
+
+        const offset = startOffset + i * segmentWidth;
+        if (isEW) {
+          // E/W walls: tile along Z axis
+          instance.position.set(centerX, 0, centerZ + offset);
+        } else {
+          // N/S walls: tile along X axis
+          instance.position.set(centerX + offset, 0, centerZ);
+        }
+        instance.rotation.y = rotY;
+        instance.scaling.setAll(wallScale);
+
+        // Collect as a Mesh reference for disposal
+        this.canyonWalls.push(instance as unknown as Mesh);
+      }
+
+      // Add pillar at corners for visual anchoring
+      if (pillarLoaded) {
+        const pillar = AssetManager.createInstanceByPath(
+          CANYON_WALL_PATHS.pillar,
+          `${baseName}_pillar`,
+          this.scene,
+          true,
+          'environment'
+        );
+        if (pillar) {
+          pillar.position.set(centerX, 0, centerZ);
+          pillar.scaling.setAll(wallScale * 0.8);
+          this.canyonWalls.push(pillar as unknown as Mesh);
+        }
+      }
+    };
+
+    // North wall (behind breach)
+    tileWall('northWall', totalLengthNS, 0, -ARENA_DEPTH / 2 - 30, 0, false);
+
+    // South wall (behind player start)
+    tileWall('southWall', totalLengthNS, 0, ARENA_DEPTH / 2 + 30, Math.PI, false);
 
     // East wall
-    const eastWall = MeshBuilder.CreateBox(
-      'eastWall',
-      { width: 30, height: 80, depth: ARENA_DEPTH * 1.5 },
-      this.scene
-    );
-    eastWall.position.set(ARENA_WIDTH / 2 + 30, 40, 0);
-    eastWall.material = wallMat;
-    this.canyonWalls.push(eastWall);
+    tileWall('eastWall', totalLengthEW, ARENA_WIDTH / 2 + 30, 0, Math.PI / 2, true);
 
     // West wall
-    const westWall = MeshBuilder.CreateBox(
-      'westWall',
-      { width: 30, height: 80, depth: ARENA_DEPTH * 1.5 },
-      this.scene
-    );
-    westWall.position.set(-ARENA_WIDTH / 2 - 30, 40, 0);
-    westWall.material = wallMat;
-    this.canyonWalls.push(westWall);
+    tileWall('westWall', totalLengthEW, -ARENA_WIDTH / 2 - 30, 0, -Math.PI / 2, true);
   }
 
-  private createRockPillars(): void {
-    const pillarMat = new StandardMaterial('pillarMat', this.scene);
-    pillarMat.diffuseColor = Color3.FromHexString('#8B5A2B');
-    pillarMat.specularColor = new Color3(0.08, 0.06, 0.04);
+  // NOTE: createRockPillars() removed -- replaced by BattlefieldEnvironment.ts
+  // which places GLB barricades, industrial structures, containers, debris,
+  // fencing, and decals across the arena at close/mid/far cover distances.
 
-    // Create 10-15 rock pillars for cover
-    const pillarPositions = [
-      new Vector3(-40, 0, 30),
-      new Vector3(35, 0, 25),
-      new Vector3(-25, 0, -10),
-      new Vector3(50, 0, 0),
-      new Vector3(-55, 0, 15),
-      new Vector3(20, 0, -30),
-      new Vector3(-45, 0, -25),
-      new Vector3(60, 0, -20),
-      new Vector3(-30, 0, 50),
-      new Vector3(45, 0, 45),
-      new Vector3(-60, 0, -40),
-      new Vector3(25, 0, 55),
-      new Vector3(-15, 0, 40),
-    ];
-
-    pillarPositions.forEach((pos, i) => {
-      const height = 8 + Math.random() * 12;
-      const diameterBottom = 3 + Math.random() * 3;
-      const diameterTop = diameterBottom * (0.4 + Math.random() * 0.3);
-
-      const pillar = MeshBuilder.CreateCylinder(
-        `pillar_${i}`,
-        {
-          height,
-          diameterTop,
-          diameterBottom,
-          tessellation: 8,
-        },
-        this.scene
-      );
-
-      pillar.position = pos.clone();
-      pillar.position.y = height / 2;
-      pillar.material = pillarMat;
-
-      // Slight random rotation for variety
-      pillar.rotation.y = Math.random() * Math.PI * 2;
-
-      this.rockPillars.push(pillar);
-    });
-  }
-
-  private createBreach(): void {
+  private async createBreach(): Promise<void> {
     // The Breach - massive sinkhole entrance to hive
-    // Create as a cylinder going down
+    // The cylinder and torus are procedural (unique terrain geometry with no GLB match)
     this.breachMesh = MeshBuilder.CreateCylinder(
       'breach',
       {
@@ -450,7 +567,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.breachMesh.position = BREACH_POSITION.clone();
     this.breachMesh.position.y = -25;
 
-    // Create rim around breach
+    // Create rim around breach (procedural torus -- unique shape)
     const rimMat = new StandardMaterial('rimMat', this.scene);
     rimMat.diffuseColor = Color3.FromHexString('#5A3A5A');
     rimMat.emissiveColor = new Color3(0.1, 0.3, 0.3);
@@ -475,6 +592,47 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.breachGlow.intensity = 1.5;
     this.breachGlow.diffuse = Color3.FromHexString('#4AC8C8');
     this.breachGlow.range = 80;
+
+    // GLB debris ring around breach lip for visual detail
+    await Promise.all([
+      AssetManager.loadAssetByPath(BREACH_RIM_PATHS.debris_bricks, this.scene),
+      AssetManager.loadAssetByPath(BREACH_RIM_PATHS.gravel, this.scene),
+      AssetManager.loadAssetByPath(BREACH_RIM_PATHS.scrap, this.scene),
+    ]);
+
+    const rimDebrisPaths = [
+      BREACH_RIM_PATHS.debris_bricks,
+      BREACH_RIM_PATHS.gravel,
+      BREACH_RIM_PATHS.scrap,
+    ];
+    const rimRadius = BREACH_DIAMETER / 2 + 3;
+    const debrisCount = 12;
+
+    for (let i = 0; i < debrisCount; i++) {
+      const angle = (i / debrisCount) * Math.PI * 2;
+      const pathIndex = i % rimDebrisPaths.length;
+      const path = rimDebrisPaths[pathIndex];
+
+      if (!AssetManager.isPathCached(path)) continue;
+
+      const instance = AssetManager.createInstanceByPath(
+        path,
+        `breachRimDebris_${i}`,
+        this.scene,
+        true,
+        'environment'
+      );
+      if (!instance) continue;
+
+      instance.position.set(
+        BREACH_POSITION.x + Math.cos(angle) * rimRadius + (Math.random() - 0.5) * 4,
+        0,
+        BREACH_POSITION.z + Math.sin(angle) * rimRadius + (Math.random() - 0.5) * 4
+      );
+      instance.rotation.y = angle + (Math.random() - 0.5) * 0.5;
+      const s = 2 + Math.random() * 1.5;
+      instance.scaling.setAll(s);
+    }
   }
 
   private createSkyDome(): void {
@@ -532,130 +690,63 @@ export class BrothersInArmsLevel extends BaseLevel {
   // MARCUS MECH
   // ============================================================================
 
-  private createMarcusMech(): void {
+  private async createMarcusMech(): Promise<void> {
     const root = new TransformNode('marcusRoot', this.scene);
     root.position = MARCUS_START_POSITION.clone();
 
-    // Materials
-    const bodyMat = new StandardMaterial('mechBodyMat', this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.oliveDark);
-    bodyMat.specularColor = new Color3(0.4, 0.4, 0.4);
+    // Load the Marcus mech GLB model
+    const MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
+    await AssetManager.loadAssetByPath(MECH_GLB_PATH, this.scene);
+    const mechModel = AssetManager.createInstanceByPath(
+      MECH_GLB_PATH,
+      'marcusMechInstance',
+      this.scene,
+      true,
+      'vehicle'
+    );
 
-    const accentMat = new StandardMaterial('mechAccentMat', this.scene);
-    accentMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-    accentMat.emissiveColor = new Color3(0.1, 0.15, 0.1);
+    if (mechModel) {
+      mechModel.parent = root;
+      // Scale GLB to match the ~8m tall mech (adjust if model is a different base size)
+      mechModel.scaling.setAll(4);
+      mechModel.position.y = 0;
+    } else {
+      throw new Error(
+        `[BrothersInArms] FATAL: Failed to load marcus_mech.glb from ${MECH_GLB_PATH}`
+      );
+    }
 
-    // Body (torso) - scaled up to 8m tall total
-    const body = MeshBuilder.CreateBox('mechBody', { width: 4, height: 5, depth: 3 }, this.scene);
-    body.material = bodyMat;
+    // Create invisible proxy meshes for arms, body, and legs.
+    // These are required by MarcusCombatAI for projectile spawn positions
+    // (absolutePosition), arm recoil animations (rotation.z), and walk
+    // animation (legs.position.y). They are invisible and simply track
+    // the correct offsets on the root TransformNode.
+
+    // Body proxy (torso center -- used only for disposal/structure)
+    const body = MeshBuilder.CreateBox('mechBody', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    body.visibility = 0;
     body.parent = root;
     body.position.y = 6;
 
-    // Cockpit
-    const cockpit = MeshBuilder.CreateBox(
-      'cockpit',
-      { width: 2, height: 1.2, depth: 1 },
-      this.scene
-    );
-    cockpit.material = accentMat;
-    cockpit.parent = body;
-    cockpit.position.set(0, 2, 1);
-
-    // Left arm with autocannon
-    const leftArm = MeshBuilder.CreateCylinder(
-      'mechLeftArm',
-      { height: 5, diameter: 1 },
-      this.scene
-    );
-    leftArm.material = bodyMat;
+    // Left arm proxy (projectile spawn + recoil)
+    const leftArm = MeshBuilder.CreateBox('mechLeftArm', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    leftArm.visibility = 0;
     leftArm.parent = root;
     leftArm.position.set(-3, 5.5, 0);
     leftArm.rotation.z = 0.3;
 
-    // Left autocannon barrel
-    const leftBarrel = MeshBuilder.CreateCylinder(
-      'leftBarrel',
-      { height: 3.5, diameter: 0.5 },
-      this.scene
-    );
-    leftBarrel.material = accentMat;
-    leftBarrel.parent = leftArm;
-    leftBarrel.position.y = -3.5;
-    leftBarrel.rotation.x = Math.PI / 2;
-
-    // Right arm with autocannon
-    const rightArm = MeshBuilder.CreateCylinder(
-      'mechRightArm',
-      { height: 5, diameter: 1 },
-      this.scene
-    );
-    rightArm.material = bodyMat;
+    // Right arm proxy (projectile spawn + recoil)
+    const rightArm = MeshBuilder.CreateBox('mechRightArm', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    rightArm.visibility = 0;
     rightArm.parent = root;
     rightArm.position.set(3, 5.5, 0);
     rightArm.rotation.z = -0.3;
 
-    // Right autocannon barrel
-    const rightBarrel = MeshBuilder.CreateCylinder(
-      'rightBarrel',
-      { height: 3.5, diameter: 0.5 },
-      this.scene
-    );
-    rightBarrel.material = accentMat;
-    rightBarrel.parent = rightArm;
-    rightBarrel.position.y = -3.5;
-    rightBarrel.rotation.x = Math.PI / 2;
-
-    // Legs container
-    const legs = MeshBuilder.CreateBox(
-      'mechLegs',
-      { width: 3.5, height: 0.8, depth: 2 },
-      this.scene
-    );
+    // Legs proxy (walking animation target)
+    const legs = MeshBuilder.CreateBox('mechLegs', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
     legs.visibility = 0;
     legs.parent = root;
     legs.position.y = 3;
-
-    // Left leg
-    const leftLeg = MeshBuilder.CreateCylinder(
-      'leftLeg',
-      { height: 5.5, diameterTop: 1, diameterBottom: 1.5 },
-      this.scene
-    );
-    leftLeg.material = bodyMat;
-    leftLeg.parent = legs;
-    leftLeg.position.set(-1, -2.75, 0);
-
-    // Right leg
-    const rightLeg = MeshBuilder.CreateCylinder(
-      'rightLeg',
-      { height: 5.5, diameterTop: 1, diameterBottom: 1.5 },
-      this.scene
-    );
-    rightLeg.material = bodyMat;
-    rightLeg.parent = legs;
-    rightLeg.position.set(1, -2.75, 0);
-
-    // Feet
-    const footMat = new StandardMaterial('footMat', this.scene);
-    footMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-
-    const leftFoot = MeshBuilder.CreateBox(
-      'leftFoot',
-      { width: 2, height: 0.6, depth: 2.5 },
-      this.scene
-    );
-    leftFoot.material = footMat;
-    leftFoot.parent = legs;
-    leftFoot.position.set(-1, -5.8, 0.3);
-
-    const rightFoot = MeshBuilder.CreateBox(
-      'rightFoot',
-      { width: 2, height: 0.6, depth: 2.5 },
-      this.scene
-    );
-    rightFoot.material = footMat;
-    rightFoot.parent = legs;
-    rightFoot.position.set(1, -5.8, 0.3);
 
     this.marcus = {
       rootNode: root,
@@ -1242,68 +1333,51 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   private spawnEnemy(type: EnemyType, position: Vector3): ActiveEnemy {
     const config = ENEMY_CONFIGS[type];
+    const glbPath = ENEMY_GLB_PATHS[type];
+    const glbScale = ENEMY_GLB_SCALES[type];
+    const instanceId = `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
-    // Create enemy mesh based on type
+    // Load GLB instance - throws if not cached or instance creation fails
     let mesh: Mesh;
 
-    switch (type) {
-      case 'drone':
-        mesh = MeshBuilder.CreateSphere(
-          `drone_${Date.now()}`,
-          { diameter: config.size },
+    if (AssetManager.isPathCached(glbPath)) {
+      const instance = AssetManager.createInstanceByPath(
+        glbPath,
+        instanceId,
+        this.scene,
+        true, // apply LOD
+        'enemy'
+      );
+
+      if (instance) {
+        // GLB success - create a collision proxy mesh (invisible) for hit detection
+        // The TransformNode from GLB does not have geometry for raycasting
+        const proxyMesh = MeshBuilder.CreateBox(
+          `${instanceId}_proxy`,
+          { width: config.size, height: config.size * 1.2, depth: config.size },
           this.scene
         );
-        break;
-      case 'grunt':
-        mesh = MeshBuilder.CreateCapsule(
-          `grunt_${Date.now()}`,
-          { height: config.size, radius: config.size * 0.3 },
-          this.scene
+        proxyMesh.visibility = 0; // Invisible collision volume
+        proxyMesh.isPickable = true;
+
+        // Parent GLB instance to proxy so they move together
+        instance.parent = proxyMesh;
+        instance.position.set(0, -config.size * 0.5, 0); // Center GLB on proxy
+        instance.scaling.setAll(glbScale);
+
+        mesh = proxyMesh;
+      } else {
+        throw new Error(
+          `[BrothersInArms] FATAL: Failed to create instance for enemy GLB: ${glbPath}`
         );
-        break;
-      case 'spitter':
-        mesh = MeshBuilder.CreateSphere(
-          `spitter_${Date.now()}`,
-          { diameterX: config.size, diameterY: config.size * 0.7, diameterZ: config.size },
-          this.scene
-        );
-        break;
-      case 'brute':
-        mesh = MeshBuilder.CreateBox(
-          `brute_${Date.now()}`,
-          { width: config.size, height: config.size * 1.2, depth: config.size * 0.8 },
-          this.scene
-        );
-        break;
-      default:
-        mesh = MeshBuilder.CreateSphere(
-          `enemy_${Date.now()}`,
-          { diameter: config.size },
-          this.scene
-        );
+      }
+    } else {
+      throw new Error(
+        `[BrothersInArms] FATAL: Enemy GLB not cached: ${glbPath}. ` +
+        `Ensure preloadEnemyModels() completed successfully.`
+      );
     }
 
-    const mat = new StandardMaterial(`enemy_mat_${Date.now()}`, this.scene);
-    mat.diffuseColor = Color3.FromHexString(config.color);
-    mat.specularColor = new Color3(0.2, 0.2, 0.2);
-
-    // Add glowing eyes for all enemy types
-    const glowMat = new StandardMaterial(`enemy_glow_${Date.now()}`, this.scene);
-    glowMat.emissiveColor = Color3.FromHexString('#4AFF9F');
-    glowMat.disableLighting = true;
-
-    // Add eyes
-    const leftEye = MeshBuilder.CreateSphere('eye', { diameter: config.size * 0.1 }, this.scene);
-    leftEye.material = glowMat;
-    leftEye.parent = mesh;
-    leftEye.position.set(-config.size * 0.15, config.size * 0.2, -config.size * 0.4);
-
-    const rightEye = MeshBuilder.CreateSphere('eye', { diameter: config.size * 0.1 }, this.scene);
-    rightEye.material = glowMat;
-    rightEye.parent = mesh;
-    rightEye.position.set(config.size * 0.15, config.size * 0.2, -config.size * 0.4);
-
-    mesh.material = mat;
     mesh.position = position.clone();
     mesh.position.y = config.size / 2;
 
@@ -2224,6 +2298,14 @@ export class BrothersInArmsLevel extends BaseLevel {
   protected updateLevel(deltaTime: number): void {
     this.phaseTime += deltaTime;
 
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
+
     // Update cooldowns
     if (this.grenadeCooldown > 0) {
       this.grenadeCooldown = Math.max(0, this.grenadeCooldown - deltaTime * 1000);
@@ -2338,6 +2420,11 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (this.breachGlow) {
       const time = performance.now() * 0.001;
       this.breachGlow.intensity = 1.5 + Math.sin(time * 2) * 0.5;
+    }
+
+    // Animate battlefield fire lights (station wreckage flicker)
+    if (this.battlefield) {
+      updateBattlefieldLights(this.battlefield.lights, deltaTime);
     }
   }
 
@@ -2459,6 +2546,13 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   protected disposeLevel(): void {
+    // Dispose flora
+    for (const node of this.floraNodes) { node.dispose(false, true); }
+    this.floraNodes = [];
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     // Unregister action handler
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
@@ -2489,8 +2583,10 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Dispose environment
     this.terrain?.dispose();
+    this.terrainMaterial?.dispose();
     this.canyonWalls.forEach((w) => w.dispose());
-    this.rockPillars.forEach((p) => p.dispose());
+    this.battlefield?.dispose();
+    this.battlefield = null;
     this.breachMesh?.dispose();
     this.breachGlow?.dispose();
     this.skyDome?.dispose();

@@ -26,7 +26,7 @@ export {
 } from './factories';
 // Level Manager
 export { LevelManager, type LevelManagerConfig } from './LevelManager';
-export { LandfallLevel } from './landfall/LandfallLevel';
+export { LandfallLevel } from './landfall';
 export { StationLevel } from './StationLevel';
 export { type SurfaceConfig, SurfaceLevel } from './SurfaceLevel';
 // Types

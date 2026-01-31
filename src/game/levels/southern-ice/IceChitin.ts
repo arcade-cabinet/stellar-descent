@@ -8,7 +8,8 @@
  * - Ability to burrow through ice and ambush
  * - Resistant to plasma weapons, weak to kinetic
  *
- * Based on the existing alien entity pattern from entities/aliens.ts
+ * Body mesh loaded from GLB: /models/enemies/chitin/alien_scifi.glb
+ * Projectile and VFX indicators remain procedural MeshBuilder geometry.
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -18,6 +19,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
+import { AssetManager } from '../../core/AssetManager';
 import type { AlienSpecies, LootEntry } from '../../entities/aliens';
 
 // ============================================================================
@@ -140,7 +142,13 @@ export interface IceChitinInstance {
 }
 
 // ============================================================================
-// PROCEDURAL MESH GENERATION
+// GLB MODEL PATHS
+// ============================================================================
+
+const ICE_CHITIN_GLB = '/models/enemies/chitin/alien_scifi.glb';
+
+// ============================================================================
+// MESH GENERATION -- GLB body + procedural VFX indicators
 // ============================================================================
 
 /** Seeded random for consistent procedural generation */
@@ -152,209 +160,47 @@ function seededRandom(seed: number): () => number {
 }
 
 /**
- * Create a procedural Ice Chitin mesh.
+ * Preload the Ice Chitin GLB so that createIceChitinMesh can instance it
+ * synchronously. Call once during level setup before spawning enemies.
+ */
+export async function preloadIceChitinAssets(scene: Scene): Promise<void> {
+  await AssetManager.loadAssetByPath(ICE_CHITIN_GLB, scene);
+}
+
+/**
+ * Create an Ice Chitin mesh from the alien_scifi GLB model.
  *
- * Visual design: insectoid creature with angular, crystalline chitin armor.
- * White-blue color palette with glowing cyan accents.
- * Larger than a Skitterer but shorter than a Lurker.
+ * The GLB provides the full insectoid body (thorax, abdomen, head, eyes,
+ * mandibles, legs, spines, launcher). An ice-blue frost tint is applied
+ * to all loaded meshes for the cryo-adapted look, and a procedural
+ * frost-aura torus is added as a VFX indicator.
  */
 export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
-  const random = seededRandom(seed);
   const root = new TransformNode(`ice_chitin_${seed}`, scene);
 
-  // --- Materials ---
-
-  // Primary carapace: pale icy white
-  const carapaceMat = new StandardMaterial(`ice_chitin_carapace_${seed}`, scene);
-  carapaceMat.diffuseColor = new Color3(0.85, 0.9, 0.95);
-  carapaceMat.specularColor = new Color3(0.6, 0.7, 0.8);
-  carapaceMat.specularPower = 64;
-
-  // Secondary: translucent ice-blue
-  const iceMat = new StandardMaterial(`ice_chitin_ice_${seed}`, scene);
-  iceMat.diffuseColor = new Color3(0.5, 0.7, 0.9);
-  iceMat.alpha = 0.8;
-  iceMat.specularColor = new Color3(0.8, 0.9, 1.0);
-  iceMat.specularPower = 128;
-
-  // Glow material: cyan bioluminescence
-  const glowMat = new StandardMaterial(`ice_chitin_glow_${seed}`, scene);
-  glowMat.emissiveColor = new Color3(0.2, 0.8, 1.0);
-  glowMat.disableLighting = true;
-
-  // Frost crystal material
-  const crystalMat = new StandardMaterial(`ice_chitin_crystal_${seed}`, scene);
-  crystalMat.diffuseColor = new Color3(0.7, 0.85, 1.0);
-  crystalMat.alpha = 0.6;
-  crystalMat.emissiveColor = new Color3(0.1, 0.3, 0.5);
-  crystalMat.specularColor = new Color3(1, 1, 1);
-  crystalMat.specularPower = 256;
-
-  // --- Body ---
-
-  // Central thorax: angular, slightly flattened
-  const thorax = MeshBuilder.CreateSphere(
-    'thorax',
-    {
-      diameterX: 1.0 + random() * 0.2,
-      diameterY: 0.7 + random() * 0.1,
-      diameterZ: 0.8 + random() * 0.2,
-      segments: 8,
-    },
-    scene
+  // --- GLB body instance ---
+  const bodyNode = AssetManager.createInstanceByPath(
+    ICE_CHITIN_GLB,
+    `ice_chitin_body_${seed}`,
+    scene,
+    true,
+    'enemy'
   );
-  thorax.material = carapaceMat;
-  thorax.parent = root;
-  thorax.position.y = 0.8;
 
-  // Abdomen behind thorax
-  const abdomen = MeshBuilder.CreateSphere(
-    'abdomen',
-    {
-      diameterX: 0.7 + random() * 0.15,
-      diameterY: 0.5 + random() * 0.1,
-      diameterZ: 0.6 + random() * 0.15,
-      segments: 8,
-    },
-    scene
-  );
-  abdomen.material = carapaceMat;
-  abdomen.parent = root;
-  abdomen.position.set(0, 0.7, 0.5);
+  if (bodyNode) {
+    bodyNode.parent = root;
+    // Scale the alien model to match the Ice Chitin size
+    // (larger than a Skitterer but shorter than a Lurker)
+    bodyNode.scaling.setAll(0.8);
+    bodyNode.position.y = 0.8;
 
-  // --- Head ---
-
-  const head = MeshBuilder.CreateSphere(
-    'head',
-    {
-      diameterX: 0.45 + random() * 0.05,
-      diameterY: 0.4 + random() * 0.05,
-      diameterZ: 0.5,
-      segments: 8,
-    },
-    scene
-  );
-  head.material = carapaceMat;
-  head.parent = root;
-  head.position.set(0, 1.0, -0.55);
-
-  // Glowing compound eyes (4 eyes arranged in pairs)
-  const eyeCount = 4;
-  for (let i = 0; i < eyeCount; i++) {
-    const eye = MeshBuilder.CreateSphere(`eye_${i}`, { diameter: 0.06 + random() * 0.03 }, scene);
-    eye.material = glowMat;
-    eye.parent = head;
-    const row = Math.floor(i / 2);
-    const col = i % 2;
-    eye.position.set((col - 0.5) * 0.18, 0.05 + row * 0.1, -0.2);
+    // Apply ice-blue frost tint to all body meshes
+    applyIceTint(scene, bodyNode, seed);
+  } else {
+    console.warn(`[IceChitin] GLB not loaded for ice_chitin_${seed}, using empty root`);
   }
 
-  // Mandibles for ice shard formation
-  for (let i = 0; i < 2; i++) {
-    const mandible = MeshBuilder.CreateCylinder(
-      `mandible_${i}`,
-      {
-        height: 0.2 + random() * 0.05,
-        diameterTop: 0.015,
-        diameterBottom: 0.04,
-        tessellation: 4,
-      },
-      scene
-    );
-    mandible.material = iceMat;
-    mandible.parent = head;
-    mandible.position.set((i - 0.5) * 0.12, -0.12, -0.22);
-    mandible.rotation.x = Math.PI / 3.5;
-    mandible.rotation.z = (i - 0.5) * 0.4;
-  }
-
-  // --- Legs (6 legs, spider-like) ---
-
-  const legCount = 6;
-  for (let i = 0; i < legCount; i++) {
-    const side = i < legCount / 2 ? 1 : -1;
-    const idx = i % (legCount / 2);
-    const zOffset = (idx / (legCount / 2 - 1)) * 0.6 - 0.3;
-
-    // Upper leg segment
-    const upperLeg = MeshBuilder.CreateCylinder(
-      `upperLeg_${i}`,
-      {
-        height: 0.55 + random() * 0.15,
-        diameterTop: 0.05,
-        diameterBottom: 0.07,
-        tessellation: 6,
-      },
-      scene
-    );
-    upperLeg.material = carapaceMat;
-    upperLeg.parent = root;
-    upperLeg.position.set(side * 0.4, 0.8, zOffset);
-    upperLeg.rotation.z = side * (Math.PI / 3 + random() * 0.15);
-
-    // Lower leg segment with ice-crystal tip
-    const lowerLeg = MeshBuilder.CreateCylinder(
-      `lowerLeg_${i}`,
-      {
-        height: 0.5 + random() * 0.15,
-        diameterTop: 0.04,
-        diameterBottom: 0.025,
-        tessellation: 6,
-      },
-      scene
-    );
-    lowerLeg.material = iceMat;
-    lowerLeg.parent = upperLeg;
-    lowerLeg.position.y = -0.4;
-    lowerLeg.rotation.z = -side * (Math.PI / 4);
-  }
-
-  // --- Crystalline Spines (dorsal ice formations) ---
-
-  const spineCount = 3 + Math.floor(random() * 3);
-  for (let i = 0; i < spineCount; i++) {
-    const spine = MeshBuilder.CreateCylinder(
-      `spine_${i}`,
-      {
-        height: 0.25 + random() * 0.2,
-        diameterTop: 0.01,
-        diameterBottom: 0.04 + random() * 0.02,
-        tessellation: 4,
-      },
-      scene
-    );
-    spine.material = crystalMat;
-    spine.parent = thorax;
-    const angle = (i / spineCount) * Math.PI * 0.8 - Math.PI * 0.4;
-    spine.position.set(Math.sin(angle) * 0.2, 0.3 + random() * 0.1, Math.cos(angle) * 0.15);
-    spine.rotation.x = -0.3 + random() * 0.6;
-    spine.rotation.z = (random() - 0.5) * 0.4;
-  }
-
-  // --- Ice Shard Launcher (on thorax front, between head and body) ---
-
-  const launcher = MeshBuilder.CreateCylinder(
-    'shard_launcher',
-    {
-      height: 0.18,
-      diameterTop: 0.06,
-      diameterBottom: 0.1,
-      tessellation: 6,
-    },
-    scene
-  );
-  launcher.material = iceMat;
-  launcher.parent = root;
-  launcher.position.set(0, 0.9, -0.35);
-  launcher.rotation.x = Math.PI / 2;
-
-  // Glow core inside launcher
-  const launcherCore = MeshBuilder.CreateSphere('launcher_core', { diameter: 0.05 }, scene);
-  launcherCore.material = glowMat;
-  launcherCore.parent = launcher;
-  launcherCore.position.set(0, -0.05, 0);
-
-  // --- Frost Aura Indicator (subtle ring at base) ---
+  // --- Frost Aura Indicator (VFX -- kept as MeshBuilder) ---
 
   const auraRing = MeshBuilder.CreateTorus(
     'frost_aura_ring',
@@ -375,6 +221,31 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
   auraRing.rotation.x = Math.PI / 2;
 
   return root;
+}
+
+/**
+ * Apply an ice-blue frost tint to all meshes under a node, giving the
+ * cryo-adapted white/blue coloring.
+ */
+function applyIceTint(scene: Scene, node: TransformNode, seed: number): void {
+  const meshes = node.getChildMeshes(false);
+  const frostBlend = 0.45;
+  const frostColor = new Color3(0.85, 0.9, 0.95);
+  const emissiveBoost = new Color3(0.05, 0.15, 0.25);
+
+  for (const mesh of meshes) {
+    if (mesh.material instanceof StandardMaterial) {
+      const mat = mesh.material;
+      mat.diffuseColor = Color3.Lerp(mat.diffuseColor, frostColor, frostBlend);
+      mat.emissiveColor = Color3.Lerp(mat.emissiveColor, emissiveBoost, 0.5);
+      mat.specularColor = Color3.Lerp(
+        mat.specularColor,
+        new Color3(0.6, 0.7, 0.8),
+        frostBlend
+      );
+      mat.specularPower = Math.min(mat.specularPower + 32, 128);
+    }
+  }
 }
 
 /**
@@ -420,35 +291,45 @@ export function createIceShardMesh(scene: Scene): TransformNode {
 
 /**
  * Create the dormant ice cocoon mesh (frozen nest wrapping).
- * Used for dormant Ice Chitins before they awaken.
+ *
+ * Uses a crouched/scaled-down GLB alien body encased in procedural VFX
+ * frost crystals and an inner glow, giving the appearance of a creature
+ * frozen mid-hibernation inside an ice shell.
  */
 export function createDormantCocoonMesh(scene: Scene, seed: number): TransformNode {
   const random = seededRandom(seed);
   const root = new TransformNode(`ice_cocoon_${seed}`, scene);
 
-  // Frozen ice shell
-  const shellMat = new StandardMaterial(`cocoon_shell_${seed}`, scene);
-  shellMat.diffuseColor = new Color3(0.7, 0.82, 0.92);
-  shellMat.alpha = 0.5;
-  shellMat.specularColor = new Color3(0.9, 0.95, 1.0);
-  shellMat.specularPower = 128;
-  shellMat.emissiveColor = new Color3(0.05, 0.1, 0.15);
-
-  const shell = MeshBuilder.CreateSphere(
-    'cocoon_shell',
-    {
-      diameterX: 1.2 + random() * 0.3,
-      diameterY: 1.5 + random() * 0.3,
-      diameterZ: 1.0 + random() * 0.2,
-      segments: 10,
-    },
-    scene
+  // --- GLB body as the frozen cocoon core ---
+  const bodyNode = AssetManager.createInstanceByPath(
+    ICE_CHITIN_GLB,
+    `ice_cocoon_body_${seed}`,
+    scene,
+    true,
+    'enemy'
   );
-  shell.material = shellMat;
-  shell.parent = root;
-  shell.position.y = 0.7;
 
-  // Surface frost crystals
+  if (bodyNode) {
+    bodyNode.parent = root;
+    // Crouched/compressed pose -- squished vertically, scaled down
+    bodyNode.scaling.set(0.6, 0.45, 0.6);
+    bodyNode.position.y = 0.5;
+
+    // Heavy frost overlay -- almost entirely white-blue ice encasement
+    const meshes = bodyNode.getChildMeshes(false);
+    for (const mesh of meshes) {
+      if (mesh.material instanceof StandardMaterial) {
+        const mat = mesh.material;
+        mat.diffuseColor = Color3.Lerp(mat.diffuseColor, new Color3(0.7, 0.82, 0.92), 0.7);
+        mat.alpha = 0.5;
+        mat.specularColor = new Color3(0.9, 0.95, 1.0);
+        mat.specularPower = 128;
+        mat.emissiveColor = new Color3(0.05, 0.1, 0.15);
+      }
+    }
+  }
+
+  // --- Surface frost crystals (VFX -- kept as MeshBuilder) ---
   const crystalCount = 4 + Math.floor(random() * 4);
   const crystalMat = new StandardMaterial(`cocoon_crystal_${seed}`, scene);
   crystalMat.diffuseColor = new Color3(0.75, 0.88, 1.0);
@@ -467,26 +348,26 @@ export function createDormantCocoonMesh(scene: Scene, seed: number): TransformNo
       scene
     );
     crystal.material = crystalMat;
-    crystal.parent = shell;
+    crystal.parent = root;
     const angle = (i / crystalCount) * Math.PI * 2;
     crystal.position.set(
       Math.cos(angle) * (0.5 + random() * 0.2),
-      random() * 0.4 - 0.2,
+      0.7 + random() * 0.4 - 0.2,
       Math.sin(angle) * (0.4 + random() * 0.2)
     );
     crystal.rotation.x = (random() - 0.5) * 0.8;
     crystal.rotation.z = (random() - 0.5) * 0.8;
   }
 
-  // Faint inner glow (the creature inside)
+  // --- Faint inner glow (VFX -- kept as MeshBuilder) ---
   const innerGlow = MeshBuilder.CreateSphere('inner_glow', { diameter: 0.3 }, scene);
   const innerMat = new StandardMaterial(`cocoon_inner_${seed}`, scene);
   innerMat.emissiveColor = new Color3(0.15, 0.5, 0.7);
   innerMat.disableLighting = true;
   innerMat.alpha = 0.25;
   innerGlow.material = innerMat;
-  innerGlow.parent = shell;
-  innerGlow.position.y = 0.1;
+  innerGlow.parent = root;
+  innerGlow.position.y = 0.8;
 
   return root;
 }

@@ -1,0 +1,205 @@
+# Credits Sequence Tests
+# Tests end-game credits with campaign statistics
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - ui
+  - credits
+  - endgame
+  - extended
+name: "Credits Sequence - Campaign End"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Try to access credits through level select (final level completion)
+# Note: Credits are shown after completing Final Escape (level 10)
+# For testing purposes, we verify the credits UI elements
+
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Check if Final Escape is completed (would show credits button)
+- assertVisible:
+    text: "FINAL ESCAPE"
+    optional: true
+
+- takeScreenshot: "level_select_for_credits"
+
+# Close level select
+- tapOn:
+    text: "BACK"
+    optional: true
+
+- wait: 500
+
+# Note: Credits sequence is triggered after final level completion
+# The following assertions test credits elements when visible
+
+# Game title should appear
+- assertVisible:
+    text: "STELLAR DESCENT"
+    optional: true
+    timeout: 30000
+
+# Subtitle
+- assertVisible:
+    text: "7TH DROP"
+    optional: true
+
+- takeScreenshot: "credits_title"
+
+# Creator credits
+- assertVisible:
+    text: "Created By"
+    optional: true
+
+- assertVisible:
+    text: "Jeff Bogaty"
+    optional: true
+
+- takeScreenshot: "credits_creator"
+
+# Music credits
+- assertVisible:
+    text: "Music"
+    optional: true
+
+- assertVisible:
+    text: "Clement Panchout"
+    optional: true
+
+- takeScreenshot: "credits_music"
+
+# Campaign Statistics section
+- assertVisible:
+    text: "Campaign Statistics"
+    optional: true
+
+- assertVisible:
+    text: "Total Play Time"
+    optional: true
+
+- assertVisible:
+    text: "Hostiles Eliminated"
+    optional: true
+
+- assertVisible:
+    text: "Overall Accuracy"
+    optional: true
+
+- assertVisible:
+    text: "Deaths"
+    optional: true
+
+- assertVisible:
+    text: "Favorite Weapon"
+    optional: true
+
+- takeScreenshot: "credits_campaign_stats"
+
+# Achievement Summary
+- assertVisible:
+    text: "Achievement Summary"
+    optional: true
+
+- assertVisible:
+    text: "Achievements Unlocked"
+    optional: true
+
+- takeScreenshot: "credits_achievements"
+
+# Technology stack
+- assertVisible:
+    text: "Powered By"
+    optional: true
+
+- assertVisible:
+    text: "React"
+    optional: true
+
+- assertVisible:
+    text: "Babylon.js"
+    optional: true
+
+- takeScreenshot: "credits_tech"
+
+# Special Thanks
+- assertVisible:
+    text: "Special Thanks"
+    optional: true
+
+- assertVisible:
+    text: "Anthropic Claude"
+    optional: true
+
+- takeScreenshot: "credits_thanks"
+
+# Final message
+- assertVisible:
+    text: "THANK YOU FOR PLAYING"
+    optional: true
+
+- assertVisible:
+    text: "Semper Descensus"
+    optional: true
+
+- takeScreenshot: "credits_final"
+
+# Control buttons
+- assertVisible:
+    text: "SKIP"
+    optional: true
+
+- assertVisible:
+    text: "SPEED UP"
+    optional: true
+
+- assertVisible:
+    text: "PAUSE"
+    optional: true
+
+- takeScreenshot: "credits_controls"
+
+# End buttons (shown after credits complete)
+- assertVisible:
+    text: "RETURN TO MENU"
+    optional: true
+
+- assertVisible:
+    text: "NEW GAME+"
+    optional: true
+
+- takeScreenshot: "credits_end_buttons"
+
+# Test skip functionality
+- tapOn:
+    text: "SKIP"
+    optional: true
+
+- wait: 2000
+
+# Return to menu
+- tapOn:
+    text: "RETURN TO MENU"
+    optional: true
+
+- wait: 2000
+
+# Should be back at main menu
+- assertVisible:
+    text: "NEW CAMPAIGN"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "after_credits"

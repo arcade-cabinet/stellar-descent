@@ -42,10 +42,19 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { getAchievementManager } from '../../achievements';
+import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
+import { buildFloraFromPlacements, getCanyonRunFlora } from '../shared/AlienFloraBuilder';
+import { buildCollectibles, type CollectibleSystemResult, getCanyonRunCollectibles } from '../shared/CollectiblePlacer';
+import {
+  createDynamicTerrain,
+  ROCK_TERRAIN,
+  type TerrainResult,
+} from '../shared/SurfaceTerrainFactory';
 import type { LevelCallbacks, LevelConfig } from '../types';
 import {
   BRIDGE_Z,
@@ -77,10 +86,13 @@ type CanyonPhase =
   | 'extraction' // Reached extraction point
   | 'complete'; // Level complete
 
+/** GLB path for the enemy wraith hover-tank model. */
+const WRAITH_GLB = '/models/vehicles/chitin/wraith.glb';
+
 interface EnemyWraith {
   rootNode: TransformNode;
-  body: Mesh;
-  turret: Mesh;
+  body: TransformNode;
+  turret: TransformNode;
   glowMesh: Mesh;
   position: Vector3;
   velocity: Vector3;
@@ -208,6 +220,10 @@ const COMMS = {
 // ============================================================================
 
 export class CanyonRunLevel extends SurfaceLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Phase management
   private phase: CanyonPhase = 'intro';
   private phaseTime = 0;
@@ -256,6 +272,9 @@ export class CanyonRunLevel extends SurfaceLevel {
   private wraithBodyMat: StandardMaterial | null = null;
   private wraithGlowMat: StandardMaterial | null = null;
 
+  // Factory terrain (SurfaceTerrainFactory)
+  private factoryTerrain: TerrainResult | null = null;
+
   constructor(
     engine: Engine,
     canvas: HTMLCanvasElement,
@@ -282,12 +301,30 @@ export class CanyonRunLevel extends SurfaceLevel {
   }
 
   protected async createEnvironment(): Promise<void> {
-    // Create canyon environment
-    this.canyonEnv = createCanyonEnvironment(this.scene);
+    // Create canyon environment (async - loads GLB props in parallel)
+    this.canyonEnv = await createCanyonEnvironment(this.scene);
 
-    // Create vehicle at spawn position
+    // Create factory-based terrain for the canyon floor using SurfaceTerrainFactory.
+    // This provides a richer, noise-driven heightmap beneath the existing environment
+    // geometry. We use a dusty-rock tint, moderate height scale suited to a vehicle
+    // chase, and a large size to cover the full canyon length.
+    this.factoryTerrain = createDynamicTerrain(this.scene, {
+      ...ROCK_TERRAIN,
+      size: 400,
+      subdivisions: 80,
+      heightScale: 10,
+      materialName: 'canyonFloorTerrain',
+      tintColor: '#9B7E5A', // dusty sandy-rock blend
+      seed: 77777,
+    });
+    // Position the factory terrain so it spans the canyon floor.
+    // The canyon runs from Z=0 to Z=-3000; the mesh is centred at origin by
+    // default, so we shift it to align with the mid-section of the canyon.
+    this.factoryTerrain.mesh.position.set(0, -0.5, -CANYON_LENGTH / 2);
+
+    // Create vehicle at spawn position (async to preload GLB assets)
     const spawnPos = new Vector3(0, 2, -20);
-    this.vehicle = new VehicleController(this.scene, this.camera, spawnPos);
+    this.vehicle = await VehicleController.create(this.scene, this.camera, spawnPos);
 
     // Position camera for intro
     this.camera.position.set(5, 4, -15);
@@ -301,6 +338,9 @@ export class CanyonRunLevel extends SurfaceLevel {
     this.wraithGlowMat = new StandardMaterial('wraith_glow_mat', this.scene);
     this.wraithGlowMat.emissiveColor = new Color3(0.6, 0.2, 1.0);
     this.wraithGlowMat.disableLighting = true;
+
+    // Pre-load the wraith GLB so instancing succeeds synchronously later
+    await AssetManager.loadAssetByPath(WRAITH_GLB, this.scene);
 
     // Set up audio zones for the canyon
     this.addAudioZone('canyon_start', 'surface', { x: 0, y: 0, z: 0 }, 200, {
@@ -321,12 +361,28 @@ export class CanyonRunLevel extends SurfaceLevel {
     // Set up action buttons
     this.setupActionButtons();
 
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getCanyonRunFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(this.scene, getCanyonRunCollectibles(), collectibleRoot);
+
     // Start intro sequence
     this.startIntro();
   }
 
   protected updateLevel(deltaTime: number): void {
     this.phaseTime += deltaTime;
+
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
 
     switch (this.phase) {
       case 'intro':
@@ -374,6 +430,13 @@ export class CanyonRunLevel extends SurfaceLevel {
   }
 
   protected override disposeLevel(): void {
+    // Dispose flora
+    for (const node of this.floraNodes) { node.dispose(false, true); }
+    this.floraNodes = [];
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     // Dispose vehicle
     this.vehicle?.dispose();
     this.vehicle = null;
@@ -395,6 +458,20 @@ export class CanyonRunLevel extends SurfaceLevel {
       disposeRockslide(rockslide);
     }
     this.activeRockslides = [];
+
+    // Dispose GLB props loaded by the environment
+    if (this.canyonEnv) {
+      for (const prop of this.canyonEnv.glbProps) {
+        prop.dispose();
+      }
+    }
+
+    // Dispose factory terrain
+    if (this.factoryTerrain) {
+      this.factoryTerrain.mesh.dispose();
+      this.factoryTerrain.material.dispose();
+      this.factoryTerrain = null;
+    }
 
     // Dispose materials
     this.wraithBodyMat?.dispose();
@@ -687,27 +764,25 @@ export class CanyonRunLevel extends SurfaceLevel {
     const rootNode = new TransformNode(`wraith_${index}`, this.scene);
     rootNode.position = position.clone();
 
-    // Wraith body - flat, wide hover tank
-    const body = MeshBuilder.CreateBox(
+    // Wraith body - GLB hover-tank model (pre-loaded in createEnvironment)
+    const bodyNode = AssetManager.createInstanceByPath(
+      WRAITH_GLB,
       `wraith_body_${index}`,
-      { width: 4, height: 1.2, depth: 6 },
-      this.scene
+      this.scene,
+      true,
+      'vehicle'
     );
-    body.material = this.wraithBodyMat;
+    const body: TransformNode = bodyNode ?? new TransformNode(`wraith_body_fallback_${index}`, this.scene);
     body.parent = rootNode;
     body.position.y = 0;
+    body.scaling.setAll(2.0);
 
-    // Wraith turret
-    const turret = MeshBuilder.CreateCylinder(
-      `wraith_turret_${index}`,
-      { diameter: 2.5, height: 0.8, tessellation: 8 },
-      this.scene
-    );
-    turret.material = this.wraithBodyMat;
+    // Turret is part of the GLB model; create an empty node as the turret reference
+    const turret = new TransformNode(`wraith_turret_${index}`, this.scene);
     turret.parent = rootNode;
     turret.position.y = 0.8;
 
-    // Glow (hover effect)
+    // Glow (hover effect) - kept as MeshBuilder (VFX)
     const glow = MeshBuilder.CreateDisc(
       `wraith_glow_${index}`,
       { radius: 2.5, tessellation: 16 },
@@ -1056,7 +1131,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     }
     state.stats = {
       kills: this.kills,
-      secretsFound: 0,
+      secretsFound: getAchievementManager().getLevelSecretsFound(),
       timeSpent: this.phaseTime,
     };
     return state;

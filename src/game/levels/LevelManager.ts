@@ -11,15 +11,15 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { worldDb } from '../db/worldDatabase';
-import type {
+import {
   CAMPAIGN_LEVELS,
-  ILevel,
-  LevelCallbacks,
-  LevelConfig,
-  LevelFactory,
-  LevelFactoryRegistry,
-  LevelId,
-  LevelState,
+  type ILevel,
+  type LevelCallbacks,
+  type LevelConfig,
+  type LevelFactory,
+  type LevelFactoryRegistry,
+  type LevelId,
+  type LevelState,
 } from './types';
 
 export interface LevelManagerConfig {
@@ -199,8 +199,6 @@ export class LevelManager {
   // ============================================================================
 
   private getLevelConfig(levelId: LevelId): LevelConfig | null {
-    // Import at runtime to avoid circular deps
-    const { CAMPAIGN_LEVELS } = require('./types');
     return CAMPAIGN_LEVELS[levelId] || null;
   }
 
@@ -237,24 +235,16 @@ export class LevelManager {
     this.engine.stopRenderLoop();
   }
 
-  private persistLevelState(state: LevelState): void {
-    try {
-      const key = `level_${state.id}`;
-      worldDb.setChunkData(key, JSON.stringify(state));
-    } catch (error) {
-      console.warn('Failed to persist level state:', error);
-    }
+  private async persistLevelState(state: LevelState): Promise<void> {
+    const key = `level_${state.id}`;
+    await worldDb.setChunkData(key, JSON.stringify(state));
   }
 
   private async loadLevelState(levelId: LevelId): Promise<LevelState | null> {
-    try {
-      const key = `level_${levelId}`;
-      const data = worldDb.getChunkData(key);
-      if (data) {
-        return JSON.parse(data) as LevelState;
-      }
-    } catch (error) {
-      console.warn('Failed to load level state:', error);
+    const key = `level_${levelId}`;
+    const data = await worldDb.getChunkData(key);
+    if (data) {
+      return JSON.parse(data) as LevelState;
     }
     return null;
   }

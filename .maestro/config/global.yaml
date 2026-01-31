@@ -1,13 +1,19 @@
 # Maestro Global Configuration for Stellar Descent
-# https://maestro.mobile.dev/
+# https://docs.maestro.dev/
 
+# Default app ID for mobile platforms
 appId: com.jbcom.stellardescent
+
+# Default URL for web platform
+url: http://localhost:8080
 
 # Environment variables available to all flows
 env:
   APP_NAME: "Stellar Descent"
   DEBUG_MODE: "false"
   TEST_TIMEOUT: "30000"
+  # Platform detection - override with --env PLATFORM=android|ios|web
+  PLATFORM: ${PLATFORM:-web}
 
 # Default configuration
 flows:

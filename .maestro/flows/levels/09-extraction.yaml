@@ -1,0 +1,164 @@
+# Campaign Level 9: Extraction
+# Escape and holdout at LZ Omega
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-9
+  - extraction
+  - holdout
+name: "Campaign Level 9 - Extraction"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Look for Extraction (Chapter 9)
+- assertVisible:
+    text: "CHAPTER 9"
+    optional: true
+    timeout: 5000
+
+# Select Extraction if unlocked
+- tapOn:
+    text: "EXTRACTION"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_09_select_state"
+
+# Wait for mission briefing
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Verify mission details
+- assertVisible:
+    text: "EXTRACTION"
+    optional: true
+
+- assertVisible:
+    text: "LZ Omega"
+    optional: true
+
+- assertVisible:
+    text: "Hold Until Evac"
+    optional: true
+
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+- takeScreenshot: "level_09_briefing"
+
+# Check intel
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Should show FERAL CHITIN and EMERGING SWARM
+- assertVisible:
+    text: "FERAL CHITIN"
+    optional: true
+
+- assertVisible:
+    text: "EMERGING SWARM"
+    optional: true
+
+- assertVisible:
+    text: "Do not engage"
+    optional: true
+
+- takeScreenshot: "level_09_intel"
+
+# Check loadout
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "EVAC BEACON"
+    optional: true
+
+- assertVisible:
+    text: "SMG"
+    optional: true
+
+- takeScreenshot: "level_09_loadout"
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "level_09_start"
+
+# Sprint toward extraction
+- tapOn:
+    id: "sprint-button"
+    optional: true
+
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 50%"
+    duration: 3000
+
+- takeScreenshot: "level_09_escape"
+
+# Defensive fire while moving
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "16%, 55%"
+          duration: 2000
+      - wait: 200
+      - swipe:
+          start: "80%, 50%"
+          end: "75%, 45%"
+          duration: 500
+      - wait: 100
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+- takeScreenshot: "level_09_combat"
+
+# Continue to LZ
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 55%"
+    duration: 3000
+
+- wait: 2000
+
+- takeScreenshot: "level_09_gameplay"

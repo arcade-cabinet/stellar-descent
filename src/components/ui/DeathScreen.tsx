@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
 import styles from './DeathScreen.module.css';
+import { MilitaryButton } from './MilitaryButton';
 
 /**
  * Increment death counter in localStorage for campaign stats
@@ -121,24 +122,18 @@ export function DeathScreen({
 
         {/* Buttons */}
         <div className={styles.buttonGroup}>
-          <button
-            ref={restartButtonRef}
-            type="button"
-            className={`${styles.button} ${styles.primaryButton}`}
+          <MilitaryButton
+            variant="primary"
             onClick={handleRestartMission}
+            icon={<>&#8635;</>}
+            buttonRef={restartButtonRef}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">
-              ↻
-            </span>
             RESTART MISSION
-          </button>
+          </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleMainMenu}>
-            <span className={styles.buttonIcon} aria-hidden="true">
-              ◀
-            </span>
+          <MilitaryButton onClick={handleMainMenu} icon={<>&#9664;</>}>
             MAIN MENU
-          </button>
+          </MilitaryButton>
         </div>
 
         {/* Footer info */}

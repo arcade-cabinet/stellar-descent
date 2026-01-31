@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code transcript - page 23</title>
+    <style>
+:root { --bg-color: #f5f5f5; --card-bg: #ffffff; --user-bg: #e3f2fd; --user-border: #1976d2; --assistant-bg: #f5f5f5; --assistant-border: #9e9e9e; --thinking-bg: #fff8e1; --thinking-border: #ffc107; --thinking-text: #666; --tool-bg: #f3e5f5; --tool-border: #9c27b0; --tool-result-bg: #e8f5e9; --tool-error-bg: #ffebee; --text-color: #212121; --text-muted: #757575; --code-bg: #263238; --code-text: #aed581; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 16px; line-height: 1.6; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin-bottom: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--user-border); }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--user-border); padding-bottom: 8px; margin-bottom: 24px; }
+.header-row h1 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; flex: 1; min-width: 200px; }
+.message { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.message.user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.message.assistant { background: var(--card-bg); border-left: 4px solid var(--assistant-border); }
+.message.tool-reply { background: #fff8e1; border-left: 4px solid #ff9800; }
+.tool-reply .role-label { color: #e65100; }
+.tool-reply .tool-result { background: transparent; padding: 0; margin: 0; }
+.tool-reply .tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.message-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.role-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.user .role-label { color: var(--user-border); }
+time { color: var(--text-muted); font-size: 0.8rem; }
+.timestamp-link { color: inherit; text-decoration: none; }
+.timestamp-link:hover { text-decoration: underline; }
+.message:target { animation: highlight 2s ease-out; }
+@keyframes highlight { 0% { background-color: rgba(25, 118, 210, 0.2); } 100% { background-color: transparent; } }
+.message-content { padding: 16px; }
+.message-content p { margin: 0 0 12px 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.thinking { background: var(--thinking-bg); border: 1px solid var(--thinking-border); border-radius: 8px; padding: 12px; margin: 12px 0; font-size: 0.9rem; color: var(--thinking-text); }
+.thinking-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #f57c00; margin-bottom: 8px; }
+.thinking p { margin: 8px 0; }
+.assistant-text { margin: 8px 0; }
+.tool-use { background: var(--tool-bg); border: 1px solid var(--tool-border); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-header { font-weight: 600; color: var(--tool-border); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.tool-icon { font-size: 1.1rem; }
+.tool-description { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic; }
+.tool-result { background: var(--tool-result-bg); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-result.tool-error { background: var(--tool-error-bg); }
+.file-tool { border-radius: 8px; padding: 12px; margin: 12px 0; }
+.write-tool { background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%); border: 1px solid #4caf50; }
+.edit-tool { background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%); border: 1px solid #ff9800; }
+.file-tool-header { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.write-header { color: #2e7d32; }
+.edit-header { color: #e65100; }
+.file-tool-icon { font-size: 1rem; }
+.file-tool-path { font-family: monospace; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 4px; }
+.file-tool-fullpath { font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; word-break: break-all; }
+.file-content { margin: 0; }
+.edit-section { display: flex; margin: 4px 0; border-radius: 4px; overflow: hidden; }
+.edit-label { padding: 8px 12px; font-weight: bold; font-family: monospace; display: flex; align-items: flex-start; }
+.edit-old { background: #fce4ec; }
+.edit-old .edit-label { color: #b71c1c; background: #f8bbd9; }
+.edit-old .edit-content { color: #880e4f; }
+.edit-new { background: #e8f5e9; }
+.edit-new .edit-label { color: #1b5e20; background: #a5d6a7; }
+.edit-new .edit-content { color: #1b5e20; }
+.edit-content { margin: 0; flex: 1; background: transparent; font-size: 0.85rem; }
+.edit-replace-all { font-size: 0.75rem; font-weight: normal; color: var(--text-muted); }
+.write-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #e6f4ea); }
+.edit-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff0e5); }
+.todo-list { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border: 1px solid #81c784; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.todo-header { font-weight: 600; color: #2e7d32; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.todo-items { list-style: none; margin: 0; padding: 0; }
+.todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.9rem; }
+.todo-item:last-child { border-bottom: none; }
+.todo-icon { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; }
+.todo-completed .todo-icon { color: #2e7d32; background: rgba(46, 125, 50, 0.15); }
+.todo-completed .todo-content { color: #558b2f; text-decoration: line-through; }
+.todo-in-progress .todo-icon { color: #f57c00; background: rgba(245, 124, 0, 0.15); }
+.todo-in-progress .todo-content { color: #e65100; font-weight: 500; }
+.todo-pending .todo-icon { color: #757575; background: rgba(0,0,0,0.05); }
+.todo-pending .todo-content { color: #616161; }
+pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
+pre.json { color: #e0e0e0; }
+code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre code { background: none; padding: 0; }
+.user-content { margin: 0; }
+.truncatable { position: relative; }
+.truncatable.truncated .truncatable-content { max-height: 200px; overflow: hidden; }
+.truncatable.truncated::after { content: ''; position: absolute; bottom: 32px; left: 0; right: 0; height: 60px; background: linear-gradient(to bottom, transparent, var(--card-bg)); pointer-events: none; }
+.message.user .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
+.message.tool-reply .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.tool-use .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-bg)); }
+.tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-result-bg)); }
+.expand-btn { display: none; width: 100%; padding: 8px 16px; margin-top: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); }
+.expand-btn:hover { background: rgba(0,0,0,0.1); }
+.truncatable.truncated .expand-btn, .truncatable.expanded .expand-btn { display: block; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin: 24px 0; flex-wrap: wrap; }
+.pagination a, .pagination span { padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.pagination a { background: var(--card-bg); color: var(--user-border); border: 1px solid var(--user-border); }
+.pagination a:hover { background: var(--user-bg); }
+.pagination .current { background: var(--user-border); color: white; }
+.pagination .disabled { color: var(--text-muted); border: 1px solid #ddd; }
+.pagination .index-link { background: var(--user-border); color: white; }
+details.continuation { margin-bottom: 16px; }
+details.continuation summary { cursor: pointer; padding: 12px 16px; background: var(--user-bg); border-left: 4px solid var(--user-border); border-radius: 12px; font-weight: 500; color: var(--text-muted); }
+details.continuation summary:hover { background: rgba(25, 118, 210, 0.15); }
+details.continuation[open] summary { border-radius: 12px 12px 0 0; margin-bottom: 0; }
+.index-item { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.index-item a { display: block; text-decoration: none; color: inherit; }
+.index-item a:hover { background: rgba(25, 118, 210, 0.1); }
+.index-item-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.index-item-number { font-weight: 600; color: var(--user-border); }
+.index-item-content { padding: 16px; }
+.index-item-stats { padding: 8px 16px 12px 32px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(0,0,0,0.06); }
+.index-item-commit { margin-top: 6px; padding: 4px 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85rem; color: #e65100; }
+.index-item-commit code { background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 3px; font-size: 0.8rem; margin-right: 6px; }
+.commit-card { margin: 8px 0; padding: 10px 14px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 6px; }
+.commit-card a { text-decoration: none; color: #5d4037; display: block; }
+.commit-card a:hover { color: #e65100; }
+.commit-card-hash { font-family: monospace; color: #e65100; font-weight: 600; margin-right: 8px; }
+.index-commit { margin-bottom: 12px; padding: 10px 16px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.index-commit a { display: block; text-decoration: none; color: inherit; }
+.index-commit a:hover { background: rgba(255, 152, 0, 0.1); margin: -10px -16px; padding: 10px 16px; border-radius: 8px; }
+.index-commit-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; }
+.index-commit-hash { font-family: monospace; color: #e65100; font-weight: 600; }
+.index-commit-msg { color: #5d4037; }
+.index-item-long-text { margin-top: 8px; padding: 12px; background: var(--card-bg); border-radius: 8px; border-left: 3px solid var(--assistant-border); }
+.index-item-long-text .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--card-bg)); }
+.index-item-long-text-content { color: var(--text-color); }
+#search-box { display: none; align-items: center; gap: 8px; }
+#search-box input { padding: 6px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; width: 180px; }
+#search-box button, #modal-search-btn, #modal-close-btn { background: var(--user-border); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#search-box button:hover, #modal-search-btn:hover { background: #1565c0; }
+#modal-close-btn { background: var(--text-muted); margin-left: 8px; }
+#modal-close-btn:hover { background: #616161; }
+#search-modal[open] { border: none; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); padding: 0; width: 90vw; max-width: 900px; height: 80vh; max-height: 80vh; display: flex; flex-direction: column; }
+#search-modal::backdrop { background: rgba(0,0,0,0.5); }
+.search-modal-header { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--assistant-border); background: var(--bg-color); border-radius: 12px 12px 0 0; }
+.search-modal-header input { flex: 1; padding: 8px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; }
+#search-status { padding: 8px 16px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+#search-results { flex: 1; overflow-y: auto; padding: 16px; }
+.search-result { margin-bottom: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.search-result a { display: block; text-decoration: none; color: inherit; }
+.search-result a:hover { background: rgba(25, 118, 210, 0.05); }
+.search-result-page { padding: 6px 12px; background: rgba(0,0,0,0.03); font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+.search-result-content { padding: 12px; }
+.search-result mark { background: #fff59d; padding: 1px 2px; border-radius: 2px; }
+@media (max-width: 600px) { body { padding: 8px; } .message, .index-item { border-radius: 8px; } .message-content, .index-item-content { padding: 12px; } pre { font-size: 0.8rem; padding: 8px; } #search-box input { width: 120px; } #search-modal[open] { width: 95vw; height: 90vh; } }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1><a href="index.html" style="color: inherit; text-decoration: none;">Claude Code transcript</a> - page 23/37</h1>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-022.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<a href="page-003.html">3</a>
+<a href="page-004.html">4</a>
+<a href="page-005.html">5</a>
+<a href="page-006.html">6</a>
+<a href="page-007.html">7</a>
+<a href="page-008.html">8</a>
+<a href="page-009.html">9</a>
+<a href="page-010.html">10</a>
+<a href="page-011.html">11</a>
+<a href="page-012.html">12</a>
+<a href="page-013.html">13</a>
+<a href="page-014.html">14</a>
+<a href="page-015.html">15</a>
+<a href="page-016.html">16</a>
+<a href="page-017.html">17</a>
+<a href="page-018.html">18</a>
+<a href="page-019.html">19</a>
+<a href="page-020.html">20</a>
+<a href="page-021.html">21</a>
+<a href="page-022.html">22</a>
+<span class="current">23</span>
+<a href="page-024.html">24</a>
+<a href="page-025.html">25</a>
+<a href="page-026.html">26</a>
+<a href="page-027.html">27</a>
+<a href="page-028.html">28</a>
+<a href="page-029.html">29</a>
+<a href="page-030.html">30</a>
+<a href="page-031.html">31</a>
+<a href="page-032.html">32</a>
+<a href="page-033.html">33</a>
+<a href="page-034.html">34</a>
+<a href="page-035.html">35</a>
+<a href="page-036.html">36</a>
+<a href="page-037.html">37</a>
+<a href="page-024.html">Next &rarr;</a>
+</div>
+
+        
+<div class="message user" id="msg-2026-01-30T14-29-53-137Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-53-137Z" class="timestamp-link"><time datetime="2026-01-30T14:29:53.137Z" data-timestamp="2026-01-30T14:29:53.137Z">2026-01-30T14:29:53.137Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a80fd7f</task-id>
+<status>completed</status></p>
+<summary>Agent "Mission briefing screens" completed</summary>
+<p><result>## React Components Completed</p>
+<h3>Components Created</h3>
+<ol>
+<li><strong>MissionBriefing</strong> (<code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/MissionBriefing.tsx</code>)</li>
+<li>Pre-mission briefing screen with military terminal styling</li>
+<li>Three tabbed sections: Briefing, Intel, and Loadout</li>
+<li>Commander portrait with typewriter text animation</li>
+<li>Mission objectives display</li>
+<li>Environment/threat level information</li>
+<li>
+<p>Suggested loadout with equipment status</p>
+</li>
+<li>
+<p><strong>MissionBriefing.module.css</strong> (<code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/MissionBriefing.module.css</code>)</p>
+</li>
+<li>Military terminal styling matching existing UI components</li>
+<li>Scan line effects, corner decorations, and status lights</li>
+<li>Responsive design with mobile breakpoints</li>
+<li>Accessibility support (high contrast mode, reduced motion)</li>
+<li>Threat level color coding (minimal/moderate/high/extreme)</li>
+</ol>
+<h3>Patterns Implemented</h3>
+<ul>
+<li><strong>React hooks</strong>: <code>useState</code>, <code>useEffect</code>, <code>useCallback</code> for state management and effects</li>
+<li><strong>Typewriter effect</strong>: Progressive text reveal for commander briefing with skip functionality</li>
+<li><strong>Tab navigation</strong>: Three-tab interface with proper ARIA attributes for accessibility</li>
+<li><strong>Dynamic data generation</strong>: Briefing data derived from existing <code>LORE</code> and <code>CAMPAIGN_LEVELS</code> configurations</li>
+<li><strong>Keyboard navigation</strong>: Escape to cancel, Enter to begin, Space to skip typing</li>
+</ul>
+<h3>Integration Points</h3>
+<ul>
+<li>Added new <code>'briefing'</code> game state to the App's state machine</li>
+<li>Flow: <code>menu</code> -&gt; <code>briefing</code> -&gt; <code>loading</code> -&gt; <code>gameplay</code></li>
+<li>Integrated with existing audio system (<code>comms_open</code>, <code>ui_click</code> sounds)</li>
+<li>Uses existing lore and mission briefings from <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/core/lore.ts</code></li>
+<li>Connected to level selection from Main Menu, Continue, and Level Select screens</li>
+</ul>
+<h3>Accessibility</h3>
+<ul>
+<li>ARIA roles: <code>dialog</code>, <code>tablist</code>, <code>tab</code>, <code>tabpanel</code></li>
+<li>Keyboard navigation support (Tab, Enter, Space, Escape)</li>
+<li>Screen reader labels for interactive elements</li>
+<li>Supports <code>prefers-contrast: high</code> media query</li>
+<li>Supports <code>prefers-reduced-motion: reduce</code> media query</li>
+</ul>
+<h3>Files Created/Modified</h3>
+<p><strong>Created:</strong>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/MissionBriefing.tsx</code> - Main briefing screen component
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/MissionBriefing.module.css</code> - Component styles</p>
+<p><strong>Modified:</strong>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/App.tsx</code> - Added briefing state, handlers, and component integration</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a80fd7f.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-53-412Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-53-412Z" class="timestamp-link"><time datetime="2026-01-30T14:29:53.412Z" data-timestamp="2026-01-30T14:29:53.412Z">2026-01-30T14:29:53.412Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-53-434Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-53-434Z" class="timestamp-link"><time datetime="2026-01-30T14:29:53.434Z" data-timestamp="2026-01-30T14:29:53.434Z">2026-01-30T14:29:53.434Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a791913</task-id>
+<status>completed</status></p>
+<summary>Agent "Difficulty settings" completed</summary>
+<p><result>All 196 tests pass (including 19 new difficulty settings tests). Let me summarize the implementation:</p>
+<h2>Implementation Report</h2>
+<h3>Backend Feature Delivered - Difficulty Settings (2026-01-30)</h3>
+<p><strong>Stack Detected</strong>: TypeScript, React 18, Vite, Babylon.js</p>
+<p><strong>Files Added</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/core/DifficultySettings.ts</code> - Core difficulty configuration module
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/core/DifficultySettings.test.ts</code> - Unit tests (19 tests)
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/DifficultySelector.tsx</code> - UI component for selecting difficulty
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/DifficultySelector.module.css</code> - Styles for difficulty selector</p>
+<p><strong>Files Modified</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/context/GameContext.tsx</code> - Added difficulty state and setter
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/systems/combatSystem.ts</code> - Applied difficulty modifiers to player damage and enemy fire rate
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/the-breach/enemies.ts</code> - Added difficulty scaling for enemy health, damage, fire rate, and detection
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/entities/aliens.ts</code> - Added difficulty scaling for alien entity creation
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/SettingsMenu.tsx</code> - Added Gameplay tab with difficulty selector
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/SettingsMenu.module.css</code> - Added difficulty note styling</p>
+<p><strong>Key Endpoints/APIs</strong>
+| Type | Interface | Purpose |
+|------|-----------|---------|
+| Type | <code>DifficultyLevel</code> | <code>'easy' \| 'normal' \| 'hard' \| 'nightmare'</code> |
+| Interface | <code>DifficultyModifiers</code> | Multipliers for enemy/player stats |
+| Function | <code>getDifficultyModifiers(level)</code> | Get modifiers for a difficulty |
+| Function | <code>scaleEnemyHealth(base, level)</code> | Scale enemy health by difficulty |
+| Function | <code>scaleEnemyDamage(base, level)</code> | Scale enemy damage by difficulty |
+| Function | <code>scalePlayerDamageReceived(base, level)</code> | Scale player damage taken |
+| Hook | <code>useGame().difficulty</code> | Access current difficulty in React |
+| Hook | <code>useGame().setDifficulty(level)</code> | Change difficulty from React |</p>
+<p><strong>Design Notes</strong>
+- Pattern chosen: Centralized difficulty module with scaling utility functions
+- Difficulty stored in localStorage for persistence across sessions
+- Difficulty exposed via GameContext for React components and directly via module for game systems
+- Four difficulty levels with meaningful names: RECRUIT (Easy), MARINE (Normal), VETERAN (Hard), HELL DROP (Nightmare)
+- Modifiers affect: enemy health, enemy damage, player damage received, health regen, fire rate, detection range, XP rewards</p>
+<p><strong>Difficulty Multipliers</strong></p>
+<table>
+<thead>
+<tr>
+<th>Difficulty</th>
+<th>Enemy HP</th>
+<th>Enemy DMG</th>
+<th>Player DMG Received</th>
+<th>Fire Rate</th>
+<th>Detection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Easy</td>
+<td>70%</td>
+<td>50%</td>
+<td>50%</td>
+<td>80%</td>
+<td>80%</td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>100%</td>
+<td>100%</td>
+<td>100%</td>
+<td>100%</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Hard</td>
+<td>140%</td>
+<td>150%</td>
+<td>150%</td>
+<td>130%</td>
+<td>120%</td>
+</tr>
+<tr>
+<td>Nightmare</td>
+<td>200%</td>
+<td>200%</td>
+<td>200%</td>
+<td>150%</td>
+<td>150%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tests</strong>
+- Unit: 19 new tests for DifficultySettings module (100% coverage)
+- All 196 existing tests continue to pass</p>
+<p><strong>Performance</strong>
+- Difficulty setting loaded once at startup, cached in memory
+- Modifiers retrieved via O(1) lookup from preset object
+- No runtime performance impact beyond initial multiplier calculations</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a791913.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-53-764Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-53-764Z" class="timestamp-link"><time datetime="2026-01-30T14:29:53.764Z" data-timestamp="2026-01-30T14:29:53.764Z">2026-01-30T14:29:53.764Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-53-807Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-53-807Z" class="timestamp-link"><time datetime="2026-01-30T14:29:53.807Z" data-timestamp="2026-01-30T14:29:53.807Z">2026-01-30T14:29:53.807Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>aa781a1</task-id>
+<status>completed</status></p>
+<summary>Agent "UI compass and objective markers" completed</summary>
+<p><result>The build succeeds. The Compass component is already fully implemented and working. Let me provide a summary of the implementation.</p>
+<h2>React Components Completed</h2>
+<p>The Compass HUD element with objective markers is already fully implemented. Here is the complete implementation:</p>
+<h3>Files Created/Modified</h3>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/Compass.tsx</code></strong></p>
+<pre><code class="language-typescript">import React, { useMemo } from 'react';
+import styles from './Compass.module.css';
+
+interface CompassProps {
+  /** Player heading in radians (0 = North, positive = clockwise) */
+  heading: number;
+  /** Optional objective position for marker arrow */
+  objectiveDirection?: number;
+  /** Optional distance to objective in meters */
+  objectiveDistance?: number;
+  /** Whether compass is visible */
+  visible?: boolean;
+}
+
+export function Compass({
+  heading,
+  objectiveDirection,
+  objectiveDistance,
+  visible = true,
+}: CompassProps) {
+  // Convert heading to degrees and calculate cardinal markers, tick marks, objective arrow
+  // ... (full implementation in file)
+}
+</code></pre>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/Compass.module.css</code></strong></p>
+<p>Military terminal styling with:
+- Dark background (<code>rgba(28, 28, 28, 0.85)</code>)
+- Olive border (<code>#4a5d23</code>)
+- Amber cardinal directions (<code>#ffbf00</code>)
+- Gold objective marker with pulse animation
+- Responsive sizing using <code>clamp()</code></p>
+<h3>Components Created</h3>
+<ul>
+<li><strong>Compass</strong> - Military-style compass strip HUD element showing cardinal directions and objective markers</li>
+</ul>
+<h3>Patterns Implemented</h3>
+<ul>
+<li><code>useMemo</code> for performance optimization of compass calculations</li>
+<li>CSS Modules for scoped styling</li>
+<li>CSS custom properties for colorblind-aware theming (<code>--cb-compass-cardinal</code>, <code>--cb-objective</code>)</li>
+<li>Responsive design with mobile-first approach</li>
+</ul>
+<h3>Integration Points</h3>
+<ul>
+<li><strong>GameContext</strong>: Uses <code>compassData</code> (heading, objectiveDirection, objectiveDistance) via <code>useGame()</code> hook</li>
+<li><strong>HUD.tsx</strong>: Renders Compass conditionally based on <code>hudVisibility.compass</code></li>
+<li>Handles two positioning modes: top-center when mission text hidden, below mission text when visible</li>
+</ul>
+<h3>Accessibility</h3>
+<ul>
+<li><code>aria-label="Navigation compass"</code> on container</li>
+<li><code>aria-label</code> on objective arrow with distance</li>
+<li>Reduced motion support (<code>prefers-reduced-motion: reduce</code>)</li>
+<li>Colorblind-aware CSS variables for key colors</li>
+</ul>
+<h3>Features Implemented</h3>
+<ol>
+<li><strong>Cardinal Directions</strong>: N, NE, E, SE, S, SW, W, NW with primary/secondary styling</li>
+<li><strong>Degree Indicators</strong>: Tick marks every 15 degrees, major ticks at 45-degree intervals</li>
+<li><strong>Heading Readout</strong>: Current heading in degrees (000-359) with "DEG" unit</li>
+<li><strong>Objective Marker</strong>: Rotating chevron/arrow pointing to objective direction</li>
+<li><strong>Distance Display</strong>: Shows distance in meters or km format</li>
+<li><strong>Responsive Design</strong>: Smaller on mobile (768px breakpoint)</li>
+<li><strong>Pulse Animation</strong>: Objective arrow has subtle glow animation</li>
+</ol>
+<h3>Next Steps Available</h3>
+<ul>
+<li><strong>Testing</strong>: Add unit tests for compass calculations (heading normalization, relative angles)</li>
+<li><strong>E2E Testing</strong>: Verify compass appears during gameplay with correct data</li>
+<li><strong>Accessibility</strong>: Add keyboard navigation if compass becomes interactive</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/aa781a1.output</li>
+</ul></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-54-061Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-54-061Z" class="timestamp-link"><time datetime="2026-01-30T14:29:54.061Z" data-timestamp="2026-01-30T14:29:54.061Z">2026-01-30T14:29:54.061Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-54-106Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-54-106Z" class="timestamp-link"><time datetime="2026-01-30T14:29:54.106Z" data-timestamp="2026-01-30T14:29:54.106Z">2026-01-30T14:29:54.106Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>adae1a1</task-id>
+<status>completed</status></p>
+<summary>Agent "Colorblind accessibility modes" completed</summary>
+<p><result>Let me provide a summary of the implementation:</p>
+<h2>React Components Completed</h2>
+<h3>Implementation Summary</h3>
+<p>I have implemented colorblind-friendly modes for the game's visual systems. Here are the key changes:</p>
+<h3>Files Modified</h3>
+<ol>
+<li><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/context/SettingsContext.tsx</code></strong></li>
+<li>Added <code>ColorPalette</code> interface defining semantic color roles (healthHigh, healthMedium, healthLow, enemy, friendly, etc.)</li>
+<li>Created color palettes for each colorblind mode:<ul>
+<li><strong>Protanopia</strong> (red-weak): Uses magenta and cyan/yellow contrast</li>
+<li><strong>Deuteranopia</strong> (green-weak): Uses magenta and cyan/yellow contrast  </li>
+<li><strong>Tritanopia</strong> (blue-yellow): Uses red/cyan contrast</li>
+</ul>
+</li>
+<li>Added <code>useShapeIndicators</code> and <code>usePatternIndicators</code> settings</li>
+<li>Added <code>colorPalette</code>, <code>getColor()</code>, and <code>isColorblindMode</code> to context</li>
+<li>
+<p>CSS custom properties are applied to <code>:root</code> when settings change</p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/HUD.tsx</code></strong></p>
+</li>
+<li>Updated health bar to use colorblind-aware palette colors</li>
+<li>Added shape indicator (exclamation mark) for critical health when <code>useShapeIndicators</code> is enabled</li>
+<li>
+<p>Added support for pattern indicators on health bar</p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/HUD.module.css</code></strong></p>
+</li>
+<li>Updated damage flash to use <code>var(--cb-health-low)</code></li>
+<li>Added <code>.healthHigh</code>, <code>.healthMedium</code>, <code>.healthLow</code> classes using CSS variables</li>
+<li>Added pattern fills for colorblind accessibility (<code>.cb-patterns</code> class)</li>
+<li>Added <code>.healthCriticalIndicator</code> style for the exclamation mark warning</li>
+<li>Updated ammo low color to use <code>var(--cb-ammo-low)</code></li>
+<li>
+<p>Updated kills count to use <code>var(--cb-primary)</code></p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/Crosshair.module.css</code></strong></p>
+</li>
+<li>Updated hover state to use <code>var(--cb-crosshair-hover)</code></li>
+<li>Updated hit state to use <code>var(--cb-crosshair-hit)</code></li>
+<li>
+<p>Added shape indicators: diamond shape when hovering enemy, X mark on hit</p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/Compass.module.css</code></strong></p>
+</li>
+<li>Updated cardinal direction colors to use <code>var(--cb-compass-cardinal)</code></li>
+<li>
+<p>Updated objective arrow to use <code>var(--cb-objective)</code></p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/SettingsMenu.tsx</code></strong></p>
+</li>
+<li>Added colorblind mode descriptions</li>
+<li>Added Shape Indicators toggle with description</li>
+<li>Added Pattern Indicators toggle with description  </li>
+<li>
+<p>Added live Color Preview section showing health states, enemy/friendly colors, and objective</p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/SettingsMenu.module.css</code></strong></p>
+</li>
+<li>Added color preview section styles</li>
+<li>
+<p>Added enemy shape (diamond) and friendly shape (circle) preview styles</p>
+</li>
+<li>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/css/main.css</code></strong></p>
+</li>
+<li>Added CSS custom property defaults for colorblind palette</li>
+<li>Added high contrast mode overrides</li>
+<li>Added <code>.cb-shapes</code> and <code>.cb-patterns</code> global class styles</li>
+<li>Added <code>.reduced-flashing</code> style for accessibility</li>
+</ol>
+<h3>Patterns Implemented</h3>
+<ul>
+<li><strong>CSS Custom Properties</strong>: All colors use <code>var(--cb-*)</code> variables that are dynamically set based on colorblind mode</li>
+<li><strong>Shape Indicators</strong>: Diamond for enemies, circle for friendlies, exclamation for critical health</li>
+<li><strong>Pattern Fills</strong>: Striped patterns added to health bars for additional distinction</li>
+<li><strong>React Context Integration</strong>: Settings stored in SettingsContext and persisted to localStorage</li>
+</ul>
+<h3>Accessibility Features</h3>
+<ul>
+<li><strong>Protanopia mode</strong>: Replaces red with magenta, uses blue-yellow contrast</li>
+<li><strong>Deuteranopia mode</strong>: Similar to protanopia with optimized blue-yellow contrast</li>
+<li><strong>Tritanopia mode</strong>: Uses red-cyan contrast instead of blue-yellow</li>
+<li><strong>Shape indicators</strong>: Can be toggled independently for users who need shape-based identification</li>
+<li><strong>Pattern indicators</strong>: Adds striped patterns to health bars for additional visual distinction</li>
+<li><strong>High contrast mode</strong>: Enhanced saturation and outlines for better visibility</li>
+</ul>
+<h3>Next Steps Available</h3>
+<ul>
+<li>Testing: Manual testing with actual colorblind simulation tools is recommended</li>
+<li>Enemy markers: The 3D entity markers in the game scene could also use shape indicators</li>
+<li>Audio cues: Consider adding distinct audio feedback for enemy vs friendly interactions</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/adae1a1.output</li>
+</ul></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-54-434Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-54-434Z" class="timestamp-link"><time datetime="2026-01-30T14:29:54.434Z" data-timestamp="2026-01-30T14:29:54.434Z">2026-01-30T14:29:54.434Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-54-454Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-54-454Z" class="timestamp-link"><time datetime="2026-01-30T14:29:54.454Z" data-timestamp="2026-01-30T14:29:54.454Z">2026-01-30T14:29:54.454Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a215b2d</task-id>
+<status>completed</status></p>
+<summary>Agent "Level completion stats screen" completed</summary>
+<p><result>The implementation is complete. Let me provide the implementation report.</p>
+<hr />
+<h2>Frontend Implementation - Level Completion Stats Screen (2026-01-30)</h2>
+<h3>Summary</h3>
+<ul>
+<li>Framework: React 18+ with TypeScript</li>
+<li>Key Components: <code>LevelCompletionScreen</code> (enhanced), CSS Module styles</li>
+<li>Responsive Behaviour: Yes (mobile-first with breakpoints)</li>
+<li>Accessibility Score (Lighthouse): Includes reduced-motion support, ARIA roles, focus management</li>
+</ul>
+<h3>Files Created / Modified</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/LevelCompletionScreen.tsx</code></td>
+<td>Enhanced level completion component with animated counters, score breakdown, achievements display, and best time comparison</td>
+</tr>
+<tr>
+<td><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/LevelCompletionScreen.module.css</code></td>
+<td>Updated styles with entry animations, progress bars, achievement styling, and breakdown section</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Features Implemented</h3>
+<ol>
+<li><strong>Animated Stat Counters</strong></li>
+<li>Custom <code>useAnimatedCounter</code> hook with ease-out cubic easing</li>
+<li>Staggered delays for sequential reveal (300ms, 600ms, 900ms)</li>
+<li>
+<p>Tick sound effects during counting animation</p>
+</li>
+<li>
+<p><strong>Visual Representations</strong></p>
+</li>
+<li>Progress bars for accuracy percentage</li>
+<li>Progress bars for secrets found</li>
+<li>
+<p>Icons for each stat category (stopwatch, crossed swords, target, star)</p>
+</li>
+<li>
+<p><strong>Comparison to Previous Best</strong></p>
+</li>
+<li>LocalStorage persistence per level (<code>stellar_descent_best_&lt;levelId&gt;</code>)</li>
+<li>"NEW BEST" badge with pulsing animation when records are broken</li>
+<li>
+<p>Previous best displayed when not a new record</p>
+</li>
+<li>
+<p><strong>Performance Rating System</strong></p>
+</li>
+<li>Score breakdown showing Time Bonus, Combat Bonus, Accuracy Bonus</li>
+<li>Progress bars for each score component</li>
+<li>Descriptive labels (e.g., "Lightning Fast", "Exterminator", "Sharpshooter")</li>
+<li>Letter grades S/A/B/C/D with distinct colors and glow effects</li>
+<li>
+<p>Rating description text (e.g., "EXEMPLARY PERFORMANCE")</p>
+</li>
+<li>
+<p><strong>Achievements Display</strong></p>
+</li>
+<li>Shows achievements unlocked in the last 2 minutes</li>
+<li>Slide-in animation for each achievement</li>
+<li>
+<p>Gold-tinted styling consistent with achievement popup</p>
+</li>
+<li>
+<p><strong>Polish &amp; Animations</strong></p>
+</li>
+<li>Entry animations with <code>statAnimateIn</code> class</li>
+<li>Fade-in for breakdown and achievements sections</li>
+<li>Rating pop animation</li>
+<li>UI hover/click sounds using AudioManager</li>
+<li>Respects <code>prefers-reduced-motion</code> for accessibility</li>
+</ol>
+<h3>Code Snippets</h3>
+<p><strong>Animated Counter Hook:</strong></p>
+<pre><code class="language-typescript">function useAnimatedCounter(
+  targetValue: number,
+  duration: number = 1000,
+  delay: number = 0,
+  onTick?: () =&gt; void
+): number {
+  const [value, setValue] = useState(0);
+  // Uses requestAnimationFrame with ease-out cubic easing
+  // Plays tick sounds at regular intervals during animation
+}
+</code></pre>
+<p><strong>Best Stats Persistence:</strong></p>
+<pre><code class="language-typescript">interface LevelBestStats {
+  bestTime: number;
+  bestKills: number;
+  bestAccuracy: number;
+  bestRating: string;
+}
+// Stored in localStorage with key: stellar_descent_best_&lt;levelId&gt;
+</code></pre>
+<p><strong>Score Breakdown Display:</strong></p>
+<pre><code class="language-tsx">&lt;div className={styles.breakdownGrid}&gt;
+  &lt;div className={styles.breakdownItem}&gt;
+    &lt;div className={styles.breakdownRow}&gt;
+      &lt;span className={styles.breakdownLabel}&gt;Time Bonus&lt;/span&gt;
+      &lt;span className={styles.breakdownScore}&gt;+{animatedTimeScore}&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;span className={styles.breakdownComment}&gt;{breakdown.timeLabel}&lt;/span&gt;
+    &lt;div className={styles.breakdownBar}&gt;
+      &lt;div className={styles.breakdownFill} style={{ width: `${(animatedTimeScore / 40) * 100}%` }} /&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  // ... Combat and Accuracy sections
+&lt;/div&gt;
+</code></pre>
+<h3>Next Steps</h3>
+<ul>
+<li>[ ] Add unit tests for <code>useAnimatedCounter</code> hook</li>
+<li>[ ] Add unit tests for rating calculation</li>
+<li>[ ] Consider adding level-specific par times for more accurate time scoring</li>
+<li>[ ] Consider adding sound effect for "NEW BEST" reveal</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a215b2d.output</li>
+</ul></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-54-778Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-54-778Z" class="timestamp-link"><time datetime="2026-01-30T14:29:54.778Z" data-timestamp="2026-01-30T14:29:54.778Z">2026-01-30T14:29:54.778Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-022.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<a href="page-003.html">3</a>
+<a href="page-004.html">4</a>
+<a href="page-005.html">5</a>
+<a href="page-006.html">6</a>
+<a href="page-007.html">7</a>
+<a href="page-008.html">8</a>
+<a href="page-009.html">9</a>
+<a href="page-010.html">10</a>
+<a href="page-011.html">11</a>
+<a href="page-012.html">12</a>
+<a href="page-013.html">13</a>
+<a href="page-014.html">14</a>
+<a href="page-015.html">15</a>
+<a href="page-016.html">16</a>
+<a href="page-017.html">17</a>
+<a href="page-018.html">18</a>
+<a href="page-019.html">19</a>
+<a href="page-020.html">20</a>
+<a href="page-021.html">21</a>
+<a href="page-022.html">22</a>
+<span class="current">23</span>
+<a href="page-024.html">24</a>
+<a href="page-025.html">25</a>
+<a href="page-026.html">26</a>
+<a href="page-027.html">27</a>
+<a href="page-028.html">28</a>
+<a href="page-029.html">29</a>
+<a href="page-030.html">30</a>
+<a href="page-031.html">31</a>
+<a href="page-032.html">32</a>
+<a href="page-033.html">33</a>
+<a href="page-034.html">34</a>
+<a href="page-035.html">35</a>
+<a href="page-036.html">36</a>
+<a href="page-037.html">37</a>
+<a href="page-024.html">Next &rarr;</a>
+</div>
+
+    </div>
+    <script>
+document.querySelectorAll('time[data-timestamp]').forEach(function(el) {
+    const timestamp = el.getAttribute('data-timestamp');
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (isToday) { el.textContent = timeStr; }
+    else { el.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + timeStr; }
+});
+document.querySelectorAll('pre.json').forEach(function(el) {
+    let text = el.textContent;
+    text = text.replace(/"([^"]+)":/g, '<span style="color: #ce93d8">"$1"</span>:');
+    text = text.replace(/: "([^"]*)"/g, ': <span style="color: #81d4fa">"$1"</span>');
+    text = text.replace(/: (\d+)/g, ': <span style="color: #ffcc80">$1</span>');
+    text = text.replace(/: (true|false|null)/g, ': <span style="color: #f48fb1">$1</span>');
+    el.innerHTML = text;
+});
+document.querySelectorAll('.truncatable').forEach(function(wrapper) {
+    const content = wrapper.querySelector('.truncatable-content');
+    const btn = wrapper.querySelector('.expand-btn');
+    if (content.scrollHeight > 250) {
+        wrapper.classList.add('truncated');
+        btn.addEventListener('click', function() {
+            if (wrapper.classList.contains('truncated')) { wrapper.classList.remove('truncated'); wrapper.classList.add('expanded'); btn.textContent = 'Show less'; }
+            else { wrapper.classList.remove('expanded'); wrapper.classList.add('truncated'); btn.textContent = 'Show more'; }
+        });
+    }
+});
+</script>
+</body>
+</html>

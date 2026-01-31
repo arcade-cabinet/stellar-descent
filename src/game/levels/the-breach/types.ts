@@ -46,7 +46,7 @@ export type QueenPhase = 1 | 2 | 3;
  * Organic tunnel segment in the hive
  */
 export interface TunnelSegment {
-  mesh: Mesh;
+  node: TransformNode;
   position: Vector3;
   rotation: number;
   zone: HiveZone;
@@ -94,7 +94,7 @@ export interface CapturedVehicle {
  * Alien egg cluster that spawns drones when triggered
  */
 export interface EggCluster {
-  mesh: Mesh;
+  mesh: Mesh | TransformNode;
   position: Vector3;
   triggered: boolean;
   droneCount: number;
@@ -172,21 +172,22 @@ export interface EnemyStats {
 export type QueenAttackType = 'acid_spit' | 'claw_swipe' | 'tail_slam' | 'ground_pound' | 'none';
 
 /**
- * Queen body part meshes for animation
+ * Queen body part meshes/nodes for animation.
+ * GLB-loaded parts use TransformNode; VFX parts remain Mesh.
  */
 export interface QueenBodyParts {
-  head: Mesh;
-  thorax: Mesh;
-  abdomen: Mesh;
-  claws: Mesh[];
-  tail: Mesh;
+  head: TransformNode;
+  thorax: TransformNode;
+  abdomen: TransformNode;
+  claws: TransformNode[];
+  tail: TransformNode | Mesh;
 }
 
 /**
  * Queen boss instance data
  */
 export interface Queen {
-  mesh: Mesh;
+  mesh: TransformNode;
   health: number;
   maxHealth: number;
   phase: QueenPhase;

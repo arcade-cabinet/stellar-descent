@@ -390,14 +390,10 @@ const STORAGE_KEY = 'stellar-descent-settings';
  * Load settings from localStorage
  */
 function loadSettings(): GameSettings {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...DEFAULT_GAME_SETTINGS, ...parsed };
-    }
-  } catch (e) {
-    console.warn('Failed to load settings from localStorage:', e);
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    return { ...DEFAULT_GAME_SETTINGS, ...parsed };
   }
   return { ...DEFAULT_GAME_SETTINGS };
 }
@@ -406,11 +402,7 @@ function loadSettings(): GameSettings {
  * Save settings to localStorage
  */
 function saveSettings(settings: GameSettings): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('Failed to save settings to localStorage:', e);
-  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 interface SettingsContextType {

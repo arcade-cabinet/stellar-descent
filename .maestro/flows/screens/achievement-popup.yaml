@@ -1,0 +1,138 @@
+# Achievement Popup Notification Tests
+# Tests in-game achievement unlock popups
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - ui
+  - achievements
+  - popup
+  - gameplay
+name: "Achievement Popup - In-Game Unlock Notification"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "NEW CAMPAIGN"
+    timeout: 30000
+
+# Start fresh campaign to trigger first achievements
+- tapOn:
+    text: "NEW CAMPAIGN"
+
+# Handle difficulty selection
+- tapOn:
+    text: "NORMAL"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    text: "BEGIN"
+    optional: true
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Wait for tutorial
+- extendedWaitUntil:
+    visible: "Good morning"
+    timeout: 30000
+
+- takeScreenshot: "gameplay_start"
+
+# Acknowledge tutorial message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1500
+
+# Continue through tutorial - should trigger "Boot Camp" or similar achievement
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+# Look for achievement popup notification
+# Achievement popups typically appear at top of screen
+- assertVisible:
+    text: "Achievement Unlocked"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "ACHIEVEMENT"
+    optional: true
+
+- takeScreenshot: "achievement_popup"
+
+# Continue gameplay to trigger more achievements
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+- wait: 1000
+
+# Fire weapon to potentially trigger combat achievements
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- takeScreenshot: "after_combat"
+
+# Check for First Blood achievement
+- assertVisible:
+    text: "First Blood"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "first_blood_achievement"
+
+# Continue gameplay
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "18%, 58%"
+          duration: 2000
+      - wait: 300
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 500
+
+- takeScreenshot: "gameplay_progress"
+
+# Check for additional achievement popups
+- assertVisible:
+    text: "Headshot"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "Accuracy"
+    optional: true
+
+- takeScreenshot: "additional_achievements"

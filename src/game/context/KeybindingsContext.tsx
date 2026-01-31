@@ -146,15 +146,11 @@ const STORAGE_KEY = 'stellar-descent-keybindings';
  * Load keybindings from localStorage
  */
 function loadKeybindings(): Keybindings {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Merge with defaults to handle new actions
-      return { ...DEFAULT_KEYBINDINGS, ...parsed };
-    }
-  } catch (e) {
-    console.warn('Failed to load keybindings from localStorage:', e);
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    // Merge with defaults to handle new actions
+    return { ...DEFAULT_KEYBINDINGS, ...parsed };
   }
   return { ...DEFAULT_KEYBINDINGS };
 }
@@ -163,11 +159,7 @@ function loadKeybindings(): Keybindings {
  * Save keybindings to localStorage
  */
 function saveKeybindings(bindings: Keybindings): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bindings));
-  } catch (e) {
-    console.warn('Failed to save keybindings to localStorage:', e);
-  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(bindings));
 }
 
 interface KeybindingsContextType {

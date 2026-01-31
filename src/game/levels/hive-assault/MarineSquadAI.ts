@@ -34,7 +34,16 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 import type { CommsMessage } from '../../types';
+
+// Marine GLB model paths
+const MARINE_GLBS = [
+  '/models/npcs/marine/marine_soldier.glb',
+  '/models/npcs/marine/marine_sergeant.glb',
+  '/models/npcs/marine/marine_elite.glb',
+  '/models/npcs/marine/marine_crusader.glb',
+] as const;
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -301,42 +310,49 @@ export class MarineSquadManager {
     const rootNode = new TransformNode(marineId, this.scene);
     rootNode.position = basePos.clone();
 
-    // Body (simplified humanoid shape)
+    // Load GLB marine model (each squad member gets a different variant)
+    const glbPath = MARINE_GLBS[index % MARINE_GLBS.length];
+    if (AssetManager.isPathCached(glbPath)) {
+      const marineModel = AssetManager.createInstanceByPath(
+        glbPath, `${marineId}_model`, this.scene, true, 'npc'
+      );
+      if (marineModel) {
+        marineModel.scaling.setAll(1.0);
+        marineModel.parent = rootNode;
+      }
+    }
+
+    // Invisible proxy meshes to satisfy the Marine interface (body, helmet, weapon)
     const bodyMesh = MeshBuilder.CreateBox(
       `${marineId}_body`,
       { width: 0.6, height: 1.4, depth: 0.4 },
       this.scene
     );
-    const bodyMat = new StandardMaterial(`${marineId}_bodyMat`, this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString('#3A4A3A');
-    bodyMat.specularColor = new Color3(0.1, 0.1, 0.1);
-    bodyMesh.material = bodyMat;
     bodyMesh.position.y = 0.9;
     bodyMesh.parent = rootNode;
+    bodyMesh.isVisible = false;
 
-    // Helmet
-    const helmetMesh = MeshBuilder.CreateSphere(
-      `${marineId}_helmet`,
-      { diameter: 0.45, segments: 8 },
-      this.scene
-    );
     const helmetMat = new StandardMaterial(`${marineId}_helmetMat`, this.scene);
     helmetMat.diffuseColor = Color3.FromHexString('#4A5A4A');
+
+    const helmetMesh = MeshBuilder.CreateSphere(
+      `${marineId}_helmet`,
+      { diameter: 0.45, segments: 4 },
+      this.scene
+    );
     helmetMesh.material = helmetMat;
     helmetMesh.position.y = 1.8;
     helmetMesh.parent = rootNode;
+    helmetMesh.isVisible = false;
 
-    // Weapon (rifle)
     const weaponMesh = MeshBuilder.CreateBox(
       `${marineId}_weapon`,
       { width: 0.08, height: 0.08, depth: 0.8 },
       this.scene
     );
-    const weaponMat = new StandardMaterial(`${marineId}_weaponMat`, this.scene);
-    weaponMat.diffuseColor = new Color3(0.2, 0.2, 0.2);
-    weaponMesh.material = weaponMat;
     weaponMesh.position.set(0.3, 0.9, 0.3);
     weaponMesh.parent = rootNode;
+    weaponMesh.isVisible = false;
 
     return {
       id: marineId,

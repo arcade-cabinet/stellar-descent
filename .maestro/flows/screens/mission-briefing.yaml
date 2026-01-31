@@ -1,0 +1,186 @@
+# Mission Briefing Screen Tests
+# Tests pre-mission briefing with objectives, intel, and loadout
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - ui
+  - briefing
+  - menu
+name: "Mission Briefing - Objectives, Intel, Loadout"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Select first available unlocked level
+- tapOn:
+    text: "ANCHOR STATION"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_select_choice"
+
+# Wait for mission briefing screen
+- extendedWaitUntil:
+    visible: "MISSION BRIEFING"
+    timeout: 10000
+
+- takeScreenshot: "mission_briefing_open"
+
+# Verify header elements
+- assertVisible:
+    text: "TEA COMMAND"
+    optional: true
+
+# Verify mission title section
+- assertVisible:
+    text: "CHAPTER"
+    optional: true
+
+- assertVisible:
+    text: "ACT"
+    optional: true
+
+- takeScreenshot: "briefing_header"
+
+# Tab navigation
+- assertVisible:
+    text: "BRIEFING"
+
+- assertVisible:
+    text: "INTEL"
+
+- assertVisible:
+    text: "LOADOUT"
+
+- takeScreenshot: "briefing_tabs"
+
+# BRIEFING tab content
+- assertVisible:
+    text: "PRIMARY OBJECTIVES"
+    optional: true
+
+# Commander portrait section
+- assertVisible:
+    text: "CV"
+    optional: true
+
+- takeScreenshot: "briefing_objectives"
+
+# Switch to INTEL tab
+- tapOn:
+    text: "INTEL"
+
+- wait: 500
+
+- takeScreenshot: "intel_tab"
+
+# Verify intel content
+- assertVisible:
+    text: "ENVIRONMENT DATA"
+    optional: true
+
+- assertVisible:
+    text: "TYPE"
+    optional: true
+
+- assertVisible:
+    text: "THREAT LEVEL"
+    optional: true
+
+- takeScreenshot: "intel_environment"
+
+# Enemy intel section
+- assertVisible:
+    text: "HOSTILE INTELLIGENCE"
+    optional: true
+
+- assertVisible:
+    text: "ENEMY CLASSIFICATION"
+    optional: true
+
+- takeScreenshot: "intel_enemies"
+
+# Switch to LOADOUT tab
+- tapOn:
+    text: "LOADOUT"
+
+- wait: 500
+
+- takeScreenshot: "loadout_tab"
+
+# Verify loadout content
+- assertVisible:
+    text: "SUGGESTED LOADOUT"
+    optional: true
+
+- assertVisible:
+    text: "EQUIPPED"
+    optional: true
+
+- assertVisible:
+    text: "AVAILABLE"
+    optional: true
+
+- takeScreenshot: "loadout_items"
+
+# Footer elements
+- assertVisible:
+    text: "7TH DROP MARINES"
+    optional: true
+
+- assertVisible:
+    text: "HELL JUMPERS"
+    optional: true
+
+# Action buttons
+- assertVisible:
+    text: "ABORT"
+    optional: true
+
+- assertVisible:
+    text: "BEGIN MISSION"
+    optional: true
+
+- takeScreenshot: "briefing_footer"
+
+# Test ABORT button (returns to level select)
+- tapOn:
+    text: "ABORT"
+
+- wait: 1000
+
+# Should be back at level select
+- assertVisible:
+    text: "SELECT MISSION"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "after_abort"
+
+# Close level select
+- tapOn:
+    text: "BACK"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "NEW CAMPAIGN"
+    timeout: 5000
+
+- takeScreenshot: "main_menu_after_briefing"

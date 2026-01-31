@@ -1,0 +1,146 @@
+# Campaign Level 4: FOB Delta
+# Abandoned base investigation - horror/suspense level
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-4
+  - horror
+  - investigation
+name: "Campaign Level 4 - FOB Delta"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Look for FOB Delta in level select (Chapter 4)
+- assertVisible:
+    text: "CHAPTER 4"
+    optional: true
+    timeout: 5000
+
+# Select FOB Delta if unlocked
+- tapOn:
+    text: "FOB DELTA"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_04_select_state"
+
+# Wait for mission briefing
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Verify FOB Delta mission info
+- assertVisible:
+    text: "FOB DELTA"
+    optional: true
+
+- assertVisible:
+    text: "Forward Operating Base"
+    optional: true
+
+- assertVisible:
+    text: "Abandoned"
+    optional: true
+
+- takeScreenshot: "level_04_briefing"
+
+# Check intel tab for enemy info
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Should show CHITIN SOLDIER and SPITTER intel
+- assertVisible:
+    text: "CHITIN SOLDIER"
+    optional: true
+
+- assertVisible:
+    text: "AMBUSH SPAWN"
+    optional: true
+
+- takeScreenshot: "level_04_intel"
+
+# Switch back to briefing
+- tapOn:
+    text: "BRIEFING"
+    optional: true
+
+- wait: 300
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "level_04_start"
+
+# Explore dark environment - use tactical light
+- tapOn:
+    id: "flashlight-button"
+    optional: true
+
+- wait: 500
+
+# Movement through corridors
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+# Look around cautiously
+- swipe:
+    start: "80%, 50%"
+    end: "70%, 50%"
+    duration: 1500
+
+- wait: 1000
+
+- swipe:
+    start: "80%, 50%"
+    end: "90%, 50%"
+    duration: 1500
+
+- takeScreenshot: "level_04_exploration"
+
+# Continue forward
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 2500
+
+# Prepare for potential ambush
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "level_04_interior"

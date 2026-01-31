@@ -1,0 +1,183 @@
+# Campaign Level 10: Final Escape
+# Warthog Run style vehicle finale - timed escape
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-10
+  - finale
+  - vehicle
+  - timed
+name: "Campaign Level 10 - Final Escape"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Look for Final Escape (Chapter 10)
+- assertVisible:
+    text: "CHAPTER 10"
+    optional: true
+    timeout: 5000
+
+# Select Final Escape if unlocked
+- tapOn:
+    text: "FINAL ESCAPE"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_10_select_state"
+
+# Wait for mission briefing
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Verify mission details
+- assertVisible:
+    text: "FINAL ESCAPE"
+    optional: true
+
+- assertVisible:
+    text: "Outrun the Collapse"
+    optional: true
+
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+- takeScreenshot: "level_10_briefing"
+
+# Check intel - extreme threat
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Should show COLLAPSING TERRAIN
+- assertVisible:
+    text: "COLLAPSING TERRAIN"
+    optional: true
+
+- assertVisible:
+    text: "EXTREME"
+    optional: true
+
+- assertVisible:
+    text: "Do not stop"
+    optional: true
+
+- assertVisible:
+    text: "CHITIN INTERCEPTOR"
+    optional: true
+
+- takeScreenshot: "level_10_intel"
+
+# Check loadout
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "LRV TURRET"
+    optional: true
+
+- assertVisible:
+    text: "NITRO BOOST"
+    optional: true
+
+- assertVisible:
+    text: "EVAC BEACON"
+    optional: true
+
+- takeScreenshot: "level_10_loadout"
+
+# Begin final mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "level_10_start"
+
+# High-speed vehicle escape
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 50%"
+    duration: 2000
+
+# Boost immediately
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- takeScreenshot: "level_10_escape_start"
+
+# Continuous high-speed driving
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 1500
+      - wait: 100
+      - swipe:
+          start: "80%, 50%"
+          end: "85%, 48%"
+          duration: 400
+      - wait: 100
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+- takeScreenshot: "level_10_escape_chase"
+
+# Boost through obstacles
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 50%"
+    duration: 2000
+
+- wait: 1000
+
+- takeScreenshot: "level_10_finale"
+
+# Check for timer/countdown display
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "level_10_gameplay"

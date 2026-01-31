@@ -8,7 +8,7 @@ import {
 import { getAudioManager } from '../../game/core/AudioManager';
 import { GAME_SUBTITLE, GAME_TITLE } from '../../game/core/lore';
 import { WEAPONS, type WeaponId } from '../../game/entities/weapons';
-import type { LevelId } from '../../game/levels/types';
+import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
   formatPlayTime,
   type GameSave,
@@ -55,6 +55,16 @@ interface LevelStatEntry {
 }
 
 /**
+ * Calculate total secrets across all campaign levels
+ */
+function calculateTotalSecrets(): number {
+  return Object.values(CAMPAIGN_LEVELS).reduce(
+    (sum, level) => sum + (level.totalSecrets ?? 0),
+    0
+  );
+}
+
+/**
  * Default stats (used when no save data available)
  */
 const DEFAULT_STATS: CampaignStats = {
@@ -63,7 +73,7 @@ const DEFAULT_STATS: CampaignStats = {
   overallAccuracy: 0,
   deaths: 0,
   secretsFound: 0,
-  totalSecrets: 12,
+  totalSecrets: calculateTotalSecrets(),
   favoriteWeapon: null,
   shotsFired: 0,
   shotsHit: 0,
@@ -195,13 +205,19 @@ function calculateCampaignStats(save: GameSave | null): CampaignStats {
   // Get favorite weapon
   const { favoriteWeapon } = loadWeaponUsageStats();
 
+  // Calculate total secrets from all level configs
+  const totalSecrets = Object.values(CAMPAIGN_LEVELS).reduce(
+    (sum, level) => sum + (level.totalSecrets ?? 0),
+    0
+  );
+
   return {
     totalPlayTime: playTime,
     totalKills,
     overallAccuracy,
     deaths,
-    secretsFound: 0, // TODO: Track this in save
-    totalSecrets: 12,
+    secretsFound: progress.secretsFound ?? 0,
+    totalSecrets,
     favoriteWeapon,
     shotsFired,
     shotsHit,

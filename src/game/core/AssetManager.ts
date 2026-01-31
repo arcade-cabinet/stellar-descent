@@ -17,7 +17,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
 import type { LevelId } from '../levels/types';
-import { getNextLevelId, LEVEL_MANIFESTS } from './AssetManifest';
+import { getNextLevelId, LEVEL_MANIFESTS } from '../assets';
 import { getAssetPipeline, type PipelineProgress, type ProgressCallback } from './AssetPipeline';
 import { LODManager } from './LODManager';
 
@@ -49,8 +49,8 @@ export const ASSET_MANIFEST = {
   },
   // Vehicles
   vehicles: {
-    wraith: 'wraith.glb', // Enemy hover tank
-    phantom: 'phantom.glb', // Dropship for extraction
+    wraith: 'chitin/wraith.glb', // Enemy hover tank
+    phantom: 'tea/phantom.glb', // Dropship for extraction
   },
   // Organic hive structures for The Breach
   structures: {

@@ -2,15 +2,17 @@
  * TheBreachLevel - Queen Boss
  *
  * Contains Queen boss creation, AI, attacks, and phase management.
+ * Uses GLB models from AssetManager for the queen body and claws.
  */
 
 import type { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 import {
   COLORS,
   QUEEN_MAX_HEALTH,
@@ -20,62 +22,62 @@ import {
 } from './constants';
 import type { Queen, QueenAttackType, QueenPhase } from './types';
 
+// GLB paths for queen body parts
+const QUEEN_BODY_PATH = '/models/enemies/chitin/tentakel.glb';
+const QUEEN_CLAW_PATH = '/models/environment/hive/building_claw.glb';
+const QUEEN_TAIL_PATH = '/models/environment/alien-flora/alien_fern_1.glb';
+
+// ============================================================================
+// QUEEN ASSET PRELOADING
+// ============================================================================
+
+/**
+ * Preload queen GLB models so createQueen can instance them synchronously.
+ */
+export async function preloadQueenModels(scene: Scene): Promise<void> {
+  await Promise.all([
+    AssetManager.loadAssetByPath(QUEEN_BODY_PATH, scene),
+    AssetManager.loadAssetByPath(QUEEN_CLAW_PATH, scene),
+    AssetManager.loadAssetByPath(QUEEN_TAIL_PATH, scene),
+  ]);
+  console.log('[TheBreachLevel/queen] Queen GLB models preloaded');
+}
+
 // ============================================================================
 // QUEEN BUILDER
 // ============================================================================
 
 /**
- * Create the Queen boss at the specified position
+ * Create the Queen boss at the specified position.
+ * Uses GLB models for body (tentakel), claws (building_claw), and tail (alien flora).
+ * Eyes and weak point remain procedural (VFX indicator elements).
  */
 export function createQueen(scene: Scene, position: Vector3, glowLayer: GlowLayer | null): Queen {
-  const queenMat = new StandardMaterial('queenMat', scene);
-  queenMat.diffuseColor = Color3.FromHexString(COLORS.queenPurple);
-  queenMat.specularColor = new Color3(0.3, 0.2, 0.4);
-
-  // Abdomen (huge, embedded in wall)
-  const abdomen = MeshBuilder.CreateSphere(
-    'queenAbdomen',
-    {
-      diameterX: 6,
-      diameterY: 4,
-      diameterZ: 8,
-      segments: 16,
-    },
-    scene
+  // --- Main body (abdomen + thorax + head) from tentakel.glb ---
+  const bodyNode = AssetManager.createInstanceByPath(
+    QUEEN_BODY_PATH,
+    'queenBody',
+    scene,
+    true,
+    'enemy'
   );
-  abdomen.material = queenMat;
-  abdomen.position.set(position.x, position.y + 2, position.z + 4);
 
-  // Thorax
-  const thorax = MeshBuilder.CreateCylinder(
-    'queenThorax',
-    {
-      height: 2.5,
-      diameterTop: 1.5,
-      diameterBottom: 2.5,
-      tessellation: 12,
-    },
-    scene
-  );
-  thorax.material = queenMat;
-  thorax.position.set(position.x, position.y + 3, position.z);
-  thorax.rotation.x = -0.3;
+  if (!bodyNode) {
+    throw new Error('[TheBreachLevel/queen] Failed to create queen body GLB instance');
+  }
 
-  // Head
-  const head = MeshBuilder.CreateSphere(
-    'queenHead',
-    {
-      diameterX: 1.5,
-      diameterY: 1.2,
-      diameterZ: 1.5,
-      segments: 12,
-    },
-    scene
-  );
-  head.material = queenMat;
-  head.position.set(position.x, position.y + 4.5, position.z - 1);
+  // Position and scale the full body model
+  bodyNode.position.set(position.x, position.y + 2, position.z + 2);
+  bodyNode.scaling.setAll(2.5);
+  bodyNode.rotation.y = Math.PI; // Face the player
 
-  // Multiple glowing eyes
+  // Create logical sub-nodes for animation attachment points
+  // These are parented to the body so animation code can rotate them independently
+  const abdomenNode = bodyNode; // Main body is the abdomen anchor
+  const thoraxNode = bodyNode; // Shares the same root; animation offsets within
+  const headNode = bodyNode; // Head rotation applied to top of body model
+
+  // --- Multiple glowing eyes (VFX - remain procedural) ---
   const eyeMat = new StandardMaterial('queenEyeMat', scene);
   eyeMat.emissiveColor = new Color3(1, 0.3, 0.3);
   eyeMat.disableLighting = true;
@@ -88,51 +90,60 @@ export function createQueen(scene: Scene, position: Vector3, glowLayer: GlowLaye
     );
     eye.material = eyeMat;
     const angle = (i / 6) * Math.PI - Math.PI / 2;
-    eye.position.set(Math.sin(angle) * 0.5, 0.2, Math.cos(angle) * 0.4 - 0.5);
-    eye.parent = head;
+    eye.position.set(Math.sin(angle) * 0.5, 0.8, Math.cos(angle) * 0.4 - 0.5);
+    eye.parent = bodyNode;
 
     if (glowLayer) {
       glowLayer.addIncludedOnlyMesh(eye);
     }
   }
 
-  // Claws (2 large manipulator arms)
-  const claws: Mesh[] = [];
+  // --- Claws (2 large manipulator arms from building_claw.glb) ---
+  const claws: TransformNode[] = [];
   for (let i = 0; i < 2; i++) {
     const side = i === 0 ? 1 : -1;
 
-    const claw = MeshBuilder.CreateCylinder(
+    const claw = AssetManager.createInstanceByPath(
+      QUEEN_CLAW_PATH,
       `queenClaw_${i}`,
-      {
-        height: 3,
-        diameterTop: 0.2,
-        diameterBottom: 0.4,
-        tessellation: 8,
-      },
-      scene
+      scene,
+      true,
+      'enemy'
     );
-    claw.material = queenMat;
-    claw.position.set(position.x + side * 2, position.y + 3, position.z - 0.5);
-    claw.rotation.z = (side * Math.PI) / 4;
-    claws.push(claw);
+
+    if (claw) {
+      claw.scaling.setAll(0.6);
+      claw.position.set(position.x + side * 2, position.y + 3, position.z - 0.5);
+      claw.rotation.z = (side * Math.PI) / 4;
+      claws.push(claw);
+    }
   }
 
-  // Tail
-  const tail = MeshBuilder.CreateCylinder(
-    'queenTail',
-    {
-      height: 4,
-      diameterTop: 0.3,
-      diameterBottom: 0.8,
-      tessellation: 8,
-    },
-    scene
-  );
-  tail.material = queenMat;
-  tail.position.set(position.x, position.y + 1, position.z + 6);
-  tail.rotation.x = Math.PI / 3;
+  // --- Tail (organic appendage - uses alien flora GLB) ---
+  let tail: TransformNode;
 
-  // Weak point (hidden initially)
+  if (!AssetManager.isPathCached(QUEEN_TAIL_PATH)) {
+    throw new Error(`[Queen] Tail GLB not cached: ${QUEEN_TAIL_PATH}`);
+  }
+
+  const tailNode = AssetManager.createInstanceByPath(
+    QUEEN_TAIL_PATH,
+    'queenTail',
+    scene,
+    true,
+    'enemy'
+  );
+
+  if (!tailNode) {
+    throw new Error('[Queen] Failed to create tail instance from cached GLB');
+  }
+
+  tailNode.position.set(position.x, position.y + 1, position.z + 6);
+  tailNode.scaling.set(2.5, 3.5, 2.5); // Elongate for tail-like shape
+  tailNode.rotation.set(Math.PI / 3, Math.PI, 0);
+  tail = tailNode;
+
+  // --- Weak point (VFX indicator - remains procedural, hidden initially) ---
   const weakPoint = MeshBuilder.CreateSphere(
     'queenWeakPoint',
     { diameter: 0.8, segments: 12 },
@@ -151,7 +162,7 @@ export function createQueen(scene: Scene, position: Vector3, glowLayer: GlowLaye
   }
 
   return {
-    mesh: thorax,
+    mesh: bodyNode,
     health: QUEEN_MAX_HEALTH,
     maxHealth: QUEEN_MAX_HEALTH,
     phase: 1,
@@ -165,9 +176,9 @@ export function createQueen(scene: Scene, position: Vector3, glowLayer: GlowLaye
     attackTimer: 0,
     screaming: false,
     bodyParts: {
-      head,
-      thorax,
-      abdomen,
+      head: headNode,
+      thorax: thoraxNode,
+      abdomen: abdomenNode,
       claws,
       tail,
     },
@@ -268,7 +279,7 @@ export function calculateQueenDamage(baseDamage: number, isWeakPoint: boolean): 
  */
 export function animateQueen(queen: Queen, time: number): void {
   if (queen.bodyParts.head) {
-    queen.bodyParts.head.rotation.y = Math.sin(time * 0.5) * 0.1;
+    queen.bodyParts.head.rotation.y = Math.PI + Math.sin(time * 0.5) * 0.1;
   }
   for (let i = 0; i < queen.bodyParts.claws.length; i++) {
     const claw = queen.bodyParts.claws[i];
@@ -295,13 +306,11 @@ export function animateClawSwipe(queen: Queen): void {
 // ============================================================================
 
 /**
- * Dispose all queen meshes
+ * Dispose all queen meshes and GLB instances
  */
 export function disposeQueen(queen: Queen): void {
   queen.mesh.dispose();
-  queen.bodyParts.head.dispose();
-  queen.bodyParts.thorax.dispose();
-  queen.bodyParts.abdomen.dispose();
+  // head, thorax, abdomen share the same node as mesh -- already disposed
   queen.bodyParts.tail.dispose();
   for (const claw of queen.bodyParts.claws) {
     claw.dispose();

@@ -4,35 +4,33 @@
  * The hive detonation has been triggered. The planet is crumbling.
  * The player drives a vehicle to the extraction shuttle at the launch pad.
  *
- * FOUR SECTIONS:
+ * FOUR SECTIONS (GLB-asset-based linear escape route):
  *
- * Section A: HIVE EXIT (0-300m)
- *   - Drive through collapsing tunnels
- *   - Falling debris from ceiling
- *   - Organic walls cracking and breaking
- *   - Light at end signals surface exit
- *   - Marcus provides radio guidance
+ * Section A: COLLAPSING TUNNELS (z: 0 to -500)
+ *   - Station beams, modular walls collapsing
+ *   - Metal fences as barriers to dodge
+ *   - Ladder pieces as debris
+ *   - Collapse wall chasing from behind
  *
- * Section B: SURFACE RUN (300-700m)
- *   - Race across crumbling terrain
- *   - Chasms opening in the ground
- *   - Distant explosions rock the landscape
- *   - Lava/magma emerging from fissures
+ * Section B: SURFACE RUN (z: -500 to -1500)
+ *   - Crashed spaceships (Bob, Pancake, Spitfire, Zenith) as wreckage obstacles
+ *   - Station external (station05b) as giant collapsing station
+ *   - Detail arrows as directional markers
  *   - Marcus runs alongside in his mech
  *
- * Section C: CANYON SPRINT (700-1000m)
- *   - Narrow canyon with falling rocks from walls
- *   - Must steer around debris and chasms
- *   - Canyon walls collapsing behind player
- *   - Intensifying destruction
+ * Section C: LAVA CANYON (z: -1500 to -2500)
+ *   - Metal fences as collapsing bridges
+ *   - Teleporter models as alien tech
+ *   - Modular laser/statue as destroyed equipment
+ *   - Intensifying lava and destruction
  *
- * Section D: LAUNCH PAD (1000-1200m)
- *   - Reach the shuttle at the pad
+ * Section D: LAUNCH PAD (z: -2500 to -3000)
+ *   - Final platform with escape shuttle
+ *   - Detail_basic models as landing markers
  *   - Dramatic cinematic: shuttle launch
- *   - View of planet from orbit
  *   - Leads to credits
  *
- * TIMER: 4 minutes (240 seconds) to reach the frigate
+ * TIMER: 4 minutes (240 seconds) to reach the shuttle
  * FAILURE: Timer expires = dramatic explosion game over
  * VICTORY: Shuttle launches, cutscene of planet destruction from orbit
  */
@@ -51,6 +49,7 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import '@babylonjs/core/Animations/animatable';
 
 import { getAchievementManager } from '../../achievements';
+import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
@@ -58,8 +57,12 @@ import { levelActionParams } from '../../input/InputBridge';
 import { saveSystem } from '../../persistence/SaveSystem';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
+import { buildFloraFromPlacements, getFinalEscapeFlora } from '../shared/AlienFloraBuilder';
+import { buildCollectibles, type CollectibleSystemResult, getFinalEscapeCollectibles } from '../shared/CollectiblePlacer';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import { CollapsingTerrain } from './CollapsingTerrain';
+import { buildEscapeRouteEnvironment, ESCAPE_SECTIONS, type EscapeRouteResult } from './EscapeRouteEnvironment';
 import { EscapeTimer, type TimerUrgency } from './EscapeTimer';
 
 // ============================================================================
@@ -84,12 +87,6 @@ interface StragglerEnemy {
   isActive: boolean;
 }
 
-interface TunnelSegment {
-  mesh: Mesh;
-  lights: PointLight[];
-  zPosition: number;
-}
-
 interface DebrisChunk {
   mesh: Mesh;
   velocity: Vector3;
@@ -98,12 +95,17 @@ interface DebrisChunk {
 }
 
 // Section boundary Z positions (player starts at Z=0 and moves in -Z direction)
+// These match ESCAPE_SECTIONS from EscapeRouteEnvironment.ts
 const SECTION_BOUNDARIES = {
-  hiveExitEnd: -300,
-  surfaceRunEnd: -700,
-  canyonSprintEnd: -1000,
-  launchPad: -1200,
+  hiveExitEnd: ESCAPE_SECTIONS.tunnelEnd,       // -500
+  surfaceRunEnd: ESCAPE_SECTIONS.surfaceEnd,     // -1500
+  canyonSprintEnd: ESCAPE_SECTIONS.canyonEnd,    // -2500
+  launchPad: ESCAPE_SECTIONS.shuttleZ,           // -2900
 } as const;
+
+// GLB paths for vehicle and mech (replaces procedural box geometry)
+const VEHICLE_GLB_PATH = '/models/spaceships/Insurgent.glb';
+const MARCUS_MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
 
 const VEHICLE_SPEED = 30; // Base vehicle speed (m/s)
 const VEHICLE_BOOST_MULTIPLIER = 1.5;
@@ -115,6 +117,10 @@ const VEHICLE_HEIGHT = 2.5; // Camera height in vehicle
 // ============================================================================
 
 export class FinalEscapeLevel extends SurfaceLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Section state
   private section: EscapeSection = 'hive_exit';
   private sectionTime = 0;
@@ -133,11 +139,14 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private vehicleMesh: Mesh | null = null;
   private vehicleHeadlights: PointLight[] = [];
 
-  // Hive tunnel
-  private tunnelSegments: TunnelSegment[] = [];
+  // GLB-based escape route environment
+  private escapeRouteEnv: EscapeRouteResult | null = null;
+
+  // Collapse wall (procedural, chases player through tunnel section)
   private tunnelCollapseWall: Mesh | null = null;
   private tunnelCollapseZ = 10; // Z position of the collapse wall
-  private tunnelExitLight: PointLight | null = null;
+
+  // Tunnel debris (procedural falling chunks during Section A)
   private tunnelDebris: DebrisChunk[] = [];
   private tunnelDebrisTimer = 0;
 
@@ -147,7 +156,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private marcusTargetOffset = new Vector3(15, 0, -5);
   private marcusCommsPlayed: Set<string> = new Set();
 
-  // Launch pad / shuttle
+  // Launch pad / shuttle (references into escapeRouteEnv)
   private launchPad: Mesh | null = null;
   private shuttle: TransformNode | null = null;
   private shuttleEngines: PointLight[] = [];
@@ -195,7 +204,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     callbacks: LevelCallbacks
   ) {
     super(engine, canvas, config, callbacks, {
-      terrainSize: 1200,
+      terrainSize: 3000,
       heightScale: 20,
       timeOfDay: 0.35, // Dawn - dramatic orange sky
       fogDensity: 0.003,
@@ -245,25 +254,56 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Override lighting for apocalyptic atmosphere
     this.setupApocalypticLighting();
 
-    // Create environment sections
-    this.createHiveTunnel();
+    // Preload vehicle and mech GLBs (used by createVehicle / createMarcusMech)
+    await Promise.all([
+      AssetManager.loadAssetByPath(VEHICLE_GLB_PATH, this.scene),
+      AssetManager.loadAssetByPath(MARCUS_MECH_GLB_PATH, this.scene),
+    ]);
+
+    // Build the GLB-based escape route environment (all 4 sections)
+    this.escapeRouteEnv = await buildEscapeRouteEnvironment(this.scene);
+
+    // Wire shuttle / launch pad references from the environment builder
+    this.shuttle = this.escapeRouteEnv.shuttle;
+    this.launchPad = this.escapeRouteEnv.launchPad;
+    this.shuttleBeacon = this.escapeRouteEnv.shuttleBeacon;
+    this.shuttleEngines = this.escapeRouteEnv.shuttleEngines;
+    this.shuttleLight = this.escapeRouteEnv.shuttleLight;
+
+    // Create collapse wall for tunnel section (procedural, chases player)
+    this.createCollapseWall();
+
+    // Create vehicle and Marcus mech (procedural helpers)
     this.createVehicle();
     this.createMarcusMech();
-    this.createLaunchPadAndShuttle();
 
-    // Create collapsing terrain (visible from hive exit onwards)
+    // Create collapsing terrain system (dynamic chasms, falling rocks, lava)
+    // Covers the full 3000m route for sections B-D
     this.collapsingTerrain = new CollapsingTerrain(this.scene, {
-      terrainLength: 1200,
+      terrainLength: 3000,
       terrainWidth: 60,
-      segmentCount: 60,
-      maxChasms: 8,
-      maxFallingRocks: 15,
-      maxLavaPools: 10,
+      segmentCount: 80,
+      maxChasms: 12,
+      maxFallingRocks: 20,
+      maxLavaPools: 14,
       destructionRate: 1.0,
     });
     this.collapsingTerrain.initialize();
 
-    // Initially hide outdoor elements
+    // Create procedural rock terrain as the ground surface for the chase sequence.
+    // Uses SurfaceTerrainFactory with a large size for the vehicle escape and a
+    // dramatic heightScale. Seed 99999 keeps generation deterministic.
+    const terrainResult = createDynamicTerrain(this.scene, {
+      ...ROCK_TERRAIN,
+      size: 800,
+      heightScale: 20,
+      seed: 99999,
+      materialName: 'finalEscapeRockTerrain',
+    });
+    this.terrain = terrainResult.mesh;
+    this.terrainMaterial = terrainResult.material;
+
+    // Initially hide outdoor elements (shown when leaving tunnel)
     this.setOutdoorVisible(false);
 
     // Set up timer callbacks
@@ -276,12 +316,28 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Set up action buttons for vehicle controls
     this.setupActionButtons();
 
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getFinalEscapeFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(this.scene, getFinalEscapeCollectibles(), collectibleRoot);
+
     // Start the escape sequence
     this.startEscapeSequence();
   }
 
   protected updateLevel(deltaTime: number): void {
     this.sectionTime += deltaTime;
+
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
 
     // Update escape timer
     if (!this.cinematicActive) {
@@ -322,6 +378,13 @@ export class FinalEscapeLevel extends SurfaceLevel {
   }
 
   protected override disposeLevel(): void {
+    // Dispose flora
+    for (const node of this.floraNodes) { node.dispose(false, true); }
+    this.floraNodes = [];
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     // Unregister action handler
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
@@ -339,14 +402,18 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.collapsingTerrain?.dispose();
     this.collapsingTerrain = null;
 
-    // Dispose tunnel
-    for (const seg of this.tunnelSegments) {
-      seg.mesh.dispose();
-      seg.lights.forEach((l) => l.dispose());
-    }
-    this.tunnelSegments = [];
+    // Dispose GLB-based escape route environment (includes shuttle, launch pad, etc.)
+    this.escapeRouteEnv?.dispose();
+    this.escapeRouteEnv = null;
+    // Clear references (owned by escapeRouteEnv)
+    this.shuttle = null;
+    this.launchPad = null;
+    this.shuttleBeacon = null;
+    this.shuttleEngines = [];
+    this.shuttleLight = null;
+
+    // Dispose collapse wall
     this.tunnelCollapseWall?.dispose();
-    this.tunnelExitLight?.dispose();
     for (const debris of this.tunnelDebris) {
       debris.mesh.dispose();
     }
@@ -363,15 +430,6 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Dispose Marcus mech
     this.marcusMech?.dispose();
     this.marcusMechLight?.dispose();
-
-    // Dispose launch pad / shuttle
-    this.launchPad?.dispose();
-    this.shuttle?.dispose();
-    for (const light of this.shuttleEngines) {
-      light.dispose();
-    }
-    this.shuttleLight?.dispose();
-    this.shuttleBeacon?.dispose();
 
     // Dispose stragglers
     for (const s of this.stragglers) {
@@ -411,73 +469,14 @@ export class FinalEscapeLevel extends SurfaceLevel {
   }
 
   /**
-   * Create the hive tunnel (Section A).
-   * Organic tunnel with collapsing walls and falling debris.
+   * Create the collapse wall that chases the player through Section A.
+   * The tunnel geometry itself is built by EscapeRouteEnvironment.
    */
-  private createHiveTunnel(): void {
-    const tunnelLength = 300; // Section A is 300m
-    const segmentLength = 20;
-    const numSegments = tunnelLength / segmentLength;
-    const tunnelRadius = 6; // Wider for vehicle
-
-    const tunnelMat = new StandardMaterial('tunnel_mat', this.scene);
-    tunnelMat.diffuseColor = Color3.FromHexString('#3A2A3A');
-    tunnelMat.specularColor = new Color3(0.1, 0.1, 0.1);
-
-    const organicMat = new StandardMaterial('organic_mat', this.scene);
-    organicMat.diffuseColor = Color3.FromHexString('#5A3A5A');
-    organicMat.emissiveColor = new Color3(0.1, 0.05, 0.1);
-
-    for (let i = 0; i < numSegments; i++) {
-      const zPos = -i * segmentLength;
-
-      // Main tunnel cylinder (inside-out for interior viewing)
-      const segment = MeshBuilder.CreateCylinder(
-        `tunnel_seg_${i}`,
-        {
-          height: segmentLength,
-          diameter: tunnelRadius * 2,
-          tessellation: 12,
-          sideOrientation: 1,
-        },
-        this.scene
-      );
-      segment.material = tunnelMat;
-      segment.position.set(0, tunnelRadius * 0.4, zPos);
-      segment.rotation.x = Math.PI / 2; // Horizontal
-
-      // Floor slab
-      const floor = MeshBuilder.CreateBox(
-        `tunnel_floor_${i}`,
-        {
-          width: tunnelRadius * 1.6,
-          height: 0.5,
-          depth: segmentLength,
-        },
-        this.scene
-      );
-      floor.position.set(0, -0.25, zPos);
-      floor.material = organicMat;
-
-      // Dim amber lights inside tunnel
-      const lights: PointLight[] = [];
-      const light = new PointLight(
-        `tunnel_light_${i}`,
-        new Vector3(0, tunnelRadius * 0.6, zPos),
-        this.scene
-      );
-      light.diffuse = new Color3(1, 0.5, 0.2);
-      light.intensity = 1.5;
-      light.range = segmentLength * 1.5;
-      lights.push(light);
-
-      this.tunnelSegments.push({ mesh: segment, lights, zPosition: zPos });
-    }
-
-    // Collapse wall (follows the player)
+  private createCollapseWall(): void {
+    const tunnelHalfWidth = 8;
     this.tunnelCollapseWall = MeshBuilder.CreateBox(
       'collapse_wall',
-      { width: tunnelRadius * 2.5, height: tunnelRadius * 2.5, depth: 15 },
+      { width: tunnelHalfWidth * 2.5, height: 12, depth: 15 },
       this.scene
     );
     const collapseMat = new StandardMaterial('collapse_mat', this.scene);
@@ -485,37 +484,28 @@ export class FinalEscapeLevel extends SurfaceLevel {
     collapseMat.emissiveColor = new Color3(0.6, 0.2, 0.05);
     this.tunnelCollapseWall.material = collapseMat;
     this.tunnelCollapseWall.position.set(0, 3, 10);
-
-    // Exit light at end of tunnel
-    this.tunnelExitLight = new PointLight(
-      'tunnel_exit_light',
-      new Vector3(0, 3, SECTION_BOUNDARIES.hiveExitEnd + 10),
-      this.scene
-    );
-    this.tunnelExitLight.diffuse = new Color3(1, 0.7, 0.4);
-    this.tunnelExitLight.intensity = 8;
-    this.tunnelExitLight.range = 40;
   }
 
   /**
-   * Create the player vehicle (armored ground transport).
+   * Create the player vehicle (armored ground transport) from a GLB model.
    */
   private createVehicle(): void {
     this.vehicleNode = new TransformNode('vehicle', this.scene);
 
-    // Vehicle body
-    this.vehicleMesh = MeshBuilder.CreateBox(
-      'vehicle_body',
-      { width: 3, height: 1.5, depth: 5 },
-      this.scene
+    // Vehicle body from GLB (replaces procedural box)
+    const vehicleModel = AssetManager.createInstanceByPath(
+      VEHICLE_GLB_PATH,
+      'vehicle_body_glb',
+      this.scene,
+      true,
+      'vehicle'
     );
-    this.vehicleMesh.parent = this.vehicleNode;
-    this.vehicleMesh.position.y = 0.75;
-
-    const vehicleMat = new StandardMaterial('vehicle_mat', this.scene);
-    vehicleMat.diffuseColor = Color3.FromHexString('#3A5A3A'); // Military green
-    vehicleMat.specularColor = new Color3(0.2, 0.2, 0.2);
-    this.vehicleMesh.material = vehicleMat;
+    if (vehicleModel) {
+      vehicleModel.parent = this.vehicleNode;
+      vehicleModel.position.set(0, 0.75, 0);
+      vehicleModel.rotation.set(0, Math.PI, 0);
+      vehicleModel.scaling.set(1.5, 1.5, 1.5);
+    }
 
     // Headlights
     for (let side = -1; side <= 1; side += 2) {
@@ -536,35 +526,23 @@ export class FinalEscapeLevel extends SurfaceLevel {
   }
 
   /**
-   * Create Marcus's mech companion.
+   * Create Marcus's mech companion from a GLB model.
    */
   private createMarcusMech(): void {
     this.marcusMech = new TransformNode('marcus_mech', this.scene);
 
-    // Mech body (simplified box)
-    const mechBody = MeshBuilder.CreateBox(
-      'mech_body',
-      { width: 4, height: 6, depth: 3 },
-      this.scene
+    // Mech body from GLB (replaces procedural boxes for body and legs)
+    const mechModel = AssetManager.createInstanceByPath(
+      MARCUS_MECH_GLB_PATH,
+      'mech_body_glb',
+      this.scene,
+      true,
+      'vehicle'
     );
-    mechBody.parent = this.marcusMech;
-    mechBody.position.y = 4;
-
-    const mechMat = new StandardMaterial('mech_mat', this.scene);
-    mechMat.diffuseColor = Color3.FromHexString('#4A5A6A'); // Steel blue
-    mechMat.specularColor = new Color3(0.3, 0.3, 0.3);
-    mechBody.material = mechMat;
-
-    // Mech legs (two pillars)
-    for (let side = -1; side <= 1; side += 2) {
-      const leg = MeshBuilder.CreateBox(
-        `mech_leg_${side}`,
-        { width: 1.2, height: 4, depth: 1.5 },
-        this.scene
-      );
-      leg.parent = this.marcusMech;
-      leg.position.set(side * 1.2, 2, 0);
-      leg.material = mechMat;
+    if (mechModel) {
+      mechModel.parent = this.marcusMech;
+      mechModel.position.set(0, 0, 0);
+      mechModel.scaling.set(3, 3, 3);
     }
 
     // Mech spotlight
@@ -576,101 +554,6 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Start Marcus offset to the side
     this.marcusMech.position.set(15, 0, -5);
-  }
-
-  /**
-   * Create the launch pad and shuttle at the end of the escape route.
-   */
-  private createLaunchPadAndShuttle(): void {
-    // Launch pad (large flat platform)
-    this.launchPad = MeshBuilder.CreateBox(
-      'launch_pad',
-      { width: 30, height: 1, depth: 30 },
-      this.scene
-    );
-    this.launchPad.position.set(0, -0.5, SECTION_BOUNDARIES.launchPad);
-
-    const padMat = new StandardMaterial('pad_mat', this.scene);
-    padMat.diffuseColor = Color3.FromHexString('#5A5A5A');
-    padMat.specularColor = new Color3(0.2, 0.2, 0.2);
-    this.launchPad.material = padMat;
-
-    // Shuttle
-    this.shuttle = new TransformNode('shuttle', this.scene);
-    this.shuttle.position.set(0, 2, SECTION_BOUNDARIES.launchPad);
-
-    // Shuttle body (elongated capsule shape using box)
-    const shuttleBody = MeshBuilder.CreateBox(
-      'shuttle_body',
-      { width: 6, height: 4, depth: 14 },
-      this.scene
-    );
-    shuttleBody.parent = this.shuttle;
-    shuttleBody.position.y = 3;
-
-    const shuttleMat = new StandardMaterial('shuttle_mat', this.scene);
-    shuttleMat.diffuseColor = Color3.FromHexString('#8A8A8A');
-    shuttleMat.specularColor = new Color3(0.4, 0.4, 0.4);
-    shuttleBody.material = shuttleMat;
-
-    // Shuttle nose cone
-    const noseCone = MeshBuilder.CreateCylinder(
-      'shuttle_nose',
-      { height: 4, diameterTop: 0, diameterBottom: 6, tessellation: 8 },
-      this.scene
-    );
-    noseCone.parent = this.shuttle;
-    noseCone.position.set(0, 5, -7);
-    noseCone.rotation.x = -Math.PI / 2;
-    noseCone.material = shuttleMat;
-
-    // Shuttle wings
-    for (let side = -1; side <= 1; side += 2) {
-      const wing = MeshBuilder.CreateBox(
-        `shuttle_wing_${side}`,
-        { width: 10, height: 0.5, depth: 6 },
-        this.scene
-      );
-      wing.parent = this.shuttle;
-      wing.position.set(side * 7, 3, 2);
-      wing.material = shuttleMat;
-    }
-
-    // Engine glow lights
-    for (let i = -1; i <= 1; i++) {
-      const engineLight = new PointLight(
-        `shuttle_engine_${i}`,
-        new Vector3(i * 2, 1.5, 9),
-        this.scene
-      );
-      engineLight.parent = this.shuttle;
-      engineLight.diffuse = new Color3(0.5, 0.7, 1.0);
-      engineLight.intensity = 0;
-      engineLight.range = 15;
-      this.shuttleEngines.push(engineLight);
-    }
-
-    // Shuttle spotlight (navigation beacon)
-    this.shuttleLight = new PointLight(
-      'shuttle_spotlight',
-      new Vector3(0, 8, SECTION_BOUNDARIES.launchPad),
-      this.scene
-    );
-    this.shuttleLight.diffuse = new Color3(0.3, 0.5, 1.0);
-    this.shuttleLight.intensity = 0;
-    this.shuttleLight.range = 60;
-
-    // Shuttle beacon (pulsing light marker)
-    this.shuttleBeacon = MeshBuilder.CreateSphere(
-      'shuttle_beacon',
-      { diameter: 1, segments: 8 },
-      this.scene
-    );
-    this.shuttleBeacon.position.set(0, 12, SECTION_BOUNDARIES.launchPad);
-    const beaconMat = new StandardMaterial('beacon_mat', this.scene);
-    beaconMat.emissiveColor = new Color3(0, 0.5, 1);
-    beaconMat.disableLighting = true;
-    this.shuttleBeacon.material = beaconMat;
   }
 
   /**
@@ -828,11 +711,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Clamp to terrain bounds
     if (this.section === 'hive_exit') {
-      // Tunnel bounds
-      const tunnelRadius = 4.5;
+      // Tunnel bounds (matches EscapeRouteEnvironment tunnel half-width)
+      const tunnelHalfWidth = 7;
       const distFromCenter = Math.abs(this.camera.position.x);
-      if (distFromCenter > tunnelRadius) {
-        this.camera.position.x = Math.sign(this.camera.position.x) * tunnelRadius;
+      if (distFromCenter > tunnelHalfWidth) {
+        this.camera.position.x = Math.sign(this.camera.position.x) * tunnelHalfWidth;
       }
     } else if (this.collapsingTerrain) {
       // Surface/canyon bounds
@@ -921,13 +804,8 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private onEnterSurfaceRun(): void {
     this.setOutdoorVisible(true);
 
-    // Hide tunnel elements
-    for (const seg of this.tunnelSegments) {
-      seg.mesh.isVisible = false;
-      seg.lights.forEach((l) => (l.intensity = 0));
-    }
+    // Disable the collapse wall (tunnel section complete)
     this.tunnelCollapseWall?.setEnabled(false);
-    this.tunnelExitLight?.setEnabled(false);
 
     // Checkpoint bonus
     this.escapeTimer.reachCheckpoint('Surface Run');
@@ -975,7 +853,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
       sender: 'PROMETHEUS A.I.',
       callsign: 'ATHENA',
       portrait: 'ai',
-      text: 'Shuttle beacon detected ahead. Distance: 500 meters. Structural collapse accelerating.',
+      text: 'Shuttle beacon detected ahead. Distance: 1000 meters. Structural collapse accelerating.',
     });
 
     // Intensify environmental effects
@@ -1124,22 +1002,12 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Update tunnel debris
     this.updateTunnelDebris(deltaTime);
 
-    // Flicker tunnel lights for drama
-    for (const seg of this.tunnelSegments) {
-      for (const light of seg.lights) {
-        if (seg.zPosition > this.camera.position.z + 5) {
-          // Lights behind player flicker and die
-          light.intensity *= 0.95;
-        } else {
-          // Lights ahead pulse
-          light.intensity = 1.5 + Math.sin(this.sectionTime * 4 + seg.zPosition * 0.1) * 0.5;
-        }
-      }
-    }
+    // Flicker environment lights in the tunnel (lights are owned by EscapeRouteEnvironment)
+    // The static GLB-placed lights pulse naturally via the environment builder
 
     // Marcus comms for tunnel section
     if (this.sectionTime > 5 && !this.marcusCommsPlayed.has('tunnel_halfway')) {
-      if (this.camera.position.z < -150) {
+      if (this.camera.position.z < -250) {
         this.marcusCommsPlayed.add('tunnel_halfway');
         this.queueComms(0, {
           sender: 'Corporal Marcus Cole',
@@ -1385,7 +1253,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   /**
    * Spawn a single straggler enemy.
    */
-  private spawnStraggler(): void {
+  private async spawnStraggler(): Promise<void> {
     // Spawn to the side of the road, slightly ahead or beside the player
     const side = Math.random() > 0.5 ? 1 : -1;
     const halfWidth = this.collapsingTerrain?.getTerrainWidth()
@@ -1402,7 +1270,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const speciesKey = Math.random() > 0.7 ? 'lurker' : 'skitterer';
     const species = ALIEN_SPECIES[speciesKey];
 
-    const mesh = createAlienMesh(this.scene, species, Math.random() * 10000);
+    const mesh = await createAlienMesh(this.scene, species, Math.random() * 10000);
     mesh.position.copyFrom(spawnPos);
 
     this.stragglers.push({

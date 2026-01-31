@@ -594,13 +594,31 @@ export class WeaponSoundManager {
   playWeaponFire(weaponId: WeaponId, volume = 0.5, distance = 0): void {
     switch (weaponId) {
       case 'assault_rifle':
+      case 'battle_rifle':
+      case 'carbine':
+      case 'dmr':
+      case 'sniper_rifle':
+      case 'heavy_lmg':
+      case 'saw_lmg':
         this.playAssaultRifleFire(volume, distance);
         break;
       case 'pulse_smg':
+      case 'pdw':
+      case 'smg_mp5':
+      case 'smg_ump':
+      case 'sidearm':
+      case 'heavy_pistol':
+      case 'classic_pistol':
+      case 'revolver':
+      case 'auto_shotgun':
+      case 'double_barrel':
         this.playSMGFire(volume, distance);
         break;
       case 'plasma_cannon':
         this.playPlasmaCannonFire(volume, distance);
+        break;
+      default:
+        this.playAssaultRifleFire(volume, distance);
         break;
     }
   }
@@ -712,13 +730,31 @@ export class WeaponSoundManager {
   playWeaponReload(weaponId: WeaponId, volume = 0.4): void {
     switch (weaponId) {
       case 'assault_rifle':
+      case 'battle_rifle':
+      case 'carbine':
+      case 'dmr':
+      case 'sniper_rifle':
+      case 'heavy_lmg':
+      case 'saw_lmg':
+      case 'auto_shotgun':
+      case 'double_barrel':
         this.playAssaultRifleReload(volume);
         break;
       case 'pulse_smg':
+      case 'pdw':
+      case 'smg_mp5':
+      case 'smg_ump':
+      case 'sidearm':
+      case 'heavy_pistol':
+      case 'classic_pistol':
+      case 'revolver':
         this.playSMGReload(volume);
         break;
       case 'plasma_cannon':
         this.playPlasmaCannonReload(volume);
+        break;
+      default:
+        this.playAssaultRifleReload(volume);
         break;
     }
   }
@@ -1066,13 +1102,31 @@ export class WeaponSoundManager {
 
     switch (weaponId) {
       case 'assault_rifle':
+      case 'battle_rifle':
+      case 'carbine':
+      case 'dmr':
+      case 'sniper_rifle':
+      case 'heavy_lmg':
+      case 'saw_lmg':
+      case 'auto_shotgun':
+      case 'double_barrel':
         this.playAssaultRifleEquip(vol, now);
         break;
       case 'pulse_smg':
+      case 'pdw':
+      case 'smg_mp5':
+      case 'smg_ump':
+      case 'sidearm':
+      case 'heavy_pistol':
+      case 'classic_pistol':
+      case 'revolver':
         this.playSMGEquip(vol, now);
         break;
       case 'plasma_cannon':
         this.playPlasmaCannonEquip(vol, now);
+        break;
+      default:
+        this.playAssaultRifleEquip(vol, now);
         break;
     }
   }

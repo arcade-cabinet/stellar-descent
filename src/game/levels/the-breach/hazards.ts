@@ -2,6 +2,10 @@
  * TheBreachLevel - Environmental Hazards
  *
  * Contains acid pools, egg clusters, and pheromone cloud hazards.
+ *
+ * GLB assets used:
+ *   - Egg clusters: alien flora mushrooms (organic pod-like shapes)
+ *   - Acid pools / pheromone clouds: remain procedural (transient VFX)
  */
 
 import type { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
@@ -10,9 +14,24 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 import { COLORS } from './constants';
 import type { AcidPool, EggCluster, HiveZone, PheromoneCloud } from './types';
+
+// ============================================================================
+// GLB ASSET PATHS FOR HAZARDS
+// ============================================================================
+
+/** GLB paths for egg cluster models (organic pod-like shapes) */
+const EGG_CLUSTER_GLBS = [
+  '/models/environment/alien-flora/alien_mushroom_01.glb',
+  '/models/environment/alien-flora/alien_mushroom_02.glb',
+  '/models/environment/alien-flora/alien_mushroom_04.glb',
+  '/models/environment/alien-flora/alien_mushroom_06.glb',
+  '/models/environment/alien-flora/alien_mushroom_08.glb',
+] as const;
 
 // ============================================================================
 // HAZARD BUILDER CLASS
@@ -27,10 +46,29 @@ export class HazardBuilder {
   private acidPools: AcidPool[] = [];
   private eggClusters: EggCluster[] = [];
   private pheromoneClouds: PheromoneCloud[] = [];
+  private eggAssetsLoaded = false;
 
   constructor(scene: Scene, glowLayer: GlowLayer | null = null) {
     this.scene = scene;
     this.glowLayer = glowLayer;
+  }
+
+  /**
+   * Preload GLB assets used for egg clusters.
+   * Call this during level initialization before creating egg clusters.
+   */
+  async loadHazardAssets(): Promise<void> {
+    const loadPromises: Promise<unknown>[] = [];
+
+    for (const path of EGG_CLUSTER_GLBS) {
+      if (!AssetManager.isPathCached(path)) {
+        loadPromises.push(AssetManager.loadAssetByPath(path, this.scene));
+      }
+    }
+
+    await Promise.all(loadPromises);
+    this.eggAssetsLoaded = true;
+    console.log('[HazardBuilder] Egg cluster GLB assets loaded');
   }
 
   // ============================================================================
@@ -97,43 +135,55 @@ export class HazardBuilder {
   // ============================================================================
 
   /**
-   * Create an egg cluster that spawns drones when triggered
+   * Create an egg cluster that spawns drones when triggered.
+   * Uses GLB models from alien flora for organic pod-like egg shapes.
    */
   createEggCluster(position: Vector3, droneCount: number = 2): EggCluster {
     const index = this.eggClusters.length;
 
-    // Group of 5-8 eggs
-    const eggCount = 5 + Math.floor(Math.random() * 4);
-    const clusterRoot = MeshBuilder.CreateSphere(
-      `eggCluster_${index}`,
-      { diameter: 0.1 },
-      this.scene
-    );
-    clusterRoot.isVisible = false;
+    if (!this.eggAssetsLoaded) {
+      throw new Error('[HiveHazards] Egg cluster assets not preloaded - call loadHazardAssets() first');
+    }
+
+    // Create cluster root node
+    const clusterRoot = new TransformNode(`eggCluster_${index}`, this.scene);
     clusterRoot.position = position;
 
+    // Group of 5-8 eggs
+    const eggCount = 5 + Math.floor(Math.random() * 4);
+
     for (let i = 0; i < eggCount; i++) {
-      const egg = MeshBuilder.CreateSphere(
-        `egg_${index}_${i}`,
-        {
-          diameterX: 0.3 + Math.random() * 0.1,
-          diameterY: 0.5 + Math.random() * 0.15,
-          diameterZ: 0.3 + Math.random() * 0.1,
-          segments: 8,
-        },
-        this.scene
-      );
-
-      const eggMat = new StandardMaterial(`eggMat_${index}_${i}`, this.scene);
-      eggMat.diffuseColor = Color3.FromHexString(COLORS.eggYellow);
-      eggMat.alpha = 0.85;
-      eggMat.emissiveColor = new Color3(0.1, 0.1, 0.02);
-      egg.material = eggMat;
-
       const angle = (i / eggCount) * Math.PI * 2;
       const dist = 0.3 + Math.random() * 0.4;
-      egg.position.set(Math.cos(angle) * dist, 0.25, Math.sin(angle) * dist);
-      egg.parent = clusterRoot;
+      const eggPos = new Vector3(Math.cos(angle) * dist, 0.25, Math.sin(angle) * dist);
+
+      const glbPath = EGG_CLUSTER_GLBS[i % EGG_CLUSTER_GLBS.length];
+
+      if (!AssetManager.isPathCached(glbPath)) {
+        throw new Error(`[HiveHazards] Egg GLB not cached: ${glbPath}`);
+      }
+
+      const eggNode = AssetManager.createInstanceByPath(
+        glbPath,
+        `egg_${index}_${i}`,
+        this.scene,
+        false // No LOD for small decorations
+      );
+
+      if (!eggNode) {
+        throw new Error(`[HiveHazards] Failed to create egg instance from: ${glbPath}`);
+      }
+
+      // Scale down and position the egg
+      const scale = 0.15 + Math.random() * 0.1;
+      eggNode.scaling.setAll(scale);
+      eggNode.position = eggPos;
+      eggNode.rotation.set(
+        (Math.random() - 0.5) * 0.4,
+        Math.random() * Math.PI * 2,
+        (Math.random() - 0.5) * 0.4
+      );
+      eggNode.parent = clusterRoot;
     }
 
     const cluster: EggCluster = {

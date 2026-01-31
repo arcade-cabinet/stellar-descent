@@ -1,35 +1,48 @@
 # New Game Flow - Starts a new game and enters tutorial
-# Run: maestro test .maestro/flows/new-game-start.yaml
-
-appId: com.jbcom.stellardescent
+# Works on: Web
+tags:
+  - gameplay
+  - campaign
+  - critical
+name: "New Game Start - Campaign Entry"
 
 ---
-- launchApp:
-    clearState: true
+- openLink: "http://localhost:8080"
 
-- assertVisible:
-    text: "NEW GAME"
-    timeout: 10000
-
-- tapOn:
-    text: "NEW GAME"
-
-# Wait for loading screen (if present)
 - extendedWaitUntil:
-    notVisible:
-      text: "Loading"
+    visible: "NEW CAMPAIGN"
     timeout: 30000
 
-# Should show mission briefing or level intro
+- tapOn:
+    text: "NEW CAMPAIGN"
+
+# Wait for difficulty selection or loading screen
+- extendedWaitUntil:
+    visible:
+      anyOf:
+        - "ROOKIE"
+        - "LOADING"
+        - "ANCHOR STATION"
+    timeout: 10000
+
+# If difficulty modal appears, select NORMAL
+- runFlow:
+    when:
+      visible: "NORMAL"
+    commands:
+      - tapOn:
+          text: "NORMAL"
+
+# Wait for loading screen to show level name
+- extendedWaitUntil:
+    visible: "ANCHOR STATION"
+    timeout: 30000
+
+- takeScreenshot: "loading_screen"
+
+# Wait for gameplay to start - canvas should be present
+- extendedWaitUntil:
+    visible: "canvas"
+    timeout: 60000
+
 - takeScreenshot: "game_started"
-
-# Verify HUD elements appear
-- assertVisible:
-    id: "health-bar"
-    optional: true
-    timeout: 15000
-
-- assertVisible:
-    id: "ammo-counter"
-    optional: true
-    timeout: 5000

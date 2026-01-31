@@ -78,8 +78,14 @@ export interface GameSave {
   /** Additional level-specific flags */
   levelFlags: Record<LevelId, Record<string, boolean>>;
 
+  /** Best completion times per level in seconds */
+  levelBestTimes: Partial<Record<LevelId, number>>;
+
   /** Difficulty level for this save */
   difficulty: DifficultyLevel;
+
+  /** Whether the intro briefing has been shown */
+  seenIntroBriefing: boolean;
 
   /** Version of the save format (for migration) */
   version: number;
@@ -103,8 +109,10 @@ export interface GameSaveMetadata {
  * Current save format version
  * Increment when breaking changes are made to GameSave interface
  * v2: Added difficulty field
+ * v3: Added seenIntroBriefing field
+ * v4: Added levelBestTimes field
  */
-export const SAVE_FORMAT_VERSION = 2;
+export const SAVE_FORMAT_VERSION = 4;
 
 /**
  * Create a new empty save with default values
@@ -141,7 +149,9 @@ export function createNewSave(id: string, difficulty: DifficultyLevel = 'normal'
       extraction: {},
       final_escape: {},
     },
+    levelBestTimes: {},
     difficulty,
+    seenIntroBriefing: false,
     version: SAVE_FORMAT_VERSION,
   };
 }

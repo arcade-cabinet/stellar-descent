@@ -27,7 +27,6 @@ export default ({ mode }: any) => {
           'pwa-512x512.png',
           'pwa-maskable-192x192.png',
           'pwa-maskable-512x512.png',
-          'sql-wasm.wasm',
         ],
         manifest: {
           name: 'STELLAR DESCENT: PROXIMA BREACH',
@@ -87,8 +86,30 @@ export default ({ mode }: any) => {
             '**/*.wasm',
           ],
 
+          // Exclude very large NPC models from precaching (>15MB)
+          // They will be cached at runtime via runtimeCaching when first loaded
+          globIgnores: [
+            '**/models/npcs/marine/marine_elite.glb',
+            '**/models/npcs/marine/marine_crusader.glb',
+          ],
+
           // Runtime caching strategies
           runtimeCaching: [
+            // Cache-first for video files (splash videos are ~12MB each, don't precache)
+            {
+              urlPattern: /\.(?:mp4|webm)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'game-video',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             // Cache-first for models (GLB/GLTF files)
             {
               urlPattern: /\.(?:glb|gltf|bin)$/i,
@@ -203,6 +224,7 @@ export default ({ mode }: any) => {
         devOptions: {
           enabled: true, // Enable PWA in dev mode for testing
           type: 'module',
+          suppressWarnings: true,
         },
       }),
     ],
@@ -222,7 +244,14 @@ export default ({ mode }: any) => {
       open: false,
       hmr: true,
       cors: true,
+      headers: {
+        // Ensure WASM files are served with correct MIME type
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      },
     },
+    // Ensure WASM files can be loaded
+    assetsInclude: ['**/*.wasm'],
     build: {
       target: 'esnext',
       outDir: 'dist',

@@ -77,13 +77,9 @@ class SaveSystem {
   /**
    * Check if a save exists
    */
-  hasSave(): boolean {
-    try {
-      const saveData = worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
-      return saveData !== null;
-    } catch {
-      return false;
-    }
+  async hasSave(): Promise<boolean> {
+    const saveData = await worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
+    return saveData !== null;
   }
 
   /**
@@ -98,7 +94,7 @@ class SaveSystem {
    * @param difficulty - The difficulty level for the new game (defaults to current setting)
    */
   async newGame(difficulty?: DifficultyLevel): Promise<GameSave> {
-    // Reset the world database for a fresh start
+    // Reset the world database
     await worldDb.resetDatabase();
 
     // Use provided difficulty or load from settings
@@ -115,8 +111,8 @@ class SaveSystem {
     // Track campaign start for speedrunner achievement
     getAchievementManager().onCampaignStart();
 
-    // Persist immediately
-    this.persistSave(save);
+    // Persist the new save
+    await this.persistSave(save);
 
     this.emit({ type: 'save_created', save: extractSaveMetadata(save) });
     console.log(`[SaveSystem] New game created with difficulty: ${gameDifficulty}`);
@@ -128,38 +124,32 @@ class SaveSystem {
    * Load the saved game
    */
   async loadGame(): Promise<GameSave | null> {
-    try {
-      const saveData = worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
-      if (!saveData) {
-        console.log('[SaveSystem] No save found');
-        return null;
-      }
-
-      const save = JSON.parse(saveData) as GameSave;
-
-      // Version migration if needed
-      if (save.version !== SAVE_FORMAT_VERSION) {
-        console.log(`[SaveSystem] Migrating save from v${save.version} to v${SAVE_FORMAT_VERSION}`);
-        this.migrateSave(save);
-      }
-
-      this.currentSave = save;
-      this.sessionStartTime = Date.now();
-
-      // Sync the global difficulty setting with the loaded save
-      if (save.difficulty) {
-        saveDifficultySetting(save.difficulty);
-      }
-
-      this.emit({ type: 'save_loaded', save });
-      console.log(`[SaveSystem] Game loaded: ${save.name} (difficulty: ${save.difficulty})`);
-
-      return save;
-    } catch (error) {
-      console.error('[SaveSystem] Failed to load game:', error);
-      this.emit({ type: 'error', message: 'Failed to load save' });
+    const saveData = await worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
+    if (!saveData) {
+      console.log('[SaveSystem] No save found');
       return null;
     }
+
+    const save = JSON.parse(saveData) as GameSave;
+
+    // Version migration if needed
+    if (save.version !== SAVE_FORMAT_VERSION) {
+      console.log(`[SaveSystem] Migrating save from v${save.version} to v${SAVE_FORMAT_VERSION}`);
+      this.migrateSave(save);
+    }
+
+    this.currentSave = save;
+    this.sessionStartTime = Date.now();
+
+    // Sync the global difficulty setting with the loaded save
+    if (save.difficulty) {
+      saveDifficultySetting(save.difficulty);
+    }
+
+    this.emit({ type: 'save_loaded', save });
+    console.log(`[SaveSystem] Game loaded: ${save.name} (difficulty: ${save.difficulty})`);
+
+    return save;
   }
 
   /**
@@ -176,6 +166,18 @@ class SaveSystem {
         save.difficulty = 'normal';
       }
       console.log(`[SaveSystem] Migrated save to v2, difficulty: ${save.difficulty}`);
+    }
+
+    // v2 -> v3: Add seenIntroBriefing field
+    if (save.version < 3) {
+      save.seenIntroBriefing = save.seenIntroBriefing ?? false;
+      console.log('[SaveSystem] Migrated save to v3, added seenIntroBriefing');
+    }
+
+    // v3 -> v4: Add levelBestTimes field
+    if (save.version < 4) {
+      save.levelBestTimes = save.levelBestTimes ?? {};
+      console.log('[SaveSystem] Migrated save to v4, added levelBestTimes');
     }
 
     // Update version
@@ -321,6 +323,21 @@ class SaveSystem {
   }
 
   /**
+   * Mark the intro briefing as seen
+   */
+  setSeenIntroBriefing(): void {
+    if (!this.currentSave) return;
+    this.currentSave.seenIntroBriefing = true;
+  }
+
+  /**
+   * Check if the intro briefing has been seen
+   */
+  hasSeenIntroBriefing(): boolean {
+    return this.currentSave?.seenIntroBriefing ?? false;
+  }
+
+  /**
    * Complete the tutorial
    */
   completeTutorial(): void {
@@ -367,11 +384,56 @@ class SaveSystem {
   }
 
   /**
+   * Record a level completion time and update best time if applicable
+   * Returns true if this is a new best time
+   */
+  recordLevelTime(levelId: LevelId, timeSeconds: number): boolean {
+    if (!this.currentSave) return false;
+
+    if (!this.currentSave.levelBestTimes) {
+      this.currentSave.levelBestTimes = {};
+    }
+
+    const currentBest = this.currentSave.levelBestTimes[levelId];
+    if (currentBest === undefined || timeSeconds < currentBest) {
+      this.currentSave.levelBestTimes[levelId] = timeSeconds;
+      console.log(`[SaveSystem] New best time for ${levelId}: ${timeSeconds.toFixed(2)}s`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get the best time for a specific level
+   */
+  getLevelBestTime(levelId: LevelId): number | null {
+    if (!this.currentSave) return null;
+    return this.currentSave.levelBestTimes?.[levelId] ?? null;
+  }
+
+  /**
+   * Get all level best times
+   */
+  getAllLevelBestTimes(): Partial<Record<LevelId, number>> {
+    if (!this.currentSave) return {};
+    return this.currentSave.levelBestTimes ?? {};
+  }
+
+  /**
+   * Get total play time in milliseconds (including current session)
+   */
+  getTotalPlayTime(): number {
+    if (!this.currentSave) return 0;
+    const sessionTime = Date.now() - this.sessionStartTime;
+    return this.currentSave.playTime + sessionTime;
+  }
+
+  /**
    * Delete the saved game
    */
-  deleteSave(): void {
+  async deleteSave(): Promise<void> {
     try {
-      worldDb.deleteChunkData(`save_${PRIMARY_SAVE_ID}`);
+      await worldDb.deleteChunkData(`save_${PRIMARY_SAVE_ID}`);
       this.currentSave = null;
       this.emit({ type: 'save_deleted', saveId: PRIMARY_SAVE_ID });
       console.log('[SaveSystem] Save deleted');
@@ -391,28 +453,25 @@ class SaveSystem {
   /**
    * Get save metadata for display
    */
-  getSaveMetadata(): GameSaveMetadata | null {
+  async getSaveMetadata(): Promise<GameSaveMetadata | null> {
     if (!this.currentSave) {
       // Try to load from storage
-      try {
-        const saveData = worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
-        if (saveData) {
-          const save = JSON.parse(saveData) as GameSave;
-          return extractSaveMetadata(save);
-        }
-      } catch {
-        return null;
+      const saveData = await worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
+      if (saveData) {
+        const save = JSON.parse(saveData) as GameSave;
+        return extractSaveMetadata(save);
       }
+      return null;
     }
-    return this.currentSave ? extractSaveMetadata(this.currentSave) : null;
+    return extractSaveMetadata(this.currentSave);
   }
 
   /**
    * Export save as JSON string (for backup/sharing)
    */
-  exportSaveJSON(): string | null {
+  async exportSaveJSON(): Promise<string | null> {
     if (!this.currentSave) {
-      const saveData = worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
+      const saveData = await worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
       return saveData;
     }
     return JSON.stringify(this.currentSave, null, 2);
@@ -453,9 +512,9 @@ class SaveSystem {
     }
   }
 
-  private persistSave(save: GameSave): void {
+  private async persistSave(save: GameSave): Promise<void> {
     try {
-      worldDb.setChunkData(`save_${save.id}`, JSON.stringify(save));
+      await worldDb.setChunkData(`save_${save.id}`, JSON.stringify(save));
       // Trigger persistence to IndexedDB for PWA offline support
       worldDb.persistToIndexedDB();
     } catch (error) {

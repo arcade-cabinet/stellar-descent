@@ -9,11 +9,12 @@ import type { Engine } from '@babylonjs/core/Engines/engine';
 import { AnchorStationLevel } from './anchor-station/AnchorStationLevel';
 import { BrothersInArmsLevel } from './brothers-in-arms/BrothersInArmsLevel';
 import { CanyonRunLevel } from './canyon-run/CanyonRunLevel';
-import { ExtractionLevel } from './extraction/ExtractionLevel';
+import { ExtractionLevel } from './extraction';
 import { FinalEscapeLevel } from './final-escape/FinalEscapeLevel';
 import { FOBDeltaLevel } from './fob-delta/FOBDeltaLevel';
 import { HiveAssaultLevel } from './hive-assault/HiveAssaultLevel';
-import { LandfallLevel } from './landfall/LandfallLevel';
+import { LandfallLevel } from './landfall';
+import { MiningDepthsLevel } from './mining-depths/MiningDepthsLevel';
 import { SouthernIceLevel } from './southern-ice/SouthernIceLevel';
 import { TheBreachLevel } from './the-breach/TheBreachLevel';
 import type {
@@ -51,14 +52,29 @@ export const dropLevelFactory: LevelFactory = (
 /**
  * Factory for canyon (exterior surface) levels
  * Used for canyon terrain combat scenarios
+ * Currently unused - canyon levels use 'vehicle' type via CanyonRunLevel
  */
 export const canyonLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
 ): ILevel => {
-  throw new Error('Canyon level type is not yet implemented. Awaiting CanyonLevel class.');
+  // Generic canyon infantry level - uses CanyonRunLevel as fallback
+  return new CanyonRunLevel(engine, canvas, config, callbacks);
+};
+
+/**
+ * Factory for mine (underground mining) levels
+ * Used for Mining Depths bonus level
+ */
+export const mineLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
+): ILevel => {
+  return new MiningDepthsLevel(engine, canvas, config, callbacks);
 };
 
 /**
@@ -178,6 +194,7 @@ export const defaultLevelFactories: LevelFactoryRegistry = {
   ice: iceLevelFactory,
   combined_arms: combinedArmsLevelFactory,
   finale: finaleLevelFactory,
+  mine: mineLevelFactory,
 };
 
 /**

@@ -12,21 +12,29 @@
 
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { getAchievementManager } from '../achievements';
+import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import type { LevelId } from '../levels/types';
 import { addDiscoveredSecret, getDiscoveredSecretIds } from './secretPersistence';
 import type { SecretArea, SecretReward } from './secrets';
 import { getSecretsByLevel } from './secrets';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Path to the data pad model used for secret area hint markers */
+const SECRET_HINT_MODEL_PATH = '/models/props/collectibles/data_pad.glb';
 
 /**
  * Secret area pickup state in the game world
@@ -34,7 +42,7 @@ import { getSecretsByLevel } from './secrets';
 interface SecretAreaPickup {
   secret: SecretArea;
   triggerZone: Mesh;
-  hintMesh: Mesh | null;
+  hintNode: TransformNode | null;
   hintLight: PointLight | null;
   particles: ParticleSystem | null;
   isDiscovered: boolean;
@@ -81,15 +89,18 @@ export class SecretAreaSystem {
     this.levelId = levelId;
     this.callbacks = callbacks;
 
-    this.initialize();
+    this.initializeAsync();
   }
 
-  private initialize(): void {
+  private async initializeAsync(): Promise<void> {
     // Create glow layer for hints
     this.glowLayer = new GlowLayer('secretGlow', this.scene, {
       blurKernelSize: 48,
     });
     this.glowLayer.intensity = 0.3;
+
+    // Pre-load the hint model GLB
+    await AssetManager.loadAssetByPath(SECRET_HINT_MODEL_PATH, this.scene);
 
     // Get secrets for this level
     const secrets = getSecretsByLevel(this.levelId);
@@ -111,7 +122,7 @@ export class SecretAreaSystem {
     const position = new Vector3(secret.position.x, secret.position.y, secret.position.z);
     const settings = this.HINT_SETTINGS[secret.difficulty];
 
-    // Create invisible trigger zone
+    // Create invisible trigger zone (kept as MeshBuilder -- collision volume)
     const triggerZone = MeshBuilder.CreateSphere(
       `secret_trigger_${secret.id}`,
       { diameter: secret.triggerRadius * 2 },
@@ -121,8 +132,8 @@ export class SecretAreaSystem {
     triggerZone.visibility = 0; // Invisible
     triggerZone.isPickable = false;
 
-    // Create hint mesh based on hint type
-    const hintMesh = this.createHintMesh(secret, position, settings);
+    // Create hint mesh using GLB model instance
+    const hintNode = this.createHintNode(secret, position, settings);
 
     // Create hint light (subtle ambient glow)
     const hintLight = new PointLight(`secret_light_${secret.id}`, position.clone(), this.scene);
@@ -137,93 +148,64 @@ export class SecretAreaSystem {
     this.pickups.set(secret.id, {
       secret,
       triggerZone,
-      hintMesh,
+      hintNode,
       hintLight,
       particles,
       isDiscovered: false,
     });
   }
 
-  private createHintMesh(
+  private createHintNode(
     secret: SecretArea,
     position: Vector3,
-    settings: { glowIntensity: number }
-  ): Mesh | null {
-    let mesh: Mesh | null = null;
+    _settings: { glowIntensity: number }
+  ): TransformNode | null {
+    const node = AssetManager.createInstanceByPath(
+      SECRET_HINT_MODEL_PATH,
+      `secret_hint_${secret.id}`,
+      this.scene,
+      false,
+      'prop'
+    );
 
-    // Create different hint meshes based on type
+    if (!node) {
+      console.warn(`[SecretAreaSystem] Failed to create hint model for secret "${secret.id}"`);
+      return null;
+    }
+
+    node.position = position.clone();
+
+    // Adjust position and scale based on hint type
     switch (secret.hintType) {
       case 'crack':
-        // Subtle crack marking
-        mesh = MeshBuilder.CreatePlane(
-          `secret_hint_${secret.id}`,
-          { width: 0.5, height: 1.0 },
-          this.scene
-        );
-        mesh.position = position.clone();
-        mesh.position.y -= 0.3;
+        node.position.y -= 0.3;
+        node.scaling = new Vector3(0.25, 0.25, 0.25);
+        node.rotation = new Vector3(0, 0, Math.PI * 0.1);
         break;
 
       case 'vent':
-        // Small grate/vent indicator
-        mesh = MeshBuilder.CreateBox(
-          `secret_hint_${secret.id}`,
-          { width: 0.8, height: 0.1, depth: 0.8 },
-          this.scene
-        );
-        mesh.position = position.clone();
-        mesh.position.y -= 0.8;
+        node.position.y -= 0.8;
+        node.scaling = new Vector3(0.4, 0.1, 0.4);
         break;
 
       case 'hidden_door':
-        // Subtle seam line
-        mesh = MeshBuilder.CreateBox(
-          `secret_hint_${secret.id}`,
-          { width: 0.05, height: 2.0, depth: 0.05 },
-          this.scene
-        );
-        mesh.position = position.clone();
+        node.scaling = new Vector3(0.05, 0.5, 0.05);
         break;
 
       case 'platform':
       case 'tunnel':
       case 'alcove':
-        // Generic small orb hint
-        mesh = MeshBuilder.CreateSphere(`secret_hint_${secret.id}`, { diameter: 0.15 }, this.scene);
-        mesh.position = position.clone();
+        node.scaling = new Vector3(0.15, 0.15, 0.15);
         break;
 
       case 'environmental':
-        // Small marker on ground
-        mesh = MeshBuilder.CreateDisc(
-          `secret_hint_${secret.id}`,
-          { radius: 0.3, tessellation: 12 },
-          this.scene
-        );
-        mesh.position = position.clone();
-        mesh.position.y = 0.01; // Just above ground
-        mesh.rotation.x = Math.PI / 2;
+        node.position.y = 0.01; // Just above ground
+        node.scaling = new Vector3(0.3, 0.05, 0.3);
+        node.rotation = new Vector3(Math.PI / 2, 0, 0);
         break;
     }
 
-    if (mesh) {
-      // Create subtle emissive material
-      const material = new StandardMaterial(`secret_hint_mat_${secret.id}`, this.scene);
-      material.diffuseColor = new Color3(0.1, 0.1, 0.1);
-      material.emissiveColor = new Color3(0.6, 0.4, 0.1); // Golden glow
-      material.alpha = Math.min(0.8, settings.glowIntensity + 0.2);
-      mesh.material = material;
-
-      // Add to glow layer
-      if (this.glowLayer) {
-        this.glowLayer.addIncludedOnlyMesh(mesh);
-        this.glowLayer.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => {
-          result.set(0.8, 0.6, 0.2, settings.glowIntensity);
-        };
-      }
-    }
-
-    return mesh;
+    return node;
   }
 
   private createHintParticles(
@@ -324,20 +306,15 @@ export class SecretAreaSystem {
       Math.min(1, (this.HINT_DISTANCE - distance) / this.HINT_DISTANCE)
     );
 
-    // Animate hint mesh
-    if (pickup.hintMesh) {
-      // Pulse the emission
-      const pulse = 0.5 + Math.sin(time * 2) * 0.3;
-      const material = pickup.hintMesh.material as StandardMaterial;
-      if (material) {
-        const baseIntensity = settings.glowIntensity * visibilityFactor;
-        material.emissiveColor = new Color3(
-          0.6 * pulse * baseIntensity,
-          0.4 * pulse * baseIntensity,
-          0.1 * pulse * baseIntensity
-        );
-        material.alpha = Math.min(0.8, baseIntensity + 0.1);
-      }
+    // Animate hint node scaling (pulse effect)
+    if (pickup.hintNode) {
+      const pulse = 0.9 + Math.sin(time * 2) * 0.1;
+      const baseScale = pickup.hintNode.scaling.clone();
+      pickup.hintNode.scaling = new Vector3(
+        baseScale.x * pulse,
+        baseScale.y * pulse,
+        baseScale.z * pulse
+      );
     }
 
     // Animate light
@@ -439,7 +416,6 @@ export class SecretAreaSystem {
 
     // Flash the hint light brightly
     if (pickup.hintLight) {
-      const originalIntensity = pickup.hintLight.intensity;
       pickup.hintLight.intensity = 3.0;
       pickup.hintLight.diffuse = new Color3(1.0, 1.0, 0.8);
 
@@ -456,8 +432,8 @@ export class SecretAreaSystem {
   }
 
   private hidePickup(pickup: SecretAreaPickup): void {
-    if (pickup.hintMesh) {
-      pickup.hintMesh.setEnabled(false);
+    if (pickup.hintNode) {
+      pickup.hintNode.setEnabled(false);
     }
     if (pickup.hintLight) {
       pickup.hintLight.setEnabled(false);
@@ -528,7 +504,7 @@ export class SecretAreaSystem {
       // Only reset if not already discovered in save
       if (!discoveredIds.includes(pickup.secret.id)) {
         pickup.isDiscovered = false;
-        if (pickup.hintMesh) pickup.hintMesh.setEnabled(true);
+        if (pickup.hintNode) pickup.hintNode.setEnabled(true);
         if (pickup.hintLight) pickup.hintLight.setEnabled(true);
         if (pickup.particles) pickup.particles.start();
         pickup.triggerZone.setEnabled(true);
@@ -542,7 +518,7 @@ export class SecretAreaSystem {
   dispose(): void {
     for (const pickup of this.pickups.values()) {
       pickup.triggerZone.dispose();
-      if (pickup.hintMesh) pickup.hintMesh.dispose();
+      if (pickup.hintNode) pickup.hintNode.dispose();
       if (pickup.hintLight) pickup.hintLight.dispose();
       if (pickup.particles) pickup.particles.dispose();
     }

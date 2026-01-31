@@ -26,7 +26,7 @@ import {
   getAssetEntry,
   getNextLevelId,
   LEVEL_MANIFESTS,
-} from './AssetManifest';
+} from '../assets';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -224,7 +224,7 @@ export class AssetPipeline {
     // Phase 3: LOW -- fire and forget (but still tracked in cache)
     this.batchStage = 'LOADING DEFERRED';
     this.loadBand(manifest.deferred, 'low', levelId).catch((err) => {
-      console.warn('[AssetPipeline] Deferred load error:', err);
+      throw new Error(`[AssetPipeline] Deferred load error: ${err}`);
     });
 
     this.progressCb = null;
@@ -265,7 +265,7 @@ export class AssetPipeline {
       if (err instanceof Error && err.name === 'AbortError') {
         console.log(`[AssetPipeline] Prefetch cancelled for ${nextId}`);
       } else {
-        console.warn(`[AssetPipeline] Prefetch error for ${nextId}:`, err);
+        throw err;
       }
     } finally {
       this.isPrefetching = false;

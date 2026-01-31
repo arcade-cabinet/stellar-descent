@@ -39,7 +39,8 @@ export type LevelType =
   | 'vehicle' // Vehicle chase / driving sequence
   | 'ice' // Frozen wasteland surface
   | 'combined_arms' // Vehicle + infantry combined assault
-  | 'finale'; // Timed vehicle escape sequence
+  | 'finale' // Timed vehicle escape sequence
+  | 'mine'; // Underground mining facility (bonus level)
 
 // Campaign level IDs - linear progression (matches LORE.md chapters)
 export type LevelId =
@@ -73,6 +74,11 @@ export interface LevelCallbacks {
   // Combat feedback callbacks
   onHitMarker?: (damage: number, isCritical: boolean) => void;
   onDirectionalDamage?: (angle: number, damage: number) => void;
+  // Collectible and dialogue callbacks
+  onAudioLogFound?: (logId: string) => void;
+  onSecretFound?: (secretId: string) => void;
+  onSkullFound?: (skullId: string) => void;
+  onDialogueTrigger?: (trigger: string) => void;
 }
 
 // Weather configuration for levels
@@ -107,6 +113,10 @@ export interface LevelConfig {
 
   // Weather/atmosphere configuration
   weather?: WeatherConfig;
+
+  // Collectibles
+  totalSecrets?: number; // Number of secret areas in this level
+  totalAudioLogs?: number; // Number of audio logs in this level
 }
 
 // State that can be persisted for a level
@@ -188,6 +198,7 @@ export interface LevelFactoryRegistry {
   ice: LevelFactory;
   combined_arms: LevelFactory;
   finale: LevelFactory;
+  mine: LevelFactory;
 }
 
 // ============================================================================
@@ -216,6 +227,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'normal',
       initialIntensity: 'low',
     },
+    totalSecrets: 1,
+    totalAudioLogs: 2,
   },
 
   landfall: {
@@ -236,6 +249,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'dusty',
       initialIntensity: 'medium',
     },
+    totalSecrets: 2,
+    totalAudioLogs: 2,
   },
 
   canyon_run: {
@@ -257,6 +272,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'dusty',
       initialIntensity: 'high',
     },
+    totalSecrets: 2,
+    totalAudioLogs: 1,
   },
 
   // -------------------------------------------------------------------------
@@ -280,6 +297,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'damaged',
       initialIntensity: 'medium',
     },
+    totalSecrets: 3,
+    totalAudioLogs: 3,
   },
 
   brothers_in_arms: {
@@ -300,6 +319,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'dust_storm',
       initialIntensity: 'high',
     },
+    totalSecrets: 2,
+    totalAudioLogs: 2,
   },
 
   // -------------------------------------------------------------------------
@@ -323,6 +344,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'blizzard',
       initialIntensity: 'extreme',
     },
+    totalSecrets: 3,
+    totalAudioLogs: 2,
   },
 
   the_breach: {
@@ -343,6 +366,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'calm',
       initialIntensity: 'medium',
     },
+    totalSecrets: 3,
+    totalAudioLogs: 2,
   },
 
   // -------------------------------------------------------------------------
@@ -366,6 +391,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'spore_storm',
       initialIntensity: 'extreme',
     },
+    totalSecrets: 2,
+    totalAudioLogs: 1,
   },
 
   extraction: {
@@ -386,6 +413,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'sandstorm',
       initialIntensity: 'extreme',
     },
+    totalSecrets: 2,
+    totalAudioLogs: 1,
   },
 
   final_escape: {
@@ -406,6 +435,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'firestorm',
       initialIntensity: 'extreme',
     },
+    totalSecrets: 1,
+    totalAudioLogs: 1,
   },
 };
 

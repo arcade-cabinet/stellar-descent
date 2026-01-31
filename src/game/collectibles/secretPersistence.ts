@@ -52,24 +52,16 @@ export function loadSecretCollection(saveId?: string): SecretCollectionState {
   const resolvedSaveId = saveId || getCurrentSaveId();
 
   if (typeof localStorage === 'undefined') {
-    return {
-      saveId: resolvedSaveId,
-      discoveries: [],
-      lastUpdated: Date.now(),
-    };
+    throw new Error('[SecretPersistence] localStorage is not available');
   }
 
-  try {
-    const stored = localStorage.getItem(getStorageKey(resolvedSaveId));
-    if (stored) {
-      const parsed = JSON.parse(stored) as SecretCollectionState;
-      return {
-        ...parsed,
-        saveId: resolvedSaveId,
-      };
-    }
-  } catch (e) {
-    console.warn('[SecretPersistence] Failed to load collection state:', e);
+  const stored = localStorage.getItem(getStorageKey(resolvedSaveId));
+  if (stored) {
+    const parsed = JSON.parse(stored) as SecretCollectionState;
+    return {
+      ...parsed,
+      saveId: resolvedSaveId,
+    };
   }
 
   return {
@@ -83,17 +75,15 @@ export function loadSecretCollection(saveId?: string): SecretCollectionState {
  * Save collection state to localStorage
  */
 export function saveSecretCollection(state: SecretCollectionState): void {
-  if (typeof localStorage === 'undefined') return;
-
-  try {
-    const toStore: SecretCollectionState = {
-      ...state,
-      lastUpdated: Date.now(),
-    };
-    localStorage.setItem(getStorageKey(state.saveId), JSON.stringify(toStore));
-  } catch (e) {
-    console.warn('[SecretPersistence] Failed to save collection state:', e);
+  if (typeof localStorage === 'undefined') {
+    throw new Error('[SecretPersistence] localStorage is not available');
   }
+
+  const toStore: SecretCollectionState = {
+    ...state,
+    lastUpdated: Date.now(),
+  };
+  localStorage.setItem(getStorageKey(state.saveId), JSON.stringify(toStore));
 }
 
 /**

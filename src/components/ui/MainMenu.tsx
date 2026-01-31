@@ -23,6 +23,7 @@ import { DifficultySelector } from './DifficultySelector';
 import { InstallPrompt, useInstallAvailable } from './InstallPrompt';
 import { LevelSelect } from './LevelSelect';
 import styles from './MainMenu.module.css';
+import { MilitaryButton } from './MilitaryButton';
 import { SettingsMenu } from './SettingsMenu';
 
 interface MainMenuProps {
@@ -69,10 +70,10 @@ export function MainMenu({
   useEffect(() => {
     const checkSave = async () => {
       await saveSystem.initialize();
-      const hasSaveData = saveSystem.hasSave();
+      const hasSaveData = await saveSystem.hasSave();
       setHasSave(hasSaveData);
       if (hasSaveData) {
-        const metadata = saveSystem.getSaveMetadata();
+        const metadata = await saveSystem.getSaveMetadata();
         setSaveMetadata(metadata);
       }
     };
@@ -308,85 +309,73 @@ export function MainMenu({
         <div className={styles.buttonGroup}>
           {/* Show CONTINUE as primary if save exists */}
           {hasSave && (
-            <button
-              type="button"
-              className={`${styles.button} ${styles.primaryButton}`}
+            <MilitaryButton
+              variant="primary"
               onClick={handleContinue}
+              icon={<>&#9654;</>}
+              info={
+                saveMetadata
+                  ? `Ch.${saveMetadata.currentChapter} - ${formatPlayTime(saveMetadata.playTime)} - ${getDifficultyDisplayName(saveMetadata.difficulty)}`
+                  : undefined
+              }
             >
-              <span className={styles.buttonIcon}>▶</span>
               CONTINUE
-              {saveMetadata && (
-                <span className={styles.saveInfo}>
-                  Ch.{saveMetadata.currentChapter} - {formatPlayTime(saveMetadata.playTime)} -{' '}
-                  {getDifficultyDisplayName(saveMetadata.difficulty)}
-                </span>
-              )}
-            </button>
+            </MilitaryButton>
           )}
 
-          <button
-            type="button"
-            className={`${styles.button} ${!hasSave ? styles.primaryButton : ''}`}
+          <MilitaryButton
+            variant={!hasSave ? 'primary' : 'default'}
             onClick={handleNewGame}
+            icon={<>{hasSave ? '\u25C6' : '\u25B6'}</>}
           >
-            <span className={styles.buttonIcon}>{hasSave ? '◆' : '▶'}</span>
             NEW CAMPAIGN
-          </button>
+          </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleLoadClick}>
-            <span className={styles.buttonIcon}>▲</span>
+          <MilitaryButton onClick={handleLoadClick} icon={<>&#9650;</>}>
             LOAD CAMPAIGN
-          </button>
+          </MilitaryButton>
 
           {hasSave && (
-            <button type="button" className={styles.button} onClick={handleExport}>
-              <span className={styles.buttonIcon}>▼</span>
+            <MilitaryButton onClick={handleExport} icon={<>&#9660;</>}>
               EXPORT SAVE
-            </button>
+            </MilitaryButton>
           )}
 
           {onSkipTutorial && (
-            <button type="button" className={styles.button} onClick={handleSkipTutorial}>
-              <span className={styles.buttonIcon}>⬇</span>
+            <MilitaryButton onClick={handleSkipTutorial} icon={<>&#11015;</>}>
               HALO DROP
-            </button>
+            </MilitaryButton>
           )}
 
           {onSelectLevel && (
-            <button type="button" className={styles.button} onClick={handleShowLevelSelect}>
-              <span className={styles.buttonIcon}>&#9632;</span>
+            <MilitaryButton onClick={handleShowLevelSelect} icon={<>&#9632;</>}>
               SELECT MISSION
-            </button>
+            </MilitaryButton>
           )}
 
-          <button type="button" className={styles.button} onClick={handleShowAchievements}>
-            <span className={styles.buttonIcon}>{'\u2605'}</span>
+          <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2605'}</>}>
             ACHIEVEMENTS
-          </button>
+          </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleShowControls}>
-            <span className={styles.buttonIcon}>◈</span>
+          <MilitaryButton onClick={handleShowControls} icon={<>&#9672;</>}>
             CONTROLS
-          </button>
+          </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleShowSettings}>
-            <span className={styles.buttonIcon}>⚙</span>
+          <MilitaryButton onClick={handleShowSettings} icon={<>&#9881;</>}>
             SETTINGS
-          </button>
+          </MilitaryButton>
 
           {onReplayTitle && (
-            <button type="button" className={styles.button} onClick={handleReplayTitle}>
-              <span className={styles.buttonIcon}>&#9654;</span>
+            <MilitaryButton onClick={handleReplayTitle} icon={<>&#9654;</>}>
               REPLAY INTRO
-            </button>
+            </MilitaryButton>
           )}
 
           {/* Install App button - only show when PWA install is available and not already installed */}
           {canInstall && !isStandalone && (
-            <button type="button" className={styles.button} onClick={handleShowInstall}>
-              <span className={styles.buttonIcon}>&#8681;</span>
+            <MilitaryButton onClick={handleShowInstall} icon={<>&#8681;</>}>
               INSTALL APP
-            </button>
+            </MilitaryButton>
           )}
         </div>
 

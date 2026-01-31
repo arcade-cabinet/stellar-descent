@@ -1,0 +1,29 @@
+# Responsive design tests
+# Works on: Web only (uses viewport resizing)
+# For mobile, the native viewport is tested automatically
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - responsive
+  - web-only
+name: "Responsive Design Tests"
+
+---
+
+- launchApp
+
+# Wait for canvas to be ready
+- extendedWaitUntil:
+    visible: "canvas"
+    timeout: 30000
+
+# Main menu should be visible on initial load
+- assertVisible:
+    text: "NEW CAMPAIGN"
+
+- takeScreenshot: "responsive-default"
+
+# Note: Viewport resizing is not directly supported in Maestro
+# but this test verifies the app works at the default viewport
+# On mobile devices, the actual device viewport is used automatically

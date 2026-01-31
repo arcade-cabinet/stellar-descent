@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code transcript - page 19</title>
+    <style>
+:root { --bg-color: #f5f5f5; --card-bg: #ffffff; --user-bg: #e3f2fd; --user-border: #1976d2; --assistant-bg: #f5f5f5; --assistant-border: #9e9e9e; --thinking-bg: #fff8e1; --thinking-border: #ffc107; --thinking-text: #666; --tool-bg: #f3e5f5; --tool-border: #9c27b0; --tool-result-bg: #e8f5e9; --tool-error-bg: #ffebee; --text-color: #212121; --text-muted: #757575; --code-bg: #263238; --code-text: #aed581; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 16px; line-height: 1.6; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin-bottom: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--user-border); }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--user-border); padding-bottom: 8px; margin-bottom: 24px; }
+.header-row h1 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; flex: 1; min-width: 200px; }
+.message { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.message.user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.message.assistant { background: var(--card-bg); border-left: 4px solid var(--assistant-border); }
+.message.tool-reply { background: #fff8e1; border-left: 4px solid #ff9800; }
+.tool-reply .role-label { color: #e65100; }
+.tool-reply .tool-result { background: transparent; padding: 0; margin: 0; }
+.tool-reply .tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.message-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.role-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.user .role-label { color: var(--user-border); }
+time { color: var(--text-muted); font-size: 0.8rem; }
+.timestamp-link { color: inherit; text-decoration: none; }
+.timestamp-link:hover { text-decoration: underline; }
+.message:target { animation: highlight 2s ease-out; }
+@keyframes highlight { 0% { background-color: rgba(25, 118, 210, 0.2); } 100% { background-color: transparent; } }
+.message-content { padding: 16px; }
+.message-content p { margin: 0 0 12px 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.thinking { background: var(--thinking-bg); border: 1px solid var(--thinking-border); border-radius: 8px; padding: 12px; margin: 12px 0; font-size: 0.9rem; color: var(--thinking-text); }
+.thinking-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #f57c00; margin-bottom: 8px; }
+.thinking p { margin: 8px 0; }
+.assistant-text { margin: 8px 0; }
+.tool-use { background: var(--tool-bg); border: 1px solid var(--tool-border); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-header { font-weight: 600; color: var(--tool-border); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.tool-icon { font-size: 1.1rem; }
+.tool-description { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic; }
+.tool-result { background: var(--tool-result-bg); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-result.tool-error { background: var(--tool-error-bg); }
+.file-tool { border-radius: 8px; padding: 12px; margin: 12px 0; }
+.write-tool { background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%); border: 1px solid #4caf50; }
+.edit-tool { background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%); border: 1px solid #ff9800; }
+.file-tool-header { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.write-header { color: #2e7d32; }
+.edit-header { color: #e65100; }
+.file-tool-icon { font-size: 1rem; }
+.file-tool-path { font-family: monospace; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 4px; }
+.file-tool-fullpath { font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; word-break: break-all; }
+.file-content { margin: 0; }
+.edit-section { display: flex; margin: 4px 0; border-radius: 4px; overflow: hidden; }
+.edit-label { padding: 8px 12px; font-weight: bold; font-family: monospace; display: flex; align-items: flex-start; }
+.edit-old { background: #fce4ec; }
+.edit-old .edit-label { color: #b71c1c; background: #f8bbd9; }
+.edit-old .edit-content { color: #880e4f; }
+.edit-new { background: #e8f5e9; }
+.edit-new .edit-label { color: #1b5e20; background: #a5d6a7; }
+.edit-new .edit-content { color: #1b5e20; }
+.edit-content { margin: 0; flex: 1; background: transparent; font-size: 0.85rem; }
+.edit-replace-all { font-size: 0.75rem; font-weight: normal; color: var(--text-muted); }
+.write-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #e6f4ea); }
+.edit-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff0e5); }
+.todo-list { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border: 1px solid #81c784; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.todo-header { font-weight: 600; color: #2e7d32; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.todo-items { list-style: none; margin: 0; padding: 0; }
+.todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.9rem; }
+.todo-item:last-child { border-bottom: none; }
+.todo-icon { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; }
+.todo-completed .todo-icon { color: #2e7d32; background: rgba(46, 125, 50, 0.15); }
+.todo-completed .todo-content { color: #558b2f; text-decoration: line-through; }
+.todo-in-progress .todo-icon { color: #f57c00; background: rgba(245, 124, 0, 0.15); }
+.todo-in-progress .todo-content { color: #e65100; font-weight: 500; }
+.todo-pending .todo-icon { color: #757575; background: rgba(0,0,0,0.05); }
+.todo-pending .todo-content { color: #616161; }
+pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
+pre.json { color: #e0e0e0; }
+code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre code { background: none; padding: 0; }
+.user-content { margin: 0; }
+.truncatable { position: relative; }
+.truncatable.truncated .truncatable-content { max-height: 200px; overflow: hidden; }
+.truncatable.truncated::after { content: ''; position: absolute; bottom: 32px; left: 0; right: 0; height: 60px; background: linear-gradient(to bottom, transparent, var(--card-bg)); pointer-events: none; }
+.message.user .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
+.message.tool-reply .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.tool-use .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-bg)); }
+.tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-result-bg)); }
+.expand-btn { display: none; width: 100%; padding: 8px 16px; margin-top: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); }
+.expand-btn:hover { background: rgba(0,0,0,0.1); }
+.truncatable.truncated .expand-btn, .truncatable.expanded .expand-btn { display: block; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin: 24px 0; flex-wrap: wrap; }
+.pagination a, .pagination span { padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.pagination a { background: var(--card-bg); color: var(--user-border); border: 1px solid var(--user-border); }
+.pagination a:hover { background: var(--user-bg); }
+.pagination .current { background: var(--user-border); color: white; }
+.pagination .disabled { color: var(--text-muted); border: 1px solid #ddd; }
+.pagination .index-link { background: var(--user-border); color: white; }
+details.continuation { margin-bottom: 16px; }
+details.continuation summary { cursor: pointer; padding: 12px 16px; background: var(--user-bg); border-left: 4px solid var(--user-border); border-radius: 12px; font-weight: 500; color: var(--text-muted); }
+details.continuation summary:hover { background: rgba(25, 118, 210, 0.15); }
+details.continuation[open] summary { border-radius: 12px 12px 0 0; margin-bottom: 0; }
+.index-item { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.index-item a { display: block; text-decoration: none; color: inherit; }
+.index-item a:hover { background: rgba(25, 118, 210, 0.1); }
+.index-item-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.index-item-number { font-weight: 600; color: var(--user-border); }
+.index-item-content { padding: 16px; }
+.index-item-stats { padding: 8px 16px 12px 32px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(0,0,0,0.06); }
+.index-item-commit { margin-top: 6px; padding: 4px 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85rem; color: #e65100; }
+.index-item-commit code { background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 3px; font-size: 0.8rem; margin-right: 6px; }
+.commit-card { margin: 8px 0; padding: 10px 14px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 6px; }
+.commit-card a { text-decoration: none; color: #5d4037; display: block; }
+.commit-card a:hover { color: #e65100; }
+.commit-card-hash { font-family: monospace; color: #e65100; font-weight: 600; margin-right: 8px; }
+.index-commit { margin-bottom: 12px; padding: 10px 16px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.index-commit a { display: block; text-decoration: none; color: inherit; }
+.index-commit a:hover { background: rgba(255, 152, 0, 0.1); margin: -10px -16px; padding: 10px 16px; border-radius: 8px; }
+.index-commit-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; }
+.index-commit-hash { font-family: monospace; color: #e65100; font-weight: 600; }
+.index-commit-msg { color: #5d4037; }
+.index-item-long-text { margin-top: 8px; padding: 12px; background: var(--card-bg); border-radius: 8px; border-left: 3px solid var(--assistant-border); }
+.index-item-long-text .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--card-bg)); }
+.index-item-long-text-content { color: var(--text-color); }
+#search-box { display: none; align-items: center; gap: 8px; }
+#search-box input { padding: 6px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; width: 180px; }
+#search-box button, #modal-search-btn, #modal-close-btn { background: var(--user-border); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#search-box button:hover, #modal-search-btn:hover { background: #1565c0; }
+#modal-close-btn { background: var(--text-muted); margin-left: 8px; }
+#modal-close-btn:hover { background: #616161; }
+#search-modal[open] { border: none; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); padding: 0; width: 90vw; max-width: 900px; height: 80vh; max-height: 80vh; display: flex; flex-direction: column; }
+#search-modal::backdrop { background: rgba(0,0,0,0.5); }
+.search-modal-header { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--assistant-border); background: var(--bg-color); border-radius: 12px 12px 0 0; }
+.search-modal-header input { flex: 1; padding: 8px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; }
+#search-status { padding: 8px 16px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+#search-results { flex: 1; overflow-y: auto; padding: 16px; }
+.search-result { margin-bottom: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.search-result a { display: block; text-decoration: none; color: inherit; }
+.search-result a:hover { background: rgba(25, 118, 210, 0.05); }
+.search-result-page { padding: 6px 12px; background: rgba(0,0,0,0.03); font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+.search-result-content { padding: 12px; }
+.search-result mark { background: #fff59d; padding: 1px 2px; border-radius: 2px; }
+@media (max-width: 600px) { body { padding: 8px; } .message, .index-item { border-radius: 8px; } .message-content, .index-item-content { padding: 12px; } pre { font-size: 0.8rem; padding: 8px; } #search-box input { width: 120px; } #search-modal[open] { width: 95vw; height: 90vh; } }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1><a href="index.html" style="color: inherit; text-decoration: none;">Claude Code transcript</a> - page 19/37</h1>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-018.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<a href="page-003.html">3</a>
+<a href="page-004.html">4</a>
+<a href="page-005.html">5</a>
+<a href="page-006.html">6</a>
+<a href="page-007.html">7</a>
+<a href="page-008.html">8</a>
+<a href="page-009.html">9</a>
+<a href="page-010.html">10</a>
+<a href="page-011.html">11</a>
+<a href="page-012.html">12</a>
+<a href="page-013.html">13</a>
+<a href="page-014.html">14</a>
+<a href="page-015.html">15</a>
+<a href="page-016.html">16</a>
+<a href="page-017.html">17</a>
+<a href="page-018.html">18</a>
+<span class="current">19</span>
+<a href="page-020.html">20</a>
+<a href="page-021.html">21</a>
+<a href="page-022.html">22</a>
+<a href="page-023.html">23</a>
+<a href="page-024.html">24</a>
+<a href="page-025.html">25</a>
+<a href="page-026.html">26</a>
+<a href="page-027.html">27</a>
+<a href="page-028.html">28</a>
+<a href="page-029.html">29</a>
+<a href="page-030.html">30</a>
+<a href="page-031.html">31</a>
+<a href="page-032.html">32</a>
+<a href="page-033.html">33</a>
+<a href="page-034.html">34</a>
+<a href="page-035.html">35</a>
+<a href="page-036.html">36</a>
+<a href="page-037.html">37</a>
+<a href="page-020.html">Next &rarr;</a>
+</div>
+
+        
+<div class="message user" id="msg-2026-01-30T14-29-44-194Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-44-194Z" class="timestamp-link"><time datetime="2026-01-30T14:29:44.194Z" data-timestamp="2026-01-30T14:29:44.194Z">2026-01-30T14:29:44.194Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a2ad0b0</task-id>
+<status>completed</status></p>
+<summary>Agent "Explore FOB Delta level implementation" completed</summary>
+<p><result>Perfect! Now I have all the information I need. Let me create a comprehensive report:</p>
+<h2>FOB Delta Level Implementation Analysis</h2>
+<h3>Summary</h3>
+<p>The FOB Delta level (<code>src/game/levels/fob-delta/FOBDeltaLevel.ts</code>) is a substantial implementation with <strong>2,133 lines</strong> that already includes significant infrastructure for both Task #62 (Horror atmosphere with flickering lights) and Task #63 (Ambush combat). The level is well-structured and provides a solid foundation that requires enhancement rather than starting from scratch.</p>
+<hr />
+<h2>Task #62: Horror Atmosphere &amp; Flickering Lights</h2>
+<h3>Current Implementation Status ✅ PARTIAL</h3>
+<p><strong>What Already Exists:</strong></p>
+<ol>
+<li><strong>Flickering Light System</strong> (Lines 67-76, 305-329, 2051-2075)</li>
+<li><code>FlickerLight</code> interface with properties:<ul>
+<li><code>baseIntensity</code>: Core light strength</li>
+<li><code>flickerSpeed</code>: Speed multiplier for flicker animation</li>
+<li><code>flickerAmount</code>: Intensity of flickering effect</li>
+<li><code>timer</code>: Animation timer (sine wave based)</li>
+<li><code>isOff</code> / <code>offDuration</code> / <code>offTimer</code>: Light cutout behavior</li>
+</ul>
+</li>
+<li><code>addFlickerLight()</code> method creates and tracks flicker lights</li>
+<li>
+<p><code>updateFlickerLights()</code> method animates lights each frame (lines 2051-2075)</p>
+</li>
+<li>
+<p><strong>Horror Lighting Setup</strong> (Lines 289-303, 164-166)</p>
+</li>
+<li>Very dark ambient <code>HemisphericLight</code> with intensity 0.12</li>
+<li>Minimal visibility horror atmosphere</li>
+<li>
+<p>Background color set to near-black (0.008, 0.008, 0.012)</p>
+</li>
+<li>
+<p><strong>Flicker Light Placements</strong>:</p>
+</li>
+<li>Entry light (line 426-433): Flickering 0.4 intensity, 15 flicker speed</li>
+<li>Courtyard lights (lines 506-510): Multiple flicker lights with varying params</li>
+<li>Barracks interior (lines 552-559): High flicker amount (0.9) for creepy effect</li>
+<li>Vehicle bay lights (lines 708-710): Worst lighting, heavily flickered</li>
+<li>
+<p>Alien vehicle wrecks (lines 943-963): Red glow with flicker effect</p>
+</li>
+<li>
+<p><strong>Horror Atmosphere Elements</strong>:</p>
+</li>
+<li>Blood decals on ground and walls (lines 862-897)</li>
+<li>Dead bodies in barracks (lines 561-579)</li>
+<li>Mechanical Marcus mech with eerie red eyes (lines 713-808)</li>
+<li>Environmental storytelling via mission logs</li>
+</ol>
+<p><strong>What Needs Enhancement:</strong></p>
+<h3>Key Functions to Modify for Task #62:</h3>
+<ol>
+<li><strong><code>updateFlickerLights()</code> (Lines 2051-2075)</strong></li>
+<li>Currently uses: <code>Math.sin(timer) * Math.sin(timer * 2.3) * Math.sin(timer * 0.7)</code></li>
+<li>
+<p>Enhancement opportunities:</p>
+<ul>
+<li>Add Perlin noise for more organic flickering</li>
+<li>Implement power surge effects (brief intense brightening)</li>
+<li>Add color temperature shifts during flicker</li>
+<li>Sync flickering with horror audio cues</li>
+</ul>
+</li>
+<li>
+<p><strong><code>setupHorrorLighting()</code> (Lines 289-303)</strong></p>
+</li>
+<li>Current ambient intensity: 0.12</li>
+<li>Could add dynamic modulation based on phase</li>
+<li>
+<p>Could implement localized darkness zones</p>
+</li>
+<li>
+<p><strong><code>addFlickerLight()</code> (Lines 305-329)</strong></p>
+</li>
+<li>
+<p>Add more preset configurations for different horror effects:</p>
+<ul>
+<li>Emergency strobe lights</li>
+<li>Dying lights (one-way transition to off)</li>
+<li>Pulsing danger lights</li>
+</ul>
+</li>
+<li>
+<p><strong>New Methods Needed</strong>:</p>
+</li>
+<li><code>createAudioAtmosphere()</code>: Sync flickering with sound effects</li>
+<li><code>addShadowCaster()</code>: Strategic light placement for shadow horror</li>
+<li><code>createDarkZones()</code>: Areas of complete darkness</li>
+<li><code>addLightFlares()</code>: Lens flare effects on still-working lights</li>
+</ol>
+<hr />
+<h2>Task #63: Ambush Combat &amp; Trigger Mechanisms</h2>
+<h3>Current Implementation Status ✅ SOLID</h3>
+<p><strong>What Already Exists:</strong></p>
+<ol>
+<li><strong>Ambush Trigger System</strong> (Lines 1419-1506)</li>
+<li><code>triggerAmbush()</code> method spawns 5 enemies from predefined points</li>
+<li>Spawn points strategically placed around the base (lines 1434-1440):<ul>
+<li>Behind barracks</li>
+<li>Vehicle bay entrance</li>
+<li>Command center side</li>
+<li>Courtyard corner</li>
+<li>Underground entrance</li>
+</ul>
+</li>
+<li>
+<p>Spawn animation with scaling-up effect (lines 1485-1494)</p>
+</li>
+<li>
+<p><strong>Enemy AI System</strong> (Lines 1712-1777)</p>
+</li>
+<li><code>Enemy</code> interface with properties: mesh, health, position, state, attackCooldown</li>
+<li>States: 'idle', 'chase', 'attack'</li>
+<li>
+<p><code>updateEnemies()</code> method provides AI behavior:</p>
+<ul>
+<li>Chase speed: 4 units/second</li>
+<li>Attack range: 2.5 units</li>
+<li>Attack cooldown: 1.5 seconds</li>
+<li>Simple distance-based state machine</li>
+</ul>
+</li>
+<li>
+<p><strong>Combat Mechanics</strong>:</p>
+</li>
+<li>Melee attack (lines 1876-1896): 50 damage, 3 unit range, 800ms cooldown</li>
+<li>Primary weapon fire (lines 1901-1956): 25 damage, 50 unit range, 150ms cooldown</li>
+<li>Enemy health system (lines 1720-1828)</li>
+<li>
+<p>Visual feedback: red flash on hit, particle effects</p>
+</li>
+<li>
+<p><strong>Area Zone Triggers</strong> (Lines 1033-1078, 1540-1607)</p>
+</li>
+<li>6 defined zones with trigger radii</li>
+<li><code>checkAreaTriggers()</code> detects player entry</li>
+<li><code>onEnterArea()</code> dispatches phase-specific logic</li>
+<li>
+<p>Vehicle bay zone triggers ambush after logs accessed</p>
+</li>
+<li>
+<p><strong>Phase Progression</strong> (Lines 49-56, 1383-1417)</p>
+</li>
+<li>Phases: approach → courtyard → investigation → ambush → discovery → exit</li>
+<li>
+<p>Triggers specific comms messages and objectives</p>
+</li>
+<li>
+<p><strong>Combat State Management</strong> (Lines 117-152)</p>
+</li>
+<li>Enemy count tracking</li>
+<li>Ambush state flag</li>
+<li>
+<p>Kill counter</p>
+</li>
+<li>
+<p><strong>Enemy Spawning Methods</strong>:</p>
+</li>
+<li>GLB model instances via AssetManager (lines 1460-1471)</li>
+<li>Fallback procedural enemies using capsule meshes (lines 1511-1538)</li>
+<li>
+<p>Enemy model preloading (lines 992-1007)</p>
+</li>
+<li>
+<p><strong>Post-Ambush Logic</strong> (Lines 1827-1844)</p>
+</li>
+<li><code>onAmbushCleared()</code> checks if all enemies defeated</li>
+<li>Transitions to discovery phase</li>
+<li>Triggers victory comms message</li>
+</ol>
+<p><strong>What Needs Enhancement:</strong></p>
+<h3>Key Functions to Modify for Task #63:</h3>
+<ol>
+<li><strong><code>triggerAmbush()</code> (Lines 1419-1506)</strong></li>
+<li>Currently spawns all 5 enemies instantly</li>
+<li>
+<p>Enhancement opportunities:</p>
+<ul>
+<li>Add wave-based spawning (3 → 2 after delay)</li>
+<li>Vary spawn distances for intensity scaling</li>
+<li>Add screen-shake and audio cue on trigger</li>
+</ul>
+</li>
+<li>
+<p><strong><code>updateEnemies()</code> (Lines 1712-1777)</strong></p>
+</li>
+<li>Current AI is basic state machine</li>
+<li>
+<p>Could enhance with:</p>
+<ul>
+<li>Sight range before chase</li>
+<li>Hearing system (respond to gunshots)</li>
+<li>Flanking behavior</li>
+<li>Pack behavior (group hunting)</li>
+<li>Fear states when outnumbered</li>
+</ul>
+</li>
+<li>
+<p><strong><code>createProceduralEnemy()</code> (Lines 1511-1538)</strong></p>
+</li>
+<li>Currently creates simple capsule with eyes</li>
+<li>
+<p>Could enhance with:</p>
+<ul>
+<li>Animated limbs</li>
+<li>Damage states</li>
+<li>Death ragdoll physics</li>
+</ul>
+</li>
+<li>
+<p><strong>Combat Feedback</strong>:</p>
+</li>
+<li><code>onEnemyAttack()</code> (lines 1779-1795): Could add blood splatters</li>
+<li><code>onEnemyKilled()</code> (lines 1797-1830): Has good death animation</li>
+<li>
+<p>Could add audio cues for hit/miss/death</p>
+</li>
+<li>
+<p><strong>New Methods Needed</strong>:</p>
+</li>
+<li><code>setupAmbushTrigger()</code>: Separate initialization of ambush mechanics</li>
+<li><code>createDynamicWaves()</code>: Spawn enemies in waves for extended combat</li>
+<li><code>updateEnemySight()</code>: Add vision cone detection</li>
+<li><code>addEnemyAudio()</code>: Vocalizations for horror atmosphere</li>
+</ol>
+<hr />
+<h2>Architecture Overview</h2>
+<h3>File Structure:</h3>
+<pre><code>src/game/levels/fob-delta/
+├── FOBDeltaLevel.ts       (2,133 lines - main implementation)
+└── index.ts               (exports)
+</code></pre>
+<h3>Key Classes &amp; Interfaces:</h3>
+<p><strong>FOBDeltaLevel extends BaseLevel</strong>
+- Handles scene initialization, updates, and disposal
+- Manages lighting, enemies, objectives, and phase progression</p>
+<p><strong>Private Properties for Task #62</strong>:
+- <code>flickerLights: FlickerLight[]</code> - array of flickering lights
+- <code>horrorAmbient: HemisphericLight</code> - ambient horror lighting</p>
+<p><strong>Private Properties for Task #63</strong>:
+- <code>enemies: Array&lt;{mesh, health, position, state, attackCooldown}&gt;</code> - active enemies
+- <code>ambushTriggered: boolean</code> - ambush state
+- <code>enemyCount: number</code> - tracking
+- <code>areaZones: AreaZone[]</code> - trigger zones
+- <code>phase: FOBPhase</code> - current level phase</p>
+<hr />
+<h2>System Integration Points</h2>
+<h3>1. <strong>Babylon.js Integration</strong>:</h3>
+<ul>
+<li>PointLight for flicker lights (range: 15 units)</li>
+<li>HemisphericLight for ambient</li>
+<li>StandardMaterial for environment</li>
+<li>Mesh creation (boxes, cylinders, capsules, planes)</li>
+</ul>
+<h3>2. <strong>AssetManager Integration</strong> (Lines 173, 921, 1000, 1461):</h3>
+<ul>
+<li><code>AssetManager.loadAsset('aliens', assetName, scene)</code></li>
+<li><code>AssetManager.createInstance()</code> for spawning</li>
+<li>Species-to-asset mapping via <code>SPECIES_TO_ASSET</code></li>
+<li>Ambush enemy species: 'lurker' (maps to scout.glb)</li>
+</ul>
+<h3>3. <strong>Particle System Integration</strong> (Lines 176, 1802, 2004, 2067):</h3>
+<ul>
+<li><code>particleManager.emitAlienDeath()</code> - green goo burst</li>
+<li><code>particleManager.emitAlienSplatter()</code> - blood splatter</li>
+<li><code>particleManager.emitMuzzleFlash()</code> - weapon fire</li>
+</ul>
+<h3>4. <strong>Audio System Integration</strong>:</h3>
+<ul>
+<li>Comms messages via <code>callbacks.onCommsMessage()</code></li>
+<li>Notifications via <code>callbacks.onNotification()</code></li>
+<li>Combat state via <code>callbacks.onCombatStateChange()</code></li>
+</ul>
+<h3>5. <strong>GameContext Callbacks</strong>:</h3>
+<ul>
+<li><code>onHealthChange()</code> - enemy damage to player</li>
+<li><code>onKill()</code> - hit feedback</li>
+<li><code>onNotification()</code> - status messages</li>
+<li><code>onActionGroupsChange()</code> - dynamic UI buttons</li>
+</ul>
+<hr />
+<h2>Code Quality &amp; Performance Considerations</h2>
+<h3>Strengths:</h3>
+<ul>
+<li>Well-organized with clear phase management</li>
+<li>Good separation of concerns (lighting, enemies, objectives)</li>
+<li>Proper cleanup in <code>disposeLevel()</code></li>
+<li>Material reuse for efficiency</li>
+<li>Fallback procedural enemies if GLB fails</li>
+</ul>
+<h3>Areas for Optimization:</h3>
+<ul>
+<li>Flicker light update could use fewer sine calculations</li>
+<li>Enemy AI uses linear distance calculations (could use squared)</li>
+<li>No LOD system for distant enemies</li>
+<li>All mesh creation is synchronous (could pre-batch)</li>
+</ul>
+<hr />
+<h2>File Dependencies</h2>
+<p><strong>Imports used in FOBDeltaLevel.ts</strong>:
+- @babylonjs/core (lights, meshes, materials, vectors)
+- <code>../../achievements</code> - achievement tracking
+- <code>../../context/useWeaponActions</code> - weapon system
+- <code>../../core/AssetManager</code> - 3D asset loading
+- <code>../../effects/ParticleManager</code> - particle effects
+- <code>../BaseLevel</code> - base class
+- <code>../types</code> - level type definitions</p>
+<hr />
+<h2>Immediate Implementation Path for Tasks</h2>
+<h3>For Task #62 (Horror Atmosphere):</h3>
+<p><strong>File to modify</strong>: <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/fob-delta/FOBDeltaLevel.ts</code></p>
+<p><strong>Primary methods</strong>:
+1. Enhance <code>updateFlickerLights()</code> (line 2051) with:
+   - Perlin-style noise instead of simple sine
+   - Random blackout events
+   - Color shifts (red for danger zones)</p>
+<ol>
+<li>Expand <code>setupHorrorLighting()</code> (line 289) with:</li>
+<li>Dynamic ambient intensity changes</li>
+<li>Time-based lighting phases</li>
+<li>
+<p>Emergency light sequences</p>
+</li>
+<li>
+<p>Add new helper method:</p>
+</li>
+<li><code>createAmbientHorror()</code> for coordinated effects</li>
+<li><code>syncFlickerWithAudio()</code> for dramatic timing</li>
+</ol>
+<h3>For Task #63 (Ambush Combat):</h3>
+<p><strong>File to modify</strong>: <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/fob-delta/FOBDeltaLevel.ts</code></p>
+<p><strong>Primary methods</strong>:
+1. Enhance <code>triggerAmbush()</code> (line 1419) with:
+   - Wave-based spawning system
+   - Difficulty scaling
+   - Coordinated attack patterns</p>
+<ol>
+<li>Expand <code>updateEnemies()</code> (line 1712) with:</li>
+<li>Vision cone detection</li>
+<li>Audio-triggered responses</li>
+<li>
+<p>Flanking AI</p>
+</li>
+<li>
+<p>Add new helper methods:</p>
+</li>
+<li><code>createWaveSchedule()</code> for timed spawns</li>
+<li><code>updateEnemySight()</code> for vision detection</li>
+<li><code>executeAIBehavior()</code> for decision-making</li>
+</ol>
+<hr />
+<h2>Asset Integration Notes</h2>
+<p><strong>Ambush Enemy Model</strong>:
+- Species: 'lurker' → Asset: 'scout.glb'
+- Scale: 0.6x
+- Location: <code>/public/models/aliens/scout.glb</code>
+- Preloaded at line 992-1007</p>
+<p><strong>Lighting Assets</strong>:
+- Uses Babylon.js PointLight (no external assets)
+- Materials created programmatically via StandardMaterial</p>
+<p><strong>Audio Requirements</strong>:
+- Already integrated: AudioManager with tracks for combat/ambient
+- FOB Delta config (AudioManager.ts line 104-112):
+  - Ambient track: 'ambient'
+  - Combat track: 'combat'
+  - Procedural ambient: 'horror' type</p>
+<hr />
+<h2>Summary of Key Files</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Size</th>
+<th>Purpose</th>
+<th>Key Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FOBDeltaLevel.ts</td>
+<td>2,133 lines</td>
+<td>Main level implementation</td>
+<td>createEnvironment, updateLevel, triggerAmbush, updateEnemies, updateFlickerLights</td>
+</tr>
+<tr>
+<td>BaseLevel.ts</td>
+<td>300+ lines</td>
+<td>Base class</td>
+<td>Camera shake, input handling, lifecycle</td>
+</tr>
+<tr>
+<td>ParticleManager.ts</td>
+<td>200+ lines</td>
+<td>Particle effects</td>
+<td>emitAlienDeath, emitAlienSplatter, emitMuzzleFlash</td>
+</tr>
+<tr>
+<td>AudioManager.ts</td>
+<td>300+ lines</td>
+<td>Audio system</td>
+<td>Audio playback, music tracks, procedural ambient</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Conclusion</h2>
+<p>The FOB Delta level has <strong>excellent foundation</strong> for both Task #62 and Task #63. The flickering light system is already implemented but needs enhancements for dramatic effect. The ambush combat system has all core mechanics (spawning, AI, phase triggers) and primarily needs refinement for better challenge design and variety.</p>
+<p>The level is well-integrated with:
+- Babylon.js rendering pipeline
+- AssetManager for model loading
+- ParticleManager for visual effects
+- GameContext for UI/narrative callbacks
+- AudioManager for atmospheric sound</p>
+<p>Both tasks require <strong>enhancement work</strong> rather than starting from scratch, making them suitable for iterative development.</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a2ad0b0.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-44-789Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-44-789Z" class="timestamp-link"><time datetime="2026-01-30T14:29:44.789Z" data-timestamp="2026-01-30T14:29:44.789Z">2026-01-30T14:29:44.789Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-44-810Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-44-810Z" class="timestamp-link"><time datetime="2026-01-30T14:29:44.810Z" data-timestamp="2026-01-30T14:29:44.810Z">2026-01-30T14:29:44.810Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a2c5271</task-id>
+<status>completed</status></p>
+<summary>Agent "Explore Extraction level" completed</summary>
+<p><result>Perfect! Now I have a comprehensive understanding. Let me create a detailed analysis report:</p>
+<h2>Exploration Report: Extraction Level (Tasks #71-73)</h2>
+<h3>1. Current Implementation Status</h3>
+<p>The <strong>ExtractionLevel.ts</strong> is fully implemented with complete mechanics for all four phases:</p>
+<h4>PHASE 1: ESCAPE (3-4 minutes) ✓ IMPLEMENTED</h4>
+<p><strong>File</strong>: <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/extraction/ExtractionLevel.ts</code> (lines 56-62, 641-669, 1375-1414)</p>
+<p><strong>Mechanics</strong>:
+- 180-second countdown timer (visible in HUD)
+- Collapsing tunnel environment with organic growths and bioluminescent lighting
+- Collapse wall that chases player with accelerating speed (starts at 12 m/s + 0.05 speed increase per second)
+- Debris spawning (30% chance per frame) with collision damage
+- Player progress tracking (0-1 normalized value)
+- Sprint action available (1.8x speed multiplier)
+- Camera shake intensity of 1.5 during escape
+- Transition to surface_run when 95% progress reached</p>
+<p><strong>Key Code</strong>: 
+- <code>createEscapeTunnel()</code> (lines 217-287): Creates 15 tunnel segments with organic aesthetic
+- <code>updateEscapeTunnel()</code> (lines 1375-1414): Manages collapse, debris, timers
+- <code>spawnDebris()</code> + <code>updateDebris()</code> (lines 1416-1469): Falling rock hazards</p>
+<h4>PHASE 2: SURFACE RUN (2-3 minutes) ✓ IMPLEMENTED</h4>
+<p><strong>File</strong>: Same file (lines 310-381, 1471-1495)</p>
+<p><strong>Mechanics</strong>:
+- 500m run from hive exit to LZ Omega
+- Distance-based objective tracking (displayed as "Distance: XXXm")
+- Marcus's Titan mech visible and providing cover fire
+- Enemy spawns (skitterers and lurkers) during run
+- Camera position reset for surface view
+- Scenic desert canyon environment with 4 breach holes and defensive barriers
+- Transition to holdout when within 30m of LZ</p>
+<p><strong>Key Code</strong>:
+- <code>createSurfaceEnvironment()</code> (lines 310-381): Creates terrain, sky dome, canyon walls, barriers
+- <code>updateSurfaceRun()</code> (lines 1471-1495): Distance tracking, enemy spawning, LZ proximity check</p>
+<h4>PHASE 3: HOLDOUT (3-5 minutes) ✓ IMPLEMENTED</h4>
+<p><strong>File</strong>: Same file (lines 81-130, 936-1064, 1497-1540)</p>
+<p><strong>Wave System</strong>:</p>
+<pre><code class="language-typescript">Wave 1: 10 drones (skitterers) - 1.0s spawn delay
+Wave 2: 8 grunts (lurkers) - 1.5s spawn delay
+Wave 3: 4 drones + 6 grunts + 2 spitters - 1.2s spawn delay
+Wave 4: 6 grunts + 1 brute - 1.0s spawn delay
+Wave 5: 8 drones + 8 grunts + 4 spitters + 2 brutes (OVERWHELMING) - 0.5s spawn delay
+</code></pre>
+<p><strong>Marcus Mech Degradation</strong>:
+- Starts at 100% integrity
+- Wave 3: Drops to 60% (comms: "Titan systems failing! Shields are down!")
+- Wave 4: Drops to 30% (comms: "Autocannons overheating!")
+- Sustains 0.5% damage per second during active waves
+- Fire rate: 0.2s (5 shots/sec)
+- Damage scales with integrity: <code>20 * (integrity / 100)</code></p>
+<p><strong>Dropship ETA</strong>:
+- 300 second countdown (5:00)
+- Signal flare reduces ETA by 30 seconds (max 30s minimum)
+- Critical warning when &lt;30s remaining
+- Wave 5 lasts 45 seconds before dropship arrival (overlapping final combat)</p>
+<p><strong>Key Code</strong>:
+- <code>startWave()</code> (lines 936-997): Wave initialization and dialogue
+- <code>updateHoldout()</code> (lines 1497-1540): Spawning, mech degradation, ETA countdown
+- <code>mechFireAtEnemy()</code> (lines 1066-1097): Mech cover fire logic</p>
+<h4>PHASE 4: VICTORY ✓ IMPLEMENTED</h4>
+<p><strong>File</strong>: Same file (lines 1139-1268)</p>
+<p><strong>Dropship Arrival Sequence</strong>:
+- Dropship descends from (0, 150, LZ-200) to (0, 8, LZ)
+- 10-second descent animation (300 frames at 30fps)
+- Cubic easing for smooth arrival
+- Muzzle flash effects during approach
+- Marcus's Titan collapses forward (π/3 rotation over 60 frames)
+- Final dialogue from commander and ATHENA A.I.
+- Kill counter displayed in epilogue</p>
+<p><strong>Epilogue</strong>:
+- Scene fades to black
+- Commander Vasquez comms: "Welcome home... Queen is dead. Kepler's Promise is secure."
+- ATHENA debriefs with kill count and mission summary
+- Campaign completion flag set (<code>state.completed = true</code>)
+- Achievement unlock: <code>onGameComplete()</code></p>
+<p><strong>Key Code</strong>:
+- <code>startDropshipArrival()</code> (lines 1139-1190): Animation setup
+- <code>onDropshipLanded()</code> (lines 1192-1225): Mech collapse, transition to epilogue
+- <code>showEpilogue()</code> (lines 1227-1268): Final narrative and mission complete</p>
+<hr />
+<h3>2. Enemy Systems</h3>
+<p><strong>ALIEN_SPECIES Configuration</strong> (imported from <code>src/game/entities/aliens.ts</code>):
+- Species types used: <code>skitterer</code>, <code>lurker</code>, <code>spewer</code>, <code>broodmother</code>
+- Each has <code>baseHealth</code>, <code>moveSpeed</code>, <code>attack patterns</code>
+- Mesh creation via <code>createAlienMesh()</code> 
+- Spawning from random breach holes with position variance
+- Death effects via <code>particleManager.emitAlienDeath()</code></p>
+<p><strong>Enemy Update Loop</strong> (lines 1029-1064):
+- Pathfinding to player position
+- Distance-based attack/approach logic (3m attack range)
+- Marcus mech targets closest enemy within 100m
+- Dead enemy cleanup with wave counter decrement</p>
+<hr />
+<h3>3. Action Button System</h3>
+<p><strong>Three Phases of Action Groups</strong>:</p>
+<ol>
+<li><strong>Escape Phase</strong>: </li>
+<li>
+<p>SPRINT (ShiftLeft) - Large, highlighted, danger variant</p>
+</li>
+<li>
+<p><strong>Holdout Phase</strong>:</p>
+</li>
+<li>RELOAD (KeyR) - Secondary</li>
+<li>GRENADE (KeyG) - Danger, 5s cooldown</li>
+<li>MELEE (KeyV) - Primary</li>
+<li>
+<p>SIGNAL FLARE (KeyF) - Warning, 60s cooldown</p>
+</li>
+<li>
+<p><strong>Victory Phase</strong>: No actions</p>
+</li>
+</ol>
+<p><strong>Callbacks</strong>:
+- <code>fireWeapon()</code> and <code>startReload()</code> from weapon actions context
+- Grenade: 15m radius AoE, 100 damage center (10 damage per meter falloff)
+- Melee: 3m range, 50 damage
+- Flare: Broadcasts to ATHENA, reduces ETA</p>
+<hr />
+<h3>4. HUD Integration</h3>
+<p><strong>Objective Updates</strong>:
+- Escape phase: <code>ESCAPE THE HIVE</code> / <code>TIME: XXXs | PROGRESS: XX%</code>
+- Surface run: <code>REACH LZ OMEGA</code> / <code>Distance: XXXm</code>
+- Holdout: <code>WAVE X/5 - HOLDOUT</code> / <code>DROPSHIP ETA: MM:SS | MECH: XX% | KILLS: XXX</code></p>
+<p><strong>Notifications</strong> (via <code>onNotification()</code>):
+- 3000ms "MISSION COMPLETE" at epilogue start
+- Phase transitions: "SURFACE REACHED", "DEFEND THE LZ", "DROPSHIP ARRIVING"
+- Combat feedback: "GRENADE OUT", "MELEE HIT", "WAVE X COMPLETE"
+- Cooldown warnings: "GRENADE ON COOLDOWN", "FLARE ON COOLDOWN"</p>
+<p><strong>Comms Messages</strong>:
+- Marcus Cole (TITAN): 6 critical messages about mech status
+- PROMETHEUS A.I. (ATHENA): ETA notification, signal receipt
+- Dropship Pilot (SALVATION): Final approach callout
+- Commander Elena Vasquez (PROMETHEUS ACTUAL): Victory speech
+- 13-second message sequence during epilogue</p>
+<hr />
+<h3>5. File Structure</h3>
+<pre><code>/src/game/levels/extraction/
+├── ExtractionLevel.ts         (1,589 lines - complete implementation)
+└── index.ts                   (simple export)
+
+Related files:
+├── /src/game/levels/BaseLevel.ts (abstract base class)
+├── /src/game/levels/types.ts (type definitions)
+├── /src/game/entities/aliens.ts (species definitions)
+├── /src/game/effects/ParticleManager.ts (visual effects)
+├── /src/game/core/AudioManager.ts (sound/music system)
+
+E2E Tests:
+└── /e2e/levels/extraction.spec.ts (comprehensive test suite)
+</code></pre>
+<hr />
+<h3>6. Mechanics Analysis</h3>
+<h4><strong>Collapse Chase Mechanics</strong> ✓</h4>
+<ul>
+<li><strong>Speed Formula</strong>: <code>collapseSpeed = 12 + (180 - escapeTimer) * 0.05</code></li>
+<li><strong>Intensity</strong>: Accelerates from 12 m/s to ~15 m/s over 3 minutes</li>
+<li><strong>Damage</strong>: 25 HP if caught, wall pushed back by 10m</li>
+<li><strong>Visual</strong>: Sphere mesh with dust material, scale (1, 1, 3)</li>
+</ul>
+<h4><strong>Wave Progression</strong> ✓</h4>
+<ul>
+<li><strong>Total Enemies</strong>: 10 + 8 + 12 + 7 + 22 = 59 enemies across 5 waves</li>
+<li><strong>Difficulty Curve</strong>: Linear enemy count, exponential elite presence (brutes from wave 4)</li>
+<li><strong>Spawn Mechanics</strong>: Sequential spawning with configurable delays per wave</li>
+<li><strong>Completion</strong>: Wave complete when all spawned enemies eliminated</li>
+</ul>
+<h4><strong>Marcus Mech Support</strong> ✓</h4>
+<ul>
+<li><strong>Placement</strong>: Position (15, 0, LZ+20), rotation π*0.8 (facing northwest)</li>
+<li><strong>Status Visual</strong>: Integrity percentage on HUD</li>
+<li><strong>Failure State</strong>: Collapses when integrity reaches 0</li>
+<li><strong>Gameplay Impact</strong>: Reduces enemy pressure; losing mech creates tension before dropship</li>
+</ul>
+<h4><strong>Dropship Rescue</strong> ✓</h4>
+<ul>
+<li><strong>Arrival Trigger</strong>: Dropship ETA ≤ 0 (auto-arrival) OR Wave 5 after 45s</li>
+<li><strong>Animation</strong>: 10-second descent, cubic easing</li>
+<li><strong>Victory Condition</strong>: No explicit reach requirement; arrives automatically</li>
+<li><strong>Enemy Clearing</strong>: Remaining enemies disabled when dropship approaches</li>
+</ul>
+<h4><strong>Victory Condition</strong> ✓</h4>
+<ul>
+<li><strong>Trigger</strong>: Dropship arrival OR ETA countdown complete</li>
+<li><strong>Epilogue Start</strong>: Automatic transition 5 seconds after mech collapse</li>
+<li><strong>State Flag</strong>: <code>state.completed = true</code> at mission end</li>
+<li><strong>Achievement</strong>: <code>getAchievementManager().onGameComplete()</code></li>
+</ul>
+<hr />
+<h3>7. What's Needed for Tasks #71-73</h3>
+<p>Based on the LORE.md and LEVELS.md documentation, here's what appears to be complete vs. what might need refinement:</p>
+<h4><strong>TASK #71: Hive Collapse Escape Sequence</strong> ✓ COMPLETE</h4>
+<ul>
+<li>Tunnel environment created ✓</li>
+<li>Collapse wall physics implemented ✓</li>
+<li>Debris hazards with collision ✓</li>
+<li>3-minute timer with visual feedback ✓</li>
+<li>Sprint mechanic available ✓</li>
+<li>Escape progress tracking ✓</li>
+<li><strong>Status</strong>: Ready for testing and tuning of speeds/difficulty</li>
+</ul>
+<h4><strong>TASK #72: LZ Omega Holdout Wave System</strong> ✓ COMPLETE</h4>
+<ul>
+<li>5 configurable waves ✓</li>
+<li>Enemy spawning system ✓</li>
+<li>Marcus mech with degradation ✓</li>
+<li>Dropship ETA countdown ✓</li>
+<li>Action buttons (reload, grenade, melee, flare) ✓</li>
+<li>Wave completion detection ✓</li>
+<li><strong>Status</strong>: Ready for difficulty balancing and wave composition tuning</li>
+</ul>
+<h4><strong>TASK #73: Dropship Arrival Sequence &amp; Victory</strong> ✓ COMPLETE</h4>
+<ul>
+<li>Dropship model with engine glow ✓</li>
+<li>Descent animation (10s) ✓</li>
+<li>Marcus mech collapse animation ✓</li>
+<li>Epilogue dialogue sequence (13s total) ✓</li>
+<li>Mission completion flag ✓</li>
+<li>Achievement unlock ✓</li>
+<li><strong>Status</strong>: Ready for narrative integration and final polish</li>
+</ul>
+<hr />
+<h3>8. Potential Enhancement Areas</h3>
+<p><strong>For Polish</strong> (not blocking, but beneficial):
+1. <strong>Particle Effects</strong>: Dust trail behind collapse wall, engine exhaust during descent
+2. <strong>Audio Integration</strong>: Collapse rumble, mech weapon fire, dropship engine sounds (Tone.js system available)
+3. <strong>Visual Feedback</strong>: Screen shake during collapse, mech damage vfx, wave transitions
+4. <strong>Balance Tuning</strong>: Wave difficulty progression, enemy spawn rates, mech degradation curve
+5. <strong>Performance</strong>: Enemy pooling/recycling (currently max 30), debris cleanup
+6. <strong>Accessibility</strong>: Colorblind-friendly wave indicators, subtitle timings</p>
+<hr />
+<h3>9. Key Data Points</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total Code Lines</td>
+<td>1,589</td>
+</tr>
+<tr>
+<td>Phases Implemented</td>
+<td>4/4</td>
+</tr>
+<tr>
+<td>Waves Configured</td>
+<td>5/5</td>
+</tr>
+<tr>
+<td>Total Enemies/Campaign</td>
+<td>59</td>
+</tr>
+<tr>
+<td>Escape Duration</td>
+<td>180s (3 min)</td>
+</tr>
+<tr>
+<td>Holdout Duration</td>
+<td>300s (5 min)</td>
+</tr>
+<tr>
+<td>Dropship Descent</td>
+<td>10s</td>
+</tr>
+<tr>
+<td>Epilogue Duration</td>
+<td>13s</td>
+</tr>
+<tr>
+<td>Max Simultaneous Enemies</td>
+<td>30</td>
+</tr>
+<tr>
+<td>Action Buttons</td>
+<td>5 (1 escape, 4 holdout)</td>
+</tr>
+<tr>
+<td>Comms Messages</td>
+<td>13</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>10. Test Coverage</h3>
+<p><strong>E2E Tests Available</strong> (<code>e2e/levels/extraction.spec.ts</code>):
+- Level loading ✓
+- Escape phase sprint ✓
+- Surface run distance tracking ✓
+- Holdout wave combat ✓
+- Signal flare deployment ✓
+- Marcus mech visibility ✓
+- Full playthrough (300s timeout) ✓
+- Victory sequence ✓
+- Mech collapse animation ✓</p>
+<p><strong>Test Screenshots</strong>: 50+ images covering all phases</p>
+<hr />
+<h3>Summary</h3>
+<p>The Extraction level is <strong>fully implemented</strong> with all core mechanics for Tasks #71-73:
+- <strong>Hive collapse escape sequence</strong> with physics-based chase mechanics
+- <strong>LZ Omega holdout system</strong> with 5 configurable enemy waves
+- <strong>Dropship arrival sequence</strong> with cinematic landing and victory epilogue</p>
+<p>The code is production-ready, well-structured following BaseLevel architecture, and comprehensively tested. The implementation supports difficulty tuning, aesthetic polish, and audio integration through existing systems (ParticleManager, AudioManager).</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a2c5271.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-45-149Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-45-149Z" class="timestamp-link"><time datetime="2026-01-30T14:29:45.149Z" data-timestamp="2026-01-30T14:29:45.149Z">2026-01-30T14:29:45.149Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-45-189Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-45-189Z" class="timestamp-link"><time datetime="2026-01-30T14:29:45.189Z" data-timestamp="2026-01-30T14:29:45.189Z">2026-01-30T14:29:45.189Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a546567</task-id>
+<status>completed</status></p>
+<summary>Agent "Explore Brothers in Arms level" completed</summary>
+<p><result>Perfect! Now let me create a detailed summary with file paths:</p>
+<h2>Summary</h2>
+<p>I've completed a comprehensive exploration of the Brothers in Arms level implementation for Tasks #64-66. Here are my findings:</p>
+<h3>1. Current Implementation Status</h3>
+<p><strong>Location</strong>: <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/brothers-in-arms/</code></p>
+<p>The level is <strong>fully functional</strong> as a 1,626-line implementation (BrothersInArmsLevel.ts) with:
+- Complete 4-phase structure: reunion → wave_combat → breach_battle → transition
+- Fully operational Marcus NPC (8m tall Titan mech)
+- 4 waves of increasingly difficult enemies
+- Working dialogue system using callbacks
+- Fire support mechanic with cooldowns
+- Environmental design: 200m x 150m canyon arena with 13 cover pillars</p>
+<h3>2. Marcus NPC Implementation (Lines 502-843)</h3>
+<p><strong>What exists:</strong>
+- Full MarcusMech interface with health, state machine, combat AI
+- Dual autocannon fire system (2 shots/sec, 50 damage each)
+- Smart enemy targeting (prioritizes enemies &gt;15m from player)
+- Movement AI (maintains 15-25m distance, follows player)
+- Arm recoil animations on firing
+- State transitions: dialogue → patrol → combat</p>
+<p><strong>Visual design</strong>: Olive-dark body with gunmetal accents, cockpit viewport, reinforced feet</p>
+<h3>3. Dialogue System (Lines 1136-1441)</h3>
+<p><strong>What exists:</strong>
+- CommsMessage type supporting character portraits ('marcus', 'player', 'ai', etc.)
+- 13 hardcoded dialogue lines covering:
+  - Reunion greeting (3 lines, 14s duration)
+  - Wave announcements (4 lines)
+  - Wave completion banter (3 lines)
+  - Fire support callout (1 line)
+  - Transition cutscene (2 lines)
+- Timed dispatch via setTimeout callbacks</p>
+<p><strong>Type definitions</strong>: 
+- <code>/Users/jbogaty/src/game/types.ts</code> - CommsMessage interface
+- <code>/Users/jbogaty/src/game/levels/types.ts</code> - LevelCallbacks interface
+- <code>/Users/jbogaty/src/game/levels/the-breach/comms.ts</code> - Example dialogue organization pattern</p>
+<h3>4. Task-Specific Implementation Status</h3>
+<p><strong>Task #64 (Reunion Cinematic)</strong>
+- ✅ Basic timed dialogue sequence (T+2s, T+6s, T+10s, T+14s)
+- ✅ Achievement unlock (onMarcusFound())
+- ✅ Cinematic callbacks (onCinematicStart/End)
+- ❌ Missing: Camera cinematography, Marcus greeting animation, visual effects (spotlight, dust, glow)</p>
+<p><strong>Task #65 (Combat Coordination)</strong>
+- ✅ Dual autocannon fire with smart targeting
+- ✅ Arm recoil animation
+- ✅ Fire support mode (6x fire rate for 5 seconds)
+- ✅ Position maintenance relative to player
+- ❌ Missing: Tactical flanking, combat callouts, Marcus damage/health display, suppression fire mechanics</p>
+<p><strong>Task #66 (Dialogue &amp; Banter)</strong>
+- ✅ Scripted dialogue delivery system
+- ✅ Callsign/portrait support
+- ❌ Missing: Dynamic dialogue triggers, contextual banter, personality system, voice integration, localization</p>
+<h3>5. Key Related Systems</h3>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>File</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI System</td>
+<td><code>/src/game/systems/aiSystem.ts</code></td>
+<td>Available (Yuka.js steering) but not used by Marcus</td>
+</tr>
+<tr>
+<td>Audio Manager</td>
+<td><code>/src/game/core/AudioManager.ts</code></td>
+<td>Available but not connected to dialogue</td>
+</tr>
+<tr>
+<td>BaseLevel</td>
+<td><code>/src/game/levels/BaseLevel.ts</code></td>
+<td>Provides camera, scene, shake effects</td>
+</tr>
+<tr>
+<td>ECS Components</td>
+<td><code>/src/game/ecs/components/structural.ts</code></td>
+<td>Has Interactable, Room, NPC hooks available</td>
+</tr>
+</tbody>
+</table>
+<h3>6. Patterns to Follow</h3>
+<p><strong>Dialogue pattern</strong> (from the-breach level):</p>
+<pre><code class="language-typescript">const CHARACTER = { sender: 'Name', callsign: 'CODE', portrait: 'marcus' };
+export const DIALOGUE_MESSAGES: CommsMessage[] = [...];
+</code></pre>
+<p><strong>Enemy spawning pattern</strong>:
+1. Create mesh → 2. Add material → 3. Create ECS entity → 4. Track in array</p>
+<p><strong>Action button system</strong>:
+Uses cooldown tracking and onActionGroupsChange callbacks (see lines 1464-1489)</p>
+<h3>7. Critical File Paths</h3>
+<ul>
+<li>Main level: <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/brothers-in-arms/BrothersInArmsLevel.ts</code> (1626 lines)</li>
+<li>Type definitions: <code>/src/game/types.ts</code> and <code>/src/game/levels/types.ts</code></li>
+<li>Dialogue examples: <code>/src/game/levels/the-breach/comms.ts</code></li>
+<li>Base utilities: <code>/src/game/levels/BaseLevel.ts</code></li>
+</ul>
+<p>The implementation is production-ready for core mechanics but requires enhancement for cinematic presentation, advanced AI coordination, and dynamic dialogue systems.</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a546567.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-45-678Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-45-678Z" class="timestamp-link"><time datetime="2026-01-30T14:29:45.678Z" data-timestamp="2026-01-30T14:29:45.678Z">2026-01-30T14:29:45.678Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-45-700Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-45-700Z" class="timestamp-link"><time datetime="2026-01-30T14:29:45.700Z" data-timestamp="2026-01-30T14:29:45.700Z">2026-01-30T14:29:45.700Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>ab61369</task-id>
+<status>completed</status></p>
+<summary>Agent "Wire KeybindingsContext to levels" completed</summary>
+<p><result>All keybinding changes are in place across the four levels that needed modification:</p>
+<ol>
+<li><strong>AnchorStationLevel.ts</strong> - Uses keybindings for <code>interact</code> and <code>jump</code> actions</li>
+<li><strong>FOBDeltaLevel.ts</strong> - Uses keybindings for <code>interact</code>, <code>fire</code>, and <code>reload</code> actions</li>
+<li><strong>TheBreachLevel.ts</strong> - Uses keybindings for <code>fire</code> and <code>reload</code> actions</li>
+<li><strong>ExtractionLevel.ts</strong> - Uses keybindings for <code>reload</code> action</li>
+</ol>
+<p>The TypeScript errors shown are pre-existing issues unrelated to Task #55:
+- <code>DamageFeedback.ts</code> - Canvas context type issues
+- <code>ExtractionLevel.ts</code> - Portrait type incompatibility in CommsMessage</p>
+<p><strong>Task #55 Summary - KeybindingsContext Wiring Complete:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Changes Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>anchor-station/AnchorStationLevel.ts</code></td>
+<td>Replaced hardcoded <code>KeyE</code> with <code>getAllKeysForAction('interact')</code>, <code>Space</code> with <code>getAllKeysForAction('jump')</code></td>
+</tr>
+<tr>
+<td><code>fob-delta/FOBDeltaLevel.ts</code></td>
+<td>Replaced hardcoded reload with <code>getAllKeysForAction('reload')</code>, fire with <code>getAllKeysForAction('fire')</code>, interact with <code>getAllKeysForAction('interact')</code></td>
+</tr>
+<tr>
+<td><code>the-breach/TheBreachLevel.ts</code></td>
+<td>Replaced hardcoded reload with <code>getAllKeysForAction('reload')</code>, fire with <code>getAllKeysForAction('fire')</code></td>
+</tr>
+<tr>
+<td><code>extraction/ExtractionLevel.ts</code></td>
+<td>Replaced hardcoded <code>KeyR</code> with <code>getAllKeysForAction('reload')</code></td>
+</tr>
+<tr>
+<td><code>landfall/LandfallLevel.ts</code></td>
+<td>Already used InputTracker - no changes needed</td>
+</tr>
+<tr>
+<td><code>brothers-in-arms/BrothersInArmsLevel.ts</code></td>
+<td>No handleKeyDown override - no changes needed</td>
+</tr>
+</tbody>
+</table>
+<p>Level-specific keys (flashlight <code>F</code>, scanner <code>T</code>, melee <code>V</code>, grenade <code>G</code>) remain hardcoded as they are not part of the global <code>BindableAction</code> type in KeybindingsContext.</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/ab61369.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-46-020Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-46-020Z" class="timestamp-link"><time datetime="2026-01-30T14:29:46.020Z" data-timestamp="2026-01-30T14:29:46.020Z">2026-01-30T14:29:46.020Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-46-040Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-46-040Z" class="timestamp-link"><time datetime="2026-01-30T14:29:46.040Z" data-timestamp="2026-01-30T14:29:46.040Z">2026-01-30T14:29:46.040Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a10aa58</task-id>
+<status>completed</status></p>
+<summary>Agent "Landfall HALO drop polish" completed</summary>
+<p><result>The implementation is complete. Let me provide the implementation report.</p>
+<hr />
+<h3>Backend Feature Delivered - HALO Drop Polish with Asteroid Dodging (2026-01-30)</h3>
+<p><strong>Stack Detected</strong>: TypeScript, Babylon.js 7.x, React 19.x</p>
+<p><strong>Files Modified</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/landfall/LandfallLevel.ts</code></p>
+<p><strong>Key Enhancements</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Asteroid Types</td>
+<td>Added 3 asteroid types (rock, ice, metal) with distinct colors and visual properties</td>
+</tr>
+<tr>
+<td>Asteroid Trails</td>
+<td>Large asteroids (size &gt; 2.0) now emit particle trails based on their type</td>
+</tr>
+<tr>
+<td>Re-entry Particles</td>
+<td>Fiery orange/yellow particle system that intensifies during atmospheric entry</td>
+</tr>
+<tr>
+<td>Smoke Trail</td>
+<td>Player smoke trail visible during freefall, intensity scales with velocity</td>
+</tr>
+<tr>
+<td>Atmosphere Streaks</td>
+<td>Speed-line particles rushing past the player during descent</td>
+</tr>
+<tr>
+<td>Heat Distortion</td>
+<td>Pulsing heat distortion mesh during atmospheric entry</td>
+</tr>
+<tr>
+<td>Wind Streaks</td>
+<td>Mesh-based wind indicators that appear at high speeds</td>
+</tr>
+<tr>
+<td>Thruster Exhaust</td>
+<td>Blue-white particle exhaust during powered descent, intensity tied to boost input</td>
+</tr>
+<tr>
+<td>Near-Miss Feedback</td>
+<td>Camera shake and visual feedback when narrowly dodging asteroids</td>
+</tr>
+<tr>
+<td>Dynamic Effects</td>
+<td>All effects scale based on altitude, velocity, and game phase</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design Notes</strong>
+- Pattern chosen: Component-based visual effects integrated into level update loop
+- All particle systems share a procedural texture created at initialization
+- Effect intensity is dynamically calculated based on altitude factor (0 at 1000m, 1 at 400m)
+- Atmospheric entry effects begin at altitude 700 and intensify through 400
+- Effects properly transition between freefall, powered descent, and surface phases
+- All resources properly disposed in <code>disposeLevel()</code> to prevent memory leaks</p>
+<p><strong>New Asteroid Interface</strong></p>
+<pre><code class="language-typescript">interface Asteroid {
+  mesh: Mesh;
+  velocity: Vector3;
+  rotationSpeed: Vector3;
+  passed: boolean;
+  size: number;
+  trail?: ParticleSystem;
+  type: 'rock' | 'ice' | 'metal';
+}
+</code></pre>
+<p><strong>Visual Effect Systems Added</strong>
+1. <code>createReentryParticles()</code> - Fiery re-entry heating effect
+2. <code>createPlayerSmokeTrail()</code> - Smoke trail behind player
+3. <code>createAtmosphereStreaks()</code> - Speed line particles
+4. <code>createThrusterExhaust()</code> - Powered descent thruster effect
+5. <code>createWindStreaks()</code> - Mesh-based wind indicators
+6. <code>createAsteroidTrail()</code> - Per-asteroid particle trails
+7. <code>updateVisualEffects()</code> - Main effect update loop
+8. <code>updateWindStreaks()</code> - Wind streak animation
+9. <code>stopAllDescentEffects()</code> - Cleanup on landing</p>
+<p><strong>Performance Considerations</strong>
+- Particle counts kept reasonable (100-300 per system)
+- Effects are stopped/reduced during phase transitions
+- Asteroid trails only created for large asteroids (size &gt; 2.0)
+- Wind streaks use simple cylinders with low tessellation
+- All particle systems share a single procedural texture</p>
+<p><strong>Tests</strong>
+- Build compiles successfully (pre-existing errors in other files)
+- Dev server starts without errors
+- No TypeScript errors in landfall module</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a10aa58.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-46-323Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-46-323Z" class="timestamp-link"><time datetime="2026-01-30T14:29:46.323Z" data-timestamp="2026-01-30T14:29:46.323Z">2026-01-30T14:29:46.323Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-018.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<a href="page-003.html">3</a>
+<a href="page-004.html">4</a>
+<a href="page-005.html">5</a>
+<a href="page-006.html">6</a>
+<a href="page-007.html">7</a>
+<a href="page-008.html">8</a>
+<a href="page-009.html">9</a>
+<a href="page-010.html">10</a>
+<a href="page-011.html">11</a>
+<a href="page-012.html">12</a>
+<a href="page-013.html">13</a>
+<a href="page-014.html">14</a>
+<a href="page-015.html">15</a>
+<a href="page-016.html">16</a>
+<a href="page-017.html">17</a>
+<a href="page-018.html">18</a>
+<span class="current">19</span>
+<a href="page-020.html">20</a>
+<a href="page-021.html">21</a>
+<a href="page-022.html">22</a>
+<a href="page-023.html">23</a>
+<a href="page-024.html">24</a>
+<a href="page-025.html">25</a>
+<a href="page-026.html">26</a>
+<a href="page-027.html">27</a>
+<a href="page-028.html">28</a>
+<a href="page-029.html">29</a>
+<a href="page-030.html">30</a>
+<a href="page-031.html">31</a>
+<a href="page-032.html">32</a>
+<a href="page-033.html">33</a>
+<a href="page-034.html">34</a>
+<a href="page-035.html">35</a>
+<a href="page-036.html">36</a>
+<a href="page-037.html">37</a>
+<a href="page-020.html">Next &rarr;</a>
+</div>
+
+    </div>
+    <script>
+document.querySelectorAll('time[data-timestamp]').forEach(function(el) {
+    const timestamp = el.getAttribute('data-timestamp');
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (isToday) { el.textContent = timeStr; }
+    else { el.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + timeStr; }
+});
+document.querySelectorAll('pre.json').forEach(function(el) {
+    let text = el.textContent;
+    text = text.replace(/"([^"]+)":/g, '<span style="color: #ce93d8">"$1"</span>:');
+    text = text.replace(/: "([^"]*)"/g, ': <span style="color: #81d4fa">"$1"</span>');
+    text = text.replace(/: (\d+)/g, ': <span style="color: #ffcc80">$1</span>');
+    text = text.replace(/: (true|false|null)/g, ': <span style="color: #f48fb1">$1</span>');
+    el.innerHTML = text;
+});
+document.querySelectorAll('.truncatable').forEach(function(wrapper) {
+    const content = wrapper.querySelector('.truncatable-content');
+    const btn = wrapper.querySelector('.expand-btn');
+    if (content.scrollHeight > 250) {
+        wrapper.classList.add('truncated');
+        btn.addEventListener('click', function() {
+            if (wrapper.classList.contains('truncated')) { wrapper.classList.remove('truncated'); wrapper.classList.add('expanded'); btn.textContent = 'Show less'; }
+            else { wrapper.classList.remove('expanded'); wrapper.classList.add('truncated'); btn.textContent = 'Show more'; }
+        });
+    }
+});
+</script>
+</body>
+</html>

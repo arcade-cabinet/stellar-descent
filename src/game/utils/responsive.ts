@@ -9,10 +9,10 @@ import type { DeviceType, Orientation, ScreenInfo } from '../types';
 export const BREAKPOINTS = {
   phone: 768,
   tablet: 1024,
-  // Foldable detection ranges
-  foldableMinWidth: 700,
-  foldableMaxWidth: 932, // Galaxy Fold unfolded width
-  foldableMaxAspectRatio: 1.5,
+  // Foldable detection ranges - covers Galaxy Fold, OnePlus Open, Pixel Fold, etc.
+  foldableMinWidth: 600,
+  foldableMaxWidth: 1400, // OnePlus Open unfolded can be ~1200px+
+  foldableMaxAspectRatio: 1.6, // Slightly relaxed for various foldable aspect ratios
 } as const;
 
 /**
@@ -63,9 +63,9 @@ function determineDeviceType(
   isTouchDevice: boolean,
   isFoldable: boolean
 ): DeviceType {
-  // Foldables in unfolded state are treated as tablets
+  // Foldables get their own device type for proper UI handling
   if (isFoldable) {
-    return 'tablet';
+    return 'foldable';
   }
 
   // Use the larger dimension for classification (handles rotation)

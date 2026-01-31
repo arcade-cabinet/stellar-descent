@@ -4,6 +4,7 @@ import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
 import type { LevelId } from '../../game/levels/types';
 import styles from './LevelCompletionScreen.module.css';
+import { MilitaryButton } from './MilitaryButton';
 
 /**
  * Stats collected during level gameplay
@@ -859,33 +860,24 @@ export function LevelCompletionScreen({
 
         {/* Buttons */}
         <div className={styles.buttonGroup}>
-          <button
-            ref={continueButtonRef}
-            type="button"
-            className={`${styles.button} ${styles.primaryButton}`}
+          <MilitaryButton
+            variant="primary"
             onClick={handleContinue}
+            icon={<>{isFinalLevel ? '\u2605' : '\u25B6'}</>}
+            buttonRef={continueButtonRef}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">
-              {isFinalLevel ? '\u2605' : '\u25B6'}
-            </span>
             {isFinalLevel ? 'VIEW CREDITS' : 'CONTINUE'}
-          </button>
+          </MilitaryButton>
 
           {onRetry && (
-            <button type="button" className={styles.button} onClick={handleRetry}>
-              <span className={styles.buttonIcon} aria-hidden="true">
-                {'\u21BB'}
-              </span>
+            <MilitaryButton onClick={handleRetry} icon={<>{'\u21BB'}</>}>
               RETRY MISSION
-            </button>
+            </MilitaryButton>
           )}
 
-          <button type="button" className={styles.button} onClick={handleMainMenu}>
-            <span className={styles.buttonIcon} aria-hidden="true">
-              {'\u25C0'}
-            </span>
+          <MilitaryButton onClick={handleMainMenu} icon={<>{'\u25C0'}</>}>
             MAIN MENU
-          </button>
+          </MilitaryButton>
         </div>
 
         {/* Footer info */}

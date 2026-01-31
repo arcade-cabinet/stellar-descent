@@ -15,19 +15,27 @@
 
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { getAchievementManager } from '../achievements';
+import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import type { LevelId } from '../levels/types';
 import { getSkullSystem, SKULLS, type SkullDefinition, type SkullId } from './SkullSystem';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Path to the skull collectible GLB model */
+const SKULL_MODEL_PATH = '/models/props/collectibles/alien_artifact.glb';
 
 // ============================================================================
 // TYPES
@@ -52,11 +60,7 @@ export interface SkullPickupCallbacks {
 interface SkullPickupState {
   skull: SkullDefinition;
   rootMesh: Mesh;
-  innerSphere: Mesh;
-  outerSphere: Mesh;
-  jawMesh: Mesh;
-  eyeLeft: Mesh;
-  eyeRight: Mesh;
+  modelNode: TransformNode | null;
   light: PointLight;
   particles: ParticleSystem;
   glowLayer: GlowLayer;
@@ -92,7 +96,7 @@ export class SkullPickupManager {
    * Place the skull for this level at the specified position.
    * Checks persistence -- if already found, does nothing.
    */
-  placeSkull(position: SkullPosition): void {
+  async placeSkull(position: SkullPosition): Promise<void> {
     // Find which skull belongs in this level
     const skull = this.getSkullForLevel();
     if (!skull) {
@@ -107,7 +111,7 @@ export class SkullPickupManager {
       return;
     }
 
-    this.pickup = this.createPickup(skull, position);
+    this.pickup = await this.createPickup(skull, position);
     console.log(
       `[SkullPickup] Placed "${skull.name}" skull at (${position.x}, ${position.y}, ${position.z})`
     );
@@ -126,22 +130,6 @@ export class SkullPickupManager {
     this.pickup.rootMesh.rotation.y += deltaTime * 0.8;
     // Gentle vertical bob
     this.pickup.rootMesh.position.y += Math.sin(time * 2) * 0.001;
-
-    // --- Inner sphere pulsing ---
-    const pulse = 0.7 + Math.sin(time * 3) * 0.3;
-    const innerMat = this.pickup.innerSphere.material as StandardMaterial;
-    if (innerMat) {
-      innerMat.emissiveColor = new Color3(0.2 * pulse, 0.8 * pulse, 0.4 * pulse);
-    }
-
-    // --- Eye glow pulsing ---
-    const eyePulse = 0.5 + Math.sin(time * 4 + 1.0) * 0.5;
-    for (const eye of [this.pickup.eyeLeft, this.pickup.eyeRight]) {
-      const eyeMat = eye.material as StandardMaterial;
-      if (eyeMat) {
-        eyeMat.emissiveColor = new Color3(0.1 * eyePulse, 1.0 * eyePulse, 0.3 * eyePulse);
-      }
-    }
 
     // --- Distance-based intensity ---
     const distance = Vector3.Distance(playerPosition, this.pickup.rootMesh.position);
@@ -166,11 +154,9 @@ export class SkullPickupManager {
     this.pickup.particles.dispose();
     this.pickup.light.dispose();
     this.pickup.glowLayer.dispose();
-    this.pickup.eyeRight.dispose();
-    this.pickup.eyeLeft.dispose();
-    this.pickup.jawMesh.dispose();
-    this.pickup.innerSphere.dispose();
-    this.pickup.outerSphere.dispose();
+    if (this.pickup.modelNode) {
+      this.pickup.modelNode.dispose();
+    }
     this.pickup.rootMesh.dispose();
     this.pickup = null;
   }
@@ -193,65 +179,36 @@ export class SkullPickupManager {
     return null;
   }
 
-  private createPickup(skull: SkullDefinition, position: SkullPosition): SkullPickupState {
+  private async createPickup(
+    skull: SkullDefinition,
+    position: SkullPosition
+  ): Promise<SkullPickupState> {
     const pos = new Vector3(position.x, position.y, position.z);
 
-    // --- Root transform node (empty mesh) ---
+    // --- Root transform node (invisible collision mesh -- kept as MeshBuilder for trigger volume) ---
     const rootMesh = MeshBuilder.CreateBox(`skull_root_${skull.id}`, { size: 0.01 }, this.scene);
     rootMesh.position = pos.clone();
     rootMesh.visibility = 0;
     rootMesh.isPickable = false;
 
-    // --- Outer sphere (translucent shell with glow) ---
-    const outerSphere = MeshBuilder.CreateSphere(
-      `skull_outer_${skull.id}`,
-      { diameter: 0.7, segments: 16 },
-      this.scene
+    // --- Load and instance the skull GLB model ---
+    await AssetManager.loadAssetByPath(SKULL_MODEL_PATH, this.scene);
+    const modelNode = AssetManager.createInstanceByPath(
+      SKULL_MODEL_PATH,
+      `skull_model_${skull.id}`,
+      this.scene,
+      false,
+      'prop'
     );
-    outerSphere.parent = rootMesh;
-    outerSphere.position = Vector3.Zero();
 
-    const outerMat = new StandardMaterial(`skull_outer_mat_${skull.id}`, this.scene);
-    outerMat.diffuseColor = new Color3(0.05, 0.2, 0.1);
-    outerMat.emissiveColor = new Color3(0.1, 0.5, 0.2);
-    outerMat.alpha = 0.3;
-    outerMat.backFaceCulling = false;
-    outerSphere.material = outerMat;
-
-    // --- Inner sphere (cranium shape) ---
-    const innerSphere = MeshBuilder.CreateSphere(
-      `skull_inner_${skull.id}`,
-      { diameter: 0.45, segments: 12 },
-      this.scene
-    );
-    innerSphere.parent = rootMesh;
-    innerSphere.position = new Vector3(0, 0.02, 0);
-    innerSphere.scaling = new Vector3(1, 1.1, 1);
-
-    const innerMat = new StandardMaterial(`skull_inner_mat_${skull.id}`, this.scene);
-    innerMat.diffuseColor = new Color3(0.85, 0.85, 0.75);
-    innerMat.emissiveColor = new Color3(0.2, 0.8, 0.4);
-    innerMat.specularColor = new Color3(0.3, 0.3, 0.3);
-    innerSphere.material = innerMat;
-
-    // --- Jaw (flattened sphere beneath the cranium) ---
-    const jawMesh = MeshBuilder.CreateSphere(
-      `skull_jaw_${skull.id}`,
-      { diameter: 0.3, segments: 8 },
-      this.scene
-    );
-    jawMesh.parent = rootMesh;
-    jawMesh.position = new Vector3(0, -0.12, 0.05);
-    jawMesh.scaling = new Vector3(0.9, 0.5, 0.7);
-
-    const jawMat = new StandardMaterial(`skull_jaw_mat_${skull.id}`, this.scene);
-    jawMat.diffuseColor = new Color3(0.75, 0.75, 0.65);
-    jawMat.emissiveColor = new Color3(0.1, 0.4, 0.2);
-    jawMesh.material = jawMat;
-
-    // --- Eye sockets (two small glowing spheres) ---
-    const eyeLeft = this.createEye(skull.id, 'left', rootMesh);
-    const eyeRight = this.createEye(skull.id, 'right', rootMesh);
+    if (modelNode) {
+      modelNode.parent = rootMesh;
+      modelNode.position = Vector3.Zero();
+      // Scale the model to fit the pickup size (roughly 0.7 diameter)
+      modelNode.scaling = new Vector3(0.35, 0.35, 0.35);
+    } else {
+      console.warn(`[SkullPickup] Failed to create model instance for skull "${skull.id}"`);
+    }
 
     // --- Point light ---
     const light = new PointLight(`skull_light_${skull.id}`, pos.clone(), this.scene);
@@ -264,10 +221,6 @@ export class SkullPickupManager {
       blurKernelSize: 32,
     });
     glowLayer.intensity = 0.6;
-    glowLayer.addIncludedOnlyMesh(outerSphere);
-    glowLayer.addIncludedOnlyMesh(innerSphere);
-    glowLayer.addIncludedOnlyMesh(eyeLeft);
-    glowLayer.addIncludedOnlyMesh(eyeRight);
 
     // --- Particle system ---
     const particles = this.createParticles(skull.id, pos);
@@ -275,35 +228,12 @@ export class SkullPickupManager {
     return {
       skull,
       rootMesh,
-      innerSphere,
-      outerSphere,
-      jawMesh,
-      eyeLeft,
-      eyeRight,
+      modelNode,
       light,
       particles,
       glowLayer,
       isCollected: false,
     };
-  }
-
-  private createEye(skullId: string, side: 'left' | 'right', parent: Mesh): Mesh {
-    const xOffset = side === 'left' ? -0.08 : 0.08;
-
-    const eye = MeshBuilder.CreateSphere(
-      `skull_eye_${side}_${skullId}`,
-      { diameter: 0.07, segments: 8 },
-      this.scene
-    );
-    eye.parent = parent;
-    eye.position = new Vector3(xOffset, 0.02, 0.18);
-
-    const eyeMat = new StandardMaterial(`skull_eye_mat_${side}_${skullId}`, this.scene);
-    eyeMat.diffuseColor = new Color3(0, 0, 0);
-    eyeMat.emissiveColor = new Color3(0.1, 1.0, 0.3);
-    eye.material = eyeMat;
-
-    return eye;
   }
 
   private createParticles(skullId: string, position: Vector3): ParticleSystem {

@@ -1,22 +1,25 @@
 import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getCurrentWeaponDef } from '../context/useWeaponActions';
 import { getAudioManager } from '../core/AudioManager';
+import { AssetManager } from '../core/AssetManager';
 import { createEntity, type Entity } from '../core/ecs';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
 import type { TouchInput } from '../types';
 import { tokens } from '../utils/designTokens';
 import { getScreenInfo, vibrate } from '../utils/responsive';
+
+// Path to the marine soldier GLB model
+const PLAYER_MODEL_PATH = '/models/npcs/marine/marine_soldier.glb';
 
 // Sun direction for optimal visuals - sun should be top-right when facing forward
 const SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
@@ -29,14 +32,20 @@ export class Player {
   public mesh: Mesh;
   public isDropComplete = false;
 
+  /** Resolves when the GLB model has finished loading (or failed gracefully). */
+  public readonly modelReady: Promise<void>;
+
   private scene: Scene;
   private canvas: HTMLCanvasElement;
   private engine: Engine;
 
+  // Third-person model root (loaded from GLB, follows collision capsule)
+  private playerModelRoot: TransformNode | null = null;
+
   // First-person weapon view
   private weaponContainer: TransformNode;
-  private weaponMesh: Mesh;
-  private handsMesh: Mesh;
+  private weaponMesh: Mesh | null = null;
+  private handsMesh: Mesh | null = null;
   private muzzleFlashMesh: Mesh | null = null;
   private weaponBobTime = 0;
   private weaponRecoilOffset = 0;
@@ -83,38 +92,180 @@ export class Player {
     this.engine = engine;
     this.isTouchDevice = getScreenInfo().isTouchDevice;
 
-    this.mesh = this.createPlayerMesh();
+    // Create invisible collision capsule (used for physics / entity position)
+    this.mesh = this.createCollisionCapsule();
     this.camera = this.createCamera();
 
-    // Create first-person weapon view
-    const { container, weapon, hands } = this.createWeaponView();
-    this.weaponContainer = container;
-    this.weaponMesh = weapon;
-    this.handsMesh = hands;
+    // Create the weapon view container (initially empty -- populated by GLB)
+    this.weaponContainer = this.createWeaponContainer();
 
     this.entity = this.createEntity();
 
     this.setupControls();
     this.startHaloDrop();
+
+    // Kick off async GLB model loading.
+    // The model loads in the background while the 6-second drop sequence plays.
+    this.modelReady = this.initModelAsync();
   }
 
-  private createPlayerMesh(): Mesh {
-    const body = MeshBuilder.CreateCapsule('playerBody', { height: 2, radius: 0.4 }, this.scene);
+  // ---------------------------------------------------------------------------
+  // Collision capsule (physics only -- invisible)
+  // ---------------------------------------------------------------------------
 
-    const material = new StandardMaterial('playerMat', this.scene);
-    material.diffuseColor = Color3.FromHexString(tokens.colors.primary.olive);
-
-    const armorTex = new Texture('https://assets.babylonjs.com/textures/floor.png', this.scene);
-    armorTex.uScale = 2;
-    armorTex.vScale = 2;
-    material.diffuseTexture = armorTex;
-    material.specularColor = new Color3(0.3, 0.3, 0.3);
-
-    body.material = material;
+  private createCollisionCapsule(): Mesh {
+    const body = MeshBuilder.CreateCapsule(
+      'playerCollider',
+      { height: 2, radius: 0.4 },
+      this.scene
+    );
     body.position.y = 1;
-    body.isVisible = false;
-
+    body.isVisible = false; // Collision-only, never rendered
+    body.isPickable = false;
     return body;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Async GLB model loading
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Load the marine_soldier GLB and wire up:
+   *   - Third-person body model (for shadows / spectate)
+   *   - First-person arms + weapon view (parented to weaponContainer)
+   */
+  private async initModelAsync(): Promise<void> {
+    const asset = await AssetManager.loadAssetByPath(PLAYER_MODEL_PATH, this.scene);
+    if (!asset) {
+      throw new Error(`[Player] Failed to load player GLB model from ${PLAYER_MODEL_PATH}`);
+    }
+
+    console.log(
+      `[Player] GLB loaded: ${asset.meshes.length} meshes in ${asset.loadTime.toFixed(0)}ms`
+    );
+
+    // ----- Third-person body (follows collision capsule) -----
+    this.playerModelRoot = this.createThirdPersonModel(asset.meshes);
+
+    // ----- First-person weapon view (parented to camera) -----
+    this.createFirstPersonWeapon(asset.meshes);
+  }
+
+  /**
+   * Create the third-person body by cloning meshes from the loaded GLB.
+   * The model is invisible in first-person but casts shadows and is visible
+   * in third-person spectating / reflections.
+   */
+  private createThirdPersonModel(sourceMeshes: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh[]): TransformNode {
+    const root = new TransformNode('playerModel', this.scene);
+
+    // Clone every mesh with geometry into the third-person root
+    for (const mesh of sourceMeshes) {
+      if (mesh instanceof Mesh && mesh.getTotalVertices() > 0) {
+        const clone = mesh.clone(`playerBody_${mesh.name}`, root);
+        if (clone) {
+          clone.isVisible = true;
+          clone.isPickable = false;
+          // The model will cast shadows but the first-person camera sits inside,
+          // so the body is effectively invisible to the player.
+        }
+      }
+    }
+
+    // Scale and position to match the collision capsule
+    root.scaling.setAll(0.01); // GLB models are often in cm; adjust to metres
+    root.position.y = 0; // Feet at ground level; updated each frame
+
+    // Parent to the collision capsule so it moves with the player
+    root.parent = this.mesh;
+
+    return root;
+  }
+
+  /**
+   * Populate the first-person weapon container with cloned meshes from the GLB.
+   * Tries to pick out arm/weapon sub-meshes by name; falls back to using the
+   * full model scaled into FPS view position.
+   */
+  private createFirstPersonWeapon(sourceMeshes: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh[]): void {
+    // Collect meshes that look like arms/hands/weapon
+    const armPatterns = [/arm/i, /hand/i, /glove/i, /wrist/i, /sleeve/i, /finger/i];
+    const weaponPatterns = [/gun/i, /weapon/i, /rifle/i, /barrel/i, /magazine/i, /stock/i, /trigger/i, /scope/i, /sight/i];
+
+    const armMeshes: Mesh[] = [];
+    const weaponMeshes: Mesh[] = [];
+    const allMeshes: Mesh[] = [];
+
+    for (const mesh of sourceMeshes) {
+      if (!(mesh instanceof Mesh) || mesh.getTotalVertices() === 0) continue;
+      allMeshes.push(mesh);
+
+      const name = mesh.name.toLowerCase();
+      if (armPatterns.some((p) => p.test(name))) {
+        armMeshes.push(mesh);
+      } else if (weaponPatterns.some((p) => p.test(name))) {
+        weaponMeshes.push(mesh);
+      }
+    }
+
+    // If we found specific sub-meshes, use them; otherwise use everything
+    const meshesToClone = armMeshes.length > 0 || weaponMeshes.length > 0
+      ? [...armMeshes, ...weaponMeshes]
+      : allMeshes;
+
+    let firstWeapon: Mesh | null = null;
+    let firstHands: Mesh | null = null;
+
+    for (const mesh of meshesToClone) {
+      const clone = mesh.clone(`fpView_${mesh.name}`, this.weaponContainer);
+      if (!clone) continue;
+
+      clone.isVisible = true;
+      clone.isPickable = false;
+
+      // Track references for animation
+      const name = mesh.name.toLowerCase();
+      if (!firstWeapon && weaponPatterns.some((p) => p.test(name))) {
+        firstWeapon = clone;
+      }
+      if (!firstHands && armPatterns.some((p) => p.test(name))) {
+        firstHands = clone;
+      }
+    }
+
+    // If no specific matches, use the first cloned mesh as the weapon reference
+    if (!firstWeapon && this.weaponContainer.getChildMeshes().length > 0) {
+      firstWeapon = this.weaponContainer.getChildMeshes()[0] as Mesh;
+    }
+
+    this.weaponMesh = firstWeapon;
+    this.handsMesh = firstHands;
+
+    // Scale the FPS view to fit the lower-right viewport area.
+    // The container is already positioned at (0.35, -0.25, 0.5) by createWeaponContainer.
+    // Adjust scale so the GLB model looks right relative to the camera.
+    this.weaponContainer.scaling.setAll(0.005);
+
+    console.log(
+      `[Player] First-person weapon view: ${meshesToClone.length} meshes cloned ` +
+      `(arms: ${armMeshes.length}, weapon: ${weaponMeshes.length})`
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Weapon container (empty shell, populated by initModelAsync)
+  // ---------------------------------------------------------------------------
+
+  private createWeaponContainer(): TransformNode {
+    // Create container that follows camera
+    const container = new TransformNode('weaponContainer', this.scene);
+    container.parent = this.camera;
+
+    // Position weapon in lower right of view (typical FPS style)
+    container.position = new Vector3(0.35, -0.25, 0.5);
+    container.rotation = new Vector3(0, 0.05, 0);
+
+    return container;
   }
 
   private createCamera(): UniversalCamera {
@@ -137,192 +288,6 @@ export class Player {
     camera.inputs.clear();
 
     return camera;
-  }
-
-  private createWeaponView(): { container: TransformNode; weapon: Mesh; hands: Mesh } {
-    // Create container that follows camera
-    const container = new TransformNode('weaponContainer', this.scene);
-    container.parent = this.camera;
-
-    // Position weapon in lower right of view (typical FPS style)
-    container.position = new Vector3(0.35, -0.25, 0.5);
-    container.rotation = new Vector3(0, 0.05, 0);
-
-    // === HANDS ===
-    // Create armored gloves/hands
-    const handsMat = new StandardMaterial('handsMat', this.scene);
-    handsMat.diffuseColor = Color3.FromHexString('#2A2A2A'); // Dark armor
-    handsMat.specularColor = new Color3(0.15, 0.15, 0.15);
-
-    // Left hand (grip on weapon)
-    const leftHand = MeshBuilder.CreateBox(
-      'leftHand',
-      {
-        width: 0.06,
-        height: 0.08,
-        depth: 0.12,
-      },
-      this.scene
-    );
-    leftHand.position = new Vector3(-0.04, 0.02, 0.08);
-    leftHand.rotation = new Vector3(0.3, 0, -0.1);
-    leftHand.material = handsMat;
-    leftHand.parent = container;
-
-    // Right hand (trigger hand)
-    const rightHand = MeshBuilder.CreateBox(
-      'rightHand',
-      {
-        width: 0.07,
-        height: 0.09,
-        depth: 0.14,
-      },
-      this.scene
-    );
-    rightHand.position = new Vector3(0.04, -0.02, -0.06);
-    rightHand.rotation = new Vector3(-0.2, 0, 0.15);
-    rightHand.material = handsMat;
-    rightHand.parent = container;
-
-    // Merge hands for easier manipulation
-    const hands = MeshBuilder.CreateBox('handsContainer', { size: 0.001 }, this.scene);
-    hands.isVisible = false;
-    hands.parent = container;
-    leftHand.parent = hands;
-    rightHand.parent = hands;
-
-    // === WEAPON - Futuristic Assault Rifle ===
-    const gunMat = new StandardMaterial('gunMat', this.scene);
-    gunMat.diffuseColor = Color3.FromHexString('#1A1A1A');
-    gunMat.specularColor = new Color3(0.3, 0.3, 0.35);
-
-    const gunAccentMat = new StandardMaterial('gunAccentMat', this.scene);
-    gunAccentMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.olive);
-    gunAccentMat.specularColor = new Color3(0.2, 0.2, 0.2);
-
-    const gunGlowMat = new StandardMaterial('gunGlowMat', this.scene);
-    gunGlowMat.emissiveColor = Color3.FromHexString('#4A7B3C');
-    gunGlowMat.diffuseColor = Color3.FromHexString('#4A7B3C');
-
-    // Main body/receiver
-    const receiver = MeshBuilder.CreateBox(
-      'gunReceiver',
-      {
-        width: 0.06,
-        height: 0.08,
-        depth: 0.25,
-      },
-      this.scene
-    );
-    receiver.position = new Vector3(0, 0, 0);
-    receiver.material = gunMat;
-    receiver.parent = container;
-
-    // Barrel
-    const barrel = MeshBuilder.CreateCylinder(
-      'gunBarrel',
-      {
-        height: 0.22,
-        diameter: 0.025,
-        tessellation: 12,
-      },
-      this.scene
-    );
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position = new Vector3(0, 0.01, 0.22);
-    barrel.material = gunMat;
-    barrel.parent = container;
-
-    // Barrel shroud (cooling vents)
-    const shroud = MeshBuilder.CreateBox(
-      'barrelShroud',
-      {
-        width: 0.045,
-        height: 0.045,
-        depth: 0.15,
-      },
-      this.scene
-    );
-    shroud.position = new Vector3(0, 0.01, 0.16);
-    shroud.material = gunAccentMat;
-    shroud.parent = container;
-
-    // Magazine
-    const magazine = MeshBuilder.CreateBox(
-      'magazine',
-      {
-        width: 0.035,
-        height: 0.12,
-        depth: 0.06,
-      },
-      this.scene
-    );
-    magazine.position = new Vector3(0, -0.08, 0.02);
-    magazine.rotation.x = -0.15;
-    magazine.material = gunAccentMat;
-    magazine.parent = container;
-
-    // Stock
-    const stock = MeshBuilder.CreateBox(
-      'stock',
-      {
-        width: 0.04,
-        height: 0.06,
-        depth: 0.12,
-      },
-      this.scene
-    );
-    stock.position = new Vector3(0, -0.01, -0.14);
-    stock.rotation.x = 0.1;
-    stock.material = gunMat;
-    stock.parent = container;
-
-    // Sight/optic rail
-    const sightRail = MeshBuilder.CreateBox(
-      'sightRail',
-      {
-        width: 0.025,
-        height: 0.015,
-        depth: 0.1,
-      },
-      this.scene
-    );
-    sightRail.position = new Vector3(0, 0.05, 0.02);
-    sightRail.material = gunMat;
-    sightRail.parent = container;
-
-    // Holographic sight housing
-    const sightHousing = MeshBuilder.CreateBox(
-      'sightHousing',
-      {
-        width: 0.04,
-        height: 0.035,
-        depth: 0.05,
-      },
-      this.scene
-    );
-    sightHousing.position = new Vector3(0, 0.07, 0.02);
-    sightHousing.material = gunMat;
-    sightHousing.parent = container;
-
-    // Glowing elements (power indicator)
-    const powerIndicator = MeshBuilder.CreateBox(
-      'powerIndicator',
-      {
-        width: 0.01,
-        height: 0.008,
-        depth: 0.03,
-      },
-      this.scene
-    );
-    powerIndicator.position = new Vector3(0.025, 0.02, -0.02);
-    powerIndicator.material = gunGlowMat;
-    powerIndicator.parent = container;
-
-    // Combine into single reference
-    const weapon = receiver;
-
-    return { container, weapon, hands };
   }
 
   private createEntity(): Entity {
@@ -437,8 +402,15 @@ export class Player {
     this._listeners.forEach((cleanup) => cleanup());
     this._listeners = [];
     this.keysPressed.clear();
+
+    // Dispose third-person model
+    if (this.playerModelRoot) {
+      this.playerModelRoot.dispose(false, true);
+      this.playerModelRoot = null;
+    }
+
     this.mesh.dispose();
-    this.weaponContainer.dispose();
+    this.weaponContainer.dispose(false, true);
   }
 
   private startHaloDrop(): void {

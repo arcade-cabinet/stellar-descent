@@ -40,12 +40,163 @@ import { bindableActionParams, levelActionParams } from '../../input/InputBridge
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { BaseLevel } from '../BaseLevel';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import {
+  buildModularBase,
+  updateFlickerLights as updateModularFlickerLights,
+} from '../shared/ModularBaseBuilder';
+import type {
+  BaseSegment,
+  ModularBaseResult,
+} from '../shared/ModularBaseBuilder';
 
 // Map for ambush enemy types to GLB assets
 const AMBUSH_ENEMY_SPECIES = 'lurker'; // Maps to scout.glb - tall stalker type
 const AMBUSH_ENEMY_SCALE = 0.6;
 
 import '@babylonjs/core/Animations/animatable';
+
+// ---------------------------------------------------------------------------
+// GLB asset path constants for FOB Delta environment
+// ---------------------------------------------------------------------------
+
+/** Props used as debris at the perimeter breach */
+const GLB_DEBRIS = {
+  brick_pile_1: '/models/props/debris/debris_bricks_mx_1.glb',
+  brick_pile_2: '/models/props/debris/debris_bricks_mx_2.glb',
+  brick_1: '/models/props/debris/brick_mx_1.glb',
+  brick_2: '/models/props/debris/brick_mx_2.glb',
+  brick_3: '/models/props/debris/brick_mx_3.glb',
+  brick_4: '/models/props/debris/brick_mx_4.glb',
+  gravel_1: '/models/props/debris/gravel_pile_hr_1.glb',
+  gravel_2: '/models/props/debris/gravel_pile_hr_2.glb',
+} as const;
+
+/** Sandbag / barrier props */
+const GLB_BARRIERS = {
+  cement_pallet_1: '/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+  cement_pallet_2: '/models/props/containers/cement_bags_mp_1_pallet_2.glb',
+} as const;
+
+/** Courtyard clutter -- vehicles, crates, barrels */
+const GLB_COURTYARD = {
+  shipping_container: '/models/environment/industrial/shipping_container_mx_1.glb',
+  shipping_container_hollow: '/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  tire_1: '/models/props/containers/tire_1.glb',
+  tire_2: '/models/props/containers/tire_2.glb',
+  wooden_crate_1: '/models/props/containers/wooden_crate_1.glb',
+  wooden_crate_2a: '/models/props/containers/wooden_crate_2_a.glb',
+  wooden_crate_2b: '/models/props/containers/wooden_crate_2_b.glb',
+  wooden_crate_3: '/models/props/containers/wooden_crate_3.glb',
+  wooden_crate_hx_2: '/models/props/containers/wooden_crate_hx_2.glb',
+  wooden_crate_hx_3: '/models/props/containers/wooden_crate_hx_3.glb',
+  wooden_crate_hx_4: '/models/props/containers/wooden_crate_hx_4.glb',
+  metal_barrel_1: '/models/props/containers/metal_barrel_hr_1.glb',
+  metal_barrel_2: '/models/props/containers/metal_barrel_hr_2.glb',
+  metal_barrel_3: '/models/props/containers/metal_barrel_hr_3.glb',
+  metal_barrel_4: '/models/props/containers/metal_barrel_hr_4.glb',
+  barrel_atmo: '/models/props/atmospheric/barrel.glb',
+} as const;
+
+/** Barracks interior props */
+const GLB_BARRACKS = {
+  bench_1: '/models/props/furniture/bench_mx_1.glb',
+  bench_2: '/models/props/furniture/bench_mx_1_1.glb',
+  bench_3: '/models/props/furniture/bench_mx_1_2.glb',
+  shelf_1: '/models/props/furniture/shelf_mx_1.glb',
+  shelf_2: '/models/props/furniture/shelf_mx_2.glb',
+  old_mattress: '/models/props/containers/old_mattress_mx_1.glb',
+  marine_body: '/models/npcs/marine/marine_soldier.glb',
+} as const;
+
+/** Command center / terminal props */
+const GLB_COMMAND = {
+  computer: '/models/environment/modular/Props_Computer.glb',
+  computer_sm: '/models/environment/modular/Props_ComputerSmall.glb',
+  door_hr_6: '/models/props/doors/door_hr_6.glb',
+  door_hr_8: '/models/props/doors/door_hr_8.glb',
+  chimney: '/models/environment/industrial/chimney_a_1.glb',
+} as const;
+
+/** Building structures -- buildings, hangars */
+const GLB_BUILDINGS = {
+  warehouse_1: '/models/environment/station/warehouse_mx_1.glb',
+  warehouse_2: '/models/environment/station/warehouse_mx_2.glb',
+  warehouse_3: '/models/environment/station/warehouse_mx_3.glb',
+  warehouse_4: '/models/environment/station/warehouse_mx_4.glb',
+  garages_block: '/models/environment/station/garages_block_hr_1.glb',
+  garage_door_frame_1: '/models/environment/station/garage_door_frame_hr_1.glb',
+  garage_door_frame_2: '/models/environment/station/garage_door_frame_hr_2.glb',
+  garage_hl_1: '/models/environment/station/garage_hl_1.glb',
+  garage_hl_2: '/models/environment/station/garage_hl_2.glb',
+  shed_1: '/models/environment/station/shed_ax_1.glb',
+  shed_2: '/models/environment/station/shed_ax_2.glb',
+} as const;
+
+/** Caution stripe replacements -- directional arrows/details */
+const GLB_DETAILS = {
+  arrow: '/models/environment/modular/Details_Arrow.glb',
+  arrow_2: '/models/environment/modular/Details_Arrow_2.glb',
+  caution_plate: '/models/environment/modular/Details_Plate_Long.glb',
+} as const;
+
+/** Perimeter walls -- station wall GLBs tiled along the perimeter */
+const GLB_PERIMETER = {
+  wall_hr_1: '/models/environment/station/wall_hr_1.glb',
+  wall_hr_15: '/models/environment/station/wall_hr_15.glb',
+  wall_hr_1_hole_2: '/models/environment/station/wall_hr_1_hole_2.glb',
+  wall_hr_2: '/models/environment/station/wall_hr_2.glb',
+} as const;
+
+/** Antenna dish / comm tower detail */
+const GLB_ANTENNA = {
+  platform_ax_1: '/models/environment/station/platform_ax_1.glb',
+} as const;
+
+/** Underground hatch components */
+const GLB_HATCH = {
+  floor_plate: '/models/environment/station/floor_ceiling_hr_4.glb',
+  hatch_door: '/models/props/doors/door_hr_12.glb',
+  hatch_handle: '/models/props/pipes/pipe_mx_1.glb',
+  caution_ring: '/models/environment/modular/Details_Plate_Long.glb',
+} as const;
+
+/** Ground surface - large asphalt tiles */
+const GLB_GROUND = {
+  asphalt_large: '/models/environment/station/asphalt_hr_1_large.glb',
+  asphalt_1: '/models/environment/station/asphalt_hr_1.glb',
+  asphalt_2: '/models/environment/station/asphalt_hr_2.glb',
+  asphalt_3: '/models/environment/station/asphalt_hr_3.glb',
+} as const;
+
+/** Antenna dish / platform components */
+const GLB_ANTENNA_PLATFORM = {
+  platform_small: '/models/environment/station/platform_small_mx_1.glb',
+  platform_large: '/models/environment/station/platform_large_mx_1.glb',
+} as const;
+
+/** Marcus's TITAN mech */
+const GLB_MECH = {
+  marcus_mech: '/models/vehicles/tea/marcus_mech.glb',
+} as const;
+
+/**
+ * Aggregate all FOB Delta GLB paths for batch preloading.
+ */
+const ALL_FOB_GLB_PATHS: string[] = [
+  ...Object.values(GLB_DEBRIS),
+  ...Object.values(GLB_BARRIERS),
+  ...Object.values(GLB_COURTYARD),
+  ...Object.values(GLB_BARRACKS),
+  ...Object.values(GLB_COMMAND),
+  ...Object.values(GLB_BUILDINGS),
+  ...Object.values(GLB_DETAILS),
+  ...Object.values(GLB_PERIMETER),
+  ...Object.values(GLB_ANTENNA),
+  ...Object.values(GLB_HATCH),
+  ...Object.values(GLB_MECH),
+  ...Object.values(GLB_GROUND),
+  ...Object.values(GLB_ANTENNA_PLATFORM),
+];
 
 // Phase progression through the level
 type FOBPhase =
@@ -134,6 +285,9 @@ export class FOBDeltaLevel extends BaseLevel {
   // Action button callback
   private actionCallback: ((actionId: string) => void) | null = null;
 
+  // Modular base (corridor segments from ModularBaseBuilder)
+  private modularBaseResult: ModularBaseResult | null = null;
+
   // Blood decals for horror atmosphere
   private bloodDecals: Mesh[] = [];
 
@@ -142,6 +296,11 @@ export class FOBDeltaLevel extends BaseLevel {
 
   // Comms messages delivered
   private messageFlags: Set<string> = new Set();
+
+  // Mining outpost bonus level access
+  private miningTerminal: Mesh | null = null;
+  private miningTerminalLight: PointLight | null = null;
+  private miningTerminalAccessed = false;
 
   // Combat state
   private meleeCooldown = 0;
@@ -181,6 +340,9 @@ export class FOBDeltaLevel extends BaseLevel {
     damageFeedback.init(this.scene);
     damageFeedback.setScreenShakeCallback((intensity) => this.triggerShake(intensity));
 
+    // Batch-preload all FOB Delta GLB assets
+    await this.preloadFOBAssets();
+
     // Create materials
     this.createMaterials();
 
@@ -194,6 +356,9 @@ export class FOBDeltaLevel extends BaseLevel {
     this.createCommandCenter();
     this.createVehicleBay();
     this.createUndergroundAccess();
+
+    // Build modular base corridors (adds interior structure to the FOB)
+    await this.buildModularBaseStructure();
 
     // Add blood decals
     this.createBloodDecals();
@@ -357,6 +522,48 @@ export class FOBDeltaLevel extends BaseLevel {
     });
   }
 
+  /**
+   * Batch-preload all GLB models used by the FOB Delta level.
+   * Loads every path in ALL_FOB_GLB_PATHS in parallel so that
+   * subsequent createInstanceByPath calls are instant.
+   */
+  private async preloadFOBAssets(): Promise<void> {
+    const loadPromises = ALL_FOB_GLB_PATHS.map((path) =>
+      AssetManager.loadAssetByPath(path, this.scene)
+    );
+    await Promise.all(loadPromises);
+    console.log(`[FOBDelta] Preloaded ${ALL_FOB_GLB_PATHS.length} GLB assets`);
+  }
+
+  /**
+   * Helper: create a GLB instance by path with position/rotation/scale,
+   * parented to fobRoot. Returns the TransformNode or null if the asset
+   * is not cached (graceful degradation).
+   */
+  private placeGLB(
+    path: string,
+    name: string,
+    position: Vector3,
+    opts?: { rotationY?: number; scale?: number; rotation?: Vector3 }
+  ): TransformNode | null {
+    if (!AssetManager.isPathCached(path)) return null;
+    const node = AssetManager.createInstanceByPath(path, name, this.scene, true, 'environment');
+    if (!node) return null;
+    node.position = position;
+    if (opts?.rotation) {
+      node.rotation = opts.rotation;
+    } else if (opts?.rotationY !== undefined) {
+      node.rotation.y = opts.rotationY;
+    }
+    if (opts?.scale !== undefined) {
+      node.scaling.setAll(opts.scale);
+    }
+    if (this.fobRoot) {
+      node.parent = this.fobRoot;
+    }
+    return node;
+  }
+
   private createMaterials(): void {
     // Concrete/cement - base walls and floors
     const concrete = new StandardMaterial('concrete', this.scene);
@@ -475,98 +682,116 @@ export class FOBDeltaLevel extends BaseLevel {
   }
 
   private createPerimeter(): void {
-    // Ground plane
-    const ground = MeshBuilder.CreateGround(
-      'fobGround',
-      { width: 200, height: 200, subdivisions: 32 },
+    // Ground plane - tile large asphalt GLBs in a grid pattern
+    const groundTileSize = 20; // Approximate GLB tile coverage
+    const groundExtent = 100; // Half-width of total ground coverage
+    const asphaltModels = Object.values(GLB_GROUND);
+
+    for (let gx = -groundExtent; gx < groundExtent; gx += groundTileSize) {
+      for (let gz = -groundExtent; gz < groundExtent; gz += groundTileSize) {
+        // Vary tile models for visual interest
+        const modelIdx = Math.abs(Math.floor(gx + gz)) % asphaltModels.length;
+        const path = asphaltModels[modelIdx];
+        this.placeGLB(
+          path,
+          `ground_${gx}_${gz}`,
+          new Vector3(gx + groundTileSize / 2, 0, gz + groundTileSize / 2),
+          { scale: 2.0, rotationY: (Math.floor((gx + gz) / groundTileSize) % 4) * (Math.PI / 2) }
+        );
+      }
+    }
+
+    // Invisible collision ground for player/physics (procedural - collision volume)
+    const groundCollision = MeshBuilder.CreateGround(
+      'fobGroundCollision',
+      { width: 200, height: 200, subdivisions: 1 },
       this.scene
     );
-    ground.material = this.materials.get('ground')!;
-    ground.parent = this.fobRoot;
-    this.allMeshes.push(ground);
+    groundCollision.isVisible = false;
+    groundCollision.parent = this.fobRoot;
+    this.allMeshes.push(groundCollision);
 
-    // Perimeter walls (damaged)
-    const wallHeight = 4;
-    const wallThickness = 0.5;
+    // Perimeter walls (damaged) - use GLB wall segments
     const perimeterSize = 80;
+    const wallSegmentLength = 8; // Approximate length of one wall_hr_1 GLB
 
-    // Create damaged perimeter walls with gaps
-    const wallSegments = [
-      // Front wall (with breach)
-      { start: -perimeterSize / 2, end: -10, z: -perimeterSize / 2, dir: 'x' },
-      { start: 10, end: perimeterSize / 2, z: -perimeterSize / 2, dir: 'x' },
+    // Define wall runs: direction, fixed coordinate, start, end, breached sections
+    const wallRuns: Array<{
+      dir: 'x' | 'z';
+      fixed: number;
+      start: number;
+      end: number;
+      skipFrom?: number;
+      skipTo?: number;
+    }> = [
+      // Front wall (with breach from -10 to +10)
+      { dir: 'x', fixed: -perimeterSize / 2, start: -perimeterSize / 2, end: perimeterSize / 2, skipFrom: -10, skipTo: 10 },
       // Left wall
-      { start: -perimeterSize / 2, end: perimeterSize / 2, x: -perimeterSize / 2, dir: 'z' },
+      { dir: 'z', fixed: -perimeterSize / 2, start: -perimeterSize / 2, end: perimeterSize / 2 },
       // Right wall
-      { start: -perimeterSize / 2, end: perimeterSize / 2, x: perimeterSize / 2, dir: 'z' },
+      { dir: 'z', fixed: perimeterSize / 2, start: -perimeterSize / 2, end: perimeterSize / 2 },
       // Back wall
-      { start: -perimeterSize / 2, end: perimeterSize / 2, z: perimeterSize / 2, dir: 'x' },
+      { dir: 'x', fixed: perimeterSize / 2, start: -perimeterSize / 2, end: perimeterSize / 2 },
     ];
 
-    for (let i = 0; i < wallSegments.length; i++) {
-      const seg = wallSegments[i];
-      const length = seg.end - seg.start;
+    let wallIdx = 0;
+    for (const run of wallRuns) {
+      for (let pos = run.start; pos < run.end; pos += wallSegmentLength) {
+        // Skip breached section
+        if (run.skipFrom !== undefined && run.skipTo !== undefined) {
+          if (pos >= run.skipFrom && pos < run.skipTo) continue;
+        }
 
-      const wall = MeshBuilder.CreateBox(
-        `perimeterWall_${i}`,
-        {
-          width: seg.dir === 'x' ? length : wallThickness,
-          height: wallHeight,
-          depth: seg.dir === 'z' ? length : wallThickness,
-        },
-        this.scene
-      );
+        // Alternate wall GLBs, use hole variant near breach
+        const nearBreach = run.skipFrom !== undefined && (Math.abs(pos - run.skipFrom) < wallSegmentLength || Math.abs(pos - run.skipTo!) < wallSegmentLength);
+        const wallPath = nearBreach ? GLB_PERIMETER.wall_hr_1_hole_2 : (wallIdx % 2 === 0 ? GLB_PERIMETER.wall_hr_1 : GLB_PERIMETER.wall_hr_15);
 
-      if (seg.dir === 'x') {
-        wall.position.set((seg.start + seg.end) / 2, wallHeight / 2, seg.z!);
-      } else {
-        wall.position.set(seg.x!, wallHeight / 2, (seg.start + seg.end) / 2);
+        const x = run.dir === 'x' ? pos + wallSegmentLength / 2 : run.fixed;
+        const z = run.dir === 'z' ? pos + wallSegmentLength / 2 : run.fixed;
+        const rotY = run.dir === 'z' ? Math.PI / 2 : 0;
+
+        this.placeGLB(
+          wallPath,
+          `perimeterWall_${wallIdx}`,
+          new Vector3(x, 0, z),
+          { rotationY: rotY, scale: 1.5 }
+        );
+        wallIdx++;
       }
-
-      wall.material = this.materials.get('concrete')!;
-      wall.parent = this.fobRoot;
-      this.allMeshes.push(wall);
     }
 
-    // Breach debris at entry
+    // Breach debris at entry -- GLB debris models
+    const debrisModels = Object.values(GLB_DEBRIS);
     for (let i = 0; i < 8; i++) {
-      const debris = MeshBuilder.CreateBox(
+      const path = debrisModels[i % debrisModels.length];
+      const scale = 0.8 + Math.random() * 1.2;
+      this.placeGLB(
+        path,
         `debris_${i}`,
-        {
-          width: 1 + Math.random() * 2,
-          height: 0.5 + Math.random() * 1.5,
-          depth: 1 + Math.random() * 2,
-        },
-        this.scene
+        new Vector3(
+          -8 + Math.random() * 16,
+          0,
+          -perimeterSize / 2 + Math.random() * 8
+        ),
+        { rotationY: Math.random() * Math.PI, scale }
       );
-      debris.position.set(
-        -8 + Math.random() * 16,
-        debris.scaling.y / 2,
-        -perimeterSize / 2 + Math.random() * 8
-      );
-      debris.rotation.y = Math.random() * Math.PI;
-      debris.material = this.materials.get('damaged')!;
-      debris.parent = this.fobRoot;
-      this.allMeshes.push(debris);
     }
 
-    // Sandbag barriers at entry (damaged)
+    // Sandbag barriers at entry (damaged) -- GLB cement bag pallets
+    const barrierModels = Object.values(GLB_BARRIERS);
     for (let i = 0; i < 4; i++) {
-      const sandbag = MeshBuilder.CreateBox(
-        `sandbag_${i}`,
-        { width: 3, height: 1, depth: 1 },
-        this.scene
-      );
+      const path = barrierModels[i % barrierModels.length];
       const angle = (i / 4) * Math.PI - Math.PI / 2;
-      sandbag.position.set(
-        Math.sin(angle) * 12,
-        0.5,
-        -perimeterSize / 2 + 10 + Math.cos(angle) * 5
+      this.placeGLB(
+        path,
+        `sandbag_${i}`,
+        new Vector3(
+          Math.sin(angle) * 12,
+          0,
+          -perimeterSize / 2 + 10 + Math.cos(angle) * 5
+        ),
+        { rotationY: angle + Math.random() * 0.5, scale: 1.5 }
       );
-      sandbag.rotation.y = angle + Math.random() * 0.5;
-      sandbag.material = this.materials.get('sandbag')!;
-      sandbag.parent = this.fobRoot;
-      this.allMeshes.push(sandbag);
     }
 
     // Entry light (flickering)
@@ -582,71 +807,74 @@ export class FOBDeltaLevel extends BaseLevel {
   private createCourtyard(): void {
     // Central open area with overturned vehicles and crates
 
-    // Overturned vehicle (simple box representation)
-    const vehicle = MeshBuilder.CreateBox(
+    // Overturned vehicle -- GLB shipping container tipped on its side
+    this.placeGLB(
+      GLB_COURTYARD.shipping_container,
       'overturnedVehicle',
-      { width: 3, height: 2, depth: 6 },
-      this.scene
+      new Vector3(-8, 0.3, 0),
+      { rotation: new Vector3(0, 0.3, Math.PI / 3), scale: 1.8 }
     );
-    vehicle.position.set(-8, 1.5, 0);
-    vehicle.rotation.z = Math.PI / 3; // Tipped over
-    vehicle.rotation.y = 0.3;
-    vehicle.material = this.materials.get('military')!;
-    vehicle.parent = this.fobRoot;
-    this.allMeshes.push(vehicle);
 
-    // Wheels (cylinders)
+    // Wheels scattered around overturned vehicle -- GLB tire models
+    const tireModels = [GLB_COURTYARD.tire_1, GLB_COURTYARD.tire_2];
     for (let i = 0; i < 4; i++) {
-      const wheel = MeshBuilder.CreateCylinder(
-        `wheel_${i}`,
-        { height: 0.4, diameter: 0.8, tessellation: 12 },
-        this.scene
-      );
+      const path = tireModels[i % tireModels.length];
       const xOff = i < 2 ? -1.2 : 1.2;
       const zOff = i % 2 === 0 ? -2 : 2;
-      wheel.position.set(-8 + xOff, 0.8 + xOff * 0.5, zOff);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.material = this.materials.get('metal')!;
-      wheel.parent = this.fobRoot;
-      this.allMeshes.push(wheel);
+      this.placeGLB(
+        path,
+        `wheel_${i}`,
+        new Vector3(-8 + xOff, 0, zOff),
+        { rotationY: Math.random() * Math.PI, scale: 0.8 }
+      );
     }
 
-    // Scattered crates
+    // Scattered crates -- GLB wooden crate variants
     const cratePositions = [
-      new Vector3(5, 0.5, -5),
-      new Vector3(7, 0.5, -3),
-      new Vector3(5, 1.5, -4),
-      new Vector3(-3, 0.5, 8),
-      new Vector3(-5, 0.5, 7),
-      new Vector3(12, 0.5, 5),
-      new Vector3(10, 0.5, 3),
+      new Vector3(5, 0, -5),
+      new Vector3(7, 0, -3),
+      new Vector3(5, 0.8, -4),
+      new Vector3(-3, 0, 8),
+      new Vector3(-5, 0, 7),
+      new Vector3(12, 0, 5),
+      new Vector3(10, 0, 3),
+    ];
+    const crateModels = [
+      GLB_COURTYARD.wooden_crate_1,
+      GLB_COURTYARD.wooden_crate_2a,
+      GLB_COURTYARD.wooden_crate_2b,
+      GLB_COURTYARD.wooden_crate_3,
+      GLB_COURTYARD.wooden_crate_hx_2,
+      GLB_COURTYARD.wooden_crate_hx_3,
+      GLB_COURTYARD.wooden_crate_hx_4,
     ];
 
     for (let i = 0; i < cratePositions.length; i++) {
-      const size = 0.8 + Math.random() * 0.4;
-      const crate = MeshBuilder.CreateBox(
+      const path = crateModels[i % crateModels.length];
+      this.placeGLB(
+        path,
         `crate_${i}`,
-        { width: size, height: size, depth: size },
-        this.scene
+        cratePositions[i].clone(),
+        { rotationY: Math.random() * Math.PI, scale: 0.8 + Math.random() * 0.4 }
       );
-      crate.position = cratePositions[i].clone();
-      crate.rotation.y = Math.random() * Math.PI;
-      crate.material = this.materials.get('military')!;
-      crate.parent = this.fobRoot;
-      this.allMeshes.push(crate);
     }
 
-    // Barrels
+    // Barrels -- GLB metal barrel variants
+    const barrelModels = [
+      GLB_COURTYARD.metal_barrel_1,
+      GLB_COURTYARD.metal_barrel_2,
+      GLB_COURTYARD.metal_barrel_3,
+      GLB_COURTYARD.metal_barrel_4,
+      GLB_COURTYARD.barrel_atmo,
+    ];
     for (let i = 0; i < 5; i++) {
-      const barrel = MeshBuilder.CreateCylinder(
+      const path = barrelModels[i % barrelModels.length];
+      this.placeGLB(
+        path,
         `barrel_${i}`,
-        { height: 1.2, diameter: 0.6, tessellation: 12 },
-        this.scene
+        new Vector3(-15 + Math.random() * 30, 0, -10 + Math.random() * 20),
+        { rotationY: Math.random() * Math.PI * 2 }
       );
-      barrel.position.set(-15 + Math.random() * 30, 0.6, -10 + Math.random() * 20);
-      barrel.material = this.materials.get('damaged')!;
-      barrel.parent = this.fobRoot;
-      this.allMeshes.push(barrel);
     }
 
     // Courtyard lights (flickering)
@@ -660,39 +888,32 @@ export class FOBDeltaLevel extends BaseLevel {
     const barracksX = -25;
     const barracksZ = 0;
 
-    // Main structure
-    const barracks = MeshBuilder.CreateBox(
+    // Main structure -- GLB warehouse model
+    this.placeGLB(
+      GLB_BUILDINGS.warehouse_1,
       'barracks',
-      { width: 12, height: 4, depth: 20 },
-      this.scene
+      new Vector3(barracksX, 0, barracksZ),
+      { scale: 3.0 }
     );
-    barracks.position.set(barracksX, 2, barracksZ);
-    barracks.material = this.materials.get('military')!;
-    barracks.parent = this.fobRoot;
-    this.allMeshes.push(barracks);
 
-    // Door opening (represented as dark recess)
-    const doorway = MeshBuilder.CreateBox(
+    // Door opening -- GLB door model
+    this.placeGLB(
+      GLB_COMMAND.door_hr_6,
       'barracksDoor',
-      { width: 2, height: 2.5, depth: 0.5 },
-      this.scene
+      new Vector3(barracksX + 6.3, 0, barracksZ),
+      { scale: 1.2 }
     );
-    doorway.position.set(barracksX + 6.3, 1.25, barracksZ);
-    doorway.material = this.materials.get('metal')!;
-    doorway.parent = this.fobRoot;
-    this.allMeshes.push(doorway);
 
-    // Interior bunks (visible through door)
+    // Interior bunks (visible through door) -- GLB bench models
+    const bunkModels = [GLB_BARRACKS.bench_1, GLB_BARRACKS.bench_2, GLB_BARRACKS.bench_3, GLB_BARRACKS.bench_1];
     for (let i = 0; i < 4; i++) {
-      const bunk = MeshBuilder.CreateBox(
+      const path = bunkModels[i % bunkModels.length];
+      this.placeGLB(
+        path,
         `bunk_${i}`,
-        { width: 2, height: 0.8, depth: 1 },
-        this.scene
+        new Vector3(barracksX - 3, 0, barracksZ - 6 + i * 4),
+        { rotationY: Math.PI / 2, scale: 1.0 }
       );
-      bunk.position.set(barracksX - 3, 0.4 + (i % 2) * 1.2, barracksZ - 6 + i * 4);
-      bunk.material = this.materials.get('metal')!;
-      bunk.parent = this.fobRoot;
-      this.allMeshes.push(bunk);
     }
 
     // Barracks interior light (dim, flickering)
@@ -704,25 +925,50 @@ export class FOBDeltaLevel extends BaseLevel {
       25
     );
 
-    // Bodies represented as capsules (horror element)
+    // Bodies -- GLB marine soldier models laid on the ground (horror element)
     const bodyPositions = [
-      new Vector3(barracksX + 2, 0.3, barracksZ - 3),
-      new Vector3(barracksX - 2, 0.3, barracksZ + 5),
+      new Vector3(barracksX + 2, 0, barracksZ - 3),
+      new Vector3(barracksX - 2, 0, barracksZ + 5),
     ];
 
     for (let i = 0; i < bodyPositions.length; i++) {
-      const body = MeshBuilder.CreateCapsule(
+      this.placeGLB(
+        GLB_BARRACKS.marine_body,
         `body_${i}`,
-        { height: 1.8, radius: 0.25 },
-        this.scene
+        bodyPositions[i].clone(),
+        { rotation: new Vector3(Math.PI / 2, Math.random() * Math.PI, 0), scale: 0.5 }
       );
-      body.position = bodyPositions[i].clone();
-      body.rotation.z = Math.PI / 2;
-      body.rotation.y = Math.random() * Math.PI;
-      body.material = this.materials.get('military')!;
-      body.parent = this.fobRoot;
-      this.allMeshes.push(body);
     }
+
+    // Mining Outpost Gamma-7 terminal (bonus level access) -- GLB computer model
+    // NOTE: miningTerminal is kept as a Mesh for interaction distance checks,
+    // but we place a GLB computer visually and use a hidden collision box.
+    this.placeGLB(
+      GLB_COMMAND.computer_sm,
+      'miningTerminalGLB',
+      new Vector3(barracksX - 3, 0, barracksZ + 8),
+      { scale: 1.2 }
+    );
+    // Hidden interaction mesh (invisible box for distance checks)
+    this.miningTerminal = MeshBuilder.CreateBox(
+      'miningTerminal',
+      { width: 1.2, height: 1.5, depth: 0.6 },
+      this.scene
+    );
+    this.miningTerminal.position.set(barracksX - 3, 0.75, barracksZ + 8);
+    this.miningTerminal.isVisible = false;
+    this.miningTerminal.parent = this.fobRoot;
+    this.allMeshes.push(this.miningTerminal);
+
+    // Green glow for mining terminal
+    this.miningTerminalLight = new PointLight(
+      'miningTerminalLight',
+      new Vector3(barracksX - 3, 1.5, barracksZ + 8),
+      this.scene
+    );
+    this.miningTerminalLight.diffuse = new Color3(0.1, 0.8, 0.3);
+    this.miningTerminalLight.intensity = 0.3;
+    this.miningTerminalLight.range = 5;
   }
 
   private createCommandCenter(): void {
@@ -730,40 +976,30 @@ export class FOBDeltaLevel extends BaseLevel {
     const cmdX = 0;
     const cmdZ = 25;
 
-    // Main structure
-    const cmdCenter = MeshBuilder.CreateBox(
+    // Main structure -- GLB warehouse model
+    this.placeGLB(
+      GLB_BUILDINGS.warehouse_2,
       'commandCenter',
-      { width: 15, height: 5, depth: 10 },
-      this.scene
+      new Vector3(cmdX, 0, cmdZ),
+      { scale: 3.5 }
     );
-    cmdCenter.position.set(cmdX, 2.5, cmdZ);
-    cmdCenter.material = this.materials.get('military')!;
-    cmdCenter.parent = this.fobRoot;
-    this.allMeshes.push(cmdCenter);
 
-    // Door
-    const cmdDoor = MeshBuilder.CreateBox(
+    // Door -- GLB door model
+    this.placeGLB(
+      GLB_COMMAND.door_hr_8,
       'cmdDoor',
-      { width: 2, height: 2.5, depth: 0.5 },
-      this.scene
+      new Vector3(cmdX, 0, cmdZ - 5.3),
+      { scale: 1.2 }
     );
-    cmdDoor.position.set(cmdX, 1.25, cmdZ - 5.3);
-    cmdDoor.material = this.materials.get('metal')!;
-    cmdDoor.parent = this.fobRoot;
-    this.allMeshes.push(cmdDoor);
 
-    // Terminal
-    const terminalBase = MeshBuilder.CreateBox(
+    // Terminal base -- GLB computer model
+    this.placeGLB(
+      GLB_COMMAND.computer,
       'terminalBase',
-      { width: 1.5, height: 1.2, depth: 0.8 },
-      this.scene
+      new Vector3(cmdX, 0, cmdZ + 2),
     );
-    terminalBase.position.set(cmdX, 0.6, cmdZ + 2);
-    terminalBase.material = this.materials.get('metal')!;
-    terminalBase.parent = this.fobRoot;
-    this.allMeshes.push(terminalBase);
 
-    // Terminal screen
+    // Terminal screen (kept as MeshBuilder -- interactive UI surface with emissive material)
     this.terminal = MeshBuilder.CreatePlane(
       'terminalScreen',
       { width: 1.2, height: 0.8 },
@@ -788,24 +1024,21 @@ export class FOBDeltaLevel extends BaseLevel {
     // Command center interior light
     this.addFlickerLight(new Vector3(cmdX, 4, cmdZ), new Color3(0.8, 0.9, 1), 0.4, 0.3, 5);
 
-    // Comm tower outside
-    const commTower = MeshBuilder.CreateCylinder(
+    // Comm tower outside -- GLB chimney model (tall vertical structure)
+    this.placeGLB(
+      GLB_COMMAND.chimney,
       'commTower',
-      { height: 12, diameter: 1, tessellation: 8 },
-      this.scene
+      new Vector3(cmdX + 10, 0, cmdZ),
+      { scale: 3.0 }
     );
-    commTower.position.set(cmdX + 10, 6, cmdZ);
-    commTower.material = this.materials.get('metal')!;
-    commTower.parent = this.fobRoot;
-    this.allMeshes.push(commTower);
 
-    // Antenna dish
-    const dish = MeshBuilder.CreateDisc('dish', { radius: 2, tessellation: 16 }, this.scene);
-    dish.position.set(cmdX + 10, 10, cmdZ);
-    dish.rotation.x = -Math.PI / 4;
-    dish.material = this.materials.get('metal')!;
-    dish.parent = this.fobRoot;
-    this.allMeshes.push(dish);
+    // Antenna platform (GLB) - acts as dish mount / radar platform
+    this.placeGLB(
+      GLB_ANTENNA_PLATFORM.platform_small,
+      'antennaPlatform',
+      new Vector3(cmdX + 10, 10, cmdZ),
+      { rotation: new Vector3(-Math.PI / 4, 0, 0), scale: 2.5 }
+    );
   }
 
   private createVehicleBay(): void {
@@ -813,39 +1046,32 @@ export class FOBDeltaLevel extends BaseLevel {
     const bayX = 25;
     const bayZ = 0;
 
-    // Hangar-style structure
-    const hangar = MeshBuilder.CreateBox(
+    // Hangar-style structure -- GLB garages block model
+    this.placeGLB(
+      GLB_BUILDINGS.garages_block,
       'vehicleBay',
-      { width: 20, height: 8, depth: 25 },
-      this.scene
+      new Vector3(bayX, 0, bayZ),
+      { scale: 4.0 }
     );
-    hangar.position.set(bayX, 4, bayZ);
-    hangar.material = this.materials.get('military')!;
-    hangar.parent = this.fobRoot;
-    this.allMeshes.push(hangar);
 
-    // Large rolling door (open)
-    const doorFrame = MeshBuilder.CreateBox(
+    // Large rolling door frame -- GLB garage door frame
+    this.placeGLB(
+      GLB_BUILDINGS.garage_door_frame_1,
       'bayDoorFrame',
-      { width: 10, height: 7, depth: 0.5 },
-      this.scene
+      new Vector3(bayX - 10.3, 0, bayZ),
+      { scale: 2.5 }
     );
-    doorFrame.position.set(bayX - 10.3, 3.5, bayZ);
-    doorFrame.material = this.materials.get('metal')!;
-    doorFrame.parent = this.fobRoot;
-    this.allMeshes.push(doorFrame);
 
-    // Caution stripes around door
+    // Caution stripes around door -- GLB directional arrow details
+    const cautionModels = [GLB_DETAILS.arrow, GLB_DETAILS.arrow_2, GLB_DETAILS.caution_plate];
     for (let i = 0; i < 3; i++) {
-      const stripe = MeshBuilder.CreateBox(
+      const path = cautionModels[i % cautionModels.length];
+      this.placeGLB(
+        path,
         `bayStripe_${i}`,
-        { width: 10, height: 0.3, depth: 0.55 },
-        this.scene
+        new Vector3(bayX - 10.3, 1 + i * 2.5, bayZ),
+        { scale: 2.0 }
       );
-      stripe.position.set(bayX - 10.3, 1 + i * 2.5, bayZ);
-      stripe.material = this.materials.get('caution')!;
-      stripe.parent = this.fobRoot;
-      this.allMeshes.push(stripe);
     }
 
     // Marcus's damaged mech (TITAN)
@@ -857,48 +1083,28 @@ export class FOBDeltaLevel extends BaseLevel {
   }
 
   private createMech(position: Vector3): void {
-    // Marcus's TITAN mech - damaged, eyes glowing ominously
+    // Marcus's TITAN mech - GLB model with eerie eye glow
 
-    // Legs
-    const leftLeg = MeshBuilder.CreateBox(
-      'mechLeftLeg',
-      { width: 1, height: 4, depth: 1.2 },
-      this.scene
+    // Place the mech GLB model
+    this.placeGLB(
+      GLB_MECH.marcus_mech,
+      'marcusMech',
+      position,
+      { scale: 2.0 }
     );
-    leftLeg.position.set(position.x - 1, 2, position.z);
-    leftLeg.material = this.materials.get('mech')!;
-    leftLeg.parent = this.fobRoot;
-    this.allMeshes.push(leftLeg);
 
-    const rightLeg = MeshBuilder.CreateBox(
-      'mechRightLeg',
-      { width: 1, height: 4, depth: 1.2 },
-      this.scene
-    );
-    rightLeg.position.set(position.x + 1, 2, position.z);
-    rightLeg.material = this.materials.get('mech')!;
-    rightLeg.parent = this.fobRoot;
-    this.allMeshes.push(rightLeg);
-
-    // Torso
-    const torso = MeshBuilder.CreateBox('mechTorso', { width: 3, height: 3, depth: 2 }, this.scene);
-    torso.position.set(position.x, 5.5, position.z);
-    torso.material = this.materials.get('mech')!;
-    torso.parent = this.fobRoot;
-    this.allMeshes.push(torso);
-
-    // Head/cockpit
+    // Invisible collision box for interaction distance checks (mechMesh reference)
     this.mechMesh = MeshBuilder.CreateBox(
       'mechHead',
       { width: 2, height: 1.5, depth: 1.5 },
       this.scene
     );
     this.mechMesh.position.set(position.x, 7.5, position.z);
-    this.mechMesh.material = this.materials.get('mech')!;
+    this.mechMesh.isVisible = false;
     this.mechMesh.parent = this.fobRoot;
     this.allMeshes.push(this.mechMesh);
 
-    // Eyes (glowing red - eerie)
+    // Eyes (glowing red VFX spheres - kept as MeshBuilder for emissive effect)
     const leftEye = MeshBuilder.CreateSphere(
       'mechLeftEye',
       { diameter: 0.3, segments: 8 },
@@ -928,29 +1134,6 @@ export class FOBDeltaLevel extends BaseLevel {
     this.mechEyeLight.diffuse = Color3.FromHexString('#FF2200');
     this.mechEyeLight.intensity = 0.3;
     this.mechEyeLight.range = 8;
-
-    // Arm cannons (damaged, pointing down)
-    const leftArm = MeshBuilder.CreateCylinder(
-      'mechLeftArm',
-      { height: 3, diameter: 0.8, tessellation: 8 },
-      this.scene
-    );
-    leftArm.position.set(position.x - 2, 4.5, position.z);
-    leftArm.rotation.z = 0.3;
-    leftArm.material = this.materials.get('mech')!;
-    leftArm.parent = this.fobRoot;
-    this.allMeshes.push(leftArm);
-
-    const rightArm = MeshBuilder.CreateCylinder(
-      'mechRightArm',
-      { height: 3, diameter: 0.8, tessellation: 8 },
-      this.scene
-    );
-    rightArm.position.set(position.x + 2, 4.5, position.z);
-    rightArm.rotation.z = -0.3;
-    rightArm.material = this.materials.get('mech')!;
-    rightArm.parent = this.fobRoot;
-    this.allMeshes.push(rightArm);
   }
 
   private createUndergroundAccess(): void {
@@ -958,41 +1141,42 @@ export class FOBDeltaLevel extends BaseLevel {
     const hatchX = 30;
     const hatchZ = 10;
 
-    // Floor plate around hatch
-    const floorPlate = MeshBuilder.CreateCylinder(
-      'hatchFloor',
-      { height: 0.1, diameter: 4, tessellation: 16 },
-      this.scene
+    // Floor plate around hatch (GLB) - decorative visual
+    this.placeGLB(
+      GLB_HATCH.floor_plate,
+      'hatchFloorPlate',
+      new Vector3(hatchX, 0.02, hatchZ),
+      { scale: 1.5 }
     );
-    floorPlate.position.set(hatchX, 0.05, hatchZ);
-    floorPlate.material = this.materials.get('metal')!;
-    floorPlate.parent = this.fobRoot;
-    this.allMeshes.push(floorPlate);
 
-    // Hatch itself
+    // Hatch door (GLB) - visual representation
+    this.placeGLB(
+      GLB_HATCH.hatch_door,
+      'hatchDoorGLB',
+      new Vector3(hatchX, 0.1, hatchZ),
+      { scale: 1.2 }
+    );
+
+    // Hatch handle (GLB pipe)
+    this.placeGLB(
+      GLB_HATCH.hatch_handle,
+      'hatchHandleGLB',
+      new Vector3(hatchX, 0.3, hatchZ),
+      { rotation: new Vector3(Math.PI / 2, 0, 0), scale: 0.8 }
+    );
+
+    // Invisible collision mesh for interaction (kept procedural - collision volume)
     this.undergroundHatch = MeshBuilder.CreateCylinder(
-      'hatch',
-      { height: 0.2, diameter: 2.5, tessellation: 16 },
+      'hatchCollision',
+      { height: 0.3, diameter: 2.5, tessellation: 8 },
       this.scene
     );
     this.undergroundHatch.position.set(hatchX, 0.15, hatchZ);
-    this.undergroundHatch.material = this.materials.get('hatch')!;
+    this.undergroundHatch.isVisible = false;
     this.undergroundHatch.parent = this.fobRoot;
     this.allMeshes.push(this.undergroundHatch);
 
-    // Hatch handle
-    const handle = MeshBuilder.CreateTorus(
-      'hatchHandle',
-      { diameter: 0.6, thickness: 0.08, tessellation: 16 },
-      this.scene
-    );
-    handle.position.set(hatchX, 0.35, hatchZ);
-    handle.rotation.x = Math.PI / 2;
-    handle.material = this.materials.get('metal')!;
-    handle.parent = this.fobRoot;
-    this.allMeshes.push(handle);
-
-    // Caution marking
+    // Caution marking (kept procedural - special emissive caution material for gameplay visibility)
     const cautionRing = MeshBuilder.CreateTorus(
       'hatchCaution',
       { diameter: 3.5, thickness: 0.15, tessellation: 32 },
@@ -1003,6 +1187,663 @@ export class FOBDeltaLevel extends BaseLevel {
     cautionRing.material = this.materials.get('caution')!;
     cautionRing.parent = this.fobRoot;
     this.allMeshes.push(cautionRing);
+  }
+
+  /**
+   * Build the interior modular base corridors that connect the major FOB
+   * buildings (barracks, command center, vehicle bay). Uses the shared
+   * ModularBaseBuilder for consistent, asset-driven corridor geometry with
+   * battle damage and horror-style flickering lights.
+   *
+   * DENSITY OVERHAUL: This method now places a large number of Quaternius
+   * modular GLB assets (floor tiles, walls, doors, columns, roof details,
+   * vents, pipes, crates) plus graffiti/poster decals and an external
+   * station silhouette visible through corridor windows. The goal is a
+   * claustrophobic, Dead Space / Alien: Isolation atmosphere -- every
+   * surface has geometry, every corridor has clutter and damage.
+   */
+  private async buildModularBaseStructure(): Promise<void> {
+    // ================================================================
+    // PHASE 1 -- Pre-load ALL Quaternius modular, decal, and external
+    // assets by path so they are available for instancing.
+    // ================================================================
+    const modularBasePath = '/models/environment/modular/';
+    const decalBasePath = '/models/props/decals/';
+    const stationExtBasePath = '/models/environment/station-external/';
+
+    const modularGLBs: Record<string, string> = {
+      // Floors
+      floor_empty:       `${modularBasePath}FloorTile_Empty.glb`,
+      floor_hallway:     `${modularBasePath}FloorTile_Double_Hallway.glb`,
+      floor_basic:       `${modularBasePath}FloorTile_Basic.glb`,
+      floor_basic2:      `${modularBasePath}FloorTile_Basic2.glb`,
+      floor_side:        `${modularBasePath}FloorTile_Side.glb`,
+      floor_corner:      `${modularBasePath}FloorTile_Corner.glb`,
+      floor_inner_corner:`${modularBasePath}FloorTile_InnerCorner.glb`,
+      // Walls
+      wall_3:            `${modularBasePath}Wall_3.glb`,
+      wall_4:            `${modularBasePath}Wall_4.glb`,
+      wall_5:            `${modularBasePath}Wall_5.glb`,
+      wall_empty:        `${modularBasePath}Wall_Empty.glb`,
+      wall_1:            `${modularBasePath}Wall_1.glb`,
+      wall_2:            `${modularBasePath}Wall_2.glb`,
+      // Windows (walls with window cutouts)
+      window_wall_a:     `${modularBasePath}Window_Wall_SideA.glb`,
+      window_wall_b:     `${modularBasePath}Window_Wall_SideB.glb`,
+      long_window_a:     `${modularBasePath}LongWindow_Wall_SideA.glb`,
+      small_windows_a:   `${modularBasePath}SmallWindows_Wall_SideA.glb`,
+      // Doors
+      door_double:       `${modularBasePath}Door_Double.glb`,
+      door_single:       `${modularBasePath}Door_Single.glb`,
+      door_dbl_wall_a:   `${modularBasePath}DoorDouble_Wall_SideA.glb`,
+      door_dbl_wall_b:   `${modularBasePath}DoorDouble_Wall_SideB.glb`,
+      door_sgl_wall_a:   `${modularBasePath}DoorSingle_Wall_SideA.glb`,
+      door_sgl_wall_b:   `${modularBasePath}DoorSingle_Wall_SideB.glb`,
+      // Columns
+      column_1:          `${modularBasePath}Column_1.glb`,
+      column_2:          `${modularBasePath}Column_2.glb`,
+      column_3:          `${modularBasePath}Column_3.glb`,
+      column_slim:       `${modularBasePath}Column_Slim.glb`,
+      // Roof / ceiling tiles
+      roof_details:      `${modularBasePath}RoofTile_Details.glb`,
+      roof_pipes1:       `${modularBasePath}RoofTile_Pipes1.glb`,
+      roof_pipes2:       `${modularBasePath}RoofTile_Pipes2.glb`,
+      roof_plate:        `${modularBasePath}RoofTile_Plate.glb`,
+      roof_plate2:       `${modularBasePath}RoofTile_Plate2.glb`,
+      roof_empty:        `${modularBasePath}RoofTile_Empty.glb`,
+      roof_vents:        `${modularBasePath}RoofTile_Vents.glb`,
+      roof_small_vents:  `${modularBasePath}RoofTile_SmallVents.glb`,
+      roof_orange_vent:  `${modularBasePath}RoofTile_OrangeVent.glb`,
+      roof_sides_pipes:  `${modularBasePath}RoofTile_Sides_Pipes.glb`,
+      roof_corner_pipes: `${modularBasePath}RoofTile_Corner_Pipes.glb`,
+      // Wall / ceiling detail panels
+      detail_pipes_long: `${modularBasePath}Details_Pipes_Long.glb`,
+      detail_pipes_med:  `${modularBasePath}Details_Pipes_Medium.glb`,
+      detail_pipes_sm:   `${modularBasePath}Details_Pipes_Small.glb`,
+      detail_vent3:      `${modularBasePath}Details_Vent_3.glb`,
+      detail_vent4:      `${modularBasePath}Details_Vent_4.glb`,
+      detail_vent5:      `${modularBasePath}Details_Vent_5.glb`,
+      detail_basic1:     `${modularBasePath}Details_Basic_1.glb`,
+      detail_basic2:     `${modularBasePath}Details_Basic_2.glb`,
+      detail_basic3:     `${modularBasePath}Details_Basic_3.glb`,
+      detail_basic4:     `${modularBasePath}Details_Basic_4.glb`,
+      detail_plate_sm:   `${modularBasePath}Details_Plate_Small.glb`,
+      detail_plate_lg:   `${modularBasePath}Details_Plate_Large.glb`,
+      detail_plate_long: `${modularBasePath}Details_Plate_Long.glb`,
+      detail_x:          `${modularBasePath}Details_X.glb`,
+      detail_hexagon:    `${modularBasePath}Details_Hexagon.glb`,
+      detail_dots:       `${modularBasePath}Details_Dots.glb`,
+      detail_triangles:  `${modularBasePath}Details_Triangles.glb`,
+      detail_cylinder:   `${modularBasePath}Details_Cylinder.glb`,
+      detail_cyl_long:   `${modularBasePath}Details_Cylinder_Long.glb`,
+      detail_arrow:      `${modularBasePath}Details_Arrow.glb`,
+      detail_arrow2:     `${modularBasePath}Details_Arrow_2.glb`,
+      detail_output:     `${modularBasePath}Details_Output.glb`,
+      detail_output_sm:  `${modularBasePath}Details_Output_Small.glb`,
+      detail_plate_det:  `${modularBasePath}Details_Plate_Details.glb`,
+      // Props (crates, containers, furniture)
+      crate:             `${modularBasePath}Props_Crate.glb`,
+      crate_long:        `${modularBasePath}Props_CrateLong.glb`,
+      container_full:    `${modularBasePath}Props_ContainerFull.glb`,
+      shelf_short:       `${modularBasePath}Props_Shelf.glb`,
+      shelf_tall:        `${modularBasePath}Props_Shelf_Tall.glb`,
+      computer:          `${modularBasePath}Props_Computer.glb`,
+      computer_sm:       `${modularBasePath}Props_ComputerSmall.glb`,
+      base_prop:         `${modularBasePath}Props_Base.glb`,
+      capsule:           `${modularBasePath}Props_Capsule.glb`,
+      laser:             `${modularBasePath}Props_Laser.glb`,
+      // Pipes
+      pipes:             `${modularBasePath}Pipes.glb`,
+      // Staircase
+      staircase:         `${modularBasePath}Staircase.glb`,
+    };
+
+    const decalGLBs: Record<string, string> = {
+      graffiti_1:  `${decalBasePath}graffiti_mx_1.glb`,
+      graffiti_2:  `${decalBasePath}graffiti_mx_2.glb`,
+      graffiti_4:  `${decalBasePath}graffiti_mx_4.glb`,
+      graffiti_5:  `${decalBasePath}graffiti_mx_5.glb`,
+      poster_4:    `${decalBasePath}poster_cx_4.glb`,
+      poster_5:    `${decalBasePath}poster_cx_5.glb`,
+      poster_9:    `${decalBasePath}poster_cx_9.glb`,
+      poster_11:   `${decalBasePath}poster_cx_11.glb`,
+    };
+
+    const stationExtGLBs: Record<string, string> = {
+      station04: `${stationExtBasePath}station04.glb`,
+    };
+
+    // Merge all paths for parallel loading
+    const allPaths = {
+      ...modularGLBs,
+      ...decalGLBs,
+      ...stationExtGLBs,
+    };
+
+    // Load all GLBs in parallel
+    const loadPromises = Object.values(allPaths).map((path) =>
+      AssetManager.loadAssetByPath(path, this.scene)
+    );
+    await Promise.all(loadPromises);
+
+    // ================================================================
+    // Helper: instance a modular GLB by its key
+    // ================================================================
+    let instanceCounter = 0;
+    const place = (
+      key: string,
+      pos: { x: number; y: number; z: number },
+      rotY: number = 0,
+      scale: number = 1.0
+    ): void => {
+      const path = allPaths[key];
+      if (!path || !AssetManager.isPathCached(path)) {
+        return; // Asset not available, skip silently
+      }
+      const name = `fob_mod_${instanceCounter++}`;
+      const inst = AssetManager.createInstanceByPath(path, name, this.scene, true, 'environment');
+      if (inst) {
+        inst.position = new Vector3(pos.x, pos.y, pos.z);
+        inst.rotation = new Vector3(0, rotY, 0);
+        if (scale !== 1.0) {
+          inst.scaling = new Vector3(scale, scale, scale);
+        }
+        if (this.fobRoot) {
+          inst.parent = this.fobRoot;
+        }
+      }
+    };
+
+    // ================================================================
+    // PHASE 2 -- ModularBaseBuilder corridors (structural backbone)
+    // ================================================================
+    const layout: BaseSegment[] = [
+      // --- Barracks wing (west corridor running south-to-north) ---
+      { type: 'corridor', position: new Vector3(-18, 0, -6), rotation: 0 },
+      { type: 'corridor', position: new Vector3(-18, 0, -2), rotation: 0 },
+      { type: 'corridor', position: new Vector3(-18, 0, 2), rotation: 0, damaged: true },
+      { type: 'corridor', position: new Vector3(-18, 0, 6), rotation: 0 },
+
+      // --- Junction at barracks corridor / courtyard crossover ---
+      { type: 'junction', position: new Vector3(-18, 0, 10), rotation: 0 },
+
+      // --- East-west corridor linking barracks junction to courtyard ---
+      { type: 'corridor', position: new Vector3(-14, 0, 10), rotation: Math.PI / 2 },
+      { type: 'corridor', position: new Vector3(-10, 0, 10), rotation: Math.PI / 2, damaged: true },
+      { type: 'wide',     position: new Vector3(-6, 0, 10),  rotation: Math.PI / 2 },
+      { type: 'corridor', position: new Vector3(-2, 0, 10),  rotation: Math.PI / 2 },
+
+      // --- Central courtyard junction ---
+      { type: 'junction', position: new Vector3(2, 0, 10), rotation: 0 },
+
+      // --- North corridor from courtyard to command center ---
+      { type: 'corridor', position: new Vector3(2, 0, 14), rotation: 0, damaged: true },
+      { type: 'corridor', position: new Vector3(2, 0, 18), rotation: 0 },
+      { type: 'corner',   position: new Vector3(2, 0, 22), rotation: 0 },
+
+      // --- East corridor from courtyard junction toward vehicle bay ---
+      { type: 'corridor', position: new Vector3(6, 0, 10),  rotation: Math.PI / 2 },
+      { type: 'corridor', position: new Vector3(10, 0, 10), rotation: Math.PI / 2, damaged: true },
+      { type: 'wide',     position: new Vector3(14, 0, 10), rotation: Math.PI / 2 },
+      { type: 'corridor', position: new Vector3(18, 0, 10), rotation: Math.PI / 2 },
+
+      // --- Additional south wing (approach corridor from perimeter) ---
+      { type: 'corridor', position: new Vector3(0, 0, -20), rotation: 0 },
+      { type: 'corridor', position: new Vector3(0, 0, -16), rotation: 0, damaged: true },
+      { type: 'corridor', position: new Vector3(0, 0, -12), rotation: 0 },
+      { type: 'corridor', position: new Vector3(0, 0, -8), rotation: 0 },
+      { type: 'junction', position: new Vector3(0, 0, -4), rotation: 0 },
+      { type: 'corridor', position: new Vector3(0, 0, 0), rotation: 0, damaged: true },
+      { type: 'corridor', position: new Vector3(0, 0, 4), rotation: 0 },
+
+      // --- Vehicle bay internal corridors ---
+      { type: 'corridor', position: new Vector3(22, 0, 10), rotation: Math.PI / 2 },
+      { type: 'wide',     position: new Vector3(22, 0, 6), rotation: 0 },
+      { type: 'corridor', position: new Vector3(22, 0, 2), rotation: 0, damaged: true },
+      { type: 'corridor', position: new Vector3(22, 0, -2), rotation: 0 },
+
+      // --- North-west wing (barracks deep interior) ---
+      { type: 'corridor', position: new Vector3(-22, 0, 10), rotation: Math.PI / 2 },
+      { type: 'wide',     position: new Vector3(-22, 0, 14), rotation: 0, damaged: true },
+      { type: 'corridor', position: new Vector3(-22, 0, 18), rotation: 0 },
+    ];
+
+    try {
+      this.modularBaseResult = await buildModularBase(
+        this.scene,
+        layout,
+        {
+          damageRatio: 0.45,
+          lightingMode: 'horror',
+          flickerIntensity: 1.5,
+        },
+        // Props handled below via direct placement for maximum density
+        []
+      );
+
+      if (this.fobRoot && this.modularBaseResult) {
+        this.modularBaseResult.root.parent = this.fobRoot;
+      }
+    } catch (error) {
+      throw new Error(`[FOBDelta] ModularBaseBuilder failed: ${error}`);
+    }
+
+    // ================================================================
+    // PHASE 3 -- FLOOR TILES along every corridor path
+    // Dense tiling with hallway and basic variants
+    // ================================================================
+    const TILE = 4.0; // Quaternius tile size (4x4 units)
+
+    // Barracks wing floors (west corridor Z = -6 to +10)
+    for (let z = -6; z <= 10; z += TILE) {
+      place('floor_hallway', { x: -18, y: 0, z }, 0);
+    }
+    // East-west corridor floors (X = -14 to +2, Z = 10)
+    for (let x = -14; x <= 2; x += TILE) {
+      place('floor_hallway', { x, y: 0, z: 10 }, Math.PI / 2);
+    }
+    // North corridor floors (X = 2, Z = 14 to 22)
+    for (let z = 14; z <= 22; z += TILE) {
+      place('floor_basic', { x: 2, y: 0, z }, 0);
+    }
+    // East corridor floors (X = 6 to 18, Z = 10)
+    for (let x = 6; x <= 18; x += TILE) {
+      place('floor_hallway', { x, y: 0, z: 10 }, Math.PI / 2);
+    }
+    // South approach corridor floors (X = 0, Z = -20 to +4)
+    for (let z = -20; z <= 4; z += TILE) {
+      place(z % 8 === 0 ? 'floor_basic2' : 'floor_hallway', { x: 0, y: 0, z }, 0);
+    }
+    // Vehicle bay internal floors
+    for (let z = -2; z <= 10; z += TILE) {
+      place('floor_basic', { x: 22, y: 0, z }, 0);
+    }
+    // Barracks deep wing floors
+    for (let z = 10; z <= 18; z += TILE) {
+      place('floor_empty', { x: -22, y: 0, z }, 0);
+    }
+    // Courtyard floor tiles (open area with battle-scarred tiles)
+    for (let x = -8; x <= 8; x += TILE) {
+      for (let z = -8; z <= 8; z += TILE) {
+        const variant = (x + z) % 3 === 0 ? 'floor_empty' : 'floor_basic';
+        place(variant, { x, y: 0.01, z }, ((x * 7 + z * 3) % 4) * (Math.PI / 2));
+      }
+    }
+
+    // ================================================================
+    // PHASE 4 -- WALLS along corridor edges
+    // Alternating wall_3 / wall_4 / wall_empty for visual variety.
+    // Walls placed on both sides of each corridor.
+    // ================================================================
+    const WALL_OFFSET = 2.8; // Half-width of corridor
+    const WALL_Y = 0;
+    const wallTypes = ['wall_3', 'wall_4', 'wall_empty', 'wall_3', 'wall_5', 'wall_4'];
+
+    // Barracks wing walls (both sides of Z corridor at X=-18)
+    for (let i = 0; i < 5; i++) {
+      const z = -6 + i * TILE;
+      const wt = wallTypes[i % wallTypes.length];
+      place(wt, { x: -18 - WALL_OFFSET, y: WALL_Y, z }, 0);
+      place(wallTypes[(i + 2) % wallTypes.length], { x: -18 + WALL_OFFSET, y: WALL_Y, z }, Math.PI);
+    }
+    // East-west corridor walls (both sides of X corridor at Z=10)
+    for (let i = 0; i < 5; i++) {
+      const x = -14 + i * TILE;
+      const wt = wallTypes[(i + 1) % wallTypes.length];
+      place(wt, { x, y: WALL_Y, z: 10 - WALL_OFFSET }, Math.PI / 2);
+      place(wallTypes[(i + 3) % wallTypes.length], { x, y: WALL_Y, z: 10 + WALL_OFFSET }, -Math.PI / 2);
+    }
+    // North corridor walls
+    for (let i = 0; i < 3; i++) {
+      const z = 14 + i * TILE;
+      place('wall_3', { x: 2 - WALL_OFFSET, y: WALL_Y, z }, 0);
+      place('wall_4', { x: 2 + WALL_OFFSET, y: WALL_Y, z }, Math.PI);
+    }
+    // East corridor walls
+    for (let i = 0; i < 4; i++) {
+      const x = 6 + i * TILE;
+      place(wallTypes[i % wallTypes.length], { x, y: WALL_Y, z: 10 - WALL_OFFSET }, Math.PI / 2);
+      place(wallTypes[(i + 1) % wallTypes.length], { x, y: WALL_Y, z: 10 + WALL_OFFSET }, -Math.PI / 2);
+    }
+    // South approach walls
+    for (let i = 0; i < 7; i++) {
+      const z = -20 + i * TILE;
+      const wt = wallTypes[i % wallTypes.length];
+      place(wt, { x: 0 - WALL_OFFSET, y: WALL_Y, z }, 0);
+      place(wallTypes[(i + 3) % wallTypes.length], { x: 0 + WALL_OFFSET, y: WALL_Y, z }, Math.PI);
+    }
+    // Vehicle bay walls
+    for (let i = 0; i < 4; i++) {
+      const z = -2 + i * TILE;
+      place('wall_empty', { x: 22 - WALL_OFFSET, y: WALL_Y, z }, 0);
+      place('wall_3', { x: 22 + WALL_OFFSET, y: WALL_Y, z }, Math.PI);
+    }
+
+    // ================================================================
+    // PHASE 5 -- DOORS at corridor junctions and room entries
+    // Double doors mark transition points; single doors for side rooms
+    // ================================================================
+    // Barracks junction door
+    place('door_double', { x: -18, y: 0, z: 10 }, Math.PI / 2);
+    place('door_dbl_wall_a', { x: -18 - WALL_OFFSET, y: 0, z: 10 }, Math.PI / 2);
+    place('door_dbl_wall_b', { x: -18 + WALL_OFFSET, y: 0, z: 10 }, Math.PI / 2);
+
+    // Central courtyard junction door
+    place('door_double', { x: 2, y: 0, z: 10 }, 0);
+    place('door_dbl_wall_a', { x: 2, y: 0, z: 10 - WALL_OFFSET }, 0);
+    place('door_dbl_wall_b', { x: 2, y: 0, z: 10 + WALL_OFFSET }, 0);
+
+    // South junction door (approach to courtyard)
+    place('door_double', { x: 0, y: 0, z: -4 }, 0);
+    place('door_dbl_wall_a', { x: 0 - WALL_OFFSET, y: 0, z: -4 }, 0);
+
+    // Vehicle bay entry door
+    place('door_double', { x: 22, y: 0, z: 10 }, Math.PI / 2);
+
+    // Command center approach door
+    place('door_single', { x: 2, y: 0, z: 22 }, 0);
+    place('door_sgl_wall_a', { x: 2 - WALL_OFFSET, y: 0, z: 22 }, 0);
+    place('door_sgl_wall_b', { x: 2 + WALL_OFFSET, y: 0, z: 22 }, 0);
+
+    // Barracks deep wing entry
+    place('door_single', { x: -22, y: 0, z: 10 }, Math.PI / 2);
+
+    // ================================================================
+    // PHASE 6 -- COLUMNS at intersections and room corners
+    // Structural pillars that break sight lines for horror tension
+    // ================================================================
+    // Courtyard columns (structural supports)
+    place('column_3', { x: -6, y: 0, z: -4 }, 0);
+    place('column_3', { x: 6, y: 0, z: -4 }, Math.PI / 2);
+    place('column_3', { x: -6, y: 0, z: 4 }, -Math.PI / 2);
+    place('column_3', { x: 6, y: 0, z: 4 }, Math.PI);
+    // Junction columns
+    place('column_1', { x: -18 - WALL_OFFSET, y: 0, z: 10 - WALL_OFFSET }, 0);
+    place('column_1', { x: -18 + WALL_OFFSET, y: 0, z: 10 + WALL_OFFSET }, Math.PI);
+    place('column_2', { x: 2 - WALL_OFFSET, y: 0, z: 10 - WALL_OFFSET }, 0);
+    place('column_2', { x: 2 + WALL_OFFSET, y: 0, z: 10 + WALL_OFFSET }, Math.PI);
+    // Vehicle bay columns (large open space needs supports)
+    place('column_3', { x: 22, y: 0, z: 4 }, 0);
+    place('column_3', { x: 22, y: 0, z: -2 }, Math.PI / 2);
+    place('column_slim', { x: 26, y: 0, z: 0 }, 0);
+    place('column_slim', { x: 26, y: 0, z: 8 }, Math.PI / 4);
+    // Approach corridor columns (every 8 units for rhythm)
+    place('column_slim', { x: 0 - WALL_OFFSET, y: 0, z: -12 }, 0);
+    place('column_slim', { x: 0 + WALL_OFFSET, y: 0, z: -12 }, Math.PI);
+    place('column_slim', { x: 0 - WALL_OFFSET, y: 0, z: -4 }, 0);
+    // Barracks deep wing columns
+    place('column_2', { x: -22 - WALL_OFFSET, y: 0, z: 14 }, 0);
+    place('column_2', { x: -22 + WALL_OFFSET, y: 0, z: 14 }, Math.PI);
+
+    // ================================================================
+    // PHASE 7 -- ROOF / CEILING TILES with pipes, vents, and plates
+    // Every corridor section gets ceiling detail; damaged areas get
+    // exposed piping; horror zones get open vents.
+    // ================================================================
+    const ROOF_Y = 3.09; // Module height (ceiling level)
+
+    // Barracks wing ceiling
+    for (let z = -6; z <= 10; z += TILE) {
+      const variant = z === 2 ? 'roof_vents' : z === 6 ? 'roof_pipes1' : 'roof_details';
+      place(variant, { x: -18, y: ROOF_Y, z }, 0);
+    }
+    // East-west corridor ceiling
+    for (let x = -14; x <= 2; x += TILE) {
+      const variant = x === -10 ? 'roof_pipes2' : x === -6 ? 'roof_small_vents' : 'roof_plate';
+      place(variant, { x, y: ROOF_Y, z: 10 }, Math.PI / 2);
+    }
+    // North corridor ceiling
+    for (let z = 14; z <= 22; z += TILE) {
+      place(z === 14 ? 'roof_orange_vent' : 'roof_details', { x: 2, y: ROOF_Y, z }, 0);
+    }
+    // East corridor ceiling
+    for (let x = 6; x <= 18; x += TILE) {
+      const variant = x === 10 ? 'roof_pipes1' : x === 14 ? 'roof_sides_pipes' : 'roof_plate2';
+      place(variant, { x, y: ROOF_Y, z: 10 }, Math.PI / 2);
+    }
+    // South approach ceiling (sparse -- some tiles missing for horror)
+    for (let z = -20; z <= 4; z += TILE) {
+      if (z === -16) continue; // Missing ceiling tile -- exposed to sky
+      const variant = z === -8 ? 'roof_vents' : z === 0 ? 'roof_pipes2' : 'roof_empty';
+      place(variant, { x: 0, y: ROOF_Y, z }, 0);
+    }
+    // Vehicle bay ceiling (high, industrial)
+    for (let z = -2; z <= 10; z += TILE) {
+      place('roof_sides_pipes', { x: 22, y: ROOF_Y, z }, 0);
+    }
+    // Barracks deep wing ceiling
+    for (let z = 10; z <= 18; z += TILE) {
+      place(z === 14 ? 'roof_corner_pipes' : 'roof_pipes1', { x: -22, y: ROOF_Y, z }, 0);
+    }
+
+    // ================================================================
+    // PHASE 8 -- WALL DETAILS (vents, pipes, panels) mounted on walls
+    // These add texture and break up flat wall surfaces. Placed at
+    // eye height (~1.5m) on alternating wall segments.
+    // ================================================================
+    const DETAIL_Y = 1.5;
+
+    // Barracks wing wall details
+    place('detail_vent3', { x: -18 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: -4 }, Math.PI / 2);
+    place('detail_pipes_long', { x: -18 + WALL_OFFSET - 0.05, y: 2.2, z: 0 }, -Math.PI / 2);
+    place('detail_vent4', { x: -18 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: 4 }, Math.PI / 2);
+    place('detail_basic1', { x: -18 + WALL_OFFSET - 0.05, y: DETAIL_Y, z: 8 }, -Math.PI / 2);
+
+    // East-west corridor wall details
+    place('detail_vent5', { x: -12, y: DETAIL_Y, z: 10 - WALL_OFFSET + 0.05 }, 0);
+    place('detail_pipes_med', { x: -8, y: 2.0, z: 10 + WALL_OFFSET - 0.05 }, Math.PI);
+    place('detail_basic2', { x: -4, y: DETAIL_Y, z: 10 - WALL_OFFSET + 0.05 }, 0);
+    place('detail_hexagon', { x: 0, y: DETAIL_Y, z: 10 + WALL_OFFSET - 0.05 }, Math.PI);
+
+    // North corridor wall details
+    place('detail_pipes_sm', { x: 2 - WALL_OFFSET + 0.05, y: 2.0, z: 16 }, Math.PI / 2);
+    place('detail_x', { x: 2 + WALL_OFFSET - 0.05, y: DETAIL_Y, z: 18 }, -Math.PI / 2);
+    place('detail_dots', { x: 2 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: 20 }, Math.PI / 2);
+
+    // East corridor wall details
+    place('detail_vent3', { x: 8, y: DETAIL_Y, z: 10 - WALL_OFFSET + 0.05 }, 0);
+    place('detail_pipes_long', { x: 12, y: 2.2, z: 10 + WALL_OFFSET - 0.05 }, Math.PI);
+    place('detail_vent5', { x: 16, y: DETAIL_Y, z: 10 - WALL_OFFSET + 0.05 }, 0);
+    place('detail_basic3', { x: 18, y: DETAIL_Y, z: 10 + WALL_OFFSET - 0.05 }, Math.PI);
+
+    // South approach corridor wall details (sparser, more damaged feel)
+    place('detail_vent4', { x: 0 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: -18 }, Math.PI / 2);
+    place('detail_plate_sm', { x: 0 + WALL_OFFSET - 0.05, y: DETAIL_Y, z: -14 }, -Math.PI / 2);
+    place('detail_pipes_med', { x: 0 - WALL_OFFSET + 0.05, y: 2.0, z: -10 }, Math.PI / 2);
+    place('detail_basic4', { x: 0 + WALL_OFFSET - 0.05, y: DETAIL_Y, z: -6 }, -Math.PI / 2);
+    place('detail_output', { x: 0 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: -2 }, Math.PI / 2);
+    place('detail_arrow', { x: 0 + WALL_OFFSET - 0.05, y: 2.0, z: 2 }, -Math.PI / 2);
+
+    // Vehicle bay wall details
+    place('detail_plate_lg', { x: 22 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: 0 }, Math.PI / 2);
+    place('detail_cyl_long', { x: 22 + WALL_OFFSET - 0.05, y: 2.5, z: 4 }, -Math.PI / 2);
+    place('detail_plate_det', { x: 22 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: 8 }, Math.PI / 2);
+    place('detail_triangles', { x: 22 + WALL_OFFSET - 0.05, y: DETAIL_Y, z: -2 }, -Math.PI / 2);
+
+    // Barracks deep wing details
+    place('detail_output_sm', { x: -22 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: 12 }, Math.PI / 2);
+    place('detail_plate_long', { x: -22 + WALL_OFFSET - 0.05, y: 2.0, z: 16 }, -Math.PI / 2);
+    place('detail_cylinder', { x: -22 - WALL_OFFSET + 0.05, y: DETAIL_Y, z: 18 }, Math.PI / 2);
+    place('detail_arrow2', { x: -22 + WALL_OFFSET - 0.05, y: DETAIL_Y, z: 14 }, -Math.PI / 2);
+
+    // ================================================================
+    // PHASE 9 -- WINDOW WALLS with station04 exterior silhouette
+    // Selected wall segments are replaced with window variants;
+    // outside the windows, station04 provides a dark skyline.
+    // ================================================================
+    // Window walls along east corridor (looking out toward vehicle bay)
+    place('window_wall_a', { x: 8, y: WALL_Y, z: 10 + WALL_OFFSET }, -Math.PI / 2);
+    place('long_window_a', { x: 14, y: WALL_Y, z: 10 + WALL_OFFSET }, -Math.PI / 2);
+    // Window walls in south approach (broken windows letting in cold air)
+    place('small_windows_a', { x: 0 + WALL_OFFSET, y: WALL_Y, z: -16 }, -Math.PI / 2);
+    place('window_wall_a', { x: 0 + WALL_OFFSET, y: WALL_Y, z: -8 }, -Math.PI / 2);
+
+    // Station04 exterior silhouettes visible through windows
+    // Large, distant structures creating an oppressive skyline
+    place('station04', { x: 40, y: -5, z: 10 }, Math.PI * 0.75, 12.0);
+    place('station04', { x: -40, y: -8, z: -10 }, Math.PI * 0.25, 15.0);
+    place('station04', { x: 10, y: -6, z: -45 }, Math.PI * 0.5, 10.0);
+
+    // ================================================================
+    // PHASE 10 -- CRATES, CONTAINERS, AND SCATTERED PROPS
+    // Dense clutter throughout every corridor for horror navigation.
+    // Overturned crates, supply containers, shelves, computers.
+    // ================================================================
+
+    // --- South approach corridor (entry clutter) ---
+    place('crate', { x: -1.5, y: 0, z: -18 }, 0.3);
+    place('crate_long', { x: 1.8, y: 0, z: -17 }, 1.1);
+    place('crate', { x: -1.2, y: 0, z: -14 }, 2.0);
+    place('container_full', { x: 1.5, y: 0, z: -10 }, 0.5);
+    place('crate', { x: -2.0, y: 0, z: -6 }, 0.8);
+    place('shelf_short', { x: 2.5, y: 0, z: -4 }, Math.PI);
+    place('crate_long', { x: -1.5, y: 0, z: 0 }, 1.9, 0.9);
+    place('crate', { x: 1.0, y: 0, z: 2 }, 0.4);
+
+    // --- Barracks wing corridor ---
+    place('crate', { x: -17, y: 0, z: -5 }, 0.7);
+    place('shelf_tall', { x: -19.5, y: 0, z: -3 }, Math.PI);
+    place('crate_long', { x: -16.5, y: 0, z: 1 }, 2.5);
+    place('container_full', { x: -19.2, y: 0, z: 5 }, 0.2);
+    place('computer_sm', { x: -16.8, y: 0.9, z: 7 }, 1.0);
+    place('crate', { x: -19.0, y: 0, z: 8 }, 3.1);
+
+    // --- East-west main corridor ---
+    place('crate', { x: -13, y: 0, z: 9 }, 0.6);
+    place('crate_long', { x: -9, y: 0, z: 11 }, 1.8);
+    place('shelf_short', { x: -5, y: 0, z: 8.5 }, 0.3);
+    place('crate', { x: -1, y: 0, z: 11 }, 2.2);
+    place('container_full', { x: -7, y: 0, z: 12 }, 0.1);
+
+    // --- East corridor to vehicle bay ---
+    place('crate_long', { x: 7, y: 0, z: 9 }, 0.9);
+    place('crate', { x: 9, y: 0, z: 11.5 }, 1.5);
+    place('shelf_tall', { x: 12, y: 0, z: 8.5 }, Math.PI / 2);
+    place('container_full', { x: 15, y: 0, z: 11 }, 0.7);
+    place('crate', { x: 17, y: 0, z: 9.2 }, 2.8);
+    place('crate_long', { x: 19, y: 0, z: 11 }, 0.0);
+
+    // --- North corridor (to command center) ---
+    place('crate', { x: 1, y: 0, z: 15 }, 0.5);
+    place('computer', { x: 3.2, y: 0, z: 17 }, Math.PI);
+    place('crate_long', { x: 0.5, y: 0, z: 20 }, 1.2);
+
+    // --- Vehicle bay interior ---
+    place('container_full', { x: 23, y: 0, z: -1 }, 0.3);
+    place('crate', { x: 20.5, y: 0, z: 1 }, 1.8);
+    place('crate_long', { x: 24, y: 0, z: 3 }, 0.6);
+    place('crate', { x: 21, y: 0, z: 5 }, 2.4);
+    place('shelf_tall', { x: 24.2, y: 0, z: 7 }, -Math.PI / 2);
+    place('container_full', { x: 20, y: 0, z: 9 }, 1.1);
+    place('crate', { x: 24, y: 0, z: 9 }, 0.0);
+
+    // --- Barracks deep wing ---
+    place('shelf_short', { x: -23, y: 0, z: 11 }, 0.4);
+    place('crate', { x: -21, y: 0, z: 13 }, 1.6);
+    place('crate_long', { x: -23.5, y: 0, z: 16 }, 0.8);
+    place('capsule', { x: -21, y: 0, z: 18 }, 2.3);
+
+    // --- Courtyard area scattered props ---
+    place('crate', { x: -5, y: 0, z: -6 }, 0.4);
+    place('crate_long', { x: 4, y: 0, z: -3 }, 2.1);
+    place('container_full', { x: -3, y: 0, z: 6 }, 0.9);
+    place('crate', { x: 7, y: 0, z: 3 }, 1.7);
+    place('base_prop', { x: -7, y: 0, z: 2 }, 0.0);
+    place('laser', { x: 5, y: 0.8, z: -5 }, 1.2);
+
+    // Stacked crates (double-height for visual density)
+    place('crate', { x: -1.5, y: 1.0, z: -18 }, 0.8); // on top of first crate
+    place('crate', { x: 7, y: 1.0, z: 9 }, 0.3);  // on top of east corridor crate
+    place('crate', { x: 23, y: 1.0, z: -1 }, 2.0); // vehicle bay stack
+
+    // ================================================================
+    // PHASE 11 -- PIPE runs along ceilings and walls
+    // Exposed piping reinforces the industrial horror atmosphere.
+    // ================================================================
+    place('pipes', { x: -18, y: 2.5, z: -2 }, 0);
+    place('pipes', { x: -18, y: 2.5, z: 6 }, 0);
+    place('pipes', { x: -12, y: 2.5, z: 10 }, Math.PI / 2);
+    place('pipes', { x: -4, y: 2.5, z: 10 }, Math.PI / 2);
+    place('pipes', { x: 8, y: 2.5, z: 10 }, Math.PI / 2);
+    place('pipes', { x: 16, y: 2.5, z: 10 }, Math.PI / 2);
+    place('pipes', { x: 0, y: 2.5, z: -14 }, 0);
+    place('pipes', { x: 0, y: 2.5, z: -6 }, 0);
+    place('pipes', { x: 0, y: 2.5, z: 2 }, 0);
+    place('pipes', { x: 2, y: 2.5, z: 16 }, 0);
+    place('pipes', { x: 22, y: 2.5, z: 2 }, 0);
+    place('pipes', { x: 22, y: 2.5, z: 8 }, 0);
+    place('pipes', { x: -22, y: 2.5, z: 14 }, 0);
+
+    // ================================================================
+    // PHASE 12 -- GRAFFITI DECALS and POSTERS on walls
+    // Placed slightly offset from wall surfaces (Z-fighting prevention).
+    // Graffiti tells the story of desperate soldiers and alien warnings.
+    // ================================================================
+
+    // South approach graffiti -- soldiers left warnings
+    place('graffiti_1', { x: 0 - WALL_OFFSET + 0.1, y: 1.2, z: -19 }, Math.PI / 2, 0.8);
+    place('graffiti_4', { x: 0 + WALL_OFFSET - 0.1, y: 1.0, z: -11 }, -Math.PI / 2, 0.7);
+    place('poster_4', { x: 0 - WALL_OFFSET + 0.1, y: 1.5, z: -7 }, Math.PI / 2, 0.6);
+
+    // Barracks wing graffiti
+    place('graffiti_2', { x: -18 + WALL_OFFSET - 0.1, y: 1.3, z: -3 }, -Math.PI / 2, 0.9);
+    place('graffiti_5', { x: -18 - WALL_OFFSET + 0.1, y: 1.0, z: 3 }, Math.PI / 2, 0.7);
+    place('poster_5', { x: -18 + WALL_OFFSET - 0.1, y: 1.5, z: 7 }, -Math.PI / 2, 0.5);
+
+    // East-west corridor graffiti
+    place('graffiti_1', { x: -11, y: 1.2, z: 10 + WALL_OFFSET - 0.1 }, Math.PI, 0.8);
+    place('graffiti_4', { x: -3, y: 1.0, z: 10 - WALL_OFFSET + 0.1 }, 0, 0.6);
+    place('poster_9', { x: -7, y: 1.5, z: 10 + WALL_OFFSET - 0.1 }, Math.PI, 0.5);
+
+    // East corridor graffiti
+    place('graffiti_2', { x: 9, y: 1.3, z: 10 - WALL_OFFSET + 0.1 }, 0, 0.75);
+    place('graffiti_5', { x: 15, y: 1.0, z: 10 + WALL_OFFSET - 0.1 }, Math.PI, 0.65);
+    place('poster_11', { x: 11, y: 1.5, z: 10 + WALL_OFFSET - 0.1 }, Math.PI, 0.5);
+
+    // Vehicle bay graffiti (desperate final messages)
+    place('graffiti_1', { x: 22 + WALL_OFFSET - 0.1, y: 1.2, z: 0 }, -Math.PI / 2, 1.0);
+    place('graffiti_4', { x: 22 - WALL_OFFSET + 0.1, y: 1.0, z: 6 }, Math.PI / 2, 0.8);
+
+    // North corridor poster
+    place('poster_4', { x: 2 - WALL_OFFSET + 0.1, y: 1.5, z: 17 }, Math.PI / 2, 0.6);
+    place('graffiti_2', { x: 2 + WALL_OFFSET - 0.1, y: 1.2, z: 21 }, -Math.PI / 2, 0.7);
+
+    // Barracks deep wing
+    place('graffiti_5', { x: -22 - WALL_OFFSET + 0.1, y: 1.0, z: 13 }, Math.PI / 2, 0.8);
+    place('poster_4', { x: -22 + WALL_OFFSET - 0.1, y: 1.5, z: 17 }, -Math.PI / 2, 0.55);
+
+    // ================================================================
+    // PHASE 13 -- MODULAR FURNITURE and COMPUTERS
+    // Scattered computers, shelves, and capsule props for interior
+    // detail in rooms adjacent to corridors.
+    // ================================================================
+    // Command center area computers
+    place('computer', { x: 1, y: 0, z: 23 }, Math.PI);
+    place('computer_sm', { x: 3.5, y: 0.8, z: 23 }, Math.PI);
+    place('shelf_tall', { x: -1, y: 0, z: 22 }, 0);
+
+    // Barracks deep wing interior
+    place('computer_sm', { x: -23, y: 0.8, z: 18 }, Math.PI / 2);
+    place('shelf_short', { x: -21, y: 0, z: 16 }, -Math.PI / 2);
+    place('base_prop', { x: -23, y: 0, z: 13 }, 0);
+
+    // Vehicle bay control area
+    place('computer', { x: 24, y: 0, z: 5 }, -Math.PI / 2);
+    place('shelf_short', { x: 20, y: 0, z: 3 }, Math.PI);
+
+    // Courtyard makeshift triage area
+    place('capsule', { x: -4, y: 0, z: -2 }, 0.5);
+    place('capsule', { x: -6, y: 0, z: -3 }, 1.8);
+
+    // ================================================================
+    // PHASE 14 -- STAIRCASE near underground access
+    // Provides visual connection to the underground hatch area
+    // ================================================================
+    place('staircase', { x: 28, y: 0, z: 10 }, -Math.PI / 2);
+
+    console.log(
+      `[FOBDelta] Dense modular environment built: ${instanceCounter} GLB instances placed`
+    );
   }
 
   private createBloodDecals(): void {
@@ -1112,23 +1953,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
       console.log(`[FOBDelta] Loaded ${this.alienVehicles.length} alien vehicle wrecks`);
     } catch (error) {
-      console.warn('[FOBDelta] Could not load alien vehicle models, using fallback:', error);
-      // Fallback: Create simple placeholder meshes if GLB fails to load
-      for (let i = 0; i < vehicleWrecks.length; i++) {
-        const wreck = vehicleWrecks[i];
-        const placeholder = MeshBuilder.CreateBox(
-          `wraith_placeholder_${i}`,
-          { width: 4, height: 1.5, depth: 6 },
-          this.scene
-        );
-        placeholder.position = wreck.position;
-        placeholder.rotation = wreck.rotation;
-        placeholder.material = this.materials.get('damaged')!;
-        if (this.fobRoot) {
-          placeholder.parent = this.fobRoot;
-        }
-        this.allMeshes.push(placeholder);
-      }
+      throw new Error(`[FOBDelta] Failed to load alien vehicle models: ${error}`);
     }
   }
 
@@ -1138,18 +1963,12 @@ export class FOBDeltaLevel extends BaseLevel {
   private async preloadAmbushEnemyModels(): Promise<void> {
     const assetName = SPECIES_TO_ASSET[AMBUSH_ENEMY_SPECIES];
     if (!assetName) {
-      console.warn('[FOBDelta] No asset mapping for ambush enemy species');
-      return;
+      throw new Error(`[FOBDelta] No asset mapping for ambush enemy species: ${AMBUSH_ENEMY_SPECIES}`);
     }
 
-    try {
-      await AssetManager.loadAsset('aliens', assetName, this.scene);
-      this.ambushEnemiesPreloaded = true;
-      console.log(`[FOBDelta] Preloaded ambush enemy GLB: ${assetName}`);
-    } catch (error) {
-      console.warn('[FOBDelta] Failed to preload ambush enemy GLB:', error);
-      this.ambushEnemiesPreloaded = false;
-    }
+    await AssetManager.loadAsset('aliens', assetName, this.scene);
+    this.ambushEnemiesPreloaded = true;
+    console.log(`[FOBDelta] Preloaded ambush enemy GLB: ${assetName}`);
   }
 
   private createObjectiveMarker(): void {
@@ -1335,6 +2154,15 @@ export class FOBDeltaLevel extends BaseLevel {
       }
     }
 
+    // Check mining terminal interaction (bonus level access)
+    if (this.miningTerminal && !this.miningTerminalAccessed && this.logsAccessed) {
+      const dist = Vector3.Distance(this.camera.position, this.miningTerminal.position);
+      if (dist < 4) {
+        this.accessMiningOutpost();
+        return;
+      }
+    }
+
     // Check hatch interaction
     if (this.undergroundHatch && this.logsAccessed && !this.hatchOpen) {
       const dist = Vector3.Distance(this.camera.position, this.undergroundHatch.position);
@@ -1343,6 +2171,25 @@ export class FOBDeltaLevel extends BaseLevel {
         return;
       }
     }
+  }
+
+  private accessMiningOutpost(): void {
+    this.miningTerminalAccessed = true;
+    this.callbacks.onNotification('MINING OUTPOST GAMMA-7 ACCESS GRANTED', 2000);
+
+    this.sendCommsMessage('mining_access', {
+      sender: 'PROMETHEUS A.I.',
+      callsign: 'ATHENA',
+      portrait: 'ai',
+      text: 'Mining Outpost Gamma-7 network link detected. Logs indicate unusual seismic activity below the mineshaft. Optional reconnaissance available.',
+    });
+
+    // Dispatch bonus level entry after a short delay
+    setTimeout(() => {
+      this.callbacks.onNotification('ENTERING MINING DEPTHS...', 2000);
+      // The callback dispatches ENTER_BONUS_LEVEL via the campaign system
+      this.callbacks.onLevelComplete(null);
+    }, 4000);
   }
 
   private accessLogs(): void {
@@ -1494,6 +2341,12 @@ export class FOBDeltaLevel extends BaseLevel {
       if (dist < 4) return 'ACCESS TERMINAL';
     }
 
+    // Mining Outpost terminal (bonus level)
+    if (this.miningTerminal && !this.miningTerminalAccessed && this.logsAccessed) {
+      const dist = Vector3.Distance(this.camera.position, this.miningTerminal.position);
+      if (dist < 4) return 'ACCESS MINING OUTPOST GAMMA-7';
+    }
+
     // Hatch
     if (this.undergroundHatch && this.logsAccessed && !this.hatchOpen) {
       const dist = Vector3.Distance(this.camera.position, this.undergroundHatch.position);
@@ -1597,51 +2450,41 @@ export class FOBDeltaLevel extends BaseLevel {
       new Vector3(0, 0, -40), // Underground entrance
     ];
 
-    // Materials for fallback procedural enemies
-    const enemyMat = new StandardMaterial('ambushEnemyMat', this.scene);
-    enemyMat.diffuseColor = new Color3(0.2, 0.15, 0.25);
-    enemyMat.specularColor = new Color3(0.1, 0.1, 0.1);
+    const assetName = SPECIES_TO_ASSET[AMBUSH_ENEMY_SPECIES];
+    if (!assetName) {
+      throw new Error(`[FOBDelta] No asset mapping for ambush enemy species: ${AMBUSH_ENEMY_SPECIES}`);
+    }
 
-    const glowMat = new StandardMaterial('enemyGlowMat', this.scene);
-    glowMat.emissiveColor = Color3.FromHexString('#4AFF9F');
-    glowMat.disableLighting = true;
+    if (!this.ambushEnemiesPreloaded) {
+      throw new Error(`[FOBDelta] Ambush enemies were not preloaded - cannot spawn enemies`);
+    }
 
     for (let i = 0; i < this.maxEnemies; i++) {
       const spawnPos = spawnPoints[i % spawnPoints.length].clone();
       spawnPos.x += (Math.random() - 0.5) * 10;
       spawnPos.z += (Math.random() - 0.5) * 10;
 
-      // Try GLB model first
-      let enemyMesh: Mesh | TransformNode;
-      const assetName = SPECIES_TO_ASSET[AMBUSH_ENEMY_SPECIES];
+      const glbInstance = AssetManager.createInstance(
+        'aliens',
+        assetName,
+        `ambushEnemy_${i}`,
+        this.scene
+      );
 
-      if (this.ambushEnemiesPreloaded && assetName) {
-        const glbInstance = AssetManager.createInstance(
-          'aliens',
-          assetName,
-          `ambushEnemy_${i}`,
-          this.scene
-        );
-
-        if (glbInstance) {
-          glbInstance.scaling.setAll(AMBUSH_ENEMY_SCALE);
-          enemyMesh = glbInstance;
-          console.log(`[FOBDelta] Created GLB enemy instance ${i} (${assetName})`);
-        } else {
-          // Fallback to procedural
-          enemyMesh = this.createProceduralEnemy(i, enemyMat, glowMat);
-        }
-      } else {
-        // Fallback to procedural
-        enemyMesh = this.createProceduralEnemy(i, enemyMat, glowMat);
+      if (!glbInstance) {
+        throw new Error(`[FOBDelta] Failed to create GLB enemy instance ${i} (${assetName})`);
       }
+
+      glbInstance.scaling.setAll(AMBUSH_ENEMY_SCALE);
+      const enemyMesh = glbInstance;
+      console.log(`[FOBDelta] Created GLB enemy instance ${i} (${assetName})`);
 
       enemyMesh.position = spawnPos.clone();
       enemyMesh.position.y = 1;
 
       // Spawn animation
       enemyMesh.scaling.setAll(0.1);
-      const targetScale = this.ambushEnemiesPreloaded ? AMBUSH_ENEMY_SCALE : 1;
+      const targetScale = AMBUSH_ENEMY_SCALE;
       const spawnStart = performance.now();
       const animateSpawn = () => {
         const elapsed = performance.now() - spawnStart;
@@ -1661,38 +2504,6 @@ export class FOBDeltaLevel extends BaseLevel {
     }
 
     this.enemyCount = this.maxEnemies;
-  }
-
-  /**
-   * Create a procedural fallback enemy mesh
-   */
-  private createProceduralEnemy(
-    index: number,
-    enemyMat: StandardMaterial,
-    glowMat: StandardMaterial
-  ): Mesh {
-    console.log(`[FOBDelta] Creating procedural enemy ${index} (GLB not available)`);
-
-    // Create lurker-style enemy mesh (tall, thin horrors from the shadows)
-    const body = MeshBuilder.CreateCapsule(
-      `ambushEnemy_${index}`,
-      { height: 2, radius: 0.3 },
-      this.scene
-    );
-    body.material = enemyMat;
-
-    // Glowing eyes
-    const leftEye = MeshBuilder.CreateSphere('eye', { diameter: 0.08 }, this.scene);
-    leftEye.material = glowMat;
-    leftEye.parent = body;
-    leftEye.position.set(-0.1, 0.7, -0.25);
-
-    const rightEye = MeshBuilder.CreateSphere('eye', { diameter: 0.08 }, this.scene);
-    rightEye.material = glowMat;
-    rightEye.parent = body;
-    rightEye.position.set(0.1, 0.7, -0.25);
-
-    return body;
   }
 
   private checkAreaTriggers(): void {
@@ -1835,6 +2646,11 @@ export class FOBDeltaLevel extends BaseLevel {
 
     // Update flickering lights
     this.updateFlickerLights(deltaTime);
+
+    // Update modular base flicker lights
+    if (this.modularBaseResult) {
+      updateModularFlickerLights(this.modularBaseResult.lights, deltaTime);
+    }
 
     // Check area triggers
     this.checkAreaTriggers();
@@ -2256,6 +3072,12 @@ export class FOBDeltaLevel extends BaseLevel {
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
 
+    // Dispose modular base (corridors, lights, props)
+    if (this.modularBaseResult) {
+      this.modularBaseResult.dispose();
+      this.modularBaseResult = null;
+    }
+
     // Dispose flicker lights
     for (const fl of this.flickerLights) {
       fl.light.dispose();
@@ -2279,6 +3101,7 @@ export class FOBDeltaLevel extends BaseLevel {
     this.mechEyeLight?.dispose();
     this.flashlight?.dispose();
     this.horrorAmbient?.dispose();
+    this.miningTerminalLight?.dispose();
 
     // Dispose materials
     for (const mat of this.materials.values()) {
@@ -2301,6 +3124,8 @@ export class FOBDeltaLevel extends BaseLevel {
     this.mechMesh = null;
     this.undergroundHatch = null;
     this.objectiveMarker = null;
+    this.miningTerminal = null;
+    this.miningTerminalLight = null;
 
     // Dispose damage feedback system
     damageFeedback.dispose();

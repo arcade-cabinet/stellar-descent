@@ -23,7 +23,7 @@
  *   Below 25% health, player can board from the rear (interact hold).
  *
  * Visuals:
- *   Purple/blue hover tank built from BabylonJS primitives.
+ *   Loads GLB model from models/vehicles/wraith.glb with instancing support.
  *   Hover bobbing animation and engine glow particle emitter.
  */
 
@@ -36,6 +36,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import {
   type DifficultyLevel,
@@ -148,9 +149,9 @@ export class WraithAI {
   // Visual
   private scene: Scene;
   private root: TransformNode;
-  private bodyMesh: Mesh;
+  private glbNode: TransformNode | null = null;
   private turretNode: TransformNode;
-  private mortarMesh: Mesh;
+  private mortarNode: TransformNode;
   private engineGlow: ParticleSystem | null = null;
   private engineLight: PointLight | null = null;
 
@@ -191,7 +192,13 @@ export class WraithAI {
   // Destruction callback
   public onDestroyed: ((wraith: WraithAI) => void) | null = null;
 
-  constructor(
+  // Flag indicating whether the GLB model has been loaded
+  private _modelLoaded = false;
+
+  /**
+   * Private constructor. Use the static `create()` factory to instantiate.
+   */
+  private constructor(
     scene: Scene,
     position: Vector3,
     waypoints: WraithWaypoint[] = [],
@@ -205,15 +212,19 @@ export class WraithAI {
     this.waypoints = waypoints.length > 0 ? waypoints : [{ position: position.clone() }];
     this.baseY = position.y > 0 ? position.y : 2.0;
 
-    // Build mesh hierarchy
-    const { root, body, turretNode, mortar } = this.createMesh(scene, position);
-    this.root = root;
-    this.bodyMesh = body;
-    this.turretNode = turretNode;
-    this.mortarMesh = mortar;
+    // Create root node and placeholder turret/mortar nodes
+    this.root = new TransformNode(`wraith_${this.id}`, scene);
+    this.root.position = position.clone();
 
-    // Engine glow particles
-    this.createEngineEffects(scene);
+    // Turret node: positioned where the turret sits on the GLB model
+    this.turretNode = new TransformNode('wraith_turretNode', scene);
+    this.turretNode.parent = this.root;
+    this.turretNode.position.set(0, 0.9, -0.5);
+
+    // Mortar node: represents the mortar barrel tip (launch point)
+    this.mortarNode = new TransformNode('wraith_mortarNode', scene);
+    this.mortarNode.parent = this.turretNode;
+    this.mortarNode.position.set(0, 0.3, 2.0);
 
     // Create ECS entity
     this.entity = this.createEntity(position);
@@ -222,6 +233,59 @@ export class WraithAI {
     if (this.waypoints.length > 1) {
       const dir = this.waypoints[1].position.subtract(position);
       this.facingAngle = Math.atan2(dir.x, dir.z);
+    }
+  }
+
+  /**
+   * Async factory method. Creates a WraithAI instance and loads the GLB model.
+   * Use this instead of calling the constructor directly.
+   */
+  static async create(
+    scene: Scene,
+    position: Vector3,
+    waypoints: WraithWaypoint[] = [],
+    config: Partial<WraithConfig> = {},
+    difficulty?: DifficultyLevel
+  ): Promise<WraithAI> {
+    const wraith = new WraithAI(scene, position, waypoints, config, difficulty);
+    await wraith.loadModel();
+    wraith.createEngineEffects(scene);
+    return wraith;
+  }
+
+  // --------------------------------------------------------------------------
+  // Model Loading
+  // --------------------------------------------------------------------------
+
+  /**
+   * Load the GLB model and attach it to the root transform.
+   * Uses AssetManager for caching and instancing: multiple Wraiths share
+   * the same underlying geometry via GPU instancing.
+   */
+  private async loadModel(): Promise<void> {
+    try {
+      // Ensure the wraith asset is loaded (may already be cached from level preload)
+      await AssetManager.loadAsset('vehicles', 'wraith', this.scene);
+
+      // Create an instance for this specific wraith
+      const instance = AssetManager.createInstance(
+        'vehicles',
+        'wraith',
+        `wraith_model_${this.id}`,
+        this.scene
+      );
+
+      if (instance) {
+        instance.parent = this.root;
+        instance.position = Vector3.Zero();
+        this.glbNode = instance;
+        this._modelLoaded = true;
+        console.log(`[WraithAI] GLB model loaded for ${this.id}`);
+      } else {
+        throw new Error(`[WraithAI] GLB instance creation failed for ${this.id} - asset not preloaded or path invalid`);
+      }
+    } catch (err) {
+      throw new Error(`[WraithAI] Failed to load GLB model for ${this.id}: ${err}`);
     }
   }
 
@@ -570,7 +634,7 @@ export class WraithAI {
           inaccuracy
         );
 
-        const launchPos = this.mortarMesh.getAbsolutePosition();
+        const launchPos = this.mortarNode.getAbsolutePosition();
         const mortar = launchMortar(this.scene, launchPos, predictedPos, MORTAR_FLIGHT_TIME);
         this.activeMortars.push(mortar);
 
@@ -627,7 +691,7 @@ export class WraithAI {
     direction.z += (Math.random() - 0.5) * 0.1;
     direction.normalize();
 
-    // Create plasma bolt mesh
+    // Create plasma bolt mesh (VFX - kept as MeshBuilder)
     const bolt = MeshBuilder.CreateCylinder(
       'wraith_turret_bolt',
       { height: 0.6, diameterTop: 0.08, diameterBottom: 0.05, tessellation: 6 },
@@ -648,7 +712,7 @@ export class WraithAI {
     boltMat.disableLighting = true;
     bolt.material = boltMat;
 
-    // Outer glow
+    // Outer glow (VFX - kept as MeshBuilder)
     const glowShell = MeshBuilder.CreateCylinder(
       'wraith_boltGlow',
       { height: 0.8, diameterTop: 0.18, diameterBottom: 0.12, tessellation: 6 },
@@ -725,150 +789,8 @@ export class WraithAI {
   }
 
   // --------------------------------------------------------------------------
-  // Mesh Construction
+  // Engine Effects
   // --------------------------------------------------------------------------
-
-  private createMesh(
-    scene: Scene,
-    position: Vector3
-  ): { root: TransformNode; body: Mesh; turretNode: TransformNode; mortar: Mesh } {
-    const root = new TransformNode(`wraith_${this.id}`, scene);
-    root.position = position.clone();
-
-    // Color palette
-    const hullMat = new StandardMaterial('wraith_hullMat', scene);
-    hullMat.diffuseColor = Color3.FromHexString('#2A1845');
-    hullMat.specularColor = new Color3(0.25, 0.2, 0.35);
-
-    const armorMat = new StandardMaterial('wraith_armorMat', scene);
-    armorMat.diffuseColor = Color3.FromHexString('#3D2660');
-    armorMat.specularColor = new Color3(0.3, 0.25, 0.4);
-
-    const glowMat = new StandardMaterial('wraith_glowMat', scene);
-    glowMat.emissiveColor = Color3.FromHexString('#5588FF');
-    glowMat.disableLighting = true;
-
-    const accentMat = new StandardMaterial('wraith_accentMat', scene);
-    accentMat.diffuseColor = Color3.FromHexString('#1A0E30');
-    accentMat.specularColor = new Color3(0.15, 0.1, 0.25);
-
-    // --- Main body (flattened box) ---
-    const body = MeshBuilder.CreateBox('wraith_body', { width: 5, height: 1.2, depth: 7 }, scene);
-    body.material = hullMat;
-    body.parent = root;
-    body.position.y = 0;
-
-    // --- Side armor plates ---
-    for (let side = -1; side <= 1; side += 2) {
-      const plate = MeshBuilder.CreateBox(
-        'wraith_sideArmor',
-        { width: 0.6, height: 0.8, depth: 5.5 },
-        scene
-      );
-      plate.material = armorMat;
-      plate.parent = root;
-      plate.position.set(side * 2.8, 0.2, -0.3);
-    }
-
-    // --- Front wedge (tapered nose) ---
-    const nose = MeshBuilder.CreateBox(
-      'wraith_nose',
-      { width: 3.5, height: 0.9, depth: 2.5 },
-      scene
-    );
-    nose.material = armorMat;
-    nose.parent = root;
-    nose.position.set(0, 0.1, 4.2);
-    nose.scaling.set(1, 1, 1);
-
-    // --- Rear engine block ---
-    const engineBlock = MeshBuilder.CreateBox(
-      'wraith_engine',
-      { width: 4, height: 1.0, depth: 1.5 },
-      scene
-    );
-    engineBlock.material = accentMat;
-    engineBlock.parent = root;
-    engineBlock.position.set(0, -0.1, -3.8);
-
-    // Engine glow strips
-    for (let i = -1; i <= 1; i += 2) {
-      const strip = MeshBuilder.CreateBox(
-        'wraith_engineStrip',
-        { width: 0.4, height: 0.3, depth: 1.2 },
-        scene
-      );
-      strip.material = glowMat;
-      strip.parent = root;
-      strip.position.set(i * 1.2, -0.3, -3.8);
-    }
-
-    // --- Undercarriage hover emitters (4 glowing discs) ---
-    const emitterPositions = [
-      new Vector3(-1.5, -0.7, 2),
-      new Vector3(1.5, -0.7, 2),
-      new Vector3(-1.5, -0.7, -2),
-      new Vector3(1.5, -0.7, -2),
-    ];
-    for (const pos of emitterPositions) {
-      const emitter = MeshBuilder.CreateCylinder(
-        'wraith_hoverEmitter',
-        { height: 0.1, diameter: 1.0, tessellation: 12 },
-        scene
-      );
-      emitter.material = glowMat;
-      emitter.parent = root;
-      emitter.position = pos;
-    }
-
-    // --- Turret assembly ---
-    const turretNode = new TransformNode('wraith_turretNode', scene);
-    turretNode.parent = root;
-    turretNode.position.set(0, 0.9, -0.5);
-
-    // Turret base (sphere)
-    const turretBase = MeshBuilder.CreateSphere(
-      'wraith_turretBase',
-      { diameterX: 2.5, diameterY: 1.5, diameterZ: 2.5, segments: 10 },
-      scene
-    );
-    turretBase.material = armorMat;
-    turretBase.parent = turretNode;
-
-    // Turret ring (glow accent)
-    const turretRing = MeshBuilder.CreateTorus(
-      'wraith_turretRing',
-      { diameter: 2.2, thickness: 0.12, tessellation: 16 },
-      scene
-    );
-    turretRing.material = glowMat;
-    turretRing.parent = turretNode;
-    turretRing.position.y = -0.2;
-    turretRing.rotation.x = Math.PI / 2;
-
-    // --- Mortar barrel (cylinder extending forward from turret) ---
-    const mortar = MeshBuilder.CreateCylinder(
-      'wraith_mortar',
-      { height: 3.0, diameterTop: 0.5, diameterBottom: 0.7, tessellation: 10 },
-      scene
-    );
-    mortar.material = hullMat;
-    mortar.parent = turretNode;
-    mortar.rotation.x = -Math.PI / 2; // Point forward
-    mortar.position.set(0, 0.3, 2.0);
-
-    // Mortar muzzle glow
-    const muzzleGlow = MeshBuilder.CreateSphere(
-      'wraith_mortarGlow',
-      { diameter: 0.6, segments: 8 },
-      scene
-    );
-    muzzleGlow.material = glowMat;
-    muzzleGlow.parent = mortar;
-    muzzleGlow.position.set(0, 1.5, 0); // Tip of the barrel (rotated)
-
-    return { root, body, turretNode, mortar };
-  }
 
   private createEngineEffects(scene: Scene): void {
     try {
@@ -879,9 +801,11 @@ export class WraithAI {
       this.engineLight.diffuse = Color3.FromHexString('#5588FF');
       this.engineLight.range = 8;
 
-      // Engine particle system
+      // Engine particle system - use root position as emitter (works with GLB or fallback)
       this.engineGlow = new ParticleSystem('wraith_engineGlow', 60, scene);
-      this.engineGlow.emitter = this.bodyMesh;
+      // Use a child mesh from the GLB if available, otherwise fall back to root position
+      const emitterMesh = this.glbNode?.getChildMeshes()[0] ?? null;
+      this.engineGlow.emitter = emitterMesh ?? this.root.position;
       this.engineGlow.minEmitBox = new Vector3(-1.5, -0.8, -4.0);
       this.engineGlow.maxEmitBox = new Vector3(1.5, -0.4, -3.5);
       this.engineGlow.minSize = 0.2;
@@ -927,19 +851,34 @@ export class WraithAI {
   // --------------------------------------------------------------------------
 
   private flashDamage(): void {
-    const mat = this.bodyMesh.material as StandardMaterial | null;
-    if (!mat) return;
+    // Flash the GLB model or fallback mesh red briefly
+    if (this.glbNode) {
+      // For GLB instances, apply a brief emissive pulse via the root's children
+      const children = this.glbNode.getChildMeshes();
+      const originalColors: Map<string, Color3> = new Map();
 
-    const originalColor = mat.diffuseColor.clone();
-    mat.emissiveColor = Color3.FromHexString('#FF2222');
-
-    window.setTimeout(() => {
-      try {
-        mat.emissiveColor = Color3.Black();
-      } catch {
-        // Material already disposed
+      for (const child of children) {
+        const mat = child.material as StandardMaterial | null;
+        if (mat && mat.emissiveColor) {
+          originalColors.set(child.uniqueId.toString(), mat.emissiveColor.clone());
+          mat.emissiveColor = Color3.FromHexString('#FF2222');
+        }
       }
-    }, 120);
+
+      window.setTimeout(() => {
+        try {
+          for (const child of children) {
+            const mat = child.material as StandardMaterial | null;
+            if (mat) {
+              const original = originalColors.get(child.uniqueId.toString());
+              mat.emissiveColor = original ?? Color3.Black();
+            }
+          }
+        } catch {
+          // Materials already disposed
+        }
+      }, 120);
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -1062,6 +1001,12 @@ export class WraithAI {
       removeEntity(mortar.entity);
     }
     this.activeMortars = [];
+
+    // Dispose GLB instance node
+    if (this.glbNode) {
+      this.glbNode.dispose();
+      this.glbNode = null;
+    }
 
     // Dispose mesh hierarchy (root disposes children)
     this.root.dispose();

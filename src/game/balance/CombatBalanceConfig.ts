@@ -45,7 +45,7 @@ export interface WeaponBalanceEntry {
   reloadTimeMs: number;
 }
 
-export const WEAPON_BALANCE: Record<WeaponId, WeaponBalanceEntry> = {
+export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
   assault_rifle: {
     id: 'assault_rifle',
     name: 'MA5K Assault Rifle',
@@ -425,6 +425,7 @@ export function getEnemyTier(
  */
 export function calculateWeaponDPS(weaponId: WeaponId): number {
   const w = WEAPON_BALANCE[weaponId];
+  if (!w) return 0;
   return w.damage * w.fireRate;
 }
 
@@ -434,6 +435,7 @@ export function calculateWeaponDPS(weaponId: WeaponId): number {
  */
 export function calculateSustainedDPS(weaponId: WeaponId): number {
   const w = WEAPON_BALANCE[weaponId];
+  if (!w) return 0;
   const magazineDamage = w.damage * w.magazineSize;
   const magazineDurationSec = w.magazineSize / w.fireRate;
   const reloadDurationSec = w.reloadTimeMs / 1000;
@@ -496,6 +498,7 @@ export function calculateSustainedTTK(
 ): number {
   const hp = getScaledEnemyHealth(enemyId, difficulty);
   const w = WEAPON_BALANCE[weaponId];
+  if (!w) return Infinity;
   const magazineDamage = w.damage * w.magazineSize;
 
   // If one magazine is enough, TTK = shotsNeeded / fireRate
@@ -544,6 +547,7 @@ export function calculateAmmoRequiredForLevel(
   if (!level) return 0;
 
   const w = WEAPON_BALANCE[weaponId];
+  if (!w) return 0;
   const modifiers = DIFFICULTY_PRESETS[difficulty].modifiers;
   const scaledEnemyCount = Math.round(level.baseEnemyCount * modifiers.spawnRateMultiplier);
 
@@ -565,6 +569,7 @@ export function calculateAmmoRequiredForLevel(
  */
 export function calculateTotalAmmo(weaponId: WeaponId): number {
   const w = WEAPON_BALANCE[weaponId];
+  if (!w) return 0;
   return w.magazineSize + w.defaultReserveAmmo;
 }
 
@@ -579,6 +584,7 @@ export function calculateTotalAmmoWithPickups(
   difficulty: DifficultyLevel
 ): number {
   const w = WEAPON_BALANCE[weaponId];
+  if (!w) return 0;
   const level = LEVEL_SPAWN_CONFIG[levelId];
   if (!level) return calculateTotalAmmo(weaponId);
 
@@ -626,7 +632,7 @@ export function generateBalanceSummary(difficulty: DifficultyLevel): BalanceSumm
 
       results.push({
         weaponId,
-        weaponName: WEAPON_BALANCE[weaponId].name,
+        weaponName: WEAPON_BALANCE[weaponId]?.name ?? weaponId,
         enemyId,
         enemyName: ENEMY_BALANCE[enemyId].name,
         difficulty,

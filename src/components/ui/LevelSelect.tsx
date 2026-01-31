@@ -36,7 +36,7 @@ export function LevelSelect({ isOpen, onClose, onSelectLevel }: LevelSelectProps
 
     const loadCompletionState = async () => {
       await worldDb.init();
-      const completedLevels = worldDb.getCompletedLevels() as LevelId[];
+      const completedLevels = await worldDb.getCompletedLevels() as LevelId[];
       const completed = new Set<LevelId>(completedLevels);
 
       // Calculate unlocked levels based on completion

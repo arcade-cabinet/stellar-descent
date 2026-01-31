@@ -2,6 +2,7 @@ import React from 'react';
 import { useGame } from '../../game/context/GameContext';
 import { useSettings } from '../../game/context/SettingsContext';
 import { useWeaponOptional } from '../../game/context/WeaponContext';
+import { formatTimeMMSS, useMissionTime } from '../../game/timer';
 import { ActionButtons } from './ActionButtons';
 import { Compass } from './Compass';
 import { Crosshair } from './Crosshair';
@@ -29,6 +30,7 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
   } = useGame();
   const { colorPalette, settings } = useSettings();
   const weaponContext = useWeaponOptional();
+  const missionTimeSeconds = useMissionTime();
 
   const healthPercent = maxHealth > 0 ? Math.max(0, Math.min(100, (health / maxHealth) * 100)) : 0;
 
@@ -139,6 +141,16 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
       >
         <span className={styles.killsLabel}>KILLS</span>
         <span className={styles.killsCount}>{kills}</span>
+      </div>
+
+      {/* Mission Timer - top left */}
+      <div
+        className={`${styles.timerContainer} ${hudVisibility.healthBar ? styles.visible : styles.hidden}`}
+        aria-hidden={!hudVisibility.healthBar}
+        aria-label={`Mission time: ${formatTimeMMSS(missionTimeSeconds)}`}
+      >
+        <span className={styles.timerLabel}>TIME</span>
+        <span className={styles.timerValue}>{formatTimeMMSS(missionTimeSeconds)}</span>
       </div>
 
       {/* Crosshair - tactical reticle for combat phases */}

@@ -1,0 +1,99 @@
+# Campaign Level 2: Landfall
+# HALO drop sequence and first surface combat
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-2
+  - combat
+  - drop-sequence
+name: "Campaign Level 2 - Landfall"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "HALO DROP"
+    timeout: 30000
+
+# Use HALO DROP to skip tutorial and go directly to Landfall
+- tapOn:
+    text: "HALO DROP"
+
+# Wait for loading screen
+- extendedWaitUntil:
+    visible: "ANCHOR STATION PROMETHEUS"
+    timeout: 15000
+
+# Wait for systems online (loading complete)
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+- takeScreenshot: "level_02_loading_complete"
+
+# Should see orbital drop notification
+- extendedWaitUntil:
+    visible: "ORBITAL DROP INITIATED"
+    timeout: 30000
+
+- takeScreenshot: "level_02_drop_initiated"
+
+# Wait for drop sequence to progress
+- wait: 5000
+
+# Look for Landfall mission text or surface arrival
+- assertVisible:
+    text: "Landfall"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "level_02_landfall_start"
+
+# Gameplay - movement and combat
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 60%"
+          duration: 2000
+      - wait: 500
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 1000
+
+# Look around for enemies
+- swipe:
+    start: "80%, 50%"
+    end: "60%, 40%"
+    duration: 1500
+
+- wait: 1000
+
+# Continue gameplay
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 55%"
+    duration: 3000
+
+- takeScreenshot: "level_02_surface_combat"
+
+# Sprint forward
+- tapOn:
+    id: "sprint-button"
+    optional: true
+
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 50%"
+    duration: 3000
+
+- wait: 2000
+
+- takeScreenshot: "level_02_gameplay"

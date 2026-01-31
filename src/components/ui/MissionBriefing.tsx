@@ -3,6 +3,7 @@ import { getAudioManager } from '../../game/core/AudioManager';
 import { LORE, MISSION_BRIEFINGS } from '../../game/core/lore';
 import { CAMPAIGN_LEVELS, type LevelConfig, type LevelId } from '../../game/levels/types';
 import { getScreenInfo } from '../../game/utils/responsive';
+import { MilitaryButton } from './MilitaryButton';
 import styles from './MissionBriefing.module.css';
 
 /**
@@ -915,18 +916,18 @@ export function MissionBriefing({
             <span className={styles.footerText}>7TH DROP MARINES {'// HELL JUMPERS'}</span>
           </div>
           <div className={styles.footerActions}>
-            <button type="button" className={styles.cancelButton} onClick={handleCancel}>
+            <MilitaryButton onClick={handleCancel} size="sm">
               ABORT
-            </button>
-            <button
-              type="button"
-              className={styles.beginButton}
+            </MilitaryButton>
+            <MilitaryButton
+              variant="primary"
               onClick={handleBeginMission}
               disabled={isTyping}
+              icon={<>&#9654;</>}
+              size="sm"
             >
-              <span className={styles.buttonIcon}>&#9654;</span>
               BEGIN MISSION
-            </button>
+            </MilitaryButton>
           </div>
         </footer>
       </div>

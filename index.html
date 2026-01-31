@@ -38,11 +38,18 @@
 
     <title>STELLAR DESCENT: PROXIMA BREACH</title>
 
+    <!-- Preload military button 9-slice textures -->
+    <link rel="preload" as="image" href="/assets/ui/buttons/btn_military_olive_normal.png">
+    <link rel="preload" as="image" href="/assets/ui/buttons/btn_military_olive_hover.png">
+    <link rel="preload" as="image" href="/assets/ui/buttons/btn_military_olive_pressed.png">
+    <link rel="preload" as="image" href="/assets/ui/buttons/btn_military_olive_disabled.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 
 <body>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 </body>

@@ -40,6 +40,26 @@ import { bindableActionParams, levelActionParams } from '../../input/InputBridge
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { BaseLevel } from '../BaseLevel';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+
+// ---------------------------------------------------------------------------
+// GLB Asset Paths for boss & level-specific models
+// ---------------------------------------------------------------------------
+
+const BOSS_GLB_PATHS = {
+  /** Chitin alien body -- used for the Mining Drill Chitin boss */
+  chitinBody: '/models/enemies/chitin/alien_scifi.glb',
+  /** Industrial pipe -- stand-in for drill arm appendages */
+  drillArm: '/models/environment/industrial/pipes_hr_1.glb',
+  /** Lamp for boss eye glow effect */
+  eyeGlow: '/models/environment/industrial/lamp_mx_1_a_on.glb',
+} as const;
+
+const ALL_BOSS_GLB_PATHS: readonly string[] = [
+  ...new Set(Object.values(BOSS_GLB_PATHS)),
+];
+
+/** Unique counter for boss instance naming */
+let _bossInstanceCounter = 0;
 import {
   AUDIO_LOGS,
   type AudioLogPickup,
@@ -153,6 +173,9 @@ export class MiningDepthsLevel extends BaseLevel {
   // Boss - Mining Drill Chitin
   private boss: DrillChitinBoss | null = null;
   private bossDefeated = false;
+  private bossAssetsPreloaded = false;
+  /** GLB instance roots for the boss (for disposal) */
+  private bossGlbInstances: TransformNode[] = [];
 
   // Combat state
   private meleeCooldown = 0;
@@ -204,8 +227,8 @@ export class MiningDepthsLevel extends BaseLevel {
     // Set up underground lighting
     this.setupCaveLighting();
 
-    // Create full environment
-    this.environment = createMiningEnvironment(this.scene);
+    // Create full environment (async - loads GLB assets)
+    this.environment = await createMiningEnvironment(this.scene);
 
     // Create player flashlight
     this.createFlashlight();
@@ -224,6 +247,9 @@ export class MiningDepthsLevel extends BaseLevel {
 
     // Preload burrower enemy models
     await this.preloadBurrowerModels();
+
+    // Preload boss GLB assets
+    await this.preloadBossModels();
 
     // Set up environmental audio
     this.setupMiningAudio();
@@ -353,6 +379,21 @@ export class MiningDepthsLevel extends BaseLevel {
       console.warn('[MiningDepths] Failed to preload burrower GLB:', error);
       this.burrowerEnemiesPreloaded = false;
     }
+  }
+
+  /**
+   * Preload GLB assets used by the boss enemy.
+   */
+  private async preloadBossModels(): Promise<void> {
+    const loadPromises = ALL_BOSS_GLB_PATHS.map((path) =>
+      AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
+        console.warn(`[MiningDepths] Failed to preload boss GLB ${path}:`, err);
+        return null;
+      })
+    );
+    await Promise.all(loadPromises);
+    this.bossAssetsPreloaded = true;
+    console.log(`[MiningDepths] Preloaded ${ALL_BOSS_GLB_PATHS.length} boss GLB assets`);
   }
 
   private setupMiningAudio(): void {
@@ -1250,55 +1291,31 @@ export class MiningDepthsLevel extends BaseLevel {
 
   private spawnBoss(): void {
     const spawnPos = MINE_POSITIONS.shaftBossSpawn.clone();
+    const instanceId = _bossInstanceCounter++;
 
-    // Create boss mesh (procedural since it is a unique enemy)
-    const bossBody = MeshBuilder.CreateCapsule(
-      'drillChitin',
-      { height: 4, radius: 1.2 },
-      this.scene
-    );
-    const bossMat = new StandardMaterial('bossChitinMat', this.scene);
-    bossMat.diffuseColor = new Color3(0.15, 0.12, 0.18);
-    bossMat.specularColor = new Color3(0.35, 0.3, 0.35);
-    bossBody.material = bossMat;
-    bossBody.position = spawnPos.clone();
-    bossBody.position.y += 2;
-
-    // Drill arm (left)
-    const drillArm = MeshBuilder.CreateCylinder(
-      'drillArmL',
-      { height: 2.5, diameterTop: 0, diameterBottom: 0.5, tessellation: 8 },
-      this.scene
-    );
-    drillArm.position.set(-1.5, 0.5, -0.5);
-    drillArm.rotation.x = Math.PI / 4;
-    drillArm.material = bossMat;
-    drillArm.parent = bossBody;
-
-    // Drill arm (right)
-    const drillArmR = MeshBuilder.CreateCylinder(
-      'drillArmR',
-      { height: 2.5, diameterTop: 0, diameterBottom: 0.5, tessellation: 8 },
-      this.scene
-    );
-    drillArmR.position.set(1.5, 0.5, -0.5);
-    drillArmR.rotation.x = Math.PI / 4;
-    drillArmR.material = bossMat;
-    drillArmR.parent = bossBody;
-
-    // Glowing eyes (4 - arachnid)
-    const eyeMat = new StandardMaterial('bossEyeMat', this.scene);
-    eyeMat.emissiveColor = Color3.FromHexString('#FF2200');
-    eyeMat.disableLighting = true;
-
-    for (let e = 0; e < 4; e++) {
-      const eye = MeshBuilder.CreateSphere(`bossEye_${e}`, { diameter: 0.15 }, this.scene);
-      eye.position.set(-0.3 + (e % 2) * 0.2, 1.5 + Math.floor(e / 2) * 0.15, -1.0);
-      eye.material = eyeMat;
-      eye.parent = bossBody;
+    if (!this.bossAssetsPreloaded) {
+      throw new Error('[MiningDepthsLevel] Boss assets not preloaded - call preloadBossModels() first');
     }
 
-    // Boss eye light
+    const bossRoot = AssetManager.createInstanceByPath(
+      BOSS_GLB_PATHS.chitinBody,
+      `drillChitin_${instanceId}`,
+      this.scene,
+      true,
+      'enemy'
+    );
+
+    if (!bossRoot) {
+      throw new Error(`[MiningDepthsLevel] Failed to create boss instance from: ${BOSS_GLB_PATHS.chitinBody}`);
+    }
+
+    this.bossGlbInstances.push(bossRoot);
+    // Scale boss appropriately for the arena
+    bossRoot.scaling.setAll(2.5);
+    bossRoot.position = spawnPos.clone();
+    bossRoot.position.y += 2;
+
+    // Boss eye light (always procedural for dynamic effect)
     const bossEyeLight = new PointLight(
       'bossEyeLight',
       spawnPos.add(new Vector3(0, 3.5, -1)),
@@ -1309,7 +1326,7 @@ export class MiningDepthsLevel extends BaseLevel {
     bossEyeLight.range = 12;
 
     this.boss = {
-      mesh: bossBody,
+      mesh: bossRoot,
       health: 500,
       maxHealth: 500,
       position: spawnPos.clone(),
@@ -1322,12 +1339,13 @@ export class MiningDepthsLevel extends BaseLevel {
     };
 
     // Spawn animation
-    bossBody.scaling.setAll(0.1);
+    const finalScale = this.bossAssetsPreloaded ? 2.5 : 1.0;
+    bossRoot.scaling.setAll(0.1);
     const spawnStart = performance.now();
     const animateSpawn = () => {
       const elapsed = performance.now() - spawnStart;
       const progress = Math.min(elapsed / 1000, 1);
-      bossBody.scaling.setAll(0.1 + progress * 0.9);
+      bossRoot!.scaling.setAll(0.1 + progress * (finalScale - 0.1));
       if (progress < 1) requestAnimationFrame(animateSpawn);
     };
     requestAnimationFrame(animateSpawn);
@@ -2018,6 +2036,14 @@ export class MiningDepthsLevel extends BaseLevel {
       this.boss.mesh.dispose();
     }
     this.boss = null;
+
+    // Dispose boss GLB instances
+    for (const node of this.bossGlbInstances) {
+      if (node && !node.isDisposed()) {
+        node.dispose(false, true);
+      }
+    }
+    this.bossGlbInstances = [];
 
     // Dispose flashlight
     this.flashlight?.dispose();

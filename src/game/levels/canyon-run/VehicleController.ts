@@ -20,6 +20,15 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
+
+// ---------------------------------------------------------------------------
+// GLB paths for vehicle parts
+// ---------------------------------------------------------------------------
+
+const VEHICLE_BODY_GLB = '/models/spaceships/Bob.glb';
+const VEHICLE_TURRET_GLB = '/models/props/weapons/fps_plasma_cannon.glb';
+const VEHICLE_WHEEL_GLB = '/models/props/containers/tire_1.glb';
 
 // ============================================================================
 // TYPES
@@ -137,7 +146,7 @@ export class VehicleController {
   private rootNode: TransformNode;
   private chassis: Mesh;
   private turret: Mesh;
-  private wheels: Mesh[] = [];
+  private wheels: TransformNode[] = [];
   private boostFlame: Mesh | null = null;
   private headlights: Mesh[] = [];
 
@@ -161,6 +170,26 @@ export class VehicleController {
 
   // Wheel animation
   private wheelRotation = 0;
+
+  /**
+   * Create and initialize a VehicleController, preloading GLB assets.
+   * Prefer this over the constructor for async GLB loading.
+   */
+  static async create(
+    scene: Scene,
+    camera: UniversalCamera,
+    spawnPosition: Vector3,
+    config: Partial<VehicleConfig> = {},
+    cameraConfig: Partial<ChaseCameraConfig> = {}
+  ): Promise<VehicleController> {
+    // Pre-load GLBs so createInstanceByPath succeeds synchronously in the constructor
+    await Promise.all([
+      AssetManager.loadAssetByPath(VEHICLE_BODY_GLB, scene),
+      AssetManager.loadAssetByPath(VEHICLE_TURRET_GLB, scene),
+      AssetManager.loadAssetByPath(VEHICLE_WHEEL_GLB, scene),
+    ]);
+    return new VehicleController(scene, camera, spawnPosition, config, cameraConfig);
+  }
 
   constructor(
     scene: Scene,
@@ -212,75 +241,64 @@ export class VehicleController {
   // ==========================================================================
 
   private createChassis(): Mesh {
+    // Load GLB body model (pre-loaded via VehicleController.create)
+    const bodyNode = AssetManager.createInstanceByPath(
+      VEHICLE_BODY_GLB,
+      'vehicle_chassis_glb',
+      this.scene,
+      false
+    );
+
+    // Create a thin invisible box as the chassis reference mesh (needed for tilt animation)
     const chassis = MeshBuilder.CreateBox(
-      'vehicle_chassis',
-      { width: 2.8, height: 1.0, depth: 5.5 },
+      'vehicle_chassis_ref',
+      { width: 2.8, height: 0.05, depth: 5.5 },
       this.scene
     );
-    const mat = new StandardMaterial('vehicle_chassis_mat', this.scene);
-    mat.diffuseColor = Color3.FromHexString('#3A5C3A');
-    mat.specularColor = new Color3(0.2, 0.2, 0.15);
-    chassis.material = mat;
+    chassis.isVisible = false;
     chassis.parent = this.rootNode;
     chassis.position.y = 0.5;
 
-    // Add front bumper
-    const bumper = MeshBuilder.CreateBox(
-      'vehicle_bumper',
-      { width: 3.0, height: 0.6, depth: 0.4 },
-      this.scene
-    );
-    const bumperMat = new StandardMaterial('vehicle_bumper_mat', this.scene);
-    bumperMat.diffuseColor = Color3.FromHexString('#2A2A2A');
-    bumper.material = bumperMat;
-    bumper.parent = this.rootNode;
-    bumper.position.set(0, 0.3, 2.7);
-
-    // Rear section (slightly raised for engine block look)
-    const rearBlock = MeshBuilder.CreateBox(
-      'vehicle_rear',
-      { width: 2.4, height: 0.8, depth: 1.5 },
-      this.scene
-    );
-    rearBlock.material = mat;
-    rearBlock.parent = this.rootNode;
-    rearBlock.position.set(0, 1.0, -1.8);
+    if (bodyNode) {
+      bodyNode.parent = this.rootNode;
+      bodyNode.position.set(0, 0.3, 0);
+      bodyNode.scaling.setAll(1.2);
+      bodyNode.rotation.y = Math.PI; // face forward
+    }
 
     return chassis;
   }
 
   private createTurret(): Mesh {
-    // Roll cage / turret mount
+    // Load GLB turret / weapon model (pre-loaded via VehicleController.create)
+    const turretNode = AssetManager.createInstanceByPath(
+      VEHICLE_TURRET_GLB,
+      'vehicle_turret_glb',
+      this.scene,
+      false
+    );
+
+    // Invisible reference mesh for turret position tracking
     const turret = MeshBuilder.CreateBox(
-      'vehicle_turret',
-      { width: 1.2, height: 0.5, depth: 1.0 },
+      'vehicle_turret_ref',
+      { width: 0.05, height: 0.05, depth: 0.05 },
       this.scene
     );
-    const mat = new StandardMaterial('vehicle_turret_mat', this.scene);
-    mat.diffuseColor = Color3.FromHexString('#4A4A4A');
-    mat.specularColor = new Color3(0.4, 0.4, 0.35);
-    turret.material = mat;
+    turret.isVisible = false;
     turret.parent = this.rootNode;
     turret.position.set(0, 1.5, -1.5);
 
-    // Gun barrel
-    const barrel = MeshBuilder.CreateCylinder(
-      'vehicle_barrel',
-      { diameter: 0.15, height: 2.0 },
-      this.scene
-    );
-    barrel.material = mat;
-    barrel.parent = turret;
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.1, 1.2);
+    if (turretNode) {
+      turretNode.parent = turret;
+      turretNode.position.set(0, 0, 0);
+      turretNode.scaling.setAll(2.0);
+      turretNode.rotation.y = Math.PI; // weapon faces forward
+    }
 
     return turret;
   }
 
   private createWheels(): void {
-    const wheelMat = new StandardMaterial('vehicle_wheel_mat', this.scene);
-    wheelMat.diffuseColor = Color3.FromHexString('#1A1A1A');
-
     const wheelPositions = [
       new Vector3(-1.5, -0.2, 1.8), // Front left
       new Vector3(1.5, -0.2, 1.8), // Front right
@@ -289,16 +307,26 @@ export class VehicleController {
     ];
 
     for (let i = 0; i < wheelPositions.length; i++) {
-      const wheel = MeshBuilder.CreateCylinder(
-        `vehicle_wheel_${i}`,
-        { diameter: 1.0, height: 0.5 },
-        this.scene
+      // Create a wrapper TransformNode for rotation animation
+      const wheelWrapper = new TransformNode(`vehicle_wheel_${i}`, this.scene);
+      wheelWrapper.parent = this.rootNode;
+      wheelWrapper.position = wheelPositions[i];
+
+      // Load GLB tire model (pre-loaded via VehicleController.create)
+      const wheelNode = AssetManager.createInstanceByPath(
+        VEHICLE_WHEEL_GLB,
+        `vehicle_wheel_glb_${i}`,
+        this.scene,
+        false
       );
-      wheel.material = wheelMat;
-      wheel.parent = this.rootNode;
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position = wheelPositions[i];
-      this.wheels.push(wheel);
+
+      if (wheelNode) {
+        wheelNode.parent = wheelWrapper;
+        wheelNode.rotation.z = Math.PI / 2; // Orient tire sideways
+        wheelNode.scaling.setAll(0.5); // Scale to appropriate wheel size
+      }
+
+      this.wheels.push(wheelWrapper);
     }
   }
 

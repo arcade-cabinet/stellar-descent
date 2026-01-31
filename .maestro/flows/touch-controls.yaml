@@ -1,20 +1,30 @@
 # Touch Controls Flow - Tests mobile touch input
-# Run: maestro test .maestro/flows/touch-controls.yaml
+# Platform: Android, iOS (mobile-specific)
 
-appId: com.jbcom.stellardescent
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - mobile-only
+  - controls
+name: "Touch Controls Test"
 
 ---
 - launchApp:
     clearState: true
 
+- extendedWaitUntil:
+    visible: "NEW CAMPAIGN"
+    timeout: 30000
+
 - tapOn:
-    text: "NEW GAME"
-    timeout: 10000
+    text: "NEW CAMPAIGN"
 
 - extendedWaitUntil:
-    notVisible:
-      text: "Loading"
-    timeout: 30000
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Wait for game to fully load
+- wait: 3000
 
 # Test virtual joystick (left side of screen)
 - swipe:

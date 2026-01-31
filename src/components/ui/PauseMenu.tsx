@@ -9,6 +9,7 @@ import {
 import { getAudioManager } from '../../game/core/AudioManager';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import { AudioLogCollection } from './AudioLogCollection';
+import { MilitaryButton } from './MilitaryButton';
 import styles from './PauseMenu.module.css';
 import { SettingsMenu } from './SettingsMenu';
 
@@ -511,21 +512,17 @@ export function PauseMenu({
             </p>
 
             <div className={styles.confirmButtons}>
-              <button
-                type="button"
-                className={styles.confirmCancelButton}
-                onClick={handleCancelConfirm}
-              >
+              <MilitaryButton onClick={handleCancelConfirm} size="sm">
                 CANCEL
-              </button>
-              <button
-                ref={confirmButtonRef}
-                type="button"
-                className={`${styles.confirmActionButton} ${confirmDialog === 'quit' ? styles.confirmDanger : styles.confirmWarning}`}
+              </MilitaryButton>
+              <MilitaryButton
+                variant={confirmDialog === 'quit' ? 'danger' : 'default'}
                 onClick={handleConfirmAction}
+                buttonRef={confirmButtonRef}
+                size="sm"
               >
                 {confirmDialog === 'restart' ? 'RESTART' : 'QUIT'}
-              </button>
+              </MilitaryButton>
             </div>
           </div>
         </div>

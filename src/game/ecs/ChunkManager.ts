@@ -775,25 +775,17 @@ export class ChunkManager {
   }
 
   private async loadChunkState(x: number, z: number): Promise<ChunkState | null> {
-    try {
-      const key = `chunk_${this.environment}_${x}_${z}`;
-      const data = worldDb.getChunkData(key);
-      if (data) {
-        return JSON.parse(data) as ChunkState;
-      }
-    } catch (error) {
-      console.warn(`[ECSChunkManager] Failed to load chunk state: ${error}`);
+    const key = `chunk_${this.environment}_${x}_${z}`;
+    const data = await worldDb.getChunkData(key);
+    if (data) {
+      return JSON.parse(data) as ChunkState;
     }
     return null;
   }
 
   private async saveChunkState(state: ChunkState): Promise<void> {
-    try {
-      const key = `chunk_${this.environment}_${state.chunkX}_${state.chunkZ}`;
-      worldDb.setChunkData(key, JSON.stringify(state));
-    } catch (error) {
-      console.warn(`[ECSChunkManager] Failed to save chunk state: ${error}`);
-    }
+    const key = `chunk_${this.environment}_${state.chunkX}_${state.chunkZ}`;
+    await worldDb.setChunkData(key, JSON.stringify(state));
   }
 
   // -----------------------------------------------------------------------

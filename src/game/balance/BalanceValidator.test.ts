@@ -37,7 +37,7 @@ const LEVEL_IDS = Object.keys(LEVEL_SPAWN_CONFIG);
 describe('All weapons can kill all enemy types', () => {
   for (const weaponId of WEAPON_IDS) {
     for (const enemyId of ENEMY_IDS) {
-      it(`${WEAPON_BALANCE[weaponId].name} can kill ${ENEMY_BALANCE[enemyId].name}`, () => {
+      it(`${WEAPON_BALANCE[weaponId]!.name} can kill ${ENEMY_BALANCE[enemyId].name}`, () => {
         const dps = calculateWeaponDPS(weaponId);
         const hp = ENEMY_BALANCE[enemyId].baseHealth;
 
@@ -65,7 +65,7 @@ describe('TTK values within targets', () => {
           const tier = getEnemyTier(enemyId);
           const target = TTK_TARGETS[difficulty][tier];
 
-          it(`${WEAPON_BALANCE[weaponId].name} vs ${ENEMY_BALANCE[enemyId].name}: TTK in [${target[0]}-${target[1]}]s`, () => {
+          it(`${WEAPON_BALANCE[weaponId]!.name} vs ${ENEMY_BALANCE[enemyId].name}: TTK in [${target[0]}-${target[1]}]s`, () => {
             const ttk = calculateTTK(weaponId, enemyId, difficulty);
 
             // Allow some tolerance: burst TTK can be up to 50% below minimum
@@ -98,7 +98,7 @@ describe('Ammo economy supports level completion', () => {
     describe(`[${difficulty}]`, () => {
       for (const levelId of LEVEL_IDS) {
         for (const weaponId of WEAPON_IDS) {
-          it(`${WEAPON_BALANCE[weaponId].name} has enough ammo for ${LEVEL_SPAWN_CONFIG[levelId].levelName}`, () => {
+          it(`${WEAPON_BALANCE[weaponId]!.name} has enough ammo for ${LEVEL_SPAWN_CONFIG[levelId].levelName}`, () => {
             const required = calculateAmmoRequiredForLevel(weaponId, levelId, difficulty);
             const available = calculateTotalAmmoWithPickups(weaponId, levelId, difficulty);
             const adjustedRequired = Math.round(required * missRate);
@@ -192,7 +192,7 @@ describe('No weapon is obviously OP or underpowered', () => {
 
         expect(
           ratio,
-          `${WEAPON_BALANCE[a.id].name} (${a.dps}) vs ${WEAPON_BALANCE[b.id].name} (${b.dps})`
+          `${WEAPON_BALANCE[a.id]!.name} (${a.dps}) vs ${WEAPON_BALANCE[b.id]!.name} (${b.dps})`
         ).toBeLessThanOrEqual(MAX_DPS_RATIO);
       }
     }
@@ -212,7 +212,7 @@ describe('No weapon is obviously OP or underpowered', () => {
 
         expect(
           ratio,
-          `${WEAPON_BALANCE[a.id].name} (${a.dps.toFixed(1)}) vs ${WEAPON_BALANCE[b.id].name} (${b.dps.toFixed(1)})`
+          `${WEAPON_BALANCE[a.id]!.name} (${a.dps.toFixed(1)}) vs ${WEAPON_BALANCE[b.id]!.name} (${b.dps.toFixed(1)})`
         ).toBeLessThanOrEqual(MAX_DPS_RATIO);
       }
     }
@@ -226,21 +226,21 @@ describe('No weapon is obviously OP or underpowered', () => {
   });
 
   it('plasma cannon has highest per-shot damage', () => {
-    const plasma = WEAPON_BALANCE.plasma_cannon.damage;
-    expect(plasma).toBeGreaterThan(WEAPON_BALANCE.assault_rifle.damage);
-    expect(plasma).toBeGreaterThan(WEAPON_BALANCE.pulse_smg.damage);
+    const plasma = WEAPON_BALANCE.plasma_cannon!.damage;
+    expect(plasma).toBeGreaterThan(WEAPON_BALANCE.assault_rifle!.damage);
+    expect(plasma).toBeGreaterThan(WEAPON_BALANCE.pulse_smg!.damage);
   });
 
   it('pulse SMG has highest fire rate', () => {
-    const smg = WEAPON_BALANCE.pulse_smg.fireRate;
-    expect(smg).toBeGreaterThan(WEAPON_BALANCE.assault_rifle.fireRate);
-    expect(smg).toBeGreaterThan(WEAPON_BALANCE.plasma_cannon.fireRate);
+    const smg = WEAPON_BALANCE.pulse_smg!.fireRate;
+    expect(smg).toBeGreaterThan(WEAPON_BALANCE.assault_rifle!.fireRate);
+    expect(smg).toBeGreaterThan(WEAPON_BALANCE.plasma_cannon!.fireRate);
   });
 
   it('assault rifle is a balanced middle ground', () => {
-    const rifle = WEAPON_BALANCE.assault_rifle;
-    const smg = WEAPON_BALANCE.pulse_smg;
-    const plasma = WEAPON_BALANCE.plasma_cannon;
+    const rifle = WEAPON_BALANCE.assault_rifle!;
+    const smg = WEAPON_BALANCE.pulse_smg!;
+    const plasma = WEAPON_BALANCE.plasma_cannon!;
 
     // Damage: between SMG and Plasma
     expect(rifle.damage).toBeGreaterThan(smg.damage);
@@ -319,19 +319,19 @@ describe('Spawn configuration integrity', () => {
 describe('Balance config structural integrity', () => {
   it('all weapons have positive magazine size', () => {
     for (const weaponId of WEAPON_IDS) {
-      expect(WEAPON_BALANCE[weaponId].magazineSize).toBeGreaterThan(0);
+      expect(WEAPON_BALANCE[weaponId]!.magazineSize).toBeGreaterThan(0);
     }
   });
 
   it('all weapons have positive reload time', () => {
     for (const weaponId of WEAPON_IDS) {
-      expect(WEAPON_BALANCE[weaponId].reloadTimeMs).toBeGreaterThan(0);
+      expect(WEAPON_BALANCE[weaponId]!.reloadTimeMs).toBeGreaterThan(0);
     }
   });
 
   it('all weapons have reserve ammo >= magazine size', () => {
     for (const weaponId of WEAPON_IDS) {
-      const w = WEAPON_BALANCE[weaponId];
+      const w = WEAPON_BALANCE[weaponId]!;
       expect(w.maxReserveAmmo).toBeGreaterThanOrEqual(w.magazineSize);
     }
   });
@@ -399,10 +399,10 @@ describe('Sustained TTK calculations', () => {
           // Sustained uses discrete shots while burst uses continuous DPS.
           // When one magazine suffices, discrete model can be up to 1/fireRate
           // seconds lower due to damage overkill on the last shot.
-          const discreteTolerance = 1 / WEAPON_BALANCE[weaponId].fireRate;
+          const discreteTolerance = 1 / WEAPON_BALANCE[weaponId]!.fireRate;
           expect(
             sustained,
-            `${WEAPON_BALANCE[weaponId].name} vs ${ENEMY_BALANCE[enemyId].name} [${difficulty}]`
+            `${WEAPON_BALANCE[weaponId]!.name} vs ${ENEMY_BALANCE[enemyId].name} [${difficulty}]`
           ).toBeGreaterThanOrEqual(burst - discreteTolerance - 0.001);
         }
       }

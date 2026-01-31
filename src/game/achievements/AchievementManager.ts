@@ -96,6 +96,7 @@ export interface AchievementProgress {
   levelShotsHit?: number;
   // Exploration tracking
   secretsFound?: number;
+  levelSecretsFound?: number; // Secrets found in current level
   audioLogsFound?: number;
   areasDiscovered?: number;
   // Multi-kill tracking
@@ -647,6 +648,7 @@ class AchievementManagerImpl {
     this.progress.levelKills = 0;
     this.progress.levelShotsFired = 0;
     this.progress.levelShotsHit = 0;
+    this.progress.levelSecretsFound = 0;
     this.progress.levelStartTime = Date.now();
     this.saveToStorage();
   }
@@ -883,6 +885,7 @@ class AchievementManagerImpl {
    */
   onSecretFound(): void {
     this.progress.secretsFound = (this.progress.secretsFound ?? 0) + 1;
+    this.progress.levelSecretsFound = (this.progress.levelSecretsFound ?? 0) + 1;
     this.saveToStorage();
 
     // Check for curious achievement (first secret)
@@ -1024,6 +1027,44 @@ class AchievementManagerImpl {
     const hits = this.progress.shotsHit ?? 0;
     if (shots === 0) return 0;
     return Math.round((hits / shots) * 100);
+  }
+
+  /**
+   * Get level shots fired count
+   */
+  getLevelShotsFired(): number {
+    return this.progress.levelShotsFired ?? 0;
+  }
+
+  /**
+   * Get level shots hit count
+   */
+  getLevelShotsHit(): number {
+    return this.progress.levelShotsHit ?? 0;
+  }
+
+  /**
+   * Get level secrets found count
+   */
+  getLevelSecretsFound(): number {
+    return this.progress.levelSecretsFound ?? 0;
+  }
+
+  /**
+   * Get all level stats for level completion
+   */
+  getLevelStats(): {
+    shotsFired: number;
+    shotsHit: number;
+    secretsFound: number;
+    kills: number;
+  } {
+    return {
+      shotsFired: this.progress.levelShotsFired ?? 0,
+      shotsHit: this.progress.levelShotsHit ?? 0,
+      secretsFound: this.progress.levelSecretsFound ?? 0,
+      kills: this.progress.levelKills ?? 0,
+    };
   }
 
   // ============================================================================

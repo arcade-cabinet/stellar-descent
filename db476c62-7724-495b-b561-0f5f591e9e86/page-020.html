@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code transcript - page 20</title>
+    <style>
+:root { --bg-color: #f5f5f5; --card-bg: #ffffff; --user-bg: #e3f2fd; --user-border: #1976d2; --assistant-bg: #f5f5f5; --assistant-border: #9e9e9e; --thinking-bg: #fff8e1; --thinking-border: #ffc107; --thinking-text: #666; --tool-bg: #f3e5f5; --tool-border: #9c27b0; --tool-result-bg: #e8f5e9; --tool-error-bg: #ffebee; --text-color: #212121; --text-muted: #757575; --code-bg: #263238; --code-text: #aed581; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 16px; line-height: 1.6; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin-bottom: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--user-border); }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--user-border); padding-bottom: 8px; margin-bottom: 24px; }
+.header-row h1 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; flex: 1; min-width: 200px; }
+.message { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.message.user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.message.assistant { background: var(--card-bg); border-left: 4px solid var(--assistant-border); }
+.message.tool-reply { background: #fff8e1; border-left: 4px solid #ff9800; }
+.tool-reply .role-label { color: #e65100; }
+.tool-reply .tool-result { background: transparent; padding: 0; margin: 0; }
+.tool-reply .tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.message-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.role-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.user .role-label { color: var(--user-border); }
+time { color: var(--text-muted); font-size: 0.8rem; }
+.timestamp-link { color: inherit; text-decoration: none; }
+.timestamp-link:hover { text-decoration: underline; }
+.message:target { animation: highlight 2s ease-out; }
+@keyframes highlight { 0% { background-color: rgba(25, 118, 210, 0.2); } 100% { background-color: transparent; } }
+.message-content { padding: 16px; }
+.message-content p { margin: 0 0 12px 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.thinking { background: var(--thinking-bg); border: 1px solid var(--thinking-border); border-radius: 8px; padding: 12px; margin: 12px 0; font-size: 0.9rem; color: var(--thinking-text); }
+.thinking-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #f57c00; margin-bottom: 8px; }
+.thinking p { margin: 8px 0; }
+.assistant-text { margin: 8px 0; }
+.tool-use { background: var(--tool-bg); border: 1px solid var(--tool-border); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-header { font-weight: 600; color: var(--tool-border); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.tool-icon { font-size: 1.1rem; }
+.tool-description { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic; }
+.tool-result { background: var(--tool-result-bg); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-result.tool-error { background: var(--tool-error-bg); }
+.file-tool { border-radius: 8px; padding: 12px; margin: 12px 0; }
+.write-tool { background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%); border: 1px solid #4caf50; }
+.edit-tool { background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%); border: 1px solid #ff9800; }
+.file-tool-header { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.write-header { color: #2e7d32; }
+.edit-header { color: #e65100; }
+.file-tool-icon { font-size: 1rem; }
+.file-tool-path { font-family: monospace; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 4px; }
+.file-tool-fullpath { font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; word-break: break-all; }
+.file-content { margin: 0; }
+.edit-section { display: flex; margin: 4px 0; border-radius: 4px; overflow: hidden; }
+.edit-label { padding: 8px 12px; font-weight: bold; font-family: monospace; display: flex; align-items: flex-start; }
+.edit-old { background: #fce4ec; }
+.edit-old .edit-label { color: #b71c1c; background: #f8bbd9; }
+.edit-old .edit-content { color: #880e4f; }
+.edit-new { background: #e8f5e9; }
+.edit-new .edit-label { color: #1b5e20; background: #a5d6a7; }
+.edit-new .edit-content { color: #1b5e20; }
+.edit-content { margin: 0; flex: 1; background: transparent; font-size: 0.85rem; }
+.edit-replace-all { font-size: 0.75rem; font-weight: normal; color: var(--text-muted); }
+.write-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #e6f4ea); }
+.edit-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff0e5); }
+.todo-list { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border: 1px solid #81c784; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.todo-header { font-weight: 600; color: #2e7d32; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.todo-items { list-style: none; margin: 0; padding: 0; }
+.todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.9rem; }
+.todo-item:last-child { border-bottom: none; }
+.todo-icon { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; }
+.todo-completed .todo-icon { color: #2e7d32; background: rgba(46, 125, 50, 0.15); }
+.todo-completed .todo-content { color: #558b2f; text-decoration: line-through; }
+.todo-in-progress .todo-icon { color: #f57c00; background: rgba(245, 124, 0, 0.15); }
+.todo-in-progress .todo-content { color: #e65100; font-weight: 500; }
+.todo-pending .todo-icon { color: #757575; background: rgba(0,0,0,0.05); }
+.todo-pending .todo-content { color: #616161; }
+pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
+pre.json { color: #e0e0e0; }
+code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre code { background: none; padding: 0; }
+.user-content { margin: 0; }
+.truncatable { position: relative; }
+.truncatable.truncated .truncatable-content { max-height: 200px; overflow: hidden; }
+.truncatable.truncated::after { content: ''; position: absolute; bottom: 32px; left: 0; right: 0; height: 60px; background: linear-gradient(to bottom, transparent, var(--card-bg)); pointer-events: none; }
+.message.user .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
+.message.tool-reply .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.tool-use .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-bg)); }
+.tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-result-bg)); }
+.expand-btn { display: none; width: 100%; padding: 8px 16px; margin-top: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); }
+.expand-btn:hover { background: rgba(0,0,0,0.1); }
+.truncatable.truncated .expand-btn, .truncatable.expanded .expand-btn { display: block; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin: 24px 0; flex-wrap: wrap; }
+.pagination a, .pagination span { padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.pagination a { background: var(--card-bg); color: var(--user-border); border: 1px solid var(--user-border); }
+.pagination a:hover { background: var(--user-bg); }
+.pagination .current { background: var(--user-border); color: white; }
+.pagination .disabled { color: var(--text-muted); border: 1px solid #ddd; }
+.pagination .index-link { background: var(--user-border); color: white; }
+details.continuation { margin-bottom: 16px; }
+details.continuation summary { cursor: pointer; padding: 12px 16px; background: var(--user-bg); border-left: 4px solid var(--user-border); border-radius: 12px; font-weight: 500; color: var(--text-muted); }
+details.continuation summary:hover { background: rgba(25, 118, 210, 0.15); }
+details.continuation[open] summary { border-radius: 12px 12px 0 0; margin-bottom: 0; }
+.index-item { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.index-item a { display: block; text-decoration: none; color: inherit; }
+.index-item a:hover { background: rgba(25, 118, 210, 0.1); }
+.index-item-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.index-item-number { font-weight: 600; color: var(--user-border); }
+.index-item-content { padding: 16px; }
+.index-item-stats { padding: 8px 16px 12px 32px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(0,0,0,0.06); }
+.index-item-commit { margin-top: 6px; padding: 4px 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85rem; color: #e65100; }
+.index-item-commit code { background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 3px; font-size: 0.8rem; margin-right: 6px; }
+.commit-card { margin: 8px 0; padding: 10px 14px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 6px; }
+.commit-card a { text-decoration: none; color: #5d4037; display: block; }
+.commit-card a:hover { color: #e65100; }
+.commit-card-hash { font-family: monospace; color: #e65100; font-weight: 600; margin-right: 8px; }
+.index-commit { margin-bottom: 12px; padding: 10px 16px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.index-commit a { display: block; text-decoration: none; color: inherit; }
+.index-commit a:hover { background: rgba(255, 152, 0, 0.1); margin: -10px -16px; padding: 10px 16px; border-radius: 8px; }
+.index-commit-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; }
+.index-commit-hash { font-family: monospace; color: #e65100; font-weight: 600; }
+.index-commit-msg { color: #5d4037; }
+.index-item-long-text { margin-top: 8px; padding: 12px; background: var(--card-bg); border-radius: 8px; border-left: 3px solid var(--assistant-border); }
+.index-item-long-text .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--card-bg)); }
+.index-item-long-text-content { color: var(--text-color); }
+#search-box { display: none; align-items: center; gap: 8px; }
+#search-box input { padding: 6px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; width: 180px; }
+#search-box button, #modal-search-btn, #modal-close-btn { background: var(--user-border); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#search-box button:hover, #modal-search-btn:hover { background: #1565c0; }
+#modal-close-btn { background: var(--text-muted); margin-left: 8px; }
+#modal-close-btn:hover { background: #616161; }
+#search-modal[open] { border: none; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); padding: 0; width: 90vw; max-width: 900px; height: 80vh; max-height: 80vh; display: flex; flex-direction: column; }
+#search-modal::backdrop { background: rgba(0,0,0,0.5); }
+.search-modal-header { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--assistant-border); background: var(--bg-color); border-radius: 12px 12px 0 0; }
+.search-modal-header input { flex: 1; padding: 8px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; }
+#search-status { padding: 8px 16px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+#search-results { flex: 1; overflow-y: auto; padding: 16px; }
+.search-result { margin-bottom: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.search-result a { display: block; text-decoration: none; color: inherit; }
+.search-result a:hover { background: rgba(25, 118, 210, 0.05); }
+.search-result-page { padding: 6px 12px; background: rgba(0,0,0,0.03); font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+.search-result-content { padding: 12px; }
+.search-result mark { background: #fff59d; padding: 1px 2px; border-radius: 2px; }
+@media (max-width: 600px) { body { padding: 8px; } .message, .index-item { border-radius: 8px; } .message-content, .index-item-content { padding: 12px; } pre { font-size: 0.8rem; padding: 8px; } #search-box input { width: 120px; } #search-modal[open] { width: 95vw; height: 90vh; } }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1><a href="index.html" style="color: inherit; text-decoration: none;">Claude Code transcript</a> - page 20/37</h1>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-019.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<a href="page-003.html">3</a>
+<a href="page-004.html">4</a>
+<a href="page-005.html">5</a>
+<a href="page-006.html">6</a>
+<a href="page-007.html">7</a>
+<a href="page-008.html">8</a>
+<a href="page-009.html">9</a>
+<a href="page-010.html">10</a>
+<a href="page-011.html">11</a>
+<a href="page-012.html">12</a>
+<a href="page-013.html">13</a>
+<a href="page-014.html">14</a>
+<a href="page-015.html">15</a>
+<a href="page-016.html">16</a>
+<a href="page-017.html">17</a>
+<a href="page-018.html">18</a>
+<a href="page-019.html">19</a>
+<span class="current">20</span>
+<a href="page-021.html">21</a>
+<a href="page-022.html">22</a>
+<a href="page-023.html">23</a>
+<a href="page-024.html">24</a>
+<a href="page-025.html">25</a>
+<a href="page-026.html">26</a>
+<a href="page-027.html">27</a>
+<a href="page-028.html">28</a>
+<a href="page-029.html">29</a>
+<a href="page-030.html">30</a>
+<a href="page-031.html">31</a>
+<a href="page-032.html">32</a>
+<a href="page-033.html">33</a>
+<a href="page-034.html">34</a>
+<a href="page-035.html">35</a>
+<a href="page-036.html">36</a>
+<a href="page-037.html">37</a>
+<a href="page-021.html">Next &rarr;</a>
+</div>
+
+        
+<div class="message user" id="msg-2026-01-30T14-29-46-364Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-46-364Z" class="timestamp-link"><time datetime="2026-01-30T14:29:46.364Z" data-timestamp="2026-01-30T14:29:46.364Z">2026-01-30T14:29:46.364Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a48fb34</task-id>
+<status>completed</status></p>
+<summary>Agent "Marcus reunion cinematic" completed</summary>
+<p><result>The implementation is complete. Let me provide a summary of what was implemented.</p>
+<hr />
+<h3>Backend Feature Delivered - Marcus Reunion Cinematic (2026-01-30)</h3>
+<p><strong>Stack Detected</strong>: TypeScript, Babylon.js 3D engine, React (Vite build)</p>
+<p><strong>Files Added</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/brothers-in-arms/cinematics.ts</code></p>
+<p><strong>Files Modified</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/brothers-in-arms/BrothersInArmsLevel.ts</code>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/brothers-in-arms/index.ts</code></p>
+<p><strong>Key Components</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ReunionCinematic</code></td>
+<td>Main cinematic controller class managing camera, dialogue, and visual effects</td>
+</tr>
+<tr>
+<td><code>REUNION_DIALOGUE</code></td>
+<td>8-part dialogue sequence with timed delivery</td>
+</tr>
+<tr>
+<td><code>REUNION_CAMERA_PATH</code></td>
+<td>7-beat camera animation path with FOV transitions</td>
+</tr>
+<tr>
+<td><code>COMMS</code></td>
+<td>Centralized comms message definitions for all level phases</td>
+</tr>
+<tr>
+<td><code>NOTIFICATIONS</code></td>
+<td>Centralized notification strings</td>
+</tr>
+<tr>
+<td><code>OBJECTIVES</code></td>
+<td>Objective text generators for HUD updates</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design Notes</strong></p>
+<ol>
+<li><strong>Camera Cinematic Sequence</strong></li>
+<li>7 camera keyframes with smooth easing transitions (CubicEase)</li>
+<li>Wide opening shot (FOV 1.4) panning toward Marcus</li>
+<li>Medium and close-up beats to emphasize Marcus's 8m Titan mech scale</li>
+<li>Pull-back reveal shot showing both brothers</li>
+<li>Dramatic pan toward The Breach as Marcus mentions the queen</li>
+<li>
+<p>Smooth return to gameplay position (0, 1.7, 50)</p>
+</li>
+<li>
+<p><strong>Marcus Appearance and Introduction</strong></p>
+</li>
+<li>Dramatic spotlight (PointLight) fades in on Marcus</li>
+<li>30 atmospheric dust particles with floating animation</li>
+<li>Camera shake on key dialogue beats for emphasis</li>
+<li>
+<p>Visual effects cleaned up gracefully at cinematic end</p>
+</li>
+<li>
+<p><strong>Dialogue Integration</strong></p>
+</li>
+<li>8-part emotional dialogue sequence:<ul>
+<li>ATHENA: IFF confirmation of Marcus</li>
+<li>Marcus: Emotional greeting ("You actually came")</li>
+<li>James: Brotherly reassurance</li>
+<li>Marcus: Status update ("It's been bad")</li>
+<li>James: Request for intel (FOB Delta reference)</li>
+<li>Marcus: Exposition about the queen and hive</li>
+<li>ATHENA: Warning about incoming hostiles</li>
+<li>Marcus: Transition to combat ("Like the Europa job")</li>
+</ul>
+</li>
+<li>Each message timed with delays (1.5s to 41s)</li>
+<li>
+<p>Uses existing <code>CommsDisplay</code> component via callbacks</p>
+</li>
+<li>
+<p><strong>Transition to Gameplay</strong></p>
+</li>
+<li><code>cinematicInProgress</code> flag prevents player input during cinematic</li>
+<li>Camera smoothly returns to FPS position after cinematic</li>
+<li>Wave combat starts automatically after a 2s delay</li>
+<li>Action buttons appear for grenade/melee/fire support</li>
+</ol>
+<p><strong>Tests</strong>
+- All 144 existing tests pass (5 test files)
+- No TypeScript errors in cinematic modules
+- Linter (Biome) passes without warnings on new files</p>
+<p><strong>Code Structure</strong>
+<code>src/game/levels/brothers-in-arms/
+  index.ts              - Module exports
+  BrothersInArmsLevel.ts - Level class with cinematic integration
+  cinematics.ts         - NEW: Cinematic controller, dialogue, and constants</code></result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a48fb34.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-46-895Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-46-895Z" class="timestamp-link"><time datetime="2026-01-30T14:29:46.895Z" data-timestamp="2026-01-30T14:29:46.895Z">2026-01-30T14:29:46.895Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-46-936Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-46-936Z" class="timestamp-link"><time datetime="2026-01-30T14:29:46.936Z" data-timestamp="2026-01-30T14:29:46.936Z">2026-01-30T14:29:46.936Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a4e655a</task-id>
+<status>completed</status></p>
+<summary>Agent "Extraction holdout waves" completed</summary>
+<p><result>The implementation is complete. Let me provide the implementation report:</p>
+<hr />
+<h3>Backend Feature Delivered - ExtractionLevel: Holdout Wave System Enhancement (2026-01-30)</h3>
+<p><strong>Stack Detected</strong>: TypeScript, React, Babylon.js, Vite</p>
+<p><strong>Files Modified</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/extraction/ExtractionLevel.ts</code></p>
+<p><strong>Key Changes</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WaveConfig interface</td>
+<td>Extended with <code>waveTitle</code>, <code>waveDescription</code>, and <code>commsMessage</code> fields</td>
+</tr>
+<tr>
+<td>WavePhase state machine</td>
+<td>New type with 4 states: <code>waiting</code>, <code>intermission</code>, <code>announcement</code>, <code>active</code></td>
+</tr>
+<tr>
+<td>Wave configurations</td>
+<td>5 waves with escalating difficulty, unique titles, and comms messages</td>
+</tr>
+<tr>
+<td>Intermission system</td>
+<td>8-second countdown between waves with HUD display</td>
+</tr>
+<tr>
+<td>Spawn system</td>
+<td>Enhanced with wave-based health scaling and varied spawn positions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design Notes</strong></p>
+<ul>
+<li><strong>Pattern chosen</strong>: State machine for wave management (<code>WavePhase</code> type)</li>
+<li><strong>Wave flow</strong>: <code>intermission</code> (8s countdown) -&gt; <code>announcement</code> (3s title) -&gt; <code>active</code> (combat) -&gt; <code>waiting</code> (wave clear) -&gt; repeat</li>
+<li><strong>Difficulty scaling</strong>: </li>
+<li>Wave 1: 12 drones (fast scouts)</li>
+<li>Wave 2: 10 lurkers (heavy infantry)</li>
+<li>Wave 3: Mixed force with 4 spitters</li>
+<li>Wave 4: Broodmothers introduced (2 brutes)</li>
+<li>Wave 5: Overwhelming final assault (31 total enemies)</li>
+<li><strong>Health scaling</strong>: Enemies gain +10% health per wave</li>
+<li><strong>Mech degradation</strong>: Integrity caps decrease each wave (100% -&gt; 70% -&gt; 45% -&gt; 25%)</li>
+</ul>
+<p><strong>Wave Announcements</strong></p>
+<p>Each wave includes:
+1. Incoming notification during intermission
+2. Character comms message (Marcus or ATHENA)
+3. Dramatic title announcement with screen shake
+4. Wave description in HUD objective</p>
+<p><strong>HUD Display by Phase</strong></p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Title</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Intermission</td>
+<td><code>NEXT WAVE IN Xs</code></td>
+<td>Dropship ETA, kills, mech status</td>
+</tr>
+<tr>
+<td>Announcement</td>
+<td>Wave title</td>
+<td>Wave description</td>
+</tr>
+<tr>
+<td>Active</td>
+<td><code>WAVE X/5</code></td>
+<td>Active enemies, dropship ETA, mech status</td>
+</tr>
+<tr>
+<td>Waiting</td>
+<td><code>LZ OMEGA - HOLDOUT</code></td>
+<td>Dropship ETA, total kills</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tests</strong>
+- Build passes with no TypeScript errors for ExtractionLevel
+- All 144 existing tests pass
+- Lint passes with no issues</p>
+<p><strong>Performance</strong>
+- Wave spawning paced by configurable <code>spawnDelay</code> per wave
+- Max enemies capped at 40 to maintain performance
+- Enemy spawn effects use existing particle system</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a4e655a.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-47-163Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-47-163Z" class="timestamp-link"><time datetime="2026-01-30T14:29:47.163Z" data-timestamp="2026-01-30T14:29:47.163Z">2026-01-30T14:29:47.163Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-47-206Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-47-206Z" class="timestamp-link"><time datetime="2026-01-30T14:29:47.206Z" data-timestamp="2026-01-30T14:29:47.206Z">2026-01-30T14:29:47.206Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a135307</task-id>
+<status>completed</status></p>
+<summary>Agent "Hive collapse escape sequence" completed</summary>
+<p><result>The implementation is complete. Let me provide the implementation report.</p>
+<hr />
+<h3>Backend Feature Delivered - Hive Collapse Escape Sequence (2026-01-30)</h3>
+<p><strong>Stack Detected</strong>: TypeScript, Babylon.js 7.x, React</p>
+<p><strong>Files Modified</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/extraction/ExtractionLevel.ts</code></p>
+<p><strong>Key Implementation Details</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New Phase</td>
+<td><code>hive_collapse</code> added to <code>ExtractionPhase</code> type</td>
+</tr>
+<tr>
+<td>Countdown Timer</td>
+<td>45-second countdown to reach the dropship</td>
+</tr>
+<tr>
+<td>Environmental Effects</td>
+<td>Ground cracks, hive eruptions, falling debris</td>
+</tr>
+<tr>
+<td>Visual Effects</td>
+<td>Apocalyptic orange-red sky, glowing fissures, collapse lighting</td>
+</tr>
+<tr>
+<td>Integration</td>
+<td>Triggers after wave 5 of holdout, leads to victory phase</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design Notes</strong></p>
+<ul>
+<li><strong>Pattern chosen</strong>: Extended existing phase-based state machine in ExtractionLevel</li>
+<li><strong>Phase flow</strong>: <code>holdout</code> (wave 5) -&gt; <code>hive_collapse</code> -&gt; <code>victory</code> -&gt; <code>epilogue</code></li>
+<li><strong>Trigger mechanism</strong>: 45 seconds into wave 5 OR immediately after wave 5 completion</li>
+<li><strong>Failure handling</strong>: Marcus rescues player if timer expires, giving 15 more seconds</li>
+</ul>
+<p><strong>New Interfaces and State</strong></p>
+<pre><code class="language-typescript">// Hive collapse visual elements
+interface CollapseEffect {
+  mesh: Mesh;
+  startPosition: Vector3;
+  endPosition: Vector3;
+  progress: number;
+  speed: number;
+  type: 'ground_crack' | 'hive_eruption' | 'falling_structure';
+}
+
+// State variables for collapse sequence
+private hiveCollapseTimer = 45;           // Countdown
+private collapseIntensity = 0;            // 0-1 progression
+private collapseEffects: CollapseEffect[];
+private hiveEruptionMeshes: Mesh[];
+private groundCracks: Mesh[];
+private collapseLight: PointLight | null;
+</code></pre>
+<p><strong>Key Methods Added</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>startHiveCollapseSequence()</code></td>
+<td>Initialize collapse phase, comms, effects</td>
+</tr>
+<tr>
+<td><code>createCollapseEnvironment()</code></td>
+<td>Create lighting and ground crack visuals</td>
+</tr>
+<tr>
+<td><code>createGroundCracks()</code></td>
+<td>Generate glowing fissure meshes</td>
+</tr>
+<tr>
+<td><code>spawnHiveEruption()</code></td>
+<td>Create dramatic geyser effects</td>
+</tr>
+<tr>
+<td><code>spawnCollapseDebris()</code></td>
+<td>Generate falling debris chunks</td>
+</tr>
+<tr>
+<td><code>updateHiveCollapse()</code></td>
+<td>Main update loop for collapse phase</td>
+</tr>
+<tr>
+<td><code>onCollapseFailure()</code></td>
+<td>Handle timeout with rescue mechanic</td>
+</tr>
+<tr>
+<td><code>disposeCollapseEffects()</code></td>
+<td>Clean up collapse-specific resources</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Visual Effects</strong></p>
+<ol>
+<li><strong>Sky color change</strong>: Orange-red apocalyptic atmosphere (<code>Color4(0.85, 0.4, 0.2, 1)</code>)</li>
+<li><strong>Ground cracks</strong>: 12 radiating fissures with pulsing emissive glow</li>
+<li><strong>Hive eruptions</strong>: Animated pillars rising from ground with explosion particles</li>
+<li><strong>Collapse lighting</strong>: Red-orange point light from below with intensity scaling</li>
+<li><strong>Camera shake</strong>: Progressive intensity from 2 to 8 based on collapse progress</li>
+<li><strong>Debris</strong>: Increased spawn rate as collapse progresses</li>
+</ol>
+<p><strong>Comms Sequence</strong></p>
+<ul>
+<li>0s: ATHENA warns of collapse, 45-second countdown</li>
+<li>5s: Marcus announces covering fire</li>
+<li>8s/15s/35s: Dramatic eruption triggers with notifications</li>
+<li>25s: Dropship pilot urgency message</li>
+<li>20s/10s/5s: Timer warnings</li>
+</ul>
+<p><strong>Tests</strong></p>
+<ul>
+<li>TypeScript compilation: PASS (no errors in ExtractionLevel.ts)</li>
+<li>Linting: PASS (Biome formatted successfully)</li>
+<li>Existing project build errors are pre-existing in other files (BrothersInArmsLevel, LandfallLevel)</li>
+</ul>
+<p><strong>Performance Considerations</strong></p>
+<ul>
+<li>Debris meshes use lifetime-based cleanup (8 second max)</li>
+<li>Collapse effects disposed in <code>disposeCollapseEffects()</code></li>
+<li>Debris spawn rate caps based on collapse intensity</li>
+<li>Ground cracks are static meshes with only material updates</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a135307.output</li>
+</ul></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-47-638Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-47-638Z" class="timestamp-link"><time datetime="2026-01-30T14:29:47.638Z" data-timestamp="2026-01-30T14:29:47.638Z">2026-01-30T14:29:47.638Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-47-659Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-47-659Z" class="timestamp-link"><time datetime="2026-01-30T14:29:47.659Z" data-timestamp="2026-01-30T14:29:47.659Z">2026-01-30T14:29:47.659Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>ae907af</task-id>
+<status>completed</status></p>
+<summary>Agent "Portrait orientation error" completed</summary>
+<p><result>The implementation is complete. Let me summarize what was done.</p>
+<h2>Summary: Task #117 - Mobile Portrait Orientation Error Screen</h2>
+<p>I enhanced the existing <code>LandscapeEnforcer</code> component to provide a better user experience when the device is in portrait mode. The component already existed with basic functionality, so I improved it with more intuitive visual indicators and better feedback.</p>
+<h3>Files Modified</h3>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/LandscapeEnforcer.tsx</code></strong></p>
+<p>Key enhancements:
+1. <strong>Improved Visual Indicator</strong>: Replaced the single rotating phone icon with a side-by-side comparison showing:
+   - A faded portrait phone with an X mark (wrong orientation)
+   - A highlighted landscape phone with a checkmark (correct orientation)
+   - An animated curved arrow showing the rotation direction</p>
+<ol>
+<li><strong>Additional Visual Cues</strong>:</li>
+<li>Warning badge at top with pulsing animation</li>
+<li>Rotation hint icon (circular arrows)</li>
+<li>
+<p>Instruction bar with animated directional arrows and "Rotate your device to continue" text</p>
+</li>
+<li>
+<p><strong>Haptic Feedback</strong>: Added vibration pattern <code>[50, 30, 50]</code> when the overlay first appears (configurable via <code>enableHaptics</code> prop)</p>
+</li>
+<li>
+<p><strong>Enhanced Accessibility</strong>:</p>
+</li>
+<li>Added <code>aria-live="assertive"</code> for screen reader announcements</li>
+<li>Screen reader only text explaining automatic dismissal behavior</li>
+<li>All decorative elements properly marked with <code>aria-hidden="true"</code></li>
+</ol>
+<p><strong><code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/components/ui/LandscapeEnforcer.module.css</code></strong></p>
+<p>Key additions:
+- <code>.warningBadge</code> with pulsing animation
+- <code>.portraitPhone</code> with fading animation
+- <code>.landscapePhone</code> with glowing animation
+- <code>.rotationArrow</code> with flowing dash animation
+- <code>.rotationHint</code> and <code>.hintArrow</code> for rotation indicator
+- <code>.instruction</code> and <code>.instructionIcon</code> for the instruction bar
+- <code>.srOnly</code> for screen reader only content
+- Comprehensive <code>@media (prefers-reduced-motion: reduce)</code> support for all new animations</p>
+<h3>Features Checklist</h3>
+<ol>
+<li><strong>Clear message explaining landscape requirement</strong>: Title "ROTATE DEVICE" and customizable message explaining the requirement</li>
+<li><strong>Visual indicator showing how to rotate device</strong>: Side-by-side phone comparison with X/checkmark, curved rotation arrow, and animated rotation hint</li>
+<li><strong>Automatic dismissal when orientation changes</strong>: Listens to <code>resize</code>, <code>orientationchange</code>, and <code>screen.orientation.change</code> events; automatically hides with fade-out animation when device is rotated to landscape</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/ae907af.output</li>
+</ol></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-48-685Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-48-685Z" class="timestamp-link"><time datetime="2026-01-30T14:29:48.685Z" data-timestamp="2026-01-30T14:29:48.685Z">2026-01-30T14:29:48.685Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+<div class="message user" id="msg-2026-01-30T14-29-48-707Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-01-30T14-29-48-707Z" class="timestamp-link"><time datetime="2026-01-30T14:29:48.707Z" data-timestamp="2026-01-30T14:29:48.707Z">2026-01-30T14:29:48.707Z</time></a></div><div class="message-content">
+<div class="user-content"><p><task-notification>
+<task-id>a6fe1b7</task-id>
+<status>completed</status></p>
+<summary>Agent "Damage feedback and hit reactions" completed</summary>
+<p><result>The implementation looks good. Let me now provide a summary of the implementation report.</p>
+<hr />
+<h3>Backend Feature Delivered - Combat Damage Feedback System (2026-01-30)</h3>
+<p><strong>Stack Detected</strong>: TypeScript + Babylon.js 3D Engine + React</p>
+<p><strong>Files Added</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/effects/DamageFeedback.ts</code></p>
+<p><strong>Files Modified</strong>:
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/the-breach/enemies.ts</code>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/the-breach/TheBreachLevel.ts</code>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/levels/fob-delta/FOBDeltaLevel.ts</code>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/systems/combatSystem.ts</code>
+- <code>/Users/jbogaty/src/arcade-cabinet/stellar-descent/src/game/effects/index.ts</code> (auto-updated)</p>
+<p><strong>Key Components</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DamageFeedbackManager</code></td>
+<td>Singleton manager for all damage feedback effects</td>
+</tr>
+<tr>
+<td><code>applyHitFlash()</code></td>
+<td>Flash enemy mesh red/color when hit</td>
+</tr>
+<tr>
+<td><code>applyKnockback()</code></td>
+<td>Stagger enemies backwards on hit</td>
+</tr>
+<tr>
+<td><code>applyScalePunch()</code></td>
+<td>Quick scale animation for hit reaction</td>
+</tr>
+<tr>
+<td><code>showDamageNumber()</code></td>
+<td>Floating damage numbers above enemies</td>
+</tr>
+<tr>
+<td><code>triggerScreenShake()</code></td>
+<td>Screen shake on heavy damage</td>
+</tr>
+<tr>
+<td><code>applyDamageFeedback()</code></td>
+<td>Combined method calling all effects</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design Notes</strong>
+- Pattern chosen: Singleton Manager with pooled damage number meshes for performance
+- Material handling: Works with both direct Mesh and TransformNode (GLB models)
+- Animation system: Uses Babylon.js native Animation API with Bezier easing
+- Billboard damage numbers: Always face camera using BILLBOARDMODE_ALL
+- DynamicTexture: Renders damage numbers with canvas text</p>
+<p><strong>Features Implemented</strong>
+1. <strong>Visual damage feedback (hit flash)</strong>: Enemy meshes flash red when taking damage. Works with both procedural meshes and GLB models by iterating through child meshes and modifying StandardMaterial colors.</p>
+<ol>
+<li><strong>Hit reaction animations</strong>: </li>
+<li>Scale punch effect (quick scale up then return)</li>
+<li>Knockback animation pushing enemy away from hit direction</li>
+<li>
+<p>Uses Babylon.js Animation API with BezierCurveEase for snappy feel</p>
+</li>
+<li>
+<p><strong>Floating damage numbers</strong>: </p>
+</li>
+<li>Pooled mesh system (20 entries) for performance</li>
+<li>DynamicTexture for text rendering</li>
+<li>Float upward and fade out over 1 second</li>
+<li>Color coded: white (normal), yellow (high damage 50+), red (critical)</li>
+<li>
+<p>Always face camera (billboard mode)</p>
+</li>
+<li>
+<p><strong>Screen shake on heavy hits</strong>:</p>
+</li>
+<li>Integrated with existing BaseLevel shake system</li>
+<li>Configurable threshold (default 15 damage)</li>
+<li>Player damage always triggers shake (scaled to damage amount)</li>
+<li>Enemy damage shakes on heavy hits only</li>
+</ol>
+<p><strong>Integration Points</strong>
+- TheBreachLevel: Full integration with enemy damage, player damage, and update loop
+- FOBDeltaLevel: Full integration with ambush enemies and player damage
+- CombatSystem (ECS): Integration for projectile-based damage
+- BaseLevel: Screen shake callback connection</p>
+<p><strong>Configuration Options</strong> (via <code>DamageFeedbackConfig</code>)
+- <code>enableHitFlash</code>: Toggle hit flash effect
+- <code>hitFlashDuration</code>: Flash duration in ms (default: 100)
+- <code>hitFlashColor</code>: Color to flash (default: red)
+- <code>enableKnockback</code>: Toggle knockback effect
+- <code>knockbackScale</code>: Knockback distance multiplier
+- <code>enableDamageNumbers</code>: Toggle floating numbers
+- <code>damageNumberSpeed</code>: Float speed (default: 2 units/sec)
+- <code>damageNumberDuration</code>: Display time (default: 1000ms)
+- <code>enableScreenShake</code>: Toggle screen shake
+- <code>screenShakeThreshold</code>: Minimum damage for shake (default: 15)
+- <code>screenShakeScale</code>: Shake intensity multiplier</p>
+<p><strong>Performance Considerations</strong>
+- Object pooling for damage number meshes (avoids GC pressure)
+- Material flash uses timeout-based restoration
+- Animation cleanup to prevent memory leaks
+- Singleton pattern ensures single instance</p>
+<p><strong>Tests</strong>
+- TypeScript compilation passes (no errors in modified files)
+- Pre-existing errors in unrelated files (BrothersInArmsLevel.ts) not addressed</result>
+</task-notification>
+Full transcript available at: /private/tmp/claude-501/-Users-jbogaty-src-arcade-cabinet-stellar-descent/tasks/a6fe1b7.output</p></div></div></div>
+<div class="message assistant" id="msg-2026-01-30T14-29-48-954Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-01-30T14-29-48-954Z" class="timestamp-link"><time datetime="2026-01-30T14:29:48.954Z" data-timestamp="2026-01-30T14:29:48.954Z">2026-01-30T14:29:48.954Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>You've hit your limit · resets 12pm (America/Chicago)</p></div></div></div>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<a href="page-019.html">&larr; Prev</a>
+<a href="page-001.html">1</a>
+<a href="page-002.html">2</a>
+<a href="page-003.html">3</a>
+<a href="page-004.html">4</a>
+<a href="page-005.html">5</a>
+<a href="page-006.html">6</a>
+<a href="page-007.html">7</a>
+<a href="page-008.html">8</a>
+<a href="page-009.html">9</a>
+<a href="page-010.html">10</a>
+<a href="page-011.html">11</a>
+<a href="page-012.html">12</a>
+<a href="page-013.html">13</a>
+<a href="page-014.html">14</a>
+<a href="page-015.html">15</a>
+<a href="page-016.html">16</a>
+<a href="page-017.html">17</a>
+<a href="page-018.html">18</a>
+<a href="page-019.html">19</a>
+<span class="current">20</span>
+<a href="page-021.html">21</a>
+<a href="page-022.html">22</a>
+<a href="page-023.html">23</a>
+<a href="page-024.html">24</a>
+<a href="page-025.html">25</a>
+<a href="page-026.html">26</a>
+<a href="page-027.html">27</a>
+<a href="page-028.html">28</a>
+<a href="page-029.html">29</a>
+<a href="page-030.html">30</a>
+<a href="page-031.html">31</a>
+<a href="page-032.html">32</a>
+<a href="page-033.html">33</a>
+<a href="page-034.html">34</a>
+<a href="page-035.html">35</a>
+<a href="page-036.html">36</a>
+<a href="page-037.html">37</a>
+<a href="page-021.html">Next &rarr;</a>
+</div>
+
+    </div>
+    <script>
+document.querySelectorAll('time[data-timestamp]').forEach(function(el) {
+    const timestamp = el.getAttribute('data-timestamp');
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (isToday) { el.textContent = timeStr; }
+    else { el.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + timeStr; }
+});
+document.querySelectorAll('pre.json').forEach(function(el) {
+    let text = el.textContent;
+    text = text.replace(/"([^"]+)":/g, '<span style="color: #ce93d8">"$1"</span>:');
+    text = text.replace(/: "([^"]*)"/g, ': <span style="color: #81d4fa">"$1"</span>');
+    text = text.replace(/: (\d+)/g, ': <span style="color: #ffcc80">$1</span>');
+    text = text.replace(/: (true|false|null)/g, ': <span style="color: #f48fb1">$1</span>');
+    el.innerHTML = text;
+});
+document.querySelectorAll('.truncatable').forEach(function(wrapper) {
+    const content = wrapper.querySelector('.truncatable-content');
+    const btn = wrapper.querySelector('.expand-btn');
+    if (content.scrollHeight > 250) {
+        wrapper.classList.add('truncated');
+        btn.addEventListener('click', function() {
+            if (wrapper.classList.contains('truncated')) { wrapper.classList.remove('truncated'); wrapper.classList.add('expanded'); btn.textContent = 'Show less'; }
+            else { wrapper.classList.remove('expanded'); wrapper.classList.add('truncated'); btn.textContent = 'Show more'; }
+        });
+    }
+});
+</script>
+</body>
+</html>

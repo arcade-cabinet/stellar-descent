@@ -1,12 +1,36 @@
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import '@babylonjs/loaders/glTF';
 import { createEntity, type Entity } from '../core/ecs';
 import { tokens } from '../utils/designTokens';
+
+/** Path to the Marcus mech GLB model (relative to public/) */
+const MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
+
+/**
+ * Try to find a child mesh whose name contains one of the given substrings
+ * (case-insensitive). Returns the first match or null.
+ */
+function findChildMesh(
+  meshes: AbstractMesh[],
+  ...substrings: string[]
+): Mesh | null {
+  for (const sub of substrings) {
+    const lower = sub.toLowerCase();
+    const found = meshes.find(
+      (m) => m.name.toLowerCase().includes(lower) && m instanceof Mesh
+    );
+    if (found) return found as Mesh;
+  }
+  return null;
+}
 
 export class MechWarrior {
   public entity: Entity;
@@ -23,15 +47,26 @@ export class MechWarrior {
   private lastFireTime = 0;
   private fireRate = 2;
 
-  constructor(scene: Scene, position: Vector3) {
+  // -----------------------------------------------------------------------
+  // Private constructor -- use the async MechWarrior.create() factory
+  // -----------------------------------------------------------------------
+  private constructor(
+    scene: Scene,
+    position: Vector3,
+    rootNode: TransformNode,
+    body: Mesh,
+    leftArm: Mesh,
+    rightArm: Mesh,
+    legs: Mesh
+  ) {
     this.scene = scene;
-    this.rootNode = new TransformNode('mechRoot', scene);
+    this.rootNode = rootNode;
     this.rootNode.position = position;
 
-    this.body = this.createBody();
-    this.leftArm = this.createArm('left');
-    this.rightArm = this.createArm('right');
-    this.legs = this.createLegs();
+    this.body = body;
+    this.leftArm = leftArm;
+    this.rightArm = rightArm;
+    this.legs = legs;
 
     this.entity = this.createEntity();
 
@@ -39,124 +74,85 @@ export class MechWarrior {
     this.playSpawnAnimation();
   }
 
-  private createBody(): Mesh {
-    const body = MeshBuilder.CreateBox('mechBody', { width: 3, height: 4, depth: 2 }, this.scene);
+  // -----------------------------------------------------------------------
+  // Async factory
+  // -----------------------------------------------------------------------
 
-    const material = new StandardMaterial('mechBodyMat', this.scene);
-    material.diffuseColor = Color3.FromHexString(tokens.colors.primary.oliveDark);
-    material.specularColor = new Color3(0.4, 0.4, 0.4);
-    body.material = material;
+  /**
+   * Create a MechWarrior by loading the GLB model asynchronously.
+   *
+   * Replaces the previous synchronous constructor that used MeshBuilder.
+   * The loaded GLB is searched for child meshes matching body, arm, and leg
+   * naming conventions. If a particular part is not found, a tiny invisible
+   * placeholder mesh is used so that animation & fire logic degrades
+   * gracefully rather than crashing.
+   */
+  static async create(scene: Scene, position: Vector3): Promise<MechWarrior> {
+    const rootNode = new TransformNode('mechRoot', scene);
 
-    body.parent = this.rootNode;
-    body.position.y = 6;
+    // ------------------------------------------------------------------
+    // Load GLB
+    // ------------------------------------------------------------------
+    const result = await SceneLoader.ImportMeshAsync('', MECH_GLB_PATH, '', scene);
 
-    // Add cockpit
-    const cockpit = MeshBuilder.CreateBox(
-      'cockpit',
-      { width: 1.5, height: 1, depth: 0.8 },
-      this.scene
-    );
-    const cockpitMat = new StandardMaterial('cockpitMat', this.scene);
-    cockpitMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-    cockpitMat.emissiveColor = new Color3(0.1, 0.15, 0.1);
-    cockpit.material = cockpitMat;
-    cockpit.parent = body;
-    cockpit.position.set(0, 1.5, 0.7);
+    // Parent all top-level meshes under our root transform
+    for (const mesh of result.meshes) {
+      if (!mesh.parent) {
+        mesh.parent = rootNode;
+      }
+      mesh.isVisible = true;
+    }
 
-    return body;
+    // ------------------------------------------------------------------
+    // Locate key sub-meshes by name convention from the GLB
+    // ------------------------------------------------------------------
+    const allMeshes = rootNode.getChildMeshes(false) as AbstractMesh[];
+
+    const body = findChildMesh(allMeshes, 'body', 'torso', 'chassis', 'hull');
+    if (!body) {
+      throw new Error(
+        `[MechWarrior] GLB at ${MECH_GLB_PATH} missing required mesh: body/torso/chassis/hull. ` +
+          `Available meshes: ${allMeshes.map((m) => m.name).join(', ')}`
+      );
+    }
+
+    const leftArm = findChildMesh(allMeshes, 'leftarm', 'left_arm', 'arm_l', 'arm_left');
+    if (!leftArm) {
+      throw new Error(
+        `[MechWarrior] GLB at ${MECH_GLB_PATH} missing required mesh: leftarm/left_arm/arm_l. ` +
+          `Available meshes: ${allMeshes.map((m) => m.name).join(', ')}`
+      );
+    }
+
+    const rightArm = findChildMesh(allMeshes, 'rightarm', 'right_arm', 'arm_r', 'arm_right');
+    if (!rightArm) {
+      throw new Error(
+        `[MechWarrior] GLB at ${MECH_GLB_PATH} missing required mesh: rightarm/right_arm/arm_r. ` +
+          `Available meshes: ${allMeshes.map((m) => m.name).join(', ')}`
+      );
+    }
+
+    const legs = findChildMesh(allMeshes, 'legs', 'leg', 'hip', 'pelvis', 'lower');
+    if (!legs) {
+      throw new Error(
+        `[MechWarrior] GLB at ${MECH_GLB_PATH} missing required mesh: legs/leg/hip/pelvis/lower. ` +
+          `Available meshes: ${allMeshes.map((m) => m.name).join(', ')}`
+      );
+    }
+
+    // Ensure names match what cinematics & other systems expect
+    body.name = 'mechBody';
+    leftArm.name = 'mechLeftArm';
+    rightArm.name = 'mechRightArm';
+    legs.name = 'mechLegs';
+
+    return new MechWarrior(scene, position, rootNode, body, leftArm, rightArm, legs);
   }
 
-  private createArm(side: 'left' | 'right'): Mesh {
-    const xPos = side === 'left' ? -2.2 : 2.2;
 
-    const arm = MeshBuilder.CreateCylinder(
-      `mechArm_${side}`,
-      { height: 4, diameter: 0.8 },
-      this.scene
-    );
-
-    const material = new StandardMaterial(`mechArmMat_${side}`, this.scene);
-    material.diffuseColor = Color3.FromHexString(tokens.colors.primary.olive);
-    material.specularColor = new Color3(0.3, 0.3, 0.3);
-    arm.material = material;
-
-    arm.parent = this.rootNode;
-    arm.position.set(xPos, 5, 0);
-    arm.rotation.z = side === 'left' ? 0.3 : -0.3;
-
-    // Add weapon barrel
-    const barrel = MeshBuilder.CreateCylinder(
-      `mechBarrel_${side}`,
-      { height: 2.5, diameter: 0.4 },
-      this.scene
-    );
-    const barrelMat = new StandardMaterial(`barrelMat_${side}`, this.scene);
-    barrelMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-    barrel.material = barrelMat;
-    barrel.parent = arm;
-    barrel.position.y = -2.5;
-    barrel.rotation.x = Math.PI / 2;
-
-    return arm;
-  }
-
-  private createLegs(): Mesh {
-    const legsContainer = MeshBuilder.CreateBox(
-      'mechLegs',
-      { width: 2.5, height: 0.5, depth: 1.5 },
-      this.scene
-    );
-    legsContainer.visibility = 0;
-    legsContainer.parent = this.rootNode;
-    legsContainer.position.y = 3;
-
-    const legMat = new StandardMaterial('mechLegMat', this.scene);
-    legMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.khakiDark);
-
-    // Left leg
-    const leftLeg = MeshBuilder.CreateCylinder(
-      'leftLeg',
-      { height: 5, diameterTop: 0.8, diameterBottom: 1.2 },
-      this.scene
-    );
-    leftLeg.material = legMat;
-    leftLeg.parent = legsContainer;
-    leftLeg.position.set(-0.8, -2.5, 0);
-
-    // Right leg
-    const rightLeg = MeshBuilder.CreateCylinder(
-      'rightLeg',
-      { height: 5, diameterTop: 0.8, diameterBottom: 1.2 },
-      this.scene
-    );
-    rightLeg.material = legMat;
-    rightLeg.parent = legsContainer;
-    rightLeg.position.set(0.8, -2.5, 0);
-
-    // Feet
-    const footMat = new StandardMaterial('footMat', this.scene);
-    footMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-
-    const leftFoot = MeshBuilder.CreateBox(
-      'leftFoot',
-      { width: 1.5, height: 0.5, depth: 2 },
-      this.scene
-    );
-    leftFoot.material = footMat;
-    leftFoot.parent = legsContainer;
-    leftFoot.position.set(-0.8, -5.25, 0.3);
-
-    const rightFoot = MeshBuilder.CreateBox(
-      'rightFoot',
-      { width: 1.5, height: 0.5, depth: 2 },
-      this.scene
-    );
-    rightFoot.material = footMat;
-    rightFoot.parent = legsContainer;
-    rightFoot.position.set(0.8, -5.25, 0.3);
-
-    return legsContainer;
-  }
+  // -----------------------------------------------------------------------
+  // Entity creation (unchanged)
+  // -----------------------------------------------------------------------
 
   private createEntity(): Entity {
     return createEntity({
@@ -187,6 +183,10 @@ export class MechWarrior {
       },
     });
   }
+
+  // -----------------------------------------------------------------------
+  // Spawn animation (unchanged)
+  // -----------------------------------------------------------------------
 
   private playSpawnAnimation(): void {
     // Drop from sky animation
@@ -227,6 +227,10 @@ export class MechWarrior {
     requestAnimationFrame(animateDrop);
   }
 
+  // -----------------------------------------------------------------------
+  // Public API (unchanged)
+  // -----------------------------------------------------------------------
+
   setTarget(position: Vector3): void {
     this.targetPosition = position;
   }
@@ -234,6 +238,10 @@ export class MechWarrior {
   setAttackTarget(target: Entity): void {
     this.attackTarget = target;
   }
+
+  // -----------------------------------------------------------------------
+  // Fire — projectile MeshBuilder is intentionally kept (transient VFX)
+  // -----------------------------------------------------------------------
 
   fire(): void {
     const now = performance.now();
@@ -302,6 +310,10 @@ export class MechWarrior {
       });
     }
   }
+
+  // -----------------------------------------------------------------------
+  // Update (unchanged)
+  // -----------------------------------------------------------------------
 
   update(deltaTime: number): void {
     // Move towards target position

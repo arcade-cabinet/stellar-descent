@@ -1,0 +1,207 @@
+# Level Select Screen Tests
+# Tests mission selection with lock/unlock states
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - ui
+  - menu
+  - level-select
+name: "Level Select - Mission Selection"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+- takeScreenshot: "level_select_open"
+
+# Verify header
+- assertVisible:
+    text: "SELECT MISSION"
+
+# Verify level cards exist
+# Chapter 1 - Always unlocked
+- assertVisible:
+    text: "CHAPTER 1"
+
+- assertVisible:
+    text: "ANCHOR STATION PROMETHEUS"
+    optional: true
+
+- takeScreenshot: "level_select_chapter1"
+
+# Check for all 10 chapters
+- assertVisible:
+    text: "CHAPTER 2"
+    optional: true
+
+- assertVisible:
+    text: "LANDFALL"
+    optional: true
+
+- assertVisible:
+    text: "CHAPTER 3"
+    optional: true
+
+- assertVisible:
+    text: "CANYON RUN"
+    optional: true
+
+- takeScreenshot: "level_select_chapters_1_3"
+
+# Scroll to see more levels
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+    duration: 1000
+
+- wait: 500
+
+- takeScreenshot: "level_select_scrolled"
+
+# Check for later chapters
+- assertVisible:
+    text: "CHAPTER 4"
+    optional: true
+
+- assertVisible:
+    text: "FOB DELTA"
+    optional: true
+
+- assertVisible:
+    text: "CHAPTER 5"
+    optional: true
+
+- assertVisible:
+    text: "BROTHERS IN ARMS"
+    optional: true
+
+- takeScreenshot: "level_select_chapters_4_5"
+
+# Continue scrolling
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+    duration: 1000
+
+- wait: 500
+
+# Check for Act 3 levels
+- assertVisible:
+    text: "CHAPTER 6"
+    optional: true
+
+- assertVisible:
+    text: "SOUTHERN ICE"
+    optional: true
+
+- assertVisible:
+    text: "CHAPTER 7"
+    optional: true
+
+- assertVisible:
+    text: "INTO THE BREACH"
+    optional: true
+
+- takeScreenshot: "level_select_chapters_6_7"
+
+# Continue scrolling
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+    duration: 1000
+
+- wait: 500
+
+# Check for Act 4 levels
+- assertVisible:
+    text: "CHAPTER 8"
+    optional: true
+
+- assertVisible:
+    text: "HIVE ASSAULT"
+    optional: true
+
+- assertVisible:
+    text: "CHAPTER 9"
+    optional: true
+
+- assertVisible:
+    text: "EXTRACTION"
+    optional: true
+
+- assertVisible:
+    text: "CHAPTER 10"
+    optional: true
+
+- assertVisible:
+    text: "FINAL ESCAPE"
+    optional: true
+
+- takeScreenshot: "level_select_chapters_8_10"
+
+# Verify Act names are present
+- assertVisible:
+    text: "ACT 1: THE DROP"
+    optional: true
+
+- assertVisible:
+    text: "ACT 2: THE SEARCH"
+    optional: true
+
+- assertVisible:
+    text: "ACT 3: THE TRUTH"
+    optional: true
+
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+- takeScreenshot: "level_select_acts"
+
+# Check footer progress
+- assertVisible:
+    text: "MISSIONS COMPLETE"
+    optional: true
+
+- assertVisible:
+    text: "BACK"
+
+- takeScreenshot: "level_select_footer"
+
+# Check for lock icon on locked levels
+- assertVisible:
+    id: "lock-icon"
+    optional: true
+
+# Check for completed icon on completed levels
+- assertVisible:
+    id: "completed-icon"
+    optional: true
+
+- takeScreenshot: "level_select_icons"
+
+# Close level select
+- tapOn:
+    text: "BACK"
+
+- wait: 1000
+
+# Verify we're back at main menu
+- assertVisible:
+    text: "NEW CAMPAIGN"
+    timeout: 5000
+
+- takeScreenshot: "main_menu_after_level_select"

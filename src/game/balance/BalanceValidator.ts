@@ -121,7 +121,7 @@ export class BalanceValidator {
         const canKill = dps > 0 && hp > 0;
         this.addEntry({
           check: 'weapon_can_kill',
-          description: `${WEAPON_BALANCE[weaponId].name} can kill ${ENEMY_BALANCE[enemyId].name}`,
+          description: `${WEAPON_BALANCE[weaponId]?.name ?? weaponId} can kill ${ENEMY_BALANCE[enemyId].name}`,
           severity: canKill ? 'pass' : 'fail',
           details: `DPS=${dps.toFixed(1)}, HP=${hp}`,
         });
@@ -155,7 +155,7 @@ export class BalanceValidator {
 
           this.addEntry({
             check: 'ttk_target',
-            description: `TTK ${WEAPON_BALANCE[weaponId].name} vs ${ENEMY_BALANCE[enemyId].name} [${difficulty}]`,
+            description: `TTK ${WEAPON_BALANCE[weaponId]?.name ?? weaponId} vs ${ENEMY_BALANCE[enemyId].name} [${difficulty}]`,
             severity,
             details: `TTK=${ttk.toFixed(2)}s, target=[${target[0]}-${target[1]}]s`,
           });
@@ -201,7 +201,7 @@ export class BalanceValidator {
 
           this.addEntry({
             check: 'ammo_economy',
-            description: `Ammo economy: ${WEAPON_BALANCE[weaponId].name} on ${LEVEL_SPAWN_CONFIG[levelId].levelName} [${difficulty}]`,
+            description: `Ammo economy: ${WEAPON_BALANCE[weaponId]?.name ?? weaponId} on ${LEVEL_SPAWN_CONFIG[levelId].levelName} [${difficulty}]`,
             severity,
             details: `available=${available}, needed(adj)=${adjustedRequired}, ratio=${ratio.toFixed(2)}`,
           });
@@ -385,7 +385,7 @@ export class BalanceValidator {
 
         this.addEntry({
           check: 'weapon_dominance',
-          description: `Burst DPS ratio: ${WEAPON_BALANCE[a].name} vs ${WEAPON_BALANCE[b].name}`,
+          description: `Burst DPS ratio: ${WEAPON_BALANCE[a]?.name ?? a} vs ${WEAPON_BALANCE[b]?.name ?? b}`,
           severity: ratio <= MAX_DPS_RATIO ? 'pass' : 'warn',
           details: `ratio=${ratio.toFixed(2)} (max ${MAX_DPS_RATIO})`,
         });
@@ -402,7 +402,7 @@ export class BalanceValidator {
 
         this.addEntry({
           check: 'weapon_dominance_sustained',
-          description: `Sustained DPS ratio: ${WEAPON_BALANCE[a].name} vs ${WEAPON_BALANCE[b].name}`,
+          description: `Sustained DPS ratio: ${WEAPON_BALANCE[a]?.name ?? a} vs ${WEAPON_BALANCE[b]?.name ?? b}`,
           severity: ratio <= MAX_DPS_RATIO ? 'pass' : 'warn',
           details: `ratio=${ratio.toFixed(2)} (max ${MAX_DPS_RATIO})`,
         });

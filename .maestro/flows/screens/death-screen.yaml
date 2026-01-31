@@ -1,0 +1,128 @@
+# Death Screen and Retry Flow Tests
+# Tests game over screen and restart functionality
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - ui
+  - death
+  - retry
+name: "Death Screen - Game Over and Retry"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "HALO DROP"
+    timeout: 30000
+
+# Use HALO DROP to get into combat quickly
+- tapOn:
+    text: "HALO DROP"
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Wait for drop sequence
+- extendedWaitUntil:
+    visible: "ORBITAL DROP INITIATED"
+    timeout: 30000
+
+- wait: 5000
+
+# Gameplay - try to get into combat
+# In actual gameplay, death would occur from enemy damage
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 2000
+      - wait: 500
+
+- takeScreenshot: "gameplay_before_death"
+
+# Note: Death screen appears when player health reaches zero
+# The following tests verify death screen elements when visible
+
+# Check for MISSION FAILED text
+- assertVisible:
+    text: "MISSION FAILED"
+    optional: true
+    timeout: 120000
+
+# If death screen is shown, verify elements
+- assertVisible:
+    text: "SPECTER DOWN"
+    optional: true
+
+- assertVisible:
+    text: "KIA"
+    optional: true
+
+- takeScreenshot: "death_screen_title"
+
+# Combat log stats
+- assertVisible:
+    text: "COMBAT LOG"
+    optional: true
+
+- assertVisible:
+    text: "HOSTILES ELIMINATED"
+    optional: true
+
+- assertVisible:
+    text: "MISSION STATUS"
+    optional: true
+
+- assertVisible:
+    text: "FAILED"
+    optional: true
+
+- takeScreenshot: "death_screen_stats"
+
+# Action buttons
+- assertVisible:
+    text: "RESTART MISSION"
+    optional: true
+
+- assertVisible:
+    text: "MAIN MENU"
+    optional: true
+
+- takeScreenshot: "death_screen_buttons"
+
+# Footer information
+- assertVisible:
+    text: "7TH DROP MARINES"
+    optional: true
+
+- assertVisible:
+    text: "CASUALTY REPORT"
+    optional: true
+
+# Test RESTART MISSION button
+- tapOn:
+    text: "RESTART MISSION"
+    optional: true
+
+- wait: 3000
+
+# Should see loading screen again
+- assertVisible:
+    text: "SYSTEMS ONLINE"
+    optional: true
+    timeout: 60000
+
+- takeScreenshot: "after_restart"
+
+# Verify game restarted (should be in gameplay)
+- wait: 3000
+
+- takeScreenshot: "gameplay_after_restart"

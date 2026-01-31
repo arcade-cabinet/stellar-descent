@@ -10,6 +10,10 @@
  * - Minecart tracks (decorative)
  * - Volumetric fog via point lights
  * - Three distinct sections: Mining Hub, Collapsed Tunnels, Deep Shaft
+ *
+ * GLB models are loaded via AssetManager for props, equipment, structural
+ * elements, and collectibles. MeshBuilder is retained for terrain surfaces,
+ * collision volumes, VFX planes, and procedural geometry (crystals, tracks).
  */
 
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
@@ -20,6 +24,76 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+
+import { AssetManager } from '../../core/AssetManager';
+
+// ============================================================================
+// GLB Asset Path Constants
+// ============================================================================
+
+const GLB_PATHS = {
+  // Structural beams
+  beamVertical: '/models/environment/station/beam_hc_vertical_2.glb',
+  beamHorizontal: '/models/environment/station/beam_hc_horizontal_2.glb',
+
+  // Support pillars
+  pillar: '/models/environment/station/pillar_hr_2.glb',
+
+  // Industrial equipment
+  machinery: '/models/environment/industrial/machinery_mx_1.glb',
+  platform: '/models/environment/industrial/platform_mx_1.glb',
+
+  // Crates and containers
+  crateSmall: '/models/props/containers/wooden_crate_1.glb',
+  crateMedium: '/models/props/containers/wooden_crate_2_a.glb',
+  crateLarge: '/models/props/containers/wooden_crate_2_b.glb',
+  metalBarrel: '/models/props/containers/metal_barrel_hr_1.glb',
+  toolbox: '/models/props/containers/toolbox_mx_1.glb',
+
+  // Debris
+  gravelPile1: '/models/props/debris/gravel_pile_hr_1.glb',
+  gravelPile2: '/models/props/debris/gravel_pile_hr_2.glb',
+  debrisBricks: '/models/props/debris/debris_bricks_mx_1.glb',
+  brick1: '/models/props/debris/brick_mx_1.glb',
+  brick2: '/models/props/debris/brick_mx_2.glb',
+
+  // Doors and gates
+  gate: '/models/props/doors/gate_1.glb',
+  door: '/models/props/doors/door_hr_6.glb',
+
+  // Platforms and railings
+  platformLedge: '/models/environment/station/platform_bx_1.glb',
+  handrail: '/models/environment/station/platform_b_handrail_1.glb',
+  elevatorPlatform: '/models/environment/station/platform_small_mx_1.glb',
+
+  // Collectibles
+  audioLog: '/models/props/collectibles/audio_log.glb',
+  dataPad: '/models/props/collectibles/data_pad.glb',
+
+  // Lamps
+  lampOn: '/models/props/electrical/lamp_mx_1_a_on.glb',
+} as const;
+
+// Unique set of all GLB paths for preloading
+const ALL_GLB_PATHS: readonly string[] = [...new Set(Object.values(GLB_PATHS))];
+
+// Crate path rotation for visual variety
+const CRATE_VARIANTS: readonly string[] = [
+  GLB_PATHS.crateSmall,
+  GLB_PATHS.crateMedium,
+  GLB_PATHS.crateLarge,
+  GLB_PATHS.toolbox,
+  GLB_PATHS.metalBarrel,
+];
+
+// Debris model rotation for visual variety
+const DEBRIS_VARIANTS: readonly string[] = [
+  GLB_PATHS.gravelPile1,
+  GLB_PATHS.gravelPile2,
+  GLB_PATHS.debrisBricks,
+  GLB_PATHS.brick1,
+  GLB_PATHS.brick2,
+];
 
 // ============================================================================
 // Layout Constants (all in meters)
@@ -343,7 +417,69 @@ export interface MiningEnvironment {
   audioLogMeshes: Mesh[];
   hazardMeshes: Mesh[];
   bossArenaDoor: Mesh;
+  // GLB instance roots for disposal
+  glbInstances: TransformNode[];
   dispose: () => void;
+}
+
+// ============================================================================
+// GLB Preloading
+// ============================================================================
+
+/**
+ * Preload all GLB assets required by the mining depths environment.
+ * Call this before createMiningEnvironment() so that instances can be
+ * created synchronously during environment construction.
+ */
+export async function preloadMiningAssets(scene: Scene): Promise<void> {
+  const loadPromises = ALL_GLB_PATHS.map((path) =>
+    AssetManager.loadAssetByPath(path, scene).catch((err) => {
+      console.warn(`[MiningDepths] Failed to preload GLB ${path}:`, err);
+      return null;
+    })
+  );
+  await Promise.all(loadPromises);
+  console.log(`[MiningDepths] Preloaded ${ALL_GLB_PATHS.length} GLB assets`);
+}
+
+// ============================================================================
+// GLB Instance Helpers
+// ============================================================================
+
+/** Counter to guarantee unique instance names */
+let _instanceCounter = 0;
+
+/**
+ * Create a positioned GLB instance and add its root to the tracking array.
+ * Returns the TransformNode root of the instance (or null on failure).
+ */
+function placeGLBInstance(
+  scene: Scene,
+  parent: TransformNode,
+  glbPath: string,
+  namePrefix: string,
+  position: Vector3,
+  glbInstances: TransformNode[],
+  opts?: {
+    rotationY?: number;
+    scale?: Vector3;
+  }
+): TransformNode | null {
+  const instanceName = `${namePrefix}_${_instanceCounter++}`;
+  const node = AssetManager.createInstanceByPath(glbPath, instanceName, scene, true, 'prop');
+  if (!node) {
+    return null;
+  }
+  node.position = position.clone();
+  if (opts?.rotationY !== undefined) {
+    node.rotation.y = opts.rotationY;
+  }
+  if (opts?.scale) {
+    node.scaling = opts.scale.clone();
+  }
+  node.parent = parent;
+  glbInstances.push(node);
+  return node;
 }
 
 // ============================================================================
@@ -360,14 +496,15 @@ function createTunnelSegment(
   materials: Map<string, StandardMaterial>,
   allMeshes: Mesh[],
   lights: PointLight[],
-  flickerLights: FlickerLightDef[]
+  flickerLights: FlickerLightDef[],
+  glbInstances: TransformNode[]
 ): void {
   const dir = end.subtract(start);
   const length = dir.length();
   const mid = start.add(dir.scale(0.5));
   const angle = Math.atan2(dir.x, dir.z);
 
-  // Floor
+  // Floor (terrain surface -- kept as MeshBuilder)
   const floor = MeshBuilder.CreateBox(
     `tunnel_floor_${allMeshes.length}`,
     { width, height: 0.3, depth: length },
@@ -380,7 +517,7 @@ function createTunnelSegment(
   floor.parent = parent;
   allMeshes.push(floor);
 
-  // Left wall
+  // Left wall (terrain surface -- kept as MeshBuilder)
   const leftWall = MeshBuilder.CreateBox(
     `tunnel_lwall_${allMeshes.length}`,
     { width: 0.5, height, depth: length },
@@ -395,7 +532,7 @@ function createTunnelSegment(
   leftWall.parent = parent;
   allMeshes.push(leftWall);
 
-  // Right wall
+  // Right wall (terrain surface -- kept as MeshBuilder)
   const rightWall = MeshBuilder.CreateBox(
     `tunnel_rwall_${allMeshes.length}`,
     { width: 0.5, height, depth: length },
@@ -410,7 +547,7 @@ function createTunnelSegment(
   rightWall.parent = parent;
   allMeshes.push(rightWall);
 
-  // Ceiling (arched via box)
+  // Ceiling (terrain surface -- kept as MeshBuilder)
   const ceiling = MeshBuilder.CreateBox(
     `tunnel_ceil_${allMeshes.length}`,
     { width: width + 1, height: 0.4, depth: length },
@@ -423,52 +560,47 @@ function createTunnelSegment(
   ceiling.parent = parent;
   allMeshes.push(ceiling);
 
-  // Support beams every 6 meters
+  // Support beams every 6 meters -> GLB instances
   const beamCount = Math.floor(length / 6);
   for (let i = 0; i <= beamCount; i++) {
     const t = beamCount > 0 ? i / beamCount : 0.5;
     const beamPos = start.add(dir.scale(t));
 
-    // Left beam
-    const lBeam = MeshBuilder.CreateBox(
-      `beam_l_${allMeshes.length}`,
-      { width: 0.2, height, depth: 0.2 },
-      scene
-    );
-    lBeam.position = beamPos.clone();
-    lBeam.position.y += height / 2;
-    lBeam.position.x += Math.cos(angle) * (width / 2 - 0.1);
-    lBeam.position.z -= Math.sin(angle) * (width / 2 - 0.1);
-    lBeam.material = materials.get('metal')!;
-    lBeam.parent = parent;
-    allMeshes.push(lBeam);
+    // Left vertical beam -> GLB
+    const lBeamPos = beamPos.clone();
+    lBeamPos.y += height / 2;
+    lBeamPos.x += Math.cos(angle) * (width / 2 - 0.1);
+    lBeamPos.z -= Math.sin(angle) * (width / 2 - 0.1);
+    placeGLBInstance(scene, parent, GLB_PATHS.beamVertical, 'beam_l', lBeamPos, glbInstances, {
+      rotationY: angle,
+      scale: new Vector3(0.15, height / 4, 0.15),
+    });
 
-    // Right beam
-    const rBeam = MeshBuilder.CreateBox(
-      `beam_r_${allMeshes.length}`,
-      { width: 0.2, height, depth: 0.2 },
-      scene
-    );
-    rBeam.position = beamPos.clone();
-    rBeam.position.y += height / 2;
-    rBeam.position.x -= Math.cos(angle) * (width / 2 - 0.1);
-    rBeam.position.z += Math.sin(angle) * (width / 2 - 0.1);
-    rBeam.material = materials.get('metal')!;
-    rBeam.parent = parent;
-    allMeshes.push(rBeam);
+    // Right vertical beam -> GLB
+    const rBeamPos = beamPos.clone();
+    rBeamPos.y += height / 2;
+    rBeamPos.x -= Math.cos(angle) * (width / 2 - 0.1);
+    rBeamPos.z += Math.sin(angle) * (width / 2 - 0.1);
+    placeGLBInstance(scene, parent, GLB_PATHS.beamVertical, 'beam_r', rBeamPos, glbInstances, {
+      rotationY: angle,
+      scale: new Vector3(0.15, height / 4, 0.15),
+    });
 
-    // Cross beam
-    const crossBeam = MeshBuilder.CreateBox(
-      `beam_cross_${allMeshes.length}`,
-      { width: width - 0.2, height: 0.15, depth: 0.2 },
-      scene
+    // Cross beam -> GLB
+    const crossPos = beamPos.clone();
+    crossPos.y += height - 0.1;
+    placeGLBInstance(
+      scene,
+      parent,
+      GLB_PATHS.beamHorizontal,
+      'beam_cross',
+      crossPos,
+      glbInstances,
+      {
+        rotationY: angle,
+        scale: new Vector3((width - 0.2) / 4, 0.12, 0.15),
+      }
     );
-    crossBeam.position = beamPos.clone();
-    crossBeam.position.y += height - 0.1;
-    crossBeam.rotation.y = angle;
-    crossBeam.material = materials.get('metal')!;
-    crossBeam.parent = parent;
-    allMeshes.push(crossBeam);
   }
 
   // Mining lamp lights every 8 meters
@@ -478,16 +610,10 @@ function createTunnelSegment(
     const lampPos = start.add(dir.scale(t));
     lampPos.y += height - 0.5;
 
-    // Lamp fixture
-    const lampMesh = MeshBuilder.CreateSphere(
-      `lamp_${allMeshes.length}`,
-      { diameter: 0.25, segments: 8 },
-      scene
-    );
-    lampMesh.position = lampPos.clone();
-    lampMesh.material = materials.get('emergency')!;
-    lampMesh.parent = parent;
-    allMeshes.push(lampMesh);
+    // Lamp fixture -> GLB
+    placeGLBInstance(scene, parent, GLB_PATHS.lampOn, 'tunnel_lamp', lampPos, glbInstances, {
+      scale: new Vector3(0.15, 0.15, 0.15),
+    });
 
     // Point light
     const lamp = new PointLight(`tunnel_lamp_${lights.length}`, lampPos.clone(), scene);
@@ -519,6 +645,7 @@ function createCrystalFormation(
   lights: PointLight[],
   variant: 'cyan' | 'purple' = 'cyan'
 ): void {
+  // Crystals are procedurally randomized -- kept as MeshBuilder
   const matKey = variant === 'cyan' ? 'crystal' : 'crystal_purple';
   const lightColor = variant === 'cyan' ? new Color3(0.1, 0.6, 0.8) : new Color3(0.5, 0.2, 0.8);
 
@@ -555,11 +682,11 @@ function createCrystalFormation(
       },
       scene
     );
-    const angle = (i / shardCount) * Math.PI * 2 + Math.random() * 0.5;
+    const shardAngle = (i / shardCount) * Math.PI * 2 + Math.random() * 0.5;
     const dist = 0.3 * scale + Math.random() * 0.3 * scale;
     shard.position = position.clone();
-    shard.position.x += Math.cos(angle) * dist;
-    shard.position.z += Math.sin(angle) * dist;
+    shard.position.x += Math.cos(shardAngle) * dist;
+    shard.position.z += Math.sin(shardAngle) * dist;
     shard.position.y += shardHeight / 2;
     shard.rotation.x = (Math.random() - 0.5) * 0.5;
     shard.rotation.z = (Math.random() - 0.5) * 0.5;
@@ -587,6 +714,7 @@ function createMinecartTrack(
   materials: Map<string, StandardMaterial>,
   allMeshes: Mesh[]
 ): void {
+  // Track rails and ties are very thin procedural geometry -- kept as MeshBuilder
   for (let i = 0; i < points.length - 1; i++) {
     const start = points[i];
     const end = points[i + 1];
@@ -650,40 +778,13 @@ function createMinecart(
   parent: TransformNode,
   position: Vector3,
   rotationY: number,
-  materials: Map<string, StandardMaterial>,
-  allMeshes: Mesh[]
+  glbInstances: TransformNode[]
 ): void {
-  // Cart body (open-top box)
-  const body = MeshBuilder.CreateBox(
-    `cart_${allMeshes.length}`,
-    { width: 1.2, height: 0.8, depth: 1.8 },
-    scene
-  );
-  body.position = position.clone();
-  body.position.y += 0.6;
-  body.rotation.y = rotationY;
-  body.material = materials.get('cart')!;
-  body.parent = parent;
-  allMeshes.push(body);
-
-  // Wheels (4 cylinders)
-  for (let w = 0; w < 4; w++) {
-    const wheel = MeshBuilder.CreateCylinder(
-      `cartwheel_${allMeshes.length}`,
-      { height: 0.08, diameter: 0.3, tessellation: 8 },
-      scene
-    );
-    const wx = w < 2 ? -0.5 : 0.5;
-    const wz = w % 2 === 0 ? -0.6 : 0.6;
-    wheel.position = position.clone();
-    wheel.position.x += wx * Math.cos(rotationY) - wz * Math.sin(rotationY);
-    wheel.position.z += wx * Math.sin(rotationY) + wz * Math.cos(rotationY);
-    wheel.position.y += 0.15;
-    wheel.rotation.z = Math.PI / 2;
-    wheel.material = materials.get('track')!;
-    wheel.parent = parent;
-    allMeshes.push(wheel);
-  }
+  // Minecart -> GLB barrel model as stand-in
+  placeGLBInstance(scene, parent, GLB_PATHS.metalBarrel, 'minecart', position, glbInstances, {
+    rotationY,
+    scale: new Vector3(1.0, 0.8, 1.5),
+  });
 }
 
 function createDrillRig(
@@ -691,67 +792,13 @@ function createDrillRig(
   parent: TransformNode,
   position: Vector3,
   rotationY: number,
-  materials: Map<string, StandardMaterial>,
-  allMeshes: Mesh[]
+  glbInstances: TransformNode[]
 ): void {
-  // Base platform
-  const base = MeshBuilder.CreateBox(
-    `drill_base_${allMeshes.length}`,
-    { width: 3, height: 0.4, depth: 3 },
-    scene
-  );
-  base.position = position.clone();
-  base.position.y += 0.2;
-  base.rotation.y = rotationY;
-  base.material = materials.get('equipment')!;
-  base.parent = parent;
-  allMeshes.push(base);
-
-  // Vertical arm
-  const arm = MeshBuilder.CreateBox(
-    `drill_arm_${allMeshes.length}`,
-    { width: 0.5, height: 4, depth: 0.5 },
-    scene
-  );
-  arm.position = position.clone();
-  arm.position.y += 2.4;
-  arm.rotation.y = rotationY;
-  arm.material = materials.get('metal')!;
-  arm.parent = parent;
-  allMeshes.push(arm);
-
-  // Drill bit (cone)
-  const bit = MeshBuilder.CreateCylinder(
-    `drill_bit_${allMeshes.length}`,
-    { height: 1.5, diameterTop: 0, diameterBottom: 0.6, tessellation: 8 },
-    scene
-  );
-  bit.position = position.clone();
-  bit.position.y += 0.75;
-  bit.position.z -= Math.cos(rotationY) * 1.5;
-  bit.position.x -= Math.sin(rotationY) * 1.5;
-  bit.rotation.x = Math.PI / 2;
-  bit.rotation.y = rotationY;
-  bit.material = materials.get('metal')!;
-  bit.parent = parent;
-  allMeshes.push(bit);
-
-  // Hydraulic pistons
-  for (let i = 0; i < 2; i++) {
-    const piston = MeshBuilder.CreateCylinder(
-      `drill_piston_${allMeshes.length}`,
-      { height: 2, diameter: 0.15, tessellation: 8 },
-      scene
-    );
-    piston.position = position.clone();
-    piston.position.y += 2;
-    piston.position.x += (i === 0 ? -0.4 : 0.4) * Math.cos(rotationY);
-    piston.position.z += (i === 0 ? -0.4 : 0.4) * Math.sin(rotationY);
-    piston.rotation.x = 0.3;
-    piston.material = materials.get('metal')!;
-    piston.parent = parent;
-    allMeshes.push(piston);
-  }
+  // Full drill rig -> single machinery GLB model
+  placeGLBInstance(scene, parent, GLB_PATHS.machinery, 'drill_rig', position, glbInstances, {
+    rotationY,
+    scale: new Vector3(1.5, 1.5, 1.5),
+  });
 }
 
 function createDebrisPile(
@@ -759,33 +806,19 @@ function createDebrisPile(
   parent: TransformNode,
   position: Vector3,
   scale: number,
-  materials: Map<string, StandardMaterial>,
-  allMeshes: Mesh[]
+  glbInstances: TransformNode[]
 ): void {
-  const count = 5 + Math.floor(Math.random() * 6);
+  // Place 2-3 debris GLB instances for each pile
+  const count = 2 + Math.floor(Math.random() * 2);
   for (let i = 0; i < count; i++) {
-    const size = (0.3 + Math.random() * 0.8) * scale;
-    const rock = MeshBuilder.CreateBox(
-      `debris_${allMeshes.length}`,
-      {
-        width: size * (0.8 + Math.random() * 0.4),
-        height: size * (0.5 + Math.random() * 0.5),
-        depth: size * (0.8 + Math.random() * 0.4),
-      },
-      scene
-    );
-    rock.position = position.clone();
-    rock.position.x += (Math.random() - 0.5) * 3 * scale;
-    rock.position.z += (Math.random() - 0.5) * 3 * scale;
-    rock.position.y += size * 0.25;
-    rock.rotation.set(
-      Math.random() * Math.PI * 0.3,
-      Math.random() * Math.PI * 2,
-      Math.random() * Math.PI * 0.3
-    );
-    rock.material = materials.get('debris')!;
-    rock.parent = parent;
-    allMeshes.push(rock);
+    const variant = DEBRIS_VARIANTS[Math.floor(Math.random() * DEBRIS_VARIANTS.length)];
+    const offset = position.clone();
+    offset.x += (Math.random() - 0.5) * 2 * scale;
+    offset.z += (Math.random() - 0.5) * 2 * scale;
+    placeGLBInstance(scene, parent, variant, 'debris', offset, glbInstances, {
+      rotationY: Math.random() * Math.PI * 2,
+      scale: new Vector3(scale * 0.8, scale * 0.6, scale * 0.8),
+    });
   }
 }
 
@@ -793,12 +826,16 @@ function createDebrisPile(
 // Main Environment Creation
 // ============================================================================
 
-export function createMiningEnvironment(scene: Scene): MiningEnvironment {
+export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvironment> {
+  // Preload all GLB assets first
+  await preloadMiningAssets(scene);
+
   const root = new TransformNode('miningDepths', scene);
   const materials = createMiningMaterials(scene);
   const allMeshes: Mesh[] = [];
   const lights: PointLight[] = [];
   const flickerLights: FlickerLightDef[] = [];
+  const glbInstances: TransformNode[] = [];
 
   // Section root nodes
   const entrySection = new TransformNode('entry', scene);
@@ -817,7 +854,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   // SECTION 1: ENTRY ELEVATOR & MINING HUB
   // ===========================================================================
 
-  // Entry elevator shaft - player arrives from surface
+  // Entry elevator shaft - player arrives from surface (structural -- kept as MeshBuilder)
   const elevatorShaft = MeshBuilder.CreateBox(
     'elevatorShaft',
     { width: 4, height: 12, depth: 4 },
@@ -829,20 +866,20 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   elevatorShaft.parent = entrySection;
   allMeshes.push(elevatorShaft);
 
-  // Elevator platform (destroyed)
-  const elevatorPlatform = MeshBuilder.CreateBox(
+  // Elevator platform (destroyed) -> GLB
+  const elevPlatPos = ENTRY_CENTER.clone();
+  elevPlatPos.y = 0.15;
+  placeGLBInstance(
+    scene,
+    entrySection,
+    GLB_PATHS.elevatorPlatform,
     'elevatorPlatform',
-    { width: 3, height: 0.3, depth: 3 },
-    scene
+    elevPlatPos,
+    glbInstances,
+    { rotationY: 0.08, scale: new Vector3(1.0, 0.3, 1.0) }
   );
-  elevatorPlatform.position = ENTRY_CENTER.clone();
-  elevatorPlatform.position.y = 0.15;
-  elevatorPlatform.rotation.z = 0.08;
-  elevatorPlatform.material = materials.get('metal')!;
-  elevatorPlatform.parent = entrySection;
-  allMeshes.push(elevatorPlatform);
 
-  // Destroyed elevator cable
+  // Destroyed elevator cable (thin cylinder -- kept as MeshBuilder)
   const cable = MeshBuilder.CreateCylinder(
     'elevatorCable',
     { height: 10, diameter: 0.08, tessellation: 6 },
@@ -866,13 +903,14 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
   // ------ MINING HUB (40m x 30m x 8m) ------
   // Large open room - central processing area
 
-  // Floor
+  // Floor (terrain surface -- kept as MeshBuilder)
   const hubFloor = MeshBuilder.CreateBox(
     'hubFloor',
     { width: HUB_WIDTH, height: 0.3, depth: HUB_DEPTH },
@@ -884,7 +922,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   hubFloor.parent = hubSection;
   allMeshes.push(hubFloor);
 
-  // Ceiling
+  // Ceiling (terrain surface -- kept as MeshBuilder)
   const hubCeiling = MeshBuilder.CreateBox(
     'hubCeiling',
     { width: HUB_WIDTH, height: 0.4, depth: HUB_DEPTH },
@@ -896,7 +934,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   hubCeiling.parent = hubSection;
   allMeshes.push(hubCeiling);
 
-  // Hub walls (rock)
+  // Hub walls (terrain/structural rock -- kept as MeshBuilder)
   const hubWalls: Array<{ pos: Vector3; w: number; d: number; ry: number }> = [
     // North wall (with entry opening)
     {
@@ -953,7 +991,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     allMeshes.push(mesh);
   }
 
-  // Hub support columns (4 large pillars)
+  // Hub support columns (4 large pillars) -> GLB
   const pillarPositions = [
     new Vector3(HUB_CENTER.x - 10, 0, HUB_CENTER.z - 6),
     new Vector3(HUB_CENTER.x + 10, 0, HUB_CENTER.z - 6),
@@ -962,30 +1000,29 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   ];
 
   for (const pp of pillarPositions) {
-    const pillar = MeshBuilder.CreateBox(
-      `pillar_${allMeshes.length}`,
-      { width: 1.5, height: HUB_HEIGHT, depth: 1.5 },
-      scene
-    );
-    pillar.position = pp.clone();
-    pillar.position.y = HUB_HEIGHT / 2;
-    pillar.material = materials.get('rock')!;
-    pillar.parent = hubSection;
-    allMeshes.push(pillar);
+    const pillarPos = pp.clone();
+    pillarPos.y = HUB_HEIGHT / 2;
+    placeGLBInstance(scene, hubSection, GLB_PATHS.pillar, 'hub_pillar', pillarPos, glbInstances, {
+      scale: new Vector3(0.5, HUB_HEIGHT / 4, 0.5),
+    });
   }
 
-  // Mining equipment in hub
-  createDrillRig(scene, hubSection, new Vector3(8, 0, -20), 0, materials, allMeshes);
-  createDrillRig(scene, hubSection, new Vector3(-8, 0, -28), Math.PI / 3, materials, allMeshes);
+  // Mining equipment in hub -> GLB drill rigs
+  createDrillRig(scene, hubSection, new Vector3(8, 0, -20), 0, glbInstances);
+  createDrillRig(scene, hubSection, new Vector3(-8, 0, -28), Math.PI / 3, glbInstances);
 
-  // Conveyor belt fragment
-  const conveyor = MeshBuilder.CreateBox('conveyor', { width: 2, height: 1, depth: 8 }, scene);
-  conveyor.position.set(0, 0.5, HUB_CENTER.z + 5);
-  conveyor.material = materials.get('equipment')!;
-  conveyor.parent = hubSection;
-  allMeshes.push(conveyor);
+  // Conveyor belt fragment -> GLB platform
+  placeGLBInstance(
+    scene,
+    hubSection,
+    GLB_PATHS.platform,
+    'conveyor',
+    new Vector3(0, 0.5, HUB_CENTER.z + 5),
+    glbInstances,
+    { scale: new Vector3(1.0, 0.5, 2.0) }
+  );
 
-  // Scattered crates
+  // Scattered crates -> GLB crate variants
   const cratePositions = [
     new Vector3(5, 0.4, -15),
     new Vector3(-6, 0.4, -22),
@@ -993,21 +1030,17 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     new Vector3(-14, 0.4, -32),
     new Vector3(6, 0.8, -16),
   ];
-  for (const cp of cratePositions) {
-    const size = 0.6 + Math.random() * 0.4;
-    const crate = MeshBuilder.CreateBox(
-      `crate_${allMeshes.length}`,
-      { width: size, height: size, depth: size },
-      scene
-    );
-    crate.position = cp.clone();
-    crate.rotation.y = Math.random() * Math.PI;
-    crate.material = materials.get('equipment')!;
-    crate.parent = hubSection;
-    allMeshes.push(crate);
+  for (let ci = 0; ci < cratePositions.length; ci++) {
+    const cp = cratePositions[ci];
+    const cratePath = CRATE_VARIANTS[ci % CRATE_VARIANTS.length];
+    const crateScale = 0.6 + Math.random() * 0.4;
+    placeGLBInstance(scene, hubSection, cratePath, 'crate', cp, glbInstances, {
+      rotationY: Math.random() * Math.PI,
+      scale: new Vector3(crateScale, crateScale, crateScale),
+    });
   }
 
-  // Minecart tracks through hub
+  // Minecart tracks through hub (procedural thin geometry -- kept as MeshBuilder)
   createMinecartTrack(
     scene,
     hubSection,
@@ -1022,11 +1055,11 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     allMeshes
   );
 
-  // Minecarts
-  createMinecart(scene, hubSection, new Vector3(-14, 0, -13), 0.3, materials, allMeshes);
-  createMinecart(scene, hubSection, new Vector3(12, 0, -26), 0.8, materials, allMeshes);
+  // Minecarts -> GLB
+  createMinecart(scene, hubSection, new Vector3(-14, 0, -13), 0.3, glbInstances);
+  createMinecart(scene, hubSection, new Vector3(12, 0, -26), 0.8, glbInstances);
 
-  // Crystal formations in hub (natural light sources)
+  // Crystal formations in hub (natural light sources -- procedural, kept as MeshBuilder)
   createCrystalFormation(
     scene,
     hubSection,
@@ -1058,7 +1091,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     'cyan'
   );
 
-  // Hub emergency lights
+  // Hub emergency lights -> GLB lamp fixtures
   const hubEmergencyPositions = [
     new Vector3(-15, HUB_HEIGHT - 0.5, HUB_CENTER.z - 5),
     new Vector3(15, HUB_HEIGHT - 0.5, HUB_CENTER.z + 5),
@@ -1068,15 +1101,9 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   ];
 
   for (const elp of hubEmergencyPositions) {
-    const lampMesh = MeshBuilder.CreateSphere(
-      `hub_lamp_${allMeshes.length}`,
-      { diameter: 0.3, segments: 8 },
-      scene
-    );
-    lampMesh.position = elp.clone();
-    lampMesh.material = materials.get('emergency')!;
-    lampMesh.parent = hubSection;
-    allMeshes.push(lampMesh);
+    placeGLBInstance(scene, hubSection, GLB_PATHS.lampOn, 'hub_lamp', elp, glbInstances, {
+      scale: new Vector3(0.2, 0.2, 0.2),
+    });
 
     const lamp = new PointLight(`hub_light_${lights.length}`, elp.clone(), scene);
     lamp.diffuse = new Color3(1.0, 0.2, 0.1);
@@ -1096,15 +1123,30 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     });
   }
 
-  // Keycard pickup location (glowing item)
-  const keycardPickup = MeshBuilder.CreateBox(
+  // Keycard pickup location -> GLB data pad
+  const keycardPos = MINE_POSITIONS.hubKeycard.clone();
+  keycardPos.y = 1.0;
+  const keycardNode = placeGLBInstance(
+    scene,
+    hubSection,
+    GLB_PATHS.dataPad,
     'keycardPickup',
-    { width: 0.3, height: 0.05, depth: 0.2 },
+    keycardPos,
+    glbInstances,
+    { scale: new Vector3(0.3, 0.3, 0.3) }
+  );
+  if (!keycardNode) {
+    throw new Error(`[MiningDepths] Failed to load keycard GLB: ${GLB_PATHS.dataPad}`);
+  }
+
+  // Use a small invisible collision box for the interactable
+  const keycardPickup = MeshBuilder.CreateBox(
+    'keycardPickup_collider',
+    { width: 0.3, height: 0.3, depth: 0.3 },
     scene
   );
-  keycardPickup.position = MINE_POSITIONS.hubKeycard.clone();
-  keycardPickup.position.y = 1.0;
-  keycardPickup.material = materials.get('log_glow')!;
+  keycardPickup.position = keycardPos;
+  keycardPickup.isVisible = false;
   keycardPickup.parent = hubSection;
   allMeshes.push(keycardPickup);
 
@@ -1119,7 +1161,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   keycardLight.range = 5;
   lights.push(keycardLight);
 
-  // Alien resin patches (environmental storytelling - infestation signs)
+  // Alien resin patches (VFX decals -- kept as MeshBuilder)
   const resinPositions = [
     new Vector3(-18, 0, -25),
     new Vector3(17, 1, -22),
@@ -1154,11 +1196,12 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
-  // Debris pile at start of collapsed area
-  createDebrisPile(scene, tunnelSection, new Vector3(-3, -1, -55), 1.2, materials, allMeshes);
+  // Debris pile at start of collapsed area -> GLB
+  createDebrisPile(scene, tunnelSection, new Vector3(-3, -1, -55), 1.2, glbInstances);
 
   // Collapsed tunnel segment 1 (narrower, lower ceiling)
   createTunnelSegment(
@@ -1171,13 +1214,14 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
-  // More debris and cave-in rocks
-  createDebrisPile(scene, tunnelSection, new Vector3(-8, -3, -62), 1.5, materials, allMeshes);
+  // More debris and cave-in rocks -> GLB
+  createDebrisPile(scene, tunnelSection, new Vector3(-8, -3, -62), 1.5, glbInstances);
 
-  // Crystal formation lighting the way
+  // Crystal formation lighting the way (procedural -- kept as MeshBuilder)
   createCrystalFormation(
     scene,
     tunnelSection,
@@ -1189,7 +1233,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     'purple'
   );
 
-  // Gas vent hazard area 1
+  // Gas vent hazard area 1 (VFX indicator -- kept as MeshBuilder)
   const gasVent1 = MeshBuilder.CreateCylinder(
     'gasVent1',
     { height: 0.2, diameter: 2, tessellation: 12 },
@@ -1211,13 +1255,14 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
-  // Tunnel mid-point widened area with minecart
-  createMinecart(scene, tunnelSection, new Vector3(-16, -5, -72), 1.2, materials, allMeshes);
+  // Tunnel mid-point widened area with minecart -> GLB
+  createMinecart(scene, tunnelSection, new Vector3(-16, -5, -72), 1.2, glbInstances);
 
-  // Gas vent hazard area 2
+  // Gas vent hazard area 2 (VFX indicator -- kept as MeshBuilder)
   const gasVent2 = MeshBuilder.CreateCylinder(
     'gasVent2',
     { height: 0.2, diameter: 1.5, tessellation: 12 },
@@ -1228,7 +1273,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   gasVent2.parent = tunnelSection;
   allMeshes.push(gasVent2);
 
-  // Crystal cluster mid-tunnel
+  // Crystal cluster mid-tunnel (procedural -- kept as MeshBuilder)
   createCrystalFormation(
     scene,
     tunnelSection,
@@ -1251,28 +1296,15 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
-  // Rockfall hazard areas
-  createDebrisPile(
-    scene,
-    tunnelSection,
-    MINE_POSITIONS.rockfall1.clone(),
-    1.0,
-    materials,
-    allMeshes
-  );
-  createDebrisPile(
-    scene,
-    tunnelSection,
-    MINE_POSITIONS.rockfall2.clone(),
-    1.3,
-    materials,
-    allMeshes
-  );
+  // Rockfall hazard areas -> GLB debris
+  createDebrisPile(scene, tunnelSection, MINE_POSITIONS.rockfall1.clone(), 1.0, glbInstances);
+  createDebrisPile(scene, tunnelSection, MINE_POSITIONS.rockfall2.clone(), 1.3, glbInstances);
 
-  // More alien resin
+  // More alien resin (VFX decals -- kept as MeshBuilder)
   for (let i = 0; i < 6; i++) {
     const rp = new Vector3(
       TUNNEL_MID.x + (Math.random() - 0.5) * 8,
@@ -1302,10 +1334,11 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
-  // Flooded section
+  // Flooded section (VFX water plane -- kept as MeshBuilder)
   const floodWater = MeshBuilder.CreateBox(
     'floodWater',
     { width: 12, height: 0.5, depth: 15 },
@@ -1328,25 +1361,41 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
   // ===========================================================================
   // SECTION 3: DEEP SHAFT (Boss Arena)
   // ===========================================================================
 
-  // Gate/door blocking shaft entry (requires keycard)
-  const shaftGate = MeshBuilder.CreateBox(
+  // Gate/door blocking shaft entry (requires keycard) -> GLB
+  const gatePos = new Vector3(-10, -13 + (TUNNEL_HEIGHT - 0.3) / 2, -110);
+  const gateNode = placeGLBInstance(
+    scene,
+    shaftSection,
+    GLB_PATHS.gate,
     'shaftGate',
+    gatePos,
+    glbInstances,
+    { scale: new Vector3((TUNNEL_WIDTH - 0.5) / 4, (TUNNEL_HEIGHT - 0.3) / 4, 0.3) }
+  );
+  // Interactable collision mesh for the gate
+  const shaftGate = MeshBuilder.CreateBox(
+    'shaftGate_collider',
     { width: TUNNEL_WIDTH - 0.5, height: TUNNEL_HEIGHT - 0.3, depth: 0.3 },
     scene
   );
-  shaftGate.position = new Vector3(-10, -13 + (TUNNEL_HEIGHT - 0.3) / 2, -110);
-  shaftGate.material = materials.get('metal')!;
+  shaftGate.position = gatePos.clone();
+  if (gateNode) {
+    shaftGate.isVisible = false; // GLB provides visual, collider is invisible
+  } else {
+    shaftGate.material = materials.get('metal')!; // Fallback visual
+  }
   shaftGate.parent = shaftSection;
   allMeshes.push(shaftGate);
 
-  // Gate warning stripes
+  // Gate warning stripes (simple thin indicator -- kept as MeshBuilder)
   const gateStripe = MeshBuilder.CreateBox(
     'gateStripe',
     { width: TUNNEL_WIDTH - 0.5, height: 0.2, depth: 0.32 },
@@ -1369,11 +1418,12 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     materials,
     allMeshes,
     lights,
-    flickerLights
+    flickerLights,
+    glbInstances
   );
 
   // Deep Shaft room (25m x 25m x 30m tall)
-  // Floor (bottom of shaft)
+  // Floor (terrain surface -- kept as MeshBuilder)
   const shaftFloor = MeshBuilder.CreateBox(
     'shaftFloor',
     { width: SHAFT_WIDTH, height: 0.4, depth: SHAFT_DEPTH },
@@ -1385,7 +1435,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   shaftFloor.parent = shaftSection;
   allMeshes.push(shaftFloor);
 
-  // Shaft walls (tall rock)
+  // Shaft walls (terrain/structural rock -- kept as MeshBuilder)
   const shaftWalls: Array<{ pos: Vector3; w: number; h: number; d: number }> = [
     // North wall (with entry)
     {
@@ -1435,7 +1485,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     allMeshes.push(mesh);
   }
 
-  // Shaft ceiling (open to above - high rock dome)
+  // Shaft ceiling (terrain surface -- kept as MeshBuilder)
   const shaftCeiling = MeshBuilder.CreateBox(
     'shaftCeiling',
     { width: SHAFT_WIDTH, height: 0.5, depth: SHAFT_DEPTH },
@@ -1447,45 +1497,53 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   shaftCeiling.parent = shaftSection;
   allMeshes.push(shaftCeiling);
 
-  // Spiral descent ledges (player navigates down)
+  // Spiral descent ledges (player navigates down) -> GLB platforms + handrails
   const ledgeCount = 6;
   for (let i = 0; i < ledgeCount; i++) {
-    const angle = (i / ledgeCount) * Math.PI * 1.5;
+    const ledgeAngle = (i / ledgeCount) * Math.PI * 1.5;
     const radius = 8;
     const yOff = SHAFT_CENTER.y + SHAFT_HEIGHT / 2 - 3 - (i / ledgeCount) * (SHAFT_HEIGHT - 6);
 
-    const ledge = MeshBuilder.CreateBox(
-      `ledge_${allMeshes.length}`,
-      { width: 4, height: 0.4, depth: 3 },
-      scene
-    );
-    ledge.position.set(
-      SHAFT_CENTER.x + Math.cos(angle) * radius,
+    const ledgePos = new Vector3(
+      SHAFT_CENTER.x + Math.cos(ledgeAngle) * radius,
       yOff,
-      SHAFT_CENTER.z + Math.sin(angle) * radius
+      SHAFT_CENTER.z + Math.sin(ledgeAngle) * radius
     );
-    ledge.rotation.y = angle;
-    ledge.material = materials.get('rock')!;
-    ledge.parent = shaftSection;
-    allMeshes.push(ledge);
 
-    // Railing
-    const railing = MeshBuilder.CreateBox(
-      `railing_${allMeshes.length}`,
-      { width: 4, height: 1, depth: 0.1 },
-      scene
+    // Ledge platform -> GLB
+    placeGLBInstance(
+      scene,
+      shaftSection,
+      GLB_PATHS.platformLedge,
+      'ledge',
+      ledgePos,
+      glbInstances,
+      {
+        rotationY: ledgeAngle,
+        scale: new Vector3(1.0, 0.4, 0.8),
+      }
     );
-    railing.position = ledge.position.clone();
-    railing.position.y += 0.7;
-    railing.position.x -= Math.sin(angle) * 1.5;
-    railing.position.z += Math.cos(angle) * 1.5;
-    railing.rotation.y = angle;
-    railing.material = materials.get('metal')!;
-    railing.parent = shaftSection;
-    allMeshes.push(railing);
+
+    // Railing -> GLB handrail
+    const railPos = ledgePos.clone();
+    railPos.y += 0.7;
+    railPos.x -= Math.sin(ledgeAngle) * 1.5;
+    railPos.z += Math.cos(ledgeAngle) * 1.5;
+    placeGLBInstance(
+      scene,
+      shaftSection,
+      GLB_PATHS.handrail,
+      'railing',
+      railPos,
+      glbInstances,
+      {
+        rotationY: ledgeAngle,
+        scale: new Vector3(1.0, 1.0, 1.0),
+      }
+    );
   }
 
-  // Large crystal formations in shaft (lighting)
+  // Large crystal formations in shaft (procedural -- kept as MeshBuilder)
   createCrystalFormation(
     scene,
     shaftSection,
@@ -1527,54 +1585,69 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     'purple'
   );
 
-  // Boss arena floor details
-  // Central mining rig (destroyed)
+  // Boss arena floor details - central mining rig (destroyed) -> GLB
   createDrillRig(
     scene,
     shaftSection,
     new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 0.2, SHAFT_CENTER.z + 5),
     Math.PI / 4,
-    materials,
-    allMeshes
+    glbInstances
   );
 
-  // Boss arena door (blocks exit during boss fight)
-  const bossArenaDoor = MeshBuilder.CreateBox(
-    'bossArenaDoor',
-    { width: TUNNEL_WIDTH, height: TUNNEL_HEIGHT, depth: 0.3 },
-    scene
-  );
-  bossArenaDoor.position = new Vector3(
+  // Boss arena door (blocks exit during boss fight) -> GLB
+  const bossDoorPos = new Vector3(
     -10,
     -15 + TUNNEL_HEIGHT / 2,
     SHAFT_CENTER.z + SHAFT_DEPTH / 2 - 0.5
   );
-  bossArenaDoor.material = materials.get('metal')!;
-  bossArenaDoor.parent = shaftSection;
+  const bossDoorNode = placeGLBInstance(
+    scene,
+    shaftSection,
+    GLB_PATHS.door,
+    'bossArenaDoor',
+    bossDoorPos,
+    glbInstances,
+    { scale: new Vector3(TUNNEL_WIDTH / 4, TUNNEL_HEIGHT / 4, 0.3) }
+  );
+  // Interactable collision mesh for boss arena door
+  const bossArenaDoor = MeshBuilder.CreateBox(
+    'bossArenaDoor_collider',
+    { width: TUNNEL_WIDTH, height: TUNNEL_HEIGHT, depth: 0.3 },
+    scene
+  );
+  bossArenaDoor.position = bossDoorPos.clone();
   bossArenaDoor.isVisible = false; // Hidden until boss fight starts
+  if (!bossDoorNode) {
+    bossArenaDoor.material = materials.get('metal')!;
+  }
+  bossArenaDoor.parent = shaftSection;
   allMeshes.push(bossArenaDoor);
+  // Also hide the GLB instance until boss fight starts
+  if (bossDoorNode) {
+    bossDoorNode.setEnabled(false);
+  }
 
-  // Massive alien resin covering shaft walls (heavy infestation)
+  // Massive alien resin covering shaft walls (VFX decals -- kept as MeshBuilder)
   for (let i = 0; i < 12; i++) {
     const shaftResin = MeshBuilder.CreateDisc(
       `shaft_resin_${allMeshes.length}`,
       { radius: 1.0 + Math.random() * 1.5, tessellation: 8 },
       scene
     );
-    const angle = Math.random() * Math.PI * 2;
+    const resinAngle = Math.random() * Math.PI * 2;
     const wallDist = SHAFT_WIDTH / 2 - 0.3;
     shaftResin.position.set(
-      SHAFT_CENTER.x + Math.cos(angle) * wallDist,
+      SHAFT_CENTER.x + Math.cos(resinAngle) * wallDist,
       SHAFT_CENTER.y + (Math.random() - 0.5) * SHAFT_HEIGHT * 0.8,
-      SHAFT_CENTER.z + Math.sin(angle) * wallDist
+      SHAFT_CENTER.z + Math.sin(resinAngle) * wallDist
     );
-    shaftResin.rotation.set(Math.random() * Math.PI, angle + Math.PI / 2, 0);
+    shaftResin.rotation.set(Math.random() * Math.PI, resinAngle + Math.PI / 2, 0);
     shaftResin.material = materials.get('resin')!;
     shaftResin.parent = shaftSection;
     allMeshes.push(shaftResin);
   }
 
-  // Shaft emergency lights (more intense, for boss fight visibility)
+  // Shaft emergency lights -> GLB lamp fixtures
   const shaftLightPositions = [
     new Vector3(SHAFT_CENTER.x - 10, SHAFT_CENTER.y - 5, SHAFT_CENTER.z - 10),
     new Vector3(SHAFT_CENTER.x + 10, SHAFT_CENTER.y - 5, SHAFT_CENTER.z + 10),
@@ -1584,15 +1657,9 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   ];
 
   for (const slp of shaftLightPositions) {
-    const lampMesh = MeshBuilder.CreateSphere(
-      `shaft_lamp_${allMeshes.length}`,
-      { diameter: 0.35, segments: 8 },
-      scene
-    );
-    lampMesh.position = slp.clone();
-    lampMesh.material = materials.get('emergency')!;
-    lampMesh.parent = shaftSection;
-    allMeshes.push(lampMesh);
+    placeGLBInstance(scene, shaftSection, GLB_PATHS.lampOn, 'shaft_lamp', slp, glbInstances, {
+      scale: new Vector3(0.2, 0.2, 0.2),
+    });
 
     const lamp = new PointLight(`shaft_light_${lights.length}`, slp.clone(), scene);
     lamp.diffuse = new Color3(1.0, 0.2, 0.1);
@@ -1613,19 +1680,34 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   }
 
   // ===========================================================================
-  // AUDIO LOG PICKUPS (glowing collectible markers)
+  // AUDIO LOG PICKUPS -> GLB audio_log model
   // ===========================================================================
   const audioLogMeshes: Mesh[] = [];
 
   for (const log of AUDIO_LOGS) {
-    const logMesh = MeshBuilder.CreateBox(
+    const logPos = log.position.clone();
+    logPos.y += 0.8;
+    const logNode = placeGLBInstance(
+      scene,
+      root,
+      GLB_PATHS.audioLog,
       `audioLog_${log.id}`,
-      { width: 0.2, height: 0.12, depth: 0.15 },
+      logPos,
+      glbInstances,
+      { scale: new Vector3(0.3, 0.3, 0.3) }
+    );
+
+    // Create an invisible collision mesh for the interactable
+    const logMesh = MeshBuilder.CreateBox(
+      `audioLog_collider_${log.id}`,
+      { width: 0.3, height: 0.3, depth: 0.3 },
       scene
     );
-    logMesh.position = log.position.clone();
-    logMesh.position.y += 0.8;
-    logMesh.material = materials.get('log_glow')!;
+    logMesh.position = logPos.clone();
+    logMesh.isVisible = false;
+    if (!logNode) {
+      throw new Error(`[MiningDepths] Failed to load audio log GLB: ${GLB_PATHS.audioLog}`);
+    }
     logMesh.parent = root;
     allMeshes.push(logMesh);
     audioLogMeshes.push(logMesh);
@@ -1643,7 +1725,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
   }
 
   // ===========================================================================
-  // HAZARD VISUAL MARKERS
+  // HAZARD VISUAL MARKERS (VFX -- kept as MeshBuilder)
   // ===========================================================================
   const hazardMeshes: Mesh[] = [];
 
@@ -1679,6 +1761,9 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     for (const mesh of allMeshes) {
       mesh.dispose();
     }
+    for (const node of glbInstances) {
+      node.dispose(false, true);
+    }
     for (const light of lights) {
       light.dispose();
     }
@@ -1705,6 +1790,7 @@ export function createMiningEnvironment(scene: Scene): MiningEnvironment {
     audioLogMeshes,
     hazardMeshes,
     bossArenaDoor,
+    glbInstances,
     dispose,
   };
 }

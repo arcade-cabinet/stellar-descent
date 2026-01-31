@@ -1,27 +1,67 @@
 # Full Playthrough Flow - Extended gameplay test
-# Run: maestro test .maestro/flows/full-playthrough.yaml
+# Cross-platform: Web, Android, iOS
 # Note: This is a long-running test for smoke testing full campaign
 
-appId: com.jbcom.stellardescent
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - extended
+  - playthrough
+  - nightly
+name: "Full Campaign Playthrough"
 
 ---
 - launchApp:
     clearState: true
 
+- extendedWaitUntil:
+    visible: "NEW CAMPAIGN"
+    timeout: 30000
+
 - tapOn:
-    text: "NEW GAME"
-    timeout: 10000
+    text: "NEW CAMPAIGN"
 
 # Wait for initial load
 - extendedWaitUntil:
-    notVisible:
-      text: "Loading"
+    visible: "SYSTEMS ONLINE"
     timeout: 60000
 
-# Anchor Station - Tutorial Level
-- runFlow: tutorial-complete.yaml
+# Wait for tutorial to start
+- extendedWaitUntil:
+    visible: "Good morning"
+    timeout: 30000
 
-# After tutorial, continue to next level
+- takeScreenshot: "tutorial_start"
+
+# Skip through tutorial comms
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+- tapOn:
+    text: "SKIP"
+    optional: true
+
+- wait: 2000
+
+# Basic movement through tutorial
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 60%"
+          duration: 2000
+      - wait: 500
+      - tapOn:
+          id: "fire-button"
+          optional: true
+
+- takeScreenshot: "tutorial_progress"
+
+# After tutorial, look for level transition
 - wait: 5000
 
 # Look for level transition
@@ -46,11 +86,6 @@ appId: com.jbcom.stellardescent
           optional: true
 
 - takeScreenshot: "landfall_progress"
-
-# Check health during combat
-- assertVisible:
-    id: "health-bar"
-    optional: true
 
 # Continue gameplay...
 - wait: 10000

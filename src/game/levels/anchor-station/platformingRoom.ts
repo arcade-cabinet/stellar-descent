@@ -6,11 +6,25 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 
 // ============================================================================
 // PLATFORMING ROOM GEOMETRY AND STATE
 // Military training facility with platforms, gaps, and low passages
 // ============================================================================
+
+// GLB asset paths for platforming room visuals
+const PLATFORM_ASSETS = {
+  platformSmall: '/models/environment/station/platform_small_mx_1.glb',
+  platformLarge: '/models/environment/station/platform_large_mx_1.glb',
+  platformBx1: '/models/environment/station/platform_bx_1.glb',
+  platformBx2: '/models/environment/station/platform_bx_2.glb',
+  handrail: '/models/environment/station/platform_b_handrail_1.glb',
+  beam: '/models/environment/station/beam_hc_horizontal_1.glb',
+  pillar: '/models/environment/station/pillar_hr_2.glb',
+  wallPanel: '/models/environment/station/wall_hr_1.glb',
+  floorTile: '/models/environment/station/floor_ceiling_hr_1.glb',
+} as const;
 
 export interface PlatformingCallbacks {
   onJumpComplete: () => void;
@@ -62,6 +76,41 @@ export interface CreatePlatformingRoomParams {
   ) => PointLight;
 }
 
+/**
+ * Preload all GLB assets needed for the platforming room.
+ * Must be called before createPlatformingRoom().
+ */
+export async function preloadPlatformingRoomAssets(scene: Scene): Promise<void> {
+  const loadPromises = Object.values(PLATFORM_ASSETS).map((path) =>
+    AssetManager.loadAssetByPath(path, scene)
+  );
+  await Promise.allSettled(loadPromises);
+  console.log('[PlatformingRoom] Assets preloaded');
+}
+
+/**
+ * Place a GLB visual model at the specified position.
+ * Returns the TransformNode root of the placed model.
+ */
+function placeVisualModel(
+  scene: Scene,
+  parent: TransformNode,
+  assetPath: string,
+  name: string,
+  position: Vector3,
+  rotation: Vector3,
+  scale: Vector3
+): TransformNode | null {
+  const node = AssetManager.createInstanceByPath(assetPath, name, scene, true, 'environment');
+  if (node) {
+    node.position = position;
+    node.rotation = rotation;
+    node.scaling = scale;
+    node.parent = parent;
+  }
+  return node;
+}
+
 export function createPlatformingRoom(params: CreatePlatformingRoomParams): PlatformingRoomState {
   const {
     scene,
@@ -80,79 +129,154 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
   const platformColliders: Mesh[] = [];
 
   // === PLATFORM 1 - Starting platform ===
-  const platform1 = MeshBuilder.CreateBox('platform1', { width: 3, height: 0.3, depth: 3 }, scene);
-  platform1.position = new Vector3(roomCenter.x + 3, 0.15, roomCenter.z + 5);
-  platform1.material = materials.get('hull')!;
-  platform1.parent = parent;
-  allMeshes.push(platform1);
-  platformColliders.push(platform1);
+  // Collision box (invisible)
+  const platform1Collider = MeshBuilder.CreateBox(
+    'platform1_collider',
+    { width: 3, height: 0.3, depth: 3 },
+    scene
+  );
+  platform1Collider.position = new Vector3(roomCenter.x + 3, 0.15, roomCenter.z + 5);
+  platform1Collider.isVisible = false;
+  platform1Collider.checkCollisions = true;
+  platform1Collider.parent = parent;
+  platformColliders.push(platform1Collider);
 
-  const rail1a = MeshBuilder.CreateBox('rail1a', { width: 3, height: 0.8, depth: 0.1 }, scene);
-  rail1a.position = new Vector3(0, 0.55, -1.45);
-  rail1a.material = materials.get('caution')!;
-  rail1a.parent = platform1;
-  allMeshes.push(rail1a);
+  // Visual model
+  const platform1Visual = placeVisualModel(
+    scene,
+    parent,
+    PLATFORM_ASSETS.platformSmall,
+    'platform1_visual',
+    new Vector3(roomCenter.x + 3, 0, roomCenter.z + 5),
+    Vector3.Zero(),
+    new Vector3(1.5, 1, 1.5)
+  );
+  if (!platform1Visual) {
+    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformSmall}`);
+  }
+
+  // Handrail visual
+  placeVisualModel(
+    scene,
+    parent,
+    PLATFORM_ASSETS.handrail,
+    'rail1a_visual',
+    new Vector3(roomCenter.x + 3, 0, roomCenter.z + 5 - 1.45),
+    new Vector3(0, Math.PI / 2, 0),
+    new Vector3(1, 1, 1)
+  );
 
   // === PLATFORM 2 - Mid-height (requires jump) ===
-  const platform2 = MeshBuilder.CreateBox('platform2', { width: 3, height: 0.3, depth: 3 }, scene);
-  platform2.position = new Vector3(roomCenter.x, 0.95, roomCenter.z + 2);
-  platform2.material = materials.get('hull')!;
-  platform2.parent = parent;
-  allMeshes.push(platform2);
-  platformColliders.push(platform2);
+  const platform2Collider = MeshBuilder.CreateBox(
+    'platform2_collider',
+    { width: 3, height: 0.3, depth: 3 },
+    scene
+  );
+  platform2Collider.position = new Vector3(roomCenter.x, 0.95, roomCenter.z + 2);
+  platform2Collider.isVisible = false;
+  platform2Collider.checkCollisions = true;
+  platform2Collider.parent = parent;
+  platformColliders.push(platform2Collider);
 
+  // Visual model
+  const platform2Visual = placeVisualModel(
+    scene,
+    parent,
+    PLATFORM_ASSETS.platformBx1,
+    'platform2_visual',
+    new Vector3(roomCenter.x, 0.8, roomCenter.z + 2),
+    Vector3.Zero(),
+    new Vector3(1.5, 1, 1.5)
+  );
+  if (!platform2Visual) {
+    const platform2 = MeshBuilder.CreateBox('platform2', { width: 3, height: 0.3, depth: 3 }, scene);
+    platform2.position = new Vector3(roomCenter.x, 0.95, roomCenter.z + 2);
+    platform2.material = materials.get('hull')!;
+    platform2.parent = parent;
+    allMeshes.push(platform2);
+  }
+
+  // Caution stripes (keep as simple boxes for visual clarity)
   const stripe2a = MeshBuilder.CreateBox('stripe2a', { width: 3, height: 0.05, depth: 0.3 }, scene);
-  stripe2a.position = new Vector3(0, 0.18, 1.35);
+  stripe2a.position = new Vector3(roomCenter.x, 1.13, roomCenter.z + 2 + 1.35);
   stripe2a.material = materials.get('caution')!;
-  stripe2a.parent = platform2;
+  stripe2a.parent = parent;
   allMeshes.push(stripe2a);
 
   const stripe2b = MeshBuilder.CreateBox('stripe2b', { width: 3, height: 0.05, depth: 0.3 }, scene);
-  stripe2b.position = new Vector3(0, 0.18, -1.35);
+  stripe2b.position = new Vector3(roomCenter.x, 1.13, roomCenter.z + 2 - 1.35);
   stripe2b.material = materials.get('caution')!;
-  stripe2b.parent = platform2;
+  stripe2b.parent = parent;
   allMeshes.push(stripe2b);
 
   // === PLATFORM 3 - Higher platform ===
-  const platform3 = MeshBuilder.CreateBox('platform3', { width: 3, height: 0.3, depth: 3 }, scene);
-  platform3.position = new Vector3(roomCenter.x - 3, 1.45, roomCenter.z - 1);
-  platform3.material = materials.get('hull')!;
-  platform3.parent = parent;
-  allMeshes.push(platform3);
-  platformColliders.push(platform3);
+  const platform3Collider = MeshBuilder.CreateBox(
+    'platform3_collider',
+    { width: 3, height: 0.3, depth: 3 },
+    scene
+  );
+  platform3Collider.position = new Vector3(roomCenter.x - 3, 1.45, roomCenter.z - 1);
+  platform3Collider.isVisible = false;
+  platform3Collider.checkCollisions = true;
+  platform3Collider.parent = parent;
+  platformColliders.push(platform3Collider);
 
-  const rail3a = MeshBuilder.CreateBox('rail3a', { width: 0.1, height: 0.8, depth: 3 }, scene);
-  rail3a.position = new Vector3(-1.45, 0.55, 0);
-  rail3a.material = materials.get('caution')!;
-  rail3a.parent = platform3;
-  allMeshes.push(rail3a);
+  // Visual model
+  const platform3Visual = placeVisualModel(
+    scene,
+    parent,
+    PLATFORM_ASSETS.platformBx2,
+    'platform3_visual',
+    new Vector3(roomCenter.x - 3, 1.3, roomCenter.z - 1),
+    Vector3.Zero(),
+    new Vector3(1.5, 1, 1.5)
+  );
+  if (!platform3Visual) {
+    const platform3 = MeshBuilder.CreateBox('platform3', { width: 3, height: 0.3, depth: 3 }, scene);
+    platform3.position = new Vector3(roomCenter.x - 3, 1.45, roomCenter.z - 1);
+    platform3.material = materials.get('hull')!;
+    platform3.parent = parent;
+    allMeshes.push(platform3);
+  }
+
+  // Handrail on platform 3
+  placeVisualModel(
+    scene,
+    parent,
+    PLATFORM_ASSETS.handrail,
+    'rail3a_visual',
+    new Vector3(roomCenter.x - 3 - 1.45, 1.3, roomCenter.z - 1),
+    new Vector3(0, 0, 0),
+    new Vector3(1, 1, 1)
+  );
 
   // === LOW PASSAGE STRUCTURE - Requires crouch ===
   const crouchPassageFrame = new TransformNode('crouchPassageFrame', scene);
   crouchPassageFrame.position = new Vector3(roomCenter.x - 4, 0, roomCenter.z - 4.5);
   crouchPassageFrame.parent = parent;
 
-  const passageWallLeft = MeshBuilder.CreateBox(
-    'passageWallLeft',
-    { width: 0.3, height: roomHeight, depth: 4 },
-    scene
+  // Wall panels for passage (using GLB)
+  placeVisualModel(
+    scene,
+    crouchPassageFrame,
+    PLATFORM_ASSETS.wallPanel,
+    'passageWallLeft_visual',
+    new Vector3(-1.5, 0, 0),
+    new Vector3(0, Math.PI / 2, 0),
+    new Vector3(0.5, 1, 1)
   );
-  passageWallLeft.position = new Vector3(-1.5, roomHeight / 2, 0);
-  passageWallLeft.material = materials.get('hull')!;
-  passageWallLeft.parent = crouchPassageFrame;
-  allMeshes.push(passageWallLeft);
 
-  const passageWallRight = MeshBuilder.CreateBox(
-    'passageWallRight',
-    { width: 0.3, height: roomHeight, depth: 4 },
-    scene
+  placeVisualModel(
+    scene,
+    crouchPassageFrame,
+    PLATFORM_ASSETS.wallPanel,
+    'passageWallRight_visual',
+    new Vector3(1.5, 0, 0),
+    new Vector3(0, -Math.PI / 2, 0),
+    new Vector3(0.5, 1, 1)
   );
-  passageWallRight.position = new Vector3(1.5, roomHeight / 2, 0);
-  passageWallRight.material = materials.get('hull')!;
-  passageWallRight.parent = crouchPassageFrame;
-  allMeshes.push(passageWallRight);
 
-  // Low ceiling - crouch height ~1.0m
+  // Low ceiling collision (critical for crouch mechanic)
   const passageCeiling = MeshBuilder.CreateBox(
     'passageCeiling',
     { width: 3, height: 0.5, depth: 4 },
@@ -164,7 +288,7 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
   allMeshes.push(passageCeiling);
   platformColliders.push(passageCeiling);
 
-  // Warning stripes
+  // Warning stripes at passage entrance/exit
   const passageStripe1 = MeshBuilder.CreateBox(
     'passageStripe1',
     { width: 2.7, height: 0.15, depth: 0.05 },
@@ -185,6 +309,7 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
   passageStripe2.parent = crouchPassageFrame;
   allMeshes.push(passageStripe2);
 
+  // Passage emergency light
   const passageLight1 = MeshBuilder.CreateSphere('passageLight1', { diameter: 0.1 }, scene);
   passageLight1.position = new Vector3(0, 0.9, 0);
   passageLight1.material = materials.get('emergency')!;
@@ -192,21 +317,44 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
   allMeshes.push(passageLight1);
 
   // === FINAL PLATFORM - End of course ===
-  const platform4 = MeshBuilder.CreateBox('platform4', { width: 4, height: 0.3, depth: 4 }, scene);
-  platform4.position = new Vector3(roomCenter.x - 4, 0.15, roomCenter.z - 6.5);
-  platform4.material = materials.get('hull')!;
-  platform4.parent = parent;
-  allMeshes.push(platform4);
-  platformColliders.push(platform4);
+  const platform4Collider = MeshBuilder.CreateBox(
+    'platform4_collider',
+    { width: 4, height: 0.3, depth: 4 },
+    scene
+  );
+  platform4Collider.position = new Vector3(roomCenter.x - 4, 0.15, roomCenter.z - 6.5);
+  platform4Collider.isVisible = false;
+  platform4Collider.checkCollisions = true;
+  platform4Collider.parent = parent;
+  platformColliders.push(platform4Collider);
 
+  // Visual model for final platform
+  const platform4Visual = placeVisualModel(
+    scene,
+    parent,
+    PLATFORM_ASSETS.platformLarge,
+    'platform4_visual',
+    new Vector3(roomCenter.x - 4, 0, roomCenter.z - 6.5),
+    Vector3.Zero(),
+    new Vector3(1, 1, 1)
+  );
+  if (!platform4Visual) {
+    const platform4 = MeshBuilder.CreateBox('platform4', { width: 4, height: 0.3, depth: 4 }, scene);
+    platform4.position = new Vector3(roomCenter.x - 4, 0.15, roomCenter.z - 6.5);
+    platform4.material = materials.get('hull')!;
+    platform4.parent = parent;
+    allMeshes.push(platform4);
+  }
+
+  // Completion marker (keep as MeshBuilder for animation)
   const completionMarker = MeshBuilder.CreateCylinder(
     'completionMarker',
     { height: 0.05, diameter: 2, tessellation: 16 },
     scene
   );
-  completionMarker.position = new Vector3(0, 0.18, 0);
+  completionMarker.position = new Vector3(roomCenter.x - 4, 0.33, roomCenter.z - 6.5);
   completionMarker.material = materials.get('active')!;
-  completionMarker.parent = platform4;
+  completionMarker.parent = parent;
   allMeshes.push(completionMarker);
 
   // === PLATFORMING ROOM LIGHTS ===
@@ -241,7 +389,7 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     allMeshes
   );
 
-  // === VISUAL PROMPTS ===
+  // === VISUAL PROMPTS (keep as MeshBuilder for text overlay) ===
   const jumpPromptSign = MeshBuilder.CreatePlane(
     'jumpPromptSign',
     { width: 2, height: 0.5 },

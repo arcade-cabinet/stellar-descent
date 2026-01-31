@@ -1,14 +1,15 @@
 /**
- * IndexedDBPersistence - Persists sql.js database to IndexedDB for PWA offline support
+ * IndexedDBPersistence - DEPRECATED
  *
- * This module bridges the in-memory sql.js database with IndexedDB storage,
- * enabling game saves to persist across browser sessions and work offline.
+ * This module was used to bridge sql.js with IndexedDB for web persistence.
+ * It has been replaced by @capacitor-community/sqlite which handles persistence
+ * automatically across all platforms (Web, iOS, Android).
  *
- * Key features:
- * - Automatic save on database changes (debounced)
- * - Load on app startup
- * - Works fully offline
- * - Minimal overhead with batched writes
+ * The new CapacitorDatabase.ts and updated worldDatabase.ts now handle all
+ * database persistence. This file is kept for backward compatibility but
+ * is no longer used.
+ *
+ * @deprecated Use CapacitorDatabase.ts instead
  */
 
 const DB_NAME = 'stellar_descent_db';
@@ -102,63 +103,53 @@ export async function saveDatabaseToIndexedDB(data: Uint8Array): Promise<void> {
  * Load the sql.js database binary data from IndexedDB
  */
 export async function loadDatabaseFromIndexedDB(): Promise<Uint8Array | null> {
-  try {
-    const db = await openDatabase();
+  const db = await openDatabase();
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(DATABASE_KEY);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(DATABASE_KEY);
 
-      request.onsuccess = () => {
-        db.close();
-        if (request.result) {
-          console.log('[IndexedDB] Database loaded successfully');
-          resolve(request.result as Uint8Array);
-        } else {
-          console.log('[IndexedDB] No saved database found');
-          resolve(null);
-        }
-      };
+    request.onsuccess = () => {
+      db.close();
+      if (request.result) {
+        console.log('[IndexedDB] Database loaded successfully');
+        resolve(request.result as Uint8Array);
+      } else {
+        console.log('[IndexedDB] No saved database found');
+        resolve(null);
+      }
+    };
 
-      request.onerror = () => {
-        db.close();
-        console.error('[IndexedDB] Failed to load database:', request.error);
-        reject(request.error);
-      };
-    });
-  } catch (error) {
-    console.error('[IndexedDB] Error loading database:', error);
-    return null;
-  }
+    request.onerror = () => {
+      db.close();
+      console.error('[IndexedDB] Failed to load database:', request.error);
+      reject(request.error);
+    };
+  });
 }
 
 /**
  * Get save metadata without loading the full database
  */
 export async function getSaveMetadata(): Promise<SaveMetadata | null> {
-  try {
-    const db = await openDatabase();
+  const db = await openDatabase();
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(METADATA_KEY);
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(METADATA_KEY);
 
-      request.onsuccess = () => {
-        db.close();
-        resolve(request.result as SaveMetadata | null);
-      };
+    request.onsuccess = () => {
+      db.close();
+      resolve(request.result as SaveMetadata | null);
+    };
 
-      request.onerror = () => {
-        db.close();
-        reject(request.error);
-      };
-    });
-  } catch (error) {
-    console.error('[IndexedDB] Error getting metadata:', error);
-    return null;
-  }
+    request.onerror = () => {
+      db.close();
+      reject(request.error);
+    };
+  });
 }
 
 /**

@@ -1,0 +1,168 @@
+# Campaign Level 8: Hive Assault
+# Combined arms push into hive - vehicle and infantry
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-8
+  - combined-arms
+  - assault
+name: "Campaign Level 8 - Hive Assault"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Look for Hive Assault (Chapter 8)
+- assertVisible:
+    text: "CHAPTER 8"
+    optional: true
+    timeout: 5000
+
+# Select Hive Assault if unlocked
+- tapOn:
+    text: "HIVE ASSAULT"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_08_select_state"
+
+# Wait for mission briefing
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+# Verify mission details
+- assertVisible:
+    text: "HIVE ASSAULT"
+    optional: true
+
+- assertVisible:
+    text: "Combined Arms"
+    optional: true
+
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+- takeScreenshot: "level_08_briefing"
+
+# Check intel for heavy enemies
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Should show HIVE COLOSSUS intel
+- assertVisible:
+    text: "HIVE COLOSSUS"
+    optional: true
+
+- assertVisible:
+    text: "EXTREME"
+    optional: true
+
+- assertVisible:
+    text: "SWARM TIDE"
+    optional: true
+
+- takeScreenshot: "level_08_intel"
+
+# Check loadout for heavy weapons
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "ROCKET LAUNCHER"
+    optional: true
+
+- assertVisible:
+    text: "FRAG GRENADES"
+    optional: true
+
+- takeScreenshot: "level_08_loadout"
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "level_08_start"
+
+# Vehicle phase - assault approach
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 2000
+
+# Turret fire
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- takeScreenshot: "level_08_vehicle_assault"
+
+# Continue assault
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 58%"
+          duration: 1500
+      - wait: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+- takeScreenshot: "level_08_combat"
+
+# Push forward
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 55%"
+    duration: 3000
+
+- wait: 2000
+
+- takeScreenshot: "level_08_gameplay"

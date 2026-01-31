@@ -52,24 +52,16 @@ export function loadAudioLogCollection(saveId?: string): AudioLogCollectionState
   const resolvedSaveId = saveId || getCurrentSaveId();
 
   if (typeof localStorage === 'undefined') {
-    return {
-      saveId: resolvedSaveId,
-      discoveries: [],
-      lastUpdated: Date.now(),
-    };
+    throw new Error('[AudioLogPersistence] localStorage is not available');
   }
 
-  try {
-    const stored = localStorage.getItem(getStorageKey(resolvedSaveId));
-    if (stored) {
-      const parsed = JSON.parse(stored) as AudioLogCollectionState;
-      return {
-        ...parsed,
-        saveId: resolvedSaveId,
-      };
-    }
-  } catch (e) {
-    console.warn('[AudioLogPersistence] Failed to load collection state:', e);
+  const stored = localStorage.getItem(getStorageKey(resolvedSaveId));
+  if (stored) {
+    const parsed = JSON.parse(stored) as AudioLogCollectionState;
+    return {
+      ...parsed,
+      saveId: resolvedSaveId,
+    };
   }
 
   return {
@@ -83,17 +75,15 @@ export function loadAudioLogCollection(saveId?: string): AudioLogCollectionState
  * Save collection state to localStorage
  */
 export function saveAudioLogCollection(state: AudioLogCollectionState): void {
-  if (typeof localStorage === 'undefined') return;
-
-  try {
-    const toStore: AudioLogCollectionState = {
-      ...state,
-      lastUpdated: Date.now(),
-    };
-    localStorage.setItem(getStorageKey(state.saveId), JSON.stringify(toStore));
-  } catch (e) {
-    console.warn('[AudioLogPersistence] Failed to save collection state:', e);
+  if (typeof localStorage === 'undefined') {
+    throw new Error('[AudioLogPersistence] localStorage is not available');
   }
+
+  const toStore: AudioLogCollectionState = {
+    ...state,
+    lastUpdated: Date.now(),
+  };
+  localStorage.setItem(getStorageKey(state.saveId), JSON.stringify(toStore));
 }
 
 /**

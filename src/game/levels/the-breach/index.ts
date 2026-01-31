@@ -48,7 +48,15 @@ export {
   updateEnemyAI,
 } from './enemies';
 // Environment
-export { HiveEnvironmentBuilder, updateBiolights } from './environment';
+export {
+  disposeBreachAssets,
+  HiveEnvironmentBuilder,
+  HIVE_STRUCTURE_PLACEMENTS,
+  loadBreachAssets,
+  placeBreachAssets,
+  updateBiolights,
+} from './environment';
+export type { HiveStructurePlacement, PlacedAsset } from './environment';
 // Hazards
 export {
   checkAcidPoolDamage,
@@ -69,6 +77,7 @@ export {
   getSpawnCooldown,
   getSpawnCount,
   getSpawnType,
+  preloadQueenModels,
 } from './queen';
 // Main level class
 export { TheBreachLevel } from './TheBreachLevel';

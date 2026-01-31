@@ -46,13 +46,19 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
+import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
+import { buildFloraFromPlacements, getHiveAssaultFlora } from '../shared/AlienFloraBuilder';
+import { buildCollectibles, type CollectibleSystemResult, getHiveAssaultCollectibles } from '../shared/CollectiblePlacer';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
+import type { TerrainResult } from '../shared/SurfaceTerrainFactory';
+import { HiveEnvironmentBuilder, updateBiolights } from '../shared/HiveEnvironmentBuilder';
 import {
   type AATurret,
   AssaultEnvironmentBuilder,
@@ -69,6 +75,19 @@ import {
 } from './MarineSquadAI';
 
 import '@babylonjs/core/Animations/animatable';
+
+// ============================================================================
+// GLB ASSET PATHS (vehicles & NPCs)
+// ============================================================================
+
+const LEVEL_GLB = {
+  marcusMech: '/models/vehicles/tea/marcus_mech.glb',
+  marineSoldier: '/models/npcs/marine/marine_soldier.glb',
+  marineSergeant: '/models/npcs/marine/marine_sergeant.glb',
+  marineElite: '/models/npcs/marine/marine_elite.glb',
+  marineCrusader: '/models/npcs/marine/marine_crusader.glb',
+  playerVehicle: '/models/vehicles/chitin/wraith.glb',
+} as const;
 
 // ============================================================================
 // TYPES
@@ -333,6 +352,10 @@ const COMMS = {
 // ============================================================================
 
 export class HiveAssaultLevel extends SurfaceLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Phase management
   private phase: AssaultPhase = 'staging';
   private phaseTime = 0;
@@ -340,6 +363,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
   // Environment
   private envBuilder: AssaultEnvironmentBuilder | null = null;
+  private surfaceTerrain: TerrainResult | null = null;
+  private hiveBuilder: HiveEnvironmentBuilder | null = null;
   private stagingArea: StagingAreaProps | null = null;
   private aaTurrets: AATurret[] = [];
   private fieldCover: Fortification[] = [];
@@ -437,12 +462,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Initialize systems
     particleManager.init(this.scene);
 
-    // Build environment
+    // Build environment -- load GLB assets first, then construct zones
     this.envBuilder = new AssaultEnvironmentBuilder(this.scene);
+    await this.envBuilder.loadAssets();
     this.envBuilder.setupGlowLayer();
     this.envBuilder.createTerrain();
     this.envBuilder.createSkyDome();
     this.envBuilder.createCanyonWalls();
+    this.envBuilder.createFleetBackdrop();
 
     this.stagingArea = this.envBuilder.createStagingArea();
     this.fieldCover = this.envBuilder.createFieldCover();
@@ -453,11 +480,54 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const hazards = this.envBuilder.createHazards();
     this.hiveEntrance = this.envBuilder.createHiveEntrance();
 
+    // --- Surface terrain (open field combat area, phases 1-3) ---
+    this.surfaceTerrain = createDynamicTerrain(this.scene, {
+      ...ROCK_TERRAIN,
+      size: 700,
+      heightScale: 5,
+      seed: 88881,
+      materialName: 'hiveAssaultRockTerrain',
+    });
+
+    // --- Hive underground environment (entry push, phase 4) ---
+    this.hiveBuilder = new HiveEnvironmentBuilder(this.scene, {
+      logPrefix: 'HiveAssault',
+    });
+    this.hiveBuilder.setupGlowLayer();
+
+    // Build the hive entrance corridor tunnels (z: -600 to -650)
+    for (let i = 0; i < 6; i++) {
+      this.hiveBuilder.createTunnelSegment(
+        new Vector3(0, -2, -600 - i * 8),
+        0,
+        'upper'
+      );
+    }
+
+    // Place bioluminescent lights along the entrance corridor
+    for (let i = 0; i < 8; i++) {
+      const side = i % 2 === 0 ? -1.5 : 1.5;
+      this.hiveBuilder.createBiolight(
+        new Vector3(side, 1.5, -605 - i * 6),
+        0.6 + Math.random() * 0.4
+      );
+    }
+
+    // Create a chamber at the beachhead destination
+    this.hiveBuilder.createChamber(new Vector3(0, -3, -660), 10, 'upper');
+
     // Extract cover positions for marine AI
     this.coverPositions = [
       ...this.fieldCover.filter((f) => f.provideCover).map((f) => f.position),
       ...this.breachFortifications.filter((f) => f.provideCover).map((f) => f.position),
     ];
+
+    // Preload level-specific GLBs (mech, marines)
+    await Promise.all(
+      Object.values(LEVEL_GLB).map((p) =>
+        AssetManager.isPathCached(p) ? Promise.resolve(null) : AssetManager.loadAssetByPath(p, this.scene)
+      )
+    );
 
     // Create Marcus mech
     this.createMarcusMech();
@@ -510,6 +580,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
       }
     );
 
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getHiveAssaultFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(this.scene, getHiveAssaultCollectibles(), collectibleRoot);
+
     // Start staging phase
     this.startStagingPhase();
   }
@@ -522,43 +600,37 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const rootNode = new TransformNode('marcus_mech', this.scene);
     rootNode.position.set(10, 0, -15);
 
-    const bodyMat = new StandardMaterial('mechBodyMat', this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString('#5A6A5A');
-    bodyMat.specularColor = new Color3(0.2, 0.2, 0.2);
+    // Load GLB model for the mech
+    if (AssetManager.isPathCached(LEVEL_GLB.marcusMech)) {
+      const mechModel = AssetManager.createInstanceByPath(
+        LEVEL_GLB.marcusMech, 'marcus_mech_model', this.scene, true, 'vehicle'
+      );
+      if (mechModel) {
+        mechModel.scaling.setAll(2.0);
+        mechModel.parent = rootNode;
+      }
+    }
 
-    const body = MeshBuilder.CreateBox('mechBody', { width: 3, height: 4, depth: 2.5 }, this.scene);
-    body.material = bodyMat;
+    // Invisible proxy meshes to satisfy MarcusMech interface (body, arms, legs)
+    const body = MeshBuilder.CreateBox('mechBody_proxy', { width: 3, height: 4, depth: 2.5 }, this.scene);
     body.position.y = 5;
     body.parent = rootNode;
+    body.isVisible = false;
 
-    const armMat = new StandardMaterial('mechArmMat', this.scene);
-    armMat.diffuseColor = Color3.FromHexString('#4A5A4A');
-
-    const leftArm = MeshBuilder.CreateBox(
-      'mechLeftArm',
-      { width: 1, height: 3.5, depth: 1 },
-      this.scene
-    );
-    leftArm.material = armMat;
+    const leftArm = MeshBuilder.CreateBox('mechLeftArm_proxy', { width: 1, height: 3.5, depth: 1 }, this.scene);
     leftArm.position.set(-2.2, 5, 0);
     leftArm.parent = rootNode;
+    leftArm.isVisible = false;
 
-    const rightArm = MeshBuilder.CreateBox(
-      'mechRightArm',
-      { width: 1, height: 3.5, depth: 1 },
-      this.scene
-    );
-    rightArm.material = armMat;
+    const rightArm = MeshBuilder.CreateBox('mechRightArm_proxy', { width: 1, height: 3.5, depth: 1 }, this.scene);
     rightArm.position.set(2.2, 5, 0);
     rightArm.parent = rootNode;
+    rightArm.isVisible = false;
 
-    const legMat = new StandardMaterial('mechLegMat', this.scene);
-    legMat.diffuseColor = Color3.FromHexString('#3A4A3A');
-
-    const legs = MeshBuilder.CreateBox('mechLegs', { width: 2.5, height: 3, depth: 2 }, this.scene);
-    legs.material = legMat;
+    const legs = MeshBuilder.CreateBox('mechLegs_proxy', { width: 2.5, height: 3, depth: 2 }, this.scene);
     legs.position.y = 1.5;
     legs.parent = rootNode;
+    legs.isVisible = false;
 
     // Mech eye light
     const mechEye = new PointLight('mechEye', new Vector3(10, 7.5, -14.5), this.scene);
@@ -591,52 +663,36 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const rootNode = new TransformNode('playerVehicle', this.scene);
     rootNode.position.set(15, 0, -10);
 
-    const bodyMat = new StandardMaterial('vehicleBodyMat', this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString('#5A5A4A');
+    // Load GLB model for the player vehicle
+    if (AssetManager.isPathCached(LEVEL_GLB.playerVehicle)) {
+      const vehicleModel = AssetManager.createInstanceByPath(
+        LEVEL_GLB.playerVehicle, 'playerVehicle_model', this.scene, true, 'vehicle'
+      );
+      if (vehicleModel) {
+        vehicleModel.scaling.setAll(0.8);
+        vehicleModel.parent = rootNode;
+      }
+    }
 
+    // Invisible collision proxy for body (gameplay collision)
     const body = MeshBuilder.CreateBox(
       'vehicleBody',
       { width: 2.5, height: 1.2, depth: 4 },
       this.scene
     );
-    body.material = bodyMat;
     body.position.y = 0.8;
     body.parent = rootNode;
+    body.isVisible = false;
 
-    const turretMat = new StandardMaterial('vehicleTurretMat', this.scene);
-    turretMat.diffuseColor = new Color3(0.3, 0.3, 0.3);
-
+    // Invisible collision proxy for turret
     const turret = MeshBuilder.CreateBox(
       'vehicleTurret',
       { width: 0.6, height: 0.5, depth: 1.5 },
       this.scene
     );
-    turret.material = turretMat;
     turret.position.set(0, 1.8, 0.3);
     turret.parent = rootNode;
-
-    // Wheels
-    const wheelMat = new StandardMaterial('wheelMat', this.scene);
-    wheelMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
-
-    const wheelPositions = [
-      new Vector3(-1.2, 0.3, 1.3),
-      new Vector3(1.2, 0.3, 1.3),
-      new Vector3(-1.2, 0.3, -1.3),
-      new Vector3(1.2, 0.3, -1.3),
-    ];
-
-    for (let i = 0; i < wheelPositions.length; i++) {
-      const wheel = MeshBuilder.CreateCylinder(
-        `wheel_${i}`,
-        { height: 0.3, diameter: 0.6, tessellation: 8 },
-        this.scene
-      );
-      wheel.material = wheelMat;
-      wheel.position = wheelPositions[i];
-      wheel.rotation.z = Math.PI / 2;
-      wheel.parent = rootNode;
-    }
+    turret.isVisible = false;
 
     this.playerVehicle = {
       rootNode,
@@ -783,9 +839,22 @@ export class HiveAssaultLevel extends SurfaceLevel {
   protected updateLevel(deltaTime: number): void {
     this.phaseTime += deltaTime;
 
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
+
     // Update environment effects
     if (this.hiveEntrance && this.envBuilder) {
       this.envBuilder.updateBioLights(this.hiveEntrance.bioLights, this.phaseTime);
+    }
+
+    // Update shared hive bioluminescent lights
+    if (this.hiveBuilder) {
+      updateBiolights(this.hiveBuilder.getBiolights(), this.phaseTime);
     }
 
     // Update Marcus
@@ -972,7 +1041,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
   }
 
-  private spawnEnemy(enemyClass: EnemyClass): void {
+  private async spawnEnemy(enemyClass: EnemyClass): Promise<void> {
     const config = ENEMY_CONFIGS[enemyClass];
 
     // Determine spawn position based on phase
@@ -1018,7 +1087,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const species = ALIEN_SPECIES[speciesId];
     if (!species) return;
 
-    const mesh = createAlienMesh(this.scene, species, Math.random() * 10000);
+    const mesh = await createAlienMesh(this.scene, species, Math.random() * 10000);
     mesh.position = spawnPos;
 
     // Scale flying enemies smaller
@@ -1728,6 +1797,13 @@ export class HiveAssaultLevel extends SurfaceLevel {
   // ============================================================================
 
   protected override disposeLevel(): void {
+    // Dispose flora
+    for (const node of this.floraNodes) { node.dispose(false, true); }
+    this.floraNodes = [];
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     super.disposeLevel();
 
     // Dispose enemies
@@ -1755,6 +1831,17 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Dispose environment
     this.envBuilder?.dispose();
     this.envBuilder = null;
+
+    // Dispose surface terrain
+    if (this.surfaceTerrain) {
+      this.surfaceTerrain.mesh.dispose();
+      this.surfaceTerrain.material.dispose();
+      this.surfaceTerrain = null;
+    }
+
+    // Dispose hive environment
+    this.hiveBuilder?.dispose();
+    this.hiveBuilder = null;
 
     // Unregister actions
     this.callbacks.onActionHandlerRegister(null);

@@ -220,6 +220,17 @@ const COLOR_GRADES: Record<LevelType, ColorGradeConfig> = {
     toneMappingEnabled: true,
     toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
   },
+
+  // Mining depths - dark, claustrophobic, slightly yellow
+  mine: {
+    contrast: 1.15,
+    exposure: 0.8,
+    saturation: 0.8,
+    colorCurvesEnabled: true,
+    vignetteColor: new Color4(0.15, 0.12, 0.08, 0.0),
+    toneMappingEnabled: true,
+    toneMappingType: ImageProcessingConfiguration.TONEMAPPING_ACES,
+  },
 };
 
 // ============================================================================

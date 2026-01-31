@@ -9,6 +9,7 @@ import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Scene } from '@babylonjs/core/scene';
 import React, { useEffect, useRef } from 'react';
 
@@ -21,6 +22,7 @@ import '@babylonjs/core/Shaders/default.vertex';
 import '@babylonjs/core/Shaders/default.fragment';
 
 import { useGame } from '../game/context/GameContext';
+import { AssetManager } from '../game/core/AssetManager';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
 import { GameManager } from '../game/core/GameManager';
 import { getPerformanceManager } from '../game/core/PerformanceManager';
@@ -32,6 +34,17 @@ import {
   type LevelId,
 } from '../game/levels/types';
 import styles from './GameCanvas.module.css';
+
+// ---------------------------------------------------------------------------
+// Rock formation GLB paths (replaces procedural cylinders)
+// ---------------------------------------------------------------------------
+
+/** Tall rock pillar GLBs for menu scene background decoration */
+const ROCK_FORMATION_GLBS = [
+  '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+];
 
 // Planet configuration
 const PLANET_RADIUS = 6000;
@@ -214,19 +227,10 @@ const planetFragmentShader = `
   }
 `;
 
-export type GameState =
-  | 'title'
-  | 'menu'
-  | 'briefing'
-  | 'intro'
-  | 'loading'
-  | 'tutorial'
-  | 'dropping'
-  | 'playing'
-  | 'paused'
-  | 'gameover'
-  | 'levelComplete'
-  | 'credits';
+import type { CampaignPhase } from '../game/campaign/types';
+
+/** @deprecated Use CampaignPhase from campaign/types instead */
+export type GameState = CampaignPhase;
 
 interface LoadingProgress {
   stage: string;
@@ -432,32 +436,61 @@ export function GameCanvas({
 
       planetRef.current = { planet, planetMaterial };
 
-      // Rock formations
-      const rockMat = new StandardMaterial('rockMat', scene);
-      rockMat.diffuseColor = Color3.FromHexString('#5C4A3A');
-      rockMat.specularColor = new Color3(0.1, 0.08, 0.06);
-
-      for (let i = 0; i < 60; i++) {
-        const height = 20 + Math.random() * 100;
-        const rock = MeshBuilder.CreateCylinder(
-          `rock_${i}`,
-          {
-            height: height,
-            diameterTop: 2 + Math.random() * 8,
-            diameterBottom: 8 + Math.random() * 20,
-            tessellation: 6,
-          },
-          scene
+      // Rock formations - load GLB models asynchronously
+      // Fire-and-forget load; rocks appear once assets are cached
+      (async () => {
+        // Preload all rock GLBs
+        await Promise.all(
+          ROCK_FORMATION_GLBS.map((path) =>
+            AssetManager.loadAssetByPath(path, scene).catch((err) => {
+              console.warn(`[GameCanvas] Failed to preload rock GLB ${path}:`, err);
+              return null;
+            })
+          )
         );
 
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 50 + Math.random() * 600;
-        rock.position.x = Math.cos(angle) * dist;
-        rock.position.z = Math.sin(angle) * dist;
-        rock.position.y = height / 2;
-        rock.rotation.y = Math.random() * Math.PI;
-        rock.material = rockMat;
-      }
+        // Create rock formation instances
+        const rockNodes: TransformNode[] = [];
+        for (let i = 0; i < 60; i++) {
+          // Pick a random rock variant
+          const glbPath = ROCK_FORMATION_GLBS[i % ROCK_FORMATION_GLBS.length];
+          const instanceName = `menuRock_${i}`;
+
+          const rockNode = AssetManager.createInstanceByPath(
+            glbPath,
+            instanceName,
+            scene,
+            false, // No LOD for menu background
+            'environment'
+          );
+
+          if (!rockNode) continue;
+
+          // Random scale to vary heights (replaces height param from cylinders)
+          const baseScale = 5 + Math.random() * 15;
+          const heightVariance = 0.7 + Math.random() * 0.6;
+          rockNode.scaling = new Vector3(
+            baseScale * (0.8 + Math.random() * 0.4),
+            baseScale * heightVariance * 1.5, // Taller for pillar effect
+            baseScale * (0.8 + Math.random() * 0.4)
+          );
+
+          // Position in a ring around the scene
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 50 + Math.random() * 600;
+          rockNode.position.x = Math.cos(angle) * dist;
+          rockNode.position.z = Math.sin(angle) * dist;
+          rockNode.position.y = 0;
+
+          // Random rotation + slight tilt for natural look
+          rockNode.rotation.x = (Math.random() - 0.5) * 0.2;
+          rockNode.rotation.y = Math.random() * Math.PI * 2;
+          rockNode.rotation.z = (Math.random() - 0.5) * 0.2;
+
+          rockNodes.push(rockNode);
+        }
+        console.log(`[GameCanvas] Created ${rockNodes.length} rock formation GLB instances`);
+      })();
 
       // Render loop
       engine.runRenderLoop(() => {

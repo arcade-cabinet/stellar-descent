@@ -15,7 +15,8 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { WeaponId } from '../entities/weapons';
+import type { WeaponCategory, WeaponId } from '../entities/weapons';
+import { WEAPONS } from '../entities/weapons';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,20 +60,20 @@ export interface WeaponAnimationProfile {
 }
 
 // ---------------------------------------------------------------------------
-// Per-weapon profiles
+// Category-based animation profile templates
 // ---------------------------------------------------------------------------
 
-const PROFILES: Record<WeaponId, WeaponAnimationProfile> = {
-  assault_rifle: {
-    recoilKickBack: 0.04,
-    recoilPitchUp: 0.035,
-    recoilRecoverySpeed: 6.0,
-    reloadDuration: 2.0,
-    switchHalfDuration: 0.25,
-    bobAmplitude: 0.012,
-    bobFrequency: 1.0,
+const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
+  sidearm: {
+    recoilKickBack: 0.03,
+    recoilPitchUp: 0.04,
+    recoilRecoverySpeed: 8.0,
+    reloadDuration: 1.2,
+    switchHalfDuration: 0.15,
+    bobAmplitude: 0.016,
+    bobFrequency: 1.2,
   },
-  pulse_smg: {
+  smg: {
     recoilKickBack: 0.02,
     recoilPitchUp: 0.02,
     recoilRecoverySpeed: 10.0,
@@ -81,7 +82,34 @@ const PROFILES: Record<WeaponId, WeaponAnimationProfile> = {
     bobAmplitude: 0.015,
     bobFrequency: 1.15,
   },
-  plasma_cannon: {
+  rifle: {
+    recoilKickBack: 0.04,
+    recoilPitchUp: 0.035,
+    recoilRecoverySpeed: 6.0,
+    reloadDuration: 2.0,
+    switchHalfDuration: 0.25,
+    bobAmplitude: 0.012,
+    bobFrequency: 1.0,
+  },
+  marksman: {
+    recoilKickBack: 0.06,
+    recoilPitchUp: 0.05,
+    recoilRecoverySpeed: 4.0,
+    reloadDuration: 2.5,
+    switchHalfDuration: 0.3,
+    bobAmplitude: 0.01,
+    bobFrequency: 0.9,
+  },
+  shotgun: {
+    recoilKickBack: 0.07,
+    recoilPitchUp: 0.055,
+    recoilRecoverySpeed: 4.5,
+    reloadDuration: 2.8,
+    switchHalfDuration: 0.28,
+    bobAmplitude: 0.011,
+    bobFrequency: 0.95,
+  },
+  heavy: {
     recoilKickBack: 0.08,
     recoilPitchUp: 0.06,
     recoilRecoverySpeed: 3.0,
@@ -92,8 +120,73 @@ const PROFILES: Record<WeaponId, WeaponAnimationProfile> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Per-weapon overrides (optional -- falls back to category profile)
+// ---------------------------------------------------------------------------
+
+const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>>> = {
+  // Revolver: heavy recoil for a sidearm
+  revolver: {
+    recoilKickBack: 0.055,
+    recoilPitchUp: 0.05,
+    recoilRecoverySpeed: 5.0,
+    reloadDuration: 2.8,
+  },
+  // Sniper: very heavy recoil, slow recovery
+  sniper_rifle: {
+    recoilKickBack: 0.09,
+    recoilPitchUp: 0.07,
+    recoilRecoverySpeed: 2.5,
+    reloadDuration: 3.5,
+    switchHalfDuration: 0.35,
+  },
+  // Double barrel: massive recoil
+  double_barrel: {
+    recoilKickBack: 0.1,
+    recoilPitchUp: 0.08,
+    recoilRecoverySpeed: 3.5,
+    reloadDuration: 2.2,
+  },
+  // Plasma cannon: energy discharge feel
+  plasma_cannon: {
+    recoilKickBack: 0.08,
+    recoilPitchUp: 0.06,
+    recoilRecoverySpeed: 3.0,
+    reloadDuration: 3.5,
+    switchHalfDuration: 0.35,
+  },
+  // SAW LMG: sustained fire, low per-shot recoil
+  saw_lmg: {
+    recoilKickBack: 0.025,
+    recoilPitchUp: 0.02,
+    recoilRecoverySpeed: 8.0,
+    reloadDuration: 5.0,
+    switchHalfDuration: 0.4,
+  },
+  // Heavy LMG: slower handling than SAW
+  heavy_lmg: {
+    recoilKickBack: 0.035,
+    recoilPitchUp: 0.03,
+    recoilRecoverySpeed: 6.0,
+    reloadDuration: 4.5,
+    switchHalfDuration: 0.4,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Profile resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the animation profile for a weapon.
+ * Merges category defaults with any per-weapon overrides.
+ */
 export function getAnimationProfile(weaponId: WeaponId): WeaponAnimationProfile {
-  return PROFILES[weaponId];
+  const def = WEAPONS[weaponId];
+  const base = CATEGORY_PROFILES[def?.category ?? 'rifle'];
+  const overrides = WEAPON_OVERRIDES[weaponId];
+  if (!overrides) return base;
+  return { ...base, ...overrides };
 }
 
 // ---------------------------------------------------------------------------
@@ -153,14 +246,14 @@ export class WeaponAnimationController {
   private readonly adsSpeed = 6.0;
 
   constructor(weaponId: WeaponId) {
-    this.profile = PROFILES[weaponId];
+    this.profile = getAnimationProfile(weaponId);
   }
 
   // -- Public API -------------------------------------------------------------
 
   /** Switch to a new weapon profile (e.g. after weapon switch completes). */
   setWeapon(weaponId: WeaponId): void {
-    this.profile = PROFILES[weaponId];
+    this.profile = getAnimationProfile(weaponId);
   }
 
   /** Trigger a single fire recoil impulse. */

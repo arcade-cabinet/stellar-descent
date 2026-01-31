@@ -1,0 +1,279 @@
+/**
+ * Landfall Descent Logic
+ * Handles freefall, powered descent, asteroid avoidance, and landing
+ */
+
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+
+import type { Asteroid, LandingOutcome } from './types';
+import {
+  LZ_RADIUS,
+  NEAR_MISS_RADIUS,
+  MAX_DRIFT,
+  NEAR_MISS_COOLDOWN,
+} from './constants';
+
+// ============================================================================
+// ASTEROID MANAGEMENT
+// ============================================================================
+
+export interface AsteroidUpdateResult {
+  asteroidsHit: number;
+  asteroidsDodged: number;
+  suitDamage: number;
+  nearMissTriggered: boolean;
+  nearMissAsteroid: Asteroid | null;
+}
+
+/**
+ * Update all asteroids and check for collisions
+ */
+export function updateAsteroids(
+  asteroids: Asteroid[],
+  nearMissTimer: number,
+  deltaTime: number
+): {
+  updatedAsteroids: Asteroid[];
+  removedAsteroids: Asteroid[];
+  result: AsteroidUpdateResult;
+  newNearMissTimer: number;
+} {
+  const result: AsteroidUpdateResult = {
+    asteroidsHit: 0,
+    asteroidsDodged: 0,
+    suitDamage: 0,
+    nearMissTriggered: false,
+    nearMissAsteroid: null,
+  };
+
+  let timer = nearMissTimer > 0 ? nearMissTimer - deltaTime : 0;
+  const removedAsteroids: Asteroid[] = [];
+  const updatedAsteroids: Asteroid[] = [];
+
+  for (const ast of asteroids) {
+    // Update position and rotation
+    ast.mesh.position.addInPlace(ast.velocity.scale(deltaTime));
+    ast.mesh.rotation.addInPlace(ast.rotationSpeed.scale(deltaTime));
+    if (ast.trail && ast.trail.emitter instanceof Vector3) {
+      ast.trail.emitter.copyFrom(ast.mesh.position);
+    }
+
+    const hitRadius = 2.0 + ast.size * 0.5;
+    const dist = Math.sqrt(ast.mesh.position.x ** 2 + ast.mesh.position.z ** 2);
+    const inZone = ast.mesh.position.y > -6 && ast.mesh.position.y < 6;
+
+    // Check for hit
+    if (inZone && dist < hitRadius && !ast.passed) {
+      result.asteroidsHit++;
+      result.suitDamage += 8 + ast.size * 3;
+      ast.passed = true;
+      if (ast.trail) ast.trail.stop();
+      ast.mesh.scaling.setAll(0.1);
+    }
+
+    // Check for near miss
+    if (inZone && dist >= hitRadius && dist < hitRadius + 3 && !ast.passed && timer <= 0) {
+      result.nearMissTriggered = true;
+      result.nearMissAsteroid = ast;
+      timer = NEAR_MISS_COOLDOWN;
+    }
+
+    // Check if dodged
+    if (ast.mesh.position.y > 15 && !ast.passed) {
+      ast.passed = true;
+      result.asteroidsDodged++;
+    }
+
+    // Remove if out of range
+    if (ast.mesh.position.y > 60) {
+      removedAsteroids.push(ast);
+    } else {
+      updatedAsteroids.push(ast);
+    }
+  }
+
+  return {
+    updatedAsteroids,
+    removedAsteroids,
+    result,
+    newNearMissTimer: timer,
+  };
+}
+
+/**
+ * Clean up removed asteroids
+ */
+export function disposeAsteroids(asteroids: Asteroid[]): void {
+  for (const ast of asteroids) {
+    if (ast.trail) {
+      ast.trail.stop();
+      ast.trail.dispose();
+    }
+    ast.mesh.dispose();
+  }
+}
+
+// ============================================================================
+// LANDING ZONE TRACKING
+// ============================================================================
+
+/**
+ * Update LZ beacon color based on player position
+ */
+export function updateLZBeaconColor(
+  lzBeacon: Mesh | null,
+  positionX: number,
+  positionZ: number
+): void {
+  if (!lzBeacon?.material) return;
+
+  const distToLZ = Math.sqrt(positionX ** 2 + positionZ ** 2);
+  const mat = lzBeacon.material as StandardMaterial;
+
+  if (distToLZ < LZ_RADIUS) {
+    mat.emissiveColor = new Color3(0.2, 1, 0.3);
+  } else if (distToLZ < NEAR_MISS_RADIUS) {
+    mat.emissiveColor = new Color3(1, 1, 0.2);
+  } else {
+    mat.emissiveColor = new Color3(1, 0.3, 0.2);
+  }
+}
+
+/**
+ * Check if trajectory is lost
+ */
+export function checkTrajectoryLost(positionX: number, positionZ: number): boolean {
+  const distToLZ = Math.sqrt(positionX ** 2 + positionZ ** 2);
+  return distToLZ > MAX_DRIFT;
+}
+
+// ============================================================================
+// LANDING OUTCOME
+// ============================================================================
+
+/**
+ * Determine landing outcome based on position and velocity
+ */
+export function determineLandingOutcome(
+  positionX: number,
+  positionZ: number,
+  velocity: number
+): LandingOutcome {
+  const distToLZ = Math.sqrt(positionX ** 2 + positionZ ** 2);
+
+  if (velocity > 60) {
+    return 'crash';
+  }
+  if (distToLZ <= LZ_RADIUS && velocity < 25) {
+    return 'perfect';
+  }
+  if (distToLZ <= NEAR_MISS_RADIUS) {
+    return velocity < 40 ? 'near_miss' : 'rough';
+  }
+  if (distToLZ > MAX_DRIFT) {
+    return 'slingshot';
+  }
+  return 'rough';
+}
+
+// ============================================================================
+// MOVEMENT PROCESSING
+// ============================================================================
+
+export interface MovementInput {
+  moveLeft: boolean;
+  moveRight: boolean;
+  moveForward: boolean;
+  moveBackward: boolean;
+  fire: boolean;
+  reload: boolean;
+}
+
+export interface FreefallMovementResult {
+  lateralVelocityX: number;
+  lateralVelocityZ: number;
+}
+
+/**
+ * Process freefall movement input
+ */
+export function processFreefallMovement(
+  input: MovementInput,
+  currentVelocityX: number,
+  currentVelocityZ: number,
+  deltaTime: number
+): FreefallMovementResult {
+  let lateralVelocityX = currentVelocityX;
+  let lateralVelocityZ = currentVelocityZ;
+
+  if (input.moveLeft) lateralVelocityX -= 40 * deltaTime;
+  if (input.moveRight) lateralVelocityX += 40 * deltaTime;
+  if (input.moveForward) lateralVelocityZ += 40 * deltaTime;
+  if (input.moveBackward) lateralVelocityZ -= 40 * deltaTime;
+
+  lateralVelocityX *= 0.95;
+  lateralVelocityZ *= 0.95;
+
+  return { lateralVelocityX, lateralVelocityZ };
+}
+
+export interface PoweredDescentResult {
+  lateralVelocityX: number;
+  lateralVelocityZ: number;
+  velocity: number;
+  fuel: number;
+  thrusterGlowIntensity: number;
+}
+
+/**
+ * Process powered descent movement and thrusters
+ */
+export function processPoweredDescentMovement(
+  input: MovementInput,
+  currentVelocityX: number,
+  currentVelocityZ: number,
+  velocity: number,
+  fuel: number,
+  fuelBurnRate: number,
+  deltaTime: number
+): PoweredDescentResult {
+  let lateralVelocityX = currentVelocityX;
+  let lateralVelocityZ = currentVelocityZ;
+  let newVelocity = velocity;
+  let newFuel = fuel;
+  let thrusterGlowIntensity = 0.2;
+
+  // Lateral movement
+  if (input.moveLeft) lateralVelocityX -= 20 * deltaTime;
+  if (input.moveRight) lateralVelocityX += 20 * deltaTime;
+  if (input.moveForward) lateralVelocityZ += 20 * deltaTime;
+  if (input.moveBackward) lateralVelocityZ -= 20 * deltaTime;
+
+  // Main thrust (fire button)
+  if (input.fire && fuel > 0) {
+    newVelocity = Math.max(5, velocity - 60 * deltaTime);
+    newFuel = Math.max(0, fuel - fuelBurnRate * deltaTime);
+    thrusterGlowIntensity = 0.8;
+  }
+
+  // Stabilization (reload button)
+  if (input.reload && fuel > 0) {
+    lateralVelocityX *= 0.9;
+    lateralVelocityZ *= 0.9;
+    newFuel = Math.max(0, newFuel - 2 * deltaTime);
+  }
+
+  lateralVelocityX *= 0.98;
+  lateralVelocityZ *= 0.98;
+
+  return {
+    lateralVelocityX,
+    lateralVelocityZ,
+    velocity: newVelocity,
+    fuel: newFuel,
+    thrusterGlowIntensity,
+  };
+}

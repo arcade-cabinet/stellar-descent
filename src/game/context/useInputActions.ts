@@ -18,14 +18,10 @@ const STORAGE_KEY = 'stellar-descent-keybindings';
  * Load keybindings from localStorage (for use outside React)
  */
 export function getKeybindings(): Keybindings {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...DEFAULT_KEYBINDINGS, ...parsed };
-    }
-  } catch (e) {
-    console.warn('Failed to load keybindings:', e);
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    return { ...DEFAULT_KEYBINDINGS, ...parsed };
   }
   return { ...DEFAULT_KEYBINDINGS };
 }

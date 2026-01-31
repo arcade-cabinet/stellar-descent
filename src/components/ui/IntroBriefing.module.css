@@ -1,0 +1,97 @@
+/* IntroBriefing - Military terminal typing briefing screen */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.scanLines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 0, 0.015) 2px,
+    rgba(0, 255, 0, 0.015) 4px
+  );
+  z-index: 2;
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  width: 90%;
+  padding: 2rem;
+}
+
+.header {
+  font-family: "Courier New", monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: #4a7a4a;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  opacity: 0.7;
+}
+
+.textBlock {
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: #8bc88b;
+  min-height: 200px;
+}
+
+.line {
+  opacity: 0;
+  animation: lineAppear 0.1s ease forwards;
+}
+
+.cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  background: #8bc88b;
+  vertical-align: text-bottom;
+  animation: blink 0.6s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes lineAppear {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.buttonContainer {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}

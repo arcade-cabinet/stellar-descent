@@ -1,0 +1,123 @@
+# Campaign Level 1: Anchor Station Prometheus
+# Tutorial level - tests level loading, tutorial flow, and level completion
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - campaign
+  - level-1
+  - tutorial
+name: "Campaign Level 1 - Anchor Station Prometheus"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "NEW CAMPAIGN"
+    timeout: 30000
+
+# Start new campaign
+- tapOn:
+    text: "NEW CAMPAIGN"
+
+# Wait for difficulty selection (if no save exists)
+- assertVisible:
+    text: "SELECT DIFFICULTY"
+    optional: true
+    timeout: 5000
+
+# Select Normal difficulty if shown
+- tapOn:
+    text: "NORMAL"
+    optional: true
+
+- wait: 500
+
+# Confirm difficulty selection
+- tapOn:
+    text: "BEGIN"
+    optional: true
+
+# Wait for loading screen - Anchor Station
+- extendedWaitUntil:
+    visible: "ANCHOR STATION PROMETHEUS"
+    timeout: 15000
+
+- takeScreenshot: "level_01_loading"
+
+# Wait for loading to complete
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Should see tutorial intro comms
+- extendedWaitUntil:
+    visible: "Good morning"
+    timeout: 30000
+
+- assertVisible:
+    text: "ATHENA"
+
+- takeScreenshot: "level_01_tutorial_start"
+
+# Acknowledge tutorial message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1500
+
+# Continue through tutorial prompts
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+# Basic movement tutorial (mobile touch input)
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 60%"
+    duration: 2000
+
+- wait: 500
+
+# Look around (mobile)
+- swipe:
+    start: "80%, 50%"
+    end: "70%, 45%"
+    duration: 1000
+
+- wait: 1000
+
+# Continue tutorial
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- tapOn:
+    text: "Continue"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "level_01_tutorial_progress"
+
+# Additional tutorial steps
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+# Skip remaining tutorial if option available
+- tapOn:
+    text: "SKIP"
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "level_01_anchor_station"

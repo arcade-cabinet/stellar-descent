@@ -28,12 +28,12 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { AssetManager } from '../../core/AssetManager';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { getAudioManager } from '../../core/AudioManager';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
@@ -42,6 +42,9 @@ import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { type SurfaceConfig, SurfaceLevel } from '../SurfaceLevel';
+import { buildFloraFromPlacements, getSouthernIceFlora } from '../shared/AlienFloraBuilder';
+import { buildCollectibles, type CollectibleSystemResult, getSouthernIceCollectibles } from '../shared/CollectiblePlacer';
+import { createDynamicTerrain, ICE_TERRAIN } from '../shared/SurfaceTerrainFactory';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import {
   createIceEnvironment,
@@ -49,6 +52,7 @@ import {
   getTemperatureAtPosition,
   type IceEnvironment,
   type TemperatureZone,
+  preloadIceEnvironmentAssets,
   updateAuroraBorealis,
   updateBlizzardEmitter,
 } from './environment';
@@ -63,17 +67,23 @@ import {
   ICE_SHARD_PROJECTILE,
   type IceChitinInstance,
   type IceChitinState,
+  preloadIceChitinAssets,
 } from './IceChitin';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
+// ============================================================================
+// GLB MODEL PATHS
+// ============================================================================
+
+const MARCUS_MECH_GLB = '/models/vehicles/tea/marcus_mech.glb';
+
 type LevelPhase = 'ice_fields' | 'frozen_lake' | 'ice_caverns' | 'complete';
 
 interface MarcusMech {
   rootNode: TransformNode;
-  body: Mesh;
   position: Vector3;
   health: number;
   maxHealth: number;
@@ -243,6 +253,10 @@ const PHASE_ENEMY_COUNTS = {
 // ============================================================================
 
 export class SouthernIceLevel extends SurfaceLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Phase management
   private phase: LevelPhase = 'ice_fields';
   private phaseTime = 0;
@@ -342,10 +356,40 @@ export class SouthernIceLevel extends SurfaceLevel {
   // ============================================================================
 
   protected override async createEnvironment(): Promise<void> {
-    // Create the complete ice environment
+    // Preload all GLB assets in parallel before building the environment
+    await Promise.all([
+      preloadIceEnvironmentAssets(this.scene),
+      preloadIceChitinAssets(this.scene),
+      AssetManager.loadAssetByPath(MARCUS_MECH_GLB, this.scene),
+    ]);
+
+    // Build the ice environment (synchronous now that assets are preloaded)
     this.iceEnvironment = createIceEnvironment(this.scene);
 
-    // Create Marcus mech
+    // Replace the environment's built-in terrain with the SurfaceTerrainFactory version
+    // Dispose the old terrain that createIceEnvironment created internally
+    this.iceEnvironment.terrain.dispose();
+
+    // Create the factory terrain using the ICE_TERRAIN preset, customised
+    // to match this level's 600-unit arena size and lower height scale for
+    // the relatively flat frozen wasteland.
+    const factoryResult = createDynamicTerrain(this.scene, {
+      ...ICE_TERRAIN,
+      size: 600,
+      heightScale: 10,
+      seed: 67890,
+    });
+
+    // Wire the factory mesh into the ice environment so that the rest of
+    // the level (and disposeIceEnvironment) references the correct mesh.
+    this.iceEnvironment.terrain = factoryResult.mesh;
+
+    // Also store on the base SurfaceLevel members so super.disposeLevel()
+    // can clean up if needed (it guards with null-checks).
+    this.terrain = factoryResult.mesh;
+    this.terrainMaterial = factoryResult.material;
+
+    // Create Marcus mech (GLB is already preloaded above)
     this.createMarcusMech();
 
     // Set up initial camera position (northern edge of ice fields)
@@ -379,6 +423,14 @@ export class SouthernIceLevel extends SurfaceLevel {
     // Set up initial action buttons
     this.updateActionButtons();
 
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getSouthernIceFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(this.scene, getSouthernIceCollectibles(), collectibleRoot);
+
     // Spawn initial enemies for ice fields phase
     this.spawnPhaseEnemies('ice_fields');
   }
@@ -390,6 +442,14 @@ export class SouthernIceLevel extends SurfaceLevel {
   protected override updateLevel(deltaTime: number): void {
     this.phaseTime += deltaTime;
     this.levelTime += deltaTime;
+
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
 
     // Update environment
     this.updateEnvironment(deltaTime);
@@ -1216,49 +1276,34 @@ export class SouthernIceLevel extends SurfaceLevel {
     const root = new TransformNode('marcusMech', this.scene);
     root.position.set(10, 0, 20);
 
-    // Simplified mech body (8m tall Titan)
-    const bodyMat = new StandardMaterial('marcusBodyMat', this.scene);
-    bodyMat.diffuseColor = new Color3(0.35, 0.4, 0.35); // Military green-grey
-    bodyMat.specularColor = new Color3(0.3, 0.3, 0.3);
-
-    // Torso
-    const body = MeshBuilder.CreateBox(
-      'marcusBody',
-      { width: 3, height: 4, depth: 2.5 },
-      this.scene
+    // Load the full mech body from GLB
+    const mechBody = AssetManager.createInstanceByPath(
+      MARCUS_MECH_GLB,
+      'marcus_mech_body',
+      this.scene,
+      true,
+      'vehicle'
     );
-    body.material = bodyMat;
-    body.parent = root;
-    body.position.y = 5;
 
-    // Legs
-    const legMat = new StandardMaterial('marcusLegMat', this.scene);
-    legMat.diffuseColor = new Color3(0.3, 0.32, 0.3);
-
-    for (let i = 0; i < 2; i++) {
-      const leg = MeshBuilder.CreateBox(
-        `marcusLeg_${i}`,
-        { width: 1, height: 3, depth: 1.2 },
-        this.scene
-      );
-      leg.material = legMat;
-      leg.parent = root;
-      leg.position.set((i - 0.5) * 1.5, 1.5, 0);
+    if (mechBody) {
+      mechBody.parent = root;
+      // Scale to ~8m tall Titan proportions
+      mechBody.scaling.setAll(2.5);
+    } else {
+      console.warn('[SouthernIce] Marcus mech GLB not loaded, mech will be invisible');
     }
 
-    // Reactor glow (warm -- indicates cold resistance)
-    const reactorMat = new StandardMaterial('reactorMat', this.scene);
-    reactorMat.emissiveColor = new Color3(0.8, 0.4, 0.15);
-    reactorMat.disableLighting = true;
-
-    const reactor = MeshBuilder.CreateSphere('marcusReactor', { diameter: 0.8 }, this.scene);
-    reactor.material = reactorMat;
-    reactor.parent = root;
-    reactor.position.set(0, 5.5, -1.3);
+    // Reactor glow light (warm -- indicates cold resistance)
+    // Kept as a point light for gameplay feedback regardless of GLB
+    const reactorLight = new PointLight('marcusReactorLight', Vector3.Zero(), this.scene);
+    reactorLight.parent = root;
+    reactorLight.position.set(0, 5.5, -1.3);
+    reactorLight.intensity = 1.2;
+    reactorLight.diffuse = new Color3(0.8, 0.4, 0.15);
+    reactorLight.range = 12;
 
     this.marcus = {
       rootNode: root,
-      body,
       position: new Vector3(10, 0, 20),
       health: 500,
       maxHealth: 500,
@@ -1384,6 +1429,13 @@ export class SouthernIceLevel extends SurfaceLevel {
   // ============================================================================
 
   protected override disposeLevel(): void {
+    // Dispose flora
+    for (const node of this.floraNodes) { node.dispose(false, true); }
+    this.floraNodes = [];
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     // Dispose Ice Chitins
     for (const chitin of this.iceChitins) {
       chitin.rootNode.getChildMeshes().forEach((m) => m.dispose());
@@ -1411,11 +1463,17 @@ export class SouthernIceLevel extends SurfaceLevel {
       this.marcus = null;
     }
 
-    // Dispose ice environment
+    // Dispose ice environment (this also disposes the factory terrain mesh
+    // assigned to iceEnvironment.terrain)
     if (this.iceEnvironment) {
       disposeIceEnvironment(this.iceEnvironment);
       this.iceEnvironment = null;
     }
+
+    // Clear base-class terrain references so super.disposeLevel() does not
+    // attempt to double-dispose the same mesh already freed above.
+    this.terrain = null;
+    this.terrainMaterial = null;
 
     // Unregister action handler
     this.callbacks.onActionHandlerRegister(null);

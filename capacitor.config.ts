@@ -29,6 +29,19 @@ const config: CapacitorConfig = {
     ScreenOrientation: {
       // Lock to landscape for the game
     },
+    CapacitorSQLite: {
+      // iOS database location
+      iosDatabaseLocation: 'Library/CapacitorDatabase',
+      // Enable encryption on iOS/Android for secure save data
+      iosIsEncryption: false,
+      androidIsEncryption: false,
+      // Use biometric authentication for encryption (optional)
+      iosBiometric: {
+        biometricAuth: false,
+      },
+      // Disable readonly (we need read/write access)
+      readonly: false,
+    },
   },
   ios: {
     contentInset: 'always',

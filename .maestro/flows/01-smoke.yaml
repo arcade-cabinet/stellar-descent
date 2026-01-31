@@ -1,0 +1,24 @@
+# Smoke test - verify app loads and renders
+# Works on: Web
+tags:
+  - smoke
+  - critical
+name: "Smoke Test - App Loads"
+
+---
+# For web testing - navigate to the app
+- openLink: "http://localhost:8080"
+
+# Wait for canvas to be ready (game renders to canvas)
+- extendedWaitUntil:
+    visible: "canvas"
+    timeout: 30000
+
+# Main menu should be visible
+- assertVisible:
+    text: "NEW CAMPAIGN"
+
+- assertVisible:
+    text: "CONTROLS"
+
+- takeScreenshot: "smoke-main-menu"

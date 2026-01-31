@@ -140,21 +140,17 @@ export function getDifficultyInfo(difficulty: DifficultyLevel): DifficultyInfo {
  * Handles migration from old difficulty values (easy, hard, nightmare)
  */
 export function loadDifficultySetting(): DifficultyLevel {
-  try {
-    const stored = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
-    if (stored) {
-      // Check if it's a valid current difficulty
-      if (isValidDifficulty(stored)) {
-        return stored;
-      }
-      // Try to migrate from old values
-      const migrated = migrateDifficulty(stored);
-      // Save the migrated value
-      saveDifficultySetting(migrated);
-      return migrated;
+  const stored = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+  if (stored) {
+    // Check if it's a valid current difficulty
+    if (isValidDifficulty(stored)) {
+      return stored;
     }
-  } catch {
-    // localStorage not available or other error
+    // Try to migrate from old values
+    const migrated = migrateDifficulty(stored);
+    // Save the migrated value
+    saveDifficultySetting(migrated);
+    return migrated;
   }
   return DEFAULT_DIFFICULTY;
 }
@@ -163,12 +159,7 @@ export function loadDifficultySetting(): DifficultyLevel {
  * Save difficulty setting to localStorage
  */
 export function saveDifficultySetting(difficulty: DifficultyLevel): void {
-  try {
-    localStorage.setItem(DIFFICULTY_STORAGE_KEY, difficulty);
-  } catch {
-    // localStorage not available or other error
-    console.warn('[DifficultySettings] Failed to save difficulty setting');
-  }
+  localStorage.setItem(DIFFICULTY_STORAGE_KEY, difficulty);
 }
 
 /**

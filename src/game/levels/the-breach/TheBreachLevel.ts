@@ -29,7 +29,9 @@ import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { BaseLevel } from '../BaseLevel';
+import { buildCollectibles, type CollectibleSystemResult, getTheBreachCollectibles } from '../shared/CollectiblePlacer';
 import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import {
   COMMS_BOSS_DEATH,
@@ -40,6 +42,20 @@ import {
   NOTIFICATIONS,
   OBJECTIVES,
 } from './comms';
+
+// ============================================================================
+// QUEEN CHAMBER GLB ASSET PATHS
+// ============================================================================
+
+/** GLB paths for queen chamber structural elements */
+const QUEEN_CHAMBER_GLBS = {
+  /** Arena floor tile */
+  arenaFloor: '/models/environment/modular/FloorTile_Basic.glb',
+  /** Chamber dome (organic stomach structure) */
+  dome: '/models/environment/hive/building_stomach.glb',
+  /** Chamber entrance door */
+  door: '/models/environment/modular/Door_Double.glb',
+} as const;
 // Import from subpackage modules
 import {
   COLORS,
@@ -67,7 +83,15 @@ import {
   spawnEnemy,
   updateEnemyAI,
 } from './enemies';
-import { HiveEnvironmentBuilder, updateBiolights } from './environment';
+import {
+  disposeBreachAssets,
+  HiveEnvironmentBuilder,
+  HIVE_STRUCTURE_PLACEMENTS,
+  loadBreachAssets,
+  placeBreachAssets,
+  type PlacedAsset,
+  updateBiolights,
+} from './environment';
 import {
   checkAcidPoolDamage,
   checkEggClusterTrigger,
@@ -86,6 +110,7 @@ import {
   getSpawnCooldown,
   getSpawnCount,
   getSpawnType,
+  preloadQueenModels,
 } from './queen';
 import type { Enemy, HiveZone, LevelPhase, Queen, QueenPhase } from './types';
 
@@ -94,6 +119,9 @@ import type { Enemy, HiveZone, LevelPhase, Queen, QueenPhase } from './types';
 // ============================================================================
 
 export class TheBreachLevel extends BaseLevel {
+  // Collectibles (no flora in hive interior)
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Level state
   private phase: LevelPhase = 'exploration';
   private currentZone: HiveZone = 'upper';
@@ -102,11 +130,13 @@ export class TheBreachLevel extends BaseLevel {
   // Environment builders
   private environmentBuilder: HiveEnvironmentBuilder | null = null;
   private hazardBuilder: HazardBuilder | null = null;
+  private placedBreachAssets: PlacedAsset[] = [];
 
   // Queen boss
   private queen: Queen | null = null;
-  private queenArena: Mesh | null = null;
-  private queenDoorMesh: Mesh | null = null;
+  private queenArena: TransformNode | null = null;
+  private queenDoorMesh: TransformNode | null = null;
+  private queenDomeMesh: TransformNode | null = null;
   private queenDefeated = false;
 
   // Enemies
@@ -161,22 +191,50 @@ export class TheBreachLevel extends BaseLevel {
     // Connect damage feedback screen shake to base level shake system
     damageFeedback.setScreenShakeCallback((intensity) => this.triggerShake(intensity));
 
-    // Load assets
-    await this.environmentBuilder.loadHiveStructures();
-    await this.environmentBuilder.loadCapturedVehicles();
+    // Load assets -- hive structures, captured vehicles, station/detail GLBs, queen models, and chamber GLBs
+    await Promise.all([
+      this.environmentBuilder.loadHiveStructures(),
+      this.environmentBuilder.loadCapturedVehicles(),
+      loadBreachAssets(this.scene),
+      preloadQueenModels(this.scene),
+      this.loadQueenChamberAssets(),
+    ]);
+  }
 
-    // Build the hive structure
+  /**
+   * Preload GLB assets used for the queen chamber (floor, dome, door).
+   */
+  private async loadQueenChamberAssets(): Promise<void> {
+    const loadPromises: Promise<unknown>[] = [];
+
+    for (const path of Object.values(QUEEN_CHAMBER_GLBS)) {
+      if (!AssetManager.isPathCached(path)) {
+        loadPromises.push(AssetManager.loadAssetByPath(path, this.scene));
+      }
+    }
+
+    await Promise.all(loadPromises);
+    console.log('[TheBreachLevel] Queen chamber GLB assets loaded');
+
+    // Build the hive tunnel/chamber geometry
     this.createUpperHive();
     this.createMidHive();
     this.createLowerHive();
     this.createQueenChamber();
 
-    // Place hive structures and vehicles
+    // Place organic hive structures (birther, brain, claw, crystals, etc.)
     this.placeHiveStructures();
+
+    // Place station beams and modular detail plates across all 3 zones
+    this.placedBreachAssets = placeBreachAssets(this.scene);
+
+    // Place captured military vehicles absorbed by the hive
     this.placeCapturedVehicles();
 
-    // Initialize hazard builder
-    this.hazardBuilder = new HazardBuilder(this.scene, this.environmentBuilder.getGlowLayer());
+    // Initialize hazard builder and load egg cluster assets
+    const glowLayer = this.environmentBuilder ? this.environmentBuilder.getGlowLayer() : null;
+    this.hazardBuilder = new HazardBuilder(this.scene, glowLayer);
+    await this.hazardBuilder.loadHazardAssets();
     this.hazardBuilder.createStandardAcidPools();
     this.hazardBuilder.createStandardEggClusters();
 
@@ -189,6 +247,10 @@ export class TheBreachLevel extends BaseLevel {
     // Setup player
     this.camera.position.set(0, 1.7, 0);
     this.callbacks.onHealthChange(this.playerHealth);
+
+    // Build collectibles (no flora in hive interior)
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(this.scene, getTheBreachCollectibles(), collectibleRoot);
 
     // Start level
     this.startLevel();
@@ -460,31 +522,11 @@ export class TheBreachLevel extends BaseLevel {
     const chamberCenter = new Vector3(0, -150, 180);
     const chamberRadius = 25;
 
-    // Arena floor
-    this.queenArena = MeshBuilder.CreateDisc(
-      'queenArena',
-      { radius: chamberRadius, tessellation: 48 },
-      this.scene
-    );
-    const arenaMat = new StandardMaterial('arenaMat', this.scene);
-    arenaMat.diffuseColor = Color3.FromHexString(COLORS.chitinDark);
-    arenaMat.specularColor = new Color3(0.1, 0.1, 0.1);
-    this.queenArena.material = arenaMat;
-    this.queenArena.position = chamberCenter.clone();
-    this.queenArena.rotation.x = Math.PI / 2;
+    // Arena floor - use GLB floor tiles arranged in a grid, with fallback to disc
+    this.queenArena = this.createArenaFloor(chamberCenter, chamberRadius);
 
-    // Dome ceiling
-    const dome = MeshBuilder.CreateSphere(
-      'queenDome',
-      { diameter: chamberRadius * 2.5, segments: 24, slice: 0.5, sideOrientation: 1 },
-      this.scene
-    );
-    const domeMat = new StandardMaterial('domeMat', this.scene);
-    domeMat.diffuseColor = Color3.FromHexString(COLORS.chitinPurple);
-    domeMat.emissiveColor = new Color3(0.02, 0.01, 0.03);
-    dome.material = domeMat;
-    dome.position.set(chamberCenter.x, chamberCenter.y + 5, chamberCenter.z);
-    dome.rotation.x = Math.PI;
+    // Dome ceiling - use GLB stomach structure, with fallback to sphere
+    this.queenDomeMesh = this.createChamberDome(chamberCenter, chamberRadius);
 
     // Entrance tunnel
     this.environmentBuilder.createTunnelSegment(
@@ -493,17 +535,8 @@ export class TheBreachLevel extends BaseLevel {
       'queen_chamber'
     );
 
-    // Door for boss fight
-    this.queenDoorMesh = MeshBuilder.CreateBox(
-      'queenDoor',
-      { width: TUNNEL_DIAMETER + 1, height: TUNNEL_DIAMETER + 1, depth: 0.5 },
-      this.scene
-    );
-    const doorMat = new StandardMaterial('doorMat', this.scene);
-    doorMat.diffuseColor = Color3.FromHexString('#2A1A2A');
-    this.queenDoorMesh.material = doorMat;
-    this.queenDoorMesh.position.set(0, chamberCenter.y + 5, chamberCenter.z - chamberRadius);
-    this.queenDoorMesh.isVisible = false;
+    // Door for boss fight - use GLB door, with fallback to box
+    this.queenDoorMesh = this.createChamberDoor(chamberCenter, chamberRadius);
 
     // Ring of biolights
     for (let i = 0; i < 12; i++) {
@@ -526,6 +559,118 @@ export class TheBreachLevel extends BaseLevel {
     );
   }
 
+  /**
+   * Create the arena floor using GLB floor tiles.
+   */
+  private createArenaFloor(center: Vector3, radius: number): TransformNode {
+    const floorPath = QUEEN_CHAMBER_GLBS.arenaFloor;
+
+    if (!AssetManager.isPathCached(floorPath)) {
+      throw new Error(`[TheBreachLevel] Arena floor GLB not preloaded: ${floorPath}`);
+    }
+
+    // Create a grid of floor tiles to cover the arena
+    const floorRoot = new TransformNode('queenArenaRoot', this.scene);
+    floorRoot.position = center.clone();
+
+    const tileSize = 4; // Approximate size of floor tile GLB
+    const tilesPerSide = Math.ceil((radius * 2) / tileSize);
+
+    for (let x = 0; x < tilesPerSide; x++) {
+      for (let z = 0; z < tilesPerSide; z++) {
+        const tileX = (x - tilesPerSide / 2 + 0.5) * tileSize;
+        const tileZ = (z - tilesPerSide / 2 + 0.5) * tileSize;
+
+        // Only place tiles within the circular arena
+        if (Math.sqrt(tileX * tileX + tileZ * tileZ) > radius + tileSize / 2) {
+          continue;
+        }
+
+        const tile = AssetManager.createInstanceByPath(
+          floorPath,
+          `arenaFloor_${x}_${z}`,
+          this.scene,
+          false,
+          'environment'
+        );
+
+        if (!tile) {
+          throw new Error(`[TheBreachLevel] Failed to create floor tile instance at ${x},${z}`);
+        }
+
+        tile.position.set(tileX, 0, tileZ);
+        tile.scaling.setAll(1.2);
+        tile.rotation.y = Math.random() * Math.PI * 0.5; // Slight random rotation
+        tile.parent = floorRoot;
+      }
+    }
+
+    console.log('[TheBreachLevel] Queen arena floor created with GLB tiles');
+    return floorRoot;
+  }
+
+  /**
+   * Create the chamber dome using GLB stomach structure.
+   */
+  private createChamberDome(center: Vector3, radius: number): TransformNode {
+    const domePath = QUEEN_CHAMBER_GLBS.dome;
+
+    if (!AssetManager.isPathCached(domePath)) {
+      throw new Error(`[TheBreachLevel] Chamber dome GLB not preloaded: ${domePath}`);
+    }
+
+    const dome = AssetManager.createInstanceByPath(
+      domePath,
+      'queenDome',
+      this.scene,
+      true,
+      'environment'
+    );
+
+    if (!dome) {
+      throw new Error(`[TheBreachLevel] Failed to create dome instance from: ${domePath}`);
+    }
+
+    dome.position.set(center.x, center.y + 5, center.z);
+    // Scale the stomach GLB to approximate dome radius
+    const scaleFactor = radius / 4;
+    dome.scaling.set(scaleFactor, scaleFactor * 0.6, scaleFactor);
+    dome.rotation.x = Math.PI; // Invert for dome effect
+
+    console.log('[TheBreachLevel] Queen chamber dome created with GLB');
+    return dome;
+  }
+
+  /**
+   * Create the chamber door using GLB door.
+   */
+  private createChamberDoor(center: Vector3, radius: number): TransformNode {
+    const doorPath = QUEEN_CHAMBER_GLBS.door;
+
+    if (!AssetManager.isPathCached(doorPath)) {
+      throw new Error(`[TheBreachLevel] Chamber door GLB not preloaded: ${doorPath}`);
+    }
+
+    const door = AssetManager.createInstanceByPath(
+      doorPath,
+      'queenDoor',
+      this.scene,
+      true,
+      'environment'
+    );
+
+    if (!door) {
+      throw new Error(`[TheBreachLevel] Failed to create door instance from: ${doorPath}`);
+    }
+
+    door.position.set(0, center.y + 5, center.z - radius);
+    door.scaling.set(1.5, 1.5, 1.5);
+    door.setEnabled(false); // Initially hidden
+
+    console.log('[TheBreachLevel] Queen chamber door created with GLB');
+    return door;
+  }
+
   private placeHiveStructures(): void {
     if (!this.environmentBuilder) return;
 
@@ -544,56 +689,20 @@ export class TheBreachLevel extends BaseLevel {
     scale: number;
     rotationY: number;
   }> {
-    // Returns the structure placement configuration
-    // This could be moved to a separate config file if needed
-    return [
-      // Upper tunnels
-      {
-        type: 'crystals',
-        position: new Vector3(1.5, -15, 25),
-        zone: 'upper',
-        scale: 0.4,
-        rotationY: Math.PI / 4,
-      },
-      {
-        type: 'crystals',
-        position: new Vector3(-1.8, -25, 35),
-        zone: 'upper',
-        scale: 0.35,
-        rotationY: -Math.PI / 6,
-      },
-      // Mid hive
-      {
-        type: 'birther',
-        position: new Vector3(-4, -58, 75),
-        zone: 'mid',
-        scale: 0.6,
-        rotationY: Math.PI,
-      },
-      {
-        type: 'terraformer',
-        position: new Vector3(5, -65, 82),
-        zone: 'mid',
-        scale: 0.5,
-        rotationY: -Math.PI / 4,
-      },
-      // Lower hive
-      {
-        type: 'brain',
-        position: new Vector3(0, -95, 112),
-        zone: 'lower',
-        scale: 0.8,
-        rotationY: 0,
-      },
-      // Queen chamber
-      {
-        type: 'brain',
-        position: new Vector3(0, -148, 198),
-        zone: 'queen_chamber',
-        scale: 1.2,
-        rotationY: Math.PI,
-      },
-    ];
+    // Map environment zone names to HiveZone for the builder
+    const zoneMap: Record<string, HiveZone> = {
+      entry: 'upper',
+      deep_hive: 'mid',
+      queen_chamber: 'queen_chamber',
+    };
+
+    return HIVE_STRUCTURE_PLACEMENTS.map((p) => ({
+      type: p.type,
+      position: p.position,
+      zone: zoneMap[p.zone] ?? 'mid',
+      scale: p.scale,
+      rotationY: p.rotationY,
+    }));
   }
 
   private placeCapturedVehicles(): void {
@@ -648,7 +757,7 @@ export class TheBreachLevel extends BaseLevel {
     this.phase = 'boss_intro';
 
     if (this.queenDoorMesh) {
-      this.queenDoorMesh.isVisible = true;
+      this.queenDoorMesh.setEnabled(true);
     }
 
     this.callbacks.onNotification(NOTIFICATIONS.BOSS_AWAKEN, 3000);
@@ -899,7 +1008,7 @@ export class TheBreachLevel extends BaseLevel {
       this.callbacks.onNotification(NOTIFICATIONS.ESCAPE, 3000);
 
       if (this.queenDoorMesh) {
-        this.queenDoorMesh.isVisible = false;
+        this.queenDoorMesh.setEnabled(false);
       }
 
       this.phase = 'escape_trigger';
@@ -1171,6 +1280,14 @@ export class TheBreachLevel extends BaseLevel {
   protected updateLevel(deltaTime: number): void {
     this.phaseTimer += deltaTime;
 
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
+
     // Update damage feedback system (floating damage numbers, etc.)
     damageFeedback.update(deltaTime);
     damageFeedback.setCameraPosition(this.camera.position);
@@ -1336,6 +1453,10 @@ export class TheBreachLevel extends BaseLevel {
   }
 
   protected disposeLevel(): void {
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
 
@@ -1344,6 +1465,10 @@ export class TheBreachLevel extends BaseLevel {
 
     // Dispose environment
     this.environmentBuilder?.dispose();
+
+    // Dispose placed breach GLB assets (beams, detail plates, organic growths)
+    disposeBreachAssets(this.placedBreachAssets);
+    this.placedBreachAssets = [];
 
     // Dispose hazards
     this.hazardBuilder?.dispose();
@@ -1357,9 +1482,10 @@ export class TheBreachLevel extends BaseLevel {
       disposeQueen(this.queen);
     }
 
-    // Dispose arena
+    // Dispose queen chamber geometry
     this.queenArena?.dispose();
     this.queenDoorMesh?.dispose();
+    this.queenDomeMesh?.dispose();
 
     // Dispose damage feedback system
     damageFeedback.dispose();

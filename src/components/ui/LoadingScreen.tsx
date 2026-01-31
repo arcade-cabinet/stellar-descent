@@ -62,6 +62,7 @@ const LEVEL_BACKGROUNDS: Record<LevelType, string> = {
   ice: 'linear-gradient(180deg, #050a14 0%, #0a1828 50%, #050810 100%)',
   combined_arms: 'linear-gradient(180deg, #0a0510 0%, #1a0a18 50%, #050308 100%)',
   finale: 'linear-gradient(180deg, #1a0500 0%, #2d0a08 50%, #0a0200 100%)',
+  mine: 'linear-gradient(180deg, #0a0808 0%, #141210 50%, #0a0808 100%)',
 };
 
 // ASCII environment art for atmospheric display
@@ -214,6 +215,20 @@ const LEVEL_ART: Record<LevelType, string[]> = {
     '',
     '      OUTRUN THE COLLAPSE',
     '      TIME REMAINING: ???',
+  ],
+  mine: [
+    '            ╔════════════════════╗',
+    '            ║  MINING DEPTHS     ║',
+    '            ╚════════╤═══════════╝',
+    '                ┌────┴────┐',
+    '                │ SHAFT-7 │',
+    '                └────┬────┘',
+    '            ═════════╧═════════',
+    '            ////////////////////',
+    '            ░░░░░░░░░░░░░░░░░░░',
+    '',
+    '      UNDERGROUND MINING FACILITY',
+    '      DEPTH: CLASSIFIED',
   ],
 };
 

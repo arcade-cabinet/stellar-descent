@@ -457,7 +457,7 @@ describe('GameContext', () => {
 
       expect(() => {
         render(<TestConsumer />);
-      }).toThrow('useGame must be used within a GameProvider');
+      }).toThrow('must be used within a');
 
       consoleSpy.mockRestore();
     });

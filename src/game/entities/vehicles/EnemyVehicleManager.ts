@@ -100,13 +100,14 @@ export class EnemyVehicleManager {
 
   /**
    * Spawn a Wraith hover tank at the given position.
+   * Now async to support GLB model loading.
    *
    * @returns The WraithAI instance for advanced control (optional).
    */
-  spawnWraith(options: SpawnWraithOptions): WraithAI {
+  async spawnWraith(options: SpawnWraithOptions): Promise<WraithAI> {
     const { position, waypoints, config, difficulty } = options;
 
-    const wraith = new WraithAI(this.scene, position, waypoints ?? [], config ?? {}, difficulty);
+    const wraith = await WraithAI.create(this.scene, position, waypoints ?? [], config ?? {}, difficulty);
 
     // Wire callbacks
     wraith.onScreenShake = this.onScreenShake;

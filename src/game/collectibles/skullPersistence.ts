@@ -59,25 +59,16 @@ export function loadSkullCollection(saveId?: string): SkullCollectionState {
   const resolvedSaveId = saveId || getCurrentSaveId();
 
   if (typeof localStorage === 'undefined') {
-    return {
-      saveId: resolvedSaveId,
-      foundSkulls: [],
-      activeSkulls: [],
-      lastUpdated: Date.now(),
-    };
+    throw new Error('[SkullPersistence] localStorage is not available');
   }
 
-  try {
-    const stored = localStorage.getItem(getStorageKey(resolvedSaveId));
-    if (stored) {
-      const parsed = JSON.parse(stored) as SkullCollectionState;
-      return {
-        ...parsed,
-        saveId: resolvedSaveId,
-      };
-    }
-  } catch (e) {
-    console.warn('[SkullPersistence] Failed to load skull collection:', e);
+  const stored = localStorage.getItem(getStorageKey(resolvedSaveId));
+  if (stored) {
+    const parsed = JSON.parse(stored) as SkullCollectionState;
+    return {
+      ...parsed,
+      saveId: resolvedSaveId,
+    };
   }
 
   return {
@@ -90,17 +81,15 @@ export function loadSkullCollection(saveId?: string): SkullCollectionState {
 
 /** Save skull collection state to localStorage */
 export function saveSkullCollection(state: SkullCollectionState): void {
-  if (typeof localStorage === 'undefined') return;
-
-  try {
-    const toStore: SkullCollectionState = {
-      ...state,
-      lastUpdated: Date.now(),
-    };
-    localStorage.setItem(getStorageKey(state.saveId), JSON.stringify(toStore));
-  } catch (e) {
-    console.warn('[SkullPersistence] Failed to save skull collection:', e);
+  if (typeof localStorage === 'undefined') {
+    throw new Error('[SkullPersistence] localStorage is not available');
   }
+
+  const toStore: SkullCollectionState = {
+    ...state,
+    lastUpdated: Date.now(),
+  };
+  localStorage.setItem(getStorageKey(state.saveId), JSON.stringify(toStore));
 }
 
 // ============================================================================

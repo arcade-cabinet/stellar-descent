@@ -1,0 +1,176 @@
+# Save and Load Integration Test
+# Tests save system, continue functionality, and progress persistence
+# Cross-platform: Web, Android, iOS
+
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
+url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+tags:
+  - integration
+  - save
+  - load
+  - persistence
+name: "Save and Load - Progress Persistence"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "NEW CAMPAIGN"
+    timeout: 30000
+
+# Check if CONTINUE button exists (indicates existing save)
+- assertVisible:
+    text: "CONTINUE"
+    optional: true
+
+- takeScreenshot: "save_load_initial_state"
+
+# Start new campaign to create save data
+- tapOn:
+    text: "NEW CAMPAIGN"
+
+# Handle difficulty selection
+- tapOn:
+    text: "NORMAL"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    text: "BEGIN"
+    optional: true
+
+# Wait for loading
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Wait for tutorial
+- extendedWaitUntil:
+    visible: "Good morning"
+    timeout: 30000
+
+# Skip tutorial
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+- tapOn:
+    text: "SKIP"
+    optional: true
+
+- wait: 2000
+
+# Play briefly
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 2000
+      - wait: 500
+
+- takeScreenshot: "save_load_gameplay"
+
+# Pause the game
+- tapOn:
+    id: "pause-button"
+    optional: true
+
+- tapOn:
+    point: "95%, 5%"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "save_load_pause"
+
+# Quit to main menu (triggers auto-save)
+- tapOn:
+    text: "QUIT"
+    optional: true
+
+- tapOn:
+    text: "MAIN MENU"
+    optional: true
+
+- wait: 2000
+
+# Verify we're at main menu
+- assertVisible:
+    text: "NEW CAMPAIGN"
+    timeout: 10000
+
+# CONTINUE button should now be visible
+- assertVisible:
+    text: "CONTINUE"
+    timeout: 5000
+
+- takeScreenshot: "save_load_continue_visible"
+
+# Check save metadata in continue button info
+- assertVisible:
+    text: "Ch."
+    optional: true
+
+- takeScreenshot: "save_load_metadata"
+
+# Test CONTINUE functionality
+- tapOn:
+    text: "CONTINUE"
+
+# Should load saved game
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+- wait: 3000
+
+- takeScreenshot: "save_load_resumed"
+
+# Verify game loaded correctly
+# We should be in Anchor Station or Landfall
+- wait: 2000
+
+- takeScreenshot: "save_load_gameplay_resumed"
+
+# Pause and return to menu again
+- tapOn:
+    id: "pause-button"
+    optional: true
+
+- tapOn:
+    point: "95%, 5%"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    text: "QUIT"
+    optional: true
+
+- tapOn:
+    text: "MAIN MENU"
+    optional: true
+
+- wait: 2000
+
+# Test EXPORT SAVE button
+- assertVisible:
+    text: "EXPORT SAVE"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "save_load_export_available"
+
+# Test LOAD CAMPAIGN button
+- assertVisible:
+    text: "LOAD CAMPAIGN"
+    timeout: 5000
+
+- takeScreenshot: "save_load_test_complete"
