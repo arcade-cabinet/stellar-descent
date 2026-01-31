@@ -421,6 +421,10 @@ export function MainMenu({
               LOAD GAME
             </MilitaryButton>
 
+            <MilitaryButton onClick={handleShowChallenges} icon={<>{'\u26A1'}</>}>
+              CHALLENGES
+            </MilitaryButton>
+
             {/* New Game Plus Button - only shown when unlocked */}
             {ngPlusUnlocked && (
               <MilitaryButton
@@ -442,10 +446,6 @@ export function MainMenu({
 
             <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2606'}</>}>
               ACHIEVEMENTS
-            </MilitaryButton>
-
-            <MilitaryButton onClick={handleShowChallenges} icon={<>{'\u26A1'}</>}>
-              CHALLENGES
             </MilitaryButton>
 
             <MilitaryButton onClick={handleShowLeaderboard} icon={<>{'\u2605'}</>}>
