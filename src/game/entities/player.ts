@@ -62,6 +62,27 @@ export class Player {
   private sprintMultiplier = 2;
   private isSprinting = false;
 
+  // Slide mechanic state
+  private isSliding = false;
+  private slideTimer = 0;
+  private slideCooldown = 0;
+  private readonly slideDuration = 0.8; // seconds
+  private readonly slideCooldownDuration = 1.0; // seconds
+  private readonly slideSpeedMultiplier = 1.5; // relative to sprint speed
+  private slideDirection: Vector3 = Vector3.Zero();
+  private readonly slideBaseHeight = 1.0; // camera height during slide
+  private readonly standingHeight = 1.8; // normal camera height
+
+  // Sprint FOV effect
+  private readonly baseFOV = Math.PI / 2; // 90 degrees
+  private readonly sprintFOVIncrease = 0.15; // ~8.6 degrees
+  private readonly slideFOVIncrease = 0.25; // ~14.3 degrees during slide
+  private currentFOVOffset = 0;
+  private readonly fovLerpSpeed = 8; // smooth transition speed
+
+  // Crouch state
+  private isCrouching = false;
+
   private keysPressed: Set<string> = new Set();
   private mouseDown = false;
   private lastFireTime = 0;
@@ -340,6 +361,11 @@ export class Player {
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         this.isSprinting = true;
       }
+      // Crouch key (C or Ctrl) - triggers slide if sprinting
+      if (e.code === 'KeyC' || e.code === 'ControlLeft' || e.code === 'ControlRight') {
+        this.isCrouching = true;
+        this.tryInitiateSlide();
+      }
     };
     window.addEventListener('keydown', keydownHandler);
     this._listeners.push(() => window.removeEventListener('keydown', keydownHandler));
@@ -348,6 +374,9 @@ export class Player {
       this.keysPressed.delete(e.code);
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         this.isSprinting = false;
+      }
+      if (e.code === 'KeyC' || e.code === 'ControlLeft' || e.code === 'ControlRight') {
+        this.isCrouching = false;
       }
     };
     window.addEventListener('keyup', keyupHandler);
@@ -747,35 +776,66 @@ export class Player {
     // Sprint state
     if (usingTouch && this.touchInput) {
       this.isSprinting = this.touchInput.isSprinting;
+      // Touch crouch/slide handling
+      if (this.touchInput.isCrouching) {
+        if (!this.isCrouching) {
+          this.isCrouching = true;
+          this.tryInitiateSlide();
+        }
+      } else {
+        this.isCrouching = false;
+      }
     }
 
-    const speed = this.isSprinting ? this.moveSpeed * this.sprintMultiplier : this.moveSpeed;
+    // Update slide state
+    this.updateSlide(deltaTime);
+
+    // Update FOV for sprint/slide effects
+    this.updateFOV(deltaTime);
+
+    // Calculate speed based on state
+    let speed: number;
+    if (this.isSliding) {
+      // Sliding at boosted speed
+      speed = this.moveSpeed * this.sprintMultiplier * this.slideSpeedMultiplier;
+    } else if (this.isSprinting) {
+      speed = this.moveSpeed * this.sprintMultiplier;
+    } else if (this.isCrouching) {
+      speed = this.moveSpeed * 0.5; // Crouch walk is slower
+    } else {
+      speed = this.moveSpeed;
+    }
 
     // Calculate movement (relative to camera facing direction)
     const moveDir = Vector3.Zero();
 
-    if (usingTouch && this.touchInput) {
-      // Touch joystick movement (relative to camera facing)
-      const movement = this.touchInput.movement;
-      const moveMagnitude = Math.sqrt(movement.x * movement.x + movement.y * movement.y);
-      if (moveMagnitude > 0.1) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movement.y));
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movement.x));
+    // If sliding, use locked slide direction
+    if (this.isSliding) {
+      moveDir.addInPlace(this.slideDirection);
+    } else {
+      if (usingTouch && this.touchInput) {
+        // Touch joystick movement (relative to camera facing)
+        const movement = this.touchInput.movement;
+        const moveMagnitude = Math.sqrt(movement.x * movement.x + movement.y * movement.y);
+        if (moveMagnitude > 0.1) {
+          moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movement.y));
+          moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movement.x));
+        }
       }
-    }
 
-    // Keyboard movement (works alongside touch)
-    if (this.keysPressed.has('KeyW')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()));
-    }
-    if (this.keysPressed.has('KeyS')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Backward()));
-    }
-    if (this.keysPressed.has('KeyA')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Left()));
-    }
-    if (this.keysPressed.has('KeyD')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Right()));
+      // Keyboard movement (works alongside touch)
+      if (this.keysPressed.has('KeyW')) {
+        moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()));
+      }
+      if (this.keysPressed.has('KeyS')) {
+        moveDir.addInPlace(this.camera.getDirection(Vector3.Backward()));
+      }
+      if (this.keysPressed.has('KeyA')) {
+        moveDir.addInPlace(this.camera.getDirection(Vector3.Left()));
+      }
+      if (this.keysPressed.has('KeyD')) {
+        moveDir.addInPlace(this.camera.getDirection(Vector3.Right()));
+      }
     }
 
     // Apply movement
@@ -786,8 +846,10 @@ export class Player {
       this.camera.position.addInPlace(moveDir);
     }
 
-    // Keep camera at proper height
-    this.camera.position.y = 1.8;
+    // Smoothly interpolate camera height based on crouch/slide state
+    const targetHeight = this.getTargetCameraHeight();
+    const heightLerpFactor = Math.min(1, 12 * deltaTime); // Fast but smooth transition
+    this.camera.position.y += (targetHeight - this.camera.position.y) * heightLerpFactor;
 
     // Update entity transform
     if (this.entity.transform) {
@@ -824,17 +886,32 @@ export class Player {
   }
 
   private updateWeaponAnimation(deltaTime: number, isMoving: boolean): void {
-    // Weapon bob while moving
-    if (isMoving) {
+    // Weapon bob while moving - reduced during slide
+    if (this.isSliding) {
+      // Minimal bob during slide - weapon stays steady
+      this.weaponBobTime += deltaTime * 4;
+    } else if (isMoving) {
       this.weaponBobTime += deltaTime * (this.isSprinting ? 14 : 10);
     } else {
       // Subtle idle sway
       this.weaponBobTime += deltaTime * 2;
     }
 
-    // Calculate bob offsets
-    const bobAmplitudeX = isMoving ? (this.isSprinting ? 0.025 : 0.015) : 0.003;
-    const bobAmplitudeY = isMoving ? (this.isSprinting ? 0.03 : 0.018) : 0.004;
+    // Calculate bob offsets - reduced during slide
+    let bobAmplitudeX: number;
+    let bobAmplitudeY: number;
+
+    if (this.isSliding) {
+      // Very minimal bob during slide
+      bobAmplitudeX = 0.005;
+      bobAmplitudeY = 0.003;
+    } else if (isMoving) {
+      bobAmplitudeX = this.isSprinting ? 0.025 : 0.015;
+      bobAmplitudeY = this.isSprinting ? 0.03 : 0.018;
+    } else {
+      bobAmplitudeX = 0.003;
+      bobAmplitudeY = 0.004;
+    }
 
     const bobX = Math.sin(this.weaponBobTime) * bobAmplitudeX;
     const bobY = Math.abs(Math.sin(this.weaponBobTime * 2)) * bobAmplitudeY;
@@ -846,24 +923,167 @@ export class Player {
     if (this.weaponRecoilOffset < 0.01) this.weaponRecoilOffset = 0;
 
     // Apply to weapon container (relative to base position)
+    // During slide, lower the weapon slightly for a more dynamic feel
     const baseX = 0.35;
-    const baseY = -0.25;
-    const baseZ = 0.5;
+    const baseY = this.isSliding ? -0.32 : -0.25;
+    const baseZ = this.isSliding ? 0.45 : 0.5;
 
     this.weaponContainer.position.x = baseX + bobX;
     this.weaponContainer.position.y = baseY + bobY - this.weaponRecoilOffset * 0.05;
     this.weaponContainer.position.z = baseZ - this.weaponRecoilOffset * 0.08;
 
-    // Slight rotation during recoil
-    this.weaponContainer.rotation.x = -this.weaponRecoilOffset * 0.3;
+    // Slight rotation during recoil, additional tilt during slide
+    const slideRotation = this.isSliding ? 0.1 : 0;
+    this.weaponContainer.rotation.x = -this.weaponRecoilOffset * 0.3 + slideRotation;
   }
 
   private triggerWeaponRecoil(): void {
     this.weaponRecoilOffset = 1.0;
   }
 
+  /**
+   * Attempt to initiate a slide - only works if sprinting and not on cooldown
+   */
+  private tryInitiateSlide(): void {
+    // Can only slide if: sprinting, not already sliding, and off cooldown
+    if (!this.isSprinting || this.isSliding || this.slideCooldown > 0) {
+      return;
+    }
+
+    // Check if player is moving (needs velocity to slide)
+    const forward = this.camera.getDirection(Vector3.Forward());
+    const right = this.camera.getDirection(Vector3.Right());
+    let moveDir = Vector3.Zero();
+
+    if (this.keysPressed.has('KeyW')) moveDir.addInPlace(forward);
+    if (this.keysPressed.has('KeyS')) moveDir.addInPlace(forward.scale(-1));
+    if (this.keysPressed.has('KeyA')) moveDir.addInPlace(right.scale(-1));
+    if (this.keysPressed.has('KeyD')) moveDir.addInPlace(right);
+
+    // Also check touch input
+    if (this.touchInput) {
+      const movement = this.touchInput.movement;
+      const moveMagnitude = Math.sqrt(movement.x * movement.x + movement.y * movement.y);
+      if (moveMagnitude > 0.1) {
+        moveDir.addInPlace(forward.scale(movement.y));
+        moveDir.addInPlace(right.scale(movement.x));
+      }
+    }
+
+    // Need movement to slide
+    if (moveDir.length() < 0.1) {
+      return;
+    }
+
+    // Initiate slide
+    this.isSliding = true;
+    this.slideTimer = this.slideDuration;
+    this.slideDirection = moveDir.normalize();
+    this.slideDirection.y = 0; // Keep slide horizontal
+
+    // Play slide sound
+    getAudioManager().play('slide', { volume: 0.5 });
+
+    log.info('Slide initiated');
+  }
+
+  /**
+   * Update slide state each frame
+   */
+  private updateSlide(deltaTime: number): void {
+    // Update slide cooldown
+    if (this.slideCooldown > 0) {
+      this.slideCooldown = Math.max(0, this.slideCooldown - deltaTime);
+    }
+
+    // Update active slide
+    if (this.isSliding) {
+      this.slideTimer -= deltaTime;
+
+      if (this.slideTimer <= 0) {
+        // End slide
+        this.isSliding = false;
+        this.slideCooldown = this.slideCooldownDuration;
+
+        // Play slide end sound
+        getAudioManager().play('slide_end', { volume: 0.4 });
+
+        log.info('Slide ended');
+      }
+    }
+  }
+
+  /**
+   * Get current target camera height based on slide/crouch state
+   */
+  private getTargetCameraHeight(): number {
+    if (this.isSliding) {
+      return this.slideBaseHeight;
+    }
+    if (this.isCrouching && !this.isSprinting) {
+      return this.slideBaseHeight + 0.3; // Crouch is slightly higher than slide
+    }
+    return this.standingHeight;
+  }
+
+  /**
+   * Update FOV based on sprint/slide state with smooth transitions
+   */
+  private updateFOV(deltaTime: number): void {
+    // Determine target FOV offset
+    let targetOffset = 0;
+
+    if (this.isSliding) {
+      targetOffset = this.slideFOVIncrease;
+    } else if (this.isSprinting) {
+      targetOffset = this.sprintFOVIncrease;
+    }
+
+    // Smoothly interpolate FOV
+    const lerpFactor = Math.min(1, this.fovLerpSpeed * deltaTime);
+    this.currentFOVOffset += (targetOffset - this.currentFOVOffset) * lerpFactor;
+
+    // Apply FOV
+    this.camera.fov = this.baseFOV + this.currentFOVOffset;
+  }
+
   getPosition(): Vector3 {
     return this.camera.position.clone();
+  }
+
+  /**
+   * Check if player is currently sliding
+   */
+  isPlayerSliding(): boolean {
+    return this.isSliding;
+  }
+
+  /**
+   * Check if player is currently sprinting
+   */
+  isPlayerSprinting(): boolean {
+    return this.isSprinting;
+  }
+
+  /**
+   * Check if player is crouching (not sliding)
+   */
+  isPlayerCrouching(): boolean {
+    return this.isCrouching && !this.isSliding;
+  }
+
+  /**
+   * Get slide cooldown remaining (0 = ready to slide)
+   */
+  getSlideCooldownRemaining(): number {
+    return this.slideCooldown;
+  }
+
+  /**
+   * Get current FOV (useful for UI or other systems)
+   */
+  getCurrentFOV(): number {
+    return this.camera.fov;
   }
 
   /**

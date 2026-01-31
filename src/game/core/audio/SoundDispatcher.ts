@@ -9,6 +9,7 @@ import { WeaponSoundGenerator } from './sounds/weapons';
 import { EnemySoundGenerator } from './sounds/enemies';
 import { EnvironmentSoundGenerator, ProceduralAmbientGenerator } from './sounds/environment';
 import { weaponSoundManager } from '../WeaponSoundManager';
+import { hitAudioManager } from '../HitAudioManager';
 
 /**
  * Unified Procedural Audio - Combines all sound generators with dispatch
@@ -111,6 +112,17 @@ export class SoundDispatcher {
     asteroid_rumble: (v) => this.environment.generateCollapseRumble(v * 0.5),
     grenade_explosion: (v) => this.weapons.generateExplosion(v),
     grenade_throw: (v) => this.weapons.generateFootstep(v * 0.6), // Placeholder: swoosh
+
+    // Hit feedback sounds
+    hit_confirm: (v) => hitAudioManager.playHitSound(25, false),
+    critical_hit: (v) => hitAudioManager.playHitSound(50, true),
+    armor_break: () => hitAudioManager.playArmorBreakSound(),
+    low_ammo_warning: () => hitAudioManager.playLowAmmoWarning(),
+    multi_kill: () => hitAudioManager.playMultiKillSound(3),
+
+    // Movement sounds
+    slide: (v) => this.environment.generateSlideSound(v),
+    slide_end: (v) => this.environment.generateSlideEndSound(v),
   };
 
   // Loop generators

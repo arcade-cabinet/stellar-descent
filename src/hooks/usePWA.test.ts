@@ -96,6 +96,14 @@ describe('usePWA', () => {
   it('should set needsUpdate when triggered', async () => {
     const { result } = renderHook(() => usePWA());
 
+    // Wait for the hook's useEffect to run and register with the SW mock
+    await waitFor(
+      () => {
+        expect(pwaMockTest.getOptions()).not.toBe(null);
+      },
+      { timeout: 2000 }
+    );
+
     act(() => {
       pwaMockTest.triggerNeedRefresh();
     });
@@ -127,6 +135,14 @@ describe('usePWA', () => {
 
   it('should dismiss update notification', async () => {
     const { result } = renderHook(() => usePWA());
+
+    // Wait for the hook's useEffect to run and register with the SW mock
+    await waitFor(
+      () => {
+        expect(pwaMockTest.getOptions()).not.toBe(null);
+      },
+      { timeout: 2000 }
+    );
 
     // Trigger update available
     act(() => {

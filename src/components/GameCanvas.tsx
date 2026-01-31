@@ -656,8 +656,8 @@ export function GameCanvas({
         onActionHandlerRegister: (_handler) => {
           // Action handler registration
         },
-        onHitMarker: (damage, isCritical) => {
-          addHitMarker(damage, isCritical);
+        onHitMarker: (damage, isCritical, isKill) => {
+          addHitMarker(damage, isCritical, isKill);
         },
         onDirectionalDamage: (angle, damage) => {
           addDamageIndicator(angle, damage);
@@ -746,7 +746,7 @@ export function GameCanvas({
           onCombatStateChange: (_inCombat) => {},
           onActionGroupsChange: (_groups) => {},
           onActionHandlerRegister: (_handler) => {},
-          onHitMarker: (damage, isCritical) => addHitMarker(damage, isCritical),
+          onHitMarker: (damage, isCritical, isKill) => addHitMarker(damage, isCritical, isKill),
           onDirectionalDamage: (angle, damage) => addDamageIndicator(angle, damage),
         };
 

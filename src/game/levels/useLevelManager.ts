@@ -36,7 +36,7 @@ export interface UseLevelManagerOptions {
   onActionGroupsChange?: (groups: ActionButtonGroup[]) => void;
   onActionHandlerRegister?: (handler: ((actionId: string) => void) | null) => void;
   // Combat feedback system
-  onHitMarker?: (damage: number, isCritical: boolean) => void;
+  onHitMarker?: (damage: number, isCritical: boolean, isKill?: boolean) => void;
   onDirectionalDamage?: (angle: number, damage: number) => void;
 }
 
@@ -129,8 +129,8 @@ export function useLevelManager(
     onActionHandlerRegister: (handler) => {
       onActionHandlerRegister?.(handler);
     },
-    onHitMarker: (damage, isCritical) => {
-      onHitMarker?.(damage, isCritical);
+    onHitMarker: (damage, isCritical, isKill) => {
+      onHitMarker?.(damage, isCritical, isKill);
     },
     onDirectionalDamage: (angle, damage) => {
       onDirectionalDamage?.(angle, damage);

@@ -929,6 +929,99 @@ export default {
 - **Platforms**: Web, iOS, Android
 - **CI Integration**: GitHub Actions
 
+## Weapon Feel Systems
+
+Weapon feel ("game juice") makes weapons satisfying to use through coordinated visual and audio feedback.
+
+> For detailed documentation, see [WEAPON-FEEL.md](./WEAPON-FEEL.md)
+
+### Architecture Overview
+```text
+src/game/
+├── weapons/
+│   ├── FirstPersonWeapons.ts   # View model rendering + muzzle flash
+│   ├── WeaponAnimations.ts     # Recoil, bob, sway, reload anims
+│   └── index.ts
+├── effects/
+│   ├── MuzzleFlash.ts          # Flash sprites + point lights
+│   ├── WeaponEffects.ts        # Shell casings, impact decals
+│   └── ParticleManager.ts      # Pooled particle systems
+└── core/
+    └── WeaponSoundManager.ts   # Procedural weapon audio
+```
+
+### Key Systems
+
+| System | Purpose | Key Features |
+|--------|---------|--------------|
+| Recoil | Camera/weapon kick | Per-weapon profiles, category defaults |
+| Muzzle Flash | Visual flash | Pooled sprites, point lights, smoke |
+| Screen Shake | Camera trauma | Damage-based intensity, configurable |
+| Shell Casings | Ejected brass | Simple physics, auto-dispose |
+| Weapon Sounds | Firing audio | 4 variations per weapon, reverb |
+
+### Quick Start
+```typescript
+import { firstPersonWeapons } from './game/weapons/FirstPersonWeapons';
+import { weaponSoundManager } from './game/core/WeaponSoundManager';
+
+// Fire weapon (triggers recoil + muzzle flash)
+firstPersonWeapons.fireWeapon();
+weaponSoundManager.playWeaponFire('assault_rifle');
+```
+
+## Combat Feedback Systems
+
+Combat feedback provides satisfying hit confirmation and enemy reactions.
+
+> For detailed documentation, see [COMBAT-FEEDBACK.md](./COMBAT-FEEDBACK.md)
+
+### Architecture Overview
+```text
+src/game/effects/
+├── DamageFeedback.ts   # Hit flash, knockback, damage numbers
+├── DeathEffects.ts     # Enemy death particles and dissolve
+└── WeaponEffects.ts    # Hit VFX (blood/splatter)
+
+src/game/core/
+└── WeaponSoundManager.ts   # Hit/kill audio feedback
+```
+
+### Key Systems
+
+| System | Purpose | Key Features |
+|--------|---------|--------------|
+| Hitmarker | Visual hit confirm | Flash + knockback + damage number |
+| Hit Audio | Audio hit confirm | Hitmarker, headshot, kill sounds |
+| Hit Reactions | Enemy flinch | Flash, scale punch, knockback |
+| Death Effects | Enemy death | 6 effect types, mesh dissolve |
+| Enemy Hit VFX | Blood/splatter | Alien (green) vs human (red) |
+
+### Quick Start
+```typescript
+import { damageFeedback } from './game/effects/DamageFeedback';
+import { deathEffects } from './game/effects/DeathEffects';
+import { weaponSoundManager } from './game/core/WeaponSoundManager';
+
+// On enemy hit
+damageFeedback.applyDamageFeedback(enemyMesh, damage, hitDirection, isCritical);
+weaponSoundManager.playHitMarker();
+
+// On enemy death
+deathEffects.playEnemyDeath(position, isAlien, scale, enemyMesh);
+weaponSoundManager.playKillConfirmation();
+```
+
+### Death Effect Types
+| Type | Visual | Use Case |
+|------|--------|----------|
+| `dissolve` | Fade to particles | Standard enemies |
+| `disintegrate` | Fast with flash | Energy weapons |
+| `explode` | Explosion + debris | Large enemies |
+| `ichor_burst` | Green goo | Alien enemies |
+| `mechanical` | Debris chunks | Robot enemies |
+| `boss` | Epic with shockwave | Boss enemies |
+
 ---
 
 *"Architecture is frozen music. But this is a shooter, so maybe more like frozen gunfire."*

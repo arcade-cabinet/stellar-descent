@@ -19,6 +19,7 @@ import {
   getEnvironmentalAudioManager,
   type SpatialSoundSource,
 } from './EnvironmentalAudioManager';
+import { hitAudioManager } from './HitAudioManager';
 import { disposeProceduralMusicEngine, getProceduralMusicEngine } from './ProceduralMusicEngine';
 import { type EnvironmentType, type ImpactSurface, weaponSoundManager } from './WeaponSoundManager';
 
@@ -421,6 +422,53 @@ export class AudioManager {
     weaponSoundManager.setEnvironmentFromLevel(levelId);
   }
 
+  // ===== Combat Hit Feedback Audio =====
+
+  /**
+   * Play hit sound with damage scaling
+   * @param damage - Amount of damage dealt
+   * @param isCritical - Whether this was a critical/headshot hit
+   */
+  playHitSound(damage: number, isCritical: boolean = false): void {
+    if (!this.isMuted) hitAudioManager.playHitSound(damage, isCritical);
+  }
+
+  /**
+   * Play satisfying kill confirmation sound
+   */
+  playKillSound(): void {
+    if (!this.isMuted) hitAudioManager.playKillSound();
+  }
+
+  /**
+   * Play low ammo warning sound
+   */
+  playLowAmmoWarning(): void {
+    if (!this.isMuted) hitAudioManager.playLowAmmoWarning();
+  }
+
+  /**
+   * Play empty magazine click sound
+   */
+  playEmptyMagazineClick(): void {
+    if (!this.isMuted) hitAudioManager.playEmptyClick();
+  }
+
+  /**
+   * Play multi-kill sound for rapid consecutive kills
+   * @param killCount - Number of kills in the streak
+   */
+  playMultiKillSound(killCount: number): void {
+    if (!this.isMuted) hitAudioManager.playMultiKillSound(killCount);
+  }
+
+  /**
+   * Play armor break sound
+   */
+  playArmorBreakSound(): void {
+    if (!this.isMuted) hitAudioManager.playArmorBreakSound();
+  }
+
   // ===== Environmental Audio =====
 
   startEnvironmentalAudio(levelId: LevelId, intensity = 1.0): void {
@@ -523,3 +571,15 @@ export type {
   SpatialSoundSource,
   SpatialSoundType,
 } from './EnvironmentalAudioManager';
+
+// Re-export hit audio manager for direct access
+export {
+  hitAudioManager,
+  playHitSound,
+  playKillSound,
+  playLowAmmoWarning,
+  playEmptyClick,
+  playMultiKillSound,
+  playArmorBreakSound,
+  type HitType,
+} from './HitAudioManager';

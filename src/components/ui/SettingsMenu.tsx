@@ -434,6 +434,17 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
         </p>
       </div>
 
+      {/* Combat Feedback Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Combat Feedback</h3>
+        {renderToggleRow(
+          'Hitmarkers',
+          settings.showHitmarkers,
+          handleToggle('showHitmarkers'),
+          'Show visual confirmation when damaging enemies'
+        )}
+      </div>
+
       {/* AI Player Section - only visible when build flag is enabled */}
       {BUILD_FLAGS.ENABLE_AI_PLAYER && (
         <div className={styles.section}>

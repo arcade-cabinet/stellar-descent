@@ -24,6 +24,8 @@ export interface HitMarker {
   id: number;
   /** Whether this was a critical/headshot */
   isCritical: boolean;
+  /** Whether this hit resulted in a kill */
+  isKill: boolean;
   /** Damage dealt */
   damage: number;
   /** Time created */
@@ -131,13 +133,19 @@ export function DamageIndicators() {
 
   // Remove expired hit markers
   useEffect(() => {
-    const HIT_MARKER_DURATION = 200; // 200ms for snappy feedback
-    const CRITICAL_HIT_DURATION = 400; // Longer for criticals
+    const HIT_MARKER_DURATION = 150; // 150ms for snappy feedback
+    const CRITICAL_HIT_DURATION = 200; // Slightly longer for criticals
+    const KILL_MARKER_DURATION = 300; // Longest for kills
 
     const interval = setInterval(() => {
       const currentTime = performance.now();
       hitMarkers.forEach((marker) => {
-        const duration = marker.isCritical ? CRITICAL_HIT_DURATION : HIT_MARKER_DURATION;
+        let duration = HIT_MARKER_DURATION;
+        if (marker.isKill) {
+          duration = KILL_MARKER_DURATION;
+        } else if (marker.isCritical) {
+          duration = CRITICAL_HIT_DURATION;
+        }
         if (currentTime - marker.timestamp > duration) {
           removeHitMarker(marker.id);
         }
@@ -209,26 +217,41 @@ export function DamageIndicators() {
       </div>
 
       {/* Hit markers - center of screen */}
-      {hitMarkers.length > 0 && (
+      {settings.showHitmarkers && hitMarkers.length > 0 && (
         <div className={styles.hitMarkerContainer}>
-          {hitMarkers.map((marker) => (
-            <div
-              key={marker.id}
-              className={`${styles.hitMarker} ${marker.isCritical ? styles.critical : ''} ${
-                prefersReducedMotion ? styles.reducedMotion : ''
-              }`}
-            >
-              {/* X-shaped hit marker */}
-              <div className={styles.hitMarkerLine1} />
-              <div className={styles.hitMarkerLine2} />
-              {/* Critical hit indicator */}
-              {marker.isCritical && (
-                <div className={styles.criticalIndicator}>
-                  <span className={styles.criticalText}>CRITICAL</span>
-                </div>
-              )}
-            </div>
-          ))}
+          {hitMarkers.map((marker) => {
+            // Determine marker type class
+            const typeClass = marker.isKill
+              ? styles.kill
+              : marker.isCritical
+                ? styles.critical
+                : '';
+
+            return (
+              <div
+                key={marker.id}
+                className={`${styles.hitMarker} ${typeClass} ${
+                  prefersReducedMotion ? styles.reducedMotion : ''
+                }`}
+              >
+                {/* X-shaped hit marker */}
+                <div className={styles.hitMarkerLine1} />
+                <div className={styles.hitMarkerLine2} />
+                {/* Kill indicator */}
+                {marker.isKill && (
+                  <div className={styles.killIndicator}>
+                    <span className={styles.killIcon}>+</span>
+                  </div>
+                )}
+                {/* Critical hit indicator (only if not a kill) */}
+                {marker.isCritical && !marker.isKill && (
+                  <div className={styles.criticalIndicator}>
+                    <span className={styles.criticalText}>CRITICAL</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

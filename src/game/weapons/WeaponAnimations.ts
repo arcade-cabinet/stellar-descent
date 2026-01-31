@@ -57,6 +57,10 @@ export interface WeaponAnimationProfile {
   bobAmplitude: number;
   /** Walk bob frequency multiplier. */
   bobFrequency: number;
+  /** Horizontal recoil roll (rotation around Z-axis in radians). */
+  recoilRoll: number;
+  /** Random horizontal sway during recoil (radians). */
+  recoilYawSpread: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +76,8 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     switchHalfDuration: 0.15,
     bobAmplitude: 0.016,
     bobFrequency: 1.2,
+    recoilRoll: 0.015,
+    recoilYawSpread: 0.01,
   },
   smg: {
     recoilKickBack: 0.02,
@@ -81,6 +87,8 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     switchHalfDuration: 0.2,
     bobAmplitude: 0.015,
     bobFrequency: 1.15,
+    recoilRoll: 0.01,
+    recoilYawSpread: 0.008,
   },
   rifle: {
     recoilKickBack: 0.04,
@@ -90,6 +98,8 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     switchHalfDuration: 0.25,
     bobAmplitude: 0.012,
     bobFrequency: 1.0,
+    recoilRoll: 0.02,
+    recoilYawSpread: 0.012,
   },
   marksman: {
     recoilKickBack: 0.06,
@@ -99,6 +109,8 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     switchHalfDuration: 0.3,
     bobAmplitude: 0.01,
     bobFrequency: 0.9,
+    recoilRoll: 0.025,
+    recoilYawSpread: 0.015,
   },
   shotgun: {
     recoilKickBack: 0.07,
@@ -108,6 +120,8 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     switchHalfDuration: 0.28,
     bobAmplitude: 0.011,
     bobFrequency: 0.95,
+    recoilRoll: 0.035,
+    recoilYawSpread: 0.02,
   },
   heavy: {
     recoilKickBack: 0.08,
@@ -117,6 +131,8 @@ const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
     switchHalfDuration: 0.35,
     bobAmplitude: 0.008,
     bobFrequency: 0.85,
+    recoilRoll: 0.04,
+    recoilYawSpread: 0.025,
   },
 };
 
@@ -131,6 +147,15 @@ const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>
     recoilPitchUp: 0.05,
     recoilRecoverySpeed: 5.0,
     reloadDuration: 2.8,
+    recoilRoll: 0.03,
+    recoilYawSpread: 0.018,
+  },
+  // Heavy pistol: more kick than standard sidearm
+  heavy_pistol: {
+    recoilKickBack: 0.04,
+    recoilPitchUp: 0.045,
+    recoilRecoverySpeed: 7.0,
+    recoilRoll: 0.02,
   },
   // Sniper: very heavy recoil, slow recovery
   sniper_rifle: {
@@ -139,13 +164,33 @@ const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>
     recoilRecoverySpeed: 2.5,
     reloadDuration: 3.5,
     switchHalfDuration: 0.35,
+    recoilRoll: 0.04,
+    recoilYawSpread: 0.02,
+  },
+  // DMR: precision weapon feel
+  dmr: {
+    recoilKickBack: 0.065,
+    recoilPitchUp: 0.055,
+    recoilRecoverySpeed: 3.5,
+    recoilRoll: 0.028,
+    recoilYawSpread: 0.012,
   },
   // Double barrel: massive recoil
   double_barrel: {
-    recoilKickBack: 0.1,
-    recoilPitchUp: 0.08,
+    recoilKickBack: 0.12,
+    recoilPitchUp: 0.09,
     recoilRecoverySpeed: 3.5,
     reloadDuration: 2.2,
+    recoilRoll: 0.05,
+    recoilYawSpread: 0.03,
+  },
+  // Auto shotgun: less than double barrel
+  auto_shotgun: {
+    recoilKickBack: 0.065,
+    recoilPitchUp: 0.05,
+    recoilRecoverySpeed: 5.0,
+    recoilRoll: 0.03,
+    recoilYawSpread: 0.018,
   },
   // Plasma cannon: energy discharge feel
   plasma_cannon: {
@@ -154,6 +199,24 @@ const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>
     recoilRecoverySpeed: 3.0,
     reloadDuration: 3.5,
     switchHalfDuration: 0.35,
+    recoilRoll: 0.035,
+    recoilYawSpread: 0.015,
+  },
+  // Pulse SMG: futuristic low recoil
+  pulse_smg: {
+    recoilKickBack: 0.015,
+    recoilPitchUp: 0.015,
+    recoilRecoverySpeed: 12.0,
+    recoilRoll: 0.008,
+    recoilYawSpread: 0.005,
+  },
+  // Battle rifle: heavier than assault rifle
+  battle_rifle: {
+    recoilKickBack: 0.05,
+    recoilPitchUp: 0.04,
+    recoilRecoverySpeed: 5.5,
+    recoilRoll: 0.025,
+    recoilYawSpread: 0.015,
   },
   // SAW LMG: sustained fire, low per-shot recoil
   saw_lmg: {
@@ -162,6 +225,8 @@ const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>
     recoilRecoverySpeed: 8.0,
     reloadDuration: 5.0,
     switchHalfDuration: 0.4,
+    recoilRoll: 0.015,
+    recoilYawSpread: 0.01,
   },
   // Heavy LMG: slower handling than SAW
   heavy_lmg: {
@@ -170,6 +235,8 @@ const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>
     recoilRecoverySpeed: 6.0,
     reloadDuration: 4.5,
     switchHalfDuration: 0.4,
+    recoilRoll: 0.022,
+    recoilYawSpread: 0.015,
   },
 };
 
@@ -400,21 +467,37 @@ export class WeaponAnimationController {
     rot.z *= 2.5;
   }
 
+  // Store last random yaw direction for consistent recoil pattern per shot
+  private recoilYawDirection: number = 0;
+
   private updateRecoil(dt: number, pos: Vector3, rot: Vector3): void {
     if (!this.recoilActive && this.recoilAmount <= 0) return;
 
     if (this.recoilActive) {
       // Instant kick is applied in triggerFire via recoilAmount = 1
       this.recoilActive = false;
+      // Generate random yaw direction for this shot (weighted to alternate)
+      this.recoilYawDirection = (Math.random() - 0.5) * 2;
     }
 
-    // Apply current recoil
+    // Apply current recoil - weapon model kick
     pos.z -= this.recoilAmount * this.profile.recoilKickBack;
     rot.x -= this.recoilAmount * this.profile.recoilPitchUp;
 
-    // Small random horizontal jitter
-    const jitter = (Math.random() - 0.5) * 0.005 * this.recoilAmount;
-    rot.y += jitter;
+    // Apply roll (weapon tilts to the side during recoil)
+    const rollDirection = this.recoilYawDirection > 0 ? 1 : -1;
+    rot.z += this.recoilAmount * this.profile.recoilRoll * rollDirection;
+
+    // Apply yaw spread (horizontal rotation)
+    rot.y += this.recoilAmount * this.profile.recoilYawSpread * this.recoilYawDirection;
+
+    // Small random high-frequency jitter for mechanical feel
+    const jitterAmount = this.recoilAmount * 0.003;
+    rot.y += (Math.random() - 0.5) * jitterAmount;
+    rot.x += (Math.random() - 0.5) * jitterAmount * 0.5;
+
+    // Slight upward position kick (weapon rises)
+    pos.y += this.recoilAmount * this.profile.recoilPitchUp * 0.3;
 
     // Recover
     this.recoilAmount = Math.max(0, this.recoilAmount - dt * this.profile.recoilRecoverySpeed);

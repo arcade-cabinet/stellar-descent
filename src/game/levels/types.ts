@@ -72,7 +72,7 @@ export interface LevelCallbacks {
   onActionGroupsChange: (groups: ActionButtonGroup[]) => void;
   onActionHandlerRegister: (handler: ((actionId: string) => void) | null) => void;
   // Combat feedback callbacks
-  onHitMarker?: (damage: number, isCritical: boolean) => void;
+  onHitMarker?: (damage: number, isCritical: boolean, isKill?: boolean) => void;
   onDirectionalDamage?: (angle: number, damage: number) => void;
   // Collectible and dialogue callbacks
   onAudioLogFound?: (logId: string) => void;

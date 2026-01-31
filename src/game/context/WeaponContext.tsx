@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { getAudioManager } from '../core/AudioManager';
+import { hitAudioManager } from '../core/HitAudioManager';
 import {
   DEFAULT_WEAPON,
   getWeaponBySlot,
@@ -116,26 +117,43 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
   const canFire = weapon.currentAmmo > 0 && !weapon.isReloading;
   const isLowAmmo = weapon.currentAmmo <= weapon.maxMagazineSize * 0.25;
 
+  // Track previous ammo for low ammo warning
+  const prevAmmoRef = useRef(weapon.currentAmmo);
+
   /**
    * Fire the weapon, decrementing ammo
    * Returns true if the shot was fired
    */
   const fire = useCallback((): boolean => {
     if (weapon.currentAmmo <= 0 || weapon.isReloading) {
-      // Play empty click sound when out of ammo
+      // Play empty click sound when out of ammo using HitAudioManager
       if (weapon.currentAmmo <= 0 && !weapon.isReloading) {
-        getAudioManager().playEmptyClick(weapon.currentWeaponId, 0.3);
+        hitAudioManager.playEmptyClick();
+        // Also play weapon-specific empty click for variety
+        getAudioManager().playEmptyClick(weapon.currentWeaponId, 0.2);
       }
       return false;
     }
 
-    setWeapon((prev) => ({
-      ...prev,
-      currentAmmo: prev.currentAmmo - 1,
-    }));
+    setWeapon((prev) => {
+      const newAmmo = prev.currentAmmo - 1;
+      const lowAmmoThreshold = Math.ceil(prev.maxMagazineSize * 0.25);
+
+      // Play low ammo warning when crossing threshold
+      if (prevAmmoRef.current > lowAmmoThreshold && newAmmo <= lowAmmoThreshold) {
+        hitAudioManager.playLowAmmoWarning();
+      }
+
+      prevAmmoRef.current = newAmmo;
+
+      return {
+        ...prev,
+        currentAmmo: newAmmo,
+      };
+    });
 
     return true;
-  }, [weapon.currentAmmo, weapon.isReloading, weapon.currentWeaponId]);
+  }, [weapon.currentAmmo, weapon.isReloading, weapon.currentWeaponId, weapon.maxMagazineSize]);
 
   /**
    * Start the reload sequence

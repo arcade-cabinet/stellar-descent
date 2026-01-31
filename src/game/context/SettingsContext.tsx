@@ -86,6 +86,10 @@ export interface GameSettings {
   autoAim: boolean;
   reducedFlashing: boolean;
 
+  // Combat feedback settings
+  /** Show hitmarkers when damaging enemies */
+  showHitmarkers: boolean;
+
   // Dev/Testing settings (only visible when BUILD_FLAGS.ENABLE_AI_PLAYER is set)
   /** Enable AI-controlled player for automated testing/demos */
   aiPlayerEnabled: boolean;
@@ -145,6 +149,9 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   usePatternIndicators: false,
   autoAim: false,
   reducedFlashing: false,
+
+  // Combat feedback
+  showHitmarkers: true,
 
   // Dev/Testing
   aiPlayerEnabled: false,

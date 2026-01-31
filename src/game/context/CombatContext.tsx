@@ -34,7 +34,7 @@ export interface CombatContextType {
   addDamageIndicator: (angle: number, damage: number) => void;
   removeDamageIndicator: (id: number) => void;
   hitMarkers: HitMarker[];
-  addHitMarker: (damage: number, isCritical?: boolean) => void;
+  addHitMarker: (damage: number, isCritical?: boolean, isKill?: boolean) => void;
   removeHitMarker: (id: number) => void;
 }
 
@@ -158,9 +158,9 @@ export function CombatProvider({ children, currentChapter }: CombatProviderProps
   }, []);
 
   // Hit marker management
-  const addHitMarker = useCallback((damage: number, isCritical = false) => {
+  const addHitMarker = useCallback((damage: number, isCritical = false, isKill = false) => {
     const id = hitMarkerIdRef.current++;
-    setHitMarkers((prev) => [...prev, { id, damage, isCritical, timestamp: performance.now() }]);
+    setHitMarkers((prev) => [...prev, { id, damage, isCritical, isKill, timestamp: performance.now() }]);
   }, []);
 
   const removeHitMarker = useCallback((id: number) => {

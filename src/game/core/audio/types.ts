@@ -71,7 +71,16 @@ export type SoundEffect =
   | 'ground_crack'
   // Timer / checkpoint sounds
   | 'shield_recharge'
-  | 'alert';
+  | 'alert'
+  // Hit feedback sounds
+  | 'hit_confirm'
+  | 'critical_hit'
+  | 'armor_break'
+  | 'low_ammo_warning'
+  | 'multi_kill'
+  // Movement sounds
+  | 'slide'
+  | 'slide_end';
 
 // Music tracks - mapped to actual audio files
 export type MusicTrack =

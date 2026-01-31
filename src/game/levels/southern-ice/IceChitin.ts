@@ -51,6 +51,11 @@ export const ICE_CHITIN_SPECIES: AlienSpecies = {
     { itemId: 'frost_gland', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
     { itemId: 'bio_sample', dropChance: 0.25, minQuantity: 1, maxQuantity: 1 },
   ] as LootEntry[],
+  // Hit reaction properties - ice chitin is heavily armored
+  hitReactionDuration: 60, // Short stagger - tough creature
+  painSounds: ['alien_hiss', 'organic_squish', 'alien_growl'],
+  deathAnimations: ['death_shatter', 'death_collapse', 'death_freeze'],
+  knockbackResistance: 0.7, // High resistance - heavy creature
 };
 
 // ============================================================================

@@ -24,6 +24,9 @@ import {
   type QuestObjective,
 } from './QuestChain';
 
+// Re-export types for consumers like CampaignDirector
+export type { QuestState, QuestStatus, QuestObjective } from './QuestChain';
+
 const logger = getLogger('QuestManager');
 
 // ============================================================================

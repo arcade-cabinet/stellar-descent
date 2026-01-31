@@ -40,6 +40,11 @@ export interface AlienSpecies {
   projectileSpeed: number;
   xpValue: number;
   lootTable: LootEntry[];
+  // Hit reaction properties
+  hitReactionDuration: number; // ms of stagger animation
+  painSounds: string[]; // Array of pain sound IDs
+  deathAnimations: string[]; // Array of death animation IDs
+  knockbackResistance: number; // 0-1, resistance to knockback force
 }
 
 export interface LootEntry {
@@ -69,6 +74,11 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'chitin_shard', dropChance: 0.8, minQuantity: 1, maxQuantity: 3 },
       { itemId: 'bio_sample', dropChance: 0.2, minQuantity: 1, maxQuantity: 1 },
     ],
+    // Hit reactions - small and light, staggers easily
+    hitReactionDuration: 80,
+    painSounds: ['alien_chittering', 'organic_squish', 'alien_hiss'],
+    deathAnimations: ['death_collapse', 'death_explode', 'death_ragdoll'],
+    knockbackResistance: 0.1, // Very low resistance - flies back easily
   },
 
   // Lurker - Tall, thin, stalks from shadows
@@ -90,6 +100,11 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'neural_cluster', dropChance: 0.15, minQuantity: 1, maxQuantity: 1 },
       { itemId: 'bio_sample', dropChance: 0.4, minQuantity: 1, maxQuantity: 2 },
     ],
+    // Hit reactions - lean and agile, moderate stagger
+    hitReactionDuration: 120,
+    painSounds: ['alien_hiss', 'alien_screech', 'alien_growl'],
+    deathAnimations: ['death_collapse', 'death_dissolve', 'death_ragdoll'],
+    knockbackResistance: 0.35, // Moderate resistance
   },
 
   // Spewer - Bloated, acid-spitting horror
@@ -111,6 +126,11 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'caustic_residue', dropChance: 0.4, minQuantity: 2, maxQuantity: 5 },
       { itemId: 'bio_sample', dropChance: 0.3, minQuantity: 1, maxQuantity: 1 },
     ],
+    // Hit reactions - heavy and bloated, resists stagger
+    hitReactionDuration: 60,
+    painSounds: ['organic_squish', 'alien_gurgle', 'alien_hiss'],
+    deathAnimations: ['death_explode', 'death_acid_burst', 'death_collapse'],
+    knockbackResistance: 0.7, // High resistance - heavy mass
   },
 
   // Husk - Dessicated, fast, screaming horror
@@ -132,6 +152,11 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'resonance_crystal', dropChance: 0.1, minQuantity: 1, maxQuantity: 1 },
       { itemId: 'bio_sample', dropChance: 0.35, minQuantity: 1, maxQuantity: 2 },
     ],
+    // Hit reactions - dried/brittle, brief stagger with screech
+    hitReactionDuration: 100,
+    painSounds: ['alien_screech', 'alien_hiss', 'alien_chittering'],
+    deathAnimations: ['death_shatter', 'death_collapse', 'death_ragdoll'],
+    knockbackResistance: 0.25, // Light frame, moderate knockback
   },
 
   // Broodmother - Large, spawns skitterers, mini-boss
@@ -154,8 +179,85 @@ export const ALIEN_SPECIES: Record<string, AlienSpecies> = {
       { itemId: 'chitin_plate', dropChance: 0.8, minQuantity: 2, maxQuantity: 4 },
       { itemId: 'bio_sample', dropChance: 0.5, minQuantity: 2, maxQuantity: 3 },
     ],
+    // Hit reactions - massive boss, barely staggers
+    hitReactionDuration: 40,
+    painSounds: ['alien_roar', 'alien_growl', 'organic_squish'],
+    deathAnimations: ['death_epic_collapse', 'death_explode_massive', 'death_dissolve'],
+    knockbackResistance: 0.95, // Nearly immune to knockback
   },
 };
+
+// ---------------------------------------------------------------------------
+// Hit Reaction Configuration
+// ---------------------------------------------------------------------------
+
+/**
+ * Get species-specific hit reaction configuration.
+ * Returns reaction properties for applying stagger, pain sounds, and knockback.
+ */
+export function getHitReactionConfig(speciesId: string): {
+  duration: number;
+  painSounds: string[];
+  knockbackResistance: number;
+} {
+  const species = ALIEN_SPECIES[speciesId];
+  if (!species) {
+    return {
+      duration: 100,
+      painSounds: ['organic_squish'],
+      knockbackResistance: 0.5,
+    };
+  }
+  return {
+    duration: species.hitReactionDuration,
+    painSounds: species.painSounds,
+    knockbackResistance: species.knockbackResistance,
+  };
+}
+
+/**
+ * Get a random pain sound for a species.
+ * Returns a sound ID from the species' pain sounds array.
+ */
+export function getRandomPainSound(speciesId: string): string {
+  const species = ALIEN_SPECIES[speciesId];
+  if (!species || species.painSounds.length === 0) {
+    return 'organic_squish';
+  }
+  const index = Math.floor(Math.random() * species.painSounds.length);
+  return species.painSounds[index];
+}
+
+/**
+ * Get a random death animation for a species.
+ * Returns an animation ID from the species' death animations array.
+ */
+export function getRandomDeathAnimation(speciesId: string): string {
+  const species = ALIEN_SPECIES[speciesId];
+  if (!species || species.deathAnimations.length === 0) {
+    return 'death_collapse';
+  }
+  const index = Math.floor(Math.random() * species.deathAnimations.length);
+  return species.deathAnimations[index];
+}
+
+/**
+ * Calculate knockback force for a species based on weapon damage.
+ * @param speciesId - The species to calculate knockback for
+ * @param weaponDamage - The damage dealt by the weapon
+ * @returns The knockback force to apply (0 = no knockback)
+ */
+export function calculateKnockbackForce(speciesId: string, weaponDamage: number): number {
+  const species = ALIEN_SPECIES[speciesId];
+  const resistance = species?.knockbackResistance ?? 0.5;
+
+  // Base knockback scales with damage, reduced by resistance
+  const baseKnockback = weaponDamage * 0.05;
+  const finalKnockback = baseKnockback * (1 - resistance);
+
+  // Clamp to reasonable range
+  return Math.min(Math.max(finalKnockback, 0), 3);
+}
 
 // ---------------------------------------------------------------------------
 // GLB mesh loading

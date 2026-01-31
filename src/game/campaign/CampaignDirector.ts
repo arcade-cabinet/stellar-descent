@@ -19,6 +19,17 @@ import { CAMPAIGN_LEVELS, type LevelId } from '../levels/types';
 import { saveSystem } from '../persistence';
 import { disposeGameTimer, getGameTimer } from '../timer';
 import { BONUS_LEVELS } from './MissionDefinitions';
+import {
+  getQuestStateForSave,
+  initializeQuestManager,
+  loadQuestState,
+  onEnemyKilled,
+  onLevelEnter,
+  onLevelExit,
+  onPlayerDeath,
+  resetQuestManager,
+  type QuestState,
+} from './QuestManager';
 import type { CampaignCommand, CampaignSnapshot, LevelStats } from './types';
 import type { CampaignPhase } from './types'; // Issue #71: Separate import for type used in array
 
@@ -58,6 +69,12 @@ export class CampaignDirector {
   private bonusReturnLevelId: LevelId | null = null;
   private skipTutorial = false;
   private lastHealthBracket: 'healthy' | 'low' | 'critical' = 'healthy';
+  private questManagerInitialized = false;
+
+  // Callbacks for external systems (MissionContext, HUD, etc.)
+  private objectiveUpdateCallback?: (title: string, instructions: string) => void;
+  private objectiveMarkerCallback?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+  private notificationCallback?: (text: string, duration?: number) => void;
 
   // -----------------------------------------------------------------------
   // React integration (useSyncExternalStore compatible)
@@ -174,6 +191,8 @@ export class CampaignDirector {
         // Issue #13: Track death count and level death flag
         this.snapshot.deathCount++;
         this.snapshot.diedInCurrentLevel = true;
+        // Notify quest system of player death (may fail some quests)
+        onPlayerDeath();
         this.setPhase('gameover');
         break;
 
@@ -240,6 +259,123 @@ export class CampaignDirector {
   }
 
   // -----------------------------------------------------------------------
+  // Quest Manager Integration
+  // -----------------------------------------------------------------------
+
+  /**
+   * Initialize QuestManager with callbacks for UI integration.
+   * Should be called once when the game starts, after MissionContext is available.
+   */
+  initializeQuestSystem(callbacks: {
+    onObjectiveUpdate?: (title: string, instructions: string) => void;
+    onObjectiveMarker?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+    onNotification?: (text: string, duration?: number) => void;
+  }): void {
+    if (this.questManagerInitialized) {
+      log.debug('Quest manager already initialized');
+      return;
+    }
+
+    this.objectiveUpdateCallback = callbacks.onObjectiveUpdate;
+    this.objectiveMarkerCallback = callbacks.onObjectiveMarker;
+    this.notificationCallback = callbacks.onNotification;
+
+    initializeQuestManager({
+      onObjectiveUpdate: (title, instructions) => {
+        this.objectiveUpdateCallback?.(title, instructions);
+      },
+      onObjectiveMarker: (position, label) => {
+        this.objectiveMarkerCallback?.(position, label);
+      },
+      onDialogueTrigger: (trigger) => {
+        // Wire to ReyesDialogue system
+        this.triggerDialogue(trigger as DialogueTrigger);
+      },
+      onNotification: (text, duration) => {
+        this.notificationCallback?.(text, duration);
+      },
+      onQuestStateChange: (questId, state) => {
+        // Persist quest state to save system
+        this.persistQuestState(questId, state);
+      },
+    });
+
+    this.questManagerInitialized = true;
+    log.info('Quest system initialized');
+  }
+
+  /**
+   * Load quest state from save system.
+   * Called when loading a saved game.
+   */
+  private loadQuestStateFromSave(): void {
+    const completedQuests = saveSystem.getCompletedQuests();
+    const activeQuests = saveSystem.getActiveQuests();
+    const failedQuests = saveSystem.getFailedQuests();
+
+    loadQuestState(completedQuests, activeQuests, failedQuests);
+    log.debug(`Loaded quest state: ${completedQuests.length} completed, ${Object.keys(activeQuests).length} active`);
+  }
+
+  /**
+   * Persist quest state changes to save system.
+   */
+  private persistQuestState(questId: string, state: QuestState): void {
+    if (state.status === 'completed') {
+      saveSystem.completeQuest(questId);
+    } else if (state.status === 'failed') {
+      saveSystem.failQuest(questId);
+    } else if (state.status === 'active') {
+      saveSystem.setActiveQuestState(questId, state);
+    }
+  }
+
+  /**
+   * Save all quest state to save system.
+   * Called before auto-save or manual save.
+   */
+  saveQuestState(): void {
+    const questState = getQuestStateForSave();
+
+    // Update save system with current quest state
+    for (const questId of questState.completedQuests) {
+      if (!saveSystem.isQuestCompleted(questId)) {
+        saveSystem.completeQuest(questId);
+      }
+    }
+
+    for (const [questId, state] of Object.entries(questState.activeQuestStates)) {
+      saveSystem.setActiveQuestState(questId, state);
+    }
+
+    for (const questId of questState.failedQuests) {
+      saveSystem.failQuest(questId);
+    }
+  }
+
+  /**
+   * Trigger quest level enter.
+   * Called when a level finishes loading.
+   */
+  private triggerQuestLevelEnter(levelId: LevelId): void {
+    const save = saveSystem.getCurrentSave();
+    const completedLevels = save?.levelsCompleted ?? [];
+    const inventory = save?.inventory ?? {};
+
+    onLevelEnter(levelId, completedLevels, inventory);
+    log.debug(`Quest level enter: ${levelId}`);
+  }
+
+  /**
+   * Trigger quest level exit.
+   * Called when leaving a level.
+   */
+  private triggerQuestLevelExit(levelId: LevelId): void {
+    onLevelExit(levelId);
+    log.debug(`Quest level exit: ${levelId}`);
+  }
+
+  // -----------------------------------------------------------------------
   // Command handlers
   // -----------------------------------------------------------------------
 
@@ -268,6 +404,9 @@ export class CampaignDirector {
       this.snapshot.diedInCurrentLevel = false;
       this.snapshot.levelDamageReceived = 0;
 
+      // Reset quest manager for new game
+      resetQuestManager();
+
       // Skip text walls - go straight to loading. Story unfolds in-level.
       this.setPhase('loading');
     });
@@ -290,6 +429,10 @@ export class CampaignDirector {
       this.snapshot.currentDifficulty = save.difficulty ?? 'normal';
       // Issue #69: Restore campaign-wide stats from save
       this.snapshot.totalCampaignKills = save.totalKills ?? 0;
+
+      // Load quest state from save
+      this.loadQuestStateFromSave();
+
       // Skip briefing - go straight to loading
       this.setPhase('loading');
     });
@@ -328,6 +471,9 @@ export class CampaignDirector {
     // Issue #17: Update save system with current level
     saveSystem.setCurrentLevel(levelId);
 
+    // Trigger quest system level enter
+    this.triggerQuestLevelEnter(levelId);
+
     // Route to the correct phase based on level type
     if (levelId === 'anchor_station') {
       this.setPhase('tutorial');
@@ -347,6 +493,12 @@ export class CampaignDirector {
     const levelId = this.snapshot.currentLevelId;
     const isNewBest = timer.checkAndSaveBestTime(levelId, finalTime);
     saveSystem.recordLevelTime(levelId, finalTime);
+
+    // Trigger quest level exit before saving
+    this.triggerQuestLevelExit(levelId);
+
+    // Save quest state before level completion
+    this.saveQuestState();
 
     // Issue #18: Get achievement stats to include in completion stats
     const achievementStats = getAchievementManager().getLevelStats();
@@ -430,6 +582,11 @@ export class CampaignDirector {
   }
 
   private handleMainMenu(): void {
+    // Trigger level exit before going to menu
+    this.triggerQuestLevelExit(this.snapshot.currentLevelId);
+    // Save quest state
+    this.saveQuestState();
+
     this.snapshot.completionStats = null;
     this.snapshot.prePausePhase = null;
     this.snapshot.restartCounter++;
@@ -596,9 +753,12 @@ export class CampaignDirector {
    * Called by LevelCallbacks.onKill to track kill count and trigger kill achievements.
    * Issue #31: Accept health percent for last stand achievement
    */
-  onKill(playerHealthPercent?: number): void {
+  onKill(playerHealthPercent?: number, enemyType?: string): void {
     this.snapshot.levelKills++;
     getAchievementManager().onKill(playerHealthPercent);
+
+    // Notify quest system of enemy killed
+    onEnemyKilled(enemyType);
   }
 
   /**

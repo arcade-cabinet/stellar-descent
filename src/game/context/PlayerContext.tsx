@@ -16,6 +16,7 @@ import {
   saveDifficultySetting,
 } from '../core/DifficultySettings';
 import { getLogger } from '../core/Logger';
+import { getLowHealthFeedback } from '../effects/LowHealthFeedback';
 import type { TutorialPhase } from '../levels/anchor-station/tutorialSteps';
 import type { TouchInput } from '../types';
 
@@ -180,6 +181,29 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
   // Reset HUD to default (all visible) state
   const resetHUDVisibility = useCallback(() => {
     setHUDVisibilityState(DEFAULT_HUD_VISIBILITY);
+  }, []);
+
+  // Low health feedback integration
+  // Triggers visual and audio effects when health drops below 25%
+  useEffect(() => {
+    const lowHealthFeedback = getLowHealthFeedback();
+
+    // Update low health effects based on current health
+    if (playerHealth <= 0 || isPlayerDead) {
+      // Stop effects on death
+      lowHealthFeedback.stopLowHealthEffects();
+    } else {
+      // Start/update effects based on health level
+      lowHealthFeedback.startLowHealthEffects(playerHealth, maxHealth);
+    }
+  }, [playerHealth, maxHealth, isPlayerDead]);
+
+  // Cleanup low health feedback on unmount
+  useEffect(() => {
+    return () => {
+      const lowHealthFeedback = getLowHealthFeedback();
+      lowHealthFeedback.stopLowHealthEffects();
+    };
   }, []);
 
   const value: PlayerContextType = {

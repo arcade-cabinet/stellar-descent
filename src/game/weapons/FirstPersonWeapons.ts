@@ -28,7 +28,7 @@ import '@babylonjs/loaders/glTF';
 
 import { getLogger } from '../core/Logger';
 import { getWeaponActions } from '../context/useWeaponActions';
-import { MuzzleFlashManager } from '../effects/MuzzleFlash';
+import { MuzzleFlashManager, createMuzzleFlashConfigFromWeapon } from '../effects/MuzzleFlash';
 import { WeaponEffects, type WeaponType } from '../effects/WeaponEffects';
 import {
   categoryToEffectType,
@@ -37,6 +37,8 @@ import {
   type WeaponId,
 } from '../entities/weapons';
 import { WeaponAnimationController, type WeaponMovementInput } from './WeaponAnimations';
+import { WeaponRecoilSystem } from './WeaponRecoilSystem';
+import { getPostProcessManager } from '../core/PostProcessManager';
 
 const log = getLogger('FirstPersonWeapons');
 
@@ -241,6 +243,9 @@ export class FirstPersonWeaponSystem {
   /** Animation controller. */
   private animController: WeaponAnimationController | null = null;
 
+  /** Recoil system for camera effects. */
+  private recoilSystem: WeaponRecoilSystem | null = null;
+
   /** Optional glow layer for plasma / energy weapons. */
   private glowLayer: GlowLayer | null = null;
 
@@ -319,6 +324,12 @@ export class FirstPersonWeaponSystem {
       : weaponsToLoad[0];
 
     this.animController = new WeaponAnimationController(startId);
+
+    // Initialize recoil system
+    this.recoilSystem = WeaponRecoilSystem.getInstance();
+    this.recoilSystem.init(scene, camera);
+    this.recoilSystem.setWeapon(startId);
+
     this.equipWeapon(startId, false);
 
     // Register per-frame update
@@ -540,10 +551,13 @@ export class FirstPersonWeaponSystem {
     this.animController?.setWeapon(weaponId);
   }
 
-  /** Fire the active weapon (triggers recoil + muzzle flash). */
+  /** Fire the active weapon (triggers recoil + muzzle flash + camera effects). */
   fireWeapon(): void {
     this.animController?.triggerFire();
     this.emitMuzzleFlash();
+
+    // Trigger camera recoil, screen shake, and FOV punch
+    this.recoilSystem?.triggerFire();
   }
 
   /** Start reload animation (visual only; ammo logic is in WeaponContext). */
@@ -559,6 +573,8 @@ export class FirstPersonWeaponSystem {
   /** Enter or leave ADS. */
   setADS(aiming: boolean): void {
     this.animController?.setADS(aiming);
+    // Sync ADS state with recoil system for reduced recoil while aiming
+    this.recoilSystem?.setADSBlend(aiming ? 1.0 : 0.0);
   }
 
   /** True if a switch animation is in progress. */
@@ -592,6 +608,12 @@ export class FirstPersonWeaponSystem {
     this.animController.update(input);
     const output = this.animController.output;
 
+    // Update recoil system and get camera effects
+    const recoilResult = this.recoilSystem?.update(dt);
+
+    // Sync ADS blend with recoil system for smooth transitions
+    this.recoilSystem?.setADSBlend(output.adsBlend);
+
     // Compute blended base position between hip and ADS
     const adsBlend = output.adsBlend;
     Vector3.LerpToRef(HIP_POSITION, ADS_POSITION, adsBlend, _tmpPos);
@@ -607,11 +629,44 @@ export class FirstPersonWeaponSystem {
     _tmpRot.y += output.rotationOffset.y * animScale;
     _tmpRot.z += output.rotationOffset.z * animScale;
 
+    // Apply screen shake offset to weapon position
+    if (this.recoilSystem) {
+      const shakeOffset = this.recoilSystem.shakeOffset;
+      _tmpPos.x += shakeOffset.x;
+      _tmpPos.y += shakeOffset.y;
+      _tmpPos.z += shakeOffset.z;
+    }
+
     this.weaponAnchor.position.copyFrom(_tmpPos);
     this.weaponAnchor.rotation.copyFrom(_tmpRot);
 
+    // Update post-processing effects based on recoil state
+    if (recoilResult && recoilResult.chromaticIntensity > 0) {
+      const postProcess = getPostProcessManager();
+      if (postProcess) {
+        // Apply chromatic aberration pulse from weapon fire
+        // This integrates with the existing PostProcessManager
+        this.applyChromaticPulse(recoilResult.chromaticIntensity);
+      }
+    }
+
     // Detect weapon changes from React context
     this.syncWeaponFromContext();
+  }
+
+  /**
+   * Apply chromatic aberration pulse to post-processing.
+   * This creates the visual "punch" effect on heavy weapon fire.
+   */
+  private applyChromaticPulse(intensity: number): void {
+    // The PostProcessManager handles chromatic aberration internally
+    // We can trigger a damage-like flash with reduced intensity for weapon fire
+    const postProcess = getPostProcessManager();
+    if (postProcess && intensity > 0.1) {
+      // Use a subtle hit confirmation effect for weapon fire feedback
+      // Scale down since this isn't damage, just weapon impact feel
+      postProcess.triggerHitConfirmation();
+    }
   }
 
   // -- Helpers ----------------------------------------------------------------
@@ -665,14 +720,23 @@ export class FirstPersonWeaponSystem {
       target.root.setEnabled(true);
     }
     this.activeWeaponId = weaponId;
+
+    // Update recoil system with new weapon profile
+    this.recoilSystem?.setWeapon(weaponId);
   }
 
-  /** Emit muzzle flash at the active weapon's muzzle point. */
+  /**
+   * Emit muzzle flash at the active weapon's muzzle point.
+   * Uses weapon-specific configuration for color, intensity, and range.
+   */
   private emitMuzzleFlash(): void {
     if (!this.activeWeaponId || !this.scene) return;
 
     const active = this.weapons.get(this.activeWeaponId);
     if (!active) return;
+
+    // Get weapon definition for flash configuration
+    const weaponDef = WEAPONS[this.activeWeaponId];
 
     // Compute world position of muzzle
     const worldMatrix = active.muzzlePoint.getWorldMatrix();
@@ -688,9 +752,17 @@ export class FirstPersonWeaponSystem {
     const effects = WeaponEffects.getInstance();
     effects.emitMuzzleFlash(muzzleWorldPos, forward, active.effectType, 0.7);
 
-    // Also use MuzzleFlash manager for light + sprite
+    // Create weapon-specific flash config using weapon definition properties
+    const weaponFlashConfig = createMuzzleFlashConfigFromWeapon(
+      active.effectType,
+      weaponDef.muzzleFlashColor,
+      weaponDef.muzzleFlashIntensity,
+      weaponDef.muzzleFlashRange
+    );
+
+    // Use MuzzleFlash manager for dynamic light + sprite with weapon-specific config
     const flash = MuzzleFlashManager.getInstance();
-    flash.emit(muzzleWorldPos, forward, active.effectType);
+    flash.emit(muzzleWorldPos, forward, active.effectType, weaponFlashConfig);
   }
 
   /** Check if React weapon context changed and trigger visual switch. */
@@ -722,6 +794,9 @@ export class FirstPersonWeaponSystem {
 
     this.animController?.dispose();
     this.animController = null;
+
+    this.recoilSystem?.dispose();
+    this.recoilSystem = null;
 
     for (const [, w] of this.weapons) {
       w.root.dispose();

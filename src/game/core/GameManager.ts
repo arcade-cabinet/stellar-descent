@@ -20,7 +20,7 @@ export interface GameCallbacks {
   onDamage: () => void;
   onNotification: (text: string, duration?: number) => void;
   onCompassUpdate?: (data: CompassData) => void;
-  onHitMarker?: (damage: number, isCritical: boolean) => void;
+  onHitMarker?: (damage: number, isCritical: boolean, isKill?: boolean) => void;
   onDirectionalDamage?: (angle: number, damage: number) => void;
 }
 

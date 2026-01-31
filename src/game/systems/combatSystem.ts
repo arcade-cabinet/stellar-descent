@@ -2,10 +2,12 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getAudioManager } from '../core/AudioManager';
+import { hitAudioManager } from '../core/HitAudioManager';
 import { getLogger } from '../core/Logger';
 import {
   type DifficultyLevel,
@@ -17,10 +19,11 @@ import { getEnemySoundManager } from '../core/EnemySoundManager';
 import { createEntity, type Entity, getEntitiesInRadius, queries, removeEntity } from '../core/ecs';
 import { worldDb } from '../db/worldDatabase';
 import { damageFeedback } from '../effects/DamageFeedback';
-import { deathEffects } from '../effects/DeathEffects';
+import { deathEffects, type DeathEffectType } from '../effects/DeathEffects';
 import { muzzleFlash } from '../effects/MuzzleFlash';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
+import { hitReactionSystem } from './HitReactionSystem';
 import { tokens } from '../utils/designTokens';
 
 const log = getLogger('CombatSystem');
@@ -52,6 +55,8 @@ export class CombatSystem {
     muzzleFlash.init(scene);
     // Initialize death effects system
     deathEffects.init(scene);
+    // Initialize hit reaction system for stagger/knockback
+    hitReactionSystem.init(scene);
 
     // Load difficulty settings
     this.difficulty = loadDifficultySetting();
@@ -241,21 +246,27 @@ export class CombatSystem {
             }
           }
 
-          // Play hit marker sound (different for critical)
-          if (isCritical) {
-            getAudioManager().play('headshot');
-          } else {
-            getAudioManager().play('hit_marker');
-          }
+          // Play hit marker sound using HitAudioManager (different for critical)
+          hitAudioManager.playHitSound(finalDamage, isCritical);
 
-          // Play enemy hit sound (pain/reaction sound)
-          if (target.tags?.enemy) {
+          // Calculate hit direction for knockback and effects
+          const hitDirection = projPos.subtract(target.transform.position).normalize();
+
+          // Apply hit reaction (stagger, pain sound, knockback) for enemies
+          if (target.tags?.enemy && target.alienInfo) {
+            // Get projectile origin for death force direction
+            const shotOrigin = projectile.velocity?.linear
+              ? projPos.subtract(projectile.velocity.linear.normalize().scale(10))
+              : projPos;
+
+            hitReactionSystem.applyHitReaction(target, finalDamage, hitDirection, shotOrigin);
+          } else {
+            // Fallback: play legacy enemy hit sound (pain/reaction sound)
             getEnemySoundManager().playHitSound(target);
           }
 
           // Apply damage feedback if target has a mesh
           if (target.renderable?.mesh) {
-            const hitDirection = projPos.subtract(target.transform.position).normalize();
             damageFeedback.applyDamageFeedback(target.renderable.mesh, finalDamage, hitDirection);
           }
 
@@ -272,7 +283,11 @@ export class CombatSystem {
 
           // Check if target died
           if (target.health.current <= 0) {
-            this.handleDeath(target);
+            // Calculate shot origin for death force direction
+            const shotOrigin = projectile.velocity?.linear
+              ? projPos.subtract(projectile.velocity.linear.normalize().scale(10))
+              : projPos;
+            this.handleDeath(target, shotOrigin);
           }
 
           break;
@@ -281,7 +296,12 @@ export class CombatSystem {
     }
   }
 
-  private handleDeath(entity: Entity): void {
+  /**
+   * Handle entity death with advanced death animations and effects.
+   * @param entity - The dying entity
+   * @param shotOrigin - Optional position where the killing shot originated (for death force direction)
+   */
+  private handleDeath(entity: Entity, shotOrigin?: Vector3): void {
     if (!entity.transform) return;
 
     const position = entity.transform.position.clone();
@@ -296,9 +316,31 @@ export class CombatSystem {
     if (isAlien) {
       // Use species-specific death sound through enemy sound manager
       getEnemySoundManager().playDeathSound(entity);
-      getAudioManager().playKillConfirmation(0.4);
+      // Use HitAudioManager for satisfying kill confirmation
+      hitAudioManager.playKillSound();
     } else {
       getAudioManager().play('explosion');
+      hitAudioManager.playKillSound();
+    }
+
+    // Select death animation variation based on species
+    let deathDuration = isBoss ? 2000 : 800;
+    if (entity.alienInfo) {
+      const deathInfo = hitReactionSystem.selectDeathAnimation(entity, shotOrigin);
+      deathDuration = deathInfo.duration;
+
+      // Execute the death animation on the mesh
+      if (entity.renderable?.mesh) {
+        hitReactionSystem.executeDeathAnimation(
+          entity.renderable.mesh as Mesh | TransformNode,
+          deathInfo.animationType,
+          deathInfo.forceDirection,
+          scale
+        );
+      }
+
+      // Clean up hit reaction state
+      hitReactionSystem.removeEntity(entity.id);
     }
 
     // Use new death effects system for advanced particle effects
@@ -356,7 +398,7 @@ export class CombatSystem {
       () => {
         removeEntity(entity);
       },
-      isBoss ? 2000 : 800
+      deathDuration
     );
   }
 
@@ -660,6 +702,8 @@ export class CombatSystem {
     this.checkProjectileCollisions();
     this.checkEnemyAttacks(deltaTime);
     this.checkPlayerHits();
+    // Update hit reaction stagger states
+    hitReactionSystem.update();
   }
 
   dispose(): void {
@@ -670,6 +714,9 @@ export class CombatSystem {
       }
       removeEntity(projectile);
     }
+
+    // Dispose hit reaction system
+    hitReactionSystem.dispose();
 
     // Clear references
     this.playerEntity = null;

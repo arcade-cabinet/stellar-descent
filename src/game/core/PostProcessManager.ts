@@ -585,6 +585,56 @@ export class PostProcessManager {
   }
 
   /**
+   * Trigger weapon fire screen shake effect.
+   * Integrates with WeaponRecoilSystem for camera feedback.
+   *
+   * @param intensity - Shake intensity (0-1)
+   * @param duration - Shake duration in seconds
+   */
+  triggerWeaponShake(intensity: number, duration: number): void {
+    // The actual camera shake is handled by WeaponRecoilSystem
+    // This method provides visual feedback through chromatic aberration
+    if (!this.pipeline || !this.config.chromaticAberrationEnabled) return;
+
+    // Brief chromatic aberration pulse scaled to intensity
+    const caBoost = intensity * 0.8;
+    this.pipeline.chromaticAberration.aberrationAmount = this.baseChromaticAberration + caBoost;
+
+    // Schedule decay
+    const decayTime = duration * 1000;
+    setTimeout(() => {
+      if (this.pipeline && this.effectState.damageFlashIntensity === 0) {
+        this.pipeline.chromaticAberration.aberrationAmount = this.baseChromaticAberration;
+      }
+    }, decayTime);
+  }
+
+  /**
+   * Trigger FOV punch effect for heavy weapons.
+   * This creates a brief widening of the field of view.
+   *
+   * @param punchDegrees - FOV change in degrees (positive = wider)
+   * @param recoverySpeed - Recovery speed (higher = faster return to normal)
+   */
+  triggerFOVPunch(punchDegrees: number, recoverySpeed: number): void {
+    // FOV punch is handled by WeaponRecoilSystem directly on the camera
+    // This method is provided for external systems that may want to trigger it
+    // For now, we just boost bloom slightly for the visual "impact" feel
+    if (!this.pipeline || !this.config.bloomEnabled) return;
+
+    const bloomBoost = Math.min(punchDegrees / 10, 0.3);
+    this.pipeline.bloomWeight = 0.3 + bloomBoost;
+
+    // Schedule decay
+    const decayTime = (punchDegrees / recoverySpeed) * 1000;
+    setTimeout(() => {
+      if (this.pipeline) {
+        this.pipeline.bloomWeight = 0.3;
+      }
+    }, decayTime);
+  }
+
+  /**
    * Update kill streak level for visual feedback
    */
   updateKillStreak(kills: number): void {
@@ -612,6 +662,33 @@ export class PostProcessManager {
     if (!this.config.motionBlurEnabled) return;
     this.effectState.targetMotionBlur = isSprinting ? 0.4 : 0;
     this.effectState.motionBlurEnabled = isSprinting;
+  }
+
+  /**
+   * Enable/disable slide visual effects
+   * Slide has stronger motion blur and chromatic aberration than sprint
+   */
+  setSliding(isSliding: boolean): void {
+    if (!this.pipeline) return;
+
+    if (isSliding) {
+      // Slide has higher motion blur than sprint
+      if (this.config.motionBlurEnabled) {
+        this.effectState.targetMotionBlur = 0.6;
+        this.effectState.motionBlurEnabled = true;
+      }
+
+      // Boost chromatic aberration during slide for speed feel
+      if (this.config.chromaticAberrationEnabled) {
+        this.pipeline.chromaticAberration.aberrationAmount = this.baseChromaticAberration + 1.0;
+      }
+    } else {
+      // Reset chromatic aberration when slide ends
+      if (this.config.chromaticAberrationEnabled) {
+        this.pipeline.chromaticAberration.aberrationAmount = this.baseChromaticAberration;
+      }
+      // Let setSprinting handle motion blur state when slide ends
+    }
   }
 
   /**
@@ -977,6 +1054,101 @@ export class PostProcessManager {
    */
   isEnabled(): boolean {
     return this.pipeline !== null && this.config.bloomEnabled;
+  }
+
+  // ============================================================================
+  // LOW HEALTH FEEDBACK INTEGRATION
+  // ============================================================================
+
+  // Track low health effect state to avoid conflicts with other effects
+  private lowHealthVignetteActive = false;
+  private lowHealthDesaturation = 0;
+  private lowHealthTunnelVision = 0;
+
+  /**
+   * Set the vignette for low health feedback.
+   * This temporarily overrides the base vignette when active.
+   *
+   * @param weight - Vignette weight (0 = none, 1 = full)
+   * @param r - Red component (0-1)
+   * @param g - Green component (0-1)
+   * @param b - Blue component (0-1)
+   */
+  setLowHealthVignette(weight: number, r: number, g: number, b: number): void {
+    if (!this.pipeline || !this.config.vignetteEnabled) return;
+
+    // Only apply if not overridden by damage flash
+    if (this.effectState.damageFlashIntensity > 0.1) return;
+
+    if (weight > 0.01) {
+      this.lowHealthVignetteActive = true;
+      this.pipeline.imageProcessing.vignetteWeight = weight;
+      this.pipeline.imageProcessing.vignetteColor = new Color4(r, g, b, 0);
+    } else if (this.lowHealthVignetteActive) {
+      // Reset to base when effect ends
+      this.lowHealthVignetteActive = false;
+      this.pipeline.imageProcessing.vignetteWeight = this.baseVignetteWeight;
+      this.applyColorGrading(this.currentLevelType);
+    }
+  }
+
+  /**
+   * Set the desaturation level for low health feedback.
+   * Reduces color saturation as health drops.
+   *
+   * @param amount - Desaturation amount (0 = none, 1 = grayscale)
+   */
+  setLowHealthDesaturation(amount: number): void {
+    if (!this.pipeline) return;
+
+    this.lowHealthDesaturation = Math.max(0, Math.min(1, amount));
+
+    // Apply desaturation through exposure reduction and contrast increase
+    // BabylonJS doesn't have direct saturation control, so we simulate it
+    const baseGrade = COLOR_GRADES[this.currentLevelType];
+
+    // Reduce exposure slightly and increase contrast to simulate desaturation
+    const desatExposure = baseGrade.exposure * (1 - this.lowHealthDesaturation * 0.15);
+    const desatContrast = baseGrade.contrast * (1 + this.lowHealthDesaturation * 0.1);
+
+    this.pipeline.imageProcessing.exposure = desatExposure;
+    this.pipeline.imageProcessing.contrast = desatContrast;
+  }
+
+  /**
+   * Set the tunnel vision effect for critical health.
+   * Creates a stronger vignette that narrows the field of view.
+   *
+   * @param amount - Tunnel vision amount (0 = none, 1 = severe)
+   */
+  setTunnelVision(amount: number): void {
+    if (!this.pipeline || !this.config.vignetteEnabled) return;
+
+    this.lowHealthTunnelVision = Math.max(0, Math.min(1, amount));
+
+    // Tunnel vision increases vignette stretch to narrow the visible area
+    if (this.lowHealthTunnelVision > 0) {
+      // Increase vignette stretch to create tunnel effect
+      this.pipeline.imageProcessing.vignetteStretch = 0.5 + this.lowHealthTunnelVision * 1.5;
+    } else {
+      // Reset to normal
+      this.pipeline.imageProcessing.vignetteStretch = 0.5;
+    }
+  }
+
+  /**
+   * Reset all low health effects
+   */
+  resetLowHealthEffects(): void {
+    this.lowHealthVignetteActive = false;
+    this.lowHealthDesaturation = 0;
+    this.lowHealthTunnelVision = 0;
+
+    if (this.pipeline) {
+      this.pipeline.imageProcessing.vignetteWeight = this.baseVignetteWeight;
+      this.pipeline.imageProcessing.vignetteStretch = 0.5;
+      this.applyColorGrading(this.currentLevelType);
+    }
   }
 
   // ============================================================================

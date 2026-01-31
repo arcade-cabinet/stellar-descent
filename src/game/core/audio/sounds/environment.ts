@@ -862,6 +862,141 @@ export class EnvironmentSoundGenerator {
     noise.stop(now + 0.6);
   }
 
+  // ===== Movement Sound Effects =====
+
+  /**
+   * Generate slide sound - metallic scraping with momentum feel
+   */
+  generateSlideSound(volume = 0.4): void {
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+
+    // Filtered noise for scraping/sliding
+    const bufferSize = ctx.sampleRate * 0.6;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    // Bandpass filter for metallic scraping quality
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.linearRampToValueAtTime(1200, now + 0.1);
+    filter.frequency.linearRampToValueAtTime(600, now + 0.5);
+    filter.Q.value = 2;
+
+    // Low rumble for ground contact feel
+    const rumble = ctx.createOscillator();
+    rumble.type = 'sine';
+    rumble.frequency.setValueAtTime(80, now);
+    rumble.frequency.linearRampToValueAtTime(60, now + 0.4);
+
+    // Whoosh component for speed feel
+    const whoosh = ctx.createOscillator();
+    whoosh.type = 'sawtooth';
+    whoosh.frequency.setValueAtTime(200, now);
+    whoosh.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+
+    const whooshFilter = ctx.createBiquadFilter();
+    whooshFilter.type = 'lowpass';
+    whooshFilter.frequency.value = 400;
+
+    // Envelopes
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(volume * 0.4, now + 0.05);
+    noiseGain.gain.setValueAtTime(volume * 0.35, now + 0.4);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+
+    const rumbleGain = ctx.createGain();
+    rumbleGain.gain.setValueAtTime(0, now);
+    rumbleGain.gain.linearRampToValueAtTime(volume * 0.3, now + 0.03);
+    rumbleGain.gain.setValueAtTime(volume * 0.25, now + 0.35);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+    const whooshGain = ctx.createGain();
+    whooshGain.gain.setValueAtTime(0, now);
+    whooshGain.gain.linearRampToValueAtTime(volume * 0.2, now + 0.05);
+    whooshGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+    // Connect
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(ctx.destination);
+
+    whoosh.connect(whooshFilter);
+    whooshFilter.connect(whooshGain);
+    whooshGain.connect(ctx.destination);
+
+    // Play
+    noise.start(now);
+    noise.stop(now + 0.6);
+    rumble.start(now);
+    rumble.stop(now + 0.55);
+    whoosh.start(now);
+    whoosh.stop(now + 0.5);
+  }
+
+  /**
+   * Generate slide end sound - deceleration and recovery
+   */
+  generateSlideEndSound(volume = 0.3): void {
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+
+    // Quick scrape ending
+    const bufferSize = ctx.sampleRate * 0.2;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(300, now + 0.15);
+    filter.Q.value = 3;
+
+    // Footstep-like thud for recovery
+    const thud = ctx.createOscillator();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(120, now);
+    thud.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+
+    // Envelopes
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(volume * 0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+    const thudGain = ctx.createGain();
+    thudGain.gain.setValueAtTime(volume * 0.4, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    // Connect
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    thud.connect(thudGain);
+    thudGain.connect(ctx.destination);
+
+    // Play
+    noise.start(now);
+    noise.stop(now + 0.2);
+    thud.start(now);
+    thud.stop(now + 0.15);
+  }
+
   /**
    * Dispose of audio context
    */

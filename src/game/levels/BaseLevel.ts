@@ -40,6 +40,11 @@ import {
   type WeatherSystem,
   type WeatherType,
 } from '../effects/WeatherSystem';
+import {
+  getLowHealthFeedback,
+  disposeLowHealthFeedback,
+  type LowHealthFeedbackManager,
+} from '../effects/LowHealthFeedback';
 import { getLogger } from '../core/Logger';
 import type { ILevel, LevelCallbacks, LevelConfig, LevelId, LevelState, LevelType } from './types';
 
@@ -143,6 +148,9 @@ export abstract class BaseLevel implements ILevel {
 
   // Atmospheric effects for advanced visuals (god rays, emergency lights, etc.)
   protected atmosphericEffects: AtmosphericEffects | null = null;
+
+  // Low health feedback system (vignette, heartbeat, breathing)
+  protected lowHealthFeedback: LowHealthFeedbackManager | null = null;
 
   // Achievement tracking
   protected playerDiedInLevel = false;
@@ -278,6 +286,9 @@ export abstract class BaseLevel implements ILevel {
     // Update post-processing effects
     this.postProcess?.update(deltaTime);
 
+    // Update low health feedback (visual pulse animation)
+    this.lowHealthFeedback?.update(deltaTime);
+
     // Update weather system
     this.weatherSystem?.update(deltaTime, this.camera.position);
 
@@ -321,6 +332,10 @@ export abstract class BaseLevel implements ILevel {
     // Dispose atmospheric effects
     disposeAtmosphericEffects();
     this.atmosphericEffects = null;
+
+    // Stop low health feedback effects (but don't dispose singleton - other levels may use it)
+    this.lowHealthFeedback?.stopLowHealthEffects();
+    this.lowHealthFeedback = null;
 
     // Dispose level-specific resources
     this.disposeLevel();
@@ -776,7 +791,50 @@ export abstract class BaseLevel implements ILevel {
   protected initializePostProcessing(): void {
     this.postProcess = new PostProcessManager(this.scene, this.camera);
     this.postProcess.setLevelType(this.type);
+
+    // Initialize and wire up low health feedback system
+    this.initializeLowHealthFeedback();
+
     log.info(`Post-processing initialized for ${this.id} (${this.type})`);
+  }
+
+  /**
+   * Initialize low health feedback system and wire it to post-processing.
+   * Provides visual (vignette, desaturation, tunnel vision) and audio
+   * (heartbeat, breathing) feedback when player health is critically low.
+   */
+  protected initializeLowHealthFeedback(): void {
+    this.lowHealthFeedback = getLowHealthFeedback();
+    this.lowHealthFeedback.init();
+
+    // Wire vignette callback to post-processing manager
+    if (this.postProcess) {
+      const postProcess = this.postProcess;
+
+      // Connect vignette effect
+      this.lowHealthFeedback.setVignetteCallback((weight, r, g, b) => {
+        // Access the pipeline's image processing for vignette control
+        // This integrates with the existing PostProcessManager vignette
+        postProcess.setLowHealthVignette(weight, r, g, b);
+      });
+
+      // Connect desaturation effect
+      this.lowHealthFeedback.setDesaturationCallback((amount) => {
+        postProcess.setLowHealthDesaturation(amount);
+      });
+
+      // Connect tunnel vision effect
+      this.lowHealthFeedback.setTunnelVisionCallback((amount) => {
+        postProcess.setTunnelVision(amount);
+      });
+    }
+
+    // Connect screen shake
+    this.lowHealthFeedback.setScreenShakeCallback((intensity) => {
+      this.triggerShake(intensity);
+    });
+
+    log.info('Low health feedback initialized');
   }
 
   /**
@@ -898,6 +956,15 @@ export abstract class BaseLevel implements ILevel {
    */
   protected setSprintingVisual(isSprinting: boolean): void {
     this.postProcess?.setSprinting(isSprinting);
+  }
+
+  /**
+   * Set slide state for enhanced motion blur and chromatic aberration.
+   *
+   * @param isSliding - Whether the player is currently sliding
+   */
+  protected setSlidingVisual(isSliding: boolean): void {
+    this.postProcess?.setSliding(isSliding);
   }
 
   /**
@@ -1065,7 +1132,8 @@ export abstract class BaseLevel implements ILevel {
     }
 
     // Normalize diagonal movement
-    if (dx !== 0 || dz !== 0) {
+    const isMoving = dx !== 0 || dz !== 0;
+    if (isMoving) {
       const len = Math.sqrt(dx * dx + dz * dz);
       dx = (dx / len) * speed;
       dz = (dz / len) * speed;
@@ -1073,6 +1141,9 @@ export abstract class BaseLevel implements ILevel {
       this.camera.position.x += dx;
       this.camera.position.z += dz;
     }
+
+    // Update low health feedback with movement state (for critical health screen shake)
+    this.lowHealthFeedback?.setPlayerMoving(isMoving);
 
     // Handle jump action (Space by default, or touch jump button) - subclasses can override onJump()
     if (this.inputTracker.isActionActive('jump') || (this.touchInput?.isJumping ?? false)) {
