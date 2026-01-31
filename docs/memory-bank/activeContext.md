@@ -1,94 +1,113 @@
 # Active Context
 
 ## Current Development Phase
-**Phase 5: Polish & CI/CD** (In Progress)
+**Phase 5: FPS Completeness & Polish** (In Progress)
 
-## Recent Work (Session 5+ - Jan 30, 2026)
+## Session Summary (Jan 30, 2026)
 
-### Major Accomplishments
-- **Full 6-Level Campaign**: All levels implemented (anchor_station, landfall, fob_delta, brothers_in_arms, the_breach, extraction)
-- **Node 22 LTS Migration**: Updated from Node 18 to Node 22 with `.nvmrc` for version pinning
-- **Netlify Deployment**: CI/CD pipeline with automatic deploys to `stellar-descent.netlify.app`
-- **GitHub Actions Workflows**: Unified `ci.yml` for lint, test, build, deploy
-- **Keybindings System**: Full `KeybindingsContext` with settings UI for rebinding controls
-- **Tone.js Music System**: Dynamic music with combat/exploration/boss tracks by Clement Panchout
-- **Death/Restart Flow**: Proper game over screen with restart mission and main menu options
-- **Health Clamping Fix**: Fixed bug where health could go to -180000 (now properly clamped 0-100)
-- **HALO Drop FOV System**: Dynamic FOV during freefall (1.75), powered descent (1.4), surface (1.2)
-- **Mobile Landscape Enforcement**: Forces landscape on phones <768px
-- **Save System**: `saveSystem.ts` with localStorage persistence for level progress
+### Major Accomplishments This Session
 
-### Asset Integration (Session - Jan 30, 2026)
-- **Marcus Mech**: Converted `full bot.blend` → `marcus_mech.glb` (0.56MB) with military olive/steel texturing
-- **Spaceship Corridors**: Converted 6 FBX files to GLB for Anchor Station:
-  - `corridor_main.glb` (7.4MB), `corridor_junction.glb` (3.9MB)
-  - `corridor_corner.glb` (4.3MB), `corridor_wide.glb` (4.3MB)
-  - `station_door.glb` (143KB), `station_barrel.glb` (113KB)
-- **Modular Level Design**: All corridors are 4.0 units long for snap-together assembly
-- **Color Philosophy**: Environment-driven palettes (blue for station calm, amber for alien sun, etc.)
-- **Created**: `docs/ASSET-INTEGRATION.md` - Comprehensive asset mapping document
+#### Quest Chain System
+- Created `QuestChain.ts` with 10 main campaign quests (one per level)
+- Added 18 optional branch quests discoverable from objects/NPCs
+- Created `QuestManager.ts` for runtime quest state tracking
+- Updated `GameSave` to v5 with quest persistence
+- Removed deprecated `tutorialStep` field
 
-### Model Reorganization (Session - Jan 30, 2026)
-Reorganized `public/models/` by logical domains:
-```
-public/models/
-├── enemies/chitin/          # 8 alien enemies
-├── environment/
-│   ├── station/             # Anchor Station corridors + structures
-│   └── hive/                # Alien hive structures
-├── props/industrial/        # Doors, lights, barrels
-└── vehicles/
-    ├── tea/                 # marcus_mech.glb, phantom.glb
-    └── chitin/              # wraith.glb
-```
+#### Logger Migration
+- Converted 60+ files from `console.log` to centralized `Logger`
+- Categories: core, levels, effects, collectibles, persistence, context
 
-### Anchor Station V3 (Session - Jan 30, 2026)
-Created `AnchorStationLevelV3.ts` using modular GLB corridors instead of procedural generation:
-- **ModularStationBuilder.ts**: Snap-together station from GLB segments
-- **Deliberate Layout Design**: Narrative-driven room flow
-- **Exploration Rewards**: 8 optional rooms with discoveries:
-  - Observation Deck (scenic view of planet)
-  - Engine Room (hidden supply cache)
-  - Crew Quarters (Marcus's locker, audio log)
-  - Medical Bay (Chitin specimen in containment)
-  - Biosphere (terraforming research)
-- **Discovery Points**: Data pads, audio logs, Easter eggs (like Halo's skulls)
-- **Room Atmospheres**: Each space has distinct emotional feel via lighting
+#### GameChronometer
+- Created in-universe time tracking (year 3147)
+- Microsecond precision using `performance.now()`
+- Military-style formatting for HUD display
 
-### Testing Infrastructure
-- **Vitest**: Unit testing with happy-dom
-- **Playwright**: E2E testing with per-level test files
-- **Coverage**: `npm run test:coverage`
+#### Documentation
+- Created `CLAUDE.md` project guide with **PNPM** requirement
+- Created `FPS-COMPLETENESS-ANALYSIS.md` comparing to 8 AAA FPS games
+- Updated `ARCHITECTURE.md` with quest chain system
+- Updated memory bank with current state
+
+### FPS Completeness Analysis
+
+Researched Halo, DOOM, Wolfenstein, Half-Life 2, Titanfall 2, Metro, Far Cry, BioShock to identify gaps:
+
+#### Critical Gaps (Game-Breaking)
+| Gap | Status | Priority |
+|-----|--------|----------|
+| Weapon Feel (recoil, shake, muzzle flash) | Missing | IMMEDIATE |
+| Enemy Hit Reactions (stagger, pain, death) | Minimal | IMMEDIATE |
+| Hitmarker System | Missing | IMMEDIATE |
+| Player Feedback (low health, low ammo) | Basic | IMMEDIATE |
+
+#### High Priority Gaps
+| Gap | Status | Priority |
+|-----|--------|----------|
+| Movement (slide, mantle, lean) | Missing | SHORT-TERM |
+| Audio (positional, variety) | Basic | SHORT-TERM |
+| Resource Loop (visible pickups) | Minimal | SHORT-TERM |
+| Enemy AI (flank, cover, grenades) | Basic | SHORT-TERM |
+
+#### Scores vs AAA
+- Weapon Feel: **3/10**
+- Enemy Reactions: **2/10**
+- Movement: **4/10**
+- Audio: **4/10**
+- Level Design: **5/10**
+- Progression: **3/10**
 
 ## Immediate Priorities
-1. **Wire Keybindings to Levels**: KeybindingsContext exists but some levels have hardcoded keys
-2. **Weapon Switching UI**: Touch control weapon switch button (TODO in TouchControls.tsx:317)
-3. **Ammo/Reload System**: Polish and integrate with HUD
-4. **E2E Test Coverage**: Expand Playwright tests for all 6 levels
-5. **Chunk Manager Mesh Loading**: TODO at ChunkManager.ts:425
+
+### 1. Weapon Feel Pass
+- Add visual recoil (camera kick)
+- Add screen shake on firing/impact
+- Improve muzzle flash with light emission
+- Add shell casing particles
+- Add bullet trails/tracers
+- Add impact decals (bullet holes, blood)
+
+### 2. Enemy Hit Reactions
+- Add stagger animations
+- Add pain vocalization sounds
+- Add multiple death animations
+- Add knockback on heavy weapons
+- Add ragdoll physics on death
+
+### 3. Hitmarker System
+- Add visual hitmarker (optional toggle)
+- Add audio hit confirmation
+- Add critical hit indicator (headshots)
+- Add kill confirmation
+
+### 4. Player Feedback
+- Add low health heartbeat/warning
+- Add low ammo warning sounds
+- Add directional damage indicator duration
+- Add grenade indicator
 
 ## Active Decisions
-- **Modular Levels**: Each level is a self-contained class implementing `ILevel` interface
-- **Level Linked List**: Campaign uses `nextLevelId`/`previousLevelId` for progression
-- **Ref-Based Updates**: Render loops use `useRef` to avoid stale React closures
-- **Touch Controls**: DOOM-style - left joystick move, screen drag look, right side buttons
-- **No Anime.js for Babylon**: Manual RAF loops for 3D animations
-- **KeybindingsContext**: Centralized key management with localStorage persistence
+- **Package Manager**: PNPM exclusively (never npm/npx)
+- **Quest System**: Main quests auto-activate, branch quests from objects/NPCs
+- **No Skip Tutorial**: Linear campaign, unlock levels by completion
+- **Immersive Storytelling**: No popups, controls learned in-game
+- **Save Format**: v5 with quest chain persistence
 
-## Known Issues
-- **Touch Testing**: Needs validation on real physical devices (foldables, tablets)
-- **Platforming Room**: TODO in anchor-station/environment.ts:1994
-- **CanyonLevel Factory**: TODO in factories.ts:49 (currently using placeholder)
+## Key Files Modified This Session
+| File | Changes |
+|------|---------|
+| `src/game/campaign/QuestChain.ts` | NEW - Quest definitions |
+| `src/game/campaign/QuestManager.ts` | NEW - Runtime state |
+| `src/game/timer/GameChronometer.ts` | NEW - In-universe time |
+| `src/game/persistence/GameSave.ts` | Quest fields, v5 |
+| `src/game/persistence/SaveSystem.ts` | Quest methods, v5 migration |
+| `CLAUDE.md` | NEW - Project guide |
+| `docs/FPS-COMPLETENESS-ANALYSIS.md` | NEW - Gap analysis |
+| `docs/ARCHITECTURE.md` | Quest chain docs |
+| 60+ files | Logger migration |
 
-## Identified Gaps (From Codebase Review)
-
-### TODOs Found
-1. `src/game/ecs/ChunkManager.ts:425` - Load actual mesh from modelPath
-2. `src/game/levels/factories.ts:49` - Implement CanyonLevel
-3. `src/game/levels/anchor-station/environment.ts:1994` - Implement platforming room
-4. `src/components/ui/TouchControls.tsx:317` - Implement weapon switching
-
-### Incomplete Integrations
-- Keybindings context not fully wired to all level input handlers
-- Weapon system has WeaponContext but limited UI integration
-- Compass navigation data exists in GameContext but minimal HUD usage
+## Next Steps
+1. Start weapon feel pass (recoil, screen shake)
+2. Wire QuestManager to CampaignDirector
+3. Add hitmarker system to combat
+4. Add enemy hit reaction animations
