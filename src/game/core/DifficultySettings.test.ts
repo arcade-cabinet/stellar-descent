@@ -103,7 +103,7 @@ describe('DifficultySettings', () => {
 
   describe('DIFFICULTY_ORDER', () => {
     it('should list difficulties in order of increasing challenge', () => {
-      expect(DIFFICULTY_ORDER).toEqual(['easy', 'normal', 'hard', 'nightmare']);
+      expect(DIFFICULTY_ORDER).toEqual(['easy', 'normal', 'hard', 'nightmare', 'ultra_nightmare']);
     });
   });
 

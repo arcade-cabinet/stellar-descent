@@ -182,6 +182,7 @@ export class BalanceValidator {
         normal: { missRate: 1.5, failRatio: 0.8, warnRatio: 1.0 },
         hard: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
         nightmare: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
+        ultra_nightmare: { missRate: 1.1, failRatio: 0.2, warnRatio: 0.4 }, // Extreme precision
       };
 
     for (const difficulty of DIFFICULTY_ORDER) {
@@ -221,9 +222,11 @@ export class BalanceValidator {
 
     // Skilled players on harder difficulties take fewer hits per section
     const HITS_PER_SECTION: Record<string, number> = {
+      easy: 2.5,
       normal: 2,
-      veteran: 1.5,
-      legendary: 1,
+      hard: 1.5,
+      nightmare: 1,
+      ultra_nightmare: 0.5, // Elite players barely get touched
     };
 
     for (const difficulty of DIFFICULTY_ORDER) {

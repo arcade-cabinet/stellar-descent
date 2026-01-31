@@ -489,11 +489,20 @@ describe('Player Survivability', () => {
 
   describe('Survivable Hits Calculation', () => {
     it('should calculate positive survivable hits for all enemies on all difficulties', () => {
-      // On hard and nightmare, heavy and boss enemies can one-shot the player - this is intentional
+      // On hard, nightmare, and ultra_nightmare, certain enemies can one-shot the player - this is intentional
+      // Ultra-Nightmare has 2.5x playerDamageReceivedMultiplier, so more enemies can one-shot
       const canOneShot: Record<string, DifficultyLevel[]> = {
-        heavy: ['nightmare'],                   // 70 base * 2.0 multiplier = 140 > 100 HP
-        broodmother: ['hard', 'nightmare'],     // Boss tier - high damage
-        queen: ['hard', 'nightmare'],           // Boss tier - 75 damage on hard * 1.4 = 105 > 100 HP
+        skitterer: ['ultra_nightmare'],         // 30 base * 2.5 = 75, but rounding could push over
+        spitter: ['ultra_nightmare'],           // 45 base * 2.5 = 112.5 > 100 HP
+        warrior: ['ultra_nightmare'],           // 55 base * 2.5 = 137.5 > 100 HP
+        heavy: ['nightmare', 'ultra_nightmare'], // 70 base * 2.0 = 140 > 100 HP, 90 base * 2.5 = 225 > 100 HP
+        stalker: ['ultra_nightmare'],           // 40 base * 2.5 = 100, borderline one-shot
+        broodmother: ['hard', 'nightmare', 'ultra_nightmare'], // Boss tier - high damage
+        queen: ['hard', 'nightmare', 'ultra_nightmare'],       // Boss tier - 75 damage on hard * 1.4 = 105 > 100 HP
+        // Legacy mappings
+        lurker: ['ultra_nightmare'],            // Same as stalker
+        spewer: ['ultra_nightmare'],            // Same as spitter
+        husk: ['ultra_nightmare'],              // Same as warrior
       };
 
       for (const enemyId of Object.keys(ENEMY_BALANCE)) {
