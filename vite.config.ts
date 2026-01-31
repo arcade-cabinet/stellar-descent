@@ -22,7 +22,6 @@ export default ({ mode }: any) => {
       VitePWA({
         registerType: 'autoUpdate', // Automatically apply updates without prompting
         includeAssets: [
-          'logo_babylonpress.png',
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-192x192.png',
