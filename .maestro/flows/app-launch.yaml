@@ -1,8 +1,8 @@
 # App Launch Flow - Verifies app starts and shows main menu
 # Cross-platform: Web, Android, iOS
 
-appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
-url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
 tags:
   - smoke
   - mobile

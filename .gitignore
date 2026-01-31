@@ -163,3 +163,6 @@ yarn.lock
 
 # Vite PWA dev service worker output
 dev-dist/
+
+# Vite dependency cache
+.vite/

@@ -1,8 +1,8 @@
 # Touch Controls Flow - Tests mobile touch input
 # Platform: Android, iOS (mobile-specific)
 
-appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}
-url: ${PLATFORM == 'web' ? 'http://localhost:8080' : null}
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
 tags:
   - mobile-only
   - controls
