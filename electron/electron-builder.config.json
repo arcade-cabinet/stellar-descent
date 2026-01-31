@@ -1,0 +1,63 @@
+{
+  "appId": "com.jbcom.stellardescent",
+  "productName": "Stellar Descent",
+  "directories": {
+    "buildResources": "resources",
+    "output": "dist"
+  },
+  "files": [
+    "assets/**/*",
+    "build/**/*",
+    "capacitor.config.*",
+    "app/**/*"
+  ],
+  "publish": {
+    "provider": "github",
+    "owner": "jbogaty",
+    "repo": "stellar-descent"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Stellar Descent"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/appIcon.ico",
+    "artifactName": "stellar-descent-${version}-win-x64.${ext}"
+  },
+  "mac": {
+    "category": "public.app-category.games",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "icon": "assets/appIcon.png",
+    "artifactName": "stellar-descent-${version}-mac-${arch}.${ext}"
+  },
+  "linux": {
+    "category": "Game",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/appIcon.png",
+    "artifactName": "stellar-descent-${version}-linux-x64.${ext}"
+  }
+}

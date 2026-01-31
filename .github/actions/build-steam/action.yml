@@ -1,0 +1,147 @@
+name: 'Build and Upload to Steam'
+description: 'Builds for Steam and uploads via SteamCMD'
+
+inputs:
+  platform:
+    description: 'Target platform (windows, macos, linux)'
+    required: true
+  steam-username:
+    description: 'Steam partner account username'
+    required: true
+  steam-config-vdf:
+    description: 'Base64 encoded Steam config.vdf (contains auth token)'
+    required: true
+  steam-app-id:
+    description: 'Steam App ID'
+    required: true
+  steam-depot-id:
+    description: 'Steam Depot ID for this platform'
+    required: true
+  branch:
+    description: 'Steam branch to deploy to (default, beta, etc.)'
+    required: false
+    default: 'beta'
+  version:
+    description: 'Version string'
+    required: false
+    default: 'dev'
+  upload-artifact:
+    description: 'Whether to upload build artifact'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build web assets
+      shell: bash
+      run: pnpm build
+
+    - name: Add Electron platform
+      shell: bash
+      run: npx cap add @capacitor-community/electron || true
+
+    - name: Sync Capacitor with Electron
+      shell: bash
+      run: npx cap sync @capacitor-community/electron
+
+    - name: Install Electron dependencies
+      shell: bash
+      run: |
+        cd electron
+        npm install
+
+    - name: Create steam_appid.txt
+      shell: bash
+      run: |
+        echo "${{ inputs.steam-app-id }}" > electron/steam_appid.txt
+
+    - name: Build Electron for Steam
+      shell: bash
+      run: |
+        cd electron
+
+        case "${{ inputs.platform }}" in
+          windows)
+            npx electron-builder --win --dir
+            ;;
+          macos)
+            npx electron-builder --mac --dir
+            ;;
+          linux)
+            npx electron-builder --linux --dir
+            ;;
+        esac
+
+    - name: Prepare Steam depot content
+      shell: bash
+      run: |
+        mkdir -p steam-content
+
+        case "${{ inputs.platform }}" in
+          windows)
+            cp -r electron/dist/win-unpacked/* steam-content/
+            ;;
+          macos)
+            cp -r electron/dist/mac*/*.app steam-content/
+            ;;
+          linux)
+            cp -r electron/dist/linux-unpacked/* steam-content/
+            ;;
+        esac
+
+        # Copy steam_appid.txt to content
+        cp electron/steam_appid.txt steam-content/
+
+    - name: Setup SteamCMD
+      uses: CyberAndrii/setup-steamcmd@3549658d1c8e20edfa14c636edc75081ade20e6b # v1.2.0
+
+    - name: Decode Steam config
+      shell: bash
+      run: |
+        mkdir -p ~/.steam/config
+        echo "${{ inputs.steam-config-vdf }}" | base64 -d > ~/.steam/config/config.vdf
+
+    - name: Create depot build script
+      shell: bash
+      run: |
+        cat > steam_build.vdf << EOF
+        "AppBuild"
+        {
+          "AppID" "${{ inputs.steam-app-id }}"
+          "Desc" "Stellar Descent ${{ inputs.version }}"
+          "ContentRoot" "./steam-content"
+          "BuildOutput" "./steam-output"
+          "Depots"
+          {
+            "${{ inputs.steam-depot-id }}"
+            {
+              "FileMapping"
+              {
+                "LocalPath" "*"
+                "DepotPath" "."
+                "recursive" "1"
+              }
+            }
+          }
+        }
+        EOF
+
+    - name: Upload to Steam
+      shell: bash
+      run: |
+        steamcmd +login ${{ inputs.steam-username }} +run_app_build steam_build.vdf +quit
+
+    - name: Set live on branch
+      if: ${{ inputs.branch != '' }}
+      shell: bash
+      run: |
+        steamcmd +login ${{ inputs.steam-username }} +set_app_build_live ${{ inputs.steam-app-id }} ${{ inputs.branch }} +quit
+
+    - name: Upload build artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: steam-${{ inputs.platform }}-${{ inputs.version }}
+        path: steam-content/
+        retention-days: 7

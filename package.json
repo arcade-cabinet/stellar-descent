@@ -37,10 +37,18 @@
     "cap:copy": "cap copy",
     "cap:open:ios": "cap open ios",
     "cap:open:android": "cap open android",
+    "cap:add:electron": "cap add @capacitor-community/electron",
+    "cap:open:electron": "cap open @capacitor-community/electron",
+    "build:electron": "tsc && vite build && cap sync @capacitor-community/electron",
+    "electron:build": "cd electron && npm run electron:build",
+    "electron:build-mac": "cd electron && npx electron-builder --mac --config electron-builder.config.json",
+    "electron:build-linux": "cd electron && npx electron-builder --linux AppImage deb --config electron-builder.config.json",
+    "electron:build-win": "cd electron && npx electron-builder --win --config electron-builder.config.json",
     "ionic:serve": "ionic serve"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
+    "@capacitor-community/electron": "^5.0.1",
     "@capacitor/android": "^8.0.2",
     "@capacitor/cli": "^8.0.2",
     "@capacitor/core": "^8.0.2",
@@ -84,6 +92,7 @@
     "miniplex": "^2.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "simple-keyboard": "^3.8.93",
     "tone": "^15.1.22",
     "yuka": "^0.7.8"
   }

@@ -1,0 +1,149 @@
+name: 'Build Android APK'
+description: 'Builds Android APK with optional signing'
+
+inputs:
+  build-type:
+    description: 'Build type (debug or release)'
+    required: false
+    default: 'debug'
+  abi:
+    description: 'Target ABI (arm64-v8a, armeabi-v7a, x86_64, or all)'
+    required: false
+    default: 'all'
+  keystore-base64:
+    description: 'Base64 encoded keystore for signing (release builds)'
+    required: false
+  keystore-password:
+    description: 'Keystore password'
+    required: false
+  key-alias:
+    description: 'Key alias in the keystore'
+    required: false
+  key-password:
+    description: 'Key password'
+    required: false
+  version:
+    description: 'Version string for naming APKs'
+    required: false
+    default: 'dev'
+  upload-artifact:
+    description: 'Whether to upload the APK artifact'
+    required: false
+    default: 'true'
+
+outputs:
+  apk-path:
+    description: 'Path to the output APKs directory'
+    value: ${{ steps.rename.outputs.apk-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+
+    - name: Build web assets
+      shell: bash
+      run: pnpm build
+
+    - name: Add Android platform
+      shell: bash
+      run: npx cap add android || true
+
+    - name: Sync Capacitor
+      shell: bash
+      run: npx cap sync android
+
+    - name: Cache Gradle
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          gradle-${{ runner.os }}-
+
+    - name: Make gradlew executable
+      shell: bash
+      run: chmod +x android/gradlew
+
+    - name: Decode keystore
+      if: ${{ inputs.build-type == 'release' && inputs.keystore-base64 != '' }}
+      shell: bash
+      run: |
+        echo "${{ inputs.keystore-base64 }}" | base64 -d > android/app/release-keystore.jks
+
+    - name: Build debug APK (arm64-v8a)
+      if: ${{ inputs.build-type == 'debug' && (inputs.abi == 'all' || inputs.abi == 'arm64-v8a') }}
+      shell: bash
+      run: |
+        cd android
+        ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a
+
+    - name: Build debug APK (armeabi-v7a)
+      if: ${{ inputs.build-type == 'debug' && (inputs.abi == 'all' || inputs.abi == 'armeabi-v7a') }}
+      shell: bash
+      run: |
+        cd android
+        ./gradlew assembleDebug -Pandroid.injected.build.abi=armeabi-v7a
+
+    - name: Build debug APK (x86_64)
+      if: ${{ inputs.build-type == 'debug' && (inputs.abi == 'all' || inputs.abi == 'x86_64') }}
+      shell: bash
+      run: |
+        cd android
+        ./gradlew assembleDebug -Pandroid.injected.build.abi=x86_64
+
+    - name: Build release APK
+      if: ${{ inputs.build-type == 'release' }}
+      shell: bash
+      env:
+        KEYSTORE_PASSWORD: ${{ inputs.keystore-password }}
+        KEY_ALIAS: ${{ inputs.key-alias }}
+        KEY_PASSWORD: ${{ inputs.key-password }}
+      run: |
+        cd android
+        ./gradlew assembleRelease \
+          -Pandroid.injected.signing.store.file=app/release-keystore.jks \
+          -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+          -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+          -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
+    - name: Rename APKs with version
+      id: rename
+      shell: bash
+      run: |
+        VERSION=${{ inputs.version }}
+        BUILD_TYPE=${{ inputs.build-type }}
+        mkdir -p release-apks
+
+        # Find and rename APKs
+        find android/app/build/outputs/apk -name "*.apk" | while read apk; do
+          if [[ "$apk" == *"arm64"* ]]; then
+            cp "$apk" "release-apks/stellar-descent-${VERSION}-arm64-v8a-${BUILD_TYPE}.apk"
+          elif [[ "$apk" == *"armeabi"* ]] || [[ "$apk" == *"arm-"* ]]; then
+            cp "$apk" "release-apks/stellar-descent-${VERSION}-armeabi-v7a-${BUILD_TYPE}.apk"
+          elif [[ "$apk" == *"x86_64"* ]]; then
+            cp "$apk" "release-apks/stellar-descent-${VERSION}-x86_64-${BUILD_TYPE}.apk"
+          else
+            cp "$apk" "release-apks/stellar-descent-${VERSION}-universal-${BUILD_TYPE}.apk"
+          fi
+        done
+
+        ls -la release-apks/
+        echo "apk-path=release-apks" >> $GITHUB_OUTPUT
+
+    - name: Upload APK artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: android-apks-${{ inputs.version }}
+        path: release-apks/
+        retention-days: 30
