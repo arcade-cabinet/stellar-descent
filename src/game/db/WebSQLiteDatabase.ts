@@ -63,6 +63,39 @@ export class WebSQLiteDatabase {
   private static initPromise: Promise<void> | null = null;
 
   /**
+   * Load sql.js by dynamically creating a script tag
+   * This avoids Vite's module resolution issues with UMD modules
+   */
+  private loadSqlJs(): Promise<InitSqlJs> {
+    return new Promise((resolve, reject) => {
+      // Check if already loaded
+      if ((window as unknown as { initSqlJs?: InitSqlJs }).initSqlJs) {
+        resolve((window as unknown as { initSqlJs: InitSqlJs }).initSqlJs);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = '/assets/sql-wasm.js';
+      script.async = true;
+
+      script.onload = () => {
+        const initSqlJs = (window as unknown as { initSqlJs?: InitSqlJs }).initSqlJs;
+        if (initSqlJs) {
+          resolve(initSqlJs);
+        } else {
+          reject(new Error('initSqlJs not found after script load'));
+        }
+      };
+
+      script.onerror = () => {
+        reject(new Error('Failed to load sql.js script'));
+      };
+
+      document.head.appendChild(script);
+    });
+  }
+
+  /**
    * Initialize the database
    * Safe to call multiple times - only initializes once
    */
@@ -86,9 +119,9 @@ export class WebSQLiteDatabase {
   private async doInit(): Promise<void> {
     log.info('Initializing sql.js...');
 
-    // Dynamically import sql.js (UMD module)
-    const sqlJsModule = await import('sql.js');
-    const initSqlJs = (sqlJsModule.default || sqlJsModule) as InitSqlJs;
+    // Load sql.js via script tag to avoid module resolution issues
+    // sql.js exposes initSqlJs as a global when loaded via script
+    const initSqlJs = await this.loadSqlJs();
 
     // Initialize sql.js with WASM from public/assets
     this.SQL = await initSqlJs({
@@ -276,15 +309,32 @@ export class WebSQLiteDatabase {
 
       request.onsuccess = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+
+        // Check if the object store exists
+        if (!db.objectStoreNames.contains('databases')) {
+          db.close();
+          // Delete and recreate the database
+          const deleteRequest = indexedDB.deleteDatabase('stellar_descent_db');
+          deleteRequest.onsuccess = () => {
+            resolve(null); // Start fresh
+          };
+          deleteRequest.onerror = () => {
+            resolve(null);
+          };
+          return;
+        }
+
         const transaction = db.transaction(['databases'], 'readonly');
         const store = transaction.objectStore('databases');
         const getRequest = store.get(STORAGE_KEY);
 
         getRequest.onsuccess = () => {
+          db.close();
           resolve(getRequest.result || null);
         };
 
         getRequest.onerror = () => {
+          db.close();
           resolve(null);
         };
       };

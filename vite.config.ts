@@ -316,7 +316,6 @@ export default ({ mode }: any) => {
     optimizeDeps: {
       exclude: [
         '@babylonjs/havok',
-        'sql.js', // WASM module - exclude from optimization
       ],
     },
   });
