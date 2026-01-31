@@ -15,7 +15,7 @@
  */
 
 import { getLogger } from '../core/Logger';
-import { capacitorDb } from './CapacitorDatabase';
+import { capacitorDb } from './database';
 
 const log = getLogger('WorldDatabase');
 

@@ -56,6 +56,9 @@ importers:
       simple-keyboard:
         specifier: ^3.8.93
         version: 3.8.93
+      sql.js:
+        specifier: ^1.13.0
+        version: 1.13.0
       tone:
         specifier: ^15.1.22
         version: 15.1.22

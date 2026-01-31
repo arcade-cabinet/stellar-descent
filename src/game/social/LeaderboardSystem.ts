@@ -14,7 +14,7 @@
 
 import type { DifficultyLevel } from '../core/DifficultySettings';
 import { getLogger } from '../core/Logger';
-import { capacitorDb } from '../db/CapacitorDatabase';
+import { capacitorDb } from '../db/database';
 import type { LevelId } from '../levels/types';
 import {
   LEADERBOARD_INFO,

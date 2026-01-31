@@ -1,11 +1,30 @@
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { vitePlugins } from './vite/plugin';
 
 function pathResolve(dir: string) {
   return resolve(__dirname, '.', dir);
+}
+
+/**
+ * Vite plugin to ensure WASM files are served with the correct MIME type.
+ * This is necessary for sql.js/jeep-sqlite to load properly on the web.
+ */
+function wasmMimePlugin(): Plugin {
+  return {
+    name: 'wasm-mime-type',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.endsWith('.wasm')) {
+          res.setHeader('Content-Type', 'application/wasm');
+        }
+        next();
+      });
+    },
+  };
 }
 
 // Build timestamp for cache verification
@@ -27,6 +46,7 @@ export default ({ mode }: any) => {
     root,
     // plugin
     plugins: [
+      wasmMimePlugin(),
       react(),
       ...vitePlugins(env),
       VitePWA({
@@ -258,6 +278,19 @@ export default ({ mode }: any) => {
         'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Embedder-Policy': 'require-corp',
       },
+      // Configure MIME types for WASM files
+      fs: {
+        // Allow serving files from node_modules for WASM (including pnpm nested structure)
+        allow: ['.', '..', 'node_modules'],
+        strict: false,
+      },
+    },
+    // Configure preview server similarly
+    preview: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      },
     },
     // Ensure WASM files can be loaded
     assetsInclude: ['**/*.wasm'],
@@ -283,8 +316,7 @@ export default ({ mode }: any) => {
     optimizeDeps: {
       exclude: [
         '@babylonjs/havok',
-        'jeep-sqlite',
-        'sql.js',
+        'sql.js', // WASM module - exclude from optimization
       ],
     },
   });
