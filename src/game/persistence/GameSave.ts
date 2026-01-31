@@ -409,6 +409,7 @@ const GRENADES_BY_DIFFICULTY: Record<DifficultyLevel, { frag: number; plasma: nu
   normal: { frag: 2, plasma: 1, emp: 1 },
   hard: { frag: 1, plasma: 1, emp: 0 },
   nightmare: { frag: 1, plasma: 0, emp: 0 },
+  ultra_nightmare: { frag: 0, plasma: 0, emp: 0 },
 };
 
 /**

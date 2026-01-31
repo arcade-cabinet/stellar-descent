@@ -294,17 +294,17 @@ export interface EnemyBalanceEntry {
  * | Queen       | 2000 | 3000   | 4000 | 6000      |
  */
 export const ENEMY_HEALTH_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, number>> = {
-  skitterer: { easy: 50, normal: 80, hard: 100, nightmare: 130 },
-  spitter: { easy: 80, normal: 120, hard: 150, nightmare: 200 },
-  warrior: { easy: 150, normal: 200, hard: 250, nightmare: 350 },
-  heavy: { easy: 300, normal: 400, hard: 500, nightmare: 700 },
-  stalker: { easy: 100, normal: 150, hard: 180, nightmare: 250 },
-  broodmother: { easy: 500, normal: 700, hard: 900, nightmare: 1200 },
-  queen: { easy: 2000, normal: 3000, hard: 4000, nightmare: 6000 },
+  skitterer: { easy: 50, normal: 80, hard: 100, nightmare: 130, ultra_nightmare: 160 },
+  spitter: { easy: 80, normal: 120, hard: 150, nightmare: 200, ultra_nightmare: 240 },
+  warrior: { easy: 150, normal: 200, hard: 250, nightmare: 350, ultra_nightmare: 400 },
+  heavy: { easy: 300, normal: 400, hard: 500, nightmare: 700, ultra_nightmare: 800 },
+  stalker: { easy: 100, normal: 150, hard: 180, nightmare: 250, ultra_nightmare: 300 },
+  broodmother: { easy: 500, normal: 700, hard: 900, nightmare: 1200, ultra_nightmare: 1500 },
+  queen: { easy: 2000, normal: 3000, hard: 4000, nightmare: 6000, ultra_nightmare: 8000 },
   // Legacy mappings for backward compatibility
-  lurker: { easy: 100, normal: 150, hard: 180, nightmare: 250 }, // Maps to Stalker
-  spewer: { easy: 80, normal: 120, hard: 150, nightmare: 200 },  // Maps to Spitter
-  husk: { easy: 150, normal: 200, hard: 250, nightmare: 350 },   // Maps to Warrior
+  lurker: { easy: 100, normal: 150, hard: 180, nightmare: 250, ultra_nightmare: 300 }, // Maps to Stalker
+  spewer: { easy: 80, normal: 120, hard: 150, nightmare: 200, ultra_nightmare: 240 },  // Maps to Spitter
+  husk: { easy: 150, normal: 200, hard: 250, nightmare: 350, ultra_nightmare: 400 },   // Maps to Warrior
 };
 
 /**
@@ -319,17 +319,17 @@ export const ENEMY_HEALTH_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, 
  * | Queen     | 30   | 50     | 75   | 100       |
  */
 export const ENEMY_DAMAGE_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, number>> = {
-  skitterer: { easy: 5, normal: 8, hard: 12, nightmare: 18 },
-  spitter: { easy: 12, normal: 18, hard: 25, nightmare: 35 },
-  warrior: { easy: 15, normal: 22, hard: 30, nightmare: 45 },
-  heavy: { easy: 25, normal: 35, hard: 50, nightmare: 70 },
-  stalker: { easy: 10, normal: 15, hard: 20, nightmare: 30 },
-  broodmother: { easy: 20, normal: 30, hard: 45, nightmare: 60 },
-  queen: { easy: 30, normal: 50, hard: 75, nightmare: 100 },
+  skitterer: { easy: 5, normal: 8, hard: 12, nightmare: 18, ultra_nightmare: 25 },
+  spitter: { easy: 12, normal: 18, hard: 25, nightmare: 35, ultra_nightmare: 45 },
+  warrior: { easy: 15, normal: 22, hard: 30, nightmare: 45, ultra_nightmare: 55 },
+  heavy: { easy: 25, normal: 35, hard: 50, nightmare: 70, ultra_nightmare: 90 },
+  stalker: { easy: 10, normal: 15, hard: 20, nightmare: 30, ultra_nightmare: 40 },
+  broodmother: { easy: 20, normal: 30, hard: 45, nightmare: 60, ultra_nightmare: 75 },
+  queen: { easy: 30, normal: 50, hard: 75, nightmare: 100, ultra_nightmare: 125 },
   // Legacy mappings
-  lurker: { easy: 10, normal: 15, hard: 20, nightmare: 30 },
-  spewer: { easy: 12, normal: 18, hard: 25, nightmare: 35 },
-  husk: { easy: 15, normal: 22, hard: 30, nightmare: 45 },
+  lurker: { easy: 10, normal: 15, hard: 20, nightmare: 30, ultra_nightmare: 40 },
+  spewer: { easy: 12, normal: 18, hard: 25, nightmare: 35, ultra_nightmare: 45 },
+  husk: { easy: 15, normal: 22, hard: 30, nightmare: 45, ultra_nightmare: 55 },
 };
 
 /**
@@ -734,6 +734,14 @@ export const TTK_TARGETS: Record<DifficultyLevel, TTKTargets> = {
     bossEnemy: [90.0, 150.0],    // Endurance battles
     playerSurvivesHits: [3, 5],   // Punishing
     playerTTD: [3, 5],           // Very fast death if mistakes are made
+  },
+  ultra_nightmare: {
+    basicEnemy: [1.2, 2.0],      // Every enemy is a serious threat
+    mediumEnemy: [2.5, 4.0],     // Prolonged dangerous encounters
+    heavyEnemy: [8.0, 15.0],     // Massive threat
+    bossEnemy: [120.0, 180.0],   // Epic endurance battles
+    playerSurvivesHits: [2, 3],   // Extremely punishing - 2-3 hits and you're dead
+    playerTTD: [2, 3],           // Instant death territory
   },
 };
 

@@ -12,8 +12,9 @@
 
 /**
  * Available difficulty levels
+ * 'ultra_nightmare' is the ultimate challenge - extreme difficulty + forced permadeath (inspired by DOOM)
  */
-export type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'nightmare';
+export type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'nightmare' | 'ultra_nightmare';
 
 /**
  * Difficulty modifiers that affect gameplay
@@ -37,6 +38,8 @@ export interface DifficultyModifiers {
   spawnRateMultiplier: number;
   /** Resource drop rate multiplier (1.0 = normal, lower = fewer resources) */
   resourceDropMultiplier: number;
+  /** Forces permadeath - ultra_nightmare always true, others respect toggle */
+  forcesPermadeath: boolean;
 }
 
 /**
@@ -68,6 +71,7 @@ export const DIFFICULTY_PRESETS: Record<DifficultyLevel, DifficultyInfo> = {
       xpMultiplier: 0.75,
       spawnRateMultiplier: 0.8,
       resourceDropMultiplier: 1.3,
+      forcesPermadeath: false,
     },
   },
   normal: {
@@ -85,6 +89,7 @@ export const DIFFICULTY_PRESETS: Record<DifficultyLevel, DifficultyInfo> = {
       xpMultiplier: 1.0,
       spawnRateMultiplier: 1.0,
       resourceDropMultiplier: 1.0,
+      forcesPermadeath: false,
     },
   },
   hard: {
@@ -102,6 +107,7 @@ export const DIFFICULTY_PRESETS: Record<DifficultyLevel, DifficultyInfo> = {
       xpMultiplier: 1.25,
       spawnRateMultiplier: 1.2,
       resourceDropMultiplier: 0.8,
+      forcesPermadeath: false,
     },
   },
   nightmare: {
@@ -119,6 +125,25 @@ export const DIFFICULTY_PRESETS: Record<DifficultyLevel, DifficultyInfo> = {
       xpMultiplier: 1.5,
       spawnRateMultiplier: 1.5,
       resourceDropMultiplier: 0.6,
+      forcesPermadeath: false,
+    },
+  },
+  ultra_nightmare: {
+    id: 'ultra_nightmare',
+    name: 'ULTRA-NIGHTMARE',
+    description:
+      'The ultimate test. One death ends your entire campaign. No checkpoints. No mercy. +100% XP bonus.',
+    modifiers: {
+      enemyHealthMultiplier: 2.0, // Even beyond Nightmare
+      enemyDamageMultiplier: 2.5,
+      playerDamageReceivedMultiplier: 2.5,
+      playerHealthRegenMultiplier: 0.0, // No regen
+      enemyFireRateMultiplier: 1.75,
+      enemyDetectionMultiplier: 2.0,
+      xpMultiplier: 2.0, // Double XP
+      spawnRateMultiplier: 1.75,
+      resourceDropMultiplier: 0.4,
+      forcesPermadeath: true, // Always permadeath
     },
   },
 };
@@ -131,7 +156,53 @@ export const DEFAULT_DIFFICULTY: DifficultyLevel = 'normal';
 /**
  * Order of difficulty levels for UI display
  */
-export const DIFFICULTY_ORDER: DifficultyLevel[] = ['easy', 'normal', 'hard', 'nightmare'];
+export const DIFFICULTY_ORDER: DifficultyLevel[] = ['easy', 'normal', 'hard', 'nightmare', 'ultra_nightmare'];
+
+/**
+ * XP bonus multiplier when permadeath is enabled (stacks with difficulty bonus)
+ */
+export const PERMADEATH_XP_BONUS = 0.5; // +50% XP when permadeath is on
+
+/**
+ * LocalStorage key for permadeath toggle
+ */
+const PERMADEATH_STORAGE_KEY = 'stellar_descent_permadeath';
+
+/**
+ * Load permadeath setting from localStorage
+ */
+export function loadPermadeathSetting(): boolean {
+  const stored = localStorage.getItem(PERMADEATH_STORAGE_KEY);
+  return stored === 'true';
+}
+
+/**
+ * Save permadeath setting to localStorage
+ */
+export function savePermadeathSetting(enabled: boolean): void {
+  localStorage.setItem(PERMADEATH_STORAGE_KEY, String(enabled));
+}
+
+/**
+ * Check if permadeath is active for given difficulty and toggle state
+ */
+export function isPermadeathActive(difficulty: DifficultyLevel, toggleEnabled: boolean): boolean {
+  const preset = DIFFICULTY_PRESETS[difficulty];
+  return preset.modifiers.forcesPermadeath || toggleEnabled;
+}
+
+/**
+ * Get the effective XP multiplier including permadeath bonus
+ */
+export function getEffectiveXPMultiplier(difficulty: DifficultyLevel, permadeathEnabled: boolean): number {
+  const baseMultiplier = DIFFICULTY_PRESETS[difficulty].modifiers.xpMultiplier;
+  const permadeathActive = isPermadeathActive(difficulty, permadeathEnabled);
+  // Add permadeath bonus if active and not already forced (to avoid double-dipping for ultra_nightmare)
+  if (permadeathActive && !DIFFICULTY_PRESETS[difficulty].modifiers.forcesPermadeath) {
+    return baseMultiplier * (1 + PERMADEATH_XP_BONUS);
+  }
+  return baseMultiplier;
+}
 
 /**
  * LocalStorage key for persisting difficulty setting

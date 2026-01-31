@@ -172,6 +172,119 @@
   box-shadow: 0 0 8px rgba(140, 179, 105, 0.15);
 }
 
+/* Bottom row layout: nightmare | permadeath | ultra-nightmare */
+.bottomRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  align-items: stretch;
+}
+
+.bottomCard {
+  min-height: 120px;
+}
+
+/* Permadeath toggle button */
+.permadeathToggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 1rem;
+  min-width: 100px;
+  background: linear-gradient(135deg, #1a1414 0%, #0d0a0a 100%);
+  border: 2px solid #4a3030;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: "Courier New", monospace;
+}
+
+.permadeathToggle:hover:not(:disabled) {
+  border-color: #7a5050;
+  transform: scale(1.02);
+}
+
+.permadeathToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.permadeathActive {
+  background: linear-gradient(135deg, #2a1a1a 0%, #1a1010 100%);
+  border-color: #c96a5a;
+  box-shadow: 0 0 15px rgba(201, 106, 90, 0.3);
+}
+
+.permadeathIcon {
+  font-size: 1.5rem;
+  color: #8a5a5a;
+}
+
+.permadeathActive .permadeathIcon {
+  color: #c96a5a;
+  text-shadow: 0 0 10px rgba(201, 106, 90, 0.5);
+}
+
+.permadeathLabel {
+  font-size: 0.7rem;
+  color: #9a7a7a;
+  letter-spacing: 0.1em;
+}
+
+.permadeathActive .permadeathLabel {
+  color: #c96a5a;
+}
+
+.permadeathStatus {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #6a5a5a;
+}
+
+.permadeathActive .permadeathStatus {
+  color: #e8a090;
+}
+
+.permadeathBonus {
+  font-size: 0.65rem;
+  color: #7cb369;
+  background: rgba(124, 179, 105, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 2px;
+  border: 1px solid rgba(124, 179, 105, 0.3);
+}
+
+/* Ultra-nightmare special styling */
+.ultraNightmare {
+  background: linear-gradient(135deg, #1a1014 0%, #0d0508 100%);
+  border-color: #5a3040;
+}
+
+.ultraNightmare:hover {
+  border-color: #8a5060;
+}
+
+.ultraNightmare.cardSelected {
+  border-color: #c96a8a;
+  box-shadow:
+    0 0 15px rgba(201, 106, 138, 0.2),
+    inset 0 0 20px rgba(201, 106, 138, 0.05);
+}
+
+.ultraNightmare .cardName {
+  color: #e8a0b0;
+}
+
+/* Skull badge for permadeath indicator */
+.badgeSkull {
+  color: #c96a5a;
+  border-color: #6a4440;
+  background: rgba(201, 106, 90, 0.1);
+}
+
 /* Mobile responsiveness */
 @media (max-width: 600px) {
   .grid {
@@ -194,5 +307,21 @@
     flex: 1;
     min-width: 70px;
     text-align: center;
+  }
+
+  .bottomRow {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .permadeathToggle {
+    flex-direction: row;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    min-width: auto;
+  }
+
+  .permadeathIcon {
+    font-size: 1.2rem;
   }
 }

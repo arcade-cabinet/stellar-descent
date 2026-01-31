@@ -354,6 +354,7 @@ const DIFFICULTY_ENEMY_MULTIPLIERS: Record<DifficultyLevel, number> = {
   normal: 1.0,
   hard: 1.3,
   nightmare: 1.6,
+  ultra_nightmare: 2.0,
 };
 
 /**
