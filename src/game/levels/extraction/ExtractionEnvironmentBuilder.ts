@@ -26,6 +26,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 
 // ============================================================================
 // TYPES
@@ -902,33 +903,46 @@ function createLandingPad(scene: Scene, root: TransformNode): Mesh[] {
   return meshes;
 }
 
+/** Stored skybox result for disposal */
+let extractionSkyboxResult: SkyboxResult | null = null;
+
 /**
- * Create the night sky dome -- near-black with faint stars.
+ * Create the night sky using proper Babylon.js skybox with SkyboxManager.
+ * Near-black sky for night extraction mission.
  */
 function createNightSky(scene: Scene, root: TransformNode): Mesh {
-  const skyDome = MeshBuilder.CreateSphere(
-    'lz_sky',
-    { diameter: 5000, segments: 16, sideOrientation: 1 },
-    scene
-  );
-  const skyMat = new StandardMaterial('lz_skyMat', scene);
-  // Near-black sky -- dark night, no stars, just oppressive darkness
-  skyMat.emissiveColor = new Color3(0.02, 0.02, 0.04);
-  skyMat.disableLighting = true;
-  skyDome.material = skyMat;
-  skyDome.parent = root;
-  return skyDome;
+  // Use SkyboxManager for proper Babylon.js skybox with night atmosphere
+  const skyboxManager = new SkyboxManager(scene);
+  extractionSkyboxResult = skyboxManager.createFallbackSkybox({
+    type: 'night',
+    size: 10000,
+    useEnvironmentLighting: true,
+    environmentIntensity: 0.3, // Dark night lighting
+    // Near-black sky -- dark night, no stars, just oppressive darkness
+    tint: new Color3(0.02, 0.02, 0.04),
+  });
+
+  extractionSkyboxResult.mesh.parent = root;
+  return extractionSkyboxResult.mesh;
+}
+
+/**
+ * Get the current extraction skybox result for disposal.
+ */
+export function getExtractionSkyboxResult(): SkyboxResult | null {
+  return extractionSkyboxResult;
 }
 
 /**
  * Create breach holes where aliens emerge from underground during the holdout.
  * These are positioned outside the fence perimeter.
+ * FIX #13: Added pulsing glow lights for breach holes
  */
 function createBreachHoles(scene: Scene, root: TransformNode): Mesh[] {
   const meshes: Mesh[] = [];
   const holeMat = new StandardMaterial('lz_breachMat', scene);
   holeMat.diffuseColor = Color3.FromHexString('#1A0A1A');
-  holeMat.emissiveColor = new Color3(0.08, 0.03, 0.08);
+  holeMat.emissiveColor = new Color3(0.12, 0.04, 0.1);
 
   // 4 breach holes placed outside the perimeter
   const holePositions = [
@@ -948,6 +962,14 @@ function createBreachHoles(scene: Scene, root: TransformNode): Mesh[] {
     hole.position = holePositions[i];
     hole.parent = root;
     meshes.push(hole);
+
+    // FIX #13: Add warning glow around breach holes
+    const glowLight = new PointLight(`lz_breach_glow_${i}`, holePositions[i].clone(), scene);
+    glowLight.position.y = 1;
+    glowLight.diffuse = Color3.FromHexString('#8B0040'); // Dark magenta
+    glowLight.intensity = 0.8;
+    glowLight.range = 12;
+    glowLight.parent = root;
   }
 
   return meshes;
@@ -1175,6 +1197,11 @@ export async function buildExtractionEnvironment(
       lights.forEach((l) => l.dispose());
       allMeshes.forEach((m) => m.dispose());
       root.dispose();
+      // FIX #7: Properly dispose skybox result
+      const skyboxResult = getExtractionSkyboxResult();
+      if (skyboxResult) {
+        skyboxResult.dispose();
+      }
     },
   };
 }

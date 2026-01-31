@@ -5,54 +5,58 @@ This document describes the technical architecture of STELLAR DESCENT: PROXIMA B
 ## System Overview
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                         App.ts (Entry)                         │
-│  - Engine initialization (WebGPU/WebGL2)                       │
-│  - Physics setup (Havok)                                       │
-│  - Game loop                                                   │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      GameManager.ts                             │
-│  - State management (menu, playing, paused)                    │
-│  - System coordination                                          │
-│  - Scene setup                                                  │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-┌───────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Player     │     │   ChunkManager  │     │   UI Systems    │
-│  - Controls   │     │  - Generation   │     │  - HUD          │
-│  - Camera     │     │  - Loading      │     │  - Menu         │
-│  - Shooting   │     │  - Persistence  │     │  - Touch        │
-└───────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │
-        └───────────┬───────────┘
-                    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Entity Component System                      │
-│  - Miniplex World                                              │
-│  - Entity queries                                              │
-│  - Component storage                                           │
-└─────────────────────────────────────────────────────────────────┘
-        │                       │
-        ▼                       ▼
-┌───────────────┐     ┌─────────────────┐
-│   AISystem    │     │  CombatSystem   │
-│  - Yuka       │     │  - Projectiles  │
-│  - Behaviors  │     │  - Damage       │
-│  - States     │     │  - Deaths       │
-└───────────────┘     └─────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     WorldDatabase (SQL.js)                      │
-│  - Chunk persistence                                           │
-│  - Entity states                                               │
-│  - Player stats                                                │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------------+
+|                         App.tsx (Entry)                                |
+|  - React app root                                                      |
+|  - GameProvider context wrapper                                        |
+|  - Route management (menu, game, settings)                             |
++-----------------------------------------------------------------------+
+                                |
+                                v
++-----------------------------------------------------------------------+
+|                      GameProvider                                      |
+|  +-------------------+  +-------------------+  +-------------------+   |
+|  | PlayerProvider    |  | MissionProvider   |  | CombatProvider    |   |
+|  | - Health state    |  | - Objectives      |  | - Kill tracking   |   |
+|  | - Death handling  |  | - Comms messages  |  | - Combat state    |   |
+|  | - Difficulty      |  | - Chapters        |  | - Music triggers  |   |
+|  | - HUD visibility  |  | - Notifications   |  | - Damage events   |   |
+|  +-------------------+  +-------------------+  +-------------------+   |
++-----------------------------------------------------------------------+
+                                |
+                                v
++-----------------------------------------------------------------------+
+|                      GameCanvas.tsx                                    |
+|  - Engine initialization (WebGL2)                                      |
+|  - Level management                                                    |
+|  - Render loop                                                         |
+|  - Touch input handling                                                |
++-----------------------------------------------------------------------+
+                                |
+        +-----------------------+-----------------------+
+        v                       v                       v
++---------------+     +-------------------+     +-------------------+
+|    Levels     |     |   SaveSystem      |     |   UI Systems      |
+| - BaseLevel   |     | - Persistence     |     | - HUD             |
+| - Factories   |     | - Migrations      |     | - Menus           |
+| - Transitions |     | - Best times      |     | - Touch controls  |
++---------------+     +-------------------+     +-------------------+
+        |                       |
+        v                       v
++-----------------------------------------------------------------------+
+|                    Entity Component System                             |
+|  - Miniplex World                                                     |
+|  - Entity queries                                                      |
+|  - Component storage                                                   |
++-----------------------------------------------------------------------+
+        |                       |
+        v                       v
++---------------+     +-------------------+
+|   AISystem    |     |  CombatSystem     |
+| - Yuka        |     | - Projectiles     |
+| - Behaviors   |     | - Damage          |
+| - States      |     | - Deaths          |
++---------------+     +-------------------+
 ```
 
 ## Core Technologies
@@ -107,35 +111,292 @@ Physics bodies are created for:
 
 **State Machine**
 ```text
-          ┌─────────┐
-          │  IDLE   │
-          └────┬────┘
-               │ player in alertRadius
-               ▼
-          ┌─────────┐
-          │ PATROL  │◄────────────────┐
-          └────┬────┘                 │
-               │ player in alertRadius│
-               ▼                      │
-          ┌─────────┐                 │
-          │  CHASE  │─────────────────┤
-          └────┬────┘ player escaped  │
-               │ player in attackRadius
-               ▼                      │
-          ┌─────────┐                 │
-          │ ATTACK  │─────────────────┤
-          └────┬────┘ player escaped  │
-               │ health < 20%         │
-               ▼                      │
-          ┌─────────┐                 │
-          │  FLEE   │─────────────────┘
-          └─────────┘ health recovered
+          +---------+
+          |  IDLE   |
+          +----+----+
+               | player in alertRadius
+               v
+          +---------+
+          | PATROL  |<------------------+
+          +----+----+                   |
+               | player in alertRadius  |
+               v                        |
+          +---------+                   |
+          |  CHASE  |-------------------+
+          +----+----+ player escaped    |
+               | player in attackRadius |
+               v                        |
+          +---------+                   |
+          | ATTACK  |-------------------+
+          +----+----+ player escaped    |
+               | health < 20%           |
+               v                        |
+          +---------+                   |
+          |  FLEE   |-------------------+
+          +---------+ health recovered
 ```
+
+## React Context Architecture
+
+The game state is split across three focused contexts for better performance and separation of concerns:
+
+### PlayerContext
+```typescript
+interface PlayerContextType {
+  health: number;
+  maxHealth: number;
+  isDead: boolean;
+  difficulty: DifficultyLevel;
+  hudVisibility: HUDVisibility;
+  touchInput: TouchInputState | null;
+
+  // Actions
+  setHealth: (health: number) => void;
+  takeDamage: (amount: number) => void;
+  die: () => void;
+  respawn: () => void;
+  setDifficulty: (difficulty: DifficultyLevel) => void;
+  setTouchInput: (input: TouchInputState | null) => void;
+}
+```
+
+### CombatContext
+```typescript
+interface CombatContextType {
+  kills: number;
+  inCombat: boolean;
+  hitMarker: HitMarkerState | null;
+  directionalDamage: DirectionalDamageState | null;
+
+  // Actions
+  addKill: () => void;
+  setInCombat: (inCombat: boolean) => void;
+  showHitMarker: (damage: number, isCritical: boolean) => void;
+  showDirectionalDamage: (angle: number, damage: number) => void;
+}
+```
+
+### MissionContext
+```typescript
+interface MissionContextType {
+  currentChapter: number;
+  currentObjective: ObjectiveState | null;
+  commsMessage: CommsMessage | null;
+  notifications: NotificationState[];
+  objectiveMarkers: ObjectiveMarker[];
+
+  // Actions
+  setChapter: (chapter: number) => void;
+  setObjective: (title: string, instructions: string) => void;
+  showComms: (message: CommsMessage) => void;
+  hideComms: () => void;
+  notify: (text: string, duration?: number) => void;
+}
+```
+
+### Unified Facade
+```typescript
+// For backward compatibility, useGame() combines all contexts
+function useGame() {
+  const player = usePlayer();
+  const combat = useCombat();
+  const mission = useMission();
+  return { ...player, ...combat, ...mission };
+}
+```
+
+## Level System Architecture
+
+### Level Structure
+```text
+src/game/levels/
+├── BaseLevel.ts          # Abstract base class
+├── types.ts              # Level types, configs, CAMPAIGN_LEVELS
+├── factories.ts          # Factory registry
+├── LevelManager.ts       # Level lifecycle management
+├── anchor-station/       # Tutorial level
+│   ├── index.ts
+│   ├── AnchorStationLevel.ts
+│   ├── TutorialManager.ts
+│   ├── tutorialSteps.ts
+│   └── environment.ts
+├── landfall/             # HALO drop level
+├── canyon-run/           # Vehicle chase
+├── fob-delta/            # Horror investigation
+├── brothers-in-arms/     # Mech combat
+├── southern-ice/         # Ice level
+├── the-breach/           # Queen boss fight
+├── hive-assault/         # Combined arms
+├── extraction/           # Wave holdout
+└── final-escape/         # Vehicle finale
+```
+
+### Linked List Navigation
+```typescript
+// Levels form a doubly-linked list
+const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
+  anchor_station: {
+    nextLevelId: 'landfall',
+    previousLevelId: null,
+    // ...
+  },
+  landfall: {
+    nextLevelId: 'canyon_run',
+    previousLevelId: 'anchor_station',
+    // ...
+  },
+  // ... continues for all 10 levels
+  final_escape: {
+    nextLevelId: null,  // End of campaign
+    previousLevelId: 'extraction',
+    // ...
+  },
+};
+```
+
+### Level Factory Pattern
+```typescript
+// Each level type has a factory function
+type LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig,
+  callbacks: LevelCallbacks
+) => ILevel;
+
+// Factories are registered by level type
+const factories: Partial<LevelFactoryRegistry> = {
+  station: createAnchorStationLevel,
+  drop: createLandfallLevel,
+  vehicle: createCanyonRunLevel,
+  // ...
+};
+```
+
+### Level Lifecycle
+```text
+Level Requested
+      |
+      v
+Factory.create(config)
+      |
+      v
+level.initialize()
+  - Create scene
+  - Load assets
+  - Setup environment
+      |
+      v
+level.update(deltaTime)  <- Game loop
+  - Update player
+  - Update enemies
+  - Check objectives
+      |
+      v
+level.prepareTransition(nextLevelId)
+  - Fade out
+  - Save state
+      |
+      v
+level.dispose()
+  - Cleanup scene
+  - Release resources
+```
+
+## Save System
+
+### Architecture
+```typescript
+class SaveSystem {
+  private currentSave: GameSave | null;
+  private sessionStartTime: number;
+
+  // Lifecycle
+  async initialize(): Promise<void>;
+  async newGame(difficulty?: DifficultyLevel): Promise<GameSave>;
+  async loadGame(): Promise<GameSave | null>;
+  save(): void;
+  autoSave(): void;
+
+  // Progress tracking
+  setCurrentLevel(levelId: LevelId): void;
+  completeLevel(levelId: LevelId): void;
+  recordLevelTime(levelId: LevelId, seconds: number): boolean;
+
+  // Stats
+  addKill(): void;
+  addDistance(distance: number): void;
+}
+```
+
+### Save Format (v4)
+```typescript
+interface GameSave {
+  id: string;
+  version: 4;
+  timestamp: number;
+  name: string;
+
+  // Progress
+  currentLevel: LevelId;
+  currentChapter: number;
+  levelsCompleted: LevelId[];
+  levelsVisited: LevelId[];
+  levelBestTimes: Partial<Record<LevelId, number>>;
+
+  // Player state
+  playerHealth: number;
+  maxPlayerHealth: number;
+  playerPosition: { x: number; y: number; z: number };
+  playerRotation: number;
+
+  // Stats
+  totalKills: number;
+  totalDistance: number;
+  playTime: number;
+
+  // Settings
+  difficulty: DifficultyLevel;
+  tutorialCompleted: boolean;
+  seenIntroBriefing: boolean;
+
+  // Inventory and objectives
+  inventory: Record<string, number>;
+  objectives: Record<string, boolean>;
+  levelFlags: Record<LevelId, Record<string, boolean>>;
+}
+```
+
+### Migration System
+```typescript
+private migrateSave(save: GameSave): void {
+  // v1 -> v2: Add difficulty
+  if (save.version < 2) {
+    save.difficulty = 'normal';
+  }
+
+  // v2 -> v3: Add seenIntroBriefing
+  if (save.version < 3) {
+    save.seenIntroBriefing = false;
+  }
+
+  // v3 -> v4: Add levelBestTimes
+  if (save.version < 4) {
+    save.levelBestTimes = {};
+  }
+
+  save.version = SAVE_FORMAT_VERSION;
+}
+```
+
+### Storage
+- **Primary**: IndexedDB via worldDb
+- **Key format**: `save_{saveId}`
+- **PWA support**: Persisted for offline access
 
 ## Entity Component System
 
 ### World Definition
-
 ```typescript
 import { World } from 'miniplex';
 
@@ -150,6 +411,7 @@ interface Entity {
   tags?: Tags;
   chunkInfo?: ChunkInfo;
   lifetime?: LifeTime;
+  alienInfo?: AlienInfo;
 }
 
 const world = new World<Entity>();
@@ -198,47 +460,117 @@ interface AIComponent {
 }
 ```
 
-### Queries
+**AlienInfo** (new in Phase 4)
+```typescript
+interface AlienInfo {
+  speciesId: string;       // e.g., 'STRAIN-X1'
+  seed: number;            // Procedural generation seed
+  xpValue: number;         // Experience on kill
+  lootTable: string;       // Loot table ID
+}
+```
 
+### Queries
 ```typescript
 const queries = {
   players: world.with('tags', 'transform', 'health', 'velocity', 'combat'),
   enemies: world.with('tags', 'transform', 'health', 'ai', 'renderable'),
   allies: world.with('tags', 'transform', 'health', 'ai', 'renderable'),
   projectiles: world.with('tags', 'transform', 'velocity', 'lifetime'),
-  renderables: world.with('transform', 'renderable'),
-  withHealth: world.with('health'),
-  withAI: world.with('ai', 'transform'),
+  aliens: world.with('alienInfo', 'transform', 'health'),
 };
+```
+
+## Performance System
+
+### PerformanceManager
+```typescript
+class PerformanceManager {
+  // Quality levels: Ultra, High, Medium, Low, Potato
+  setQuality(level: QualityLevel): void;
+
+  // Dynamic adjustment
+  update(): void;  // Called each frame
+
+  // Platform detection
+  getPlatformPreset(): QualityLevel;
+
+  // Debug
+  configure(options: { debugOverlay?: boolean }): void;
+}
+```
+
+### Quality Levels
+| Level | Resolution | Particles | Shadows | LOD | Target FPS |
+|-------|------------|-----------|---------|-----|------------|
+| Ultra | 100% | 100% | 4096px | 1.5x | 60 |
+| High | 100% | 80% | 2048px | 1.0x | 60 |
+| Medium | 90% | 50% | 1024px | 0.8x | 60 |
+| Low | 75% | 30% | 512px | 0.6x | 30 |
+| Potato | 50% | 15% | Off | 0.4x | 30 |
+
+### Dynamic Resolution Scaling
+```text
+FPS < 25 for 30+ frames
+  -> Reduce resolution by 15%
+  -> Minimum: 50%
+
+FPS > 55 for 60+ frames
+  -> Increase resolution by 7.5%
+  -> Maximum: preset resolution
+```
+
+## Input System
+
+### Desktop Controls
+```typescript
+const keysPressed = new Set<string>();
+
+window.addEventListener('keydown', (e) => {
+  keysPressed.add(e.code);
+});
+
+window.addEventListener('keyup', (e) => {
+  keysPressed.delete(e.code);
+});
+
+camera.attachControl(canvas, true);
+```
+
+### Touch Controls
+```text
++-----------------------------------------------+
+|                                               |
+|                                               |
+|  [MOVE]                            [FIRE]     |
+|    O          (drag to look)          O       |
+|                                    [JUMP]     |
+|                                    [RUN]      |
++-----------------------------------------------+
+```
+
+### Input Normalization
+```typescript
+interface TouchInputState {
+  movement: { x: number; y: number };  // -1 to 1
+  look: { x: number; y: number };      // Delta for camera
+  isFiring?: boolean;
+  isSprinting?: boolean;
+  isJumping?: boolean;
+  isCrouching?: boolean;
+}
 ```
 
 ## Procedural World Generation
 
 ### Chunk System
-
-**Constants**
 ```typescript
 const CHUNK_SIZE = 100;    // World units
-const LOAD_RADIUS = 3;     // Chunks around player to load
-const UNLOAD_RADIUS = 5;   // Chunks beyond this are unloaded
-```
-
-**Chunk Key**
-```typescript
-function getChunkKey(x: number, z: number): string {
-  return `${x},${z}`;
-}
-
-function getChunkCoords(worldX: number, worldZ: number) {
-  return {
-    x: Math.floor(worldX / CHUNK_SIZE),
-    z: Math.floor(worldZ / CHUNK_SIZE)
-  };
-}
+const LOAD_RADIUS = 3;     // Chunks around player
+const UNLOAD_RADIUS = 5;   // Unload beyond this
 ```
 
 ### Seeded Generation
-
 ```typescript
 function generateChunkSeed(chunkX: number, chunkZ: number): number {
   return baseSeed + chunkX * 73856093 + chunkZ * 19349663;
@@ -252,232 +584,82 @@ function seededRandom(seed: number): () => number {
 }
 ```
 
-This ensures:
-- Same chunk coordinates always generate same content
-- Chunks can be unloaded and regenerated identically
-- Different baseSeed creates different worlds
-
 ### Generation Pipeline
-
-```
+```text
 1. Calculate chunk seed
 2. Create seeded random generator
 3. Generate building positions & types
 4. Generate obstacle positions & types
 5. Generate enemy spawn points
-6. Store in database
-7. Create meshes
-8. Create entities
+6. Create meshes
+7. Create entities
 ```
 
-## Persistence Layer
+## Audio System (Tone.js)
 
-### Database Schema
-
-```sql
-CREATE TABLE chunks (
-  chunk_x INTEGER,
-  chunk_z INTEGER,
-  seed INTEGER,
-  buildings TEXT,    -- JSON
-  obstacles TEXT,    -- JSON
-  enemies TEXT,      -- JSON
-  visited INTEGER,
-  created_at INTEGER,
-  PRIMARY KEY (chunk_x, chunk_z)
-);
-
-CREATE TABLE entities (
-  id TEXT PRIMARY KEY,
-  type TEXT,
-  x REAL, y REAL, z REAL,
-  health REAL,
-  data TEXT,         -- JSON for extra data
-  chunk_x INTEGER,
-  chunk_z INTEGER
-);
-
-CREATE TABLE player_stats (
-  id INTEGER PRIMARY KEY DEFAULT 1,
-  kills INTEGER DEFAULT 0,
-  distance_traveled REAL DEFAULT 0,
-  bosses_defeated INTEGER DEFAULT 0,
-  mechs_called INTEGER DEFAULT 0,
-  last_x REAL, last_y REAL, last_z REAL
-);
-```
-
-### Data Flow
-
-**Chunk Loading**
-```
-1. Check if chunk exists in database
-2. If yes: Load stored data, create entities
-3. If no: Generate new chunk, store in database
-```
-
-**Chunk Unloading**
-```
-1. Save entity states to database
-2. Dispose meshes
-3. Remove entities from ECS world
-4. Keep chunk record (seed preserved)
-```
-
-**Player Stats**
-```
-- Updated every frame with position
-- Updated on kills, boss defeats
-- Used to restore game state on reload
-```
-
-## Input System
-
-### Desktop Controls
-
+### Music Manager
 ```typescript
-// Keyboard state
-const keysPressed = new Set<string>();
+class MusicManager {
+  // Tracks
+  playAmbient(track: string): void;
+  playCombat(track: string): void;
+  playBoss(): void;
 
-window.addEventListener('keydown', (e) => {
-  keysPressed.add(e.code);
-});
-
-window.addEventListener('keyup', (e) => {
-  keysPressed.delete(e.code);
-});
-
-// Mouse for aiming
-camera.attachControl(canvas, true);
-```
-
-### Touch Controls
-
-**Virtual Joysticks**
-```
-┌─────────────────────┐
-│    Base Circle      │
-│  ┌─────────────┐    │
-│  │   Thumb     │────┼─── Track touch position
-│  │   Circle    │    │    relative to center
-│  └─────────────┘    │
-└─────────────────────┘
-```
-
-**Input Normalization**
-```typescript
-interface TouchInput {
-  movement: Vector2;    // -1 to 1 for each axis
-  look: Vector2;        // Delta for camera rotation
-  isFiring: boolean;
-  isSprinting: boolean;
+  // State-based switching
+  setInCombat(inCombat: boolean): void;
+  setChapter(chapter: number): void;
 }
 ```
 
-**Player Integration**
+### Track Types
+- `station_ambient` - Anchor Station interior
+- `canyon_wind` - Surface exploration
+- `horror_ambient` - FOB Delta
+- `combat_surface` - Surface combat
+- `combat_interior` - Indoor combat
+- `combat_mech` - Brothers in Arms
+- `boss_combat` - Queen fight
+- `hive_ambient` - Underground
+- `extraction_ambient` - LZ Omega
+- `collapse_ambient` - Final escape
+
+## Mobile/PWA Support
+
+### Capacitor Integration
 ```typescript
-// GameManager passes touch input
-if (this.touchControls && this.isTouchDevice) {
-  this.player.setTouchInput(this.touchControls.getInput());
-}
-
-// Player uses whichever input is active
-if (usingTouch && this.touchInput) {
-  // Use joystick values
-} else {
-  // Use keyboard/mouse
-}
+// capacitor.config.ts
+export default {
+  appId: 'com.jbcom.stellardescent',
+  appName: 'Stellar Descent',
+  webDir: 'dist',
+  plugins: {
+    ScreenOrientation: {
+      // Force landscape
+    },
+    SplashScreen: {
+      // Auto-hide after load
+    },
+  },
+};
 ```
 
-## Performance Considerations
+### PWA Features
+- Service worker for offline support
+- App manifest for installation
+- IndexedDB persistence for saves
+- Responsive design (375px baseline)
 
-### Mobile Optimization
+## Testing Infrastructure
 
-**Simplified Graphics Mode**
-```typescript
-function shouldUseSimplifiedGraphics(): boolean {
-  if (deviceType === 'mobile' && pixelRatio > 2) return true;
-  if (navigator.deviceMemory < 4) return true;
-  return false;
-}
-```
+### Unit Tests (Vitest)
+- **Location**: `src/**/*.test.{ts,tsx}`
+- **Environment**: happy-dom
+- **Coverage**: V8 provider
 
-When enabled:
-- Fewer rock formations (25 vs 50)
-- Reduced shadow map resolution
-- Lower post-processing quality
-
-**Memory Management**
-- Chunk unloading at distance
-- Entity disposal when dead
-- Texture sharing between similar objects
-
-### Render Optimization
-
-- Frustum culling (automatic in BabylonJS)
-- Level of detail (not yet implemented)
-- Instancing for repeated objects (planned)
-
-## File Structure Rationale
-
-```
-src/game/
-├── core/           # Fundamental systems
-│   ├── ecs.ts      # Entity Component System
-│   ├── gameManager.ts  # Main orchestrator
-│   └── lore.ts     # Story data (separate for easy editing)
-├── db/             # Persistence
-│   └── worldDatabase.ts
-├── entities/       # Game objects with behavior
-│   ├── mech.ts     # Ally mechs
-│   └── player.ts   # Player controller
-├── systems/        # Process entities each frame
-│   ├── aiSystem.ts
-│   └── combatSystem.ts
-├── ui/             # User interface
-│   ├── hud.ts
-│   ├── introSequence.ts
-│   ├── mainMenu.ts
-│   └── touchControls.ts
-├── utils/          # Shared utilities
-│   ├── designTokens.ts
-│   └── responsive.ts
-└── world/          # World generation
-    ├── chunkManager.ts
-    └── terrainGenerator.ts
-```
-
-## Future Architecture Considerations
-
-### Planned Additions
-
-1. **Sound System**
-   - Web Audio API
-   - Spatial audio for 3D
-   - Music manager for tracks
-
-2. **Save/Load System**
-   - Full game state serialization
-   - IndexedDB for larger saves
-   - Cloud sync consideration
-
-3. **Multiplayer** (far future)
-   - WebRTC for peer-to-peer
-   - Authoritative server option
-   - State synchronization
-
-### Scalability
-
-Current architecture supports:
-- 100+ simultaneous entities
-- Infinite world (chunk-based)
-- 10+ enemy types
-- Multiple mission chapters
-
-For larger scale:
-- Consider spatial partitioning
-- Entity pooling for projectiles
-- Web Workers for AI
+### E2E Tests (Maestro)
+- **Location**: `.maestro/flows/*.yaml`
+- **Platforms**: Web, iOS, Android
+- **CI Integration**: GitHub Actions
 
 ---
 

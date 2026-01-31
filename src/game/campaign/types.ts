@@ -27,7 +27,8 @@ export type CampaignPhase =
   | 'paused'
   | 'levelComplete'
   | 'gameover'
-  | 'credits';
+  | 'credits'
+  | 'bonusLevel'; // Issue #1: Missing phase for bonus levels
 
 // ============================================================================
 // Campaign Commands (the ONLY way to mutate state)
@@ -75,6 +76,16 @@ export interface CampaignSnapshot {
   prePausePhase: CampaignPhase | null;
   /** Increments on RETRY, DEV_JUMP_TO_LEVEL, MAIN_MENU — used as React key to force remount */
   restartCounter: number;
+  /** Issue #8: Track deaths for retry count display */
+  deathCount: number;
+  /** Issue #9: Track total campaign kills across levels */
+  totalCampaignKills: number;
+  /** Issue #10: Track current difficulty for UI display */
+  currentDifficulty: DifficultyLevel | null;
+  /** Issue #11: Track whether player has died in current level (for achievements) */
+  diedInCurrentLevel: boolean;
+  /** Issue #12: Track damage taken in current level */
+  levelDamageReceived: number;
 }
 
 // ============================================================================
@@ -88,6 +99,10 @@ export interface LevelStats {
   shotsHit: number;
   secretsFound: number;
   totalSecrets: number;
+  audioLogsFound: number; // Issue #2: Missing audio log tracking in stats
+  totalAudioLogs: number; // Issue #3: Missing total audio logs
+  damageReceived: number; // Issue #4: Missing damage tracking for achievements
+  accuracy: number; // Issue #5: Pre-computed accuracy for display
 }
 
 // ============================================================================
@@ -109,4 +124,6 @@ export interface MissionDefinition {
   secretCount: number;
   skullId?: string;
   hasBonusAccess?: string;
+  parTimeSeconds?: number; // Issue #6: Par time should be in definition, not just achievements
+  bossId?: string; // Issue #7: Boss tracking for levels with boss fights
 }

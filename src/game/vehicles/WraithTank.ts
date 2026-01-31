@@ -386,8 +386,10 @@ export class WraithTank extends VehicleBase {
       const forward = this.getForward();
       const dot = Vector3.Dot(forward, toSource);
       // dot > 0 means source is in front, dot < 0 means behind
-      // We want rear: check if the angle from rear is within WEAK_POINT_ANGLE
-      if (dot > Math.cos(Math.PI - WEAK_POINT_ANGLE)) {
+      // We want rear: dot < -cos(WEAK_POINT_ANGLE) means within angle from rear
+      // WEAK_POINT_ANGLE = 60 degrees, so cos(60) = 0.5
+      // Hit from rear if dot < -0.5 (angle > 120 degrees from front)
+      if (dot < -Math.cos(WEAK_POINT_ANGLE)) {
         // Hit from rear - double damage
         amount *= 2;
         console.log('[Wraith] Weak point hit! Double damage');

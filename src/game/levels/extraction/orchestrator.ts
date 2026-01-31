@@ -345,9 +345,16 @@ export class ExtractionLevel extends BaseLevel {
     if (hitEnemy) {
       if (!hitEnemy.isActive) { this.waveState = Phases.recordWaveKill(this.waveState); this.kills++; this.callbacks.onKill(); }
       this.callbacks.onNotification('MELEE HIT', 500);
-      this.triggerShake(1);
+      this.triggerShake(2);
+
+      // FIX #19: Add melee visual feedback
+      const hitPos = hitEnemy.position.clone();
+      hitPos.y += 1;
+      particleManager.emitDebris(hitPos, 0.5);
+      getAudioManager().play('hit_marker', { volume: 0.6 });
     } else {
       this.callbacks.onNotification('MISS', 300);
+      getAudioManager().play('weapon_empty_click', { volume: 0.4 });
     }
   }
 
@@ -355,6 +362,20 @@ export class ExtractionLevel extends BaseLevel {
     this.callbacks.onNotification('SIGNAL FLARE DEPLOYED', 2000);
     this.callbacks.onCommsMessage(Comms.SIGNAL_FLARE_COMMS);
     this.phaseState.dropshipETA = Math.max(30, this.phaseState.dropshipETA - 30);
+
+    // FIX #18: Add visual flare effect
+    const flarePos = this.camera.position.clone();
+    flarePos.y += 20;
+    particleManager.emit('explosion', flarePos, { scale: 0.5 });
+    // Emit upward trail
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const trailPos = this.camera.position.clone();
+        trailPos.y += 5 + i * 4;
+        particleManager.emit('smoke', trailPos, { scale: 0.3 });
+      }, i * 100);
+    }
+    getAudioManager().play('grenade_throw', { volume: 0.5 });
   }
 
   private updateActionButtons(mode: 'escape' | 'holdout' | 'none'): void {
@@ -516,10 +537,12 @@ export class ExtractionLevel extends BaseLevel {
     this.setBaseShake(8);
     setTimeout(() => {
       this.callbacks.onCommsMessage(Comms.COLLAPSE_FAILURE_COMMS);
-      this.phaseState.hiveCollapseTimer = 15;
+      this.phaseState.hiveCollapseTimer = 20; // FIX #21: More time to reach dropship
       const newPos = C.DROPSHIP_COLLAPSE_POSITION.clone();
-      newPos.z += 40;
+      newPos.z += C.COLLAPSE_RESPAWN_DISTANCE; // FIX #21: Proper respawn distance
       this.camera.position.set(newPos.x, 1.7, newPos.z);
+      this.playerHealth = 50; // FIX: Restore some health on respawn
+      this.callbacks.onHealthChange(this.playerHealth);
       this.callbacks.onNotification('MARCUS IS COVERING YOU - MOVE', 2000);
     }, 2000);
   }
@@ -666,6 +689,12 @@ export class ExtractionLevel extends BaseLevel {
       case 'intermission': {
         const result = Phases.updateWaveIntermission(this.waveState, deltaTime);
         this.waveState = result.newState;
+
+        // FIX #17: Add ambient alien sounds during intermission
+        if (Math.random() < 0.005) {
+          getAudioManager().play('alien_growl', { volume: 0.2 + Math.random() * 0.2 });
+        }
+
         if (result.shouldTransition) {
           const config = Phases.getWaveConfig(this.waveState.currentWave);
           if (config) { this.callbacks.onNotification(config.waveTitle, 2500); this.callbacks.onObjectiveUpdate(config.waveTitle, config.waveDescription); this.triggerShake(2); }
@@ -713,7 +742,22 @@ export class ExtractionLevel extends BaseLevel {
       }
     }
 
-    if (this.waveState.wavePhase === 'active' && this.mechIntegrity > 0) this.mechIntegrity -= deltaTime * 0.3;
+    // FIX #4, #14: Mech integrity tied to enemy attacks, not just time
+    if (this.waveState.wavePhase === 'active' && this.mechIntegrity > 0) {
+      // Base decay
+      this.mechIntegrity -= deltaTime * 0.15;
+
+      // FIX #14: Mech takes damage from nearby enemies
+      const mechPos = this.mechMesh?.position || C.LZ_POSITION;
+      for (const enemy of this.enemies) {
+        if (!enemy.isActive) continue;
+        const dist = Vector3.Distance(enemy.position, mechPos);
+        if (dist < 8) {
+          // Enemy is attacking the mech
+          this.mechIntegrity -= deltaTime * 0.5;
+        }
+      }
+    }
 
     if (Phases.isWaveComplete(this.waveState)) {
       this.waveState = Phases.completeWave(this.waveState);
@@ -723,6 +767,20 @@ export class ExtractionLevel extends BaseLevel {
       const comms = Comms.WAVE_COMPLETE_COMMS[this.waveState.currentWave];
       if (comms) setTimeout(() => this.callbacks.onCommsMessage(comms), 1500);
 
+      // FIX #1, #11: Spawn supply drops after certain waves
+      if (Phases.shouldSpawnSupplyDrop(this.waveState.currentWave)) {
+        setTimeout(async () => {
+          // Spawn health drop
+          const healthDrop = await Effects.spawnSupplyDrop(this.scene, 'health');
+          if (healthDrop) this.supplyDrops.push(healthDrop);
+          // Spawn ammo drop
+          const ammoDrop = await Effects.spawnSupplyDrop(this.scene, 'ammo');
+          if (ammoDrop) this.supplyDrops.push(ammoDrop);
+          this.callbacks.onNotification('SUPPLY DROP INBOUND', 2000);
+          this.callbacks.onCommsMessage(Comms.SUPPLY_DROP_COMMS);
+        }, C.SUPPLY_DROP_DELAY * 1000);
+      }
+
       if (this.waveState.currentWave >= C.TOTAL_WAVES) {
         setTimeout(() => { if (this.phaseState.phase === 'holdout') this.transitionToPhase('hive_collapse'); }, 2000);
       } else if (this.waveState.currentWave < C.TOTAL_WAVES) {
@@ -731,6 +789,24 @@ export class ExtractionLevel extends BaseLevel {
           const config = Phases.getWaveConfig(this.waveState.currentWave);
           if (config) { this.callbacks.onNotification(`INCOMING: ${config.waveTitle}`, 3000); if (config.commsMessage) setTimeout(() => this.callbacks.onCommsMessage(config.commsMessage!), 1000); }
         }, 2000);
+      }
+    }
+
+    // FIX #6: Update and collect supply drops
+    if (this.supplyDrops.length > 0) {
+      Effects.animateSupplyDrops(this.supplyDrops, this.phaseState.phaseTime);
+      const dropResult = Effects.updateSupplyDrops(this.supplyDrops, this.camera.position);
+      if (dropResult.healthRestore > 0) {
+        this.playerHealth = Math.min(100, this.playerHealth + dropResult.healthRestore);
+        this.callbacks.onHealthChange(this.playerHealth);
+        this.callbacks.onNotification(`+${dropResult.healthRestore} HEALTH`, 1500);
+      }
+      if (dropResult.ammoRestore > 0) {
+        const weaponActions = getWeaponActions();
+        if (weaponActions) {
+          weaponActions.addAmmo(dropResult.ammoRestore);
+          this.callbacks.onNotification(`+${dropResult.ammoRestore} AMMO`, 1500);
+        }
       }
     }
 

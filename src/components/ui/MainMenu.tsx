@@ -396,15 +396,16 @@ export function MainMenu({
           onKeyDown={(e) => e.key === 'Escape' && handleCloseControls()}
           role="presentation"
         >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
           <div
             className={styles.modal}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="controls-title"
           >
             <div className={styles.modalHeader}>
-              <span>OPERATIONS MANUAL</span>
+              <span id="controls-title">OPERATIONS MANUAL</span>
             </div>
 
             <div className={styles.modalContent}>
@@ -460,7 +461,12 @@ export function MainMenu({
               <div className={styles.controlsNote}>Click on screen to lock mouse for aiming</div>
             </div>
 
-            <button type="button" className={styles.modalClose} onClick={handleCloseControls}>
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={handleCloseControls}
+              aria-label="Close controls modal"
+            >
               CLOSE
             </button>
           </div>
@@ -489,19 +495,21 @@ export function MainMenu({
           onKeyDown={(e) => e.key === 'Escape' && handleCancelNewGame()}
           role="presentation"
         >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
           <div
             className={styles.modal}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="newgame-confirm-title"
+            aria-describedby="newgame-confirm-desc"
           >
             <div className={styles.modalHeader}>
-              <span>START NEW CAMPAIGN?</span>
+              <span id="newgame-confirm-title">START NEW CAMPAIGN?</span>
             </div>
 
             <div className={styles.modalContent}>
-              <p className={styles.confirmText}>
+              <p id="newgame-confirm-desc" className={styles.confirmText}>
                 Starting a new campaign will overwrite your existing save data.
               </p>
               {saveMetadata && (
@@ -523,13 +531,19 @@ export function MainMenu({
             </div>
 
             <div className={styles.modalButtons}>
-              <button type="button" className={styles.modalButton} onClick={handleCancelNewGame}>
+              <button
+                type="button"
+                className={styles.modalButton}
+                onClick={handleCancelNewGame}
+                aria-label="Cancel and keep existing save"
+              >
                 CANCEL
               </button>
               <button
                 type="button"
                 className={`${styles.modalButton} ${styles.dangerButton}`}
                 onClick={handleConfirmNewGame}
+                aria-label="Confirm start new campaign"
               >
                 START NEW
               </button>

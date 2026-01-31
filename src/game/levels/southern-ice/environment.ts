@@ -16,6 +16,7 @@
  */
 
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
@@ -29,6 +30,12 @@ import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/core/Particles/particleSystemComponent';
 
 import { AssetManager } from '../../core/AssetManager';
+import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
+import {
+  ICE_TERRAIN_CONFIG,
+  ICE_ROCK_CONFIG,
+  createPBRTerrainMaterial,
+} from '../shared/PBRTerrainMaterials';
 
 // ============================================================================
 // TYPES
@@ -301,16 +308,54 @@ export function createIceSheetMaterial(scene: Scene, name = 'iceSheet'): Standar
   return mat;
 }
 
-function createSnowMaterial(scene: Scene): StandardMaterial {
-  const mat = new StandardMaterial('snowTerrain', scene);
+/**
+ * Create PBR snow terrain material with AmbientCG textures.
+ */
+function createSnowMaterial(scene: Scene, terrainSize: number = 600): PBRMaterial {
+  const mat = createPBRTerrainMaterial(scene, ICE_TERRAIN_CONFIG, 'snowTerrain');
+
+  // Adjust UV scale for terrain size
+  const uvScale = 0.015 * terrainSize;
+  if (mat.albedoTexture instanceof Texture) {
+    mat.albedoTexture.uScale = uvScale;
+    mat.albedoTexture.vScale = uvScale;
+  }
+  if (mat.bumpTexture instanceof Texture) {
+    mat.bumpTexture.uScale = uvScale;
+    mat.bumpTexture.vScale = uvScale;
+  }
+  if (mat.metallicTexture instanceof Texture) {
+    mat.metallicTexture.uScale = uvScale;
+    mat.metallicTexture.vScale = uvScale;
+  }
+
+  return mat;
+}
+
+/**
+ * Fallback simple snow material (for compatibility).
+ */
+function createSnowMaterialSimple(scene: Scene): StandardMaterial {
+  const mat = new StandardMaterial('snowTerrainSimple', scene);
   mat.diffuseColor = new Color3(0.9, 0.92, 0.96);
   mat.specularColor = new Color3(0.3, 0.35, 0.4);
   mat.specularPower = 16;
   return mat;
 }
 
-function createFrozenRockMaterial(scene: Scene): StandardMaterial {
-  const mat = new StandardMaterial('frozenRock', scene);
+/**
+ * Create PBR frozen rock material with AmbientCG textures.
+ */
+function createFrozenRockMaterial(scene: Scene): PBRMaterial {
+  const mat = createPBRTerrainMaterial(scene, ICE_ROCK_CONFIG, 'frozenRock');
+  return mat;
+}
+
+/**
+ * Fallback simple frozen rock material (for compatibility).
+ */
+function createFrozenRockMaterialSimple(scene: Scene): StandardMaterial {
+  const mat = new StandardMaterial('frozenRockSimple', scene);
   mat.diffuseColor = new Color3(0.35, 0.38, 0.45);
   mat.specularColor = new Color3(0.4, 0.45, 0.5);
   mat.specularPower = 32;
@@ -343,7 +388,8 @@ function createTerrain(scene: Scene, config: IceEnvironmentConfig): Mesh {
     },
     scene
   );
-  terrain.material = createSnowMaterial(scene);
+  // Use PBR snow material with proper UV scaling
+  terrain.material = createSnowMaterial(scene, config.terrainSize);
 
   const positions = terrain.getVerticesData('position');
   if (positions) {
@@ -386,23 +432,35 @@ function createTerrain(scene: Scene, config: IceEnvironmentConfig): Mesh {
 }
 
 // ============================================================================
-// SKY AND ATMOSPHERE
+// SKY AND ATMOSPHERE - Using proper Babylon.js skybox with SkyboxManager
 // ============================================================================
 
+/** Stored skybox result for disposal */
+let iceSkyboxResult: SkyboxResult | null = null;
+
+/** Stored lake crack meshes for disposal */
+const lakeCrackMeshes: Mesh[] = [];
+
 function createSkyDome(scene: Scene): Mesh {
-  const skyDome = MeshBuilder.CreateSphere(
-    'iceSkyDome',
-    { diameter: 4000, segments: 32, sideOrientation: 1 },
-    scene
-  );
-  const skyMat = new StandardMaterial('iceSkyMat', scene);
-  skyMat.backFaceCulling = false;
-  skyMat.disableLighting = true;
-  skyMat.emissiveColor = new Color3(0.02, 0.03, 0.06);
-  skyDome.material = skyMat;
-  skyDome.infiniteDistance = true;
-  skyDome.renderingGroupId = 0;
-  return skyDome;
+  // Use SkyboxManager for proper Babylon.js skybox with ice/arctic atmosphere
+  const skyboxManager = new SkyboxManager(scene);
+  iceSkyboxResult = skyboxManager.createFallbackSkybox({
+    type: 'ice',
+    size: 10000,
+    useEnvironmentLighting: true,
+    environmentIntensity: 0.6, // Overcast, cold lighting
+    // Dark arctic night sky with hints of aurora
+    tint: new Color3(0.02, 0.03, 0.06),
+  });
+
+  return iceSkyboxResult.mesh;
+}
+
+/**
+ * Get the current ice skybox result for disposal.
+ */
+export function getIceSkyboxResult(): SkyboxResult | null {
+  return iceSkyboxResult;
 }
 
 export function createAuroraBorealis(scene: Scene): TransformNode[] {
@@ -411,7 +469,8 @@ export function createAuroraBorealis(scene: Scene): TransformNode[] {
 
   for (let i = 0; i < curtainCount; i++) {
     const node = new TransformNode(`aurora_${i}`, scene);
-    node.position.y = 300 + i * 30;
+    // Lower altitude for better visibility (was 300+, now 150+)
+    node.position.y = 150 + i * 25;
 
     const ribbon = MeshBuilder.CreatePlane(
       `aurora_ribbon_${i}`,
@@ -433,8 +492,9 @@ export function createAuroraBorealis(scene: Scene): TransformNode[] {
     ribbon.material = mat;
     ribbon.parent = node;
     ribbon.rotation.x = Math.PI / 6 + i * 0.05;
-    ribbon.position.z = -500 + i * 50;
-    ribbon.position.x = (i - curtainCount / 2) * 60;
+    // Bring aurora closer for better visibility
+    ribbon.position.z = -200 + i * 40;
+    ribbon.position.x = (i - curtainCount / 2) * 50;
 
     auroraNodes.push(node);
   }
@@ -445,7 +505,8 @@ export function updateAuroraBorealis(auroraNodes: TransformNode[], time: number)
   for (let i = 0; i < auroraNodes.length; i++) {
     const node = auroraNodes[i];
     node.position.x = Math.sin(time * 0.1 + i * 1.5) * 40;
-    node.rotation.y = Math.sin(time * 0.05 + i * 0.8) * 0.15;
+    // Use absolute value to prevent sign jitter in rotation
+    node.rotation.y = Math.abs(Math.sin(time * 0.05 + i * 0.8)) * 0.15 - 0.075;
 
     const ribbon = node.getChildMeshes()[0];
     if (ribbon?.material instanceof StandardMaterial) {
@@ -478,11 +539,13 @@ export function createBlizzardParticles(scene: Scene, intensity = 0.5): Particle
   system.emitRate = 500 * intensity;
   system.minLifeTime = 2;
   system.maxLifeTime = 5;
-  system.minSize = 0.02;
-  system.maxSize = 0.08;
+  // Smaller particle sizes for more realistic snow
+  system.minSize = 0.01;
+  system.maxSize = 0.04;
 
-  system.color1 = new Color4(1, 1, 1, 0.8);
-  system.color2 = new Color4(0.8, 0.9, 1.0, 0.6);
+  // Reduce alpha for more subtle snow particles
+  system.color1 = new Color4(1, 1, 1, 0.5);
+  system.color2 = new Color4(0.8, 0.9, 1.0, 0.35);
   system.colorDead = new Color4(0.7, 0.8, 0.9, 0);
 
   system.direction1 = new Vector3(-8, -1, -2);
@@ -556,24 +619,51 @@ function createFrozenLake(scene: Scene, center: Vector3, radius: number): Mesh {
   iceMat.specularPower = 512;
   lake.material = iceMat;
 
-  // Crack lines
+  // Crack lines - track for disposal
   const crackMat = new StandardMaterial('iceCrackMat', scene);
-  crackMat.diffuseColor = new Color3(0.5, 0.6, 0.7);
-  crackMat.alpha = 0.3;
-  crackMat.emissiveColor = new Color3(0.1, 0.15, 0.2);
+  crackMat.diffuseColor = new Color3(0.4, 0.5, 0.6);
+  crackMat.alpha = 0.4;
+  crackMat.emissiveColor = new Color3(0.08, 0.12, 0.18);
+
+  // Clear any previous crack meshes
+  lakeCrackMeshes.length = 0;
 
   for (let i = 0; i < 12; i++) {
     const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.5;
     const length = radius * (0.3 + Math.random() * 0.5);
-    const crack = MeshBuilder.CreatePlane(`crack_${i}`, { width: 0.15, height: length }, scene);
+    const crack = MeshBuilder.CreatePlane(`crack_${i}`, { width: 0.12, height: length }, scene);
     crack.material = crackMat;
     crack.rotation.x = Math.PI / 2;
+    // Position cracks relative to lake center with slight Y offset above ice surface
+    const crackDist = length * 0.4;
     crack.position.set(
-      center.x + Math.cos(angle) * length * 0.3,
-      center.y + 0.03,
-      center.z + Math.sin(angle) * length * 0.3
+      center.x + Math.cos(angle) * crackDist,
+      center.y + 0.025, // Just above lake surface
+      center.z + Math.sin(angle) * crackDist
     );
     crack.rotation.z = angle;
+    lakeCrackMeshes.push(crack);
+  }
+
+  // Add dark thin ice patches as visual warnings
+  const darkIceMat = new StandardMaterial('thinIceMat', scene);
+  darkIceMat.diffuseColor = new Color3(0.2, 0.25, 0.35);
+  darkIceMat.alpha = 0.5;
+  darkIceMat.emissiveColor = new Color3(0.02, 0.04, 0.06);
+
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = radius * (0.4 + Math.random() * 0.4);
+    const patchSize = 4 + Math.random() * 6;
+    const patch = MeshBuilder.CreateDisc(`thinIce_${i}`, { radius: patchSize, tessellation: 16 }, scene);
+    patch.material = darkIceMat;
+    patch.rotation.x = Math.PI / 2;
+    patch.position.set(
+      center.x + Math.cos(angle) * dist,
+      center.y + 0.015,
+      center.z + Math.sin(angle) * dist
+    );
+    lakeCrackMeshes.push(patch);
   }
 
   // Thin-ice warning poles around the lake edge (GLB station pillars)
@@ -640,14 +730,17 @@ function createIceCaveBase(scene: Scene, position: Vector3, index: number): Tran
     }
   );
 
-  // Interior floor (terrain -- kept as MeshBuilder)
+  // Interior floor (terrain with frost overlay -- kept as MeshBuilder)
   const floor = MeshBuilder.CreateGround(
     `caveFloor_${index}`,
     { width: 10, height: 14, subdivisions: 4 },
     scene
   );
   const floorMat = new StandardMaterial(`caveFloorMat_${index}`, scene);
-  floorMat.diffuseColor = new Color3(0.3, 0.32, 0.38);
+  floorMat.diffuseColor = new Color3(0.35, 0.4, 0.48); // Slightly blue-grey for ice tint
+  floorMat.specularColor = new Color3(0.2, 0.25, 0.3);
+  floorMat.specularPower = 32;
+  floorMat.emissiveColor = new Color3(0.02, 0.03, 0.05); // Subtle ice glow
   floor.material = floorMat;
   floor.parent = root;
   floor.position.set(0, 0.1, -4);
@@ -655,17 +748,26 @@ function createIceCaveBase(scene: Scene, position: Vector3, index: number): Tran
   // Icicles hanging from ceiling (VFX -- kept as MeshBuilder)
   const icicleCount = 8 + Math.floor(Math.random() * 5);
   for (let i = 0; i < icicleCount; i++) {
+    const icicleHeight = 0.6 + Math.random() * 2;
     const icicle = MeshBuilder.CreateCylinder(
       `icicle_${index}_${i}`,
       {
-        height: 0.6 + Math.random() * 2,
+        height: icicleHeight,
         diameterTop: 0.02,
         diameterBottom: 0.1 + Math.random() * 0.12,
         tessellation: 4,
       },
       scene
     );
-    icicle.material = iceMat;
+    // Create unique material per icicle with randomized alpha for variety
+    const icicleMat = new StandardMaterial(`icicleMat_${index}_${i}`, scene);
+    icicleMat.diffuseColor = new Color3(0.7, 0.82, 0.95);
+    icicleMat.specularColor = new Color3(0.9, 0.95, 1.0);
+    icicleMat.specularPower = 256;
+    icicleMat.alpha = 0.55 + Math.random() * 0.3; // Randomized transparency
+    icicleMat.emissiveColor = new Color3(0.03, 0.06, 0.1);
+    icicleMat.backFaceCulling = false;
+    icicle.material = icicleMat;
     icicle.parent = root;
     icicle.position.set(
       (Math.random() - 0.5) * 9,
@@ -675,12 +777,12 @@ function createIceCaveBase(scene: Scene, position: Vector3, index: number): Tran
     icicle.rotation.x = Math.PI;
   }
 
-  // Interior light (bioluminescent ice glow)
+  // Interior light (warmer for shelter feel, with hints of ice blue)
   const caveLight = new PointLight(`caveLight_${index}`, Vector3.Zero(), scene);
   caveLight.position.set(position.x, position.y + 3.5, position.z - 4);
-  caveLight.intensity = 0.7;
-  caveLight.diffuse = new Color3(0.3, 0.5, 0.7);
-  caveLight.range = 18;
+  caveLight.intensity = 0.85;
+  caveLight.diffuse = new Color3(0.55, 0.6, 0.7); // Warmer than pure blue for shelter feeling
+  caveLight.range = 20;
 
   return root;
 }
@@ -902,11 +1004,12 @@ function createOutpost(
   allGlbNodes.push(...buildingNodes);
 
   // ---- Frost overlay on main structures (VFX -- kept as MeshBuilder) ----
+  // Expand frost overlay to cover all buildings including annex
   const frostMat = createFrostOverlayMaterial(scene, 'outpostFrost');
-  const frostBox = MeshBuilder.CreateBox('outpostFrostOverlay', { width: 16, height: 4, depth: 10 }, scene);
+  const frostBox = MeshBuilder.CreateBox('outpostFrostOverlay', { width: 30, height: 5, depth: 16 }, scene);
   frostBox.material = frostMat;
   frostBox.parent = root;
-  frostBox.position.set(0, 2, 1);
+  frostBox.position.set(2, 2.5, 0);
 
   // ---- Communications antenna (broken) -- GLB chimney model ----
   buildingPlacements.push({
@@ -919,20 +1022,26 @@ function createOutpost(
   });
 
   // ---- Heater (heat source) -- GLB metal barrel ----
+  const heaterRelativePos = new Vector3(0, 0, -5);
   buildingPlacements.push({
     path: GLB.metalBarrel,
     name: 'outpost_heater',
-    position: new Vector3(0, 0, -5),
+    position: heaterRelativePos.clone(),
     rotationY: 0,
     scale: 1.2,
     parent: root,
   });
 
+  // Position heater light correctly relative to the barrel position
   const heaterLight = new PointLight('heaterLight', Vector3.Zero(), scene);
-  heaterLight.position.set(position.x, position.y + 1.2, position.z - 5);
-  heaterLight.intensity = 1.3;
-  heaterLight.diffuse = new Color3(1.0, 0.6, 0.3);
-  heaterLight.range = 14;
+  heaterLight.position.set(
+    position.x + heaterRelativePos.x,
+    position.y + heaterRelativePos.y + 1.5, // Above the barrel
+    position.z + heaterRelativePos.z
+  );
+  heaterLight.intensity = 1.5;
+  heaterLight.diffuse = new Color3(1.0, 0.65, 0.35); // Warm amber
+  heaterLight.range = 16;
 
   // ---- Snow drifts around outpost (GLB boulders/rocks) ----
   const driftPlacements: GLBPlacement[] = [
@@ -1060,6 +1169,8 @@ function createPerimeterFencing(
   });
 
   // ---- Cave entrance barriers (tall fences flanking each cave) ----
+  // Use consistent scale with outpost fencing
+  const caveFenceScale = fenceScale; // Match outpost scale for consistency
   for (let ci = 0; ci < cavePositions.length; ci++) {
     const cp = cavePositions[ci];
     // Two tall fence sections on either side of the cave mouth
@@ -1068,14 +1179,14 @@ function createPerimeterFencing(
       name: `cave_fence_L_${ci}`,
       position: new Vector3(cp.x - 6, 0, cp.z + 3),
       rotationY: Math.PI / 2 + (ci * 0.2),
-      scale: 1.0,
+      scale: caveFenceScale,
     });
     placements.push({
       path: GLB.metalFenceTall,
       name: `cave_fence_R_${ci}`,
       position: new Vector3(cp.x + 6, 0, cp.z + 3),
       rotationY: -Math.PI / 2 + (ci * 0.2),
-      scale: 1.0,
+      scale: caveFenceScale,
     });
     // Pillar at each fence end
     placements.push({
@@ -1083,14 +1194,14 @@ function createPerimeterFencing(
       name: `cave_pillar_L_${ci}`,
       position: new Vector3(cp.x - 8, 0, cp.z + 3),
       rotationY: 0,
-      scale: 1.0,
+      scale: caveFenceScale,
     });
     placements.push({
       path: GLB.metalPillar,
       name: `cave_pillar_R_${ci}`,
       position: new Vector3(cp.x + 8, 0, cp.z + 3),
       rotationY: 0,
-      scale: 1.0,
+      scale: caveFenceScale,
     });
   }
 
@@ -1263,34 +1374,36 @@ export function createTemperatureZones(
   heatSourcePositions: Vector3[]
 ): TemperatureZone[] {
   const zones: TemperatureZone[] = [];
+  const HEAT_RADIUS = 8;
 
   for (let i = 0; i < heatSourcePositions.length; i++) {
     const pos = heatSourcePositions[i];
 
     const light = new PointLight(`heatLight_${i}`, pos.clone(), scene);
     light.position.y += 1.5;
-    light.intensity = 0.8;
-    light.diffuse = new Color3(1.0, 0.7, 0.4);
-    light.range = 10;
+    light.intensity = 1.0;
+    light.diffuse = new Color3(1.0, 0.75, 0.45); // Warmer amber color
+    light.range = HEAT_RADIUS + 4;
 
+    // Ring diameter should match heat radius for visual clarity (diameter = radius * 2)
     const ring = MeshBuilder.CreateTorus(
       `heatZone_${i}`,
-      { diameter: 8, thickness: 0.1, tessellation: 24 },
+      { diameter: HEAT_RADIUS * 2, thickness: 0.15, tessellation: 32 },
       scene
     );
     const ringMat = new StandardMaterial(`heatRingMat_${i}`, scene);
-    ringMat.emissiveColor = new Color3(0.6, 0.3, 0.1);
-    ringMat.alpha = 0.2;
+    ringMat.emissiveColor = new Color3(0.8, 0.4, 0.15);
+    ringMat.alpha = 0.25;
     ringMat.disableLighting = true;
     ring.material = ringMat;
     ring.position.copyFrom(pos);
-    ring.position.y += 0.05;
+    ring.position.y += 0.08;
     ring.rotation.x = Math.PI / 2;
 
     zones.push({
       id: `heat_${i}`,
       position: pos.clone(),
-      radius: 8,
+      radius: HEAT_RADIUS,
       temperatureOffset: 30,
       isHeatSource: true,
       indicator: ring,
@@ -1298,11 +1411,12 @@ export function createTemperatureZones(
     });
   }
 
-  // Cold zones in exposed areas
+  // Cold zones in exposed areas - reference DEFAULT_CONFIG frozen lake position
   const coldPositions = [
-    new Vector3(0, 0, -160),    // Frozen lake center
-    new Vector3(-120, 0, -100), // Open tundra
-    new Vector3(120, 0, -200),  // Wind-exposed ridge
+    DEFAULT_CONFIG.frozenLakeCenter.clone(),    // Frozen lake center
+    new Vector3(-120, 0, -100), // Open tundra west
+    new Vector3(120, 0, -200),  // Wind-exposed ridge east
+    new Vector3(0, 0, -280),    // Near cave entrances (exposed)
   ];
   for (let i = 0; i < coldPositions.length; i++) {
     zones.push({
@@ -1378,7 +1492,10 @@ export function createIceEnvironment(
   const outpost = outpostResult.root;
   allGlbNodes.push(...outpostResult.glbNodes);
   allGlbNodes.push(...fenceNodes);
-  if (crashedStation) allGlbNodes.push(crashedStation);
+  // Include crashed station in GLB nodes for proper frost tinting
+  if (crashedStation) {
+    allGlbNodes.push(crashedStation);
+  }
   allGlbNodes.push(...lakeProps);
   allGlbNodes.push(...caveRockNodes);
   allGlbNodes.push(...lakePoleNodes);
@@ -1447,6 +1564,19 @@ export function disposeIceEnvironment(env: IceEnvironment): void {
   env.terrain.dispose();
   env.skyDome.dispose();
   env.frozenLake.dispose();
+
+  // Dispose lake crack meshes
+  for (const crack of lakeCrackMeshes) {
+    crack.material?.dispose();
+    crack.dispose();
+  }
+  lakeCrackMeshes.length = 0;
+
+  // Dispose skybox result
+  if (iceSkyboxResult) {
+    iceSkyboxResult.dispose();
+    iceSkyboxResult = null;
+  }
 
   for (const cave of env.iceCaves) {
     cave.getChildMeshes().forEach((m) => m.dispose());

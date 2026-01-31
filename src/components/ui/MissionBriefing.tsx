@@ -714,7 +714,10 @@ export function MissionBriefing({
           <button
             type="button"
             role="tab"
+            id="tab-briefing"
             aria-selected={activeTab === 'briefing'}
+            aria-controls="tabpanel-briefing"
+            tabIndex={activeTab === 'briefing' ? 0 : -1}
             className={`${styles.tab} ${activeTab === 'briefing' ? styles.tabActive : ''}`}
             onClick={() => handleTabChange('briefing')}
           >
@@ -723,7 +726,10 @@ export function MissionBriefing({
           <button
             type="button"
             role="tab"
+            id="tab-intel"
             aria-selected={activeTab === 'intel'}
+            aria-controls="tabpanel-intel"
+            tabIndex={activeTab === 'intel' ? 0 : -1}
             className={`${styles.tab} ${activeTab === 'intel' ? styles.tabActive : ''}`}
             onClick={() => handleTabChange('intel')}
           >
@@ -732,7 +738,10 @@ export function MissionBriefing({
           <button
             type="button"
             role="tab"
+            id="tab-loadout"
             aria-selected={activeTab === 'loadout'}
+            aria-controls="tabpanel-loadout"
+            tabIndex={activeTab === 'loadout' ? 0 : -1}
             className={`${styles.tab} ${activeTab === 'loadout' ? styles.tabActive : ''}`}
             onClick={() => handleTabChange('loadout')}
           >
@@ -741,7 +750,12 @@ export function MissionBriefing({
         </nav>
 
         {/* Tab Content */}
-        <div className={styles.tabContent} role="tabpanel">
+        <div
+          className={styles.tabContent}
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
+        >
           {activeTab === 'briefing' && (
             <div className={styles.briefingContent}>
               {/* Commander portrait and message */}
@@ -780,9 +794,9 @@ export function MissionBriefing({
               </div>
 
               {/* Mission Objectives */}
-              <div className={styles.objectivesSection}>
-                <h3 className={styles.sectionTitle}>PRIMARY OBJECTIVES</h3>
-                <ul className={styles.objectivesList}>
+              <div className={styles.objectivesSection} role="region" aria-labelledby="objectives-heading">
+                <h3 id="objectives-heading" className={styles.sectionTitle}>PRIMARY OBJECTIVES</h3>
+                <ul className={styles.objectivesList} aria-label="Mission objectives">
                   {briefingData.objectives.map((objective, index) => (
                     <li key={`obj-${objective.slice(0, 20)}`} className={styles.objectiveItem}>
                       <span className={styles.objectiveMarker}>
@@ -885,19 +899,21 @@ export function MissionBriefing({
 
           {activeTab === 'loadout' && (
             <div className={styles.loadoutContent}>
-              <h3 className={styles.sectionTitle}>SUGGESTED LOADOUT</h3>
-              <div className={styles.loadoutGrid}>
+              <h3 id="loadout-heading" className={styles.sectionTitle}>SUGGESTED LOADOUT</h3>
+              <div className={styles.loadoutGrid} role="list" aria-labelledby="loadout-heading">
                 {briefingData.suggestedLoadout.map((item) => (
                   <div
                     key={item.id}
+                    role="listitem"
                     className={`${styles.loadoutItem} ${item.equipped ? styles.loadoutEquipped : ''}`}
+                    aria-label={`${item.name}: ${item.description}. ${item.equipped ? 'Equipped' : 'Available'}`}
                   >
-                    <div className={styles.loadoutIcon}>{item.icon}</div>
+                    <div className={styles.loadoutIcon} aria-hidden="true">{item.icon}</div>
                     <div className={styles.loadoutInfo}>
                       <span className={styles.loadoutName}>{item.name}</span>
                       <span className={styles.loadoutDesc}>{item.description}</span>
                     </div>
-                    <div className={styles.loadoutStatus}>
+                    <div className={styles.loadoutStatus} aria-hidden="true">
                       {item.equipped ? '[EQUIPPED]' : '[AVAILABLE]'}
                     </div>
                   </div>

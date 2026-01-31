@@ -11,6 +11,11 @@ import { getAchievementManager } from '../achievements';
 import { getCurrentWeaponDef } from '../context/useWeaponActions';
 import { getAudioManager } from '../core/AudioManager';
 import { AssetManager } from '../core/AssetManager';
+import {
+  type DifficultyLevel,
+  getDifficultyModifiers,
+  loadDifficultySetting,
+} from '../core/DifficultySettings';
 import { createEntity, type Entity } from '../core/ecs';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
@@ -116,7 +121,7 @@ export class Player {
   private createCollisionCapsule(): Mesh {
     const body = MeshBuilder.CreateCapsule(
       'playerCollider',
-      { height: 2, radius: 0.4 },
+      { height: 2, radius: 0.5 }, // Increased from 0.4 for better collision detection
       this.scene
     );
     body.position.y = 1;
@@ -282,7 +287,8 @@ export class Player {
 
     camera.minZ = 0.1;
     camera.maxZ = 2000;
-    camera.fov = 1.2;
+    // 90 degrees FOV - standard for FPS games, provides good peripheral vision
+    camera.fov = Math.PI / 2; // 1.5708 radians = 90 degrees
 
     // Disable built-in controls - we handle everything manually
     camera.inputs.clear();
@@ -556,6 +562,7 @@ export class Player {
     const projectileId = `player_proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     weaponEffects.createProjectileTrail(laserBolt, 'player_plasma', projectileId);
 
+    // Create projectile entity with current weapon's damage stats
     createEntity({
       transform: {
         position: laserBolt.position.clone(),
@@ -567,12 +574,20 @@ export class Player {
         angular: Vector3.Zero(),
         maxSpeed: this.entity.combat!.projectileSpeed,
       },
+      combat: {
+        damage: weaponDef.damage,
+        range: weaponDef.range,
+        fireRate: weaponDef.fireRate,
+        lastFire: performance.now(),
+        projectileSpeed: weaponDef.projectileSpeed,
+      },
       renderable: {
         mesh: laserBolt,
         visible: true,
       },
       tags: {
         projectile: true,
+        player: true, // Mark as player projectile for collision detection
       },
       lifetime: {
         remaining: 2000,
@@ -788,12 +803,15 @@ export class Player {
       this.fire();
     }
 
-    // Health regen
+    // Health regen (scaled by difficulty)
     if (this.entity.health) {
-      if (this.entity.health.current < this.entity.health.max) {
+      if (this.entity.health.current < this.entity.health.max && !this.isDead) {
+        const difficulty = loadDifficultySetting();
+        const modifiers = getDifficultyModifiers(difficulty);
+        const scaledRegenRate = this.entity.health.regenRate * modifiers.playerHealthRegenMultiplier;
         this.entity.health.current = Math.min(
           this.entity.health.max,
-          this.entity.health.current + this.entity.health.regenRate * deltaTime
+          this.entity.health.current + scaledRegenRate * deltaTime
         );
       }
     }
@@ -818,9 +836,11 @@ export class Player {
     const bobX = Math.sin(this.weaponBobTime) * bobAmplitudeX;
     const bobY = Math.abs(Math.sin(this.weaponBobTime * 2)) * bobAmplitudeY;
 
-    // Smooth recoil recovery
-    this.weaponRecoilOffset *= 0.001 ** deltaTime; // Exponential decay
-    if (this.weaponRecoilOffset < 0.001) this.weaponRecoilOffset = 0;
+    // Smooth recoil recovery - use proper exponential decay
+    // 0.05^deltaTime gives ~2-3 frames to recover at 60fps
+    const recoilDecay = Math.pow(0.05, deltaTime);
+    this.weaponRecoilOffset *= recoilDecay;
+    if (this.weaponRecoilOffset < 0.01) this.weaponRecoilOffset = 0;
 
     // Apply to weapon container (relative to base position)
     const baseX = 0.35;
@@ -854,10 +874,30 @@ export class Player {
     return this.rotationY;
   }
 
+  // Invincibility frames tracking
+  private lastDamageTime = 0;
+  private readonly invincibilityDuration = 200; // 200ms invincibility after hit
+  private isDead = false;
+
   takeDamage(amount: number): void {
     if (!this.entity.health) return;
+    if (this.isDead) return;
+
+    // Check invincibility frames
+    const now = performance.now();
+    if (now - this.lastDamageTime < this.invincibilityDuration) {
+      return; // Still invincible
+    }
+    this.lastDamageTime = now;
 
     this.entity.health.current = Math.max(0, this.entity.health.current - amount);
+
+    // Check for death
+    if (this.entity.health.current <= 0 && !this.isDead) {
+      this.isDead = true;
+      this.onDeath();
+      return;
+    }
 
     // Play damage sound
     getAudioManager().play('player_damage', { volume: 0.6 });
@@ -888,5 +928,67 @@ export class Player {
     };
 
     requestAnimationFrame(shake);
+  }
+
+  /**
+   * Handle player death - called when health reaches 0
+   */
+  private onDeath(): void {
+    console.log('[Player] Death triggered');
+
+    // Play death sound
+    getAudioManager().play('player_damage', { volume: 0.8 });
+
+    // Vibrate on death for touch devices
+    if (this.isTouchDevice) {
+      vibrate([100, 50, 100, 50, 200]);
+    }
+
+    // Camera fall effect
+    const startY = this.camera.position.y;
+    const startTime = performance.now();
+    const fallDuration = 800;
+
+    const animateFall = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / fallDuration, 1);
+
+      // Ease out fall
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      this.camera.position.y = startY - easeOut * 1.3;
+
+      // Tilt camera
+      this.camera.rotation.z = easeOut * 0.3;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateFall);
+      }
+    };
+
+    requestAnimationFrame(animateFall);
+  }
+
+  /**
+   * Check if the player is dead
+   */
+  isPlayerDead(): boolean {
+    return this.isDead;
+  }
+
+  /**
+   * Respawn the player (reset death state and health)
+   */
+  respawn(position?: Vector3): void {
+    this.isDead = false;
+    if (this.entity.health) {
+      this.entity.health.current = this.entity.health.max;
+    }
+    this.camera.rotation.z = 0;
+    if (position) {
+      this.camera.position = position.clone();
+      this.mesh.position = position.clone();
+      this.mesh.position.y = 1;
+    }
+    console.log('[Player] Respawned');
   }
 }

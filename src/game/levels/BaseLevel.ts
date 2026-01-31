@@ -419,7 +419,7 @@ export abstract class BaseLevel implements ILevel {
     camera.rotation.x = this.rotationX;
     camera.minZ = 0.1;
     camera.maxZ = 5000;
-    camera.fov = 1.2; // ~69 degrees - good for FPS
+    camera.fov = this.getDefaultFOV(); // Configurable per level type
 
     // Clear default inputs - we handle manually
     camera.inputs.clear();
@@ -1092,6 +1092,18 @@ export abstract class BaseLevel implements ILevel {
   protected getSprintMultiplier(): number {
     // Subclasses can override for different sprint speeds
     return 1.5;
+  }
+
+  /**
+   * Get the default FOV for this level type in radians.
+   * Subclasses can override for level-specific FOV.
+   * - Indoor levels (station): 1.22 radians (~70 degrees) - narrower for claustrophobic feel
+   * - Outdoor levels (surface): 1.57 radians (~90 degrees) - wider for open spaces
+   * Default is 90 degrees which is standard for most FPS games.
+   */
+  protected getDefaultFOV(): number {
+    // 90 degrees in radians - standard FPS default for outdoor/general levels
+    return Math.PI / 2; // 1.5708 radians = 90 degrees
   }
 
   /**

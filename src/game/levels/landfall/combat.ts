@@ -237,28 +237,52 @@ export function firePrimaryWeapon(
   return result;
 }
 
+/** Grenade blast radius */
+const GRENADE_BLAST_RADIUS = 6;
+
+/** Grenade direct hit damage */
+const GRENADE_MAX_DAMAGE = 70;
+
+/** Grenade knockback force */
+const GRENADE_KNOCKBACK = 3;
+
 /**
- * Throw grenade at target position
+ * Throw grenade at target position.
+ * Damage falls off with distance from blast center.
+ * Enemies are knocked back from explosion.
  */
 export function throwGrenade(
   enemies: SurfaceEnemy[],
   playerPos: Vector3,
   forward: Vector3
-): { kills: number; killedEnemies: SurfaceEnemy[] } {
-  const grenadePos = playerPos.add(forward.scale(10));
+): { kills: number; killedEnemies: SurfaceEnemy[]; damaged: number } {
+  const grenadePos = playerPos.add(forward.scale(12));
   grenadePos.y = 0;
 
   const killedEnemies: SurfaceEnemy[] = [];
+  let damagedCount = 0;
+
+  // Play grenade sound
+  getAudioManager().play('grenade_explosion', { volume: 0.7 });
 
   for (const enemy of enemies) {
     if (enemy.health <= 0) continue;
 
     const dist = Vector3.Distance(grenadePos, enemy.mesh.position);
-    if (dist < 5) {
-      const damage = 60 * (1 - dist / 5);
+    if (dist < GRENADE_BLAST_RADIUS) {
+      // Damage falls off quadratically with distance
+      const falloff = 1 - (dist / GRENADE_BLAST_RADIUS) ** 2;
+      const damage = GRENADE_MAX_DAMAGE * falloff;
       enemy.health -= damage;
+      damagedCount++;
+
+      // Knockback effect
+      const knockbackDir = enemy.mesh.position.subtract(grenadePos).normalize();
+      knockbackDir.y = 0.3; // Slight upward component
+      enemy.mesh.position.addInPlace(knockbackDir.scale(GRENADE_KNOCKBACK * falloff));
+
       flashEnemyRed(enemy.mesh);
-      particleManager.emitAlienSplatter(enemy.mesh.position, 0.6);
+      particleManager.emitAlienSplatter(enemy.mesh.position, 0.4 + falloff * 0.4);
 
       if (enemy.health <= 0) {
         killedEnemies.push(enemy);
@@ -266,9 +290,10 @@ export function throwGrenade(
     }
   }
 
+  // Explosion particle effect
   particleManager.emitSmallExplosion(grenadePos);
 
-  return { kills: killedEnemies.length, killedEnemies };
+  return { kills: killedEnemies.length, killedEnemies, damaged: damagedCount };
 }
 
 // ============================================================================

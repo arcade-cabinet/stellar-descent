@@ -22,9 +22,42 @@ import { DefaultRenderingPipeline } from '@babylonjs/core/PostProcesses/RenderPi
 import type { Scene } from '@babylonjs/core/scene';
 import type { LevelType } from '../levels/types';
 
-// Side effect imports for post-processing
+// Side effect imports for post-processing pipeline
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
 import '@babylonjs/core/PostProcesses/RenderPipeline/postProcessRenderPipelineManagerSceneComponent';
+
+// Side effect imports for individual post-process shaders
+// These must be imported to ensure shaders are bundled and registered in Effect.ShadersStore
+// Without these, BabylonJS attempts dynamic imports which may fail with SPA routing
+
+// Core shaders used by DefaultRenderingPipeline
+import '@babylonjs/core/Shaders/chromaticAberration.fragment';
+import '@babylonjs/core/Shaders/grain.fragment';
+import '@babylonjs/core/Shaders/sharpen.fragment';
+import '@babylonjs/core/Shaders/fxaa.fragment';
+import '@babylonjs/core/Shaders/fxaa.vertex';
+import '@babylonjs/core/Shaders/imageProcessing.fragment';
+import '@babylonjs/core/Shaders/pass.fragment';
+
+// Bloom effect shaders
+import '@babylonjs/core/Shaders/bloomMerge.fragment';
+import '@babylonjs/core/Shaders/extractHighlights.fragment';
+
+// Depth of field shaders
+import '@babylonjs/core/Shaders/circleOfConfusion.fragment';
+import '@babylonjs/core/Shaders/depthOfField.fragment';
+import '@babylonjs/core/Shaders/depthOfFieldMerge.fragment';
+
+// Post-process classes (import to trigger shader registration)
+import '@babylonjs/core/PostProcesses/chromaticAberrationPostProcess';
+import '@babylonjs/core/PostProcesses/grainPostProcess';
+import '@babylonjs/core/PostProcesses/sharpenPostProcess';
+import '@babylonjs/core/PostProcesses/bloomEffect';
+import '@babylonjs/core/PostProcesses/fxaaPostProcess';
+import '@babylonjs/core/PostProcesses/imageProcessingPostProcess';
+import '@babylonjs/core/PostProcesses/depthOfFieldEffect';
+import '@babylonjs/core/PostProcesses/extractHighlightsPostProcess';
+import '@babylonjs/core/PostProcesses/blurPostProcess';
 
 // ============================================================================
 // TYPES AND CONFIGURATION

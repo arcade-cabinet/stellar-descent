@@ -58,6 +58,10 @@ export type SoundEffect =
   | 'near_miss_whoosh'
   | 'near_miss_ice'
   | 'near_miss_metal'
+  // HALO drop environment sounds
+  | 'asteroid_rumble'
+  | 'grenade_explosion'
+  | 'grenade_throw'
   // Hive collapse sounds
   | 'collapse_rumble'
   | 'collapse_crack'

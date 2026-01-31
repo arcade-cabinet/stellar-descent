@@ -80,8 +80,8 @@ export const ICE_SHARD_PROJECTILE = {
   slowFactor: 0.7,
   /** Visual trail length */
   trailLength: 3,
-  /** Spread angle for burst fire (radians) */
-  burstSpreadAngle: 0.15,
+  /** Spread angle for burst fire (radians) - wider for visual differentiation */
+  burstSpreadAngle: 0.25,
   /** Number of shards in a burst */
   burstCount: 3,
   /** Cooldown between bursts (seconds) */
@@ -190,9 +190,9 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
   if (bodyNode) {
     bodyNode.parent = root;
     // Scale the alien model to match the Ice Chitin size
-    // (larger than a Skitterer but shorter than a Lurker)
-    bodyNode.scaling.setAll(0.8);
-    bodyNode.position.y = 0.8;
+    // (similar proportions to Lurker for threatening presence)
+    bodyNode.scaling.setAll(1.1);
+    bodyNode.position.y = 0.9;
 
     // Apply ice-blue frost tint to all body meshes
     applyIceTint(scene, bodyNode, seed);
@@ -201,13 +201,13 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
   }
 
   // --- Frost Aura Indicator (VFX -- kept as MeshBuilder) ---
-
+  // Diameter should represent actual aura radius for gameplay clarity
   const auraRing = MeshBuilder.CreateTorus(
     'frost_aura_ring',
     {
-      diameter: FROST_AURA.radius * 0.15, // Scaled-down visual indicator
-      thickness: 0.02,
-      tessellation: 16,
+      diameter: FROST_AURA.radius * 0.5, // Visual representation of aura range
+      thickness: 0.03,
+      tessellation: 24,
     },
     scene
   );
@@ -311,9 +311,10 @@ export function createDormantCocoonMesh(scene: Scene, seed: number): TransformNo
 
   if (bodyNode) {
     bodyNode.parent = root;
-    // Crouched/compressed pose -- squished vertically, scaled down
-    bodyNode.scaling.set(0.6, 0.45, 0.6);
-    bodyNode.position.y = 0.5;
+    // Crouched/compressed pose -- moderately squished vertically
+    // Less extreme ratio for more natural curled-up appearance
+    bodyNode.scaling.set(0.7, 0.55, 0.7);
+    bodyNode.position.y = 0.45;
 
     // Heavy frost overlay -- almost entirely white-blue ice encasement
     const meshes = bodyNode.getChildMeshes(false);
@@ -330,33 +331,40 @@ export function createDormantCocoonMesh(scene: Scene, seed: number): TransformNo
   }
 
   // --- Surface frost crystals (VFX -- kept as MeshBuilder) ---
-  const crystalCount = 4 + Math.floor(random() * 4);
+  const crystalCount = 5 + Math.floor(random() * 4);
   const crystalMat = new StandardMaterial(`cocoon_crystal_${seed}`, scene);
   crystalMat.diffuseColor = new Color3(0.75, 0.88, 1.0);
-  crystalMat.alpha = 0.6;
+  crystalMat.alpha = 0.65;
   crystalMat.emissiveColor = new Color3(0.1, 0.2, 0.35);
+  crystalMat.specularColor = new Color3(0.8, 0.9, 1.0);
+  crystalMat.specularPower = 128;
 
   for (let i = 0; i < crystalCount; i++) {
+    const crystalHeight = 0.18 + random() * 0.25;
     const crystal = MeshBuilder.CreateCylinder(
       `cocoon_crystal_${i}`,
       {
-        height: 0.15 + random() * 0.2,
+        height: crystalHeight,
         diameterTop: 0,
-        diameterBottom: 0.04 + random() * 0.03,
+        diameterBottom: 0.05 + random() * 0.04,
         tessellation: 4,
       },
       scene
     );
     crystal.material = crystalMat;
     crystal.parent = root;
+    // Calculate angle first, then position based on angle
     const angle = (i / crystalCount) * Math.PI * 2;
+    const radialDist = 0.55 + random() * 0.2;
+    // Set position, then apply rotation - order matters for correct orientation
     crystal.position.set(
-      Math.cos(angle) * (0.5 + random() * 0.2),
-      0.7 + random() * 0.4 - 0.2,
-      Math.sin(angle) * (0.4 + random() * 0.2)
+      Math.cos(angle) * radialDist,
+      0.65 + random() * 0.35,
+      Math.sin(angle) * radialDist
     );
-    crystal.rotation.x = (random() - 0.5) * 0.8;
-    crystal.rotation.z = (random() - 0.5) * 0.8;
+    // Tilt crystals outward from center for more natural formation
+    crystal.rotation.x = (random() - 0.5) * 0.6;
+    crystal.rotation.z = angle + (random() - 0.5) * 0.4;
   }
 
   // --- Faint inner glow (VFX -- kept as MeshBuilder) ---

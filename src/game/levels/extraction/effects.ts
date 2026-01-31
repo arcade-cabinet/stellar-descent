@@ -19,14 +19,16 @@ import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { AssetManager } from '../../core/AssetManager';
 
-import type { DebrisChunk, FallingStalactite, HealthPickup, CrumblingWall } from './types';
+import type { DebrisChunk, FallingStalactite, HealthPickup, CrumblingWall, SupplyDrop } from './types';
 import {
   GLB_SUPPLY_DROP,
+  GLB_AMMO_BOX,
   GLB_CRUMBLING_WALL,
   LZ_POSITION,
   COLLAPSE_HEALTH_PICKUP_POSITIONS,
   COLLAPSE_HEALTH_PICKUP_AMOUNTS,
   CRUMBLING_WALL_CONFIGS,
+  SUPPLY_DROP_RADIUS,
 } from './constants';
 
 // ============================================================================
@@ -68,6 +70,7 @@ export function spawnTunnelDebris(scene: Scene, playerZ: number): DebrisChunk {
 
 /**
  * Spawn a debris chunk during collapse sequence
+ * FIX #26: Varied debris colors
  */
 export function spawnCollapseDebris(
   scene: Scene,
@@ -80,8 +83,16 @@ export function spawnCollapseDebris(
     scene
   );
 
-  const debrisMat = new StandardMaterial('collapseDebrisMat', scene);
-  debrisMat.diffuseColor = new Color3(0.4, 0.25, 0.2);
+  // FIX #26: Vary debris colors for visual interest
+  const debrisMat = new StandardMaterial(`collapseDebrisMat_${Date.now()}`, scene);
+  const colorVariant = Math.random();
+  if (colorVariant < 0.33) {
+    debrisMat.diffuseColor = new Color3(0.4 + Math.random() * 0.1, 0.25, 0.2);
+  } else if (colorVariant < 0.66) {
+    debrisMat.diffuseColor = new Color3(0.35, 0.3 + Math.random() * 0.1, 0.25);
+  } else {
+    debrisMat.diffuseColor = new Color3(0.3, 0.2, 0.25 + Math.random() * 0.1);
+  }
   debris.material = debrisMat;
 
   // Spawn from origin or random position near player path
@@ -155,11 +166,15 @@ export function updateDebris(
 
 /**
  * Spawn a falling stalactite with warning shadow
+ * FIX #25: Added spawn randomization
  */
 export function spawnFallingStalactite(scene: Scene, playerPosition: Vector3): FallingStalactite {
-  const spawnX = playerPosition.x + (Math.random() - 0.5) * 60;
-  const spawnZ = playerPosition.z - 15 - Math.random() * 80;
-  const spawnY = 25 + Math.random() * 15;
+  // FIX #25: Spawn in front of player path with more variance
+  const angle = Math.random() * Math.PI * 2;
+  const distance = 20 + Math.random() * 40;
+  const spawnX = playerPosition.x + Math.cos(angle) * distance * 0.5;
+  const spawnZ = playerPosition.z - 15 - Math.random() * 60 - distance * 0.3;
+  const spawnY = 20 + Math.random() * 20;
 
   // Create stalactite mesh
   const stalactite = MeshBuilder.CreateCylinder(
@@ -429,6 +444,7 @@ export function updateCollapseLight(light: PointLight, collapseIntensity: number
 
 /**
  * Create health pickups along collapse escape route
+ * FIX #23: Changed glow color to red/white for health clarity
  */
 export function createCollapseHealthPickups(scene: Scene): HealthPickup[] {
   const pickups: HealthPickup[] = [];
@@ -445,15 +461,15 @@ export function createCollapseHealthPickups(scene: Scene): HealthPickup[] {
       pickupNode.position = COLLAPSE_HEALTH_PICKUP_POSITIONS[i].clone();
       pickupNode.scaling.setAll(1.0);
 
-      // Add glow light
+      // FIX #23: Red/white glow for health pickup (medical cross colors)
       const glowLight = new PointLight(
         `pickupLight_${i}`,
         COLLAPSE_HEALTH_PICKUP_POSITIONS[i],
         scene
       );
-      glowLight.diffuse = new Color3(0.2, 1, 0.3);
-      glowLight.intensity = 15;
-      glowLight.range = 10;
+      glowLight.diffuse = new Color3(1, 0.3, 0.3); // Red for health
+      glowLight.intensity = 18;
+      glowLight.range = 12;
       glowLight.parent = pickupNode;
 
       pickups.push({
@@ -528,6 +544,7 @@ export function createCrumblingWalls(scene: Scene): CrumblingWall[] {
 
 /**
  * Update crumbling walls based on collapse intensity
+ * FIX #24: Added easing for smoother animation
  */
 export function updateCrumblingWalls(
   walls: CrumblingWall[],
@@ -540,11 +557,18 @@ export function updateCrumblingWalls(
     if (collapseIntensity > startThreshold && wall.progress < 1) {
       wall.progress += deltaTime * 0.3;
 
-      // Rotate wall forward as it falls
-      wall.mesh.rotation.x = wall.progress * (Math.PI / 2);
+      // FIX #24: Apply easing curve for smoother animation
+      // Ease-in-out for more natural fall
+      const easedProgress = wall.progress < 0.5
+        ? 2 * wall.progress * wall.progress
+        : 1 - Math.pow(-2 * wall.progress + 2, 2) / 2;
 
-      // Lower the wall as it falls
-      wall.mesh.position.y = wall.startY * (1 - wall.progress * 0.5);
+      // Rotate wall forward as it falls (with easing)
+      wall.mesh.rotation.x = easedProgress * (Math.PI / 2);
+
+      // Lower the wall as it falls (accelerating)
+      const fallEase = wall.progress * wall.progress; // Quadratic fall
+      wall.mesh.position.y = wall.startY * (1 - fallEase * 0.6);
 
       // Trigger shake when wall starts falling
       if (wall.progress > 0.1 && wall.progress < 0.15) {
@@ -553,9 +577,10 @@ export function updateCrumblingWalls(
       }
 
       // Impact when fully fallen
-      if (wall.progress >= 1) {
-        triggerShake(4);
-        particleManager.emitDustImpact(wall.mesh.position.clone(), 3);
+      if (wall.progress >= 0.95 && wall.progress < 1) {
+        triggerShake(5);
+        particleManager.emitDustImpact(wall.mesh.position.clone(), 4);
+        getAudioManager().play('debris_impact', { volume: 0.6 });
       }
     }
   }
@@ -567,23 +592,25 @@ export function updateCrumblingWalls(
 
 /**
  * Create objective marker at dropship location
+ * FIX #28: Reduced marker height to not obscure view
  */
 export function createObjectiveMarker(scene: Scene, position: Vector3): {
   marker: Mesh;
   beacon: PointLight;
 } {
+  // FIX #28: Reduced height from 100 to 40 for better visibility
   const marker = MeshBuilder.CreateCylinder(
     'objectiveMarker',
-    { height: 100, diameter: 6 },
+    { height: 40, diameter: 4 },
     scene
   );
   const markerMat = new StandardMaterial('objectiveMarkerMat', scene);
   markerMat.emissiveColor = new Color3(0.2, 0.8, 1);
-  markerMat.alpha = 0.3;
+  markerMat.alpha = 0.25;
   markerMat.disableLighting = true;
   marker.material = markerMat;
   marker.position = position.clone();
-  marker.position.y = 50;
+  marker.position.y = 20; // Lower position
 
   const beacon = new PointLight('objectiveBeacon', position.clone(), scene);
   beacon.diffuse = new Color3(0.3, 0.9, 1);
@@ -662,6 +689,143 @@ export function updateCollapseAudio(
     newGroanTimer,
     newScreamTime,
   };
+}
+
+// ============================================================================
+// SUPPLY DROPS - FIX #1, #6, #11
+// ============================================================================
+
+/**
+ * Supply drop spawn positions around the LZ
+ */
+const SUPPLY_DROP_POSITIONS = [
+  new Vector3(LZ_POSITION.x - 12, 0, LZ_POSITION.z + 8),
+  new Vector3(LZ_POSITION.x + 12, 0, LZ_POSITION.z + 8),
+  new Vector3(LZ_POSITION.x - 10, 0, LZ_POSITION.z - 10),
+  new Vector3(LZ_POSITION.x + 10, 0, LZ_POSITION.z - 10),
+];
+
+let supplyDropIndex = 0;
+
+/**
+ * Spawn a supply drop at a predetermined position
+ * FIX #1: Implement supply drop spawning
+ * FIX #11: Ammo resupply between waves
+ */
+export async function spawnSupplyDrop(
+  scene: Scene,
+  type: 'health' | 'ammo'
+): Promise<SupplyDrop | null> {
+  const position = SUPPLY_DROP_POSITIONS[supplyDropIndex % SUPPLY_DROP_POSITIONS.length];
+  supplyDropIndex++;
+
+  const modelPath = type === 'health' ? GLB_SUPPLY_DROP : GLB_AMMO_BOX;
+  const dropNode = AssetManager.createInstanceByPath(
+    modelPath,
+    `supplyDrop_${type}_${Date.now()}`,
+    scene,
+    false
+  );
+
+  if (!dropNode) return null;
+
+  // Spawn above and drop down
+  dropNode.position = position.clone();
+  dropNode.position.y = 15;
+  dropNode.scaling.setAll(type === 'health' ? 1.2 : 1.5);
+
+  // Add glow light
+  const glowLight = new PointLight(
+    `supplyDropLight_${Date.now()}`,
+    position.clone(),
+    scene
+  );
+  glowLight.diffuse = type === 'health'
+    ? new Color3(0.2, 1, 0.3)  // Green for health
+    : new Color3(1, 0.8, 0.2); // Yellow for ammo
+  glowLight.intensity = 20;
+  glowLight.range = 12;
+  glowLight.parent = dropNode;
+
+  // Animate drop
+  const dropAnim = new Animation(
+    'supplyDropFall',
+    'position.y',
+    30,
+    Animation.ANIMATIONTYPE_FLOAT,
+    Animation.ANIMATIONLOOPMODE_CONSTANT
+  );
+
+  const easing = new CubicEase();
+  easing.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+  dropAnim.setEasingFunction(easing);
+
+  dropAnim.setKeys([
+    { frame: 0, value: 15 },
+    { frame: 45, value: 0.5 },
+  ]);
+
+  dropNode.animations = [dropAnim];
+  scene.beginAnimation(dropNode, 0, 45, false);
+
+  // Play drop sound
+  getAudioManager().play('drop_impact', { volume: 0.5 });
+
+  // Emit smoke trail
+  particleManager.emit('smoke', position.clone().addInPlace(new Vector3(0, 10, 0)), { scale: 0.8 });
+
+  return {
+    mesh: dropNode as unknown as Mesh,
+    type,
+    collected: false,
+    amount: type === 'health' ? 50 : 60, // Health restore or ammo count
+  };
+}
+
+/**
+ * Update supply drops - check for collection
+ * FIX #6: Implement supply drop collection
+ */
+export function updateSupplyDrops(
+  supplyDrops: SupplyDrop[],
+  playerPosition: Vector3
+): { healthRestore: number; ammoRestore: number; collectedDrop: SupplyDrop | null } {
+  for (const drop of supplyDrops) {
+    if (drop.collected) continue;
+
+    const dist = Vector3.Distance(drop.mesh.position, playerPosition);
+    if (dist < SUPPLY_DROP_RADIUS) {
+      drop.collected = true;
+      drop.mesh.setEnabled(false);
+
+      // Collection effect
+      particleManager.emitMuzzleFlash(drop.mesh.position.clone(), new Vector3(0, 1, 0), 0.6);
+      getAudioManager().play('audio_log_pickup', { volume: 0.6 });
+
+      if (drop.type === 'health') {
+        return { healthRestore: drop.amount, ammoRestore: 0, collectedDrop: drop };
+      } else {
+        return { healthRestore: 0, ammoRestore: drop.amount, collectedDrop: drop };
+      }
+    }
+  }
+
+  return { healthRestore: 0, ammoRestore: 0, collectedDrop: null };
+}
+
+/**
+ * Make supply drops bob and pulse
+ */
+export function animateSupplyDrops(supplyDrops: SupplyDrop[], time: number): void {
+  for (const drop of supplyDrops) {
+    if (drop.collected) continue;
+
+    // Gentle bob
+    drop.mesh.position.y = 0.5 + Math.sin(time * 2) * 0.2;
+
+    // Slow rotation
+    drop.mesh.rotation.y += 0.02;
+  }
 }
 
 // ============================================================================

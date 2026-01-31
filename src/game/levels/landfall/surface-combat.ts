@@ -197,6 +197,7 @@ export function spawnFirstEncounterEnemy(
 
 /**
  * Updates enemy AI state and movement.
+ * Includes strafing, flanking, and retreat behaviors.
  */
 export function updateEnemyAI(
   enemy: SurfaceEnemy,
@@ -214,7 +215,8 @@ export function updateEnemyAI(
   toPlayer.y = 0;
   const dist = toPlayer.length();
 
-  const attackRange = 2.0;
+  const attackRange = 2.5;
+  const strafeRange = 8.0;
   const baseChaseSpeed = 4.0;
   const chaseSpeed = baseChaseSpeed * speedMultiplier;
 
@@ -222,9 +224,42 @@ export function updateEnemyAI(
     enemy.state = 'chase';
   }
 
+  // Low health - retreat behavior
+  if (enemy.health < enemy.maxHealth * 0.3 && dist < strafeRange) {
+    const retreatDir = toPlayer.normalize().scale(-1);
+    const lateralOffset = new Vector3(
+      Math.sin(performance.now() * 0.003) * 0.5,
+      0,
+      Math.cos(performance.now() * 0.003) * 0.5
+    );
+    const moveDir = retreatDir.add(lateralOffset).normalize();
+    enemy.mesh.position.addInPlace(moveDir.scale(chaseSpeed * 0.7 * deltaTime));
+    enemy.mesh.position.y = 1;
+
+    const angle = Math.atan2(toPlayer.x, toPlayer.z);
+    enemy.mesh.rotation.y = angle;
+    return;
+  }
+
   if (dist < attackRange) {
     enemy.state = 'attack';
+    // Slight bobbing during attack stance
+    enemy.mesh.position.y = 1 + Math.sin(performance.now() * 0.015) * 0.05;
+  } else if (dist < strafeRange && dist > attackRange) {
+    // Strafe around player at medium range
+    enemy.state = 'chase';
+    const strafeAngle = performance.now() * 0.002 + enemy.mesh.position.x * 0.1;
+    const strafeDir = new Vector3(Math.cos(strafeAngle), 0, Math.sin(strafeAngle));
+    const approachDir = toPlayer.normalize();
+    const moveDir = approachDir.scale(0.7).add(strafeDir.scale(0.3)).normalize();
+
+    enemy.mesh.position.addInPlace(moveDir.scale(chaseSpeed * deltaTime));
+    enemy.mesh.position.y = 1 + Math.sin(performance.now() * 0.01) * 0.1;
+
+    const angle = Math.atan2(toPlayer.x, toPlayer.z);
+    enemy.mesh.rotation.y = angle;
   } else {
+    // Chase directly
     enemy.state = 'chase';
     const moveDir = toPlayer.normalize();
     enemy.mesh.position.addInPlace(moveDir.scale(chaseSpeed * deltaTime));
@@ -233,8 +268,13 @@ export function updateEnemyAI(
     const angle = Math.atan2(toPlayer.x, toPlayer.z);
     enemy.mesh.rotation.y = angle;
 
+    // Bobbing animation while moving
     enemy.mesh.position.y = 1 + Math.sin(performance.now() * 0.01) * 0.1;
   }
+
+  // Clamp to terrain bounds
+  enemy.mesh.position.x = Math.max(-TERRAIN_BOUNDS + 5, Math.min(TERRAIN_BOUNDS - 5, enemy.mesh.position.x));
+  enemy.mesh.position.z = Math.max(-TERRAIN_BOUNDS + 5, Math.min(TERRAIN_BOUNDS - 5, enemy.mesh.position.z));
 }
 
 // ---------------------------------------------------------------------------

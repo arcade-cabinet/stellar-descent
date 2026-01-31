@@ -1,6 +1,13 @@
 /**
  * LandfallLevel HALO Drop Mechanics
  * Freefall, asteroid dodging, descent physics, and visual effects.
+ *
+ * Key Features:
+ * - Procedural asteroid spawning with GLB models
+ * - Multi-type asteroids (rock, ice, metal) with distinct trails
+ * - Distant threat vehicles for atmosphere
+ * - Re-entry particle effects (plasma, smoke, heat distortion)
+ * - Wind streak speed indicators
  */
 
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
@@ -14,6 +21,7 @@ import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
+import { getAudioManager } from '../../core/AudioManager';
 import type { Asteroid, AsteroidType, DistantThreat, DistantThreatDefinition } from './types';
 import { ASTEROID_GLB_PATHS } from './constants';
 
@@ -149,6 +157,11 @@ export function spawnAsteroid(
   let trail: ParticleSystem | undefined;
   if (size > 2.0 && particleTexture) {
     trail = createAsteroidTrail(asteroidNode, asteroidType, scene, particleTexture);
+  }
+
+  // Play distant rumble for large asteroids
+  if (size > 2.0) {
+    getAudioManager().play('asteroid_rumble', { volume: 0.2 + size * 0.05 });
   }
 
   return {

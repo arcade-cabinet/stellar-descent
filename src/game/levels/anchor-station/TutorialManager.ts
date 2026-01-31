@@ -407,8 +407,39 @@ export class TutorialManager {
   }
 
   dispose(): void {
-    if (this.waitTimer) clearTimeout(this.waitTimer);
-    if (this.commsTimer) clearTimeout(this.commsTimer);
+    if (this.waitTimer) {
+      clearTimeout(this.waitTimer);
+      this.waitTimer = null;
+    }
+    if (this.commsTimer) {
+      clearTimeout(this.commsTimer);
+      this.commsTimer = null;
+    }
     this.isActive = false;
+    this.callbacks = {};
+    this.canInteract = false;
+    this.interactCallback = null;
+  }
+
+  /**
+   * Get progress through the tutorial as a percentage (0-100).
+   */
+  getProgress(): number {
+    if (this.steps.length === 0) return 0;
+    return Math.round((this.currentStepIndex / this.steps.length) * 100);
+  }
+
+  /**
+   * Get the total number of steps in the tutorial.
+   */
+  getTotalSteps(): number {
+    return this.steps.length;
+  }
+
+  /**
+   * Get the current step index (0-based).
+   */
+  getCurrentStepIndex(): number {
+    return this.currentStepIndex;
   }
 }

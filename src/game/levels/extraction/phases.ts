@@ -15,6 +15,7 @@ import {
   HIVE_COLLAPSE_TIMER,
 } from './constants';
 import { prepareWaveSpawnQueue } from './enemies';
+import { loadDifficultySetting, type DifficultyLevel } from '../../core/DifficultySettings';
 
 // ============================================================================
 // PHASE STATE
@@ -106,9 +107,10 @@ export function getTotalWaves(): number {
 
 /**
  * Calculate total enemy count for a wave
+ * FIX #3: Added husks to count
  */
 export function getWaveEnemyCount(config: WaveConfig): number {
-  return config.drones + config.grunts + config.spitters + config.brutes;
+  return config.drones + config.grunts + config.spitters + config.brutes + (config.husks || 0);
 }
 
 // ============================================================================
@@ -145,6 +147,7 @@ export function startWaveAnnouncement(state: WaveState): WaveState {
 
 /**
  * Start active wave combat
+ * FIX #3: Pass husks to spawn queue
  */
 export function startWave(state: WaveState, waveNumber: number): WaveState {
   const config = getWaveConfig(waveNumber);
@@ -156,7 +159,8 @@ export function startWave(state: WaveState, waveNumber: number): WaveState {
     config.drones,
     config.grunts,
     config.spitters,
-    config.brutes
+    config.brutes,
+    config.husks || 0
   );
 
   return {
@@ -338,6 +342,53 @@ export function getMechIntegrityCapForWave(waveNumber: number): number {
 }
 
 // ============================================================================
+// DIFFICULTY SCALING - FIX #2
+// ============================================================================
+
+/**
+ * Difficulty multipliers for enemy counts
+ * FIX #2: Scale wave difficulty based on game settings
+ */
+const DIFFICULTY_ENEMY_MULTIPLIERS: Record<DifficultyLevel, number> = {
+  normal: 1.0,
+  veteran: 1.3,
+  legendary: 1.6,
+};
+
+/**
+ * Get scaled wave configuration based on difficulty
+ * FIX #2: Proper difficulty scaling for wave configs
+ */
+export function getScaledWaveConfig(waveNumber: number): WaveConfig | undefined {
+  const baseConfig = getWaveConfig(waveNumber);
+  if (!baseConfig) return undefined;
+
+  const difficulty = loadDifficultySetting();
+  const multiplier = DIFFICULTY_ENEMY_MULTIPLIERS[difficulty];
+
+  // On easy, reduce enemy counts. On hard/nightmare, increase them.
+  return {
+    ...baseConfig,
+    drones: Math.max(1, Math.round(baseConfig.drones * multiplier)),
+    grunts: Math.max(0, Math.round(baseConfig.grunts * multiplier)),
+    spitters: Math.max(0, Math.round(baseConfig.spitters * multiplier)),
+    brutes: baseConfig.brutes, // Brutes don't scale (mini-boss count fixed)
+    husks: Math.max(0, Math.round((baseConfig.husks || 0) * multiplier)),
+    // Spawn delay scales inversely (faster on hard)
+    spawnDelay: baseConfig.spawnDelay * (2 - multiplier),
+  };
+}
+
+/**
+ * Check if a supply drop should spawn after this wave
+ * FIX #11: Supply drop scheduling
+ */
+export function shouldSpawnSupplyDrop(waveNumber: number): boolean {
+  const config = getWaveConfig(waveNumber);
+  return config?.supplyDropAfter ?? false;
+}
+
+// ============================================================================
 // HUD FORMATTING
 // ============================================================================
 
@@ -352,6 +403,7 @@ export function formatTime(seconds: number): string {
 
 /**
  * Get HUD display for current wave state
+ * FIX #5: Improved wave progress display
  */
 export function getWaveHUDDisplay(
   state: WaveState,
@@ -361,35 +413,38 @@ export function getWaveHUDDisplay(
   activeEnemyCount: number
 ): { title: string; description: string } {
   const timerStr = formatTime(Math.max(0, dropshipETA));
+  const waveProgress = `[${state.currentWave}/${TOTAL_WAVES}]`; // FIX #5: Always show wave progress
 
   switch (state.wavePhase) {
     case 'intermission': {
       const countdownInt = Math.ceil(state.intermissionCountdown);
       return {
-        title: `NEXT WAVE IN ${countdownInt}s`,
-        description: `DROPSHIP ETA: ${timerStr} | KILLS: ${kills} | MECH: ${Math.floor(Math.max(0, mechIntegrity))}%`,
+        title: `NEXT WAVE IN ${countdownInt}s ${waveProgress}`,
+        description: `DROPSHIP: ${timerStr} | KILLS: ${kills} | MECH: ${Math.floor(Math.max(0, mechIntegrity))}%`,
       };
     }
 
     case 'announcement': {
       const config = getWaveConfig(state.currentWave);
       return {
-        title: config?.waveTitle ?? 'WAVE INCOMING',
+        title: config?.waveTitle ?? `WAVE ${state.currentWave} INCOMING`,
         description: config?.waveDescription ?? 'Prepare for combat!',
       };
     }
 
     case 'active': {
+      // FIX #5: Show enemies remaining and spawning status
+      const spawnStatus = state.enemiesToSpawn.length > 0 ? ' [SPAWNING]' : '';
       return {
-        title: `WAVE ${state.currentWave}/${TOTAL_WAVES}`,
-        description: `ENEMIES: ${activeEnemyCount} | DROPSHIP: ${timerStr} | MECH: ${Math.floor(Math.max(0, mechIntegrity))}%`,
+        title: `WAVE ${state.currentWave}/${TOTAL_WAVES}${spawnStatus}`,
+        description: `HOSTILES: ${activeEnemyCount} | ETA: ${timerStr} | MECH: ${Math.floor(Math.max(0, mechIntegrity))}%`,
       };
     }
 
     case 'waiting':
     default: {
       return {
-        title: 'LZ OMEGA - HOLDOUT',
+        title: `LZ OMEGA - HOLDOUT ${waveProgress}`,
         description: `DROPSHIP ETA: ${timerStr} | TOTAL KILLS: ${kills}`,
       };
     }

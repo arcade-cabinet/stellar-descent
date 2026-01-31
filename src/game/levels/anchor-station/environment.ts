@@ -414,6 +414,23 @@ const modelCache = new Map<string, AbstractMesh[]>();
 const MODEL_LOAD_TIMEOUT = 10_000;
 
 /**
+ * Clear the model cache to free memory.
+ * Should be called when disposing the environment or reloading the level.
+ */
+export function clearModelCache(): void {
+  // Dispose all cached meshes before clearing
+  for (const [, meshes] of modelCache) {
+    for (const mesh of meshes) {
+      if (!mesh.isDisposed()) {
+        mesh.dispose();
+      }
+    }
+  }
+  modelCache.clear();
+  console.log('[Environment] Model cache cleared');
+}
+
+/**
  * Load a GLB model, place it at the given position/rotation/scale,
  * and parent it to the given node. Returns the root transform.
  * Uses cloning after the first load for performance.
@@ -436,18 +453,32 @@ async function placeGLB(
   node.scaling = scale;
   node.parent = parent;
 
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
   try {
     let templateMeshes = modelCache.get(modelPath);
 
     if (!templateMeshes) {
-      // First load - import from disk
+      // First load - import from disk with timeout
       const loadPromise = SceneLoader.ImportMeshAsync('', modelPath, '', scene);
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout loading ${modelPath}`)), MODEL_LOAD_TIMEOUT)
-      );
-      const result = await Promise.race([loadPromise, timeoutPromise]);
-      templateMeshes = result.meshes;
-      modelCache.set(modelPath, templateMeshes);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`Timeout loading ${modelPath}`)),
+          MODEL_LOAD_TIMEOUT
+        );
+      });
+
+      try {
+        const result = await Promise.race([loadPromise, timeoutPromise]);
+        // Clear timeout on success
+        if (timeoutId) clearTimeout(timeoutId);
+        templateMeshes = result.meshes;
+        modelCache.set(modelPath, templateMeshes);
+      } catch (loadErr) {
+        // Clear timeout on error
+        if (timeoutId) clearTimeout(timeoutId);
+        throw loadErr;
+      }
 
       // Parent the original meshes
       for (const mesh of templateMeshes) {
@@ -473,6 +504,8 @@ async function placeGLB(
       }
     }
   } catch (err) {
+    // Ensure timeout is cleared on any error
+    if (timeoutId) clearTimeout(timeoutId);
     console.warn(`[Environment] Failed to load ${modelPath} for ${name}:`, err);
   }
 

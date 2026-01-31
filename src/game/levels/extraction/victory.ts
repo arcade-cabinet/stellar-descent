@@ -310,7 +310,8 @@ export function startDropshipArrival(ctx: VictoryContext): void {
       () => onDropshipHovering(ctx, hoverPos, landingPos)
     );
 
-    scheduleTimeout(ctx.state, () => Enemies.clearAllEnemies(ctx.enemies), 2000);
+    // FIX #20: Clear enemies immediately for cleaner cinematic
+    Enemies.clearAllEnemies(ctx.enemies);
   }, 2000);
 }
 

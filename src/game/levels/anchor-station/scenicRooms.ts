@@ -244,18 +244,30 @@ function placeProp(
 // Helper Functions
 // ============================================================================
 
+/**
+ * Add a ceiling-mounted point light for indoor illumination.
+ * @param scene - The Babylon scene
+ * @param parent - The parent transform node (unused but kept for API consistency)
+ * @param position - World position of the light
+ * @param color - Light color
+ * @param intensity - Light intensity (0-1)
+ * @param lights - Array to track all lights for disposal
+ * @param range - Light range in meters (default: 15)
+ */
 function addCeilingLight(
   scene: Scene,
-  _parent: TransformNode,
+  _parent: TransformNode, // Kept for potential future parenting
   position: Vector3,
   color: Color3,
   intensity: number,
-  lights: PointLight[]
+  lights: PointLight[],
+  range: number = 15
 ): PointLight {
   const light = new PointLight(`ceilingLight_${lights.length}`, position.clone(), scene);
   light.diffuse = color;
+  light.specular = color.scale(0.5); // Half intensity specular
   light.intensity = intensity;
-  light.range = 15;
+  light.range = range;
   lights.push(light);
 
   return light;

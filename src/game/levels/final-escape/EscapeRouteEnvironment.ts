@@ -628,15 +628,16 @@ function buildSectionC(
   rng: () => number
 ): void {
   // ------- Bridge segments from metal fences -------
-  // Create a narrower canyon feel with fence-bridges spanning gaps
+  // Create a canyon feel with fence-bridges spanning gaps
+  // Width increased to allow vehicle maneuvering (minimum 16m for safe passage)
   const bridgePositions = [
-    { z: -1550, width: 12 },
-    { z: -1700, width: 10 },
-    { z: -1850, width: 14 },
-    { z: -2000, width: 10 },
-    { z: -2150, width: 12 },
-    { z: -2300, width: 10 },
-    { z: -2420, width: 14 },
+    { z: -1550, width: 18 },
+    { z: -1700, width: 16 },
+    { z: -1850, width: 20 },
+    { z: -2000, width: 16 },
+    { z: -2150, width: 18 },
+    { z: -2300, width: 16 },
+    { z: -2420, width: 20 },
   ];
 
   for (let i = 0; i < bridgePositions.length; i++) {
@@ -744,6 +745,18 @@ function buildSectionC(
     light.intensity = 4 + rng() * 4;
     light.range = 20 + rng() * 10;
     lights.push(light);
+  }
+
+  // ------- Ambient fill lights for canyon navigation -------
+  // Ensure the canyon is visible enough for driving
+  for (let i = 0; i < 10; i++) {
+    const z = -1550 - i * 100;
+    const ambientLight = new PointLight(`canyon_ambient_${i}`, new Vector3(0, 12, z), scene);
+    ambientLight.parent = root;
+    ambientLight.diffuse = new Color3(0.8, 0.5, 0.3); // Warm ambient
+    ambientLight.intensity = 2;
+    ambientLight.range = 60;
+    lights.push(ambientLight);
   }
 
   // ------- Scattered debris: detail pieces -------
@@ -859,8 +872,18 @@ function buildSectionD(
     new Vector3(5, 1.5, 5),
     'launch_pad'
   );
-  // Cast to Mesh for compatibility with result interface (the node contains mesh children)
-  const launchPad = launchPadNode as unknown as Mesh;
+
+  // Create a procedural launch pad mesh for collision/interaction detection
+  // The GLB is purely visual; this mesh is for gameplay
+  const launchPad = MeshBuilder.CreateCylinder(
+    'launch_pad_collision',
+    { diameter: 40, height: 0.5, tessellation: 32 },
+    scene
+  );
+  launchPad.position.set(0, -0.5, shuttleZ);
+  launchPad.isVisible = false; // Invisible collision mesh
+  launchPad.parent = root;
+  proceduralMeshes.push(launchPad);
 
   // ------- Pad edge markers (detail basics around the perimeter) -------
   for (let i = 0; i < 12; i++) {

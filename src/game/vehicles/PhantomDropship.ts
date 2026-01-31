@@ -470,12 +470,13 @@ export class PhantomDropship extends VehicleBase {
       this.yaw = 0;
     }
 
-    // Strafe
+    // Strafe (Q = left, no right strafe since E is exit)
+    // Players can use A/D for lateral movement instead
     if (this.isKeyDown('KeyQ')) {
       this.strafeInput = -1;
-    } else if (this.isKeyDown('KeyE') && !this.isKeyDown('KeyE')) {
-      // E is exit, handled in base. For strafe use alternative
-      this.strafeInput = 0;
+    } else if (this.isKeyDown('KeyR')) {
+      // R for right strafe since E is exit key
+      this.strafeInput = 1;
     } else {
       this.strafeInput = 0;
     }
@@ -740,14 +741,22 @@ export class PhantomDropship extends VehicleBase {
     }
   }
 
+  // Track last damage time for shield visual
+  private lastShieldDamageTime = 0;
+
   private updateShieldVisual(_deltaTime: number): void {
     if (!this.shieldMat || !this.shieldMesh) return;
 
     const shieldRatio = this.stats.shield / this.stats.maxShield;
     // Shield becomes visible when recently hit or when regenerating
-    const recentlyHit = performance.now() - (this as any).lastDamageTime < 500;
+    const recentlyHit = performance.now() - this.lastShieldDamageTime < 500;
     const targetAlpha = recentlyHit ? 0.15 + (1 - shieldRatio) * 0.2 : 0;
     this.shieldMat.alpha += (targetAlpha - this.shieldMat.alpha) * 0.1;
+  }
+
+  public override takeDamage(amount: number, source?: Vector3): void {
+    this.lastShieldDamageTime = performance.now();
+    super.takeDamage(amount, source);
   }
 
   // ------------------------------------------------------------------

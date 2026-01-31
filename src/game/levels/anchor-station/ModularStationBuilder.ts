@@ -473,10 +473,22 @@ export const MODULAR_ROOM_POSITIONS = {
   armory: new Vector3(10, 1.5, -16),
   weaponRack: new Vector3(12, 1.5, -16),
 
-  // HOLODECK - Platforming training
+  // HOLODECK / PLATFORMING ROOM - VR Training area
+  // Entry from corridor
   holodeckEntry: new Vector3(0, 1.5, -28),
+  platformingEntry: new Vector3(0, 1.5, -28), // Alias for tutorial compatibility
+  // Center of holodeck
   holodeckCenter: new Vector3(0, 1.5, -34),
+  // Platform positions for jump training (progressive heights)
+  platform1: new Vector3(-3, 1.5, -32), // First platform - starting point
+  platform2: new Vector3(0, 2.0, -34), // Second platform - requires jump
+  platform3: new Vector3(3, 2.5, -36), // Third platform - higher jump
+  // Crouch passage (low ceiling obstacle)
+  crouchPassageEntry: new Vector3(-2, 1.5, -37),
+  crouchPassageExit: new Vector3(2, 1.5, -39),
+  // Exit from holodeck
   holodeckExit: new Vector3(0, 1.5, -40),
+  platformingExit: new Vector3(0, 1.5, -40), // Alias for tutorial compatibility
 
   // SHOOTING RANGE
   shootingRange: new Vector3(0, 1.5, -52),

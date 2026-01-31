@@ -482,6 +482,188 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/models/environment/station-external/station04.glb',
     category: 'model',
     sizeKB: 533,
+  },
+
+  // SUPPLY/PICKUP PROPS - Gameplay Items
+  {
+    id: 'prop/supply_drop',
+    path: '/models/props/collectibles/supply_drop.glb',
+    category: 'model',
+    sizeKB: 80,
+  },
+
+  // FORTIFICATION PROPS - Defensive Structures
+  {
+    id: 'prop/cement_pallet_1',
+    path: '/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+    category: 'model',
+    sizeKB: 120,
+  },
+  {
+    id: 'prop/cement_pallet_2',
+    path: '/models/props/containers/cement_bags_mp_1_pallet_2.glb',
+    category: 'model',
+    sizeKB: 120,
+  },
+  {
+    id: 'station/shed_1',
+    path: '/models/environment/station/shed_ax_1.glb',
+    category: 'model',
+    sizeKB: 180,
+  },
+  {
+    id: 'station/shed_2',
+    path: '/models/environment/station/shed_ax_2.glb',
+    category: 'model',
+    sizeKB: 200,
+  },
+  {
+    id: 'station/platform_small',
+    path: '/models/environment/station/platform_small_mx_1.glb',
+    category: 'model',
+    sizeKB: 150,
+  },
+  {
+    id: 'station/platform_ax_1',
+    path: '/models/environment/station/platform_ax_1.glb',
+    category: 'model',
+    sizeKB: 160,
+  },
+
+  // WAREHOUSE BUILDINGS
+  {
+    id: 'station/warehouse_1',
+    path: '/models/environment/station/warehouse_mx_1.glb',
+    category: 'model',
+    sizeKB: 400,
+  },
+  {
+    id: 'station/warehouse_2',
+    path: '/models/environment/station/warehouse_mx_2.glb',
+    category: 'model',
+    sizeKB: 420,
+  },
+  {
+    id: 'station/garages_block',
+    path: '/models/environment/station/garages_block_hr_1.glb',
+    category: 'model',
+    sizeKB: 500,
+  },
+  {
+    id: 'station/garage_door_frame',
+    path: '/models/environment/station/garage_door_frame_hr_1.glb',
+    category: 'model',
+    sizeKB: 150,
+  },
+
+  // GROUND TILES - Asphalt
+  {
+    id: 'station/asphalt_large',
+    path: '/models/environment/station/asphalt_hr_1_large.glb',
+    category: 'model',
+    sizeKB: 200,
+  },
+  {
+    id: 'station/asphalt_1',
+    path: '/models/environment/station/asphalt_hr_1.glb',
+    category: 'model',
+    sizeKB: 180,
+  },
+
+  // PERIMETER WALLS
+  {
+    id: 'station/wall_hr_1',
+    path: '/models/environment/station/wall_hr_1.glb',
+    category: 'model',
+    sizeKB: 300,
+  },
+  {
+    id: 'station/wall_hr_15',
+    path: '/models/environment/station/wall_hr_15.glb',
+    category: 'model',
+    sizeKB: 320,
+  },
+
+  // CONTAINERS AND CLUTTER
+  {
+    id: 'prop/shipping_container',
+    path: '/models/environment/industrial/shipping_container_mx_1.glb',
+    category: 'model',
+    sizeKB: 250,
+  },
+  {
+    id: 'prop/wooden_crate_1',
+    path: '/models/props/containers/wooden_crate_1.glb',
+    category: 'model',
+    sizeKB: 60,
+  },
+  {
+    id: 'prop/metal_barrel',
+    path: '/models/props/containers/metal_barrel_hr_1.glb',
+    category: 'model',
+    sizeKB: 50,
+  },
+
+  // BARRACKS INTERIOR
+  {
+    id: 'prop/bench_1',
+    path: '/models/props/furniture/bench_mx_1.glb',
+    category: 'model',
+    sizeKB: 80,
+  },
+  {
+    id: 'prop/marine_body',
+    path: '/models/npcs/marine/marine_soldier.glb',
+    category: 'model',
+    sizeKB: 300,
+  },
+
+  // COMMAND CENTER
+  {
+    id: 'prop/computer',
+    path: '/models/environment/modular/Props_Computer.glb',
+    category: 'model',
+    sizeKB: 100,
+  },
+  {
+    id: 'prop/door_hr_6',
+    path: '/models/props/doors/door_hr_6.glb',
+    category: 'model',
+    sizeKB: 120,
+  },
+  {
+    id: 'prop/chimney',
+    path: '/models/environment/industrial/chimney_a_1.glb',
+    category: 'model',
+    sizeKB: 180,
+  },
+
+  // DETAIL ARROWS
+  {
+    id: 'modular/detail_arrow',
+    path: '/models/environment/modular/Details_Arrow.glb',
+    category: 'model',
+    sizeKB: 15,
+  },
+  {
+    id: 'modular/detail_arrow_2',
+    path: '/models/environment/modular/Details_Arrow_2.glb',
+    category: 'model',
+    sizeKB: 15,
+  },
+  {
+    id: 'modular/detail_plate_long',
+    path: '/models/environment/modular/Details_Plate_Long.glb',
+    category: 'model',
+    sizeKB: 20,
+  },
+
+  // UNDERGROUND HATCH
+  {
+    id: 'prop/hatch_door',
+    path: '/models/props/doors/door_hr_12.glb',
+    category: 'model',
+    sizeKB: 130,
   }
 ];
 
@@ -509,6 +691,41 @@ export const FOB_DELTA_MANIFEST: LevelManifest = {
   preload: [
     'enemy/soldier',
     'vehicle/wraith',
+    // Supply and fortification props
+    'prop/supply_drop',
+    'prop/cement_pallet_1',
+    'prop/cement_pallet_2',
+    'station/shed_1',
+    'station/shed_2',
+    'station/platform_small',
+    'station/platform_ax_1',
+    // Building structures
+    'station/warehouse_1',
+    'station/warehouse_2',
+    'station/garages_block',
+    'station/garage_door_frame',
+    // Ground tiles
+    'station/asphalt_large',
+    'station/asphalt_1',
+    // Perimeter walls
+    'station/wall_hr_1',
+    'station/wall_hr_15',
+    // Containers and clutter
+    'prop/shipping_container',
+    'prop/wooden_crate_1',
+    'prop/metal_barrel',
+    // Barracks interior
+    'prop/bench_1',
+    'prop/marine_body',
+    // Command center
+    'prop/computer',
+    'prop/door_hr_6',
+    'prop/chimney',
+    // Details
+    'modular/detail_arrow',
+    'modular/detail_arrow_2',
+    'modular/detail_plate_long',
+    'prop/hatch_door',
     'atmospheric/hallway_2',
     'station/wall_15',
     'station/floor_ceiling_4',

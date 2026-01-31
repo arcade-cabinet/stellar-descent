@@ -155,7 +155,8 @@ export function checkTrajectoryLost(positionX: number, positionZ: number): boole
 // ============================================================================
 
 /**
- * Determine landing outcome based on position and velocity
+ * Determine landing outcome based on position and velocity.
+ * Uses multiple factors for nuanced landing quality assessment.
  */
 export function determineLandingOutcome(
   positionX: number,
@@ -164,19 +165,60 @@ export function determineLandingOutcome(
 ): LandingOutcome {
   const distToLZ = Math.sqrt(positionX ** 2 + positionZ ** 2);
 
-  if (velocity > 60) {
-    return 'crash';
-  }
-  if (distToLZ <= LZ_RADIUS && velocity < 25) {
-    return 'perfect';
-  }
-  if (distToLZ <= NEAR_MISS_RADIUS) {
-    return velocity < 40 ? 'near_miss' : 'rough';
+  // Catastrophic outcomes first
+  if (velocity > 70) {
+    return 'crash'; // Too fast - unsurvivable
   }
   if (distToLZ > MAX_DRIFT) {
-    return 'slingshot';
+    return 'slingshot'; // Missed the drop zone entirely
   }
+
+  // Calculate a landing score based on multiple factors
+  const velocityScore = Math.max(0, 1 - (velocity / 40)); // 0-1, higher is better
+  const distanceScore = Math.max(0, 1 - (distToLZ / NEAR_MISS_RADIUS)); // 0-1, higher is better
+  const combinedScore = velocityScore * 0.6 + distanceScore * 0.4;
+
+  // Perfect landing: on pad, low velocity
+  if (distToLZ <= LZ_RADIUS && velocity < 20) {
+    return 'perfect';
+  }
+
+  // Near miss: close to pad, acceptable velocity
+  if (distToLZ <= NEAR_MISS_RADIUS && velocity < 35) {
+    return 'near_miss';
+  }
+
+  // Rough landing: higher velocity or further from pad
+  if (velocity > 50 || distToLZ > NEAR_MISS_RADIUS * 1.5) {
+    return 'rough';
+  }
+
+  // Default based on combined score
+  if (combinedScore > 0.5) {
+    return 'near_miss';
+  }
+
   return 'rough';
+}
+
+/**
+ * Calculate damage taken from landing based on outcome and velocity.
+ */
+export function calculateLandingDamage(outcome: LandingOutcome, velocity: number): number {
+  switch (outcome) {
+    case 'perfect':
+      return 0;
+    case 'near_miss':
+      return Math.max(0, (velocity - 20) * 0.5);
+    case 'rough':
+      return 15 + Math.max(0, (velocity - 30) * 0.8);
+    case 'crash':
+      return 40 + Math.max(0, (velocity - 50) * 1.2);
+    case 'slingshot':
+      return 100; // Fatal
+    default:
+      return 0;
+  }
 }
 
 // ============================================================================

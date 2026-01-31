@@ -152,9 +152,43 @@ class WorldDatabase {
   private persistTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly PERSIST_DEBOUNCE_MS = 1000;
 
+  /**
+   * Singleton initialization promise to prevent race conditions.
+   * Multiple callers may invoke init() simultaneously, but we only
+   * want to run initialization once.
+   */
+  private static initPromise: Promise<void> | null = null;
+
+  /**
+   * Initialize the world database.
+   * Safe to call multiple times concurrently - only the first call
+   * performs initialization, subsequent calls wait for completion.
+   */
   async init(): Promise<void> {
+    // Fast path: already initialized
     if (this.initialized) return;
 
+    // If initialization is already in progress, wait for it
+    if (WorldDatabase.initPromise) {
+      return WorldDatabase.initPromise;
+    }
+
+    // Start initialization and store the promise
+    WorldDatabase.initPromise = this.doInit();
+
+    try {
+      await WorldDatabase.initPromise;
+    } catch (error) {
+      // Reset the promise so initialization can be retried
+      WorldDatabase.initPromise = null;
+      throw error;
+    }
+  }
+
+  /**
+   * Perform actual initialization (internal method)
+   */
+  private async doInit(): Promise<void> {
     await capacitorDb.init();
     await this.createTables();
     this.initialized = true;

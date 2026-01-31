@@ -271,15 +271,24 @@ export class MechWarrior {
         .normalize();
       const velocity = direction.scale(this.entity.combat!.projectileSpeed);
 
-      // Arm recoil animation
-      const originalZ = arm.rotation.z;
-      const recoilZ = originalZ + (arm.position.x < 0 ? 0.2 : -0.2);
+      // Arm recoil animation - use requestAnimationFrame instead of setTimeout
+      const recoilDir = arm.position.x < 0 ? 0.2 : -0.2;
       const restZ = arm.position.x < 0 ? 0.3 : -0.3;
+      arm.rotation.z += recoilDir;
 
-      arm.rotation.z = recoilZ;
-      setTimeout(() => {
-        arm.rotation.z = restZ;
-      }, 100);
+      const startTime = performance.now();
+      const recoilDuration = 100;
+
+      const animateRecoil = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / recoilDuration, 1);
+        // Ease back to rest position
+        arm.rotation.z = arm.rotation.z + (restZ - arm.rotation.z) * progress * 0.3;
+        if (progress < 1) {
+          requestAnimationFrame(animateRecoil);
+        }
+      };
+      requestAnimationFrame(animateRecoil);
 
       createEntity({
         transform: {
@@ -315,6 +324,10 @@ export class MechWarrior {
   // Update (unchanged)
   // -----------------------------------------------------------------------
 
+  // Animation state
+  private walkAnimTime = 0;
+  private isMoving = false;
+
   update(deltaTime: number): void {
     // Move towards target position
     if (this.targetPosition) {
@@ -329,9 +342,24 @@ export class MechWarrior {
         const targetRotation = Math.atan2(direction.x, direction.z);
         this.rootNode.rotation.y = targetRotation;
 
-        // Walking animation
-        const time = performance.now() * 0.005;
-        this.legs.position.y = 3 + Math.sin(time) * 0.2;
+        // Enhanced walking animation with leg movement and body sway
+        this.isMoving = true;
+        this.walkAnimTime += deltaTime * 4; // Walking cycle speed
+
+        // Leg bobbing with rotation for more realistic walk
+        const legBob = Math.sin(this.walkAnimTime) * 0.3;
+        const legTilt = Math.sin(this.walkAnimTime * 2) * 0.05;
+        this.legs.position.y = 3 + legBob;
+        this.legs.rotation.z = legTilt;
+
+        // Body sway
+        this.body.rotation.z = Math.sin(this.walkAnimTime) * 0.02;
+        this.body.position.y = Math.abs(Math.sin(this.walkAnimTime)) * 0.1;
+      } else {
+        this.isMoving = false;
+        // Return to neutral pose
+        this.legs.rotation.z *= 0.9;
+        this.body.rotation.z *= 0.9;
       }
     }
 
@@ -357,6 +385,94 @@ export class MechWarrior {
       this.entity.transform.position = this.rootNode.position.clone();
       this.entity.transform.rotation = this.rootNode.rotation.clone();
     }
+  }
+
+  /**
+   * Apply damage to the mech with visual feedback
+   */
+  takeDamage(amount: number): void {
+    if (!this.entity.health) return;
+
+    this.entity.health.current = Math.max(0, this.entity.health.current - amount);
+
+    // Visual damage feedback - flash body red
+    this.flashDamage();
+
+    // Body stagger animation
+    const staggerDir = (Math.random() - 0.5) * 0.1;
+    this.body.rotation.x = staggerDir;
+    this.body.rotation.z = staggerDir * 0.5;
+
+    const staggerStart = performance.now();
+    const animateStagger = () => {
+      const elapsed = performance.now() - staggerStart;
+      const progress = Math.min(elapsed / 200, 1);
+      this.body.rotation.x *= 0.9;
+      this.body.rotation.z *= 0.9;
+      if (progress < 1) {
+        requestAnimationFrame(animateStagger);
+      }
+    };
+    requestAnimationFrame(animateStagger);
+
+    // Check for destruction
+    if (this.entity.health.current <= 0) {
+      this.onDestroyed();
+    }
+  }
+
+  /**
+   * Flash the mech body red briefly on damage
+   */
+  private flashDamage(): void {
+    const meshes = [this.body, this.leftArm, this.rightArm, this.legs];
+
+    for (const mesh of meshes) {
+      if (mesh?.material instanceof StandardMaterial) {
+        const originalEmissive = mesh.material.emissiveColor.clone();
+        mesh.material.emissiveColor = Color3.FromHexString('#FF2222');
+
+        setTimeout(() => {
+          if (mesh?.material instanceof StandardMaterial) {
+            mesh.material.emissiveColor = originalEmissive;
+          }
+        }, 100);
+      }
+    }
+  }
+
+  /**
+   * Handle mech destruction with explosion effect
+   */
+  private onDestroyed(): void {
+    console.log('[Mech] Destroyed');
+
+    // Simple explosion flash
+    const explosionPos = this.rootNode.position.clone();
+    const flash = MeshBuilder.CreateSphere('mechExplosion', { diameter: 8 }, this.scene);
+    flash.position = explosionPos;
+
+    const flashMat = new StandardMaterial('mechExpMat', this.scene);
+    flashMat.emissiveColor = Color3.FromHexString('#FFAA22');
+    flashMat.disableLighting = true;
+    flash.material = flashMat;
+
+    const startTime = performance.now();
+    const animateExplosion = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / 500, 1);
+      flash.scaling.setAll(1 + progress * 2);
+      flashMat.alpha = 1 - progress;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateExplosion);
+      } else {
+        flash.dispose();
+        flashMat.dispose();
+        this.dispose();
+      }
+    };
+    requestAnimationFrame(animateExplosion);
   }
 
   dispose(): void {

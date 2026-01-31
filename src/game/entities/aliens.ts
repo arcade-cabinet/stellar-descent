@@ -274,6 +274,7 @@ export async function createAlienEntityAsync(
     },
     tags: {
       enemy: true,
+      alien: true,
       boss: species.id === 'broodmother',
     },
     alienInfo: {

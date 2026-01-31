@@ -489,7 +489,13 @@ export function PauseMenu({
 
       {/* Confirmation Dialog */}
       {confirmDialog && (
-        <div className={styles.confirmOverlay} role="alertdialog" aria-modal="true">
+        <div
+          className={styles.confirmOverlay}
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+          aria-describedby="confirm-message"
+        >
           <div className={styles.confirmDialog}>
             {/* Corner decorations */}
             <div className={styles.cornerTL} aria-hidden="true" />
@@ -501,11 +507,11 @@ export function PauseMenu({
               {confirmDialog === 'restart' ? '\u21BA' : '\u26A0'}
             </div>
 
-            <h2 className={styles.confirmTitle}>
+            <h2 id="confirm-title" className={styles.confirmTitle}>
               {confirmDialog === 'restart' ? 'RESTART LEVEL?' : 'QUIT TO MENU?'}
             </h2>
 
-            <p className={styles.confirmMessage}>
+            <p id="confirm-message" className={styles.confirmMessage}>
               {confirmDialog === 'restart'
                 ? 'All progress in this level will be lost. Your checkpoint will be reset to the start of this mission.'
                 : 'Your current mission progress will be lost. You will return to the main menu.'}

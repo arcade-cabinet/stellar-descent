@@ -188,3 +188,93 @@ export function sendFOBDeltaWaypointMessage(callbacks: LevelCallbacks): void {
     text: 'I have marked FOB Delta on your HUD. The base went dark 36 hours ago. Proceed with caution, Sergeant.',
   });
 }
+
+// ---------------------------------------------------------------------------
+// Additional Tactical Comms
+// ---------------------------------------------------------------------------
+
+/**
+ * Low fuel warning during powered descent.
+ */
+export function sendLowFuelWarning(callbacks: LevelCallbacks, fuelPercent: number): void {
+  callbacks.onCommsMessage({
+    sender: 'PROMETHEUS A.I.',
+    callsign: 'ATHENA',
+    portrait: 'ai',
+    text: `Warning: Thruster fuel at ${Math.round(fuelPercent)}%. Conserve for final approach.`,
+  });
+}
+
+/**
+ * Enemy flanking warning during combat.
+ */
+export function sendFlankingWarning(callbacks: LevelCallbacks): void {
+  callbacks.onCommsMessage({
+    sender: 'PROMETHEUS A.I.',
+    callsign: 'ATHENA',
+    portrait: 'ai',
+    text: 'Hostiles flanking your position! Reposition to cover!',
+  });
+}
+
+/**
+ * Health low warning.
+ */
+export function sendHealthLowWarning(callbacks: LevelCallbacks): void {
+  callbacks.onCommsMessage({
+    sender: 'PROMETHEUS A.I.',
+    callsign: 'ATHENA',
+    portrait: 'ai',
+    text: 'Suit integrity critical. Medical nanites engaged. Find cover, Sergeant.',
+  });
+}
+
+/**
+ * Reload reminder when out of ammo.
+ */
+export function sendReloadReminder(callbacks: LevelCallbacks): void {
+  callbacks.onCommsMessage({
+    sender: 'PROMETHEUS A.I.',
+    callsign: 'ATHENA',
+    portrait: 'ai',
+    text: 'Magazine empty. Press R to reload. Stay behind cover while reloading.',
+  });
+}
+
+/**
+ * Enemy down confirmation.
+ */
+export function sendEnemyDownConfirmation(callbacks: LevelCallbacks, remaining: number): void {
+  if (remaining > 0) {
+    callbacks.onCommsMessage({
+      sender: 'PROMETHEUS A.I.',
+      callsign: 'ATHENA',
+      portrait: 'ai',
+      text: `Hostile eliminated. ${remaining} contacts remaining on sensors.`,
+    });
+  }
+}
+
+/**
+ * Acid pool warning.
+ */
+export function sendAcidPoolWarning(callbacks: LevelCallbacks): void {
+  callbacks.onCommsMessage({
+    sender: 'PROMETHEUS A.I.',
+    callsign: 'ATHENA',
+    portrait: 'ai',
+    text: 'Detecting corrosive compounds. Avoid the glowing pools - they will damage your suit.',
+  });
+}
+
+/**
+ * First kill encouragement.
+ */
+export function sendFirstKillEncouragement(callbacks: LevelCallbacks): void {
+  callbacks.onCommsMessage({
+    sender: 'PROMETHEUS A.I.',
+    callsign: 'ATHENA',
+    portrait: 'ai',
+    text: 'First kill confirmed. Good shooting, Sergeant. Keep your head down.',
+  });
+}

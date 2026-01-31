@@ -453,8 +453,11 @@ export function LoadingScreen({
     <div
       className={`${styles.overlay} ${fadeClass}`}
       style={backgroundStyle}
-      role="dialog"
-      aria-label="Loading"
+      role="progressbar"
+      aria-label={`Loading ${levelConfig?.missionName || 'mission'}: ${Math.round(displayProgress.progress)}% complete`}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(displayProgress.progress)}
       aria-busy={displayProgress.progress < 100}
     >
       {/* Atmospheric effects layer */}
@@ -556,16 +559,16 @@ export function LoadingScreen({
         </div>
 
         {/* Tips section */}
-        <div className={styles.tipsSection}>
-          <div className={styles.tipsDivider}>
+        <div className={styles.tipsSection} role="status" aria-live="polite">
+          <div className={styles.tipsDivider} aria-hidden="true">
             <div className={styles.tipsLine} />
             <span className={styles.tipsLabel}>COMBAT ADVISORY</span>
             <div className={styles.tipsLine} />
           </div>
 
           <div className={`${styles.tipContainer} ${tipFading ? styles.tipFading : ''}`}>
-            <span className={styles.tipCategory}>[{currentTip.category}]</span>
-            <p className={styles.tipText}>
+            <span className={styles.tipCategory} aria-hidden="true">[{currentTip.category}]</span>
+            <p className={styles.tipText} aria-label={`Tip: ${currentTip.tip}`}>
               {typedTipText}
               <span className={styles.cursor} aria-hidden="true">
                 _

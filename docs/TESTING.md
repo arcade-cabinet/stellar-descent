@@ -4,12 +4,12 @@ This document describes the testing infrastructure, how to run tests, and guidel
 
 ## Overview
 
-The project uses two testing frameworks:
+The project uses multiple testing frameworks for comprehensive coverage:
 
 | Framework | Purpose | Location |
 |-----------|---------|----------|
-| **Vitest** | Unit & integration tests | `src/**/*.test.{ts,tsx}` |
-| **Playwright** | End-to-end tests | `e2e/*.spec.ts` |
+| **Vitest** | Unit and integration tests | `src/**/*.test.{ts,tsx}` |
+| **Maestro** | Cross-platform E2E tests | `.maestro/flows/*.yaml` |
 
 ## Quick Start
 
@@ -26,11 +26,13 @@ pnpm test:ui
 # Run unit tests with coverage
 pnpm test:coverage
 
-# Run E2E tests
+# Run E2E tests (all platforms)
 pnpm test:e2e
 
-# Run E2E tests with UI
-pnpm test:e2e:ui
+# Run E2E tests for specific platform
+pnpm test:e2e:web
+pnpm test:e2e:android
+pnpm test:e2e:ios
 
 # Run all tests
 pnpm test:all
@@ -53,6 +55,8 @@ src/
 ├── test/
 │   └── setup.ts                    # Global test setup, WebGL mocks
 ├── game/
+│   ├── balance/
+│   │   └── BalanceValidator.test.ts # Combat balance validation
 │   ├── context/
 │   │   └── GameContext.test.tsx    # React context tests
 │   └── levels/
@@ -112,6 +116,36 @@ it('should render correctly', () => {
 });
 ```
 
+#### Testing the Save System
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { saveSystem } from '../persistence/SaveSystem';
+
+describe('SaveSystem', () => {
+  beforeEach(async () => {
+    await saveSystem.initialize();
+  });
+
+  it('should create new save with defaults', async () => {
+    const save = await saveSystem.newGame();
+
+    expect(save.currentLevel).toBe('anchor_station');
+    expect(save.difficulty).toBe('normal');
+    expect(save.version).toBe(4);
+  });
+
+  it('should record level best times', async () => {
+    await saveSystem.newGame();
+
+    const isNewBest = saveSystem.recordLevelTime('anchor_station', 120.5);
+
+    expect(isNewBest).toBe(true);
+    expect(saveSystem.getLevelBestTime('anchor_station')).toBe(120.5);
+  });
+});
+```
+
 ### Mocking BabylonJS
 
 The setup file (`src/test/setup.ts`) provides WebGL context mocks. For BabylonJS-specific mocking:
@@ -131,116 +165,172 @@ const position = new Vector3(0, 0, 0); // Works in tests
 
 | Test File | Tests | Description |
 |-----------|-------|-------------|
-| `TutorialManager.test.ts` | 15 | Tutorial flow, step progression, objectives |
-| `tutorialSteps.test.ts` | 19 | Step configuration validation, shooting range flow |
+| `BalanceValidator.test.ts` | 8 | Combat balance validation |
 | `GameContext.test.tsx` | 12 | React context state management |
+| `TutorialManager.test.ts` | 15 | Tutorial flow, step progression |
+| `tutorialSteps.test.ts` | 19 | Step configuration validation |
 
-## End-to-End Tests (Playwright)
+## End-to-End Tests (Maestro)
 
-### Configuration
+### Overview
 
-E2E tests are configured in `playwright.config.ts`:
+Maestro is a cross-platform E2E testing framework that supports web, iOS, and Android from the same test files. Tests are written in YAML and can be run locally or in CI.
 
-- **Browser**: Chromium (headless)
-- **Base URL**: `http://localhost:5173`
-- **Screenshots**: Captured for all tests
-- **Videos**: Retained on failure
-- **Web Server**: Auto-starts `pnpm run dev`
+### Prerequisites
+
+1. Install Maestro CLI:
+   ```bash
+   curl -fsSL "https://get.maestro.mobile.dev" | bash
+   ```
+
+2. Ensure Java 17+ is installed:
+   ```bash
+   java -version
+   ```
 
 ### Test File Structure
 
-```
-e2e/
-├── screenshots/              # Generated screenshots
-├── test-results/            # Test artifacts
-├── game-flow.spec.ts        # Main game flow tests
-├── shooting-range.spec.ts   # Shooting range feature tests
-├── smoke-screenshots.spec.ts # Smoke tests with screenshots
-└── playthrough.spec.ts      # Full playthrough tests
-```
-
-### Writing E2E Tests
-
-#### Basic Test
-
-```typescript
-import { test, expect } from '@playwright/test';
-
-test('should display main menu', async ({ page }) => {
-  await page.goto('/');
-
-  await expect(page.getByRole('button', { name: /NEW CAMPAIGN/i })).toBeVisible();
-});
+```text
+.maestro/
+├── config.yaml              # Test suite configuration
+├── README.md                # Maestro-specific documentation
+└── flows/                   # Test flow files
+    ├── 01-smoke.yaml        # Basic app loading tests
+    ├── 02-main-menu.yaml    # Main menu navigation tests
+    ├── 03-game-loading.yaml # Game loading flow tests
+    ├── 04-halo-drop.yaml    # HALO drop (skip tutorial) tests
+    ├── 05-responsive.yaml   # Responsive design tests
+    └── ...
 ```
 
-#### With Screenshots
+### Writing Maestro Tests
 
-```typescript
-import * as path from 'path';
+#### Basic Test Structure
 
-const screenshotsDir = path.join(__dirname, 'screenshots');
+```yaml
+appId: com.jbcom.stellardescent
+tags:
+  - smoke
+  - menu
 
-test('capture loading screen', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
+---
+- launchApp
 
-  await page.screenshot({
-    path: path.join(screenshotsDir, 'loading-screen.png'),
-    fullPage: true
-  });
-});
+- assertVisible:
+    text: "NEW CAMPAIGN"
+
+- tapOn:
+    text: "NEW CAMPAIGN"
+
+- assertVisible:
+    text: "LOADING"
+    optional: true
+
+- takeScreenshot: screenshots/main-menu.png
 ```
 
-#### Testing Game Interactions
+#### Cross-Platform Tests
 
-```typescript
-test('should advance through tutorial', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: /NEW CAMPAIGN/i }).click();
+```yaml
+appId: ${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : null}
+url: ${PLATFORM == 'web' ? 'http://localhost:5173' : null}
 
-  // Wait for tutorial comms
-  await expect(page.getByText(/Good morning, Sergeant Cole/i))
-    .toBeVisible({ timeout: 20000 });
+---
+- launchApp
 
-  // Advance comms
-  await page.keyboard.press('Space');
-  await page.waitForTimeout(500);
+- assertVisible:
+    text: "STELLAR DESCENT"
+```
 
-  // Verify progression
-  await expect(page.getByText(/ANCHOR STATION/i)).toBeVisible();
-});
+#### Waiting for Elements
+
+```yaml
+- extendedWaitUntil:
+    visible:
+      text: "ANCHOR STATION"
+    timeout: 20000
+
+- tapOn:
+    text: "START MISSION"
 ```
 
 ### Running E2E Tests
 
+#### Web Testing
+
 ```bash
-# Run all E2E tests (starts dev server automatically)
+# Start dev server first
+pnpm dev
+
+# Run all tests
 pnpm test:e2e
 
-# Run specific test file
-npx playwright test game-flow.spec.ts
+# Run with explicit web platform
+pnpm test:e2e:web
 
-# Run with headed browser (visible)
-npx playwright test --headed
+# Run specific test
+maestro test .maestro/flows/01-smoke.yaml
 
-# Run with Playwright UI
-pnpm test:e2e:ui
-
-# Generate HTML report
-npx playwright show-report
+# Run tests with tags
+maestro test .maestro/flows/ --include-tags smoke
 ```
 
-### Screenshots Location
+#### Android Testing
 
-Screenshots are saved to `e2e/screenshots/`:
+```bash
+# Start an Android emulator or connect a device
+# Build and install the app
+pnpm build:android
+npx cap open android
+# Build and run from Android Studio
 
-- `smoke-01-main-menu.png` - Main menu
-- `smoke-02-controls-modal.png` - Controls modal
-- `smoke-03-loading-screen.png` - Loading screen
-- `smoke-04-tutorial-comms.png` - Tutorial dialogue
-- `responsive-mobile-*.png` - Mobile viewport
-- `responsive-tablet-*.png` - Tablet viewport
-- `responsive-desktop-*.png` - Desktop viewport
+# Run tests
+pnpm test:e2e:android
+```
+
+#### iOS Testing
+
+```bash
+# Start an iOS simulator
+# Build and install the app
+pnpm build:ios
+npx cap open ios
+# Build and run from Xcode
+
+# Run tests
+pnpm test:e2e:ios
+```
+
+### Test Tags
+
+Use tags for selective test execution:
+
+| Tag | Description |
+|-----|-------------|
+| `smoke` | Critical path tests (run on every PR) |
+| `menu` | Menu navigation tests |
+| `gameplay` | Game mechanics tests |
+| `loading` | Loading screen tests |
+| `responsive` | Responsive design tests |
+| `web-only` | Tests that only run on web |
+
+### Debugging Maestro Tests
+
+Use Maestro Studio for interactive debugging:
+
+```bash
+# Web
+maestro -p web studio
+
+# Android (with emulator running)
+maestro studio
+```
+
+Tips:
+1. Use `maestro studio` to visually build and debug flows
+2. Add `- wait: 1000` between steps if timing issues occur
+3. Use `optional: true` for elements that may not always appear
+4. Screenshots are saved to `~/.maestro/tests/` by default
 
 ## Test Categories
 
@@ -248,8 +338,9 @@ Screenshots are saved to `e2e/screenshots/`:
 
 Test isolated logic without browser:
 
-- **State management** - GameContext, stores
+- **State management** - GameContext, PlayerContext, CombatContext, MissionContext
 - **Game logic** - Tutorial flow, objectives, step validation
+- **Save system** - Persistence, migrations, best times
 - **Utility functions** - Responsive utils, design tokens
 - **Data structures** - ECS components, configuration
 
@@ -259,36 +350,16 @@ Test multiple systems together:
 
 - **Tutorial flow** - Manager + Steps + Callbacks
 - **Combat system** - Projectiles + Damage + AI
+- **Level transitions** - Factory + Manager + State
 
 ### E2E Tests
 
 Test full user journeys:
 
-- **Game flow** - Menu → Loading → Tutorial → Combat
+- **Game flow** - Menu -> Loading -> Tutorial -> Combat
 - **UI interactions** - Buttons, modals, controls
 - **Responsive design** - Mobile, tablet, desktop
-- **Visual regression** - Screenshot comparisons
-
-## Testing the Shooting Range
-
-The weapons calibration mini-game has specific tests:
-
-### Unit Tests (tutorialSteps.test.ts)
-
-```typescript
-describe('shooting range flow', () => {
-  it('should have armory master intro before shooting range');
-  it('should have move_to_range step before calibration');
-  it('calibration_start should trigger start_calibration sequence');
-});
-```
-
-### E2E Tests (shooting-range.spec.ts)
-
-```typescript
-test('should show armory master dialogue before shooting range');
-test('calibration crosshair should be styled correctly');
-```
+- **Cross-platform** - Web, iOS, Android
 
 ## Writing Good Tests
 
@@ -305,13 +376,36 @@ test('calibration crosshair should be styled correctly');
 
 - Test internal implementation details
 - Share state between tests
-- Use arbitrary timeouts (use `waitFor` instead)
+- Use arbitrary timeouts (use `waitFor` or `extendedWaitUntil` instead)
 - Skip writing tests for new features
 - Ignore flaky tests
 
 ## CI/CD Integration
 
-For CI environments, set the `CI` environment variable:
+### GitHub Actions
+
+Tests run automatically in CI:
+
+```yaml
+- name: Install Maestro
+  run: |
+    curl -fsSL "https://get.maestro.mobile.dev" | bash
+    echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+- name: Run Unit Tests
+  run: pnpm test:run
+
+- name: Run E2E Tests
+  run: |
+    pnpm build
+    pnpm preview &
+    sleep 5
+    maestro test .maestro/flows/ --format junit --output test-results.xml
+```
+
+### Environment Variables
+
+For CI environments, set:
 
 ```bash
 CI=true pnpm test:all
@@ -326,25 +420,36 @@ This enables:
 
 ### Unit Tests
 
-## Error: WebGL not available
+#### Error: WebGL not available
 - Ensure `src/test/setup.ts` is loaded (check `vitest.config.ts`)
 
-## Error: useGame must be used within GameProvider
+#### Error: useGame must be used within GameProvider
 - Wrap test component in `<GameProvider>`
+
+#### Error: Cannot find module
+- Check import paths are correct
+- Run `pnpm install` to ensure dependencies are installed
 
 ### E2E Tests
 
-## Error: Page not loading
+#### Error: Page not loading
 - Check dev server is running on port 5173
-- Verify `playwright.config.ts` webServer settings
+- Verify Maestro is pointing to correct URL
 
-## Tests timing out
-- Increase timeout: `await expect(...).toBeVisible({ timeout: 30000 })`
+#### Tests timing out
+- Increase timeout: `timeout: 30000`
 - Check if game state transitions are completing
+- Add wait steps between actions
 
-## Screenshots blank
-- Wait for canvas to render: `await page.waitForTimeout(500)`
+#### Screenshots blank
+- Wait for canvas to render: `- wait: 500`
 - Ensure WebGL is initializing
+- Check if the app is in the correct state
+
+#### Android tests failing
+- Ensure emulator is running
+- Check app is installed correctly
+- Verify device/emulator has internet access
 
 ## Test Commands Reference
 
@@ -354,9 +459,11 @@ This enables:
 | `pnpm test:run` | Run unit tests once |
 | `pnpm test:ui` | Open Vitest UI |
 | `pnpm test:coverage` | Run with coverage report |
-| `pnpm test:e2e` | Run E2E tests |
-| `pnpm test:e2e:ui` | Open Playwright UI |
-| `pnpm test:all` | Run all tests |
+| `pnpm test:e2e` | Run Maestro E2E tests (all platforms) |
+| `pnpm test:e2e:web` | Run E2E tests on web only |
+| `pnpm test:e2e:android` | Run E2E tests on Android |
+| `pnpm test:e2e:ios` | Run E2E tests on iOS |
+| `pnpm test:all` | Run all tests (unit + E2E) |
 
 ---
 

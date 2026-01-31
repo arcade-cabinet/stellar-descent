@@ -117,6 +117,10 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
             const timeElapsed = (Date.now() - snapshot.levelStartTime) / 1000;
             const levelStats = getAchievementManager().getLevelStats();
             const levelConfig = CAMPAIGN_LEVELS[currentLevelId];
+            // Issue #82: Include all required LevelStats fields
+            const accuracy = levelStats.shotsFired > 0
+              ? Math.round((levelStats.shotsHit / levelStats.shotsFired) * 100)
+              : 0;
             dispatch({
               type: 'LEVEL_COMPLETE',
               stats: {
@@ -126,6 +130,10 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
                 shotsHit: levelStats.shotsHit,
                 secretsFound: levelStats.secretsFound,
                 totalSecrets: levelConfig?.totalSecrets ?? 0,
+                audioLogsFound: 0, // Issue #83: Track from collectible system
+                totalAudioLogs: levelConfig?.totalAudioLogs ?? 0,
+                damageReceived: snapshot.levelDamageReceived ?? 0,
+                accuracy,
               },
             });
           }}

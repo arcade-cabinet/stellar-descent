@@ -298,13 +298,15 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
   ) => {
     const { min = 0, max = 1, step = 0.05, showPercent = true } = options;
     const displayValue = showPercent ? `${Math.round(value * 100)}%` : value.toFixed(1);
+    const sliderId = `slider-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
       <div className={styles.settingRow}>
-        <span className={styles.settingLabel}>
+        <label htmlFor={sliderId} className={styles.settingLabel}>
           {label} ({displayValue})
-        </span>
+        </label>
         <input
+          id={sliderId}
           type="range"
           min={min}
           max={max}
@@ -312,7 +314,10 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
           value={value}
           onChange={onChange}
           className={styles.slider}
-          aria-label={label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-valuetext={displayValue}
         />
       </div>
     );
@@ -379,23 +384,29 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     value: boolean,
     onChange: () => void,
     description?: string
-  ) => (
-    <div className={styles.settingRow}>
-      <div className={styles.settingLabelGroup}>
-        <span className={styles.settingLabel}>{label}</span>
-        {description && <span className={styles.settingDescription}>{description}</span>}
+  ) => {
+    const toggleId = `toggle-${label.toLowerCase().replace(/\s+/g, '-')}`;
+    const descId = description ? `${toggleId}-desc` : undefined;
+
+    return (
+      <div className={styles.settingRow}>
+        <div className={styles.settingLabelGroup}>
+          <span id={toggleId} className={styles.settingLabel}>{label}</span>
+          {description && <span id={descId} className={styles.settingDescription}>{description}</span>}
+        </div>
+        <button
+          type="button"
+          className={`${styles.toggleButton} ${value ? styles.toggleOn : ''}`}
+          onClick={onChange}
+          aria-pressed={value}
+          aria-labelledby={toggleId}
+          aria-describedby={descId}
+        >
+          {value ? 'ON' : 'OFF'}
+        </button>
       </div>
-      <button
-        type="button"
-        className={`${styles.toggleButton} ${value ? styles.toggleOn : ''}`}
-        onClick={onChange}
-        aria-pressed={value}
-        aria-label={`${label}: ${value ? 'On' : 'Off'}`}
-      >
-        {value ? 'ON' : 'OFF'}
-      </button>
-    </div>
-  );
+    );
+  };
 
   const renderGameplayTab = () => (
     <div className={styles.tabContent}>

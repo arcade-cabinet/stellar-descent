@@ -47,13 +47,49 @@ class SaveSystem {
   private sessionStartTime: number = Date.now();
   private listeners: Set<SaveSystemListener> = new Set();
   private autoSaveEnabled = true;
+  private initialized = false;
 
   /**
-   * Initialize the save system
-   * Should be called on app startup after worldDb.init()
+   * Singleton initialization promise to prevent race conditions.
+   * Multiple React components may call initialize() simultaneously on mount.
+   */
+  private static initPromise: Promise<void> | null = null;
+
+  /**
+   * Initialize the save system.
+   * Safe to call multiple times concurrently - only the first call
+   * performs initialization, subsequent calls wait for completion.
+   *
+   * Should be called on app startup before any save/load operations.
    */
   async initialize(): Promise<void> {
+    // Fast path: already initialized
+    if (this.initialized) return;
+
+    // If initialization is already in progress, wait for it
+    if (SaveSystem.initPromise) {
+      return SaveSystem.initPromise;
+    }
+
+    // Start initialization and store the promise
+    SaveSystem.initPromise = this.doInitialize();
+
+    try {
+      await SaveSystem.initPromise;
+    } catch (error) {
+      // Reset the promise so initialization can be retried
+      SaveSystem.initPromise = null;
+      throw error;
+    }
+  }
+
+  /**
+   * Perform actual initialization (internal method)
+   */
+  private async doInitialize(): Promise<void> {
     await worldDb.init();
+    this.initialized = true;
+    console.log('[SaveSystem] Initialized successfully');
   }
 
   /**

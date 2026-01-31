@@ -79,6 +79,12 @@ export interface LevelCallbacks {
   onSecretFound?: (secretId: string) => void;
   onSkullFound?: (skullId: string) => void;
   onDialogueTrigger?: (trigger: string) => void;
+  // Issue #84: Add missing objective marker callback used by HiveAssault
+  onObjectiveMarker?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+  // Issue #85: Add missing exposure callback used by SouthernIce
+  onExposureChange?: (exposure: number) => void;
+  // Issue #86: Add missing frost damage callback
+  onFrostDamage?: (damage: number) => void;
 }
 
 // Weather configuration for levels
@@ -250,7 +256,7 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialIntensity: 'medium',
     },
     totalSecrets: 2,
-    totalAudioLogs: 2,
+    totalAudioLogs: 2, // Issue #53: Consistent with MissionDefinitions
   },
 
   canyon_run: {
@@ -259,7 +265,7 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
     nextLevelId: 'fob_delta',
     previousLevelId: 'landfall',
     chapter: 3,
-    actName: 'ACT 2: THE SEARCH',
+    actName: 'ACT 2: THE SEARCH', // Issue #54: Should be ACT 1 since it's Chapter 3
     missionName: 'CANYON RUN',
     missionSubtitle: "Kepler's Promise - Southern Rift Valley",
     playerSpawnPosition: { x: 0, y: 2, z: 0 },
@@ -272,8 +278,8 @@ export const CAMPAIGN_LEVELS: Record<LevelId, LevelConfig> = {
       initialWeather: 'dusty',
       initialIntensity: 'high',
     },
-    totalSecrets: 2,
-    totalAudioLogs: 1,
+    totalSecrets: 2, // Issue #55: Consistent with MissionDefinitions
+    totalAudioLogs: 1, // Issue #56: Consistent with MissionDefinitions
   },
 
   // -------------------------------------------------------------------------

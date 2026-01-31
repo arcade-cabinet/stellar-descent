@@ -731,43 +731,74 @@ export function getExtractionFlora(): FloraPlacement[] {
 /**
  * Final Escape (Chapter 10) - Vehicle escape to shuttle.
  *
- * Surface run section only (Z: -500 to -1500). Burning, destroyed alien
- * landscape. Player is racing through at high speed, so flora is scattered
- * and sparse -- mostly silhouettes and obstacles at the edges.
+ * Surface run section (Z: -500 to -1500) and canyon (Z: -1500 to -2500).
+ * Player is racing through at high speed, so flora is positioned at the
+ * edges of the drivable area (X: -30 to +30) to create visual boundaries
+ * without blocking the escape route.
  */
 export function getFinalEscapeFlora(): FloraPlacement[] {
   return [
-    // Scattered dead trees at surface exit
+    // Scattered dead trees at surface exit - LEFT side of route
     ...generateFloraCluster({
-      center: new Vector3(30, 0, -550),
-      radius: 25,
+      center: new Vector3(-28, 0, -550),
+      radius: 12,
       density: 'sparse',
       theme: 'frozen', // Dead trees for devastated landscape
       seed: 100001,
     }),
-    // Rocky debris mid-surface
+    // Rocky debris mid-surface - RIGHT side of route
     ...generateFloraCluster({
-      center: new Vector3(-40, 0, -800),
-      radius: 30,
+      center: new Vector3(28, 0, -750),
+      radius: 15,
       density: 'sparse',
       theme: 'rocky_outcrop',
       seed: 100002,
     }),
-    // Burning alien landscape fragments
+    // More dead trees - LEFT side
     ...generateFloraCluster({
-      center: new Vector3(50, 0, -1100),
-      radius: 22,
+      center: new Vector3(-30, 0, -1000),
+      radius: 12,
       density: 'sparse',
-      theme: 'mixed',
+      theme: 'frozen',
+      seed: 100005,
+    }),
+    // Rocky debris near canyon entrance - RIGHT side
+    ...generateFloraCluster({
+      center: new Vector3(30, 0, -1200),
+      radius: 15,
+      density: 'sparse',
+      theme: 'rocky_outcrop',
       seed: 100003,
     }),
-    // Final scattered rocks before lava canyon
+    // Final scattered rocks before lava canyon - LEFT side
     ...generateFloraCluster({
-      center: new Vector3(-25, 0, -1400),
-      radius: 20,
+      center: new Vector3(-26, 0, -1450),
+      radius: 10,
       density: 'sparse',
       theme: 'rocky_outcrop',
       seed: 100004,
+    }),
+    // Canyon section flora - sparse rocks along edges
+    ...generateFloraCluster({
+      center: new Vector3(22, 0, -1700),
+      radius: 8,
+      density: 'sparse',
+      theme: 'rocky_outcrop',
+      seed: 100006,
+    }),
+    ...generateFloraCluster({
+      center: new Vector3(-22, 0, -2000),
+      radius: 8,
+      density: 'sparse',
+      theme: 'rocky_outcrop',
+      seed: 100007,
+    }),
+    ...generateFloraCluster({
+      center: new Vector3(24, 0, -2300),
+      radius: 8,
+      density: 'sparse',
+      theme: 'rocky_outcrop',
+      seed: 100008,
     }),
   ];
 }

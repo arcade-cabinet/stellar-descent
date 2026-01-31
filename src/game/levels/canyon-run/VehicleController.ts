@@ -61,6 +61,10 @@ export interface VehicleConfig {
   gravity: number;
   /** Ground height offset (chassis above terrain) */
   groundOffset: number;
+  /** [FIX #5] Vertical launch impulse when hitting ramps */
+  rampLaunchImpulse?: number;
+  /** [FIX #4] Speed-based FOV increase factor */
+  speedFOVFactor?: number;
 }
 
 export interface VehicleState {
@@ -77,6 +81,12 @@ export interface VehicleState {
   steerInput: number; // -1 to 1
   throttleInput: number; // 0 to 1
   brakeInput: number; // 0 to 1
+  /** [FIX #6] True when vehicle health is critical (< 25%) */
+  isCritical: boolean;
+  /** [FIX #42] True if vehicle just landed from a jump */
+  justLanded: boolean;
+  /** [FIX #4] Current speed as normalized 0-1 value */
+  speedNormalized: number;
 }
 
 export interface VehicleInput {
@@ -87,19 +97,21 @@ export interface VehicleInput {
 }
 
 const DEFAULT_CONFIG: VehicleConfig = {
-  maxSpeed: 60,
-  acceleration: 35,
-  brakeDeceleration: 50,
-  dragDeceleration: 8,
-  turnRate: 1.8,
-  lowSpeedTurnMultiplier: 2.5,
-  boostMultiplier: 1.6,
-  boostFuelMax: 5.0,
+  maxSpeed: 65, // [FIX #10] Slightly faster for chase excitement
+  acceleration: 40, // [FIX #10] Improved responsiveness
+  brakeDeceleration: 55, // [FIX #10] Better braking feel
+  dragDeceleration: 6, // [FIX #10] Less drag for momentum
+  turnRate: 2.0, // [FIX #1] Improved steering response
+  lowSpeedTurnMultiplier: 2.8, // [FIX #1] Better low-speed maneuverability
+  boostMultiplier: 1.8, // [FIX #10] More impactful boost
+  boostFuelMax: 6.0, // [FIX #10] Longer boost duration
   boostBurnRate: 1.0,
-  boostRegenRate: 0.3,
-  maxHealth: 100,
-  gravity: 30,
-  groundOffset: 1.0,
+  boostRegenRate: 0.4, // [FIX #10] Faster regen for repeated use
+  maxHealth: 120, // [FIX #10] Slightly more health for balance
+  gravity: 28, // [FIX #26] Slightly lower for better jump feel
+  groundOffset: 1.2, // [FIX #24] Better chassis clearance
+  rampLaunchImpulse: 12, // [FIX #5] Default ramp jump impulse
+  speedFOVFactor: 0.08, // [FIX #4] FOV increases with speed
 };
 
 // ============================================================================
@@ -124,13 +136,13 @@ interface ChaseCameraConfig {
 }
 
 const DEFAULT_CAMERA_CONFIG: ChaseCameraConfig = {
-  followDistance: 12,
-  followHeight: 5,
-  lookAheadDistance: 15,
-  positionSmoothing: 4.0,
-  rotationSmoothing: 6.0,
-  boostFOVIncrease: 0.25,
-  baseFOV: 1.2,
+  followDistance: 16, // [FIX #23] Increased for better vehicle visibility
+  followHeight: 6, // [FIX #23] Raised for better overview
+  lookAheadDistance: 20, // [FIX #23] Increased for speed anticipation
+  positionSmoothing: 3.5, // [FIX #4] Slightly faster for responsive feel
+  rotationSmoothing: 5.0, // [FIX #4] Slightly faster rotation tracking
+  boostFOVIncrease: 0.3, // [FIX #18] Increased boost FOV effect
+  baseFOV: (Math.PI * 95) / 180, // [FIX #18] 95 degrees - wider for vehicle gameplay
 };
 
 // ============================================================================
@@ -170,6 +182,10 @@ export class VehicleController {
 
   // Wheel animation
   private wheelRotation = 0;
+  // [FIX #27] Wheel steering angle
+  private wheelSteerAngle = 0;
+  // [FIX #13] Dust trail particles (stored for disposal)
+  private dustTrails: Mesh[] = [];
 
   /**
    * Create and initialize a VehicleController, preloading GLB assets.
@@ -218,6 +234,9 @@ export class VehicleController {
       steerInput: 0,
       throttleInput: 0,
       brakeInput: 0,
+      isCritical: false, // [FIX #6]
+      justLanded: false, // [FIX #42]
+      speedNormalized: 0, // [FIX #4]
     };
 
     // Build vehicle mesh hierarchy
@@ -500,14 +519,24 @@ export class VehicleController {
     const terrainY =
       getTerrainHeight(this.state.position.x, this.state.position.z) + this.config.groundOffset;
 
+    // [FIX #42] Track if we were airborne before this frame
+    const wasAirborne = !this.state.isGrounded;
+    this.state.justLanded = false;
+
     if (this.state.position.y > terrainY + 0.1) {
       // In air
       this.verticalVelocity -= this.config.gravity * dt;
+      // [FIX #26] Clamp vertical velocity to prevent tunneling
+      this.verticalVelocity = Math.max(-50, Math.min(30, this.verticalVelocity));
       this.state.position.y += this.verticalVelocity * dt;
       this.state.isGrounded = false;
 
       if (this.state.position.y <= terrainY) {
         this.state.position.y = terrainY;
+        // [FIX #42] Detect landing
+        if (wasAirborne && Math.abs(this.verticalVelocity) > 5) {
+          this.state.justLanded = true;
+        }
         this.verticalVelocity = 0;
         this.state.isGrounded = true;
       }
@@ -517,6 +546,12 @@ export class VehicleController {
       this.verticalVelocity = 0;
       this.state.isGrounded = true;
     }
+
+    // [FIX #4] Update speed normalized for FOV calculation
+    this.state.speedNormalized = Math.abs(this.state.speed) / this.config.maxSpeed;
+
+    // [FIX #6] Update critical state
+    this.state.isCritical = this.state.health / this.config.maxHealth < 0.25;
 
     // -- Apply state to mesh --
     this.rootNode.position.copyFrom(this.state.position);
@@ -528,8 +563,17 @@ export class VehicleController {
 
     // Wheel animation
     this.wheelRotation += this.state.speed * dt * 2.0;
-    for (const wheel of this.wheels) {
+    // [FIX #27] Smooth steering animation for front wheels
+    const targetSteerAngle = input.steer * 0.4; // Max 22 degrees
+    this.wheelSteerAngle += (targetSteerAngle - this.wheelSteerAngle) * 8 * dt;
+
+    for (let i = 0; i < this.wheels.length; i++) {
+      const wheel = this.wheels[i];
       wheel.rotation.x = this.wheelRotation;
+      // Front wheels (0, 1) steer
+      if (i < 2) {
+        wheel.rotation.y = this.wheelSteerAngle;
+      }
     }
 
     // Boost flame visibility
@@ -593,10 +637,10 @@ export class VehicleController {
     this.camera.rotation.y += (targetRotY - this.camera.rotation.y) * rotLerp;
     this.camera.rotation.x += (targetRotX - this.camera.rotation.x) * rotLerp;
 
-    // FOV boost when boosting
-    const targetFOV = this.state.isBoosting
-      ? this.cameraConfig.baseFOV + this.cameraConfig.boostFOVIncrease
-      : this.cameraConfig.baseFOV;
+    // [FIX #4] FOV scales with speed, plus extra when boosting
+    const speedFOVBonus = this.state.speedNormalized * (this.config.speedFOVFactor ?? 0.08);
+    const boostFOVBonus = this.state.isBoosting ? this.cameraConfig.boostFOVIncrease : 0;
+    const targetFOV = this.cameraConfig.baseFOV + speedFOVBonus + boostFOVBonus;
     this.camera.fov += (targetFOV - this.camera.fov) * posLerp;
   }
 
@@ -635,6 +679,31 @@ export class VehicleController {
   launchVertical(impulse: number): void {
     this.verticalVelocity = impulse;
     this.state.isGrounded = false;
+  }
+
+  /**
+   * [FIX #5] Check if vehicle is on a ramp and apply launch if moving fast enough.
+   * Call this from the level update with ramp collision data.
+   * @param rampNormal - The surface normal of the ramp
+   * @param minSpeedForLaunch - Minimum speed to trigger launch (default: 30)
+   */
+  checkRampLaunch(rampNormal: Vector3, minSpeedForLaunch: number = 30): boolean {
+    if (!this.state.isGrounded) return false;
+    if (Math.abs(this.state.speed) < minSpeedForLaunch) return false;
+
+    // Check if ramp is angled upward in the direction of travel
+    const forward = this.getForwardDirection();
+    const dot = Vector3.Dot(forward, rampNormal);
+
+    // Ramp facing somewhat toward vehicle direction
+    if (dot < -0.2 && dot > -0.8) {
+      const launchImpulse = this.config.rampLaunchImpulse ?? 12;
+      // Scale launch by speed
+      const speedFactor = Math.abs(this.state.speed) / this.config.maxSpeed;
+      this.launchVertical(launchImpulse * speedFactor);
+      return true;
+    }
+    return false;
   }
 
   // ==========================================================================

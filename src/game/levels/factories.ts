@@ -209,3 +209,24 @@ export function createLevelFactories(
     ...overrides,
   };
 }
+
+/**
+ * Issue #96: Get factory for a specific level type
+ */
+export function getFactoryForType(type: keyof LevelFactoryRegistry): LevelFactory | null {
+  return defaultLevelFactories[type] ?? null;
+}
+
+/**
+ * Issue #97: Check if a level type is supported
+ */
+export function isLevelTypeSupported(type: string): type is keyof LevelFactoryRegistry {
+  return type in defaultLevelFactories;
+}
+
+/**
+ * Issue #98: Get all supported level types
+ */
+export function getSupportedLevelTypes(): (keyof LevelFactoryRegistry)[] {
+  return Object.keys(defaultLevelFactories) as (keyof LevelFactoryRegistry)[];
+}

@@ -149,7 +149,8 @@ export abstract class VehicleBase {
     this.vehicleCamera = new FreeCamera(`vehicleCam_${id}`, Vector3.Zero(), scene);
     this.vehicleCamera.minZ = 0.5;
     this.vehicleCamera.maxZ = 2000;
-    this.vehicleCamera.fov = 1.0;
+    // 85 degrees FOV for vehicle third-person view (slightly narrower than FPS)
+    this.vehicleCamera.fov = (85 * Math.PI) / 180;
     this.vehicleCamera.inputs.clear();
     this.vehicleCamera.parent = this.rootNode;
     // Positioned by subclass via setVehicleCameraOffset
@@ -242,9 +243,9 @@ export abstract class VehicleBase {
   public canEnter(player: Player): boolean {
     if (this._isOccupied) return false;
     if (this.stats.health <= 0) return false;
-    // Check proximity
+    // Check proximity - increased from 6 to 10 for easier vehicle entry
     const dist = Vector3.Distance(player.getPosition(), this.rootNode.position);
-    return dist < 6;
+    return dist < 10;
   }
 
   public enter(player: Player): void {

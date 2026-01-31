@@ -545,22 +545,40 @@ export function getExtractionCollectibles(): CollectiblePlacement[] {
 // ---------------------------------------------------------------------------
 
 export function getFinalEscapeCollectibles(): CollectiblePlacement[] {
+  // Collectibles positioned within the drivable route (X: -25 to +25, Z: 0 to -3000)
+  // Player moves fast, so collectibles are placed near the center line with large pickup radii
   return [
     {
       type: 'alien_artifact',
-      position: new Vector3(30, 2, -300),
+      position: new Vector3(8, 1.5, -250), // Tunnel section, right side
       rotationY: 0,
       id: 'escape_artifact_1',
       displayName: 'Hive Queen Core Sample',
-      pickupRadius: 3.5, // Slightly larger radius -- player is moving fast
+      pickupRadius: 5.0, // Large radius for fast-moving vehicle
     },
     {
       type: 'data_pad',
-      position: new Vector3(-50, 2, -700),
+      position: new Vector3(-10, 1.5, -750), // Surface run section, left side
       rotationY: Math.PI / 4,
       id: 'escape_datapad_1',
       displayName: 'Project STELLAR Abort Dossier',
-      pickupRadius: 3.5,
+      pickupRadius: 5.0,
+    },
+    {
+      type: 'weapon_cache',
+      position: new Vector3(5, 1.5, -1800), // Canyon section, near center
+      rotationY: -Math.PI / 6,
+      id: 'escape_weapons_1',
+      displayName: 'Emergency Ordinance',
+      pickupRadius: 5.0,
+    },
+    {
+      type: 'supply_drop',
+      position: new Vector3(-8, 1.5, -2600), // Launch pad approach, health pickup
+      rotationY: 0,
+      id: 'escape_supply_1',
+      displayName: 'Medical Kit',
+      pickupRadius: 6.0, // Extra large for final stretch
     },
   ];
 }

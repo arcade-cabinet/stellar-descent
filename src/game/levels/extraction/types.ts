@@ -142,6 +142,8 @@ export interface WaveConfig {
   spitters: number;
   /** Number of brute/broodmother enemies */
   brutes: number;
+  /** Number of husk enemies (FIX #3: Added husk support) */
+  husks: number;
   /** Delay between enemy spawns in seconds */
   spawnDelay: number;
   /** Wave title for HUD display */
@@ -150,6 +152,8 @@ export interface WaveConfig {
   waveDescription: string;
   /** Optional comms message at wave start */
   commsMessage?: CommsMessage;
+  /** Whether to spawn a supply drop after this wave (FIX #11) */
+  supplyDropAfter?: boolean;
 }
 
 // ============================================================================

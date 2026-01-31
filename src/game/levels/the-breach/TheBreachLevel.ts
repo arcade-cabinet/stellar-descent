@@ -72,7 +72,16 @@ import {
   TUNNEL_SEGMENT_LENGTH,
   WEAK_POINT_COOLDOWN,
   WEAK_POINT_DURATION,
+  ARENA_PILLAR_COUNT,
+  ARENA_PILLAR_RADIUS,
+  ARENA_PILLAR_HEIGHT,
+  WEAK_POINT_DURATION_SCALING,
+  SCAN_COOLDOWN_SCALING,
+  INVINCIBILITY_SCALING,
+  QUEEN_ATTACK_TELEGRAPH,
+  GROUND_POUND_INDICATOR_DURATION,
 } from './constants';
+import { loadDifficultySetting, type DifficultyLevel } from '../../core/DifficultySettings';
 import {
   checkEnemyHit,
   damageEnemy,
@@ -100,6 +109,11 @@ import {
 } from './hazards';
 import {
   animateClawSwipe,
+  animateTailSlam,
+  animateGroundPound,
+  animateAcidSpit,
+  animateQueenAwakening,
+  animateQueenDeath,
   animateQueen,
   calculateQueenDamage,
   createQueen,
@@ -111,7 +125,11 @@ import {
   getSpawnCount,
   getSpawnType,
   preloadQueenModels,
+  setQueenDifficulty,
+  getScaledQueenDamage,
+  getScaledCooldown,
 } from './queen';
+import { setEnemyDifficulty } from './enemies';
 import type { Enemy, HiveZone, LevelPhase, Queen, QueenPhase } from './types';
 
 // ============================================================================
@@ -125,7 +143,11 @@ export class TheBreachLevel extends BaseLevel {
   // Level state
   private phase: LevelPhase = 'exploration';
   private currentZone: HiveZone = 'upper';
+  private previousZone: HiveZone = 'upper';
   private depth = 0;
+
+  // Difficulty
+  private difficulty: DifficultyLevel = loadDifficultySetting();
 
   // Environment builders
   private environmentBuilder: HiveEnvironmentBuilder | null = null;
@@ -138,6 +160,8 @@ export class TheBreachLevel extends BaseLevel {
   private queenDoorMesh: TransformNode | null = null;
   private queenDomeMesh: TransformNode | null = null;
   private queenDefeated = false;
+  private arenaPillars: TransformNode[] = [];
+  private groundPoundIndicator: Mesh | null = null;
 
   // Enemies
   private enemies: Enemy[] = [];
@@ -151,6 +175,10 @@ export class TheBreachLevel extends BaseLevel {
   private meleeCooldown = 0;
   private scanCooldown = 0;
 
+  // Statistics tracking
+  private totalDamageTaken = 0;
+  private levelStartTime = 0;
+
   // Screen effects
   private screenFlash = 0;
   private screenFlashColor = new Color3(1, 1, 1);
@@ -161,6 +189,9 @@ export class TheBreachLevel extends BaseLevel {
   // Timers
   private phaseTimer = 0;
   private escapeTimer = 0;
+
+  // Tutorial hints shown
+  private hintsShown: Set<string> = new Set();
 
   constructor(
     engine: Engine,
@@ -270,6 +301,11 @@ export class TheBreachLevel extends BaseLevel {
 
   private startLevel(): void {
     this.phase = 'exploration';
+    this.levelStartTime = performance.now();
+
+    // Apply difficulty settings to queen and enemies
+    setQueenDifficulty(this.difficulty);
+    setEnemyDifficulty(this.difficulty);
 
     this.actionCallback = this.handleAction.bind(this);
     this.callbacks.onActionHandlerRegister(this.actionCallback);
@@ -287,6 +323,11 @@ export class TheBreachLevel extends BaseLevel {
 
     // Set up environmental audio for oppressive hive atmosphere
     this.setupHiveEnvironmentalAudio();
+
+    // Show zone entry notification
+    setTimeout(() => {
+      this.callbacks.onNotification(NOTIFICATIONS.ZONE_UPPER, 2000);
+    }, 4000);
   }
 
   /**
@@ -551,12 +592,143 @@ export class TheBreachLevel extends BaseLevel {
       );
     }
 
+    // Create arena pillars for cover during boss fight
+    this.createArenaPillars(chamberCenter, chamberRadius);
+
+    // Create ground pound indicator (hidden initially)
+    this.createGroundPoundIndicator(chamberCenter);
+
+    // Create acid hazards in queen chamber
+    this.createQueenChamberHazards(chamberCenter, chamberRadius);
+
     // Create the Queen
     this.queen = createQueen(
       this.scene,
       new Vector3(0, chamberCenter.y, chamberCenter.z + chamberRadius - 5),
       this.environmentBuilder.getGlowLayer()
     );
+  }
+
+  /**
+   * Create cover pillars arranged around the boss arena.
+   */
+  private createArenaPillars(center: Vector3, arenaRadius: number): void {
+    const pillarMat = new StandardMaterial('arenaPillarMat', this.scene);
+    pillarMat.diffuseColor = Color3.FromHexString(COLORS.chitinDark);
+    pillarMat.emissiveColor = Color3.FromHexString(COLORS.bioGlowDim).scale(0.1);
+
+    for (let i = 0; i < ARENA_PILLAR_COUNT; i++) {
+      // Offset angle so pillars don't block entrance or queen
+      const angle = (i / ARENA_PILLAR_COUNT) * Math.PI * 2 + Math.PI / 6;
+      const radius = ARENA_PILLAR_RADIUS;
+
+      const pillarRoot = new TransformNode(`arenaPillar_${i}`, this.scene);
+      pillarRoot.position = new Vector3(
+        center.x + Math.cos(angle) * radius,
+        center.y,
+        center.z + Math.sin(angle) * radius
+      );
+
+      // Main pillar body - organic irregular shape
+      const pillar = MeshBuilder.CreateCylinder(
+        `pillarBody_${i}`,
+        {
+          height: ARENA_PILLAR_HEIGHT,
+          diameterTop: 0.8 + Math.random() * 0.3,
+          diameterBottom: 1.2 + Math.random() * 0.4,
+          tessellation: 8,
+        },
+        this.scene
+      );
+      pillar.material = pillarMat;
+      pillar.position.y = ARENA_PILLAR_HEIGHT / 2;
+      pillar.parent = pillarRoot;
+
+      // Add organic growths on pillar
+      const growthCount = 2 + Math.floor(Math.random() * 2);
+      for (let g = 0; g < growthCount; g++) {
+        const growth = MeshBuilder.CreateSphere(
+          `pillarGrowth_${i}_${g}`,
+          {
+            diameterX: 0.4 + Math.random() * 0.3,
+            diameterY: 0.3 + Math.random() * 0.2,
+            diameterZ: 0.4 + Math.random() * 0.3,
+            segments: 6,
+          },
+          this.scene
+        );
+        growth.material = pillarMat;
+        growth.position.set(
+          (Math.random() - 0.5) * 0.8,
+          1 + Math.random() * 2,
+          (Math.random() - 0.5) * 0.8
+        );
+        growth.parent = pillarRoot;
+      }
+
+      // Add bioluminescent patch
+      if (this.environmentBuilder) {
+        this.environmentBuilder.createBiolight(
+          new Vector3(
+            pillarRoot.position.x + (Math.random() - 0.5) * 0.5,
+            center.y + 1 + Math.random() * 2,
+            pillarRoot.position.z + (Math.random() - 0.5) * 0.5
+          ),
+          0.3 + Math.random() * 0.2
+        );
+      }
+
+      this.arenaPillars.push(pillarRoot);
+    }
+
+    console.log(`[TheBreachLevel] Created ${ARENA_PILLAR_COUNT} arena cover pillars`);
+  }
+
+  /**
+   * Create the ground pound area indicator (hidden until attack).
+   */
+  private createGroundPoundIndicator(center: Vector3): void {
+    const indicator = MeshBuilder.CreateDisc(
+      'groundPoundIndicator',
+      { radius: 15, tessellation: 32 },
+      this.scene
+    );
+
+    const indicatorMat = new StandardMaterial('groundPoundMat', this.scene);
+    indicatorMat.diffuseColor = new Color3(1, 0.3, 0.1);
+    indicatorMat.emissiveColor = new Color3(1, 0.3, 0.1);
+    indicatorMat.alpha = 0;
+    indicatorMat.disableLighting = true;
+    indicator.material = indicatorMat;
+
+    indicator.position = new Vector3(center.x, center.y + 0.1, center.z);
+    indicator.rotation.x = Math.PI / 2;
+    indicator.isVisible = false;
+
+    this.groundPoundIndicator = indicator;
+  }
+
+  /**
+   * Create acid hazards in queen chamber edges.
+   */
+  private createQueenChamberHazards(center: Vector3, radius: number): void {
+    if (!this.hazardBuilder) return;
+
+    // Create acid pools around the chamber edges
+    const poolCount = 4;
+    for (let i = 0; i < poolCount; i++) {
+      const angle = (i / poolCount) * Math.PI * 2 + Math.PI / 4;
+      const poolRadius = radius - 3;
+      this.hazardBuilder.createAcidPool(
+        new Vector3(
+          center.x + Math.cos(angle) * poolRadius,
+          center.y,
+          center.z + Math.sin(angle) * poolRadius
+        ),
+        1.5 + Math.random() * 0.5,
+        8 // Higher damage in queen chamber
+      );
+    }
   }
 
   /**
@@ -756,16 +928,31 @@ export class TheBreachLevel extends BaseLevel {
 
     this.phase = 'boss_intro';
 
+    // Despawn remaining enemies when boss fight starts
+    this.despawnRemainingEnemies();
+
     if (this.queenDoorMesh) {
       this.queenDoorMesh.setEnabled(true);
     }
 
     this.callbacks.onNotification(NOTIFICATIONS.BOSS_AWAKEN, 3000);
+    this.callbacks.onObjectiveUpdate(OBJECTIVES.BOSS_INTRO.title, OBJECTIVES.BOSS_INTRO.description);
     this.triggerShake(3);
+
+    // Play queen awakening animation
+    animateQueenAwakening(this.queen);
 
     setTimeout(() => {
       this.callbacks.onCommsMessage(COMMS_BOSS_DETECTED);
     }, 2000);
+
+    // Show tutorial hint for scan ability
+    setTimeout(() => {
+      if (!this.hintsShown.has('scan')) {
+        this.callbacks.onNotification(NOTIFICATIONS.HINT_SCAN, 4000);
+        this.hintsShown.add('scan');
+      }
+    }, 4000);
 
     setTimeout(() => {
       this.phase = 'boss_fight';
@@ -778,7 +965,27 @@ export class TheBreachLevel extends BaseLevel {
 
       // Start boss fight music at phase 1
       getBossMusicManager().start(1);
+
+      // Show cover hint
+      setTimeout(() => {
+        if (!this.hintsShown.has('cover')) {
+          this.callbacks.onNotification(NOTIFICATIONS.HINT_COVER, 3000);
+          this.hintsShown.add('cover');
+        }
+      }, 8000);
     }, 5000);
+  }
+
+  /**
+   * Despawn remaining enemies when boss fight starts to focus on the Queen.
+   */
+  private despawnRemainingEnemies(): void {
+    const despawnCount = this.enemies.length;
+    disposeEnemies(this.enemies);
+    this.enemies = [];
+    if (despawnCount > 0) {
+      console.log(`[TheBreachLevel] Despawned ${despawnCount} enemies for boss fight`);
+    }
   }
 
   private updateQueen(deltaTime: number): void {
@@ -793,6 +1000,7 @@ export class TheBreachLevel extends BaseLevel {
         if (this.queen.weakPointMesh) {
           this.queen.weakPointMesh.isVisible = false;
         }
+        this.callbacks.onNotification(NOTIFICATIONS.WEAK_POINT_EXPIRED, 1000);
       }
     }
 
@@ -835,12 +1043,30 @@ export class TheBreachLevel extends BaseLevel {
     // Transition boss music to match phase
     getBossMusicManager().transitionToPhase(newPhase);
 
+    // Screen flash effect for phase transition
+    this.screenFlash = 0.6;
+    this.screenFlashColor = Color3.FromHexString(COLORS.queenPurple);
+
     if (newPhase === 2) {
-      this.callbacks.onNotification(NOTIFICATIONS.BOSS_PHASE_2, 2000);
-      this.callbacks.onCommsMessage(COMMS_BOSS_PHASE_2);
+      this.callbacks.onNotification(NOTIFICATIONS.PHASE_2_WARNING, 3000);
+      setTimeout(() => {
+        this.callbacks.onNotification(NOTIFICATIONS.BOSS_PHASE_2, 2000);
+        this.callbacks.onCommsMessage(COMMS_BOSS_PHASE_2);
+      }, 1000);
+
+      // Show grenade hint
+      if (!this.hintsShown.has('grenade')) {
+        setTimeout(() => {
+          this.callbacks.onNotification(NOTIFICATIONS.HINT_GRENADE, 3000);
+          this.hintsShown.add('grenade');
+        }, 5000);
+      }
     } else if (newPhase === 3) {
-      this.callbacks.onNotification(NOTIFICATIONS.BOSS_PHASE_3, 2000);
-      this.callbacks.onCommsMessage(COMMS_BOSS_PHASE_3);
+      this.callbacks.onNotification(NOTIFICATIONS.PHASE_3_WARNING, 3000);
+      setTimeout(() => {
+        this.callbacks.onNotification(NOTIFICATIONS.BOSS_PHASE_3, 2000);
+        this.callbacks.onCommsMessage(COMMS_BOSS_PHASE_3);
+      }, 1000);
     }
   }
 
@@ -891,7 +1117,14 @@ export class TheBreachLevel extends BaseLevel {
   private queenAcidSpit(): void {
     this.callbacks.onNotification(NOTIFICATIONS.ACID_INCOMING, 1000);
 
+    // Play acid spit animation
+    if (this.queen) {
+      animateAcidSpit(this.queen);
+    }
+
     const playerPos = this.camera.position.clone();
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.acid_spit;
+
     setTimeout(() => {
       if (this.hazardBuilder) {
         this.hazardBuilder.createPheromoneCloud(
@@ -904,46 +1137,144 @@ export class TheBreachLevel extends BaseLevel {
           5000
         );
       }
+
+      // Emit acid splatter particle effect
+      particleManager.emitAlienSplatter(playerPos, 1.5);
+
       const dist = Vector3.Distance(this.camera.position, playerPos);
       if (dist < 3) {
-        this.damagePlayer(20, 'Acid Spit');
+        const damage = getScaledQueenDamage('acid_spit');
+        this.damagePlayer(damage, 'Acid Spit');
       }
-    }, 800);
+    }, telegraphTime);
   }
 
   private queenClawSwipe(): void {
     this.callbacks.onNotification(NOTIFICATIONS.CLAW_ATTACK, 800);
-    this.triggerShake(2);
 
     if (this.queen) {
       animateClawSwipe(this.queen);
     }
 
-    const dist = Vector3.Distance(this.camera.position, this.queen!.mesh.position);
-    if (dist < 6) {
-      this.damagePlayer(35, 'Claw Swipe');
-    }
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.claw_swipe;
+
+    // Damage happens after telegraph
+    setTimeout(() => {
+      this.triggerShake(2);
+
+      const dist = Vector3.Distance(this.camera.position, this.queen!.mesh.position);
+      if (dist < 6) {
+        const damage = getScaledQueenDamage('claw_swipe');
+        this.damagePlayer(damage, 'Claw Swipe');
+      }
+    }, telegraphTime);
   }
 
   private queenTailSlam(): void {
     this.callbacks.onNotification(NOTIFICATIONS.TAIL_SLAM, 1000);
 
+    if (this.queen) {
+      animateTailSlam(this.queen);
+    }
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.tail_slam;
+
     setTimeout(() => {
       this.triggerShake(4);
       const dist = Vector3.Distance(this.camera.position, this.queen!.mesh.position);
       if (dist < 8) {
-        this.damagePlayer(40, 'Tail Slam');
+        const damage = getScaledQueenDamage('tail_slam');
+        this.damagePlayer(damage, 'Tail Slam');
       }
-    }, 500);
+    }, telegraphTime);
   }
 
   private queenGroundPound(): void {
     this.callbacks.onNotification(NOTIFICATIONS.GROUND_POUND, 1500);
 
+    if (this.queen) {
+      animateGroundPound(this.queen);
+    }
+
+    // Show ground pound indicator
+    this.showGroundPoundIndicator();
+
+    const telegraphTime = QUEEN_ATTACK_TELEGRAPH.ground_pound;
+
     setTimeout(() => {
       this.triggerShake(6);
-      this.damagePlayer(25, 'Ground Pound');
-    }, 1000);
+      // Hide indicator
+      this.hideGroundPoundIndicator();
+
+      // Ground pound hits everywhere in arena (but less damage if behind cover)
+      const playerPos = this.camera.position;
+      const queenPos = this.queen!.mesh.position;
+
+      // Check if player is behind a pillar
+      let behindCover = false;
+      for (const pillar of this.arenaPillars) {
+        const toPillar = pillar.position.subtract(queenPos).normalize();
+        const toPlayer = playerPos.subtract(queenPos).normalize();
+        const dot = Vector3.Dot(toPillar, toPlayer);
+        const pillarDist = Vector3.Distance(playerPos, pillar.position);
+
+        // Player is behind pillar if pillar is between queen and player, and player is close to pillar
+        if (dot > 0.8 && pillarDist < 3) {
+          behindCover = true;
+          break;
+        }
+      }
+
+      const baseDamage = getScaledQueenDamage('ground_pound');
+      const damage = behindCover ? Math.floor(baseDamage * 0.3) : baseDamage;
+
+      if (behindCover) {
+        this.callbacks.onNotification('COVER ABSORBED IMPACT!', 1000);
+      }
+
+      this.damagePlayer(damage, 'Ground Pound');
+    }, telegraphTime);
+  }
+
+  /**
+   * Show the ground pound area indicator.
+   */
+  private showGroundPoundIndicator(): void {
+    if (!this.groundPoundIndicator) return;
+
+    this.groundPoundIndicator.isVisible = true;
+    const mat = this.groundPoundIndicator.material as StandardMaterial;
+
+    // Animate indicator expansion
+    const startTime = performance.now();
+    const duration = GROUND_POUND_INDICATOR_DURATION;
+
+    const animateIndicator = (): void => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      // Scale up and increase opacity
+      this.groundPoundIndicator!.scaling.setAll(0.3 + progress * 0.7);
+      mat.alpha = 0.1 + progress * 0.4;
+
+      if (progress < 1 && this.groundPoundIndicator!.isVisible) {
+        requestAnimationFrame(animateIndicator);
+      }
+    };
+
+    requestAnimationFrame(animateIndicator);
+  }
+
+  /**
+   * Hide the ground pound indicator.
+   */
+  private hideGroundPoundIndicator(): void {
+    if (!this.groundPoundIndicator) return;
+
+    this.groundPoundIndicator.isVisible = false;
+    const mat = this.groundPoundIndicator.material as StandardMaterial;
+    mat.alpha = 0;
+    this.groundPoundIndicator.scaling.setAll(1);
   }
 
   private queenSpawnMinions(): void {
@@ -989,8 +1320,10 @@ export class TheBreachLevel extends BaseLevel {
     if (!this.queen) return;
 
     this.phase = 'boss_death';
-    this.queen.screaming = true;
     this.queenDefeated = true;
+
+    // Play queen death animation
+    animateQueenDeath(this.queen);
 
     getAchievementManager().onQueenDefeated();
 
@@ -1000,9 +1333,22 @@ export class TheBreachLevel extends BaseLevel {
     this.callbacks.onNotification(NOTIFICATIONS.BOSS_DEFEATED, 3000);
     this.triggerShake(8);
 
+    // Screen flash for dramatic death
+    this.screenFlash = 1.0;
+    this.screenFlashColor = new Color3(1, 1, 1);
+
     setTimeout(() => {
       this.callbacks.onCommsMessage(COMMS_BOSS_DEATH);
     }, 2000);
+
+    // Show victory stats
+    const elapsedTime = (performance.now() - this.levelStartTime) / 1000;
+    setTimeout(() => {
+      this.callbacks.onNotification(
+        NOTIFICATIONS.VICTORY_STATS(elapsedTime, this.enemiesKilled, this.totalDamageTaken),
+        5000
+      );
+    }, 3500);
 
     setTimeout(() => {
       this.callbacks.onNotification(NOTIFICATIONS.ESCAPE, 3000);
@@ -1013,11 +1359,15 @@ export class TheBreachLevel extends BaseLevel {
 
       this.phase = 'escape_trigger';
       this.escapeTimer = 0;
+      this.callbacks.onObjectiveUpdate(
+        OBJECTIVES.ESCAPE.title,
+        OBJECTIVES.ESCAPE.getDescription(30)
+      );
 
       setTimeout(() => {
         this.completeLevel();
       }, 5000);
-    }, 5000);
+    }, 6000);
   }
 
   // ============================================================================
@@ -1026,10 +1376,16 @@ export class TheBreachLevel extends BaseLevel {
 
   private damagePlayer(amount: number, source: string): void {
     const now = performance.now();
-    if (now - this.lastDamageTime < DAMAGE_INVINCIBILITY_MS) return;
+
+    // Apply difficulty-scaled invincibility frames
+    const iframeScaling = INVINCIBILITY_SCALING[this.difficulty] ?? 1.0;
+    const scaledIframes = DAMAGE_INVINCIBILITY_MS * iframeScaling;
+
+    if (now - this.lastDamageTime < scaledIframes) return;
 
     this.playerHealth -= amount;
     this.lastDamageTime = now;
+    this.totalDamageTaken += amount;
 
     // Apply player damage feedback (screen shake scaled to damage)
     damageFeedback.applyPlayerDamageFeedback(amount);
@@ -1079,17 +1435,28 @@ export class TheBreachLevel extends BaseLevel {
     const playerZ = this.camera.position.z;
     const playerY = this.camera.position.y;
 
+    this.previousZone = this.currentZone;
+
     if (playerZ > 150 && playerY < -140) {
       if (this.currentZone !== 'queen_chamber') {
         this.currentZone = 'queen_chamber';
+        if (this.previousZone !== 'queen_chamber') {
+          this.callbacks.onNotification(NOTIFICATIONS.ZONE_QUEEN, 2000);
+        }
         if (this.phase === 'exploration') {
           this.startBossFight();
         }
       }
     } else if (playerZ > 100 && playerY < -90) {
+      if (this.currentZone !== 'lower' && this.previousZone !== 'lower') {
+        this.callbacks.onNotification(NOTIFICATIONS.ZONE_LOWER, 2000);
+      }
       this.currentZone = 'lower';
       this.depth = 100 + (playerZ - 100) * 0.5;
     } else if (playerZ > 50 && playerY < -45) {
+      if (this.currentZone !== 'mid' && this.previousZone !== 'mid') {
+        this.callbacks.onNotification(NOTIFICATIONS.ZONE_MID, 2000);
+      }
       this.currentZone = 'mid';
       this.depth = 50 + (playerZ - 50) * 0.8;
     } else {
@@ -1217,16 +1584,30 @@ export class TheBreachLevel extends BaseLevel {
       return;
     }
 
-    this.scanCooldown = WEAK_POINT_COOLDOWN;
+    // Apply difficulty-scaled cooldown
+    const cooldownScaling = SCAN_COOLDOWN_SCALING[this.difficulty] ?? 1.0;
+    this.scanCooldown = WEAK_POINT_COOLDOWN * cooldownScaling;
     this.callbacks.onNotification(NOTIFICATIONS.SCANNING, 1500);
 
     setTimeout(() => {
       if (this.queen && this.queen.weakPointMesh) {
         this.queen.weakPointVisible = true;
         this.queen.isVulnerable = true;
-        this.queen.weakPointTimer = WEAK_POINT_DURATION;
+
+        // Apply difficulty-scaled weak point duration
+        const durationScaling = WEAK_POINT_DURATION_SCALING[this.difficulty] ?? 1.0;
+        this.queen.weakPointTimer = WEAK_POINT_DURATION * durationScaling;
         this.queen.weakPointMesh.isVisible = true;
+
         this.callbacks.onNotification(NOTIFICATIONS.WEAK_POINT_REVEALED, 2000);
+
+        // Show weak point damage hint
+        if (!this.hintsShown.has('weak_point')) {
+          setTimeout(() => {
+            this.callbacks.onNotification(NOTIFICATIONS.HINT_WEAK_POINT, 2500);
+            this.hintsShown.add('weak_point');
+          }, 2500);
+        }
       }
     }, 1500);
   }
@@ -1486,6 +1867,19 @@ export class TheBreachLevel extends BaseLevel {
     this.queenArena?.dispose();
     this.queenDoorMesh?.dispose();
     this.queenDomeMesh?.dispose();
+
+    // Dispose arena pillars
+    for (const pillar of this.arenaPillars) {
+      pillar.dispose();
+    }
+    this.arenaPillars = [];
+
+    // Dispose ground pound indicator
+    this.groundPoundIndicator?.dispose();
+    this.groundPoundIndicator = null;
+
+    // Clear hints
+    this.hintsShown.clear();
 
     // Dispose damage feedback system
     damageFeedback.dispose();

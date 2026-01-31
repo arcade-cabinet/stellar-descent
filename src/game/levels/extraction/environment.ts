@@ -95,21 +95,28 @@ export function createEscapeTunnel(scene: Scene): TunnelEnvironment {
   // Create starting chamber
   hiveBuilder.createChamber(new Vector3(0, 0, 5), 8, 'lower');
 
-  // Create collapse wall
+  // FIX #33: Create more cave-like collapse wall
   const collapseMat = new StandardMaterial('collapseMat', scene);
-  collapseMat.diffuseColor = new Color3(0.2, 0.1, 0.05);
-  collapseMat.emissiveColor = new Color3(0.3, 0.15, 0.05);
+  collapseMat.diffuseColor = new Color3(0.25, 0.12, 0.08);
+  collapseMat.emissiveColor = new Color3(0.4, 0.2, 0.08);
 
-  const collapseWall = MeshBuilder.CreateSphere('collapseWall', { diameter: 20, segments: 8 }, scene);
+  // Use cylinder + hemisphere for more natural cave collapse look
+  const collapseWall = MeshBuilder.CreateCylinder('collapseWall', {
+    height: 12,
+    diameter: 10,
+    tessellation: 12,
+  }, scene);
   collapseWall.material = collapseMat;
   collapseWall.position.z = 30;
-  collapseWall.scaling.set(1, 1, 3);
+  collapseWall.position.y = 0;
+  collapseWall.rotation.x = Math.PI / 2; // Lay horizontal
+  collapseWall.scaling.set(1.5, 3, 1.5); // Stretch along tunnel
 
-  // Create exit light
+  // FIX #32: Stronger exit light to guide player
   const exitLight = new PointLight('exitLight', new Vector3(0, 2, -C.ESCAPE_TUNNEL_LENGTH), scene);
-  exitLight.diffuse = new Color3(1, 0.8, 0.5);
-  exitLight.intensity = 50;
-  exitLight.range = 80;
+  exitLight.diffuse = new Color3(1, 0.85, 0.6);
+  exitLight.intensity = 120; // Increased from 50
+  exitLight.range = 120; // Increased from 80
 
   return {
     hiveBuilder,

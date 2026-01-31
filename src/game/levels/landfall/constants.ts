@@ -75,8 +75,8 @@ export const FREEFALL_FOV = 1.75;
 /** Still dramatic FOV during powered descent (~80 degrees) */
 export const POWERED_DESCENT_FOV = 1.4;
 
-/** Standard FPS FOV on surface (~69 degrees) */
-export const SURFACE_FOV = 1.2;
+/** Standard FPS FOV on surface (~90 degrees) */
+export const SURFACE_FOV = Math.PI / 2; // 1.5708 radians = 90 degrees
 
 // ---------------------------------------------------------------------------
 // Terrain Constants
@@ -206,3 +206,73 @@ export const UNSTABLE_TERRAIN_POSITIONS = [
   { x: -15, z: 22, size: 5 },
   { x: 18, z: 30, size: 4 },
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Performance / LOD Constants
+// ---------------------------------------------------------------------------
+
+/** Distance at which environment objects start to fade (meters) */
+export const LOD_FADE_START = 150;
+
+/** Distance at which environment objects are fully culled (meters) */
+export const LOD_CULL_DISTANCE = 250;
+
+/** Distance for reduced detail on GLB models */
+export const LOD_DETAIL_DISTANCE = 80;
+
+// ---------------------------------------------------------------------------
+// Additional Cover Positions for Combat Arena
+// ---------------------------------------------------------------------------
+
+/** Additional rock cover positions for tactical gameplay */
+export const ADDITIONAL_COVER_POSITIONS = [
+  // Flanking positions
+  { x: 25, z: 10, scale: 1.8, rotY: 0.5, type: 'rock' as const },
+  { x: -25, z: 12, scale: 2.0, rotY: -0.3, type: 'rock' as const },
+  // Forward cover near enemy spawn
+  { x: 0, z: 40, scale: 2.2, rotY: 0.8, type: 'debris' as const },
+  { x: 12, z: 45, scale: 1.5, rotY: -0.6, type: 'rock' as const },
+  { x: -14, z: 42, scale: 1.7, rotY: 0.4, type: 'rock' as const },
+  // Rear cover near LZ
+  { x: 8, z: -5, scale: 1.4, rotY: 1.2, type: 'barrel' as const },
+  { x: -6, z: -8, scale: 1.6, rotY: -0.9, type: 'crate' as const },
+] as const;
+
+// ---------------------------------------------------------------------------
+// Audio Constants
+// ---------------------------------------------------------------------------
+
+/** Wind ambience volume on surface */
+export const SURFACE_WIND_VOLUME = 0.4;
+
+/** Distance for spatial audio falloff */
+export const SPATIAL_AUDIO_FALLOFF = 50;
+
+/** Drop music fade duration (ms) */
+export const DROP_MUSIC_FADE_DURATION = 2000;
+
+// ---------------------------------------------------------------------------
+// Objective Marker Constants
+// ---------------------------------------------------------------------------
+
+/** FOB Delta objective position */
+export const FOB_DELTA_POSITION = { x: 0, y: 0, z: -150 } as const;
+
+/** LZ pad center position */
+export const LZ_CENTER_POSITION = { x: 0, y: 0, z: 0 } as const;
+
+/** Beacon pulse animation speed */
+export const BEACON_PULSE_SPEED = 2.0;
+
+// ---------------------------------------------------------------------------
+// Camera Constants
+// ---------------------------------------------------------------------------
+
+/** Camera shake during landing impact */
+export const LANDING_SHAKE_INTENSITY = 4.0;
+
+/** Camera shake during seismic warning */
+export const SEISMIC_SHAKE_INTENSITY = 2.0;
+
+/** Camera rotation animation duration (frames at 60fps) */
+export const CAMERA_ROTATION_FRAMES = 48;

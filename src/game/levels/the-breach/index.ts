@@ -36,6 +36,25 @@ export {
   WEAK_POINT_COOLDOWN,
   WEAK_POINT_DAMAGE_MULTIPLIER,
   WEAK_POINT_DURATION,
+  WEAK_POINT_DURATION_BASE,
+  WEAK_POINT_COOLDOWN_BASE,
+  QUEEN_HEALTH_SCALING,
+  QUEEN_DAMAGE_SCALING,
+  QUEEN_COOLDOWN_SCALING,
+  WEAK_POINT_DURATION_SCALING,
+  SCAN_COOLDOWN_SCALING,
+  INVINCIBILITY_SCALING,
+  ARENA_PILLAR_COUNT,
+  ARENA_PILLAR_RADIUS,
+  ARENA_PILLAR_HEIGHT,
+  QUEEN_ATTACK_DAMAGE,
+  QUEEN_ATTACK_TELEGRAPH,
+  QUEEN_ATTACK_RANGE,
+  WEAK_POINT_PULSE_SPEED,
+  WEAK_POINT_MIN_ALPHA,
+  WEAK_POINT_MAX_ALPHA,
+  GROUND_POUND_INDICATOR_DURATION,
+  ACID_SPIT_PROJECTILE_SPEED,
 } from './constants';
 // Enemies
 export {
@@ -67,6 +86,11 @@ export {
 // Queen Boss
 export {
   animateClawSwipe,
+  animateTailSlam,
+  animateGroundPound,
+  animateAcidSpit,
+  animateQueenAwakening,
+  animateQueenDeath,
   animateQueen,
   calculateQueenDamage,
   createQueen,
@@ -78,6 +102,10 @@ export {
   getSpawnCount,
   getSpawnType,
   preloadQueenModels,
+  setQueenDifficulty,
+  getScaledQueenHealth,
+  getScaledQueenDamage,
+  getScaledCooldown,
 } from './queen';
 // Main level class
 export { TheBreachLevel } from './TheBreachLevel';

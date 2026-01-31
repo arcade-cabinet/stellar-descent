@@ -25,6 +25,7 @@
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { SpotLight } from '@babylonjs/core/Lights/spotLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -140,8 +141,14 @@ export class MiningDepthsLevel extends BaseLevel {
 
   // Lighting
   private caveAmbient: HemisphericLight | null = null;
-  private flashlight: PointLight | null = null;
+  private flashlight: SpotLight | null = null;
+  private flashlightFill: PointLight | null = null;
   private flashlightOn = false;
+
+  // Atmospheric effects
+  private dustParticles: Mesh[] = [];
+  private fogDensity = 0.015;
+  private lastDustSpawn = 0;
 
   // Area zones
   private areaZones: AreaZone[] = [];
@@ -209,8 +216,17 @@ export class MiningDepthsLevel extends BaseLevel {
   }
 
   protected getBackgroundColor(): Color4 {
-    // Very dark underground - near black
-    return new Color4(0.005, 0.005, 0.008, 1);
+    // Very dark underground - near black with slight blue tint
+    return new Color4(0.002, 0.002, 0.005, 1);
+  }
+
+  /**
+   * Override FOV for claustrophobic underground feel.
+   * Narrower FOV creates tension in tight tunnels.
+   */
+  protected override getDefaultFOV(): number {
+    // 65 degrees in radians - narrower for claustrophobic feel
+    return (65 * Math.PI) / 180;
   }
 
   // ==========================================================================
@@ -259,26 +275,53 @@ export class MiningDepthsLevel extends BaseLevel {
   }
 
   private setupCaveLighting(): void {
-    // Disable base level lights
+    // Disable base level lights - we're underground
     if (this.sunLight) {
       this.sunLight.intensity = 0;
+      this.sunLight.setEnabled(false);
     }
     if (this.ambientLight) {
       this.ambientLight.intensity = 0;
+      this.ambientLight.setEnabled(false);
     }
 
-    // Very dark cave ambient
+    // Very dark cave ambient - barely visible without flashlight
     this.caveAmbient = new HemisphericLight('caveAmbient', new Vector3(0, 1, 0), this.scene);
-    this.caveAmbient.intensity = 0.08;
-    this.caveAmbient.diffuse = new Color3(0.15, 0.12, 0.1);
-    this.caveAmbient.groundColor = new Color3(0.03, 0.03, 0.05);
+    this.caveAmbient.intensity = 0.04; // Reduced for darker feel
+    this.caveAmbient.diffuse = new Color3(0.08, 0.06, 0.05);
+    this.caveAmbient.groundColor = new Color3(0.02, 0.02, 0.03);
+
+    // Enable exponential fog for atmospheric depth
+    this.scene.fogMode = 3; // FOGMODE_EXP2
+    this.scene.fogDensity = this.fogDensity;
+    this.scene.fogColor = new Color3(0.01, 0.01, 0.015);
+
+    // Disable skybox - we're underground
+    this.scene.environmentTexture = null;
   }
 
   private createFlashlight(): void {
-    this.flashlight = new PointLight('flashlight', new Vector3(0, 0, 0), this.scene);
-    this.flashlight.diffuse = new Color3(1, 1, 0.95);
-    this.flashlight.intensity = 0;
-    this.flashlight.range = 20;
+    // Primary flashlight - SpotLight for directional beam
+    // Position will be updated every frame to follow camera
+    const forward = new Vector3(0, 0, 1);
+    this.flashlight = new SpotLight(
+      'flashlight',
+      new Vector3(0, 0, 0), // Position (updated in update loop)
+      forward, // Direction (updated in update loop)
+      Math.PI / 4, // Angle - 45 degree cone
+      2, // Exponent - controls falloff softness
+      this.scene
+    );
+    this.flashlight.diffuse = new Color3(1, 0.98, 0.9); // Slightly warm white
+    this.flashlight.specular = new Color3(0.5, 0.5, 0.5);
+    this.flashlight.intensity = 0; // Off by default
+    this.flashlight.range = 35; // Increased range for better visibility
+
+    // Fill light - subtle PointLight for ambient around player
+    this.flashlightFill = new PointLight('flashlightFill', new Vector3(0, 0, 0), this.scene);
+    this.flashlightFill.diffuse = new Color3(0.6, 0.55, 0.5);
+    this.flashlightFill.intensity = 0;
+    this.flashlightFill.range = 8;
   }
 
   private createObjectiveMarker(): void {
@@ -397,83 +440,153 @@ export class MiningDepthsLevel extends BaseLevel {
   }
 
   private setupMiningAudio(): void {
-    // Dripping water
+    // =========================================================================
+    // WATER DRIPS - scattered throughout for eerie ambiance
+    // =========================================================================
     this.addSpatialSound(
-      'drip_hub',
+      'drip_hub_1',
       'dripping',
       { x: -15, y: 2, z: -20 },
-      {
-        maxDistance: 12,
-        volume: 0.3,
-        interval: 3000,
-      }
+      { maxDistance: 12, volume: 0.3, interval: 3000 }
     );
     this.addSpatialSound(
-      'drip_tunnel',
+      'drip_hub_2',
+      'dripping',
+      { x: 12, y: 3, z: -28 },
+      { maxDistance: 10, volume: 0.25, interval: 4500 }
+    );
+    this.addSpatialSound(
+      'drip_tunnel_1',
       'dripping',
       { x: -12, y: -5, z: -70 },
-      {
-        maxDistance: 10,
-        volume: 0.35,
-        interval: 4000,
-      }
+      { maxDistance: 10, volume: 0.35, interval: 4000 }
+    );
+    this.addSpatialSound(
+      'drip_tunnel_2',
+      'dripping',
+      { x: -8, y: -8, z: -85 },
+      { maxDistance: 8, volume: 0.4, interval: 2500 }
+    );
+    this.addSpatialSound(
+      'drip_shaft',
+      'dripping',
+      { x: -5, y: -20, z: -125 },
+      { maxDistance: 15, volume: 0.3, interval: 3500 }
     );
 
-    // Creaking mine supports
+    // =========================================================================
+    // CREAKING SUPPORTS - structural stress sounds
+    // =========================================================================
     this.addSpatialSound(
       'creak_hub_1',
       'debris_settling',
       { x: 10, y: 4, z: -25 },
-      {
-        maxDistance: 15,
-        volume: 0.4,
-        interval: 8000,
-      }
+      { maxDistance: 15, volume: 0.4, interval: 8000 }
     );
     this.addSpatialSound(
-      'creak_tunnel',
+      'creak_hub_2',
+      'debris_settling',
+      { x: -18, y: 5, z: -32 },
+      { maxDistance: 12, volume: 0.35, interval: 10000 }
+    );
+    this.addSpatialSound(
+      'creak_tunnel_1',
       'debris_settling',
       { x: -8, y: -3, z: -60 },
-      {
-        maxDistance: 12,
-        volume: 0.5,
-        interval: 6000,
-      }
+      { maxDistance: 12, volume: 0.5, interval: 6000 }
     );
     this.addSpatialSound(
-      'creak_shaft',
+      'creak_tunnel_2',
+      'debris_settling',
+      { x: -15, y: -7, z: -82 },
+      { maxDistance: 10, volume: 0.45, interval: 7500 }
+    );
+    this.addSpatialSound(
+      'creak_shaft_1',
       'debris_settling',
       { x: -10, y: -15, z: -120 },
-      {
-        maxDistance: 18,
-        volume: 0.45,
-        interval: 7000,
-      }
+      { maxDistance: 18, volume: 0.45, interval: 7000 }
+    );
+    this.addSpatialSound(
+      'creak_shaft_2',
+      'debris_settling',
+      { x: -18, y: -25, z: -130 },
+      { maxDistance: 20, volume: 0.5, interval: 9000 }
     );
 
-    // Wind through tunnels
+    // =========================================================================
+    // WIND AND ATMOSPHERE
+    // =========================================================================
     this.addSpatialSound(
       'wind_entry',
       'wind_howl',
       { x: 0, y: 3, z: 0 },
-      {
-        maxDistance: 20,
-        volume: 0.3,
-      }
+      { maxDistance: 20, volume: 0.25 }
+    );
+    this.addSpatialSound(
+      'wind_tunnel',
+      'wind_howl',
+      { x: -10, y: -5, z: -65 },
+      { maxDistance: 15, volume: 0.2 }
     );
 
-    // Machinery hum (abandoned but not silent)
+    // =========================================================================
+    // MACHINERY - abandoned but not fully dead
+    // =========================================================================
     this.addSpatialSound(
       'machinery_hub',
       'machinery',
       { x: 8, y: 1, z: -20 },
-      {
-        maxDistance: 10,
-        volume: 0.2,
-      }
+      { maxDistance: 12, volume: 0.2 }
+    );
+    this.addSpatialSound(
+      'electrical_hub',
+      'electrical_panel',
+      { x: -12, y: 2, z: -18 },
+      { maxDistance: 8, volume: 0.15 }
+    );
+    this.addSpatialSound(
+      'vent_tunnel',
+      'vent',
+      { x: -5, y: -2, z: -55 },
+      { maxDistance: 10, volume: 0.3 }
     );
 
-    // Audio zones
+    // =========================================================================
+    // GAS VENTS - warning sounds near hazards
+    // =========================================================================
+    this.addSpatialSound(
+      'gas_vent_1',
+      'vent',
+      { x: -5, y: 0, z: -55 },
+      { maxDistance: 8, volume: 0.4 }
+    );
+    this.addSpatialSound(
+      'gas_vent_2',
+      'vent',
+      { x: -18, y: -5, z: -80 },
+      { maxDistance: 6, volume: 0.5 }
+    );
+
+    // =========================================================================
+    // DISTANT RUMBLES - deep underground atmosphere
+    // =========================================================================
+    this.addSpatialSound(
+      'rumble_deep_1',
+      'debris_settling',
+      { x: 0, y: -30, z: -100 },
+      { maxDistance: 50, volume: 0.2, interval: 15000 }
+    );
+    this.addSpatialSound(
+      'rumble_deep_2',
+      'debris_settling',
+      { x: -20, y: -35, z: -140 },
+      { maxDistance: 60, volume: 0.25, interval: 20000 }
+    );
+
+    // =========================================================================
+    // AUDIO ZONES - environmental transitions
+    // =========================================================================
     this.addAudioZone('zone_entry', 'station', { x: 0, y: 0, z: 0 }, 15, {
       isIndoor: true,
       intensity: 0.3,
@@ -487,9 +600,14 @@ export class MiningDepthsLevel extends BaseLevel {
       intensity: 0.6,
       highThreat: true,
     });
-    this.addAudioZone('zone_shaft', 'hive', { x: -10, y: -15, z: -120 }, 20, {
+    this.addAudioZone('zone_shaft', 'hive', { x: -10, y: -15, z: -120 }, 25, {
       isIndoor: true,
       intensity: 0.8,
+      highThreat: true,
+    });
+    this.addAudioZone('zone_boss', 'hive', { x: -10, y: -30, z: -120 }, 15, {
+      isIndoor: true,
+      intensity: 1.0,
       highThreat: true,
     });
   }
@@ -622,10 +740,14 @@ export class MiningDepthsLevel extends BaseLevel {
     damageFeedback.update(deltaTime);
     damageFeedback.setCameraPosition(this.camera.position);
 
-    // Update flashlight position
-    if (this.flashlight) {
-      this.flashlight.position.copyFrom(this.camera.position);
-    }
+    // Update flashlight position and direction
+    this.updateFlashlightTransform();
+
+    // Update dust particles for atmosphere
+    this.updateDustParticles(deltaTime);
+
+    // Update fog density based on location (thicker in deeper areas)
+    this.updateFogDensity();
 
     // Update flickering lights
     this.updateFlickerLights(deltaTime);
@@ -695,6 +817,129 @@ export class MiningDepthsLevel extends BaseLevel {
 
     // Eye height above ground
     pos.y = groundY + 1.7;
+  }
+
+  // ==========================================================================
+  // FLASHLIGHT SYSTEM
+  // ==========================================================================
+
+  private updateFlashlightTransform(): void {
+    if (!this.flashlight) return;
+
+    // Position flashlight at camera (player's hand/helmet)
+    this.flashlight.position.copyFrom(this.camera.position);
+    // Slight offset down and forward for hand-held feel
+    this.flashlight.position.y -= 0.3;
+
+    // Direction follows camera look direction
+    const forward = this.camera.getDirection(Vector3.Forward());
+    this.flashlight.direction = forward;
+
+    // Update fill light position
+    if (this.flashlightFill) {
+      this.flashlightFill.position.copyFrom(this.camera.position);
+    }
+  }
+
+  // ==========================================================================
+  // ATMOSPHERIC DUST PARTICLES
+  // ==========================================================================
+
+  private updateDustParticles(deltaTime: number): void {
+    const now = performance.now();
+
+    // Spawn new dust particles periodically
+    if (now - this.lastDustSpawn > 200 && this.dustParticles.length < 30) {
+      this.lastDustSpawn = now;
+      this.spawnDustParticle();
+    }
+
+    // Update existing particles
+    for (let i = this.dustParticles.length - 1; i >= 0; i--) {
+      const dust = this.dustParticles[i];
+      if (!dust || dust.isDisposed()) {
+        this.dustParticles.splice(i, 1);
+        continue;
+      }
+
+      // Slow drift
+      dust.position.y -= deltaTime * 0.3;
+      dust.position.x += Math.sin(now * 0.001 + i) * deltaTime * 0.1;
+
+      // Fade out and remove when too low
+      const material = dust.material as StandardMaterial;
+      if (material) {
+        material.alpha -= deltaTime * 0.1;
+        if (material.alpha <= 0) {
+          material.dispose();
+          dust.dispose();
+          this.dustParticles.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  private spawnDustParticle(): void {
+    const playerPos = this.camera.position;
+
+    // Spawn in visible area around player
+    const offset = new Vector3(
+      (Math.random() - 0.5) * 10,
+      Math.random() * 3 + 1,
+      (Math.random() - 0.5) * 10
+    );
+    const spawnPos = playerPos.add(offset);
+
+    const dust = MeshBuilder.CreatePlane(
+      `dust_${this.dustParticles.length}`,
+      { size: 0.03 + Math.random() * 0.02 },
+      this.scene
+    );
+    dust.position = spawnPos;
+    dust.billboardMode = 7; // BILLBOARDMODE_ALL
+
+    const mat = new StandardMaterial(`dustMat_${this.dustParticles.length}`, this.scene);
+    mat.diffuseColor = new Color3(0.6, 0.55, 0.5);
+    mat.emissiveColor = new Color3(0.1, 0.08, 0.06);
+    mat.alpha = 0.3 + Math.random() * 0.3;
+    mat.disableLighting = true;
+    dust.material = mat;
+
+    this.dustParticles.push(dust);
+  }
+
+  // ==========================================================================
+  // FOG SYSTEM
+  // ==========================================================================
+
+  private updateFogDensity(): void {
+    const playerZ = this.camera.position.z;
+    const playerY = this.camera.position.y;
+
+    // Increase fog density as player goes deeper
+    let baseDensity = 0.012;
+
+    if (playerZ < -50) {
+      // In collapsed tunnels - more fog
+      baseDensity = 0.018;
+    }
+    if (playerZ < -100) {
+      // Near shaft - even more fog
+      baseDensity = 0.022;
+    }
+    if (playerY < -15) {
+      // Deep shaft floor - thickest fog
+      baseDensity = 0.028;
+    }
+
+    // In flooded area - reduced visibility
+    if (this.playerInFlood) {
+      baseDensity = 0.04;
+    }
+
+    // Smooth transition
+    this.fogDensity += (baseDensity - this.fogDensity) * 0.02;
+    this.scene.fogDensity = this.fogDensity;
   }
 
   // ==========================================================================
@@ -1767,8 +2012,12 @@ export class MiningDepthsLevel extends BaseLevel {
   private toggleFlashlight(): void {
     this.flashlightOn = !this.flashlightOn;
     if (this.flashlight) {
-      this.flashlight.intensity = this.flashlightOn ? 1.5 : 0;
+      this.flashlight.intensity = this.flashlightOn ? 2.5 : 0;
     }
+    if (this.flashlightFill) {
+      this.flashlightFill.intensity = this.flashlightOn ? 0.4 : 0;
+    }
+    this.playSound(this.flashlightOn ? 'notification' : 'notification');
     this.callbacks.onNotification(this.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF', 800);
   }
 
@@ -2048,6 +2297,20 @@ export class MiningDepthsLevel extends BaseLevel {
     // Dispose flashlight
     this.flashlight?.dispose();
     this.flashlight = null;
+    this.flashlightFill?.dispose();
+    this.flashlightFill = null;
+
+    // Dispose dust particles
+    for (const dust of this.dustParticles) {
+      if (dust && !dust.isDisposed()) {
+        (dust.material as StandardMaterial)?.dispose();
+        dust.dispose();
+      }
+    }
+    this.dustParticles = [];
+
+    // Reset fog
+    this.scene.fogMode = 0;
 
     // Dispose cave ambient
     this.caveAmbient?.dispose();

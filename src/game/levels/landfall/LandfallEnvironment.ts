@@ -900,6 +900,15 @@ export async function buildLandfallEnvironment(
       // Start hidden -- the level will reveal them on surface phase
       node.setEnabled(false);
 
+      // Enable distance-based culling for performance
+      const distFromOrigin = def.position.length();
+      if (distFromOrigin > 100) {
+        // Far objects get more aggressive culling
+        node.getChildMeshes().forEach((mesh) => {
+          mesh.cullingStrategy = 2; // BOUNDINGSPHERE_ONLY
+        });
+      }
+
       allNodes.push(node);
 
       // Track orbital station separately for sky animation
@@ -1023,4 +1032,62 @@ export function disposeEnvironment(env: LandfallEnvironmentNodes): void {
   env.root.dispose();
   env.allNodes.length = 0;
   env.orbitalStation = null;
+}
+
+/**
+ * Update environment LOD based on camera position.
+ * Called each frame to optimize rendering of distant objects.
+ */
+export function updateEnvironmentLOD(
+  env: LandfallEnvironmentNodes,
+  cameraPosition: Vector3,
+  lodFadeStart: number = 150,
+  lodCullDistance: number = 250
+): void {
+  for (const node of env.allNodes) {
+    if (!node.isEnabled()) continue;
+
+    const distance = Vector3.Distance(node.position, cameraPosition);
+
+    // Cull very distant objects
+    if (distance > lodCullDistance) {
+      node.getChildMeshes().forEach((mesh) => {
+        mesh.isVisible = false;
+      });
+    } else if (distance > lodFadeStart) {
+      // Fade out distant objects
+      const fadeRatio = 1 - (distance - lodFadeStart) / (lodCullDistance - lodFadeStart);
+      node.getChildMeshes().forEach((mesh) => {
+        mesh.isVisible = true;
+        if (mesh.material && 'alpha' in mesh.material) {
+          // Don't fade materials that need to stay opaque
+          // Just toggle visibility
+        }
+      });
+    } else {
+      // Nearby objects are fully visible
+      node.getChildMeshes().forEach((mesh) => {
+        mesh.isVisible = true;
+      });
+    }
+  }
+}
+
+/**
+ * Animate the orbital station wreck in the sky.
+ * Creates a slow tumbling effect as it burns in orbit.
+ */
+export function updateOrbitalStation(
+  env: LandfallEnvironmentNodes,
+  deltaTime: number
+): void {
+  if (!env.orbitalStation || !env.orbitalStation.isEnabled()) return;
+
+  // Slow tumble rotation
+  env.orbitalStation.rotation.x += deltaTime * 0.05;
+  env.orbitalStation.rotation.z += deltaTime * 0.03;
+
+  // Subtle position wobble to simulate orbital decay
+  const time = performance.now() * 0.0001;
+  env.orbitalStation.position.y += Math.sin(time) * 0.01;
 }

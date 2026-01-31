@@ -93,7 +93,7 @@ export function predictTargetPosition(
   targetPos: Vector3,
   targetVelocity: Vector3,
   leadTime: number,
-  inaccuracy: number = 2.0
+  inaccuracy: number = 1.2 // Reduced from 2.0 for more accurate mortars
 ): Vector3 {
   const predicted = targetPos.add(targetVelocity.scale(leadTime));
 

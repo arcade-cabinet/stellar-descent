@@ -565,11 +565,31 @@ export function LevelCompletionScreen({
     }
   }, [rating]);
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        if (!e.target || (e.target as HTMLElement).tagName !== 'BUTTON') {
+          e.preventDefault();
+          handleContinue();
+        }
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleMainMenu();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleContinue, handleMainMenu]);
+
   return (
     <div
       className={styles.overlay}
       role="dialog"
       aria-labelledby="completion-title"
+      aria-describedby="completion-mission"
       aria-modal="true"
     >
       {/* Scan line effect */}
@@ -596,7 +616,7 @@ export function LevelCompletionScreen({
         </h1>
 
         {/* Mission name */}
-        <p className={styles.missionName}>{missionName}</p>
+        <p id="completion-mission" className={styles.missionName}>{missionName}</p>
 
         {/* Divider */}
         <div className={styles.divider} aria-hidden="true">
@@ -604,7 +624,7 @@ export function LevelCompletionScreen({
         </div>
 
         {/* Stats grid */}
-        <div className={styles.statsContainer}>
+        <div className={styles.statsContainer} role="group" aria-label="Mission statistics">
           <div
             className={`${styles.statItem} ${styles.statAnimateIn}`}
             style={{ animationDelay: '0.2s' }}
@@ -829,13 +849,17 @@ export function LevelCompletionScreen({
         )}
 
         {/* Rating display */}
-        <div className={`${styles.ratingContainer} ${showBreakdown ? styles.ratingVisible : ''}`}>
+        <div
+          className={`${styles.ratingContainer} ${showBreakdown ? styles.ratingVisible : ''}`}
+          role="status"
+          aria-label={`Performance rating: ${rating}, ${ratingDescription}${newRecords.rating ? ' - New personal best!' : ''}`}
+        >
           <span className={styles.ratingLabel}>PERFORMANCE RATING</span>
           <div className={styles.ratingDisplay}>
-            <span className={`${styles.ratingValue} ${ratingClass}`}>{rating}</span>
-            {newRecords.rating && <span className={styles.ratingNewRecord}>NEW BEST!</span>}
+            <span className={`${styles.ratingValue} ${ratingClass}`} aria-hidden="true">{rating}</span>
+            {newRecords.rating && <span className={styles.ratingNewRecord} aria-hidden="true">NEW BEST!</span>}
           </div>
-          <span className={styles.ratingDescription}>{ratingDescription}</span>
+          <span className={styles.ratingDescription} aria-hidden="true">{ratingDescription}</span>
         </div>
 
         {/* Achievements earned */}

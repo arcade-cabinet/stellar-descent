@@ -19,13 +19,57 @@ import {
   QUEEN_PHASE_2_THRESHOLD,
   QUEEN_PHASE_3_THRESHOLD,
   WEAK_POINT_DAMAGE_MULTIPLIER,
+  QUEEN_HEALTH_SCALING,
+  QUEEN_DAMAGE_SCALING,
+  QUEEN_COOLDOWN_SCALING,
+  WEAK_POINT_PULSE_SPEED,
+  WEAK_POINT_MIN_ALPHA,
+  WEAK_POINT_MAX_ALPHA,
+  QUEEN_ATTACK_DAMAGE,
 } from './constants';
+import { loadDifficultySetting, type DifficultyLevel } from '../../core/DifficultySettings';
 import type { Queen, QueenAttackType, QueenPhase } from './types';
 
 // GLB paths for queen body parts
 const QUEEN_BODY_PATH = '/models/enemies/chitin/tentakel.glb';
 const QUEEN_CLAW_PATH = '/models/environment/hive/building_claw.glb';
 const QUEEN_TAIL_PATH = '/models/environment/alien-flora/alien_fern_1.glb';
+
+// Current difficulty level for queen scaling
+let currentDifficulty: DifficultyLevel = loadDifficultySetting();
+
+/**
+ * Update the difficulty level for queen scaling
+ */
+export function setQueenDifficulty(difficulty: DifficultyLevel): void {
+  currentDifficulty = difficulty;
+  console.log(`[Queen] Difficulty set to: ${difficulty}`);
+}
+
+/**
+ * Get scaled queen max health based on current difficulty
+ */
+export function getScaledQueenHealth(): number {
+  const scaling = QUEEN_HEALTH_SCALING[currentDifficulty] ?? 1.0;
+  return Math.round(QUEEN_MAX_HEALTH * scaling);
+}
+
+/**
+ * Get scaled queen attack damage based on current difficulty
+ */
+export function getScaledQueenDamage(attackType: string): number {
+  const baseDamage = QUEEN_ATTACK_DAMAGE[attackType] ?? 20;
+  const scaling = QUEEN_DAMAGE_SCALING[currentDifficulty] ?? 1.0;
+  return Math.round(baseDamage * scaling);
+}
+
+/**
+ * Get scaled attack cooldown based on current difficulty
+ */
+export function getScaledCooldown(baseCooldown: number): number {
+  const scaling = QUEEN_COOLDOWN_SCALING[currentDifficulty] ?? 1.0;
+  return Math.round(baseCooldown * scaling);
+}
 
 // ============================================================================
 // QUEEN ASSET PRELOADING
@@ -51,8 +95,11 @@ export async function preloadQueenModels(scene: Scene): Promise<void> {
  * Create the Queen boss at the specified position.
  * Uses GLB models for body (tentakel), claws (building_claw), and tail (alien flora).
  * Eyes and weak point remain procedural (VFX indicator elements).
+ * Queen health is scaled based on current difficulty setting.
  */
 export function createQueen(scene: Scene, position: Vector3, glowLayer: GlowLayer | null): Queen {
+  // Get difficulty-scaled health
+  const scaledHealth = getScaledQueenHealth();
   // --- Main body (abdomen + thorax + head) from tentakel.glb ---
   const bodyNode = AssetManager.createInstanceByPath(
     QUEEN_BODY_PATH,
@@ -163,8 +210,8 @@ export function createQueen(scene: Scene, position: Vector3, glowLayer: GlowLaye
 
   return {
     mesh: bodyNode,
-    health: QUEEN_MAX_HEALTH,
-    maxHealth: QUEEN_MAX_HEALTH,
+    health: scaledHealth,
+    maxHealth: scaledHealth,
     phase: 1,
     attackCooldown: 0,
     spawnCooldown: 0,
@@ -275,30 +322,245 @@ export function calculateQueenDamage(baseDamage: number, isWeakPoint: boolean): 
 // ============================================================================
 
 /**
- * Update queen idle animations (head and claw movement)
+ * Update queen idle animations (head, claw, tail, and body movement)
+ * Animation intensity increases with phase for more aggressive feel.
  */
 export function animateQueen(queen: Queen, time: number): void {
+  const phaseIntensity = 0.8 + queen.phase * 0.2; // 1.0, 1.2, 1.4 for phases 1, 2, 3
+
+  // Head sway - more aggressive in later phases
   if (queen.bodyParts.head) {
-    queen.bodyParts.head.rotation.y = Math.PI + Math.sin(time * 0.5) * 0.1;
+    const headSway = Math.sin(time * 0.5 * phaseIntensity) * 0.1 * phaseIntensity;
+    const headNod = Math.sin(time * 0.3) * 0.05;
+    queen.bodyParts.head.rotation.y = Math.PI + headSway;
+    queen.bodyParts.head.rotation.x = headNod;
   }
+
+  // Claw movement - menacing flex
   for (let i = 0; i < queen.bodyParts.claws.length; i++) {
     const claw = queen.bodyParts.claws[i];
-    claw.rotation.x = Math.sin(time * 0.8 + i) * 0.1;
+    const clawPhase = i * Math.PI; // Offset each claw
+    claw.rotation.x = Math.sin(time * 0.8 * phaseIntensity + clawPhase) * 0.15 * phaseIntensity;
+    claw.rotation.z = (i === 0 ? 1 : -1) * (Math.PI / 4 + Math.sin(time * 0.5 + clawPhase) * 0.1);
+  }
+
+  // Tail sway - organic movement
+  if (queen.bodyParts.tail) {
+    const tailSway = Math.sin(time * 0.6) * 0.2 * phaseIntensity;
+    const tailWave = Math.sin(time * 1.2) * 0.1;
+    queen.bodyParts.tail.rotation.y = Math.PI + tailSway;
+    queen.bodyParts.tail.rotation.z = tailWave;
+  }
+
+  // Body breathing/pulsing - organic feel
+  if (queen.bodyParts.abdomen) {
+    const breathScale = 1 + Math.sin(time * 0.4) * 0.02 * phaseIntensity;
+    queen.mesh.scaling.setAll(2.5 * breathScale);
+  }
+
+  // Weak point pulsing animation when visible
+  if (queen.weakPointVisible && queen.weakPointMesh) {
+    const pulseAlpha = WEAK_POINT_MIN_ALPHA +
+      (WEAK_POINT_MAX_ALPHA - WEAK_POINT_MIN_ALPHA) *
+      (0.5 + 0.5 * Math.sin(time * WEAK_POINT_PULSE_SPEED));
+    const mat = queen.weakPointMesh.material as StandardMaterial;
+    if (mat) {
+      mat.alpha = pulseAlpha;
+    }
+    // Also pulse the size
+    const pulseScale = 0.8 + 0.4 * Math.sin(time * WEAK_POINT_PULSE_SPEED);
+    queen.weakPointMesh.scaling.setAll(pulseScale);
+  }
+
+  // Screaming animation when dying
+  if (queen.screaming) {
+    queen.mesh.rotation.x = Math.sin(time * 10) * 0.1;
+    queen.mesh.rotation.z = Math.sin(time * 8) * 0.05;
   }
 }
 
 /**
- * Animate claw swipe attack
+ * Animate claw swipe attack with wind-up and follow-through
  */
 export function animateClawSwipe(queen: Queen): void {
-  if (queen.bodyParts.claws[0]) {
-    const claw = queen.bodyParts.claws[0];
-    const originalRot = claw.rotation.z;
-    claw.rotation.z = originalRot - 0.5;
-    setTimeout(() => {
-      claw.rotation.z = originalRot;
-    }, 300);
+  const clawIndex = Math.random() < 0.5 ? 0 : 1; // Randomly choose which claw
+  const claw = queen.bodyParts.claws[clawIndex];
+  if (!claw) return;
+
+  const side = clawIndex === 0 ? 1 : -1;
+  const originalRotX = claw.rotation.x;
+  const originalRotZ = claw.rotation.z;
+
+  // Wind-up phase (100ms)
+  claw.rotation.x = originalRotX - 0.4;
+  claw.rotation.z = originalRotZ + side * 0.3;
+
+  // Strike phase (150ms after wind-up)
+  setTimeout(() => {
+    claw.rotation.x = originalRotX + 0.8;
+    claw.rotation.z = originalRotZ - side * 0.6;
+  }, 100);
+
+  // Recovery phase (200ms after strike)
+  setTimeout(() => {
+    claw.rotation.x = originalRotX;
+    claw.rotation.z = originalRotZ;
+  }, 350);
+}
+
+/**
+ * Animate tail slam attack with wind-up and slam
+ */
+export function animateTailSlam(queen: Queen): void {
+  if (!queen.bodyParts.tail) return;
+
+  const tail = queen.bodyParts.tail;
+  const originalRotX = tail.rotation.x;
+  const originalRotY = tail.rotation.y;
+
+  // Raise tail (wind-up)
+  tail.rotation.x = originalRotX - 0.5;
+  tail.rotation.y = originalRotY + 0.2;
+
+  // Slam down
+  setTimeout(() => {
+    tail.rotation.x = originalRotX + 0.6;
+    tail.rotation.y = originalRotY - 0.1;
+  }, 300);
+
+  // Recovery
+  setTimeout(() => {
+    tail.rotation.x = originalRotX;
+    tail.rotation.y = originalRotY;
+  }, 600);
+}
+
+/**
+ * Animate ground pound attack with body raise and slam
+ */
+export function animateGroundPound(queen: Queen): void {
+  const originalY = queen.mesh.position.y;
+  const originalScale = queen.mesh.scaling.y;
+
+  // Raise up
+  queen.mesh.position.y = originalY + 2;
+  queen.mesh.scaling.y = originalScale * 1.2;
+
+  // Slam down
+  setTimeout(() => {
+    queen.mesh.position.y = originalY - 0.5;
+    queen.mesh.scaling.y = originalScale * 0.8;
+  }, 800);
+
+  // Recovery
+  setTimeout(() => {
+    queen.mesh.position.y = originalY;
+    queen.mesh.scaling.y = originalScale;
+  }, 1200);
+}
+
+/**
+ * Animate acid spit attack with head lunge
+ */
+export function animateAcidSpit(queen: Queen): void {
+  if (!queen.bodyParts.head) return;
+
+  const head = queen.bodyParts.head;
+  const originalRotX = head.rotation.x;
+
+  // Rear back
+  head.rotation.x = originalRotX - 0.3;
+
+  // Lunge forward (spit)
+  setTimeout(() => {
+    head.rotation.x = originalRotX + 0.4;
+  }, 400);
+
+  // Recovery
+  setTimeout(() => {
+    head.rotation.x = originalRotX;
+  }, 700);
+}
+
+/**
+ * Play queen awakening animation (called when boss fight starts)
+ */
+export function animateQueenAwakening(queen: Queen): void {
+  const originalY = queen.mesh.position.y;
+
+  // Start low
+  queen.mesh.position.y = originalY - 3;
+  queen.mesh.scaling.setAll(0.5);
+
+  // Rise up dramatically over 3 seconds
+  const startTime = performance.now();
+  const duration = 3000;
+
+  function animationStep(): void {
+    const elapsed = performance.now() - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+
+    queen.mesh.position.y = originalY - 3 + eased * 3;
+    queen.mesh.scaling.setAll(0.5 + eased * 2);
+
+    // Add dramatic shake
+    if (progress < 0.8) {
+      queen.mesh.rotation.z = Math.sin(elapsed * 0.02) * 0.05 * (1 - progress);
+    } else {
+      queen.mesh.rotation.z = 0;
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(animationStep);
+    }
   }
+
+  requestAnimationFrame(animationStep);
+}
+
+/**
+ * Play queen death animation sequence
+ */
+export function animateQueenDeath(queen: Queen, onComplete?: () => void): void {
+  queen.screaming = true;
+
+  const startTime = performance.now();
+  const duration = 5000;
+  const originalY = queen.mesh.position.y;
+
+  function deathAnimation(): void {
+    const elapsed = performance.now() - startTime;
+    const progress = Math.min(1, elapsed / duration);
+
+    // Violent shaking
+    queen.mesh.rotation.x = Math.sin(elapsed * 0.03) * 0.2 * (1 - progress * 0.5);
+    queen.mesh.rotation.z = Math.cos(elapsed * 0.025) * 0.15 * (1 - progress * 0.5);
+
+    // Slowly sink and collapse
+    queen.mesh.position.y = originalY - progress * 2;
+    queen.mesh.scaling.y = 2.5 * (1 - progress * 0.3);
+
+    // Claws go limp
+    for (const claw of queen.bodyParts.claws) {
+      claw.rotation.x = progress * 0.8;
+      claw.rotation.z = claw.rotation.z * (1 - progress);
+    }
+
+    // Tail droops
+    if (queen.bodyParts.tail) {
+      queen.bodyParts.tail.rotation.x = Math.PI / 3 + progress * 0.5;
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(deathAnimation);
+    } else {
+      queen.screaming = false;
+      onComplete?.();
+    }
+  }
+
+  requestAnimationFrame(deathAnimation);
 }
 
 // ============================================================================

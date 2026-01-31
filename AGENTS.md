@@ -4,14 +4,15 @@ This document provides guidance for AI agents (Claude, GPT, Copilot, etc.) worki
 
 ## Project Overview
 
-**STELLAR DESCENT: PROXIMA BREACH** is a mobile-first, 3D arcade shooter built with BabylonJS. The game features procedural world generation, persistent state via SQLite, and a mission-based story campaign.
+**STELLAR DESCENT: PROXIMA BREACH** is a mobile-first, 3D arcade shooter built with BabylonJS. The game features a 10-level campaign, procedural world generation, persistent state via IndexedDB, and native mobile support via Capacitor.
 
 ### Core Philosophy
+
 1. **Mobile-first**: All UI and controls must work on phones first, then scale up
 2. **Military aesthetic**: Olive, khaki, brass colors. NO cyberpunk (no neon, no purple/blue gradients)
 3. **Harsh lighting**: Bright alien sun, high contrast, HDR visuals
-4. **Persistent world**: Areas remember their state when revisited
-5. **Story-driven**: Clear narrative with characters players care about
+4. **Persistent saves**: Game progress persists across sessions via IndexedDB
+5. **Story-driven**: 10-level campaign with clear narrative across 4 acts
 
 ### Critical Development Rules
 
@@ -40,23 +41,30 @@ Before making changes, read these files:
 
 | File | Purpose |
 |------|---------|
-| `src/game/core/lore.ts` | ALL story, characters, missions, dialogue |
-| `src/game/core/ecs.ts` | Entity Component System - how game objects work |
-| `src/game/core/GameManager.ts` | Main game loop and state management |
-| `src/game/entities/player.ts` | Player controls, camera, shooting, halo drop |
+| `src/game/context/GameContext.tsx` | Unified context facade (combines Player, Combat, Mission) |
+| `src/game/context/PlayerContext.tsx` | Player state, health, death, HUD visibility |
+| `src/game/context/CombatContext.tsx` | Combat state, kills, music |
+| `src/game/context/MissionContext.tsx` | Objectives, comms, chapters, notifications |
+| `src/game/levels/types.ts` | Level configs, 10-level campaign structure |
+| `src/game/levels/factories.ts` | Level factory registry |
+| `src/game/persistence/SaveSystem.ts` | Save/load game state |
+| `src/game/persistence/GameSave.ts` | Save data structure (v4 format) |
+| `src/game/entities/player.ts` | Player controls, camera, shooting |
 | `src/game/utils/designTokens.ts` | Colors, spacing, typography |
-| `src/game/utils/responsive.ts` | Mobile/responsive utilities |
 | `docs/ARCHITECTURE.md` | Technical architecture decisions |
 | `docs/DESIGN.md` | Design system and UI/UX guidelines |
+| `docs/LEVELS.md` | Level system documentation |
 
 ## Key Technical Decisions
 
 ### Rendering
+
 - **WebGL2 only** - no WebGPU fallback complexity
 - Use BabylonJS texture library: `https://assets.babylonjs.com/textures/`
-- No custom 3D models yet - use primitives (boxes, cylinders, capsules)
+- Models in `public/models/` directory
 
 ### Animation
+
 - **Do NOT use anime.js** for Babylon objects - the v4 API doesn't work well with BabylonJS objects
 - Use `requestAnimationFrame` loops for mesh/material animations
 - Keep animations simple and manual
@@ -80,22 +88,70 @@ const animateScale = () => {
 requestAnimationFrame(animateScale);
 ```
 
+### React Context Architecture
+
+The game uses a split context pattern for better performance:
+
+```typescript
+// OLD (deprecated) - monolithic context
+const { health, kills, objectives } = useGame();
+
+// NEW (preferred) - focused contexts
+const { health, isDead, difficulty } = usePlayer();
+const { kills, inCombat } = useCombat();
+const { currentObjective, commsMessage } = useMission();
+
+// Facade still available for backwards compatibility
+const game = useGame(); // Combines all three
+```
+
 ### Entity System
+
 - **Miniplex ECS** for all game entities
-- Components: Transform, Health, Velocity, Combat, AI, Renderable, Tags
+- Components: Transform, Health, Velocity, Combat, AI, Renderable, Tags, AlienInfo
 - Use `createEntity()` from `src/game/core/ecs.ts`
 
 ### AI System
+
 - **Yuka** for steering behaviors
 - States: idle, patrol, chase, attack, flee, support
 - Enemies detect player via `alertRadius` and `attackRadius`
 
-### Persistence
-- **SQL.js** (SQLite in browser)
-- Tables: `chunks`, `entities`, `player_stats`
-- Chunks store procedural generation seeds for consistency
+### Save System (v4)
+
+```typescript
+interface GameSave {
+  version: 4;                    // Current format version
+  currentLevel: LevelId;         // Which level player is on
+  levelsCompleted: LevelId[];    // Completed levels
+  levelBestTimes: Record<LevelId, number>;  // Best times in seconds
+  difficulty: DifficultyLevel;   // Easy, Normal, Hard, Nightmare
+  seenIntroBriefing: boolean;    // Skip intro on replay
+  // ... more fields
+}
+```
+
+### Level System
+
+The game uses a linked-list level structure:
+
+```typescript
+// 10 levels across 4 acts
+type LevelId =
+  | 'anchor_station'    // Chapter 1: Tutorial
+  | 'landfall'          // Chapter 2: HALO drop
+  | 'canyon_run'        // Chapter 3: Vehicle chase
+  | 'fob_delta'         // Chapter 4: Horror investigation
+  | 'brothers_in_arms'  // Chapter 5: Mech combat
+  | 'southern_ice'      // Chapter 6: Ice level
+  | 'the_breach'        // Chapter 7: Queen boss fight
+  | 'hive_assault'      // Chapter 8: Combined arms
+  | 'extraction'        // Chapter 9: Wave holdout
+  | 'final_escape';     // Chapter 10: Vehicle finale
+```
 
 ### Responsive Design
+
 - Use `getScreenInfo()` from responsive.ts
 - Device types: mobile, tablet, foldable, desktop
 - Always test with touch controls
@@ -118,6 +174,7 @@ material.diffuseColor = Color3.FromHexString(tokens.colors.primary.olive);
 ```
 
 ### Imports
+
 ```typescript
 // BabylonJS - import specific modules
 import { Scene } from '@babylonjs/core/scene';
@@ -129,6 +186,7 @@ import { createEntity } from '../core/ecs';
 ```
 
 ### UI Elements (React Components)
+
 ```typescript
 // Always use design tokens via CSS modules
 // Check existing patterns in src/components/ui/
@@ -138,17 +196,18 @@ import { createEntity } from '../core/ecs';
 
 ### Adding a New Enemy Type
 
-1. Define in `src/game/core/lore.ts` under `LORE.enemies.variants`
-2. Add mesh creation in `src/game/world/chunkManager.ts`
+1. Define in `src/game/entities/aliens.ts`
+2. Add mesh creation logic
 3. Configure AI parameters (alertRadius, attackRadius, damage)
 4. Update stats in `docs/LORE.md`
 
-### Adding a New Mission/Chapter
+### Adding a New Level
 
-1. Add to `MISSION_BRIEFINGS` in `src/game/core/lore.ts`
-2. Create trigger conditions in `GameManager.ts`
-3. Update `docs/LORE.md` with full narrative
-4. Log changes in `docs/DEVLOG.md`
+1. Create level directory: `src/game/levels/{level-name}/`
+2. Implement level class extending `BaseLevel`
+3. Register factory in `src/game/levels/factories.ts`
+4. Add to `CAMPAIGN_LEVELS` in `src/game/levels/types.ts`
+5. Update `docs/LEVELS.md` with level documentation
 
 ### Adding UI Elements
 
@@ -158,14 +217,49 @@ import { createEntity } from '../core/ecs';
 4. Make responsive using `getScreenInfo()`
 5. Test on mobile viewport
 
-### Modifying World Generation
+### Working with Saves
 
-1. Update `ChunkManager` in `src/game/world/chunkManager.ts`
-2. Generation is seed-based - changes affect all future chunks
-3. Consider memory limits on mobile
-4. Update `docs/ARCHITECTURE.md` if algorithm changes
+```typescript
+import { saveSystem } from '../persistence/SaveSystem';
 
-## Testing Checklist
+// Load existing save or create new
+await saveSystem.initialize();
+const save = await saveSystem.loadGame() ?? await saveSystem.newGame();
+
+// Update save during gameplay
+saveSystem.setCurrentLevel('landfall');
+saveSystem.addKill();
+saveSystem.completeLevel('anchor_station');
+
+// Record level completion time
+const isNewBest = saveSystem.recordLevelTime('anchor_station', 125.5);
+```
+
+## Testing
+
+### Test Commands
+
+```bash
+# Unit tests (fast, run frequently)
+pnpm test:run
+
+# Unit tests with watch mode (during development)
+pnpm test
+
+# E2E tests with Maestro
+pnpm test:e2e
+
+# All tests
+pnpm test:all
+```
+
+### Test File Locations
+
+- **Game logic** -> `src/game/**/*.test.ts`
+- **React components** -> `src/components/**/*.test.tsx`
+- **E2E flows** -> `.maestro/flows/*.yaml`
+
+### Testing Checklist
 
 Before submitting changes:
 
@@ -179,39 +273,15 @@ Before submitting changes:
 - [ ] Update relevant documentation
 - [ ] Add tests for new features
 
-### Running Tests
-
-```bash
-# Unit tests (fast, run frequently)
-pnpm test:run
-
-# Unit tests with watch mode (during development)
-pnpm test
-
-# E2E tests (slower, run before committing)
-pnpm test:e2e
-
-# All tests
-pnpm test:all
-```
-
-### Writing Tests
-
-For new features, add tests in the appropriate location:
-- **Game logic** → `src/game/**/*.test.ts`
-- **React components** → `src/components/**/*.test.tsx`
-- **User flows** → `e2e/*.spec.ts`
-
-See `docs/TESTING.md` for detailed testing guidelines.
-
 ## Documentation Updates
 
 When making significant changes:
 
-1. **Code changes** → Update `docs/ARCHITECTURE.md`
-2. **Story/lore changes** → Update `docs/LORE.md`
-3. **Design changes** → Update `docs/DESIGN.md`
-4. **Any changes** → Add entry to `docs/DEVLOG.md`
+1. **Code changes** -> Update `docs/ARCHITECTURE.md`
+2. **Story/lore changes** -> Update `docs/LORE.md`
+3. **Design changes** -> Update `docs/DESIGN.md`
+4. **Level changes** -> Update `docs/LEVELS.md`
+5. **Any changes** -> Add entry to `docs/DEVLOG.md`
 
 ## What NOT to Do
 
@@ -222,26 +292,31 @@ When making significant changes:
 5. **Don't hardcode colors** - use design tokens
 6. **Don't forget mobile** - test touch controls
 7. **Don't skip documentation** - update DEVLOG.md at minimum
-8. **Don't break persistence** - chunk seeds must be stable
+8. **Don't break saves** - maintain backwards compatibility with migrations
 
 ## Getting Help
 
 If you're unsure about something:
 
 1. Check `docs/` directory for context
-2. Read `src/game/core/lore.ts` for story consistency
+2. Read `src/game/levels/types.ts` for campaign structure
 3. Look at existing code patterns
 4. When in doubt, ask the user for clarification
 
 ## Current Development Phase
 
-**Phase 2: Core Gameplay Loop** (see `docs/DEVLOG.md`)
+**Phase 5: Polish** (see `docs/DEVLOG.md`)
 
-Priority tasks:
-1. Fix mechanical issues (movement, firing, camera)
-2. Tutorial level on Anchor Station Prometheus
-3. Commander dialogue system
-4. Mission triggers and progression
+- 10-level campaign complete
+- Save system v4 with best times
+- CI/CD pipeline with Netlify
+- PWA and Capacitor integration
+
+Current priorities:
+1. Wire keybindings to all level inputs
+2. Weapon switching UI for touch
+3. E2E test expansion
+4. Performance optimization for mobile
 
 ---
 

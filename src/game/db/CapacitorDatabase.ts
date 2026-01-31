@@ -53,6 +53,13 @@ export class CapacitorDatabase {
   private initialized = false;
   private isWeb = false;
 
+  /**
+   * Singleton initialization promise to prevent race conditions.
+   * Multiple React components may call init() simultaneously on mount,
+   * but initWebStore() must only be called once or it will error.
+   */
+  private static initPromise: Promise<void> | null = null;
+
   constructor() {
     this.sqlite = new SQLiteConnection(CapacitorSQLite);
     this.isWeb = !isNativePlatform();
@@ -60,11 +67,36 @@ export class CapacitorDatabase {
 
   /**
    * Initialize the database connection
-   * Must be called before any database operations
+   * Must be called before any database operations.
+   *
+   * This method is safe to call multiple times concurrently - only the first
+   * call will perform initialization, subsequent calls will wait for it to complete.
    */
   async init(): Promise<void> {
+    // Fast path: already initialized
     if (this.initialized) return;
 
+    // If initialization is already in progress, wait for it
+    if (CapacitorDatabase.initPromise) {
+      return CapacitorDatabase.initPromise;
+    }
+
+    // Start initialization and store the promise so concurrent callers can await it
+    CapacitorDatabase.initPromise = this.doInit();
+
+    try {
+      await CapacitorDatabase.initPromise;
+    } catch (error) {
+      // Reset the promise so initialization can be retried
+      CapacitorDatabase.initPromise = null;
+      throw error;
+    }
+  }
+
+  /**
+   * Perform the actual initialization (internal method)
+   */
+  private async doInit(): Promise<void> {
     try {
       // For web platform, initialize the web store first
       if (this.isWeb) {

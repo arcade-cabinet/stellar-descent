@@ -236,7 +236,8 @@ export class CollapsingTerrain {
    */
   private createTerrainSegments(): void {
     const segLen = this.config.terrainLength / this.config.segmentCount;
-    const halfWidth = this.config.terrainWidth / 2;
+    // Note: halfWidth used for segment positioning in future enhancements
+    const _halfWidth = this.config.terrainWidth / 2;
     const startZ = 0;
 
     for (let i = 0; i < this.config.segmentCount; i++) {

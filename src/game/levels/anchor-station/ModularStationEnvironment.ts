@@ -377,46 +377,82 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   }
 
   // ============================================================================
-  // HOLODECK PLATFORMS
+  // HOLODECK PLATFORMS (VR Training Room)
   // ============================================================================
+  // Platforms match MODULAR_ROOM_POSITIONS for tutorial system compatibility
+  // Coordinates are relative to holodeckCenter at (0, 1.5, -34)
 
   const holoCenter = MODULAR_ROOM_POSITIONS.holodeckCenter;
   const holodeckPlatforms: Mesh[] = [];
   const holodeckObstacles: Mesh[] = [];
 
-  // Create jump training platforms
+  // Create jump training platforms - positions match tutorial step targets
+  // Platform heights are floor positions, not player eye height
   const platformPositions = [
-    new Vector3(holoCenter.x - 3, 0.5, holoCenter.z + 2),
-    new Vector3(holoCenter.x, 1.0, holoCenter.z),
-    new Vector3(holoCenter.x + 3, 1.5, holoCenter.z - 2),
-    new Vector3(holoCenter.x + 1, 2.0, holoCenter.z - 4),
-    new Vector3(holoCenter.x - 2, 0.3, holoCenter.z - 6),
+    // Platform 1: Starting platform - player spawns here
+    new Vector3(holoCenter.x - 3, 0.0, holoCenter.z + 2), // (-3, 0, -32) floor
+    // Platform 2: First jump target (0.5m higher)
+    new Vector3(holoCenter.x, 0.5, holoCenter.z), // (0, 0.5, -34) floor
+    // Platform 3: Second jump target (1.0m higher)
+    new Vector3(holoCenter.x + 3, 1.0, holoCenter.z - 2), // (3, 1.0, -36) floor
+    // Platform 4: Highest platform before crouch section
+    new Vector3(holoCenter.x + 1, 1.5, holoCenter.z - 3), // (1, 1.5, -37) floor
+    // Platform 5: Exit platform after crouch passage
+    new Vector3(holoCenter.x - 1, 0.0, holoCenter.z - 6), // (-1, 0, -40) floor
   ];
 
   for (let i = 0; i < platformPositions.length; i++) {
     const platform = MeshBuilder.CreateBox(
       `holoPlatform${i}`,
-      { width: 2, height: 0.3, depth: 2 },
+      { width: 2.5, height: 0.3, depth: 2.5 },
       scene
     );
-    platform.position = platformPositions[i];
+    platform.position = platformPositions[i].clone();
+    platform.position.y += 0.15; // Center of 0.3m tall platform
     platform.material = materials.holoMat;
+    platform.checkCollisions = true; // Enable collision for landing
     platform.isVisible = false; // Hidden until holodeck activates
     platform.parent = root;
     holodeckPlatforms.push(platform);
   }
 
-  // Create crouch obstacle
+  // Create crouch obstacle - a low bar players must crouch under
+  // Positioned between platform 4 and exit platform
   const crouchBar = MeshBuilder.CreateBox(
     'crouchObstacle',
-    { width: 4, height: 0.3, depth: 0.3 },
+    { width: 5, height: 0.4, depth: 0.4 },
     scene
   );
-  crouchBar.position = new Vector3(holoCenter.x - 2, 1.0, holoCenter.z - 5);
+  // Bar at 1.0m height - standing player (1.7m eye) cannot pass, crouching (1.0m) can
+  crouchBar.position = new Vector3(holoCenter.x, 1.0, holoCenter.z - 5);
   crouchBar.material = materials.holoMat;
+  crouchBar.checkCollisions = true;
   crouchBar.isVisible = false;
   crouchBar.parent = root;
   holodeckObstacles.push(crouchBar);
+
+  // Crouch passage walls (visible guides)
+  const passageWallLeft = MeshBuilder.CreateBox(
+    'crouchPassageWallLeft',
+    { width: 0.3, height: 2.5, depth: 3 },
+    scene
+  );
+  passageWallLeft.position = new Vector3(holoCenter.x - 2.5, 1.25, holoCenter.z - 5);
+  passageWallLeft.material = materials.holoMat;
+  passageWallLeft.isVisible = false;
+  passageWallLeft.parent = root;
+  holodeckObstacles.push(passageWallLeft);
+
+  const passageWallRight = MeshBuilder.CreateBox(
+    'crouchPassageWallRight',
+    { width: 0.3, height: 2.5, depth: 3 },
+    scene
+  );
+  passageWallRight.position = new Vector3(holoCenter.x + 2.5, 1.25, holoCenter.z - 5);
+  passageWallRight.material = materials.holoMat;
+  passageWallRight.isVisible = false;
+  passageWallRight.parent = root;
+  holodeckObstacles.push(passageWallRight);
 
   // ============================================================================
   // INDUSTRIAL PROPS (GLB models for environmental detail)

@@ -6,8 +6,12 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { Mesh as BabylonMesh } from '@babylonjs/core/Meshes/mesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+
+// Constants for mesh side orientation (replacing magic number 2)
+const SIDE_DOUBLE = BabylonMesh.DOUBLESIDE; // Both sides visible
 
 // ============================================================================
 // Curved Corridor System for Ring Station Design
@@ -137,7 +141,7 @@ function createCurvedSurface(
       pathArray: paths,
       closeArray: false,
       closePath: false,
-      sideOrientation: 2,
+      sideOrientation: SIDE_DOUBLE,
     },
     scene
   );
@@ -190,7 +194,7 @@ function createCurvedFloor(
       pathArray: floorPaths,
       closeArray: false,
       closePath: false,
-      sideOrientation: 2,
+      sideOrientation: SIDE_DOUBLE,
     },
     scene
   );
@@ -435,7 +439,7 @@ function createCurvedCeiling(
       pathArray: ceilingPaths,
       closeArray: false,
       closePath: false,
-      sideOrientation: 2,
+      sideOrientation: SIDE_DOUBLE,
     },
     scene
   );
@@ -493,7 +497,7 @@ function createCurvedCeiling(
           path: pipePaths,
           radius: 0.08,
           tessellation: 8,
-          sideOrientation: 2,
+          sideOrientation: SIDE_DOUBLE,
         },
         scene
       );

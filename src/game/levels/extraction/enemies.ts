@@ -340,19 +340,58 @@ export function checkMeleeHit(
 
 /**
  * Prepare spawn queue for a wave
+ * FIX #3: Added husk support
+ * FIX #16: Improved spawn diversity with interleaved spawning
  */
 export function prepareWaveSpawnQueue(
   drones: number,
   grunts: number,
   spitters: number,
-  brutes: number
+  brutes: number,
+  husks: number = 0
 ): { species: string; count: number }[] {
   const spawnList: { species: string; count: number }[] = [];
 
-  if (drones > 0) spawnList.push({ species: 'skitterer', count: drones });
-  if (grunts > 0) spawnList.push({ species: 'lurker', count: grunts });
-  if (spitters > 0) spawnList.push({ species: 'spewer', count: spitters });
-  if (brutes > 0) spawnList.push({ species: 'broodmother', count: brutes });
+  // FIX #16: Interleave enemy types for better variety
+  // Split larger groups into smaller chunks
+  const chunkSize = 3;
+
+  // Add drones in chunks
+  let remainingDrones = drones;
+  while (remainingDrones > 0) {
+    const count = Math.min(chunkSize, remainingDrones);
+    spawnList.push({ species: 'skitterer', count });
+    remainingDrones -= count;
+  }
+
+  // Add grunts in chunks
+  let remainingGrunts = grunts;
+  while (remainingGrunts > 0) {
+    const count = Math.min(chunkSize, remainingGrunts);
+    spawnList.push({ species: 'lurker', count });
+    remainingGrunts -= count;
+  }
+
+  // Add spitters in chunks
+  let remainingSpitters = spitters;
+  while (remainingSpitters > 0) {
+    const count = Math.min(chunkSize, remainingSpitters);
+    spawnList.push({ species: 'spewer', count });
+    remainingSpitters -= count;
+  }
+
+  // FIX #3: Add husks in chunks
+  let remainingHusks = husks;
+  while (remainingHusks > 0) {
+    const count = Math.min(chunkSize, remainingHusks);
+    spawnList.push({ species: 'husk', count });
+    remainingHusks -= count;
+  }
+
+  // Brutes spawn one at a time for dramatic effect
+  for (let i = 0; i < brutes; i++) {
+    spawnList.push({ species: 'broodmother', count: 1 });
+  }
 
   // Shuffle the spawn groups for variety
   for (let i = spawnList.length - 1; i > 0; i--) {

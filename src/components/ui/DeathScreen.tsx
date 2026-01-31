@@ -75,8 +75,35 @@ export function DeathScreen({
     onMainMenu();
   }, [onMainMenu, playClickSound]);
 
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        // Allow default button behavior
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        handleRestartMission();
+      }
+      if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        handleMainMenu();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRestartMission, handleMainMenu]);
+
   return (
-    <div className={styles.overlay} role="dialog" aria-labelledby="death-title" aria-modal="true">
+    <div
+      className={styles.overlay}
+      role="alertdialog"
+      aria-labelledby="death-title"
+      aria-describedby="death-reason"
+      aria-modal="true"
+    >
       {/* Scan line effect */}
       <div className={styles.scanLines} aria-hidden="true" />
 
@@ -101,7 +128,7 @@ export function DeathScreen({
         </h1>
 
         {/* Death reason */}
-        <p className={styles.deathReason}>{deathReason}</p>
+        <p id="death-reason" className={styles.deathReason}>{deathReason}</p>
 
         {/* Divider */}
         <div className={styles.divider} aria-hidden="true">
@@ -109,14 +136,14 @@ export function DeathScreen({
         </div>
 
         {/* Stats display */}
-        <div className={styles.statsContainer}>
+        <div className={styles.statsContainer} role="group" aria-label="Mission statistics">
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>HOSTILES ELIMINATED</span>
-            <span className={styles.statValue}>{kills}</span>
+            <span className={styles.statLabel} id="kills-label">HOSTILES ELIMINATED</span>
+            <span className={styles.statValue} aria-labelledby="kills-label">{kills}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>MISSION STATUS</span>
-            <span className={styles.statValue}>FAILED</span>
+            <span className={styles.statLabel} id="status-label">MISSION STATUS</span>
+            <span className={styles.statValue} aria-labelledby="status-label">FAILED</span>
           </div>
         </div>
 

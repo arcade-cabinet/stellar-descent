@@ -117,3 +117,87 @@ export interface DistantThreatDefinition {
   rotationSpeed: number;
   scale: number;
 }
+
+// ---------------------------------------------------------------------------
+// Landing Types
+// ---------------------------------------------------------------------------
+
+/**
+ * Detailed landing statistics for scoring/achievements.
+ */
+export interface LandingStats {
+  /** Final velocity at touchdown (m/s) */
+  velocity: number;
+  /** Distance from LZ center (m) */
+  distanceFromLZ: number;
+  /** Fuel remaining (%) */
+  fuelRemaining: number;
+  /** Asteroids dodged during descent */
+  asteroidsDodged: number;
+  /** Asteroids hit during descent */
+  asteroidsHit: number;
+  /** Suit integrity at landing (%) */
+  suitIntegrity: number;
+  /** Landing outcome category */
+  outcome: LandingOutcome;
+}
+
+// ---------------------------------------------------------------------------
+// Combat Types
+// ---------------------------------------------------------------------------
+
+/**
+ * Combat encounter configuration.
+ */
+export interface CombatEncounterConfig {
+  /** Number of enemies to spawn */
+  enemyCount: number;
+  /** Spawn delay between enemies (ms) */
+  spawnDelay: number;
+  /** Enemy species to spawn */
+  species: SurfaceEnemySpecies;
+  /** Whether to show tutorial hints */
+  showTutorial: boolean;
+  /** Difficulty multiplier (1.0 = normal) */
+  difficultyMultiplier: number;
+}
+
+/**
+ * Cover position for tactical gameplay.
+ */
+export interface CoverPosition {
+  /** World position */
+  position: Vector3;
+  /** Cover type (rock, debris, container) */
+  type: 'rock' | 'debris' | 'container' | 'barrier';
+  /** Cover height (crouching vs standing) */
+  height: 'low' | 'high';
+  /** Whether currently occupied by enemy */
+  occupied: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Environment Hazard Types
+// ---------------------------------------------------------------------------
+
+/**
+ * Acid pool hazard configuration.
+ */
+export interface AcidPoolConfig {
+  x: number;
+  z: number;
+  radius: number;
+  damage: number;
+  damageInterval: number;
+}
+
+/**
+ * Unstable terrain configuration.
+ */
+export interface UnstableTerrainConfig {
+  x: number;
+  z: number;
+  size: number;
+  shakeIntensity: number;
+  shakeInterval: number;
+}

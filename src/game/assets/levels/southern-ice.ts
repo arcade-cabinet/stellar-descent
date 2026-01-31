@@ -257,6 +257,108 @@ export const SOUTHERN_ICE_ASSETS: AssetEntry[] = [
     category: 'model',
     sizeKB: 1965,
   },
+
+  // ICE CHITIN ENEMY (unique to Southern Ice)
+  {
+    id: 'enemy/ice_chitin',
+    path: '/models/enemies/chitin/alien_scifi.glb',
+    category: 'model',
+    sizeKB: 500,
+  },
+
+  // MARCUS MECH COMPANION
+  {
+    id: 'vehicle/marcus_mech',
+    path: '/models/vehicles/tea/marcus_mech.glb',
+    category: 'model',
+    sizeKB: 800,
+  },
+
+  // ALIEN FLORA (rocks for frozen terrain)
+  {
+    id: 'flora/tall_rock_1',
+    path: '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+    category: 'model',
+    sizeKB: 150,
+  },
+  {
+    id: 'flora/tall_rock_2',
+    path: '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+    category: 'model',
+    sizeKB: 150,
+  },
+  {
+    id: 'flora/tall_rock_3',
+    path: '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+    category: 'model',
+    sizeKB: 150,
+  },
+  {
+    id: 'flora/boulder',
+    path: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+    category: 'model',
+    sizeKB: 200,
+  },
+  {
+    id: 'flora/rock_medium_1',
+    path: '/models/environment/alien-flora/alien_rock_medium_1.glb',
+    category: 'model',
+    sizeKB: 100,
+  },
+  {
+    id: 'flora/rock_medium_2',
+    path: '/models/environment/alien-flora/alien_rock_medium_2.glb',
+    category: 'model',
+    sizeKB: 100,
+  },
+  {
+    id: 'flora/rock_medium_3',
+    path: '/models/environment/alien-flora/alien_rock_medium_3.glb',
+    category: 'model',
+    sizeKB: 100,
+  },
+
+  // STATION PILLARS (warning poles around frozen lake)
+  {
+    id: 'station/pillar_hr_2',
+    path: '/models/environment/station/pillar_hr_2.glb',
+    category: 'model',
+    sizeKB: 50,
+  },
+  {
+    id: 'station/pillar_hr_1_broken',
+    path: '/models/environment/station/pillar_hr_1_broken.glb',
+    category: 'model',
+    sizeKB: 50,
+  },
+
+  // INDUSTRIAL PROPS
+  {
+    id: 'industrial/chimney',
+    path: '/models/environment/industrial/chimney_a_1.glb',
+    category: 'model',
+    sizeKB: 100,
+  },
+  {
+    id: 'prop/metal_barrel',
+    path: '/models/props/containers/metal_barrel_hr_1.glb',
+    category: 'model',
+    sizeKB: 80,
+  },
+
+  // PIPE PROPS
+  {
+    id: 'pipe/pipe_e_1',
+    path: '/models/props/pipes/pipe_e_1.glb',
+    category: 'model',
+    sizeKB: 60,
+  },
+  {
+    id: 'pipe/pipe_e_2',
+    path: '/models/props/pipes/pipe_e_2.glb',
+    category: 'model',
+    sizeKB: 60,
+  },
 ];
 
 export const SOUTHERN_ICE_MANIFEST: LevelManifest = {
@@ -266,6 +368,7 @@ export const SOUTHERN_ICE_MANIFEST: LevelManifest = {
     'enemy/spider',
     'enemy/scout',
     'enemy/soldier',
+    'enemy/ice_chitin', // Ice Chitin is essential for this level
   ],
 
   preload: [
@@ -312,6 +415,23 @@ export const SOUTHERN_ICE_MANIFEST: LevelManifest = {
 
     // Crashed station
     'station-ext/station05',
+
+    // Marcus mech companion
+    'vehicle/marcus_mech',
+
+    // Alien flora rocks
+    'flora/tall_rock_1',
+    'flora/tall_rock_2',
+    'flora/tall_rock_3',
+    'flora/boulder',
+
+    // Station pillars
+    'station/pillar_hr_2',
+    'station/pillar_hr_1_broken',
+
+    // Industrial props
+    'industrial/chimney',
+    'prop/metal_barrel',
   ],
 
   deferred: [
@@ -338,6 +458,15 @@ export const SOUTHERN_ICE_MANIFEST: LevelManifest = {
     'fence/metal_corner_tall',
     'fence/metal_pillar_tall',
     'fence/metal_tall',
+
+    // Additional flora rocks
+    'flora/rock_medium_1',
+    'flora/rock_medium_2',
+    'flora/rock_medium_3',
+
+    // Pipe props
+    'pipe/pipe_e_1',
+    'pipe/pipe_e_2',
   ],
 };
 

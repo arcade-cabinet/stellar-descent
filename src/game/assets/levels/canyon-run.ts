@@ -245,7 +245,64 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'texture',
     path: '/textures/levels/canyon-run/skybox.exr',
     sizeKB: 2000,
+  },
 
+  // =============================================================================
+  // [FIX] ADDITIONAL ASSETS - Previously missing from manifest
+  // =============================================================================
+  {
+    id: 'vehicle/phantom',
+    category: 'model',
+    path: '/models/spaceships/Bob.glb',
+    sizeKB: 2500,
+  },
+  {
+    id: 'vehicle/wraith',
+    category: 'model',
+    path: '/models/vehicles/chitin/wraith.glb',
+    sizeKB: 3000,
+  },
+  {
+    id: 'prop/tire_1',
+    category: 'model',
+    path: '/models/props/containers/tire_1.glb',
+    sizeKB: 200,
+  },
+  {
+    id: 'prop/tire_2',
+    category: 'model',
+    path: '/models/props/containers/tire_2.glb',
+    sizeKB: 200,
+  },
+  {
+    id: 'weapon/plasma_cannon',
+    category: 'model',
+    path: '/models/props/weapons/fps_plasma_cannon.glb',
+    sizeKB: 400,
+  },
+  {
+    id: 'flora/alien_boulder',
+    category: 'model',
+    path: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+    sizeKB: 800,
+  },
+  {
+    id: 'flora/alien_rock_med_1',
+    category: 'model',
+    path: '/models/environment/alien-flora/alien_rock_medium_1.glb',
+    sizeKB: 600,
+  },
+  {
+    id: 'station/bridge_pillar',
+    category: 'model',
+    path: '/models/environment/station/pillar_hr_2.glb',
+    sizeKB: 400,
+  },
+  {
+    id: 'station/bridge_handrail',
+    category: 'model',
+    path: '/models/environment/station/platform_b_handrail_1.glb',
+    sizeKB: 300,
   }
 ];
 
@@ -265,12 +322,21 @@ export const CANYON_RUN_MANIFEST: LevelManifest = {
    * PRELOAD: Assets loaded during initial load screen
    * - Enemy Scout (light vehicle combat)
    * - Wraith vehicle (enemy vehicles to destroy)
+   * - Player vehicle and parts
    * - All environment models, props, spaceships
    * - All canyon-specific textures
    */
   preload: [
     'enemy/scout',
     'vehicle/wraith',
+    'vehicle/phantom',
+    'prop/tire_1',
+    'prop/tire_2',
+    'weapon/plasma_cannon',
+    'flora/alien_boulder',
+    'flora/alien_rock_med_1',
+    'station/bridge_pillar',
+    'station/bridge_handrail',
     'industrial/shipping_container_2',
     'industrial/cage',
     'barrier/concrete_fence',

@@ -99,22 +99,35 @@ const DEBRIS_VARIANTS: readonly string[] = [
 // Layout Constants (all in meters)
 // ============================================================================
 //
-// ENTRY ELEVATOR SHAFT (arrives from surface)
-//     |
-// MINING HUB (40m x 30m) - Central processing area, branching tunnels
-//     |
-// COLLAPSED TUNNELS (winding 60m passage) - Debris navigation, cave-ins
-//     |
-// DEEP SHAFT (25m x 25m, 30m tall) - Vertical descent, boss arena
+// LAYOUT DIAGRAM:
+//
+//    SURFACE (elevator shaft destroyed)
+//         |
+//    ENTRY ELEVATOR SHAFT (Y=0)
+//         |
+//    MINING HUB (40m x 30m, Y=0) - Central processing area
+//         |
+//    CONNECTOR TUNNEL (transition hub->tunnels)
+//         |
+//    COLLAPSED TUNNELS (winding 60m passage, Y=-5 to -10)
+//         |
+//    TRANSITION CORRIDOR
+//         |
+//    DEEP SHAFT (25m x 25m, 30m tall, Y=-15 to -45)
+//         Boss Arena at shaft floor
 //
 // ============================================================================
 
-// Section centers
+// Section centers - carefully connected for seamless navigation
 const ENTRY_CENTER = new Vector3(0, 0, 0);
 const HUB_CENTER = new Vector3(0, 0, -25);
+const HUB_EXIT = new Vector3(0, 0, -40); // Where hub connects to tunnels
 const TUNNEL_START = new Vector3(0, 0, -50);
+const TUNNEL_BEND_1 = new Vector3(-8, -3, -60); // First bend
 const TUNNEL_MID = new Vector3(-15, -5, -70);
+const TUNNEL_BEND_2 = new Vector3(-12, -7, -82); // Second bend
 const TUNNEL_END = new Vector3(-10, -10, -95);
+const SHAFT_ENTRY = new Vector3(-10, -13, -108); // Where tunnels meet shaft
 const SHAFT_CENTER = new Vector3(-10, -15, -120);
 
 // Room dimensions
@@ -124,6 +137,7 @@ const HUB_HEIGHT = 8;
 
 const TUNNEL_WIDTH = 5;
 const TUNNEL_HEIGHT = 4;
+const TUNNEL_NARROW_WIDTH = 3.5; // For claustrophobic sections
 
 const SHAFT_WIDTH = 25;
 const SHAFT_DEPTH = 25;
@@ -131,13 +145,18 @@ const SHAFT_HEIGHT = 30;
 
 // Exported positions for level scripting
 export const MINE_POSITIONS = {
+  // Main navigation points
   entry: ENTRY_CENTER.clone(),
   hubCenter: HUB_CENTER.clone(),
   hubTerminal: new Vector3(-12, 0, -20),
   hubKeycard: new Vector3(14, 0, -30),
+  hubExit: HUB_EXIT.clone(),
   tunnelStart: TUNNEL_START.clone(),
+  tunnelBend1: TUNNEL_BEND_1.clone(),
   tunnelMid: TUNNEL_MID.clone(),
+  tunnelBend2: TUNNEL_BEND_2.clone(),
   tunnelEnd: TUNNEL_END.clone(),
+  shaftEntry: SHAFT_ENTRY.clone(),
   shaftCenter: SHAFT_CENTER.clone(),
   shaftFloor: new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 1, SHAFT_CENTER.z),
   shaftBossSpawn: new Vector3(
@@ -145,24 +164,29 @@ export const MINE_POSITIONS = {
     SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + 3,
     SHAFT_CENTER.z
   ),
-  // Audio log pickup locations
-  audioLog1: new Vector3(8, 0, -18),
-  audioLog2: new Vector3(-15, -5, -75),
-  audioLog3: new Vector3(-10, -15, -115),
+
+  // Audio log pickup locations (placed at memorable spots)
+  audioLog1: new Vector3(8, 0, -18), // Hub - near machinery
+  audioLog2: new Vector3(-15, -5, -75), // Tunnel mid - near crystal
+  audioLog3: new Vector3(-10, -28, -115), // Shaft floor - near boss arena
+
   // Gas vent hazard positions
-  gasVent1: new Vector3(-5, 0, -55),
-  gasVent2: new Vector3(-18, -5, -80),
-  // Unstable ground hazard positions
-  rockfall1: new Vector3(5, 0, -60),
-  rockfall2: new Vector3(-12, -8, -90),
+  gasVent1: new Vector3(-5, -1, -55), // After tunnel start
+  gasVent2: new Vector3(-18, -6, -78), // Near tunnel mid
+
+  // Unstable ground hazard positions (rockfall traps)
+  rockfall1: new Vector3(-3, -2, -58), // Early warning
+  rockfall2: new Vector3(-12, -8, -88), // Late tunnel section
+
   // Flooded section
-  floodedArea: new Vector3(-10, -12, -105),
-  // Burrower spawn positions
-  burrowerSpawn1: new Vector3(10, 0, -35),
-  burrowerSpawn2: new Vector3(-20, -5, -65),
-  burrowerSpawn3: new Vector3(-5, -10, -100),
-  burrowerSpawn4: new Vector3(-15, -15, -125),
-  burrowerSpawn5: new Vector3(-5, -15, -115),
+  floodedArea: new Vector3(-10, -12, -103),
+
+  // Burrower spawn positions (ambush points)
+  burrowerSpawn1: new Vector3(10, 0, -35), // Hub - first encounter
+  burrowerSpawn2: new Vector3(-12, -4, -62), // After tunnel bend 1
+  burrowerSpawn3: new Vector3(-8, -9, -92), // Before tunnel end
+  burrowerSpawn4: new Vector3(-18, -28, -125), // Shaft floor - left
+  burrowerSpawn5: new Vector3(-2, -28, -115), // Shaft floor - right
 };
 
 // ============================================================================
@@ -822,6 +846,58 @@ function createDebrisPile(
   }
 }
 
+/**
+ * Create blood stain decal for environmental storytelling.
+ * Tells the story of what happened to the miners.
+ */
+function createBloodStain(
+  scene: Scene,
+  parent: TransformNode,
+  position: Vector3,
+  size: number,
+  materials: Map<string, StandardMaterial>,
+  allMeshes: Mesh[]
+): void {
+  // Create a dark stain decal
+  const stain = MeshBuilder.CreateDisc(
+    `bloodStain_${allMeshes.length}`,
+    { radius: size, tessellation: 12 },
+    scene
+  );
+  stain.position = position.clone();
+  stain.position.y += 0.02; // Slightly above floor
+  stain.rotation.x = Math.PI / 2;
+  stain.rotation.y = Math.random() * Math.PI * 2;
+
+  // Create dark stain material (not red - more subtle)
+  const stainMat = new StandardMaterial(`stainMat_${allMeshes.length}`, scene);
+  stainMat.diffuseColor = new Color3(0.15, 0.08, 0.06);
+  stainMat.specularColor = new Color3(0.1, 0.05, 0.03);
+  stainMat.alpha = 0.6;
+  stain.material = stainMat;
+
+  stain.parent = parent;
+  allMeshes.push(stain);
+}
+
+/**
+ * Create overturned equipment for environmental storytelling.
+ * Shows signs of struggle/escape.
+ */
+function createOverturnedEquipment(
+  scene: Scene,
+  parent: TransformNode,
+  position: Vector3,
+  glbInstances: TransformNode[]
+): void {
+  // Tipped over crate
+  const crateVariant = CRATE_VARIANTS[Math.floor(Math.random() * CRATE_VARIANTS.length)];
+  placeGLBInstance(scene, parent, crateVariant, 'overturned', position, glbInstances, {
+    rotationY: Math.random() * Math.PI * 2,
+    scale: new Vector3(0.7, 0.7, 0.7),
+  });
+}
+
 // ============================================================================
 // Main Environment Creation
 // ============================================================================
@@ -1181,16 +1257,39 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     allMeshes.push(resinPatch);
   }
 
+  // =========================================================================
+  // ENVIRONMENTAL STORYTELLING - Signs of what happened to the miners
+  // =========================================================================
+
+  // Blood stains near where miners were attacked
+  createBloodStain(scene, hubSection, new Vector3(8, 0, -22), 1.2, materials, allMeshes);
+  createBloodStain(scene, hubSection, new Vector3(-10, 0, -32), 0.8, materials, allMeshes);
+  createBloodStain(scene, hubSection, new Vector3(15, 0, -28), 0.6, materials, allMeshes);
+
+  // Overturned equipment near keycard (someone dropped it fleeing)
+  createOverturnedEquipment(scene, hubSection, new Vector3(12, 0, -31), glbInstances);
+  createOverturnedEquipment(scene, hubSection, new Vector3(-8, 0, -25), glbInstances);
+
+  // Scattered tools (hasty evacuation)
+  placeGLBInstance(scene, hubSection, GLB_PATHS.toolbox, 'scattered_tools_1',
+    new Vector3(10, 0, -24), glbInstances,
+    { rotationY: 2.1, scale: new Vector3(0.4, 0.4, 0.4) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.toolbox, 'scattered_tools_2',
+    new Vector3(-15, 0, -20), glbInstances,
+    { rotationY: 0.5, scale: new Vector3(0.35, 0.35, 0.35) }
+  );
+
   // ===========================================================================
-  // SECTION 2: COLLAPSED TUNNELS
+  // CONNECTOR: Hub Exit to Tunnel Start
   // ===========================================================================
 
-  // Tunnel from hub to collapsed area
+  // Transition tunnel from hub south exit to tunnel start
   createTunnelSegment(
     scene,
     tunnelSection,
+    HUB_EXIT,
     TUNNEL_START,
-    new Vector3(-5, -2, -58),
     TUNNEL_WIDTH,
     TUNNEL_HEIGHT,
     materials,
@@ -1200,17 +1299,30 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     glbInstances
   );
 
-  // Debris pile at start of collapsed area -> GLB
-  createDebrisPile(scene, tunnelSection, new Vector3(-3, -1, -55), 1.2, glbInstances);
+  // Warning sign at tunnel entrance (environmental storytelling)
+  const warningSign = MeshBuilder.CreateBox(
+    'warningSign',
+    { width: 1.5, height: 1.0, depth: 0.05 },
+    scene
+  );
+  warningSign.position = new Vector3(2, 1.5, -48);
+  warningSign.rotation.y = Math.PI * 0.1;
+  warningSign.material = materials.get('caution')!;
+  warningSign.parent = tunnelSection;
+  allMeshes.push(warningSign);
 
-  // Collapsed tunnel segment 1 (narrower, lower ceiling)
+  // ===========================================================================
+  // SECTION 2: COLLAPSED TUNNELS
+  // ===========================================================================
+
+  // Tunnel segment 1: Start to first bend (begins descent)
   createTunnelSegment(
     scene,
     tunnelSection,
-    new Vector3(-5, -2, -58),
-    new Vector3(-12, -4, -68),
-    TUNNEL_WIDTH - 1,
-    TUNNEL_HEIGHT - 1,
+    TUNNEL_START,
+    TUNNEL_BEND_1,
+    TUNNEL_WIDTH,
+    TUNNEL_HEIGHT,
     materials,
     allMeshes,
     lights,
@@ -1218,14 +1330,34 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     glbInstances
   );
 
-  // More debris and cave-in rocks -> GLB
-  createDebrisPile(scene, tunnelSection, new Vector3(-8, -3, -62), 1.5, glbInstances);
+  // Debris pile at first collapse zone -> GLB
+  createDebrisPile(scene, tunnelSection, new Vector3(-3, -2, -55), 1.2, glbInstances);
+  createDebrisPile(scene, tunnelSection, new Vector3(-6, -2.5, -57), 0.8, glbInstances);
+
+  // Tunnel segment 2: First bend to tunnel mid (narrower, claustrophobic)
+  createTunnelSegment(
+    scene,
+    tunnelSection,
+    TUNNEL_BEND_1,
+    TUNNEL_MID,
+    TUNNEL_NARROW_WIDTH, // Narrower for tension
+    TUNNEL_HEIGHT - 0.5, // Lower ceiling
+    materials,
+    allMeshes,
+    lights,
+    flickerLights,
+    glbInstances
+  );
+
+  // Major debris pile blocking partial path -> GLB
+  createDebrisPile(scene, tunnelSection, new Vector3(-10, -4, -64), 1.5, glbInstances);
+  createDebrisPile(scene, tunnelSection, new Vector3(-13, -4.5, -67), 1.2, glbInstances);
 
   // Crystal formation lighting the way (procedural -- kept as MeshBuilder)
   createCrystalFormation(
     scene,
     tunnelSection,
-    new Vector3(-10, -4, -66),
+    new Vector3(-12, -4.5, -66),
     1.0,
     materials,
     allMeshes,
@@ -1233,10 +1365,10 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     'purple'
   );
 
-  // Gas vent hazard area 1 (VFX indicator -- kept as MeshBuilder)
+  // Gas vent hazard area 1 with improved visuals
   const gasVent1 = MeshBuilder.CreateCylinder(
     'gasVent1',
-    { height: 0.2, diameter: 2, tessellation: 12 },
+    { height: 0.3, diameter: 3, tessellation: 16 },
     scene
   );
   gasVent1.position = MINE_POSITIONS.gasVent1.clone();
@@ -1244,12 +1376,19 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   gasVent1.parent = tunnelSection;
   allMeshes.push(gasVent1);
 
-  // Collapsed tunnel segment 2
+  // Gas vent glow light
+  const gasLight1 = new PointLight('gasLight1', MINE_POSITIONS.gasVent1.add(new Vector3(0, 0.5, 0)), scene);
+  gasLight1.diffuse = new Color3(0.3, 0.5, 0.1);
+  gasLight1.intensity = 0.3;
+  gasLight1.range = 6;
+  lights.push(gasLight1);
+
+  // Tunnel segment 3: Tunnel mid to second bend
   createTunnelSegment(
     scene,
     tunnelSection,
-    new Vector3(-12, -4, -68),
     TUNNEL_MID,
+    TUNNEL_BEND_2,
     TUNNEL_WIDTH,
     TUNNEL_HEIGHT,
     materials,
@@ -1259,13 +1398,20 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     glbInstances
   );
 
-  // Tunnel mid-point widened area with minecart -> GLB
+  // Tunnel mid-point widened area with minecart and supplies -> GLB
   createMinecart(scene, tunnelSection, new Vector3(-16, -5, -72), 1.2, glbInstances);
 
-  // Gas vent hazard area 2 (VFX indicator -- kept as MeshBuilder)
+  // Abandoned supplies near minecart (environmental storytelling)
+  placeGLBInstance(
+    scene, tunnelSection, GLB_PATHS.toolbox, 'toolbox_tunnel',
+    new Vector3(-17, -5, -71), glbInstances,
+    { rotationY: 0.8, scale: new Vector3(0.5, 0.5, 0.5) }
+  );
+
+  // Gas vent hazard area 2 with improved visuals
   const gasVent2 = MeshBuilder.CreateCylinder(
     'gasVent2',
-    { height: 0.2, diameter: 1.5, tessellation: 12 },
+    { height: 0.3, diameter: 2.5, tessellation: 16 },
     scene
   );
   gasVent2.position = MINE_POSITIONS.gasVent2.clone();
@@ -1273,24 +1419,41 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   gasVent2.parent = tunnelSection;
   allMeshes.push(gasVent2);
 
+  // Gas vent glow light
+  const gasLight2 = new PointLight('gasLight2', MINE_POSITIONS.gasVent2.add(new Vector3(0, 0.5, 0)), scene);
+  gasLight2.diffuse = new Color3(0.4, 0.6, 0.1);
+  gasLight2.intensity = 0.35;
+  gasLight2.range = 5;
+  lights.push(gasLight2);
+
   // Crystal cluster mid-tunnel (procedural -- kept as MeshBuilder)
   createCrystalFormation(
     scene,
     tunnelSection,
     new Vector3(-18, -5, -74),
-    0.7,
+    0.9,
     materials,
     allMeshes,
     lights,
     'cyan'
   );
+  createCrystalFormation(
+    scene,
+    tunnelSection,
+    new Vector3(-14, -6, -78),
+    0.6,
+    materials,
+    allMeshes,
+    lights,
+    'purple'
+  );
 
-  // Collapsed tunnel segment 3 (descending further)
+  // Tunnel segment 4: Second bend to tunnel end (descending further)
   createTunnelSegment(
     scene,
     tunnelSection,
-    TUNNEL_MID,
-    new Vector3(-12, -8, -85),
+    TUNNEL_BEND_2,
+    TUNNEL_END,
     TUNNEL_WIDTH - 0.5,
     TUNNEL_HEIGHT - 0.5,
     materials,
@@ -1300,9 +1463,34 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     glbInstances
   );
 
-  // Rockfall hazard areas -> GLB debris
+  // Rockfall hazard areas with debris piles -> GLB
   createDebrisPile(scene, tunnelSection, MINE_POSITIONS.rockfall1.clone(), 1.0, glbInstances);
   createDebrisPile(scene, tunnelSection, MINE_POSITIONS.rockfall2.clone(), 1.3, glbInstances);
+
+  // Cracked ground warning near rockfall areas
+  const crackWarning1 = MeshBuilder.CreateDisc(
+    'crackWarning1',
+    { radius: 2.5, tessellation: 8 },
+    scene
+  );
+  crackWarning1.position = MINE_POSITIONS.rockfall1.clone();
+  crackWarning1.position.y += 0.02;
+  crackWarning1.rotation.x = Math.PI / 2;
+  crackWarning1.material = materials.get('debris')!;
+  crackWarning1.parent = tunnelSection;
+  allMeshes.push(crackWarning1);
+
+  const crackWarning2 = MeshBuilder.CreateDisc(
+    'crackWarning2',
+    { radius: 2.0, tessellation: 8 },
+    scene
+  );
+  crackWarning2.position = MINE_POSITIONS.rockfall2.clone();
+  crackWarning2.position.y += 0.02;
+  crackWarning2.rotation.x = Math.PI / 2;
+  crackWarning2.material = materials.get('debris')!;
+  crackWarning2.parent = tunnelSection;
+  allMeshes.push(crackWarning2);
 
   // More alien resin (VFX decals -- kept as MeshBuilder)
   for (let i = 0; i < 6; i++) {
@@ -1323,39 +1511,31 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     allMeshes.push(resinPatch);
   }
 
-  // Final tunnel segment to deep shaft
-  createTunnelSegment(
-    scene,
-    tunnelSection,
-    new Vector3(-12, -8, -85),
-    TUNNEL_END,
-    TUNNEL_WIDTH,
-    TUNNEL_HEIGHT,
-    materials,
-    allMeshes,
-    lights,
-    flickerLights,
-    glbInstances
-  );
-
-  // Flooded section (VFX water plane -- kept as MeshBuilder)
+  // Flooded section with improved water plane (VFX -- kept as MeshBuilder)
   const floodWater = MeshBuilder.CreateBox(
     'floodWater',
-    { width: 12, height: 0.5, depth: 15 },
+    { width: 14, height: 0.6, depth: 18 },
     scene
   );
   floodWater.position = MINE_POSITIONS.floodedArea.clone();
-  floodWater.position.y -= 0.25;
+  floodWater.position.y -= 0.3;
   floodWater.material = materials.get('water')!;
   floodWater.parent = tunnelSection;
   allMeshes.push(floodWater);
 
-  // Transition tunnel from collapsed to shaft
+  // Water surface reflection hint light
+  const waterLight = new PointLight('waterLight', MINE_POSITIONS.floodedArea.add(new Vector3(0, 0.5, 0)), scene);
+  waterLight.diffuse = new Color3(0.1, 0.2, 0.15);
+  waterLight.intensity = 0.2;
+  waterLight.range = 10;
+  lights.push(waterLight);
+
+  // Transition tunnel from tunnel end to shaft entry
   createTunnelSegment(
     scene,
     tunnelSection,
     TUNNEL_END,
-    new Vector3(-10, -13, -108),
+    SHAFT_ENTRY,
     TUNNEL_WIDTH,
     TUNNEL_HEIGHT,
     materials,
@@ -1363,6 +1543,28 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     lights,
     flickerLights,
     glbInstances
+  );
+
+  // More crystals near shaft entrance - signaling something different ahead
+  createCrystalFormation(
+    scene,
+    tunnelSection,
+    new Vector3(-8, -11, -100),
+    1.1,
+    materials,
+    allMeshes,
+    lights,
+    'purple'
+  );
+  createCrystalFormation(
+    scene,
+    tunnelSection,
+    new Vector3(-12, -12, -105),
+    0.8,
+    materials,
+    allMeshes,
+    lights,
+    'cyan'
   );
 
   // ===========================================================================

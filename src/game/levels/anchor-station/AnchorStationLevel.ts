@@ -107,6 +107,10 @@ export class AnchorStationLevel extends StationLevel {
 
   protected async createEnvironment(): Promise<void> {
     console.log('[AnchorStationLevel] createEnvironment() starting...');
+
+    // CRITICAL: This is an INDOOR level - ensure fog is disabled before anything else
+    this.disableFog();
+
     // Create modular station from GLB corridor segments
     // This replaces the legacy procedural generation with snap-together GLB corridors
     console.log('[AnchorStationLevel] About to call createModularStationEnvironment');
@@ -117,16 +121,54 @@ export class AnchorStationLevel extends StationLevel {
     this.stationEnvironment = await createModularStationEnvironment(this.scene);
     console.log('[AnchorStationLevel] Station environment created');
 
-    // Add station-specific interior lights in briefing room
-    this.addStationLight('briefing1', new Vector3(-5, 3.5, 3));
-    this.addStationLight('briefing2', new Vector3(5, 3.5, 3));
+    // Add station-specific interior lights throughout the level
+    // These are the PRIMARY light sources for the indoor level
+    // Match positions to MODULAR_ROOM_POSITIONS layout
 
-    // Add some emergency lights for atmosphere
-    this.addEmergencyLight('emergency1', new Vector3(-8, 2, -20), 0.2);
-    this.addEmergencyLight('emergency2', new Vector3(8, 2, -40), 0.2);
+    // BRIEFING ROOM (centered at 0, 0, 2)
+    this.addStationLight('briefing1', new Vector3(-5, 3.5, 2), new Color3(0.85, 0.9, 1.0), 0.6, 15);
+    this.addStationLight('briefing2', new Vector3(5, 3.5, 2), new Color3(0.85, 0.9, 1.0), 0.6, 15);
+    this.addStationLight('briefing3', new Vector3(0, 3.5, 2), new Color3(0.9, 0.95, 1.0), 0.7, 18);
 
-    // Create space view through windows
+    // CORRIDOR A (extends from z=-4 to z=-24)
+    this.addStationLight('corridor1', new Vector3(0, 2.8, -8), new Color3(0.8, 0.85, 1.0), 0.5, 15);
+    this.addStationLight('corridor2', new Vector3(0, 2.8, -14), new Color3(0.8, 0.85, 1.0), 0.5, 15);
+    this.addStationLight('corridor3', new Vector3(0, 2.8, -20), new Color3(0.8, 0.85, 1.0), 0.5, 15);
+
+    // EQUIPMENT BAY (at -10, -16)
+    this.addStationLight('equipBay1', new Vector3(-10, 3.5, -16), new Color3(0.7, 0.8, 0.7), 0.6, 15);
+    this.addStationLight('equipBay2', new Vector3(-14, 3.5, -16), new Color3(0.7, 0.8, 0.7), 0.5, 12);
+
+    // ARMORY (at 10, -16)
+    this.addStationLight('armory1', new Vector3(10, 3.5, -16), new Color3(0.8, 0.6, 0.5), 0.6, 15);
+    this.addStationLight('armory2', new Vector3(14, 3.5, -16), new Color3(0.8, 0.6, 0.5), 0.5, 12);
+
+    // HOLODECK / PLATFORMING ROOM (at 0, -34)
+    this.addStationLight('holodeck1', new Vector3(-3, 4, -32), new Color3(0.5, 0.6, 1.0), 0.4, 12);
+    this.addStationLight('holodeck2', new Vector3(0, 4, -34), new Color3(0.5, 0.6, 1.0), 0.5, 15);
+    this.addStationLight('holodeck3', new Vector3(3, 4, -38), new Color3(0.5, 0.6, 1.0), 0.4, 12);
+
+    // SHOOTING RANGE (at 0, -52)
+    this.addStationLight('range1', new Vector3(0, 3.5, -48), new Color3(0.9, 0.85, 0.7), 0.7, 18);
+    this.addStationLight('range2', new Vector3(-6, 3.5, -52), new Color3(0.9, 0.85, 0.7), 0.5, 12);
+    this.addStationLight('range3', new Vector3(6, 3.5, -52), new Color3(0.9, 0.85, 0.7), 0.5, 12);
+
+    // HANGAR BAY (at 0, -70)
+    this.addStationLight('hangar1', new Vector3(0, 10, -68), new Color3(0.5, 0.6, 0.8), 0.8, 25);
+    this.addStationLight('hangar2', new Vector3(-8, 6, -70), new Color3(0.5, 0.6, 0.8), 0.5, 15);
+    this.addStationLight('hangar3', new Vector3(8, 6, -70), new Color3(0.5, 0.6, 0.8), 0.5, 15);
+
+    // EMERGENCY LIGHTS (red accent lighting for atmosphere)
+    this.addEmergencyLight('emergency1', new Vector3(-2, 2, -28), 0.25);
+    this.addEmergencyLight('emergency2', new Vector3(2, 2, -40), 0.25);
+    this.addEmergencyLight('emergency3', new Vector3(-4, 4, -64), 0.3);
+    this.addEmergencyLight('emergency4', new Vector3(4, 4, -64), 0.3);
+
+    // Create space view through windows (purely visual - no fog or environment lighting)
     this.createSpaceView();
+
+    // Final fog disable to ensure nothing re-enabled it
+    this.disableFog();
 
     // Create objective marker
     this.createObjectiveMarker();
@@ -148,74 +190,136 @@ export class AnchorStationLevel extends StationLevel {
   /**
    * Set up spatial sound sources for immersive station atmosphere.
    * Machinery hum, air vents, electrical panels, and computer terminals.
+   * Uses MODULAR_ROOM_POSITIONS for accurate placement.
    */
   private setupStationEnvironmentalAudio(): void {
-    // Air vents throughout corridors (use modular room positions)
-    this.addSpatialSound('vent_briefing', 'vent', { x: 0, y: 3, z: 5 }, { maxDistance: 8 });
-    this.addSpatialSound('vent_corridor1', 'vent', { x: -30, y: 3, z: 0 }, { maxDistance: 10 });
-    this.addSpatialSound('vent_corridor2', 'vent', { x: -60, y: 3, z: 0 }, { maxDistance: 10 });
+    // BRIEFING ROOM - Air vents and computer terminals
+    this.addSpatialSound('vent_briefing', 'vent', { x: 0, y: 3, z: 2 }, { maxDistance: 10 });
+    this.addSpatialSound(
+      'terminal_briefing1',
+      'terminal',
+      { x: -3, y: 1.2, z: 2 },
+      { maxDistance: 5, volume: 0.15, interval: 4000 }
+    );
+    this.addSpatialSound(
+      'terminal_briefing2',
+      'terminal',
+      { x: 3, y: 1.2, z: 2 },
+      { maxDistance: 5, volume: 0.12, interval: 5500 }
+    );
 
-    // Machinery in equipment bay
+    // CORRIDOR A - Multiple vent sounds along the length
+    this.addSpatialSound('vent_corridor1', 'vent', { x: 0, y: 2.8, z: -8 }, { maxDistance: 12 });
+    this.addSpatialSound('vent_corridor2', 'vent', { x: 0, y: 2.8, z: -18 }, { maxDistance: 12 });
+
+    // EQUIPMENT BAY - Machinery and electrical hum
+    const eqBay = MODULAR_ROOM_POSITIONS.equipmentBay;
     this.addSpatialSound(
       'machinery_equipment',
       'machinery',
-      {
-        x: MODULAR_ROOM_POSITIONS.equipmentBay.x,
-        y: 1.5,
-        z: MODULAR_ROOM_POSITIONS.equipmentBay.z,
-      },
-      { maxDistance: 12, volume: 0.4 }
+      { x: eqBay.x, y: 1.5, z: eqBay.z },
+      { maxDistance: 15, volume: 0.4 }
     );
-
-    // Generator hum in hangar bay
-    this.addSpatialSound(
-      'generator_hangar',
-      'generator',
-      { x: MODULAR_ROOM_POSITIONS.hangarBay.x + 15, y: 1, z: MODULAR_ROOM_POSITIONS.hangarBay.z },
-      { maxDistance: 20, volume: 0.5 }
-    );
-
-    // Electrical panels near equipment bay
     this.addSpatialSound(
       'electric_panel1',
       'electrical_panel',
-      {
-        x: MODULAR_ROOM_POSITIONS.equipmentBay.x - 5,
-        y: 2,
-        z: MODULAR_ROOM_POSITIONS.equipmentBay.z,
-      },
+      { x: eqBay.x - 4, y: 2, z: eqBay.z },
       { maxDistance: 6, volume: 0.2 }
     );
 
-    // Computer terminals in briefing room (periodic beeps)
+    // ARMORY - Weapon racks hum
+    const armory = MODULAR_ROOM_POSITIONS.armory;
     this.addSpatialSound(
-      'terminal_briefing',
-      'terminal',
-      { x: 3, y: 1.5, z: 0 },
-      { maxDistance: 5, volume: 0.15, interval: 4000 }
+      'machinery_armory',
+      'machinery',
+      { x: armory.x, y: 1.5, z: armory.z },
+      { maxDistance: 12, volume: 0.3 }
     );
 
-    // Define audio zones for different station areas
-    this.addAudioZone('zone_briefing', 'station', { x: 0, y: 0, z: 0 }, 15, {
+    // HOLODECK - Low electronic hum
+    const holodeck = MODULAR_ROOM_POSITIONS.holodeckCenter;
+    this.addSpatialSound(
+      'holodeck_hum',
+      'electrical_panel',
+      { x: holodeck.x, y: 2, z: holodeck.z },
+      { maxDistance: 18, volume: 0.25 }
+    );
+
+    // SHOOTING RANGE - Mechanical target system
+    const range = MODULAR_ROOM_POSITIONS.shootingRange;
+    this.addSpatialSound(
+      'range_machinery',
+      'machinery',
+      { x: range.x, y: 1.5, z: range.z - 5 },
+      { maxDistance: 15, volume: 0.35 }
+    );
+
+    // HANGAR BAY - Large generator and ship systems
+    const hangar = MODULAR_ROOM_POSITIONS.hangarBay;
+    this.addSpatialSound(
+      'generator_hangar',
+      'generator',
+      { x: hangar.x + 10, y: 2, z: hangar.z },
+      { maxDistance: 25, volume: 0.5 }
+    );
+    this.addSpatialSound(
+      'vent_hangar',
+      'vent',
+      { x: hangar.x - 8, y: 8, z: hangar.z },
+      { maxDistance: 20, volume: 0.3 }
+    );
+
+    // ENGINE ROOM - Heavy machinery (exploration area)
+    const engine = MODULAR_ROOM_POSITIONS.engineRoom;
+    this.addSpatialSound(
+      'generator_engine',
+      'generator',
+      { x: engine.x, y: 2, z: engine.z },
+      { maxDistance: 18, volume: 0.6 }
+    );
+
+    // Define audio zones for different station areas (ambient reverb/atmosphere)
+    this.addAudioZone('zone_briefing', 'station', { x: 0, y: 0, z: 2 }, 12, {
       isIndoor: true,
-      intensity: 0.3,
+      intensity: 0.25,
+    });
+    this.addAudioZone('zone_corridorA', 'station', { x: 0, y: 0, z: -14 }, 15, {
+      isIndoor: true,
+      intensity: 0.2,
     });
     this.addAudioZone(
       'zone_equipment',
       'station',
-      {
-        x: MODULAR_ROOM_POSITIONS.equipmentBay.x,
-        y: 0,
-        z: MODULAR_ROOM_POSITIONS.equipmentBay.z,
-      },
+      { x: eqBay.x, y: 0, z: eqBay.z },
       12,
-      { isIndoor: true, intensity: 0.4 }
+      { isIndoor: true, intensity: 0.35 }
+    );
+    this.addAudioZone(
+      'zone_armory',
+      'station',
+      { x: armory.x, y: 0, z: armory.z },
+      12,
+      { isIndoor: true, intensity: 0.3 }
+    );
+    this.addAudioZone(
+      'zone_holodeck',
+      'station',
+      { x: holodeck.x, y: 0, z: holodeck.z },
+      18,
+      { isIndoor: true, intensity: 0.2 }
+    );
+    this.addAudioZone(
+      'zone_range',
+      'station',
+      { x: range.x, y: 0, z: range.z },
+      15,
+      { isIndoor: true, intensity: 0.35 }
     );
     this.addAudioZone(
       'zone_hangar',
       'station',
-      { x: MODULAR_ROOM_POSITIONS.hangarBay.x, y: 0, z: MODULAR_ROOM_POSITIONS.hangarBay.z },
-      25,
+      { x: hangar.x, y: 0, z: hangar.z },
+      30,
       { isIndoor: true, intensity: 0.5 }
     );
   }
@@ -609,12 +713,13 @@ export class AnchorStationLevel extends StationLevel {
     // Keep at standing height
     this.camera.position.y = 1.7;
 
-    // Clamp to station bounds (expanded for new rooms)
-    // Allow movement through all rooms
-    const minX = -25; // Account for equipment bay offset
-    const maxX = 25;
-    const minZ = -120; // Hangar bay is far down
-    const maxZ = 10; // Briefing room
+    // Clamp to station bounds based on MODULAR_ROOM_POSITIONS layout
+    // Station extends from briefing (z=2) to drop pod (z=-76)
+    // Width varies: main corridor is narrow, rooms extend to x=-15/+15
+    const minX = -18; // Equipment bay and observation deck extend left
+    const maxX = 18;  // Armory and engine room extend right
+    const minZ = -80; // Beyond drop pod for launch sequence
+    const maxZ = 8;   // Behind briefing room
     this.camera.position.x = Math.max(minX, Math.min(maxX, this.camera.position.x));
     this.camera.position.z = Math.max(minZ, Math.min(maxZ, this.camera.position.z));
 

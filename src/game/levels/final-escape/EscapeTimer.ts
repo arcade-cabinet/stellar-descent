@@ -346,12 +346,18 @@ export class EscapeTimer {
   // ============================================================================
 
   /**
-   * Format seconds into MM:SS display string.
+   * Format seconds into M:SS or MM:SS display string.
+   * Uses consistent formatting for timer readability.
    */
   private formatTime(seconds: number): string {
     const clamped = Math.max(0, seconds);
     const mins = Math.floor(clamped / 60);
     const secs = Math.floor(clamped % 60);
+    // Show tenths when under 10 seconds for extra urgency
+    if (clamped < 10) {
+      const tenths = Math.floor((clamped % 1) * 10);
+      return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`;
+    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
@@ -431,9 +437,9 @@ export class EscapeTimer {
         if (!this.criticalAudioPlayed) {
           this.criticalAudioPlayed = true;
           getAudioManager().playEmergencyKlaxon(2);
-        }
-        if (!this.heartbeatActive) {
           this.heartbeatActive = true;
+          // Heartbeat audio would play here if available
+          // getAudioManager().playHeartbeat();
         }
         break;
 

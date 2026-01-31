@@ -211,8 +211,8 @@ export class CombatSystem {
 
         const dist = Vector3.Distance(projPos, target.transform.position);
         if (dist < 1.5) {
-          // Hit!
-          const baseDamage = 25; // Default projectile damage
+          // Hit! Use damage from projectile's combat component if available
+          const baseDamage = projectile.combat?.damage ?? 25;
 
           // Check if this was a critical hit (headshot - hit upper 30% of enemy)
           const hitHeight = projPos.y - target.transform.position.y;

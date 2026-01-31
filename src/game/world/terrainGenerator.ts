@@ -1,12 +1,13 @@
 /**
- * TerrainGenerator - GLB-Based Ground and Rock Formation Loader
+ * TerrainGenerator - PBR Ground Mesh with GLB Rock Formations
  *
- * Replaces procedural terrain generation with pre-built GLB assets.
- * Uses asphalt and floor tiles for ground surfaces, and alien rock
- * GLB models for rock formations.
+ * Creates high-quality terrain using Babylon.js GroundMesh with PBR materials
+ * and AmbientCG textures for realistic ground surfaces. GLB models are used
+ * for rock formations and decorative elements.
  *
  * Key features:
- * - GLB model loading for ground tiles (asphalt, floor plates)
+ * - PBRMaterial with albedo, normal, roughness textures
+ * - Configurable biome textures (rock, ice, sand, etc.)
  * - GLB rock formations from alien-flora pack
  * - Physics-enabled ground collisions via PhysicsAggregate
  * - Hand-crafted rock placement positions (no procedural generation)
@@ -14,6 +15,8 @@
 
 import { PhysicsShapeType } from '@babylonjs/core/Physics/';
 import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
@@ -23,6 +26,13 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { AssetManager } from '../core/AssetManager';
 import { tokens } from '../utils/designTokens';
+import {
+  type TerrainBiomeConfig,
+  LANDFALL_TERRAIN_CONFIG,
+  CANYON_TERRAIN_CONFIG,
+  ICE_TERRAIN_CONFIG,
+  createPBRTerrainMaterial,
+} from '../levels/shared/PBRTerrainMaterials';
 
 // ---------------------------------------------------------------------------
 // GLB Asset Paths
@@ -181,19 +191,66 @@ export class TerrainGenerator {
   }
 
   /**
-   * Create the main ground plane with collision physics.
-   * Uses a simple plane mesh with physics for reliable collision detection.
-   * GLB ground tiles are placed on top for visual detail.
+   * Create the main ground plane with collision physics and PBR materials.
+   * Uses GroundMesh with high subdivision for visual quality and physics.
+   *
+   * @param biomeConfig - Optional biome configuration for PBR textures.
+   *                      Defaults to LANDFALL_TERRAIN_CONFIG.
+   * @param size - Ground plane size (default 2000)
+   * @param subdivisions - Mesh subdivisions for detail (default 64)
    */
-  createMainGround(): Mesh {
-    // Create a large ground plane for collision
+  createMainGround(
+    biomeConfig: TerrainBiomeConfig = LANDFALL_TERRAIN_CONFIG,
+    size: number = 2000,
+    subdivisions: number = 64
+  ): Mesh {
+    // Create a large ground plane with subdivisions for visual quality
+    const ground = MeshBuilder.CreateGround(
+      'mainGround',
+      { width: size, height: size, subdivisions },
+      this.scene
+    );
+
+    // Create PBR material with AmbientCG textures
+    const groundMat = createPBRTerrainMaterial(this.scene, biomeConfig, 'mainGroundMat');
+
+    // Adjust UV scale for large terrain
+    const uvScale = 0.015 * size;
+    if (groundMat.albedoTexture instanceof Texture) {
+      groundMat.albedoTexture.uScale = uvScale;
+      groundMat.albedoTexture.vScale = uvScale;
+    }
+    if (groundMat.bumpTexture instanceof Texture) {
+      groundMat.bumpTexture.uScale = uvScale;
+      groundMat.bumpTexture.vScale = uvScale;
+    }
+    if (groundMat.metallicTexture instanceof Texture) {
+      groundMat.metallicTexture.uScale = uvScale;
+      groundMat.metallicTexture.vScale = uvScale;
+    }
+
+    ground.material = groundMat;
+    ground.receiveShadows = true;
+    ground.checkCollisions = true;
+
+    // Add physics
+    new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0 }, this.scene);
+
+    this.groundMesh = ground;
+    return ground;
+  }
+
+  /**
+   * Create the main ground plane with simple StandardMaterial.
+   * Fallback for when PBR is not needed or textures are unavailable.
+   */
+  createMainGroundSimple(): Mesh {
     const ground = MeshBuilder.CreateGround(
       'mainGround',
       { width: 2000, height: 2000, subdivisions: 1 },
       this.scene
     );
 
-    // Create material with desert/rocky appearance
     const groundMat = new StandardMaterial('groundMat', this.scene);
     groundMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.tan);
     groundMat.specularColor = new Color3(0.15, 0.12, 0.1);
@@ -203,7 +260,6 @@ export class TerrainGenerator {
     ground.receiveShadows = true;
     ground.checkCollisions = true;
 
-    // Add physics
     new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0 }, this.scene);
 
     this.groundMesh = ground;

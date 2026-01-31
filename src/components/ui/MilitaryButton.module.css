@@ -123,3 +123,38 @@
   flex-direction: column;
   align-items: center;
 }
+
+/* Ensure minimum touch target size (44x44px) for accessibility */
+@media (pointer: coarse) {
+  .button {
+    min-height: 44px;
+  }
+
+  .sm {
+    min-height: 44px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .button {
+    border: 3px solid currentColor;
+    border-image: none;
+    background: #1a1a1a;
+  }
+
+  .button:hover:not(:disabled) {
+    background: #2a2a2a;
+  }
+
+  .button:focus-visible {
+    outline-width: 3px;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

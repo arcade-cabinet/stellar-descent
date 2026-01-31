@@ -322,23 +322,35 @@ export const BROTHERS_IN_ARMS_ASSETS: AssetEntry[] = [
 
 /**
  * Level manifest defining loading strategy for Brothers in Arms
+ *
+ * Loading priority:
+ * - Required: Must load before gameplay (blocks loading screen)
+ * - Preload: Load during loading screen (high priority)
+ * - Deferred: Stream during gameplay (low priority)
  */
 export const BROTHERS_IN_ARMS_MANIFEST: LevelManifest = {
   levelId: 'brothers_in_arms',
 
   // Critical assets - must be loaded before level starts
+  // These block the loading screen until loaded
   required: [
-    'enemy/spider',
-    'enemy/scout',
-    'enemy/soldier',
+    // Enemy models for wave combat
+    'enemy/flyingalien', // Drone enemies
+    'enemy/scout', // Grunt enemies
+    'enemy/soldier', // Spitter enemies
+    'enemy/alienmonster', // Brute enemies
+    // Marcus mech - central to the level
     'vehicle/marcus_mech',
   ],
 
   // High-priority assets - loaded during initial loading screen
   preload: [
-    'enemy/flyingalien',
+    // Additional enemy variants
+    'enemy/spider',
+    'enemy/alienmale',
+
+    // Vehicles (backdrop)
     'vehicle/wraith',
-    'npc/marine_soldier',
 
     // Environment models
     'industrial/storage_tank',

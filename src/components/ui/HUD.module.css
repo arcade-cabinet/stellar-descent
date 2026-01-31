@@ -525,9 +525,89 @@
     animation: none;
   }
 
+  .healthFill {
+    transition: width 0s;
+  }
+
+  .ammoCount.ammoLow,
+  .ammoCount.ammoReloading {
+    animation: none;
+  }
+
+  .healthCriticalIndicator {
+    animation: none;
+  }
+
   @keyframes flashOut {
     to {
       opacity: 0;
     }
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .healthBar,
+  .killsContainer,
+  .timerContainer,
+  .ammoContainer,
+  .missionContainer,
+  .objectiveMarker {
+    border-width: 3px;
+    border-color: #ffffff;
+  }
+
+  .healthLabel,
+  .killsLabel,
+  .timerLabel,
+  .missionText,
+  .healthText {
+    color: #ffffff;
+  }
+}
+
+/* Landscape phone - more compact layout */
+@media (max-height: 450px) {
+  .healthContainer {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+
+  .ammoContainer {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+
+  .killsContainer,
+  .timerContainer {
+    top: max(10px, env(safe-area-inset-top, 10px));
+    padding: 0.25rem 0.5rem;
+  }
+
+  .notification {
+    top: 25%;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .healthBar {
+    width: 120px;
+  }
+
+  .killsContainer,
+  .timerContainer {
+    min-width: 50px;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .killsLabel,
+  .timerLabel {
+    display: none;
+  }
+
+  .killsCount,
+  .timerValue {
+    font-size: 1rem;
   }
 }

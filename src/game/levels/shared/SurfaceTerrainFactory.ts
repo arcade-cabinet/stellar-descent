@@ -2,18 +2,36 @@
  * SurfaceTerrainFactory - Procedural heightmap terrain for outdoor surface levels
  *
  * Creates ground meshes with seeded noise-based height displacement and
- * configurable materials for different planetary biomes (rock, ice, sand).
+ * PBR materials using AmbientCG textures for different planetary biomes.
+ *
+ * Key Features:
+ * - Multi-octave seeded noise for deterministic terrain generation
+ * - PBRMaterial with albedo, normal, roughness textures
+ * - Biome-specific texture sets (rock, ice, sand, etc.)
+ * - Configurable UV tiling for consistent texture appearance
  *
  * Usage:
  *   import { createDynamicTerrain, ROCK_TERRAIN } from './shared/SurfaceTerrainFactory';
  *   const { mesh, material } = createDynamicTerrain(scene, ROCK_TERRAIN);
  */
 
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
+
+import {
+  type TerrainBiomeConfig,
+  CANYON_TERRAIN_CONFIG,
+  ICE_TERRAIN_CONFIG,
+  LANDFALL_TERRAIN_CONFIG,
+  BREACH_TERRAIN_CONFIG,
+  FINAL_ESCAPE_TERRAIN_CONFIG,
+  createPBRTerrainMaterial,
+} from './PBRTerrainMaterials';
 
 // ============================================================================
 // TYPES
@@ -28,15 +46,19 @@ export interface TerrainConfig {
   heightScale: number;
   /** Name used for the material and mesh (should be unique per scene). */
   materialName: string;
-  /** Hex color string for the terrain diffuse tint (e.g. "#8B5A2B"). */
+  /** Hex color string for the terrain diffuse tint (e.g. "#8B5A2B"). Fallback for non-PBR. */
   tintColor: string;
   /** Integer seed for deterministic procedural noise. */
   seed: number;
+  /** Optional PBR biome configuration for high-quality textures. */
+  biomeConfig?: TerrainBiomeConfig;
+  /** UV scale for PBR textures (smaller = larger tiles). Default: 0.02 */
+  textureUVScale?: number;
 }
 
 export interface TerrainResult {
   mesh: Mesh;
-  material: StandardMaterial;
+  material: PBRMaterial | StandardMaterial;
 }
 
 // ============================================================================
@@ -125,18 +147,21 @@ function seededNoise2D(seed: number): (x: number, z: number) => number {
 // ============================================================================
 
 /**
- * Create a heightmap-displaced ground mesh with a tinted material.
+ * Create a heightmap-displaced ground mesh with PBR material.
  *
  * The terrain vertices are displaced vertically using multi-octave seeded noise,
  * producing natural-looking hills and valleys that are fully deterministic for
  * a given seed.
  *
+ * If a biomeConfig is provided, uses PBRMaterial with AmbientCG textures for
+ * high-quality rendering. Otherwise falls back to StandardMaterial.
+ *
  * @param scene  - Active BabylonJS scene.
- * @param config - Terrain parameters (size, resolution, colours, seed).
+ * @param config - Terrain parameters (size, resolution, textures, seed).
  * @returns The created mesh and its material for external lifecycle management.
  */
 export function createDynamicTerrain(scene: Scene, config: TerrainConfig): TerrainResult {
-  const { size, subdivisions, heightScale, materialName, tintColor, seed } = config;
+  const { size, subdivisions, heightScale, materialName, tintColor, seed, biomeConfig, textureUVScale } = config;
 
   // -- Mesh ------------------------------------------------------------------
   const mesh = MeshBuilder.CreateGround(
@@ -182,10 +207,36 @@ export function createDynamicTerrain(scene: Scene, config: TerrainConfig): Terra
   mesh.receiveShadows = true;
 
   // -- Material --------------------------------------------------------------
-  const material = new StandardMaterial(materialName, scene);
-  material.diffuseColor = Color3.FromHexString(tintColor);
-  material.specularColor = new Color3(0.12, 0.1, 0.08);
-  material.specularPower = 24;
+  let material: PBRMaterial | StandardMaterial;
+
+  if (biomeConfig) {
+    // Use PBR material with AmbientCG textures
+    material = createPBRTerrainMaterial(scene, biomeConfig, materialName);
+
+    // Adjust UV scale based on terrain size
+    const uvScale = textureUVScale ?? 0.02;
+    const scaledUV = uvScale * size;
+
+    if (material.albedoTexture instanceof Texture) {
+      material.albedoTexture.uScale = scaledUV;
+      material.albedoTexture.vScale = scaledUV;
+    }
+    if (material.bumpTexture instanceof Texture) {
+      material.bumpTexture.uScale = scaledUV;
+      material.bumpTexture.vScale = scaledUV;
+    }
+    if (material.metallicTexture instanceof Texture) {
+      material.metallicTexture.uScale = scaledUV;
+      material.metallicTexture.vScale = scaledUV;
+    }
+  } else {
+    // Fallback to StandardMaterial with color tint
+    const standardMat = new StandardMaterial(materialName, scene);
+    standardMat.diffuseColor = Color3.FromHexString(tintColor);
+    standardMat.specularColor = new Color3(0.12, 0.1, 0.08);
+    standardMat.specularPower = 24;
+    material = standardMat;
+  }
 
   mesh.material = material;
 
@@ -196,7 +247,7 @@ export function createDynamicTerrain(scene: Scene, config: TerrainConfig): Terra
 // PRESET CONFIGURATIONS
 // ============================================================================
 
-/** Rocky planetary surface - brownish terrain. */
+/** Rocky planetary surface - brownish terrain with PBR rock textures. */
 export const ROCK_TERRAIN: TerrainConfig = {
   size: 500,
   subdivisions: 64,
@@ -204,9 +255,11 @@ export const ROCK_TERRAIN: TerrainConfig = {
   materialName: 'rockTerrain',
   tintColor: '#8B5A2B',
   seed: 12345,
+  biomeConfig: LANDFALL_TERRAIN_CONFIG,
+  textureUVScale: 0.015,
 };
 
-/** Frozen ice-sheet surface - bluish white terrain. */
+/** Frozen ice-sheet surface - snow and ice PBR textures. */
 export const ICE_TERRAIN: TerrainConfig = {
   size: 500,
   subdivisions: 64,
@@ -214,9 +267,11 @@ export const ICE_TERRAIN: TerrainConfig = {
   materialName: 'iceTerrain',
   tintColor: '#C8D8E4',
   seed: 67890,
+  biomeConfig: ICE_TERRAIN_CONFIG,
+  textureUVScale: 0.02,
 };
 
-/** Desert / sand dune surface - tan terrain. */
+/** Desert / sand dune surface - canyon rock PBR textures. */
 export const SAND_TERRAIN: TerrainConfig = {
   size: 500,
   subdivisions: 64,
@@ -224,4 +279,42 @@ export const SAND_TERRAIN: TerrainConfig = {
   materialName: 'sandTerrain',
   tintColor: '#C2B280',
   seed: 24680,
+  biomeConfig: CANYON_TERRAIN_CONFIG,
+  textureUVScale: 0.018,
+};
+
+/** Canyon terrain - rocky desert surface for canyon levels. */
+export const CANYON_TERRAIN: TerrainConfig = {
+  size: 1000,
+  subdivisions: 128,
+  heightScale: 30,
+  materialName: 'canyonTerrain',
+  tintColor: '#8B7355',
+  seed: 42424,
+  biomeConfig: CANYON_TERRAIN_CONFIG,
+  textureUVScale: 0.012,
+};
+
+/** Breach terrain - organic alien ground surface. */
+export const BREACH_TERRAIN: TerrainConfig = {
+  size: 400,
+  subdivisions: 64,
+  heightScale: 40,
+  materialName: 'breachTerrain',
+  tintColor: '#4A3D35',
+  seed: 98765,
+  biomeConfig: BREACH_TERRAIN_CONFIG,
+  textureUVScale: 0.02,
+};
+
+/** Final Escape terrain - volcanic rock surface. */
+export const ESCAPE_TERRAIN: TerrainConfig = {
+  size: 600,
+  subdivisions: 96,
+  heightScale: 60,
+  materialName: 'escapeTerrain',
+  tintColor: '#3A3030',
+  seed: 11111,
+  biomeConfig: FINAL_ESCAPE_TERRAIN_CONFIG,
+  textureUVScale: 0.015,
 };

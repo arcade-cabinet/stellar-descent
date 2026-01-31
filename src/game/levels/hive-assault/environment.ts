@@ -41,6 +41,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 
 import '@babylonjs/core/Layers/effectLayerSceneComponent';
 
@@ -262,6 +263,7 @@ export class AssaultEnvironmentBuilder {
   // Disposable references
   private terrainMesh: Mesh | null = null;
   private skyDome: Mesh | null = null;
+  private skyboxResult: SkyboxResult | null = null;
   private allMeshes: Mesh[] = [];
   private allLights: PointLight[] = [];
   private allNodes: TransformNode[] = [];
@@ -330,25 +332,32 @@ export class AssaultEnvironmentBuilder {
   }
 
   /**
-   * Create sky dome with dusty battlefield atmosphere
+   * Create sky dome with dusty battlefield atmosphere.
+   * Uses proper Babylon.js skybox with SkyboxManager for hive/alien environment.
    */
   createSkyDome(): Mesh {
-    this.skyDome = MeshBuilder.CreateSphere(
-      'skyDome',
-      { diameter: 4000, segments: 16, sideOrientation: 1 },
-      this.scene
-    );
+    // Use SkyboxManager for proper Babylon.js skybox
+    // Hive assault is a battlefield transitioning to alien hive, so use desert with hive tint
+    const skyboxManager = new SkyboxManager(this.scene);
+    this.skyboxResult = skyboxManager.createFallbackSkybox({
+      type: 'desert', // Battlefield is still mostly surface
+      size: 10000,
+      useEnvironmentLighting: true,
+      environmentIntensity: 0.8,
+      // Dusty battlefield atmosphere with hint of alien influence
+      tint: new Color3(0.6, 0.4, 0.25),
+    });
 
-    const skyMat = new StandardMaterial('skyMat', this.scene);
-    skyMat.emissiveColor = new Color3(0.6, 0.4, 0.25);
-    skyMat.disableLighting = true;
-    skyMat.backFaceCulling = false;
-    this.skyDome.material = skyMat;
-    this.skyDome.infiniteDistance = true;
-    this.skyDome.renderingGroupId = 0;
-
+    this.skyDome = this.skyboxResult.mesh;
     this.allMeshes.push(this.skyDome);
     return this.skyDome;
+  }
+
+  /**
+   * Get the current skybox result for disposal.
+   */
+  getSkyboxResult(): SkyboxResult | null {
+    return this.skyboxResult;
   }
 
   // ============================================================================

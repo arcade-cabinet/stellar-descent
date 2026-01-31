@@ -27,5 +27,15 @@ export type {
 export * from './constants';
 
 // Environment components (for potential reuse)
-export { buildLandfallEnvironment, setEnvironmentVisible, disposeEnvironment } from './LandfallEnvironment';
+export {
+  buildLandfallEnvironment,
+  setEnvironmentVisible,
+  disposeEnvironment,
+  updateEnvironmentLOD,
+  updateOrbitalStation,
+} from './LandfallEnvironment';
 export type { LandfallEnvironmentNodes } from './LandfallEnvironment';
+
+// Additional exports for testing and reuse
+export * from './comms';
+export { calculateLandingDamage } from './descent';

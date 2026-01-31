@@ -13,6 +13,10 @@ interface MilitaryButtonProps {
   type?: 'button' | 'submit' | 'reset';
   /** Forwarded ref for focus management */
   buttonRef?: React.Ref<HTMLButtonElement>;
+  /** Accessible label for screen readers */
+  ariaLabel?: string;
+  /** ID of element that describes this button */
+  ariaDescribedBy?: string;
 }
 
 export function MilitaryButton({
@@ -26,6 +30,8 @@ export function MilitaryButton({
   className = '',
   type = 'button',
   buttonRef,
+  ariaLabel,
+  ariaDescribedBy,
 }: MilitaryButtonProps) {
   const sizeClass = size !== 'md' ? styles[size] : '';
   const variantClass = variant !== 'default' ? styles[variant] : '';
@@ -37,12 +43,15 @@ export function MilitaryButton({
       className={`${styles.button} ${sizeClass} ${variantClass} ${className}`.trim()}
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      aria-disabled={disabled}
     >
-      {icon && <span className={styles.icon}>{icon}</span>}
+      {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
       {info ? (
         <span className={styles.content}>
           <span>{children}</span>
-          <span className={styles.info}>{info}</span>
+          <span className={styles.info} aria-hidden="true">{info}</span>
         </span>
       ) : (
         children

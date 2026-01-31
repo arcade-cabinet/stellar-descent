@@ -124,9 +124,26 @@ const PATHS = {
 /**
  * All GLB placements organized by battlefield zone. Angles in radians;
  * 0 = facing +Z (south toward player start), Math.PI = facing north toward breach.
+ *
+ * Cover philosophy:
+ * - Close (10-20m): Fallback positions for emergencies
+ * - Mid (25-40m): Primary engagement range, most cover
+ * - Far (55-70m): Forward/flanking positions near breach
+ * - Fortification (around Marcus): Central defensive ring
  */
 function getBattlefieldPlacements(): GLBPlacement[] {
   const placements: GLBPlacement[] = [];
+
+  // Validate we have reasonable spacing - placements should not overlap
+  const validatePlacement = (pos: Vector3, existingPlacements: GLBPlacement[]): boolean => {
+    const MIN_SPACING = 5; // Minimum 5m between placements
+    for (const p of existingPlacements) {
+      if (Vector3.Distance(pos, p.position) < MIN_SPACING) {
+        return false;
+      }
+    }
+    return true;
+  };
 
   // -----------------------------------------------------------------------
   // FAR COVER RING (55-70m from center, near breach)
@@ -517,56 +534,89 @@ function getBattlefieldPlacements(): GLBPlacement[] {
   // South perimeter (behind player start)
   placements.push({
     path: PATHS.concrete_fence,
-    position: new Vector3(-20, 0, 55),
+    position: new Vector3(-25, 0, 55),
     rotationY: 0,
     scale: 2.0,
     label: 'fence_s1',
   });
   placements.push({
     path: PATHS.concrete_fence,
-    position: new Vector3(20, 0, 55),
+    position: new Vector3(25, 0, 55),
     rotationY: 0,
     scale: 2.0,
     label: 'fence_s2',
   });
   placements.push({
     path: PATHS.metal_fence,
-    position: new Vector3(0, 0, 58),
+    position: new Vector3(0, 0, 60),
     rotationY: 0,
     scale: 2.0,
     label: 'fence_s3',
   });
 
-  // East perimeter fragments
+  // East perimeter fragments (more coverage)
   placements.push({
     path: PATHS.metal_fence,
-    position: new Vector3(70, 0, 10),
+    position: new Vector3(75, 0, 15),
     rotationY: Math.PI * 0.5,
     scale: 2.0,
     label: 'fence_e1',
   });
   placements.push({
     path: PATHS.metal_fence,
-    position: new Vector3(70, 0, -10),
+    position: new Vector3(75, 0, -5),
     rotationY: Math.PI * 0.5,
     scale: 2.0,
     label: 'fence_e2',
   });
-
-  // West perimeter fragments
   placements.push({
     path: PATHS.concrete_fence,
-    position: new Vector3(-70, 0, 5),
+    position: new Vector3(75, 0, -25),
+    rotationY: Math.PI * 0.5,
+    scale: 2.0,
+    label: 'fence_e3',
+  });
+
+  // West perimeter fragments (more coverage)
+  placements.push({
+    path: PATHS.concrete_fence,
+    position: new Vector3(-75, 0, 10),
     rotationY: Math.PI * 0.5,
     scale: 2.0,
     label: 'fence_w1',
   });
   placements.push({
     path: PATHS.metal_fence,
-    position: new Vector3(-70, 0, -15),
+    position: new Vector3(-75, 0, -10),
     rotationY: Math.PI * 0.5,
     scale: 2.0,
     label: 'fence_w2',
+  });
+  placements.push({
+    path: PATHS.concrete_fence,
+    position: new Vector3(-75, 0, -30),
+    rotationY: Math.PI * 0.5,
+    scale: 2.0,
+    label: 'fence_w3',
+  });
+
+  // -----------------------------------------------------------------------
+  // ADDITIONAL COVER NEAR PLAYER SPAWN (emergency fallback)
+  // -----------------------------------------------------------------------
+
+  placements.push({
+    path: PATHS.wooden_crate,
+    position: new Vector3(5, 0, 45),
+    rotationY: 0.2,
+    scale: 1.8,
+    label: 'spawn_crate_1',
+  });
+  placements.push({
+    path: PATHS.wooden_crate,
+    position: new Vector3(-8, 0, 48),
+    rotationY: -0.3,
+    scale: 1.6,
+    label: 'spawn_crate_2',
   });
 
   // -----------------------------------------------------------------------
@@ -612,20 +662,27 @@ function getBattlefieldPlacements(): GLBPlacement[] {
 /**
  * Positions where ammo/health supply crates can be placed by the level logic.
  * These sit next to barricades and fortification points.
+ * Distributed across all cover rings for consistent resupply opportunity.
  */
 const SUPPLY_CRATE_POSITIONS: Vector3[] = [
-  // Near Marcus fortification
+  // Near Marcus fortification (central safe zone)
   new Vector3(-8, 0.5, 12),
   new Vector3(8, 0.5, 12),
-  // Mid ring supply stashes
+  new Vector3(0, 0.5, 8),
+  // Mid ring supply stashes (primary engagement zone)
   new Vector3(40, 0.5, 15),
   new Vector3(-38, 0.5, 12),
-  // Close cover area
+  new Vector3(25, 0.5, 5),
+  new Vector3(-22, 0.5, 10),
+  // Close cover area (near player spawn)
   new Vector3(15, 0.5, 30),
   new Vector3(-18, 0.5, 35),
-  // Forward position near breach
+  new Vector3(0, 0.5, 40),
+  // Forward position near breach (high risk / high reward)
   new Vector3(18, 0.5, -15),
   new Vector3(-15, 0.5, -12),
+  new Vector3(35, 0.5, -25),
+  new Vector3(-30, 0.5, -20),
 ];
 
 // ============================================================================

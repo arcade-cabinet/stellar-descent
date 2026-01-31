@@ -106,6 +106,11 @@ export class SoundDispatcher {
     ambient_wind: null, // Use ProceduralAmbientGenerator for looping ambient
     shield_recharge: (v) => this.ui.generateAchievementUnlock(v * 0.5),
     alert: (v) => this.ui.generateNotificationBeep(v * 1.2),
+
+    // HALO drop additional sounds
+    asteroid_rumble: (v) => this.environment.generateCollapseRumble(v * 0.5),
+    grenade_explosion: (v) => this.weapons.generateExplosion(v),
+    grenade_throw: (v) => this.weapons.generateFootstep(v * 0.6), // Placeholder: swoosh
   };
 
   // Loop generators

@@ -49,6 +49,7 @@ export interface GameSettings {
   mouseSensitivity: number; // 0.1-3.0, default 1.0
   invertMouseY: boolean;
   touchSensitivity: number; // 0.1-3.0, default 1.0
+  fieldOfView: number; // FOV in degrees, 60-120, default 90
 
   // Graphics settings
   graphicsQuality: GraphicsQuality;
@@ -106,6 +107,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   mouseSensitivity: 1.0,
   invertMouseY: false,
   touchSensitivity: 1.0,
+  fieldOfView: 90, // 90 degrees - standard FPS default
 
   // Graphics
   graphicsQuality: 'high',
@@ -430,6 +432,9 @@ interface SettingsContextType {
   /** Get computed touch sensitivity (base * user multiplier) */
   getTouchSensitivity: () => number;
 
+  /** Get FOV in radians (for Babylon.js camera) */
+  getFOVRadians: () => number;
+
   /** Current color palette based on colorblind mode */
   colorPalette: ColorPalette;
 
@@ -579,6 +584,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
               mouseSensitivity: DEFAULT_GAME_SETTINGS.mouseSensitivity,
               invertMouseY: DEFAULT_GAME_SETTINGS.invertMouseY,
               touchSensitivity: DEFAULT_GAME_SETTINGS.touchSensitivity,
+              fieldOfView: DEFAULT_GAME_SETTINGS.fieldOfView,
             };
           case 'graphics':
             return {
@@ -633,6 +639,11 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     return BASE_TOUCH_SENSITIVITY * settings.touchSensitivity;
   }, [settings.touchSensitivity]);
 
+  const getFOVRadians = useCallback(() => {
+    // Convert degrees to radians: degrees * (PI / 180)
+    return settings.fieldOfView * (Math.PI / 180);
+  }, [settings.fieldOfView]);
+
   const value: SettingsContextType = {
     settings,
     updateSetting,
@@ -642,6 +653,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     hasCustomSettings,
     getMouseSensitivity,
     getTouchSensitivity,
+    getFOVRadians,
     colorPalette,
     getColor,
     isColorblindMode,

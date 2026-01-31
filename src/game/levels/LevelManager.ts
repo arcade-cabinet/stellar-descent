@@ -10,7 +10,9 @@
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
+import { getMissionDefinition } from '../campaign/MissionDefinitions';
 import { worldDb } from '../db/worldDatabase';
+import { saveSystem } from '../persistence';
 import {
   CAMPAIGN_LEVELS,
   type ILevel,
@@ -115,9 +117,14 @@ export class LevelManager {
     const nextLevelId = this.currentLevel.config.nextLevelId;
     if (!nextLevelId) {
       console.log('No next level - campaign complete!');
+      // Issue #65: Notify callback with null for credits sequence
       this.callbacks.onLevelComplete(null);
       return;
     }
+
+    // Issue #66: Update save system with next level before transition
+    saveSystem.setCurrentLevel(nextLevelId);
+    saveSystem.setChapter(CAMPAIGN_LEVELS[nextLevelId].chapter);
 
     await this.transitionTo(nextLevelId);
   }
@@ -187,11 +194,46 @@ export class LevelManager {
 
   /**
    * Load saved states from database
+   * Issue #61: Actually implement saved state loading
    */
   async loadSavedStates(): Promise<void> {
-    // Load level states from database
-    // This would be called on game resume
-    // For now, states are in-memory only
+    // Load level states from database for all campaign levels
+    const levelIds = Object.keys(CAMPAIGN_LEVELS) as LevelId[];
+
+    for (const levelId of levelIds) {
+      const state = await this.loadLevelState(levelId);
+      if (state) {
+        this.levelStates.set(levelId, state);
+      }
+    }
+
+    console.log(`[LevelManager] Loaded ${this.levelStates.size} level states from database`);
+  }
+
+  /**
+   * Issue #62: Get mission definition for current level
+   */
+  getMissionDefinition() {
+    if (!this.currentLevel) return null;
+    return getMissionDefinition(this.currentLevel.id);
+  }
+
+  /**
+   * Issue #63: Check if level is completed in save system
+   */
+  isLevelCompleted(levelId: LevelId): boolean {
+    const save = saveSystem.getCurrentSave();
+    if (!save) return false;
+    return save.levelsCompleted.includes(levelId);
+  }
+
+  /**
+   * Issue #64: Get all completed levels
+   */
+  getCompletedLevels(): LevelId[] {
+    const save = saveSystem.getCurrentSave();
+    if (!save) return [];
+    return [...save.levelsCompleted];
   }
 
   // ============================================================================

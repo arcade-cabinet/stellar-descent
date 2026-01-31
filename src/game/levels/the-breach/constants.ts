@@ -65,7 +65,59 @@ export const WEAK_POINT_DURATION = 8000;
 export const WEAK_POINT_COOLDOWN = 15000;
 
 /** Damage multiplier when hitting the weak point */
-export const WEAK_POINT_DAMAGE_MULTIPLIER = 2;
+export const WEAK_POINT_DAMAGE_MULTIPLIER = 3;
+
+/** Duration weak point is visible on Easy (ms) - scaled by difficulty */
+export const WEAK_POINT_DURATION_BASE = 10000;
+
+/** Cooldown between scans on Easy (ms) - scaled by difficulty */
+export const WEAK_POINT_COOLDOWN_BASE = 12000;
+
+// ============================================================================
+// QUEEN DIFFICULTY SCALING
+// ============================================================================
+
+/** Queen health multiplier per difficulty level */
+export const QUEEN_HEALTH_SCALING: Record<string, number> = {
+  normal: 1.0,
+  veteran: 1.5,
+  legendary: 2.0,
+};
+
+/** Queen attack damage multiplier per difficulty level */
+export const QUEEN_DAMAGE_SCALING: Record<string, number> = {
+  normal: 1.0,
+  veteran: 1.3,
+  legendary: 1.6,
+};
+
+/** Queen attack cooldown multiplier per difficulty (lower = faster attacks) */
+export const QUEEN_COOLDOWN_SCALING: Record<string, number> = {
+  normal: 1.0,
+  veteran: 0.85,
+  legendary: 0.7,
+};
+
+/** Weak point duration multiplier per difficulty (lower = less time) */
+export const WEAK_POINT_DURATION_SCALING: Record<string, number> = {
+  normal: 1.0,
+  veteran: 0.8,
+  legendary: 0.6,
+};
+
+/** Scan cooldown multiplier per difficulty (higher = longer wait) */
+export const SCAN_COOLDOWN_SCALING: Record<string, number> = {
+  normal: 1.0,
+  veteran: 1.2,
+  legendary: 1.5,
+};
+
+/** Player invincibility frames scaling per difficulty (lower = less protection) */
+export const INVINCIBILITY_SCALING: Record<string, number> = {
+  normal: 1.0,
+  veteran: 0.8,
+  legendary: 0.5,
+};
 
 // ============================================================================
 // ENEMY CONFIGURATION
@@ -119,3 +171,63 @@ export const MELEE_DAMAGE = 50;
 
 /** Detection range for enemy AI */
 export const ENEMY_DETECTION_RANGE = 20;
+
+// ============================================================================
+// ARENA CONFIGURATION
+// ============================================================================
+
+/** Number of cover pillars in boss arena */
+export const ARENA_PILLAR_COUNT = 6;
+
+/** Radius of arena pillar placement ring */
+export const ARENA_PILLAR_RADIUS = 18;
+
+/** Height of arena pillars */
+export const ARENA_PILLAR_HEIGHT = 4;
+
+// ============================================================================
+// QUEEN ATTACK TIMING
+// ============================================================================
+
+/** Base damage for each queen attack type */
+export const QUEEN_ATTACK_DAMAGE: Record<string, number> = {
+  acid_spit: 20,
+  claw_swipe: 35,
+  tail_slam: 40,
+  ground_pound: 25,
+};
+
+/** Telegraph duration before attack lands (ms) */
+export const QUEEN_ATTACK_TELEGRAPH: Record<string, number> = {
+  acid_spit: 800,
+  claw_swipe: 400,
+  tail_slam: 600,
+  ground_pound: 1200,
+};
+
+/** Attack range for each queen attack type */
+export const QUEEN_ATTACK_RANGE: Record<string, number> = {
+  acid_spit: 30,
+  claw_swipe: 6,
+  tail_slam: 8,
+  ground_pound: 15,
+};
+
+// ============================================================================
+// VISUAL EFFECT CONSTANTS
+// ============================================================================
+
+/** Queen weak point pulse frequency */
+export const WEAK_POINT_PULSE_SPEED = 3;
+
+/** Queen weak point minimum alpha during pulse */
+export const WEAK_POINT_MIN_ALPHA = 0.5;
+
+/** Queen weak point maximum alpha during pulse */
+export const WEAK_POINT_MAX_ALPHA = 1.0;
+
+/** Ground pound indicator expansion duration (ms) */
+export const GROUND_POUND_INDICATOR_DURATION = 1000;
+
+/** Acid spit projectile speed */
+export const ACID_SPIT_PROJECTILE_SPEED = 15;

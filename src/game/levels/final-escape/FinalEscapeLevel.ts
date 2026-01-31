@@ -103,14 +103,18 @@ const SECTION_BOUNDARIES = {
   launchPad: ESCAPE_SECTIONS.shuttleZ,           // -2900
 } as const;
 
-// GLB paths for vehicle and mech (replaces procedural box geometry)
-const VEHICLE_GLB_PATH = '/models/spaceships/Insurgent.glb';
-const MARCUS_MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
+// GLB paths for vehicle and mech - use available assets
+// Vehicle: Challenger spaceship (shuttle-like, fits escape theme)
+// Mech: Fallback to Phantom dropship scaled down as armored walker
+const VEHICLE_GLB_PATH = '/models/spaceships/Challenger.glb';
+const MARCUS_MECH_GLB_PATH = '/models/vehicles/phantom_dropship.glb';
 
 const VEHICLE_SPEED = 30; // Base vehicle speed (m/s)
 const VEHICLE_BOOST_MULTIPLIER = 1.5;
 const VEHICLE_TURN_SPEED = 3.0;
 const VEHICLE_HEIGHT = 2.5; // Camera height in vehicle
+const BOOST_COOLDOWN = 3.0; // Cooldown between boosts in seconds
+const BOOST_DURATION = 2.0; // How long boost lasts
 
 // ============================================================================
 // FINAL ESCAPE LEVEL
@@ -135,9 +139,12 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private vehicleSpeed = 0;
   private vehicleSteering = 0;
   private isBoosting = false;
+  private boostCooldownTimer = 0; // Track cooldown
+  private boostRemainingTimer = 0; // Track active boost duration
   private vehicleNode: TransformNode | null = null;
   private vehicleMesh: Mesh | null = null;
   private vehicleHeadlights: PointLight[] = [];
+  private vehicleExhaustLight: PointLight | null = null;
 
   // GLB-based escape route environment
   private escapeRouteEnv: EscapeRouteResult | null = null;
@@ -162,6 +169,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private shuttleEngines: PointLight[] = [];
   private shuttleLight: PointLight | null = null;
   private shuttleBeacon: Mesh | null = null;
+  private shuttleBeaconMaterial: StandardMaterial | null = null;
 
   // Enemy stragglers
   private stragglers: StragglerEnemy[] = [];
@@ -192,7 +200,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     portrait: 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
     text: string;
   }> = [];
-  private commsTimer = 0;
+  // Note: commsTimer was tracked but unused - queue uses per-message delay instead
 
   // Timeouts to clean up on dispose
   private pendingTimeouts: ReturnType<typeof setTimeout>[] = [];
@@ -270,6 +278,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.shuttleEngines = this.escapeRouteEnv.shuttleEngines;
     this.shuttleLight = this.escapeRouteEnv.shuttleLight;
 
+    // Cache beacon material for safe pulsing
+    if (this.shuttleBeacon?.material) {
+      this.shuttleBeaconMaterial = this.shuttleBeacon.material as StandardMaterial;
+    }
+
     // Create collapse wall for tunnel section (procedural, chases player)
     this.createCollapseWall();
 
@@ -278,15 +291,16 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.createMarcusMech();
 
     // Create collapsing terrain system (dynamic chasms, falling rocks, lava)
-    // Covers the full 3000m route for sections B-D
+    // Covers sections B-D (Z: -500 to -3000 = 2500m)
+    // Surface run + canyon + launch pad approach
     this.collapsingTerrain = new CollapsingTerrain(this.scene, {
-      terrainLength: 3000,
-      terrainWidth: 60,
-      segmentCount: 80,
-      maxChasms: 12,
-      maxFallingRocks: 20,
-      maxLavaPools: 14,
-      destructionRate: 1.0,
+      terrainLength: 2500, // Match actual outdoor sections
+      terrainWidth: 60, // Wide enough for vehicle maneuvering
+      segmentCount: 100, // More segments for smoother collapse
+      maxChasms: 15, // More chasms for dramatic effect
+      maxFallingRocks: 25, // More falling rocks
+      maxLavaPools: 18, // More lava pools
+      destructionRate: 1.2, // Slightly faster destruction for urgency
     });
     this.collapsingTerrain.initialize();
 
@@ -310,7 +324,14 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.escapeTimer.setOnExpired(() => this.handleTimerExpired());
     this.escapeTimer.setOnUrgencyChange((urgency) => this.handleUrgencyChange(urgency));
     this.escapeTimer.setOnCheckpoint((bonus, total) => {
-      this.callbacks.onNotification(`CHECKPOINT +${bonus}s`, 2000);
+      // Visual checkpoint feedback
+      this.callbacks.onNotification(`>>> CHECKPOINT REACHED <<< +${bonus}s`, 3000);
+
+      // Brief green flash for positive feedback
+      this.triggerCheckpointFlash();
+
+      // Play checkpoint sound
+      getAudioManager().play('notification');
     });
 
     // Set up action buttons for vehicle controls
@@ -370,9 +391,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
     }
 
     // Global updates (always running)
+    this.updateBoostState(deltaTime);
     this.updateVehiclePhysics(deltaTime);
     this.updateMarcusMech(deltaTime);
-    this.updateStragglerSpawning(deltaTime);
+    // Note: Straggler spawning is called within section updates, not here
     this.updateEnvironmentalEffects(deltaTime);
     this.updateHUD();
   }
@@ -426,6 +448,8 @@ export class FinalEscapeLevel extends SurfaceLevel {
       light.dispose();
     }
     this.vehicleHeadlights = [];
+    this.vehicleExhaustLight?.dispose();
+    this.vehicleExhaustLight = null;
 
     // Dispose Marcus mech
     this.marcusMech?.dispose();
@@ -459,6 +483,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
       this.skyLight.diffuse = new Color3(0.7, 0.4, 0.3);
       this.skyLight.groundColor = new Color3(0.4, 0.15, 0.05);
     }
+
+    // Set up apocalyptic fog - thick smoke/ash
+    this.scene.fogMode = 3; // Exponential fog
+    this.scene.fogDensity = 0.004;
+    this.scene.fogColor = new Color3(0.5, 0.3, 0.2);
 
     // Create sky dome with apocalyptic colors
     this.createSkyDome();
@@ -521,6 +550,17 @@ export class FinalEscapeLevel extends SurfaceLevel {
       this.vehicleHeadlights.push(headlight);
     }
 
+    // Exhaust/boost light at rear
+    this.vehicleExhaustLight = new PointLight(
+      'vehicle_exhaust',
+      new Vector3(0, 0.5, 2),
+      this.scene
+    );
+    this.vehicleExhaustLight.parent = this.vehicleNode;
+    this.vehicleExhaustLight.diffuse = new Color3(1, 0.5, 0.2);
+    this.vehicleExhaustLight.intensity = 3;
+    this.vehicleExhaustLight.range = 15;
+
     // Position vehicle at player start
     this.vehicleNode.position.set(0, 0, 0);
   }
@@ -558,18 +598,31 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
   /**
    * Toggle visibility of outdoor elements (hidden during tunnel section).
+   * Also manages tunnel visibility inversely.
    */
   private setOutdoorVisible(visible: boolean): void {
-    if (this.collapsingTerrain) {
-      // Terrain segments are managed by CollapsingTerrain class
-      // We show/hide the sky dome and launch pad
-    }
+    // Outdoor elements: visible when outside tunnel
     if (this.skyDome) this.skyDome.isVisible = visible;
     if (this.launchPad) this.launchPad.isVisible = visible;
     if (this.shuttle) this.shuttle.setEnabled(visible);
     if (this.shuttleBeacon) this.shuttleBeacon.isVisible = visible;
     if (this.shuttleLight) this.shuttleLight.intensity = visible ? 5 : 0;
     if (this.marcusMech) this.marcusMech.setEnabled(visible);
+    if (this.terrain) this.terrain.isVisible = visible;
+
+    // Tunnel elements: visible when inside tunnel (inverse of outdoor)
+    if (this.tunnelCollapseWall) this.tunnelCollapseWall.isVisible = !visible;
+
+    // Update fog density based on location
+    if (visible) {
+      // Outdoor: lighter fog for visibility
+      this.scene.fogDensity = 0.003;
+      this.scene.fogColor = new Color3(0.5, 0.3, 0.2);
+    } else {
+      // Tunnel: thicker fog for atmosphere
+      this.scene.fogDensity = 0.008;
+      this.scene.fogColor = new Color3(0.3, 0.15, 0.1);
+    }
   }
 
   // ============================================================================
@@ -660,16 +713,63 @@ export class FinalEscapeLevel extends SurfaceLevel {
   }
 
   /**
-   * Activate vehicle boost.
+   * Activate vehicle boost with proper cooldown management.
    */
   private activateBoost(): void {
-    if (this.isBoosting) return;
-    this.isBoosting = true;
+    // Check if boost is on cooldown or already active
+    if (this.isBoosting || this.boostCooldownTimer > 0) return;
 
-    const boostTimeout = setTimeout(() => {
-      this.isBoosting = false;
-    }, 2000);
-    this.pendingTimeouts.push(boostTimeout);
+    this.isBoosting = true;
+    this.boostRemainingTimer = BOOST_DURATION;
+
+    // Play boost sound effect - use dropship engine as boost SFX
+    getAudioManager().play('dropship_engine');
+
+    // Visual feedback - intensify headlights
+    for (const light of this.vehicleHeadlights) {
+      light.intensity = 10;
+    }
+    if (this.vehicleExhaustLight) {
+      this.vehicleExhaustLight.intensity = 15;
+    }
+
+    // Spawn boost particle effect at vehicle exhaust
+    if (this.vehicleNode) {
+      particleManager.emit(
+        'explosion',
+        this.vehicleNode.position.add(new Vector3(0, 0.5, 2)),
+        { scale: 0.3 }
+      );
+    }
+
+    this.callbacks.onNotification('BOOST ACTIVE', 1000);
+  }
+
+  /**
+   * Update boost state and cooldown timers.
+   */
+  private updateBoostState(deltaTime: number): void {
+    // Update active boost
+    if (this.isBoosting) {
+      this.boostRemainingTimer -= deltaTime;
+      if (this.boostRemainingTimer <= 0) {
+        this.isBoosting = false;
+        this.boostCooldownTimer = BOOST_COOLDOWN;
+
+        // Reset visual feedback
+        for (const light of this.vehicleHeadlights) {
+          light.intensity = 5;
+        }
+        if (this.vehicleExhaustLight) {
+          this.vehicleExhaustLight.intensity = 3;
+        }
+      }
+    }
+
+    // Update cooldown
+    if (this.boostCooldownTimer > 0) {
+      this.boostCooldownTimer -= deltaTime;
+    }
   }
 
   // ============================================================================
@@ -681,12 +781,23 @@ export class FinalEscapeLevel extends SurfaceLevel {
    * The vehicle always moves forward; player controls steering.
    */
   private updateVehiclePhysics(deltaTime: number): void {
-    if (this.cinematicActive || this.section === 'victory' || this.section === 'game_over') return;
+    if (this.cinematicActive || this.section === 'victory' || this.section === 'game_over') {
+      this.vehicleSpeed = 0;
+      return;
+    }
 
     // Always moving forward (in -Z direction)
     const baseSpeed = VEHICLE_SPEED;
     const speedMultiplier = this.isBoosting ? VEHICLE_BOOST_MULTIPLIER : 1.0;
-    this.vehicleSpeed = baseSpeed * speedMultiplier;
+    const targetSpeed = baseSpeed * speedMultiplier;
+
+    // Smooth speed transitions
+    const acceleration = this.isBoosting ? 80 : 40;
+    if (this.vehicleSpeed < targetSpeed) {
+      this.vehicleSpeed = Math.min(targetSpeed, this.vehicleSpeed + acceleration * deltaTime);
+    } else if (this.vehicleSpeed > targetSpeed) {
+      this.vehicleSpeed = Math.max(targetSpeed, this.vehicleSpeed - acceleration * 0.5 * deltaTime);
+    }
 
     // Steering from player input
     let steerInput = 0;
@@ -709,25 +820,41 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.camera.position.x += moveX;
     this.camera.position.y = VEHICLE_HEIGHT;
 
-    // Clamp to terrain bounds
+    // Clamp to terrain bounds with wall collision feedback
+    let hitWall = false;
     if (this.section === 'hive_exit') {
       // Tunnel bounds (matches EscapeRouteEnvironment tunnel half-width)
       const tunnelHalfWidth = 7;
       const distFromCenter = Math.abs(this.camera.position.x);
       if (distFromCenter > tunnelHalfWidth) {
         this.camera.position.x = Math.sign(this.camera.position.x) * tunnelHalfWidth;
+        hitWall = true;
       }
     } else if (this.collapsingTerrain) {
       // Surface/canyon bounds
       const bounds = this.collapsingTerrain.getTerrainBounds();
+      const prevX = this.camera.position.x;
       this.camera.position.x = Math.max(bounds.minX, Math.min(bounds.maxX, this.camera.position.x));
+      if (prevX !== this.camera.position.x) {
+        hitWall = true;
+      }
+    }
+
+    // Wall collision feedback
+    if (hitWall) {
+      this.applyDamage(2);
+      this.triggerShake(1);
+      // Bounce off wall slightly
+      this.vehicleSteering *= -0.3;
     }
 
     // Update vehicle node position to match camera
     if (this.vehicleNode) {
       this.vehicleNode.position.set(this.camera.position.x, 0, this.camera.position.z);
-      // Tilt vehicle based on steering
+      // Tilt vehicle based on steering and add roll effect when boosting
+      const boostRoll = this.isBoosting ? Math.sin(this.sectionTime * 10) * 0.02 : 0;
       this.vehicleNode.rotation.y = Math.PI + this.vehicleSteering * 0.1;
+      this.vehicleNode.rotation.z = this.vehicleSteering * 0.05 + boostRoll;
     }
 
     // Check section transitions
@@ -735,6 +862,50 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Check terrain damage
     this.checkTerrainDamage(deltaTime);
+
+    // Check obstacle collisions (GLB-based obstacles are visual only, but we add proximity damage)
+    this.checkObstacleCollisions(deltaTime);
+  }
+
+  /**
+   * Check for collisions with environment obstacles (wreckage, debris).
+   * This is a simplified proximity-based check since GLB assets don't have physics.
+   */
+  private checkObstacleCollisions(_deltaTime: number): void {
+    // Only check in outdoor sections where wreckage exists
+    if (this.section === 'hive_exit' || this.section === 'victory' || this.section === 'game_over') {
+      return;
+    }
+
+    // Check proximity to major wreckage positions (from EscapeRouteEnvironment)
+    const wreckagePositions = [
+      { x: -15, z: -600, radius: 8 },   // Bob wreckage
+      { x: 10, z: -780, radius: 10 },   // Pancake wreckage
+      { x: -20, z: -1000, radius: 7 },  // Spitfire wreckage
+      { x: 5, z: -1200, radius: 12 },   // Zenith wreckage
+    ];
+
+    const playerX = this.camera.position.x;
+    const playerZ = this.camera.position.z;
+
+    for (const wreck of wreckagePositions) {
+      const dx = playerX - wreck.x;
+      const dz = playerZ - wreck.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < wreck.radius) {
+        // Collision with wreckage - apply damage and push away
+        const damage = (wreck.radius - dist) * 3;
+        this.applyDamage(damage);
+        this.triggerShake(2);
+
+        // Push player away from wreckage center
+        const pushDir = dist > 0.1 ? dx / dist : 1;
+        this.camera.position.x += pushDir * 2;
+
+        break; // Only one collision per frame
+      }
+    }
   }
 
   /**
@@ -777,7 +948,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.section = newSection;
     this.sectionTime = 0;
 
-    console.log(`[FinalEscape] Section transition: ${previousSection} -> ${newSection}`);
+    // Debug logging (can be enabled via DevMode)
+    if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
+      console.log(`[FinalEscape] Section transition: ${previousSection} -> ${newSection}`);
+    }
 
     switch (newSection) {
       case 'surface_run':
@@ -934,10 +1108,29 @@ export class FinalEscapeLevel extends SurfaceLevel {
     saveSystem.completeLevel('final_escape');
     saveSystem.setObjective('campaign_complete', true);
 
-    // Complete level after cinematic
+    // Complete level after cinematic - trigger credits screen
     const completeTimeout = setTimeout(() => {
       this.callbacks.onCinematicEnd?.();
       this.state.completed = true;
+
+      // Save campaign completion stats
+      const timerState = this.escapeTimer.getState();
+      const stats = {
+        escapeTime: timerState.elapsed,
+        checkpointsReached: timerState.checkpointsReached,
+        deaths: timerState.deaths,
+        timeRemaining: timerState.remaining,
+      };
+
+      // Log completion stats (can be enabled via debug flag)
+      if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
+        console.log('[FinalEscape] Campaign complete! Stats:', stats);
+      }
+
+      // Mark campaign as complete in save system
+      saveSystem.setObjective('campaign_complete', true);
+
+      // Trigger level completion with special 'credits' flag
       this.completeLevel();
     }, 15000);
     this.pendingTimeouts.push(completeTimeout);
@@ -1075,11 +1268,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const timerState = this.escapeTimer.getState();
     this.collapsingTerrain?.update(deltaTime, 0.9, this.camera.position);
 
-    // Pulse shuttle beacon
-    if (this.shuttleBeacon) {
+    // Pulse shuttle beacon using cached material reference
+    if (this.shuttleBeaconMaterial) {
       const pulse = Math.sin(this.sectionTime * 5) * 0.5 + 0.5;
-      const beaconMat = this.shuttleBeacon.material as StandardMaterial;
-      beaconMat.emissiveColor = new Color3(pulse * 0.3, pulse * 0.7, 1.0);
+      this.shuttleBeaconMaterial.emissiveColor = new Color3(pulse * 0.3, pulse * 0.7, 1.0);
     }
 
     // Pulse shuttle engines
@@ -1252,8 +1444,9 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
   /**
    * Spawn a single straggler enemy.
+   * Uses fire-and-forget pattern with proper cleanup.
    */
-  private async spawnStraggler(): Promise<void> {
+  private spawnStraggler(): void {
     // Spawn to the side of the road, slightly ahead or beside the player
     const side = Math.random() > 0.5 ? 1 : -1;
     const halfWidth = this.collapsingTerrain?.getTerrainWidth()
@@ -1270,18 +1463,30 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const speciesKey = Math.random() > 0.7 ? 'lurker' : 'skitterer';
     const species = ALIEN_SPECIES[speciesKey];
 
-    const mesh = await createAlienMesh(this.scene, species, Math.random() * 10000);
-    mesh.position.copyFrom(spawnPos);
+    // Fire-and-forget async spawn with error handling
+    createAlienMesh(this.scene, species, Math.random() * 10000)
+      .then((mesh) => {
+        // Check if level is still active (not disposed)
+        if (!this.scene || this.scene.isDisposed) {
+          mesh.dispose();
+          return;
+        }
 
-    this.stragglers.push({
-      mesh,
-      health: species.baseHealth * 0.5, // Weakened stragglers
-      maxHealth: species.baseHealth * 0.5,
-      position: spawnPos.clone(),
-      velocity: Vector3.Zero(),
-      species: speciesKey,
-      isActive: true,
-    });
+        mesh.position.copyFrom(spawnPos);
+
+        this.stragglers.push({
+          mesh,
+          health: species.baseHealth * 0.5, // Weakened stragglers
+          maxHealth: species.baseHealth * 0.5,
+          position: spawnPos.clone(),
+          velocity: Vector3.Zero(),
+          species: speciesKey,
+          isActive: true,
+        });
+      })
+      .catch((err) => {
+        console.warn('[FinalEscape] Failed to spawn straggler:', err);
+      });
   }
 
   // ============================================================================
@@ -1375,6 +1580,26 @@ export class FinalEscapeLevel extends SurfaceLevel {
   }
 
   // ============================================================================
+  // VISUAL FEEDBACK
+  // ============================================================================
+
+  /**
+   * Trigger a brief green flash for checkpoint reached.
+   */
+  private triggerCheckpointFlash(): void {
+    // Store original clear color
+    const originalColor = this.scene.clearColor.clone();
+
+    // Flash green briefly
+    this.scene.clearColor = new Color4(0.2, 0.8, 0.3, 1);
+
+    const flashTimeout = setTimeout(() => {
+      this.scene.clearColor = originalColor;
+    }, 150);
+    this.pendingTimeouts.push(flashTimeout);
+  }
+
+  // ============================================================================
   // DAMAGE / HEALTH
   // ============================================================================
 
@@ -1424,7 +1649,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
    * Handle timer expiration - game over.
    */
   private handleTimerExpired(): void {
-    console.log('[FinalEscape] Timer expired - game over');
+    // Timer expired - transition to game over
     this.transitionToSection('game_over');
   }
 
@@ -1547,8 +1772,6 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private updateCommsQueue(deltaTime: number): void {
     if (this.commsQueue.length === 0) return;
 
-    this.commsTimer += deltaTime;
-
     const toDeliver: number[] = [];
 
     for (let i = 0; i < this.commsQueue.length; i++) {
@@ -1586,16 +1809,41 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const timerState = this.escapeTimer.getState();
     const sectionName = this.getSectionDisplayName();
 
+    // Build urgency prefix with visual indicators
     let urgencyPrefix = '';
-    if (timerState.urgency === 'critical') urgencyPrefix = 'CRITICAL: ';
-    if (timerState.urgency === 'final') urgencyPrefix = 'FINAL: ';
+    let timerDisplay = timerState.displayTime;
+    if (timerState.urgency === 'warning') {
+      urgencyPrefix = '! ';
+    } else if (timerState.urgency === 'critical') {
+      urgencyPrefix = '!! CRITICAL: ';
+      // Pulse effect on timer
+      if (Math.floor(timerState.remaining * 2) % 2 === 0) {
+        timerDisplay = `[${timerState.displayTime}]`;
+      }
+    } else if (timerState.urgency === 'final') {
+      urgencyPrefix = '!!! FINAL: ';
+      // Rapid pulse effect
+      if (Math.floor(timerState.remaining * 4) % 2 === 0) {
+        timerDisplay = `>>>${timerState.displayTime}<<<`;
+      }
+    }
 
     const distanceToGoal = this.getDistanceToGoal();
     const distStr = distanceToGoal > 0 ? ` | ${Math.round(distanceToGoal)}m TO SHUTTLE` : '';
 
+    // Show boost status
+    let boostStr = '';
+    if (this.isBoosting) {
+      boostStr = ' | BOOST!';
+    } else if (this.boostCooldownTimer > 0) {
+      boostStr = ` | BOOST: ${Math.ceil(this.boostCooldownTimer)}s`;
+    } else {
+      boostStr = ' | BOOST: READY';
+    }
+
     this.callbacks.onObjectiveUpdate(
-      `${urgencyPrefix}${sectionName} - ${timerState.displayTime}`,
-      `SPEED: ${Math.round(this.vehicleSpeed)} m/s${distStr} | HP: ${Math.round(Math.max(0, this.playerHealth))}`
+      `${urgencyPrefix}${sectionName} - ${timerDisplay}`,
+      `SPEED: ${Math.round(this.vehicleSpeed)} m/s${distStr}${boostStr} | HP: ${Math.round(Math.max(0, this.playerHealth))}`
     );
   }
 

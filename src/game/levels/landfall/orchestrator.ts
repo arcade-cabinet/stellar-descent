@@ -23,6 +23,7 @@
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
@@ -39,6 +40,7 @@ import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
 import { getAchievementManager } from '../../achievements';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
+import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
@@ -147,6 +149,7 @@ export class LandfallLevel extends BaseLevel {
   private terrain: Mesh | null = null;
   private canyonWalls: TransformNode[] = [];
   private skyDome: Mesh | null = null;
+  private skyboxResult: SkyboxResult | null = null;
   private coverObjects: (Mesh | TransformNode)[] = [];
   private glbEnvironment: LandfallEnvironmentNodes | null = null;
 
@@ -199,6 +202,9 @@ export class LandfallLevel extends BaseLevel {
   private fobDeltaMarker: Mesh | null = null;
   private fobDeltaBeacon: Mesh | null = null;
   private fobDeltaPosition = new Vector3(0, 0, -150);
+
+  // Surface lighting
+  private surfaceSunLight: DirectionalLight | null = null;
 
   // Combat tutorial
   private hasShownMovementTutorial = false;
@@ -448,11 +454,17 @@ export class LandfallLevel extends BaseLevel {
     this.unstableTerrain = createUnstableTerrain(this.scene);
     this.createFOBDeltaMarker();
 
-    this.skyDome = MeshBuilder.CreateSphere('sky', { diameter: 5000, segments: 16, sideOrientation: 1 }, this.scene);
-    const skyMat = new StandardMaterial('skyMat', this.scene);
-    skyMat.emissiveColor = new Color3(0.75, 0.5, 0.35);
-    skyMat.disableLighting = true;
-    this.skyDome.material = skyMat;
+    // Use SkyboxManager for proper Babylon.js skybox with desert atmosphere
+    const skyboxManager = new SkyboxManager(this.scene);
+    this.skyboxResult = skyboxManager.createFallbackSkybox({
+      type: 'desert',
+      size: 10000,
+      useEnvironmentLighting: true,
+      environmentIntensity: 1.0,
+      // Dusty Mars-like atmosphere
+      tint: new Color3(0.75, 0.5, 0.35),
+    });
+    this.skyDome = this.skyboxResult.mesh;
     this.skyDome.isVisible = false;
   }
 
@@ -508,6 +520,53 @@ export class LandfallLevel extends BaseLevel {
     this.fobDeltaMarker.position.y = 0.2;
     this.fobDeltaMarker.rotation.x = Math.PI / 2;
     this.fobDeltaMarker.isVisible = false;
+  }
+
+  /**
+   * Configure outdoor lighting for surface phase.
+   * Uses harsh Mars-like sun angle with warm desert tones.
+   */
+  private setupSurfaceLighting(): void {
+    // Disable BaseLevel's default lighting for custom outdoor setup
+    if (this.sunLight) {
+      this.sunLight.setEnabled(false);
+    }
+    if (this.ambientLight) {
+      this.ambientLight.setEnabled(false);
+    }
+
+    // Create harsh desert sun - low angle for dramatic shadows
+    const sunDir = new Vector3(0.6, -0.8, 0.3).normalize();
+    this.surfaceSunLight = new DirectionalLight('surfaceSun', sunDir, this.scene);
+    this.surfaceSunLight.intensity = 2.5;
+    // Warm Mars-like sunlight
+    this.surfaceSunLight.diffuse = new Color3(1.0, 0.85, 0.7);
+    this.surfaceSunLight.specular = new Color3(1.0, 0.9, 0.8);
+
+    // Ambient fill from dusty atmosphere
+    if (this.ambientLight) {
+      this.ambientLight.setEnabled(true);
+      this.ambientLight.intensity = 0.6;
+      this.ambientLight.diffuse = new Color3(0.8, 0.6, 0.5);
+      this.ambientLight.groundColor = new Color3(0.4, 0.3, 0.25);
+    }
+  }
+
+  /**
+   * Restore lighting for space/drop phases.
+   */
+  private restoreSpaceLighting(): void {
+    if (this.surfaceSunLight) {
+      this.surfaceSunLight.dispose();
+      this.surfaceSunLight = null;
+    }
+    if (this.sunLight) {
+      this.sunLight.setEnabled(true);
+    }
+    if (this.ambientLight) {
+      this.ambientLight.setEnabled(true);
+      this.ambientLight.intensity = 0.4;
+    }
   }
 
   private startJump(): void {
@@ -962,6 +1021,11 @@ export class LandfallLevel extends BaseLevel {
     if (this.glbEnvironment) setEnvironmentVisible(this.glbEnvironment, true);
     this.acidPools.forEach((p) => (p.isVisible = true));
     this.unstableTerrain.forEach((t) => (t.isVisible = true));
+    // Show flora on surface
+    this.floraNodes.forEach((n) => n.setEnabled(true));
+
+    // Set up outdoor desert lighting for surface phase
+    this.setupSurfaceLighting();
 
     this.targetFOV = SURFACE_FOV;
     this.camera.position.set(Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.positionX)), MIN_PLAYER_HEIGHT, Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.positionZ)));
@@ -1182,7 +1246,12 @@ export class LandfallLevel extends BaseLevel {
     this.callbacks.onActionHandlerRegister(null);
     this.callbacks.onActionGroupsChange([]);
 
-    [this.planet, this.planetAtmosphere, this.starfield, this.leftArm, this.rightArm, this.leftGlove, this.rightGlove, this.visorFrame, this.leftHandle, this.rightHandle, this.thrusterGlow, this.plasmaGlow, this.lzPad, this.lzBeacon, this.terrain, this.skyDome, this.heatDistortion, this.fobDeltaMarker, this.fobDeltaBeacon].forEach((m) => m?.dispose());
+    // Dispose skybox using SkyboxResult
+    this.skyboxResult?.dispose();
+    this.skyboxResult = null;
+    this.skyDome = null;
+
+    [this.planet, this.planetAtmosphere, this.starfield, this.leftArm, this.rightArm, this.leftGlove, this.rightGlove, this.visorFrame, this.leftHandle, this.rightHandle, this.thrusterGlow, this.plasmaGlow, this.lzPad, this.lzBeacon, this.terrain, this.heatDistortion, this.fobDeltaMarker, this.fobDeltaBeacon].forEach((m) => m?.dispose());
     this.canyonWalls.forEach((w) => w.dispose());
 
     for (const obj of this.coverObjects) if (!obj.isDisposed()) obj.dispose(false, true);
@@ -1206,6 +1275,12 @@ export class LandfallLevel extends BaseLevel {
     this.unstableTerrain = [];
 
     if (this.glbEnvironment) { disposeEnvironment(this.glbEnvironment); this.glbEnvironment = null; }
+
+    // Dispose surface lighting
+    if (this.surfaceSunLight) {
+      this.surfaceSunLight.dispose();
+      this.surfaceSunLight = null;
+    }
 
     disposeDescentEffects({
       reentryParticles: this.reentryParticles,

@@ -69,13 +69,19 @@ export const DROPSHIP_ETA_INITIAL = 420; // 7:00 for 7 waves
 export const HIVE_COLLAPSE_TIMER = 90; // 90 seconds to reach dropship
 
 /** Duration of wave announcement phase in seconds */
-export const WAVE_ANNOUNCEMENT_DURATION = 3;
+export const WAVE_ANNOUNCEMENT_DURATION = 4; // FIX #22: Increased from 3 for readability
 
 /** Duration of intermission between waves in seconds */
-export const WAVE_INTERMISSION_DURATION = 8;
+export const WAVE_INTERMISSION_DURATION = 12; // FIX #12: Increased from 8 for resupply time
 
 /** Total number of holdout waves */
 export const TOTAL_WAVES = 7;
+
+/** Supply drop spawn delay after wave complete (seconds) */
+export const SUPPLY_DROP_DELAY = 2.0;
+
+/** Supply drop collection radius */
+export const SUPPLY_DROP_RADIUS = 3.0;
 
 // ============================================================================
 // DISTANCE CONSTANTS
@@ -119,12 +125,20 @@ export const STALACTITE_SPAWN_INTERVAL = 1.5;
 /** Interval between collapse rumble sounds in seconds */
 export const COLLAPSE_RUMBLE_INTERVAL = 3;
 
+/** Stalactite spawn interval randomization factor (0-1) */
+export const STALACTITE_SPAWN_VARIANCE = 0.5; // FIX #25: Add randomization
+
+/** Collapse failure respawn distance from dropship */
+export const COLLAPSE_RESPAWN_DISTANCE = 80; // FIX #21: Increased from 40
+
 // ============================================================================
 // WAVE CONFIGURATIONS
 // ============================================================================
 
 /**
  * Wave configurations - 7 waves with escalating difficulty and variety
+ * FIX #3: Added husks to wave 6, improved enemy variety throughout
+ * FIX #16: Better spawn diversity with mixed enemy types per wave
  */
 export const WAVE_CONFIGS: WaveConfig[] = [
   // Wave 1: Skitterer swarm - fast but weak, teaches basic combat
@@ -133,6 +147,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
     grunts: 0,
     spitters: 0,
     brutes: 0,
+    husks: 0,
     spawnDelay: 0.9,
     waveTitle: 'WAVE 1 - SKITTERER SWARM',
     waveDescription: 'Fast-moving scouts. Keep moving!',
@@ -142,13 +157,15 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'marcus',
       text: 'First wave incoming! Skitterers - aim for center mass and keep them off the perimeter!',
     },
+    supplyDropAfter: true, // FIX #11: Supply drop after first wave
   },
   // Wave 2: Lurkers - slower but tougher, teaches prioritization
   {
-    drones: 0,
+    drones: 2, // FIX #16: Added some skitterers for variety
     grunts: 8,
     spitters: 0,
     brutes: 0,
+    husks: 0,
     spawnDelay: 1.3,
     waveTitle: 'WAVE 2 - LURKER ASSAULT',
     waveDescription: 'Heavy infantry. Prioritize headshots.',
@@ -158,6 +175,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'marcus',
       text: "Lurkers! They're tougher - go for the weak points on their backs!",
     },
+    supplyDropAfter: false,
   },
   // Wave 3: Spitter focus - teaches positioning and dodging acid
   {
@@ -165,6 +183,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
     grunts: 2,
     spitters: 6,
     brutes: 0,
+    husks: 0,
     spawnDelay: 1.1,
     waveTitle: 'WAVE 3 - ACID RAIN',
     waveDescription: 'Spitters incoming! Use cover and stay mobile!',
@@ -174,6 +193,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'ai',
       text: 'Warning: Acid Spewer signatures detected. Recommend utilizing cover positions.',
     },
+    supplyDropAfter: true, // FIX #11: Supply drop mid-game
   },
   // Wave 4: Combined arms - mixed force tests all skills
   {
@@ -181,6 +201,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
     grunts: 6,
     spitters: 3,
     brutes: 0,
+    husks: 2, // FIX #3: Added husks to wave 4
     spawnDelay: 1.0,
     waveTitle: 'WAVE 4 - COMBINED ARMS',
     waveDescription: 'Mixed force assault. Watch all angles!',
@@ -190,6 +211,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'marcus',
       text: "Titan's shields just failed! They're hitting us from all sides - prioritize the spitters!",
     },
+    supplyDropAfter: false,
   },
   // Wave 5: Broodmother introduction - mini-boss wave
   {
@@ -197,6 +219,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
     grunts: 4,
     spitters: 2,
     brutes: 2,
+    husks: 0,
     spawnDelay: 1.0,
     waveTitle: 'WAVE 5 - HEAVY ASSAULT',
     waveDescription: 'Broodmothers detected! Focus fire on the big ones!',
@@ -206,13 +229,15 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'ai',
       text: 'Warning: STRAIN-X5 Broodmother signatures detected. These are priority targets.',
     },
+    supplyDropAfter: true, // FIX #11: Supply drop before final waves
   },
-  // Wave 6: Husk swarm - terrifying screaming wave, high pressure
+  // Wave 6: Husk swarm - FIX #3: Actually spawn husks!
   {
-    drones: 8,
+    drones: 4,
     grunts: 0,
-    spitters: 4,
+    spitters: 3,
     brutes: 1,
+    husks: 8, // FIX #3: Husks are the focus of this wave
     spawnDelay: 0.6,
     waveTitle: 'WAVE 6 - SCREAMING DEATH',
     waveDescription: 'Husks! Their screams disorient - stay focused!',
@@ -222,13 +247,15 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'marcus',
       text: 'What the hell is that sound?! Husks! Cover your ears and keep shooting, brother!',
     },
+    supplyDropAfter: false,
   },
   // Wave 7: Final overwhelming wave - everything at once
   {
-    drones: 14,
-    grunts: 10,
-    spitters: 6,
+    drones: 12,
+    grunts: 8,
+    spitters: 5,
     brutes: 3,
+    husks: 6, // FIX #3: Husks in final wave too
     spawnDelay: 0.35,
     waveTitle: 'WAVE 7 - FINAL ASSAULT',
     waveDescription: 'EVERYTHING THEY HAVE! HOLD THE LINE!',
@@ -238,6 +265,7 @@ export const WAVE_CONFIGS: WaveConfig[] = [
       portrait: 'marcus',
       text: "This is it, brother! Everything they've got! Autocannons are overheating but I'll give you everything I have left! HOLD THE LINE!",
     },
+    supplyDropAfter: false,
   },
 ];
 

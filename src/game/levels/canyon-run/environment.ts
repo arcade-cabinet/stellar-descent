@@ -24,7 +24,9 @@ import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/loaders/glTF';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
@@ -33,6 +35,12 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
+import {
+  CANYON_TERRAIN_CONFIG,
+  CANYON_ROCK_CONFIG,
+  createPBRTerrainMaterial,
+} from '../shared/PBRTerrainMaterials';
 
 // ============================================================================
 // TYPES
@@ -801,8 +809,8 @@ async function preloadEnvironmentGLBs(scene: Scene): Promise<void> {
 // ============================================================================
 
 interface CanyonMaterials {
-  ground: StandardMaterial;
-  wall: StandardMaterial;
+  ground: PBRMaterial | StandardMaterial;
+  wall: PBRMaterial | StandardMaterial;
   boulder: StandardMaterial;
   bridge: StandardMaterial;
   bridgeMetal: StandardMaterial;
@@ -813,13 +821,27 @@ interface CanyonMaterials {
 }
 
 function createMaterials(scene: Scene): CanyonMaterials {
-  const ground = new StandardMaterial('canyon_ground_mat', scene);
-  ground.diffuseColor = Color3.FromHexString('#8B7355');
-  ground.specularColor = new Color3(0.1, 0.08, 0.05);
+  // PBR ground material with AmbientCG textures for high-quality terrain
+  const ground = createPBRTerrainMaterial(scene, CANYON_TERRAIN_CONFIG, 'canyon_ground_mat');
 
-  const wall = new StandardMaterial('canyon_wall_mat', scene);
-  wall.diffuseColor = Color3.FromHexString('#6B4F3A');
-  wall.specularColor = new Color3(0.05, 0.04, 0.03);
+  // Adjust UV scale for canyon terrain dimensions
+  const groundUVScale = 0.012 * (CANYON_HALF_WIDTH * 2 + 20);
+  const lengthRatio = CANYON_LENGTH / (CANYON_HALF_WIDTH * 2);
+  if (ground.albedoTexture instanceof Texture) {
+    ground.albedoTexture.uScale = groundUVScale;
+    ground.albedoTexture.vScale = groundUVScale * lengthRatio;
+  }
+  if (ground.bumpTexture instanceof Texture) {
+    ground.bumpTexture.uScale = groundUVScale;
+    ground.bumpTexture.vScale = groundUVScale * lengthRatio;
+  }
+  if (ground.metallicTexture instanceof Texture) {
+    ground.metallicTexture.uScale = groundUVScale;
+    ground.metallicTexture.vScale = groundUVScale * lengthRatio;
+  }
+
+  // PBR wall material with rock textures
+  const wall = createPBRTerrainMaterial(scene, CANYON_ROCK_CONFIG, 'canyon_wall_mat');
 
   const boulder = new StandardMaterial('canyon_boulder_mat', scene);
   boulder.diffuseColor = Color3.FromHexString('#7A6B5B');
@@ -929,6 +951,9 @@ function createCanyonWalls(
   for (let i = 0; i < WALL_SEGMENTS; i++) {
     const z = -i * WALL_SEGMENT_LENGTH;
 
+    // [FIX #41] Slightly randomize wall width to hide seams
+    const seamHideOverlap = 3; // Extra overlap to hide seams
+
     // Left wall - varies in distance from center
     const leftOffset = CANYON_HALF_WIDTH + rand() * 8;
     const leftWall = MeshBuilder.CreateBox(
@@ -936,13 +961,14 @@ function createCanyonWalls(
       {
         width: 15 + rand() * 10,
         height: WALL_HEIGHT + rand() * 30,
-        depth: WALL_SEGMENT_LENGTH + 2,
+        depth: WALL_SEGMENT_LENGTH + seamHideOverlap, // [FIX #41] Extra overlap
       },
       scene
     );
     leftWall.material = materials.wall;
     leftWall.position.set(-leftOffset - 5, WALL_HEIGHT / 2 - 5, z);
-    leftWall.rotation.y = (rand() - 0.5) * 0.1;
+    // [FIX #41] Reduce rotation to minimize visible gaps
+    leftWall.rotation.y = (rand() - 0.5) * 0.05;
     leftWalls.push(leftWall);
 
     // Right wall
@@ -952,13 +978,14 @@ function createCanyonWalls(
       {
         width: 15 + rand() * 10,
         height: WALL_HEIGHT + rand() * 30,
-        depth: WALL_SEGMENT_LENGTH + 2,
+        depth: WALL_SEGMENT_LENGTH + seamHideOverlap, // [FIX #41] Extra overlap
       },
       scene
     );
     rightWall.material = materials.wall;
     rightWall.position.set(rightOffset + 5, WALL_HEIGHT / 2 - 5, z);
-    rightWall.rotation.y = (rand() - 0.5) * 0.1;
+    // [FIX #41] Reduce rotation to minimize visible gaps
+    rightWall.rotation.y = (rand() - 0.5) * 0.05;
     rightWalls.push(rightWall);
   }
 
@@ -1061,10 +1088,12 @@ function createSingleBridge(
   const segments: Mesh[] = [];
 
   // Bridge deck - split into segments for collapse animation
+  // [FIX #30] Increased overlap to eliminate visible gaps
+  const segmentOverlap = 0.3;
   for (let i = 0; i < segmentCount; i++) {
     const segment = MeshBuilder.CreateBox(
       `canyon_bridge_segment_${position.z}_${i}`,
-      { width: bridgeWidth, height: 1.5, depth: segmentDepth + 0.1 },
+      { width: bridgeWidth, height: 1.5, depth: segmentDepth + segmentOverlap },
       scene
     );
     segment.material = materials.bridge;
@@ -1092,15 +1121,36 @@ function createSingleBridge(
     pillar.position = pillarPositions[p];
   }
 
-  // Railing meshes
+  // [FIX #15] Railing meshes using GLB handrail assets
   for (const side of [-1, 1]) {
-    const railing = MeshBuilder.CreateBox(
+    // Try to use GLB handrail, fall back to MeshBuilder
+    const handrailPath = side === 1 ? GLB.bridgeHandrail1 : GLB.bridgeHandrail2;
+    const handrailNode = AssetManager.createInstanceByPath(
+      handrailPath,
       `canyon_bridge_railing_${position.z}_${side}`,
-      { width: 0.3, height: 1.5, depth: 10 },
-      scene
+      scene,
+      true,
+      'environment'
     );
-    railing.material = materials.bridgeMetal;
-    railing.position.set(position.x + side * (bridgeWidth / 2 - 0.5), position.y + 1.0, position.z);
+
+    if (handrailNode) {
+      handrailNode.position.set(
+        position.x + side * (bridgeWidth / 2 - 0.5),
+        position.y + 0.5,
+        position.z
+      );
+      handrailNode.rotation.y = side === 1 ? 0 : Math.PI;
+      handrailNode.scaling.setAll(2.0);
+    } else {
+      // Fallback to primitive
+      const railing = MeshBuilder.CreateBox(
+        `canyon_bridge_railing_fallback_${position.z}_${side}`,
+        { width: 0.3, height: 1.5, depth: 10 },
+        scene
+      );
+      railing.material = materials.bridgeMetal;
+      railing.position.set(position.x + side * (bridgeWidth / 2 - 0.5), position.y + 1.0, position.z);
+    }
   }
 
   // Use the first segment as the representative mesh
@@ -1331,26 +1381,48 @@ function createObjectiveMarkers(scene: Scene): ObjectiveMarker[] {
     const cfg = markerConfigs[i];
     const pos = new Vector3(0, 10, cfg.z);
 
+    // [FIX #31] Use hexagonal prism for visual interest
     const markerMesh = MeshBuilder.CreateCylinder(
       `canyon_marker_${i}`,
-      { diameter: 1.5, height: 20, tessellation: 6 },
+      { diameter: 1.5, height: 25, tessellation: 6 },
       scene
     );
     const markerMat = new StandardMaterial(`canyon_marker_mat_${i}`, scene);
     markerMat.emissiveColor = new Color3(0.2, 0.7, 1.0);
-    markerMat.alpha = 0.35;
+    markerMat.alpha = 0.4;
     markerMat.disableLighting = true;
     markerMesh.material = markerMat;
     markerMesh.position = pos.clone();
 
-    const beacon = new PointLight(
-      `canyon_marker_light_${i}`,
-      pos.add(new Vector3(0, 10, 0)),
+    // [FIX #31] Add inner rotating element
+    const innerMarker = MeshBuilder.CreateCylinder(
+      `canyon_marker_inner_${i}`,
+      { diameter: 0.8, height: 30, tessellation: 4 },
       scene
     );
-    beacon.intensity = 1.5;
-    beacon.diffuse = new Color3(0.2, 0.7, 1.0);
-    beacon.range = 40;
+    innerMarker.parent = markerMesh;
+    innerMarker.position.y = 2;
+    const innerMat = new StandardMaterial(`canyon_marker_inner_mat_${i}`, scene);
+    innerMat.emissiveColor = new Color3(0.4, 0.9, 1.0);
+    innerMat.alpha = 0.5;
+    innerMat.disableLighting = true;
+    innerMarker.material = innerMat;
+
+    // [FIX #31] Animate rotation
+    scene.registerBeforeRender(() => {
+      if (!markerMesh.isDisposed()) {
+        markerMesh.rotation.y += 0.01;
+      }
+    });
+
+    const beacon = new PointLight(
+      `canyon_marker_light_${i}`,
+      pos.add(new Vector3(0, 12, 0)),
+      scene
+    );
+    beacon.intensity = 2.0; // [FIX #31] Brighter beacon
+    beacon.diffuse = new Color3(0.2, 0.8, 1.0);
+    beacon.range = 50; // [FIX #31] Larger range
 
     markers.push({
       mesh: markerMesh,
@@ -1377,39 +1449,88 @@ function createExtractionZone(scene: Scene, materials: CanyonMaterials): Mesh {
   zone.material = materials.extraction;
   zone.position.set(0, 0.2, EXTRACTION_Z);
 
+  // [FIX #32] Pulsing emissive ring
+  const ringMat = new StandardMaterial('canyon_extraction_ring_mat', scene);
+  ringMat.emissiveColor = new Color3(0.1, 1.0, 0.3);
+  ringMat.alpha = 0.6;
+  ringMat.disableLighting = true;
+
+  const ring = MeshBuilder.CreateTorus(
+    'canyon_extraction_ring',
+    { diameter: 28, thickness: 1.0, tessellation: 32 },
+    scene
+  );
+  ring.material = ringMat;
+  ring.position.set(0, 0.4, EXTRACTION_Z);
+  ring.rotation.x = Math.PI / 2;
+
+  // [FIX #32] Animate pulsing
+  scene.registerBeforeRender(() => {
+    if (!ring.isDisposed() && ringMat) {
+      const pulse = 0.5 + Math.sin(performance.now() * 0.003) * 0.3;
+      ringMat.alpha = pulse;
+      ring.scaling.x = 1 + Math.sin(performance.now() * 0.002) * 0.05;
+      ring.scaling.z = ring.scaling.x;
+    }
+  });
+
   // Landing pad markings
   const padCenter = MeshBuilder.CreateCylinder(
     'canyon_extraction_pad',
-    { diameter: 10, height: 0.1, tessellation: 32 },
+    { diameter: 10, height: 0.15, tessellation: 32 },
     scene
   );
   const padMat = new StandardMaterial('canyon_pad_mat', scene);
-  padMat.diffuseColor = Color3.FromHexString('#555555');
+  padMat.diffuseColor = Color3.FromHexString('#444444');
+  padMat.specularColor = new Color3(0.1, 0.1, 0.1);
   padCenter.material = padMat;
-  padCenter.position.set(0, 0.3, EXTRACTION_Z);
+  padCenter.position.set(0, 0.35, EXTRACTION_Z);
+
+  // [FIX #32] Add H marking for helipad
+  const hBar1 = MeshBuilder.CreateBox(
+    'canyon_h_bar1',
+    { width: 4, height: 0.05, depth: 0.5 },
+    scene
+  );
+  hBar1.position.set(0, 0.4, EXTRACTION_Z);
+  const hMat = new StandardMaterial('canyon_h_mat', scene);
+  hMat.diffuseColor = Color3.FromHexString('#FFFF00');
+  hMat.emissiveColor = new Color3(0.3, 0.3, 0);
+  hBar1.material = hMat;
+
+  const hBar2 = hBar1.clone('canyon_h_bar2');
+  hBar2.rotation.y = Math.PI / 2;
 
   return zone;
 }
 
 // ============================================================================
-// SKY DOME
+// SKY DOME - Using proper Babylon.js skybox with SkyboxManager
 // ============================================================================
 
-function createSkyDome(scene: Scene): Mesh {
-  const skyDome = MeshBuilder.CreateSphere(
-    'canyon_sky',
-    { diameter: 6000, segments: 32, sideOrientation: 1 },
-    scene
-  );
-  const skyMat = new StandardMaterial('canyon_sky_mat', scene);
-  skyMat.backFaceCulling = false;
-  skyMat.disableLighting = true;
-  skyMat.emissiveColor = Color3.FromHexString('#C8845A');
-  skyDome.material = skyMat;
-  skyDome.infiniteDistance = true;
-  skyDome.renderingGroupId = 0;
+/** Stored skybox result for disposal */
+let canyonSkyboxResult: SkyboxResult | null = null;
 
-  return skyDome;
+function createSkyDome(scene: Scene): Mesh {
+  // Use SkyboxManager for proper Babylon.js skybox with desert atmosphere
+  const skyboxManager = new SkyboxManager(scene);
+  canyonSkyboxResult = skyboxManager.createFallbackSkybox({
+    type: 'desert',
+    size: 10000,
+    useEnvironmentLighting: true,
+    environmentIntensity: 1.0,
+    // Canyon has dusty orange atmosphere
+    tint: Color3.FromHexString('#C8845A'),
+  });
+
+  return canyonSkyboxResult.mesh;
+}
+
+/**
+ * Get the current canyon skybox result for disposal.
+ */
+export function getCanyonSkyboxResult(): SkyboxResult | null {
+  return canyonSkyboxResult;
 }
 
 // ============================================================================

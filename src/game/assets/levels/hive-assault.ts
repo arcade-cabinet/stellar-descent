@@ -1,4 +1,4 @@
-import { AssetEntry, LevelManifest } from '../types';
+import type { AssetEntry, LevelManifest } from '../types';
 
 /**
  * Hive Assault - Combined Arms Push from Surface into Hive
@@ -420,3 +420,47 @@ export const HIVE_ASSAULT_MANIFEST: LevelManifest = {
  * - Biohazard containment equipment (spore protection)
  * - Scout observation post (forward reconnaissance)
  */
+
+// Additional marine NPC assets for squad variety
+export const MARINE_ASSETS: AssetEntry[] = [
+  {
+    id: 'npc/marine_soldier',
+    path: '/models/npcs/marine/marine_soldier.glb',
+    category: 'model',
+    sizeKB: 500,
+  },
+  {
+    id: 'npc/marine_sergeant',
+    path: '/models/npcs/marine/marine_sergeant.glb',
+    category: 'model',
+    sizeKB: 500,
+  },
+  {
+    id: 'npc/marine_elite',
+    path: '/models/npcs/marine/marine_elite.glb',
+    category: 'model',
+    sizeKB: 500,
+  },
+  {
+    id: 'npc/marine_crusader',
+    path: '/models/npcs/marine/marine_crusader.glb',
+    category: 'model',
+    sizeKB: 500,
+  },
+];
+
+// Vehicle assets for combined arms
+export const VEHICLE_ASSETS: AssetEntry[] = [
+  {
+    id: 'vehicle/marcus_mech',
+    path: '/models/vehicles/tea/marcus_mech.glb',
+    category: 'model',
+    sizeKB: 2000,
+  },
+  {
+    id: 'vehicle/player_warthog',
+    path: '/models/vehicles/chitin/wraith.glb',
+    category: 'model',
+    sizeKB: 1500,
+  },
+];

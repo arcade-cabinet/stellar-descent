@@ -7,16 +7,19 @@
  * - Weather system integration
  * - Combat encounters
  * - Outdoor lighting with atmosphere
+ * - Proper Babylon.js skybox with CubeTexture/HDRI support
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { SkyboxManager, type SkyboxResult, type SkyboxType } from '../core/SkyboxManager';
 import { BaseLevel } from './BaseLevel';
 import type { LevelCallbacks, LevelConfig } from './types';
 
@@ -41,10 +44,12 @@ export interface SurfaceConfig {
 export abstract class SurfaceLevel extends BaseLevel {
   // Terrain
   protected terrain: Mesh | null = null;
-  protected terrainMaterial: StandardMaterial | null = null;
+  protected terrainMaterial: StandardMaterial | PBRMaterial | null = null;
 
-  // Sky elements
-  protected skyDome: Mesh | null = null;
+  // Sky elements - using proper Babylon.js skybox
+  protected skyboxManager: SkyboxManager | null = null;
+  protected skyboxResult: SkyboxResult | null = null;
+  protected skyDome: Mesh | null = null; // Legacy reference for compatibility
   protected sun: Mesh | null = null;
 
   // Lighting
@@ -148,22 +153,32 @@ export abstract class SurfaceLevel extends BaseLevel {
   }
 
   /**
-   * Create a basic sky dome
+   * Get the skybox type for this level based on time of day.
+   * Override in subclasses for level-specific skybox types.
+   */
+  protected getSkyboxType(): SkyboxType {
+    const t = this.timeOfDay;
+    if (t < 0.2 || t > 0.8) return 'night';
+    if (t < 0.3 || t > 0.7) return 'dusk';
+    return 'desert'; // Default daytime for surface levels
+  }
+
+  /**
+   * Create a proper Babylon.js skybox using SkyboxManager.
+   * Uses CubeTexture for skybox rendering and HDRCubeTexture for environment lighting.
    */
   protected createSkyDome(): void {
-    this.skyDome = MeshBuilder.CreateSphere(
-      'skyDome',
-      { diameter: 4000, segments: 32, sideOrientation: 1 }, // Inside-out
-      this.scene
-    );
+    this.skyboxManager = new SkyboxManager(this.scene);
+    this.skyboxResult = this.skyboxManager.createFallbackSkybox({
+      type: this.getSkyboxType(),
+      size: 10000,
+      useEnvironmentLighting: true,
+      environmentIntensity: 0.8,
+      tint: this.getSkyGradientColor(),
+    });
 
-    const skyMat = new StandardMaterial('skyMat', this.scene);
-    skyMat.backFaceCulling = false;
-    skyMat.disableLighting = true;
-    skyMat.emissiveColor = this.getSkyGradientColor();
-    this.skyDome.material = skyMat;
-    this.skyDome.infiniteDistance = true;
-    this.skyDome.renderingGroupId = 0;
+    // Keep legacy reference for compatibility with existing code
+    this.skyDome = this.skyboxResult.mesh;
   }
 
   /**
@@ -232,8 +247,11 @@ export abstract class SurfaceLevel extends BaseLevel {
       this.sunLight.diffuse = this.getSunColor();
     }
 
-    // Update sky
-    if (this.skyDome) {
+    // Update sky tint using SkyboxManager
+    if (this.skyboxManager) {
+      this.skyboxManager.setTint(this.getSkyGradientColor());
+    } else if (this.skyDome) {
+      // Legacy fallback
       const skyMat = this.skyDome.material as StandardMaterial;
       skyMat.emissiveColor = this.getSkyGradientColor();
     }
@@ -264,8 +282,12 @@ export abstract class SurfaceLevel extends BaseLevel {
     this.terrainMaterial?.dispose();
     this.terrainMaterial = null;
 
-    // Dispose sky elements
-    this.skyDome?.dispose();
+    // Dispose sky elements using SkyboxManager
+    if (this.skyboxManager) {
+      this.skyboxManager.dispose();
+      this.skyboxManager = null;
+    }
+    this.skyboxResult = null;
     this.skyDome = null;
     this.sun?.dispose();
     this.sun = null;

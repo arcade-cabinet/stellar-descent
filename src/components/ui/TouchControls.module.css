@@ -714,3 +714,102 @@
     border-width: 1.5px;
   }
 }
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .joystickThumb,
+  .actionButton,
+  .settingsToggle,
+  .pauseButton,
+  .weaponSlot {
+    transition: none;
+  }
+
+  .interactButton {
+    animation: none;
+  }
+
+  .lookArea {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .joystickBase {
+    border-width: 4px;
+    border-color: #ffffff;
+    background: rgba(0, 0, 0, 0.9);
+  }
+
+  .joystickThumb {
+    border-width: 3px;
+    border-color: #ffffff;
+    background: #4a5d23;
+  }
+
+  .actionButton {
+    border-width: 3px;
+  }
+
+  .fireButton {
+    border-color: #ff6666;
+    background: rgba(255, 0, 0, 0.3);
+  }
+
+  .reloadButton {
+    border-color: #6666ff;
+  }
+
+  .smallButton {
+    border-color: #ffffff;
+  }
+
+  .sprintButton {
+    border-color: #ffff66;
+  }
+
+  .interactButton {
+    border-color: #66ff66;
+  }
+
+  .weaponSlot {
+    border-width: 2px;
+  }
+
+  .weaponSlot.weaponActive {
+    border-color: #ffffff;
+    background: rgba(74, 93, 35, 0.6);
+  }
+
+  .settingsPanel {
+    border-width: 3px;
+    border-color: #ffffff;
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  .actionButton,
+  .joystickBase,
+  .weaponSlot,
+  .settingsPanel {
+    forced-color-adjust: none;
+    border: 2px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .fireButton,
+  .reloadButton,
+  .sprintButton,
+  .interactButton {
+    border-color: Highlight;
+  }
+
+  .weaponSlot.weaponActive {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+}

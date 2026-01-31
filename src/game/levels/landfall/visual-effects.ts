@@ -1,8 +1,17 @@
 /**
  * Landfall Visual Effects
  * Handles particle effects, atmosphere visuals, and wind streaks during descent
+ *
+ * Effects managed:
+ * - Re-entry plasma and heat distortion
+ * - Smoke trails during freefall
+ * - Atmosphere streaks (speed lines)
+ * - Thruster exhaust for powered descent
+ * - Wind streak meshes
+ * - Screen shake coordination
  */
 
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -118,6 +127,21 @@ export function updateVisualEffects(
 
   if (phase === 'surface') {
     stopAllDescentEffects(effects);
+  }
+
+  // Heat distortion effect during atmospheric entry
+  if (effects.heatDistortion?.material && (phase === 'freefall_belt' || phase === 'freefall_clear')) {
+    const heatMat = effects.heatDistortion.material as StandardMaterial;
+    const heatIntensity = Math.max(0, (800 - state.altitude) / 400);
+    heatMat.alpha = heatIntensity * 0.3;
+    // Pulsing heat effect
+    const pulse = Math.sin(performance.now() * 0.005) * 0.1;
+    heatMat.emissiveColor = new Color3(
+      1.0 + pulse,
+      0.4 - heatIntensity * 0.1,
+      0.1
+    );
+    effects.heatDistortion.scaling.setAll(1 + heatIntensity * 0.5);
   }
 
   return { newWindIntensity };

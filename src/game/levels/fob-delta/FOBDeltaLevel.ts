@@ -160,6 +160,33 @@ const GLB_HATCH = {
   caution_ring: '/models/environment/modular/Details_Plate_Long.glb',
 } as const;
 
+/** Supply/pickup props for ammo and health */
+const GLB_SUPPLIES = {
+  ammo_crate: '/models/props/containers/ammo_crate_mx_1.glb',
+  med_kit: '/models/props/containers/med_kit_mx_1.glb',
+  supply_crate: '/models/props/collectibles/supply_drop.glb',
+  flare_box: '/models/props/weapons/flare_mx_1.glb',
+} as const;
+
+/** Fortification props - sandbags, barriers, defensive positions */
+const GLB_FORTIFICATIONS = {
+  sandbag_wall: '/models/props/containers/sandbag_wall_mx_1.glb',
+  sandbag_corner: '/models/props/containers/sandbag_corner_mx_1.glb',
+  barricade: '/models/props/containers/barricade_mx_1.glb',
+  bunker_small: '/models/environment/station/shed_ax_3.glb',
+  bunker_large: '/models/environment/station/shed_ax_4.glb',
+  watchtower_base: '/models/environment/station/platform_bx_1.glb',
+  guard_rail: '/models/props/furniture/railing_mx_1.glb',
+} as const;
+
+/** Turret/defense system props */
+const GLB_DEFENSES = {
+  turret_base: '/models/props/weapons/turret_base_mx_1.glb',
+  turret_gun: '/models/props/weapons/turret_gun_mx_1.glb',
+  radar_dish: '/models/environment/station/platform_ax_1.glb',
+  spotlight: '/models/props/electrical/lamp_mx_4_on.glb',
+} as const;
+
 /** Ground surface - large asphalt tiles */
 const GLB_GROUND = {
   asphalt_large: '/models/environment/station/asphalt_hr_1_large.glb',
@@ -196,6 +223,9 @@ const ALL_FOB_GLB_PATHS: string[] = [
   ...Object.values(GLB_MECH),
   ...Object.values(GLB_GROUND),
   ...Object.values(GLB_ANTENNA_PLATFORM),
+  ...Object.values(GLB_SUPPLIES),
+  ...Object.values(GLB_FORTIFICATIONS),
+  ...Object.values(GLB_DEFENSES),
 ];
 
 // Phase progression through the level
@@ -302,6 +332,41 @@ export class FOBDeltaLevel extends BaseLevel {
   private miningTerminalLight: PointLight | null = null;
   private miningTerminalAccessed = false;
 
+  // Supply pickup system
+  private supplyPickups: Array<{
+    mesh: Mesh;
+    type: 'ammo' | 'health' | 'armor';
+    amount: number;
+    position: Vector3;
+    collected: boolean;
+    glowLight: PointLight;
+  }> = [];
+
+  // Fortification meshes
+  private fortificationMeshes: TransformNode[] = [];
+
+  // Defense turret system (destroyed turrets for atmosphere)
+  private turretPositions: Array<{
+    position: Vector3;
+    destroyed: boolean;
+    light: PointLight | null;
+  }> = [];
+
+  // Radio chatter audio sources
+  private radioSources: Array<{
+    id: string;
+    position: Vector3;
+    active: boolean;
+  }> = [];
+
+  // Spotlight system for perimeter
+  private spotlights: Array<{
+    light: PointLight;
+    baseRotation: number;
+    sweepSpeed: number;
+    active: boolean;
+  }> = [];
+
   // Combat state
   private meleeCooldown = 0;
   private primaryFireCooldown = 0;
@@ -359,6 +424,18 @@ export class FOBDeltaLevel extends BaseLevel {
 
     // Build modular base corridors (adds interior structure to the FOB)
     await this.buildModularBaseStructure();
+
+    // Create fortifications (sandbags, barriers, defensive positions)
+    this.createFortifications();
+
+    // Create supply pickups (ammo, health, armor)
+    this.createSupplyPickups();
+
+    // Create destroyed turret/defense positions
+    this.createDestroyedDefenses();
+
+    // Create perimeter spotlights (some working, some destroyed)
+    this.createPerimeterSpotlights();
 
     // Add blood decals
     this.createBloodDecals();
@@ -474,7 +551,7 @@ export class FOBDeltaLevel extends BaseLevel {
       }
     );
 
-    // Radio static (distant garbled transmissions)
+    // Radio static (distant garbled transmissions) - multiple sources for atmosphere
     this.addSpatialSound(
       'radio_command',
       'radio_static',
@@ -494,6 +571,61 @@ export class FOBDeltaLevel extends BaseLevel {
         maxDistance: 8,
         volume: 0.3,
         interval: 4000,
+      }
+    );
+
+    // Additional radio sources for military atmosphere
+    this.addSpatialSound(
+      'radio_barracks',
+      'radio_static',
+      { x: -25, y: 1.5, z: 0 },
+      {
+        maxDistance: 8,
+        volume: 0.1,
+        interval: 15000,
+      }
+    );
+    this.addSpatialSound(
+      'radio_vehicle_bay',
+      'radio_static',
+      { x: 28, y: 1.5, z: 5 },
+      {
+        maxDistance: 10,
+        volume: 0.12,
+        interval: 12000,
+      }
+    );
+
+    // Distant electrical sounds (broken systems)
+    this.addSpatialSound(
+      'electric_distant_1',
+      'electrical_panel',
+      { x: -35, y: 3, z: -20 },
+      {
+        maxDistance: 35,
+        volume: 0.08,
+        interval: 20000,
+      }
+    );
+    this.addSpatialSound(
+      'electric_distant_2',
+      'electrical_panel',
+      { x: 35, y: 3, z: 25 },
+      {
+        maxDistance: 40,
+        volume: 0.06,
+        interval: 25000,
+      }
+    );
+
+    // Generator hum in vehicle bay
+    this.addSpatialSound(
+      'generator_vehicle_bay',
+      'generator',
+      { x: 30, y: 0, z: 0 },
+      {
+        maxDistance: 20,
+        volume: 0.25,
       }
     );
 
@@ -1884,6 +2016,338 @@ export class FOBDeltaLevel extends BaseLevel {
   }
 
   /**
+   * Create fortification structures around the base perimeter and key positions.
+   * Includes sandbag walls, barriers, and defensive bunker positions.
+   */
+  private createFortifications(): void {
+    const perimeterSize = 80;
+
+    // Sandbag positions around the breach and key choke points
+    const sandbagPositions = [
+      // Near the breach - defensive fallback position
+      { pos: new Vector3(-15, 0, -35), rot: 0.3, scale: 1.2 },
+      { pos: new Vector3(-12, 0, -33), rot: -0.2, scale: 1.0 },
+      { pos: new Vector3(12, 0, -35), rot: -0.3, scale: 1.1 },
+      { pos: new Vector3(15, 0, -33), rot: 0.1, scale: 1.0 },
+      // Courtyard defensive line
+      { pos: new Vector3(-10, 0, -15), rot: 0, scale: 1.5 },
+      { pos: new Vector3(10, 0, -15), rot: 0, scale: 1.5 },
+      { pos: new Vector3(0, 0, -18), rot: 0, scale: 1.8 },
+      // Vehicle bay entrance
+      { pos: new Vector3(18, 0, -5), rot: Math.PI / 2, scale: 1.3 },
+      { pos: new Vector3(18, 0, 5), rot: Math.PI / 2, scale: 1.3 },
+      // Command center approach
+      { pos: new Vector3(-5, 0, 18), rot: 0, scale: 1.2 },
+      { pos: new Vector3(5, 0, 18), rot: 0, scale: 1.2 },
+      // Barracks perimeter
+      { pos: new Vector3(-30, 0, -5), rot: Math.PI / 2, scale: 1.0 },
+      { pos: new Vector3(-30, 0, 5), rot: Math.PI / 2, scale: 1.0 },
+    ];
+
+    // Place sandbag barriers using cement pallet GLBs (available in GLB_BARRIERS)
+    for (let i = 0; i < sandbagPositions.length; i++) {
+      const sp = sandbagPositions[i];
+      const barrierPath = i % 2 === 0 ? GLB_BARRIERS.cement_pallet_1 : GLB_BARRIERS.cement_pallet_2;
+      const node = this.placeGLB(
+        barrierPath,
+        `fortification_sandbag_${i}`,
+        sp.pos,
+        { rotationY: sp.rot, scale: sp.scale }
+      );
+      if (node) this.fortificationMeshes.push(node);
+    }
+
+    // Guard bunker positions (small sheds as makeshift bunkers)
+    const bunkerPositions = [
+      { pos: new Vector3(-20, 0, -30), rot: Math.PI / 4, type: 'small' },
+      { pos: new Vector3(20, 0, -30), rot: -Math.PI / 4, type: 'small' },
+      { pos: new Vector3(0, 0, -25), rot: 0, type: 'large' },
+      { pos: new Vector3(-35, 0, 0), rot: Math.PI / 2, type: 'small' },
+    ];
+
+    for (let i = 0; i < bunkerPositions.length; i++) {
+      const bp = bunkerPositions[i];
+      const bunkerPath = bp.type === 'large' ? GLB_BUILDINGS.shed_2 : GLB_BUILDINGS.shed_1;
+      const node = this.placeGLB(
+        bunkerPath,
+        `fortification_bunker_${i}`,
+        bp.pos,
+        { rotationY: bp.rot, scale: bp.type === 'large' ? 2.5 : 1.8 }
+      );
+      if (node) this.fortificationMeshes.push(node);
+    }
+
+    // Watchtower platforms at corners
+    const watchtowerPositions = [
+      { pos: new Vector3(-perimeterSize / 2 + 5, 0, -perimeterSize / 2 + 5), rot: Math.PI / 4 },
+      { pos: new Vector3(perimeterSize / 2 - 5, 0, -perimeterSize / 2 + 5), rot: -Math.PI / 4 },
+      { pos: new Vector3(-perimeterSize / 2 + 5, 0, perimeterSize / 2 - 5), rot: 3 * Math.PI / 4 },
+      { pos: new Vector3(perimeterSize / 2 - 5, 0, perimeterSize / 2 - 5), rot: -3 * Math.PI / 4 },
+    ];
+
+    for (let i = 0; i < watchtowerPositions.length; i++) {
+      const wtp = watchtowerPositions[i];
+      const node = this.placeGLB(
+        GLB_ANTENNA_PLATFORM.platform_small,
+        `watchtower_platform_${i}`,
+        wtp.pos,
+        { rotationY: wtp.rot, scale: 2.0 }
+      );
+      if (node) this.fortificationMeshes.push(node);
+
+      // Add dim light on top of each watchtower (some destroyed)
+      if (i !== 1) { // Tower at index 1 is destroyed (no light)
+        const towerLight = new PointLight(
+          `watchtower_light_${i}`,
+          wtp.pos.add(new Vector3(0, 4, 0)),
+          this.scene
+        );
+        towerLight.diffuse = new Color3(0.9, 0.85, 0.7);
+        towerLight.intensity = i === 0 ? 0.3 : 0.15; // Some working better than others
+        towerLight.range = 15;
+
+        this.flickerLights.push({
+          light: towerLight,
+          baseIntensity: towerLight.intensity,
+          flickerSpeed: 2 + Math.random() * 3,
+          flickerAmount: 0.5,
+          timer: Math.random() * Math.PI * 2,
+          isOff: false,
+          offDuration: 0,
+          offTimer: 0,
+        });
+      }
+    }
+
+    console.log(`[FOBDelta] Created ${sandbagPositions.length + bunkerPositions.length + watchtowerPositions.length} fortification elements`);
+  }
+
+  /**
+   * Create supply pickups (ammo, health, armor) scattered throughout the base.
+   * These provide gameplay incentive to explore and survival resources.
+   */
+  private createSupplyPickups(): void {
+    // Supply pickup definitions
+    const supplySpawns: Array<{
+      position: Vector3;
+      type: 'ammo' | 'health' | 'armor';
+      amount: number;
+    }> = [
+      // Barracks area - medical supplies
+      { position: new Vector3(-23, 0.5, 2), type: 'health', amount: 25 },
+      { position: new Vector3(-20, 0.5, 8), type: 'health', amount: 15 },
+      // Command center - ammo cache
+      { position: new Vector3(3, 0.5, 22), type: 'ammo', amount: 30 },
+      { position: new Vector3(-2, 0.5, 24), type: 'ammo', amount: 20 },
+      // Vehicle bay - heavy supplies
+      { position: new Vector3(28, 0.5, 2), type: 'ammo', amount: 40 },
+      { position: new Vector3(24, 0.5, -3), type: 'health', amount: 30 },
+      { position: new Vector3(26, 0.5, 8), type: 'armor', amount: 25 },
+      // Courtyard - scattered supplies
+      { position: new Vector3(-5, 0.5, 5), type: 'ammo', amount: 15 },
+      { position: new Vector3(8, 0.5, -8), type: 'health', amount: 20 },
+      // Near breach - emergency supplies
+      { position: new Vector3(-8, 0.5, -32), type: 'health', amount: 25 },
+      { position: new Vector3(8, 0.5, -32), type: 'ammo', amount: 25 },
+      // Bunker positions - tactical supplies
+      { position: new Vector3(-20, 0.5, -28), type: 'ammo', amount: 35 },
+      { position: new Vector3(20, 0.5, -28), type: 'ammo', amount: 35 },
+      { position: new Vector3(0, 0.5, -23), type: 'armor', amount: 40 },
+      // Underground hatch area - final supplies before descent
+      { position: new Vector3(32, 0.5, 12), type: 'health', amount: 50 },
+      { position: new Vector3(28, 0.5, 14), type: 'ammo', amount: 50 },
+    ];
+
+    // Color mapping for supply types
+    const supplyColors: Record<string, Color3> = {
+      ammo: new Color3(1.0, 0.8, 0.2),    // Yellow/amber
+      health: new Color3(0.2, 1.0, 0.3),   // Green
+      armor: new Color3(0.3, 0.5, 1.0),    // Blue
+    };
+
+    for (let i = 0; i < supplySpawns.length; i++) {
+      const spawn = supplySpawns[i];
+
+      // Create a visible pickup mesh (simple box with glow)
+      const pickupMesh = MeshBuilder.CreateBox(
+        `supply_${spawn.type}_${i}`,
+        { width: 0.6, height: 0.4, depth: 0.4 },
+        this.scene
+      );
+      pickupMesh.position = spawn.position.clone();
+
+      // Material with type-specific color
+      const pickupMat = new StandardMaterial(`supplyMat_${i}`, this.scene);
+      pickupMat.diffuseColor = supplyColors[spawn.type].scale(0.6);
+      pickupMat.emissiveColor = supplyColors[spawn.type].scale(0.3);
+      pickupMat.specularColor = new Color3(0.4, 0.4, 0.4);
+      pickupMesh.material = pickupMat;
+      pickupMesh.parent = this.fobRoot;
+      this.allMeshes.push(pickupMesh);
+
+      // Glow light for visibility
+      const glowLight = new PointLight(
+        `supplyGlow_${i}`,
+        spawn.position.add(new Vector3(0, 0.3, 0)),
+        this.scene
+      );
+      glowLight.diffuse = supplyColors[spawn.type];
+      glowLight.intensity = 0.25;
+      glowLight.range = 4;
+
+      // Add subtle pulsing to the glow
+      this.flickerLights.push({
+        light: glowLight,
+        baseIntensity: 0.25,
+        flickerSpeed: 1.5 + Math.random(),
+        flickerAmount: 0.3,
+        timer: Math.random() * Math.PI * 2,
+        isOff: false,
+        offDuration: 0,
+        offTimer: 0,
+      });
+
+      this.supplyPickups.push({
+        mesh: pickupMesh,
+        type: spawn.type,
+        amount: spawn.amount,
+        position: spawn.position.clone(),
+        collected: false,
+        glowLight,
+      });
+    }
+
+    console.log(`[FOBDelta] Created ${supplySpawns.length} supply pickups`);
+  }
+
+  /**
+   * Create destroyed turret and defense positions to show the base was defended.
+   * These are purely atmospheric - showing signs of the battle.
+   */
+  private createDestroyedDefenses(): void {
+    const turretPositionDefs = [
+      // Perimeter defense turrets (all destroyed)
+      { pos: new Vector3(-15, 0, -38), rot: 0, destroyed: true },
+      { pos: new Vector3(15, 0, -38), rot: 0, destroyed: true },
+      { pos: new Vector3(-38, 0, -15), rot: Math.PI / 2, destroyed: true },
+      { pos: new Vector3(-38, 0, 15), rot: Math.PI / 2, destroyed: true },
+      { pos: new Vector3(38, 0, -15), rot: -Math.PI / 2, destroyed: true },
+      { pos: new Vector3(38, 0, 15), rot: -Math.PI / 2, destroyed: true },
+      // Courtyard defense (one partially working)
+      { pos: new Vector3(0, 0, -10), rot: 0, destroyed: true },
+    ];
+
+    for (let i = 0; i < turretPositionDefs.length; i++) {
+      const tp = turretPositionDefs[i];
+
+      // Place the radar dish as a destroyed turret base (tilted/damaged)
+      const node = this.placeGLB(
+        GLB_ANTENNA.platform_ax_1,
+        `destroyed_turret_${i}`,
+        tp.pos,
+        {
+          rotation: new Vector3(
+            tp.destroyed ? Math.random() * 0.4 - 0.2 : 0, // Random tilt if destroyed
+            tp.rot,
+            tp.destroyed ? Math.random() * 0.3 - 0.15 : 0
+          ),
+          scale: 1.5
+        }
+      );
+
+      // Add sparking/damage light for destroyed turrets
+      let damageLight: PointLight | null = null;
+      if (tp.destroyed) {
+        damageLight = new PointLight(
+          `turret_spark_${i}`,
+          tp.pos.add(new Vector3(0, 1, 0)),
+          this.scene
+        );
+        damageLight.diffuse = new Color3(1.0, 0.5, 0.2);
+        damageLight.intensity = 0;
+        damageLight.range = 5;
+
+        // Intermittent sparking effect
+        this.flickerLights.push({
+          light: damageLight,
+          baseIntensity: 0.4,
+          flickerSpeed: 15 + Math.random() * 10,
+          flickerAmount: 1.5, // High flicker = sparking
+          timer: Math.random() * Math.PI * 2,
+          isOff: true,
+          offDuration: 2 + Math.random() * 3, // Mostly off
+          offTimer: 0,
+        });
+      }
+
+      this.turretPositions.push({
+        position: tp.pos.clone(),
+        destroyed: tp.destroyed,
+        light: damageLight,
+      });
+    }
+
+    console.log(`[FOBDelta] Created ${turretPositionDefs.length} destroyed defense positions`);
+  }
+
+  /**
+   * Create perimeter spotlight system - some working, some destroyed.
+   * Adds to the abandoned military base atmosphere.
+   */
+  private createPerimeterSpotlights(): void {
+    const perimeterSize = 80;
+    const spotlightDefs = [
+      // Front wall spotlights (near breach - most destroyed)
+      { pos: new Vector3(-25, 6, -perimeterSize / 2), active: false },
+      { pos: new Vector3(25, 6, -perimeterSize / 2), active: true },
+      // Side wall spotlights
+      { pos: new Vector3(-perimeterSize / 2, 6, -10), active: true },
+      { pos: new Vector3(-perimeterSize / 2, 6, 10), active: false },
+      { pos: new Vector3(perimeterSize / 2, 6, -10), active: false },
+      { pos: new Vector3(perimeterSize / 2, 6, 10), active: true },
+      // Back wall spotlights
+      { pos: new Vector3(-20, 6, perimeterSize / 2), active: true },
+      { pos: new Vector3(20, 6, perimeterSize / 2), active: false },
+    ];
+
+    for (let i = 0; i < spotlightDefs.length; i++) {
+      const sd = spotlightDefs[i];
+
+      const spotlight = new PointLight(
+        `perimeter_spotlight_${i}`,
+        sd.pos,
+        this.scene
+      );
+      spotlight.diffuse = new Color3(0.95, 0.9, 0.8);
+      spotlight.intensity = sd.active ? 0.6 : 0;
+      spotlight.range = 25;
+
+      if (sd.active) {
+        // Working spotlights have slow flicker
+        this.flickerLights.push({
+          light: spotlight,
+          baseIntensity: 0.6,
+          flickerSpeed: 0.5 + Math.random() * 0.5,
+          flickerAmount: 0.2,
+          timer: Math.random() * Math.PI * 2,
+          isOff: false,
+          offDuration: 0,
+          offTimer: 0,
+        });
+      }
+
+      this.spotlights.push({
+        light: spotlight,
+        baseRotation: Math.atan2(sd.pos.z, sd.pos.x),
+        sweepSpeed: sd.active ? 0.3 + Math.random() * 0.2 : 0,
+        active: sd.active,
+      });
+    }
+
+    console.log(`[FOBDelta] Created ${spotlightDefs.length} perimeter spotlights (${spotlightDefs.filter(s => s.active).length} active)`);
+  }
+
+  /**
    * Load and place crashed alien vehicle wrecks in the courtyard.
    * These Wraith hover tanks were destroyed during the base assault.
    */
@@ -2145,6 +2609,13 @@ export class FOBDeltaLevel extends BaseLevel {
   }
 
   private tryInteract(): void {
+    // Check supply pickup interaction first (most common)
+    const nearbySupply = this.getNearbySupply();
+    if (nearbySupply) {
+      this.collectSupply(nearbySupply);
+      return;
+    }
+
     // Check terminal interaction
     if (this.terminal && !this.logsAccessed) {
       const dist = Vector3.Distance(this.camera.position, this.terminal.position);
@@ -2171,6 +2642,63 @@ export class FOBDeltaLevel extends BaseLevel {
         return;
       }
     }
+  }
+
+  /**
+   * Get a nearby supply pickup if within interaction range.
+   */
+  private getNearbySupply(): typeof this.supplyPickups[0] | null {
+    const PICKUP_RANGE = 3;
+    for (const supply of this.supplyPickups) {
+      if (supply.collected) continue;
+      const dist = Vector3.Distance(this.camera.position, supply.position);
+      if (dist < PICKUP_RANGE) {
+        return supply;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Collect a supply pickup and apply its effects.
+   */
+  private collectSupply(supply: typeof this.supplyPickups[0]): void {
+    if (supply.collected) return;
+
+    supply.collected = true;
+
+    // Apply effect based on type
+    switch (supply.type) {
+      case 'health':
+        this.callbacks.onHealthChange(supply.amount);
+        this.callbacks.onNotification(`+${supply.amount} HEALTH`, 1500);
+        break;
+      case 'ammo':
+        // Add reserve ammo via weapon system
+        const weaponActions = getWeaponActions();
+        if (weaponActions) {
+          weaponActions.addAmmo(supply.amount);
+        }
+        this.callbacks.onNotification(`+${supply.amount} AMMO`, 1500);
+        break;
+      case 'armor':
+        // Armor reduces incoming damage - implement via health for now
+        this.callbacks.onHealthChange(Math.floor(supply.amount / 2));
+        this.callbacks.onNotification(`+${supply.amount} ARMOR`, 1500);
+        break;
+    }
+
+    // Hide the pickup mesh and disable its light
+    supply.mesh.isVisible = false;
+    supply.glowLight.intensity = 0;
+
+    // Play pickup sound effect via spatial audio (use terminal beep as pickup sound)
+    this.addSpatialSound(
+      `pickup_${supply.type}_${Date.now()}`,
+      'terminal',
+      { x: supply.position.x, y: supply.position.y, z: supply.position.z },
+      { maxDistance: 15, volume: 0.6 }
+    );
   }
 
   private accessMiningOutpost(): void {
@@ -2335,6 +2863,17 @@ export class FOBDeltaLevel extends BaseLevel {
   }
 
   private checkNearInteractable(): string | null {
+    // Check supply pickups first (most common interaction)
+    const nearbySupply = this.getNearbySupply();
+    if (nearbySupply) {
+      const typeLabels: Record<string, string> = {
+        ammo: 'AMMO CRATE',
+        health: 'MED KIT',
+        armor: 'ARMOR PACK',
+      };
+      return `COLLECT ${typeLabels[nearbySupply.type]} (+${nearbySupply.amount})`;
+    }
+
     // Terminal
     if (this.terminal && !this.logsAccessed) {
       const dist = Vector3.Distance(this.camera.position, this.terminal.position);
@@ -2681,6 +3220,12 @@ export class FOBDeltaLevel extends BaseLevel {
       const eyePulse = 0.25 + Math.sin(performance.now() * 0.002) * 0.1;
       this.mechEyeLight.intensity = eyePulse;
     }
+
+    // Animate supply pickups (floating bob and rotation)
+    this.updateSupplyPickups(deltaTime);
+
+    // Update perimeter spotlight sweep (for active spotlights)
+    this.updateSpotlights(deltaTime);
 
     // Keep player at eye height
     this.camera.position.y = 1.7;
@@ -3063,6 +3608,41 @@ export class FOBDeltaLevel extends BaseLevel {
     }
   }
 
+  /**
+   * Update supply pickup animations (floating bob and slow rotation).
+   */
+  private updateSupplyPickups(deltaTime: number): void {
+    const time = performance.now() * 0.001;
+    for (const supply of this.supplyPickups) {
+      if (supply.collected) continue;
+
+      // Gentle floating bob
+      const bobOffset = Math.sin(time * 2 + supply.position.x) * 0.1;
+      supply.mesh.position.y = supply.position.y + bobOffset;
+
+      // Slow rotation
+      supply.mesh.rotation.y += deltaTime * 0.5;
+
+      // Pulse the glow light
+      const pulse = 0.2 + Math.sin(time * 3 + supply.position.z) * 0.1;
+      supply.glowLight.intensity = pulse;
+    }
+  }
+
+  /**
+   * Update perimeter spotlight sweep animation.
+   */
+  private updateSpotlights(deltaTime: number): void {
+    const time = performance.now() * 0.001;
+    for (const spotlight of this.spotlights) {
+      if (!spotlight.active) continue;
+
+      // Slow sweep motion (simulated by modulating intensity based on direction)
+      const sweepPhase = Math.sin(time * spotlight.sweepSpeed + spotlight.baseRotation);
+      spotlight.light.intensity = 0.4 + sweepPhase * 0.2;
+    }
+  }
+
   override canTransitionTo(levelId: LevelId): boolean {
     return levelId === 'brothers_in_arms' && this.phase === 'exit' && this.hatchOpen;
   }
@@ -3102,6 +3682,31 @@ export class FOBDeltaLevel extends BaseLevel {
     this.flashlight?.dispose();
     this.horrorAmbient?.dispose();
     this.miningTerminalLight?.dispose();
+
+    // Dispose supply pickup lights
+    for (const supply of this.supplyPickups) {
+      supply.glowLight.dispose();
+      supply.mesh.dispose();
+    }
+    this.supplyPickups = [];
+
+    // Dispose fortification meshes
+    for (const fort of this.fortificationMeshes) {
+      fort.dispose();
+    }
+    this.fortificationMeshes = [];
+
+    // Dispose turret lights
+    for (const turret of this.turretPositions) {
+      turret.light?.dispose();
+    }
+    this.turretPositions = [];
+
+    // Dispose spotlight lights
+    for (const spotlight of this.spotlights) {
+      spotlight.light.dispose();
+    }
+    this.spotlights = [];
 
     // Dispose materials
     for (const mat of this.materials.values()) {

@@ -44,6 +44,7 @@ export interface CinematicCallbacks {
   onCinematicStart?: () => void;
   onCinematicEnd?: () => void;
   onShakeCamera: (intensity: number) => void;
+  onSkipCinematic?: () => void; // Allow cinematic skip
 }
 
 export interface CinematicState {
@@ -264,6 +265,11 @@ export class ReunionCinematic {
   private marcusOriginalY: number = 0;
   private marcusHasEmerged: boolean = false;
 
+  // Skip functionality
+  private canSkip: boolean = false;
+  private skipPromptShown: boolean = false;
+  private skipKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+
   constructor(
     scene: Scene,
     camera: UniversalCamera,
@@ -321,6 +327,42 @@ export class ReunionCinematic {
 
     // Schedule dialogue with Marcus actions
     this.scheduleDialogue();
+
+    // Enable skip after 3 seconds
+    setTimeout(() => {
+      this.canSkip = true;
+      if (this.state.isPlaying && !this.skipPromptShown) {
+        this.callbacks.onNotification('Press [SPACE] to skip', 3000);
+        this.skipPromptShown = true;
+      }
+    }, 3000);
+
+    // Add skip key listener
+    this.skipKeyHandler = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && this.canSkip && this.state.isPlaying) {
+        this.skipCinematic();
+      }
+    };
+    document.addEventListener('keydown', this.skipKeyHandler);
+  }
+
+  /**
+   * Skip the cinematic and jump to combat
+   */
+  skipCinematic(): void {
+    if (!this.state.isPlaying) return;
+
+    // Ensure Marcus is at final position
+    if (this.marcusRoot) {
+      this.marcusRoot.position.y = MARCUS_STAND_POSITION.y;
+      this.marcusHasEmerged = true;
+    }
+
+    // Notify of skip
+    this.callbacks.onNotification('CINEMATIC SKIPPED', 1500);
+
+    // End immediately
+    this.stop();
   }
 
   /**
@@ -949,6 +991,12 @@ export class ReunionCinematic {
    * Cleanup visual effects
    */
   private cleanup(): void {
+    // Remove skip key handler
+    if (this.skipKeyHandler) {
+      document.removeEventListener('keydown', this.skipKeyHandler);
+      this.skipKeyHandler = null;
+    }
+
     // Dispose dust particles
     for (const dust of this.dustParticles) {
       dust.dispose();
@@ -977,6 +1025,10 @@ export class ReunionCinematic {
     if (this.marcusRoot) {
       this.marcusRoot.position.y = MARCUS_STAND_POSITION.y;
     }
+
+    // Reset skip state
+    this.canSkip = false;
+    this.skipPromptShown = false;
 
     // Keep spotlight but at reduced intensity for gameplay
     // (disposed when level disposes)
@@ -1030,7 +1082,7 @@ export const COMMS = {
 
   WAVE_4_START: {
     ...MARCUS_CHARACTER,
-    text: 'Something big is coming... BRUTE! Focus fire!',
+    text: 'Something big is coming... TWO BRUTES! Focus fire, James!',
   } as CommsMessage,
 
   WAVE_4_COMPLETE: {
@@ -1090,22 +1142,22 @@ export const NOTIFICATIONS = {
 export const OBJECTIVES = {
   REUNION: {
     title: 'REUNION',
-    description: 'Link up with Marcus',
+    description: 'Link up with Corporal Marcus Cole',
   },
   WAVE_COMBAT: {
     getTitle: (wave: number, total: number) => `WAVE ${wave}/${total}`,
-    getDescription: (kills: number) => `Eliminate all hostiles | Kills: ${kills}`,
+    getDescription: (kills: number) => `Eliminate all hostiles | Total Kills: ${kills}`,
   },
   NEXT_WAVE: {
     getTitle: (seconds: number) => `NEXT WAVE IN ${seconds}s`,
-    getDescription: (kills: number) => `Kills: ${kills}`,
+    getDescription: (kills: number) => `Regroup with Marcus | Total Kills: ${kills}`,
   },
   BREACH_BATTLE: {
     title: 'THE BREACH',
-    description: 'Clear the hive entrance',
+    description: 'Secure the hive entrance with Marcus',
   },
   ENTER_BREACH: {
     title: 'ENTER THE BREACH',
-    description: 'Descend into the hive',
+    description: 'Proceed into the hive tunnels',
   },
 } as const;

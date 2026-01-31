@@ -519,10 +519,16 @@ export function TouchControls({
         onPointerMove={handleMoveMove}
         onPointerUp={handleMoveEnd}
         onPointerCancel={handleMoveEnd}
+        role="slider"
+        aria-label="Movement joystick"
+        aria-valuemin={-1}
+        aria-valuemax={1}
+        aria-valuenow={0}
+        tabIndex={0}
       >
         {/* Extended touch area */}
-        <div className={styles.joystickTouchArea} style={touchAreaStyle} />
-        <div className={styles.joystickBase}>
+        <div className={styles.joystickTouchArea} style={touchAreaStyle} aria-hidden="true" />
+        <div className={styles.joystickBase} aria-hidden="true">
           {/* Direction indicators */}
           <div className={styles.joystickIndicators}>
             <div className={`${styles.indicator} ${styles.indicatorUp}`} />
@@ -539,7 +545,7 @@ export function TouchControls({
       </div>
 
       {/* Right Side Action Buttons */}
-      <div className={styles.actionButtonColumn} style={buttonsStyle}>
+      <div className={styles.actionButtonColumn} style={buttonsStyle} role="group" aria-label="Action buttons">
         {/* Fire Button - Large, prominent */}
         <button
           type="button"
@@ -552,9 +558,11 @@ export function TouchControls({
           onPointerUp={handleFireEnd}
           onPointerCancel={handleFireEnd}
           onPointerLeave={handleFireEnd}
+          aria-label="Fire weapon"
+          aria-pressed={isFiring}
         >
-          <span className={styles.buttonIcon}>+</span>
-          <span className={styles.buttonLabel}>FIRE</span>
+          <span className={styles.buttonIcon} aria-hidden="true">+</span>
+          <span className={styles.buttonLabel} aria-hidden="true">FIRE</span>
         </button>
 
         {/* Reload Button with progress indicator */}
@@ -566,18 +574,23 @@ export function TouchControls({
             height: `${controlSizes.smallButtonSize}px`,
           }}
           onPointerDown={handleReload}
+          aria-label={reloadProgress !== undefined ? `Reloading: ${Math.round(reloadProgress * 100)}%` : 'Reload weapon'}
         >
           {reloadProgress !== undefined && (
             <div
               className={styles.reloadProgress}
               style={{ '--progress': `${reloadProgress * 100}%` } as React.CSSProperties}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(reloadProgress * 100)}
             />
           )}
-          <span className={styles.buttonLabel}>R</span>
+          <span className={styles.buttonLabel} aria-hidden="true">R</span>
         </button>
 
         {/* Secondary buttons row */}
-        <div className={styles.secondaryButtonRow}>
+        <div className={styles.secondaryButtonRow} role="group" aria-label="Movement actions">
           {/* Jump Button */}
           <button
             type="button"
@@ -594,9 +607,11 @@ export function TouchControls({
             onPointerUp={() => setIsJumping(false)}
             onPointerCancel={() => setIsJumping(false)}
             onPointerLeave={() => setIsJumping(false)}
+            aria-label="Jump"
+            aria-pressed={isJumping}
           >
-            <span className={styles.buttonIcon}>^</span>
-            <span className={styles.buttonLabel}>JUMP</span>
+            <span className={styles.buttonIcon} aria-hidden="true">^</span>
+            <span className={styles.buttonLabel} aria-hidden="true">JUMP</span>
           </button>
 
           {/* Crouch Button */}
@@ -615,9 +630,11 @@ export function TouchControls({
             onPointerUp={() => setIsCrouching(false)}
             onPointerCancel={() => setIsCrouching(false)}
             onPointerLeave={() => setIsCrouching(false)}
+            aria-label="Crouch"
+            aria-pressed={isCrouching}
           >
-            <span className={styles.buttonIcon}>v</span>
-            <span className={styles.buttonLabel}>DUCK</span>
+            <span className={styles.buttonIcon} aria-hidden="true">v</span>
+            <span className={styles.buttonLabel} aria-hidden="true">DUCK</span>
           </button>
         </div>
 
@@ -637,9 +654,11 @@ export function TouchControls({
           onPointerUp={() => setIsSprinting(false)}
           onPointerCancel={() => setIsSprinting(false)}
           onPointerLeave={() => setIsSprinting(false)}
+          aria-label="Sprint"
+          aria-pressed={isSprinting}
         >
-          <span className={styles.buttonIcon}>&gt;&gt;</span>
-          <span className={styles.buttonLabel}>RUN</span>
+          <span className={styles.buttonIcon} aria-hidden="true">&gt;&gt;</span>
+          <span className={styles.buttonLabel} aria-hidden="true">RUN</span>
         </button>
 
         {/* Context-sensitive Interaction Button */}
@@ -652,15 +671,16 @@ export function TouchControls({
               height: `${controlSizes.smallButtonSize + 10}px`,
             }}
             onPointerDown={handleInteract}
+            aria-label={`Interact: ${interactionLabel}`}
           >
-            <span className={styles.buttonIcon}>E</span>
-            <span className={styles.buttonLabel}>{interactionLabel}</span>
+            <span className={styles.buttonIcon} aria-hidden="true">E</span>
+            <span className={styles.buttonLabel} aria-hidden="true">{interactionLabel}</span>
           </button>
         )}
       </div>
 
       {/* Bottom Weapon Rack */}
-      <div className={styles.weaponRack}>
+      <div className={styles.weaponRack} role="radiogroup" aria-label="Weapon selection">
         {[
           { slot: 0, icon: '1', name: 'RIFLE' },
           { slot: 1, icon: '2', name: 'PISTOL' },
@@ -669,6 +689,9 @@ export function TouchControls({
           <button
             key={weapon.slot}
             type="button"
+            role="radio"
+            aria-checked={activeWeapon === weapon.slot}
+            aria-label={`Select ${weapon.name}`}
             className={`${styles.weaponSlot} ${activeWeapon === weapon.slot ? styles.weaponActive : ''}`}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -679,11 +702,11 @@ export function TouchControls({
               }
             }}
           >
-            <span className={styles.weaponIcon}>{weapon.icon}</span>
-            <span className={styles.weaponName}>{weapon.name}</span>
+            <span className={styles.weaponIcon} aria-hidden="true">{weapon.icon}</span>
+            <span className={styles.weaponName} aria-hidden="true">{weapon.name}</span>
           </button>
         ))}
-        <span className={styles.swipeHint}>SWIPE TO SWITCH</span>
+        <span className={styles.swipeHint} aria-hidden="true">SWIPE TO SWITCH</span>
       </div>
 
       {/* Top Right Buttons: Pause and Settings */}
@@ -716,8 +739,14 @@ export function TouchControls({
 
       {/* Settings Panel */}
       {isSettingsOpen && (
-        <div className={styles.settingsPanel} onPointerDown={(e) => e.stopPropagation()}>
-          <h3 className={styles.settingsTitle}>Touch Controls</h3>
+        <div
+          className={styles.settingsPanel}
+          onPointerDown={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="touch-settings-title"
+        >
+          <h3 id="touch-settings-title" className={styles.settingsTitle}>Touch Controls</h3>
 
           {/* Aiming Section */}
           <div className={styles.settingSection}>

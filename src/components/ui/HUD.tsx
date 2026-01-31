@@ -74,7 +74,7 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
   };
 
   return (
-    <div className={styles.hud}>
+    <div className={styles.hud} role="region" aria-label="Game HUD">
       {/* Combat damage feedback - directional indicators, hit markers, vignettes */}
       <DamageIndicators />
 
@@ -82,10 +82,18 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
       <div
         className={`${styles.healthContainer} ${hudVisibility.healthBar ? styles.visible : styles.hidden}`}
         aria-hidden={!hudVisibility.healthBar}
+        role="status"
+        aria-live="polite"
+        aria-label={`Health: ${Math.floor(health)} of ${maxHealth}`}
       >
-        <span className={styles.healthLabel}>HEALTH</span>
+        <span className={styles.healthLabel} aria-hidden="true">HEALTH</span>
         <div
           className={`${styles.healthBar} ${settings.usePatternIndicators ? styles.withPatterns : ''}`}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={maxHealth}
+          aria-valuenow={Math.floor(health)}
+          aria-label="Health"
         >
           <div
             className={`${styles.healthFill} ${styles[`health${healthStatus.charAt(0).toUpperCase() + healthStatus.slice(1)}`]}`}
@@ -138,9 +146,11 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
       <div
         className={`${styles.killsContainer} ${hudVisibility.killCounter ? styles.visible : styles.hidden}`}
         aria-hidden={!hudVisibility.killCounter}
+        role="status"
+        aria-label={`Kills: ${kills}`}
       >
-        <span className={styles.killsLabel}>KILLS</span>
-        <span className={styles.killsCount}>{kills}</span>
+        <span className={styles.killsLabel} aria-hidden="true">KILLS</span>
+        <span className={styles.killsCount} aria-hidden="true">{kills}</span>
       </div>
 
       {/* Mission Timer - top left */}
@@ -177,8 +187,10 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
         <div
           className={`${styles.ammoContainer} ${hudVisibility.healthBar ? styles.visible : styles.hidden}`}
           aria-hidden={!hudVisibility.healthBar}
+          role="status"
+          aria-label={`Ammo: ${weaponContext.weapon.isReloading ? 'Reloading' : `${weaponContext.weapon.currentAmmo} of ${weaponContext.weapon.maxMagazineSize}, Reserve: ${weaponContext.weapon.reserveAmmo}`}`}
         >
-          <div className={styles.ammoMain}>
+          <div className={styles.ammoMain} aria-hidden="true">
             <span
               className={`${styles.ammoCount} ${weaponContext.isLowAmmo ? styles.ammoLow : ''} ${weaponContext.weapon.isReloading ? styles.ammoReloading : ''}`}
             >
@@ -187,19 +199,26 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
             <span className={styles.ammoSeparator}>/</span>
             <span className={styles.ammoMagazine}>{weaponContext.weapon.maxMagazineSize}</span>
           </div>
-          <div className={styles.ammoReserve}>
+          <div className={styles.ammoReserve} aria-hidden="true">
             <span className={styles.ammoReserveLabel}>RESERVE</span>
             <span className={styles.ammoReserveCount}>{weaponContext.weapon.reserveAmmo}</span>
           </div>
           {weaponContext.weapon.isReloading && (
-            <div className={styles.reloadContainer}>
-              <div className={styles.reloadBar}>
+            <div className={styles.reloadContainer} role="status" aria-live="polite">
+              <div
+                className={styles.reloadBar}
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(weaponContext.reloadProgress * 100)}
+                aria-label="Reload progress"
+              >
                 <div
                   className={styles.reloadProgress}
                   style={{ width: `${weaponContext.reloadProgress * 100}%` }}
                 />
               </div>
-              <span className={styles.reloadText}>RELOADING...</span>
+              <span className={styles.reloadText} aria-hidden="true">RELOADING...</span>
             </div>
           )}
         </div>
@@ -207,7 +226,12 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
 
       {/* Notification */}
       {hudVisibility.notifications && notification && (
-        <div className={styles.notification} key={notification.id}>
+        <div
+          className={styles.notification}
+          key={notification.id}
+          role="alert"
+          aria-live="assertive"
+        >
           {notification.text}
         </div>
       )}

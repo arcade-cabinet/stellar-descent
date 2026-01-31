@@ -175,6 +175,7 @@ export function createAnchorStation(scene: Scene): AnchorStationNodes {
 /**
  * Updates the Anchor Station position and rotation during freefall.
  * The station slowly rotates and recedes into the distance as the player falls.
+ * Includes warning light blinking and gentle hull creaking.
  */
 export function updateAnchorStation(
   station: AnchorStationNodes | null,
@@ -196,6 +197,8 @@ export function updateAnchorStation(
     return;
   }
 
+  station.root.setEnabled(true);
+
   // Slowly rotate the station
   station.root.rotation.y += deltaTime * 0.1;
 
@@ -208,17 +211,33 @@ export function updateAnchorStation(
   const scale = Math.max(0.3, altitudeFactor);
   station.root.scaling.setAll(scale);
 
-  // Fade station lights based on distance
-  const lightIntensity = Math.max(0.2, altitudeFactor);
-  for (const light of station.lights) {
+  // Animate running lights with blinking effect
+  const time = performance.now() * 0.001;
+  for (let i = 0; i < station.lights.length; i++) {
+    const light = station.lights[i];
     if (light.material) {
-      (light.material as StandardMaterial).alpha = lightIntensity;
+      const mat = light.material as StandardMaterial;
+      const baseLightIntensity = Math.max(0.2, altitudeFactor);
+
+      // Warning lights blink faster
+      if (light.name.includes('warning') || i >= 4) {
+        const blink = Math.sin(time * 4 + i * 0.5) > 0 ? 1.0 : 0.3;
+        mat.alpha = baseLightIntensity * blink;
+      } else {
+        // Nav lights pulse slowly
+        const pulse = 0.7 + Math.sin(time * 1.5 + i * 0.3) * 0.3;
+        mat.alpha = baseLightIntensity * pulse;
+      }
     }
   }
 
   // Add slight drift to simulate relative motion
   station.root.position.x = -positionX * 0.02;
   station.root.position.z = -positionZ * 0.02;
+
+  // Subtle wobble to simulate station's own movement
+  station.root.rotation.x = Math.sin(time * 0.3) * 0.02;
+  station.root.rotation.z = Math.cos(time * 0.25) * 0.015;
 }
 
 /**
