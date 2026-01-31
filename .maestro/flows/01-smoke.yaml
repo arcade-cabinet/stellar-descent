@@ -16,9 +16,9 @@ name: "Smoke Test - App Loads"
 
 # Main menu should be visible
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 - assertVisible:
-    text: "CONTROLS"
+    text: "HELP"
 
 - takeScreenshot: "smoke-main-menu"

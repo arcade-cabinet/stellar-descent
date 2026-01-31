@@ -13,32 +13,32 @@ name: "Main Menu - Navigation and Controls"
 
 # Wait for main menu to load
 - extendedWaitUntil:
-    visible: "NEW CAMPAIGN"
+    visible: "NEW GAME"
     timeout: 30000
 
-# Test Controls modal
+# Test Help modal
 - tapOn:
-    text: "CONTROLS"
+    text: "HELP"
 
 - extendedWaitUntil:
-    visible: "OPERATIONS MANUAL"
+    visible: "OPERATIONS GUIDE"
     timeout: 5000
 
 - assertVisible:
-    text: "Move"
+    text: "OBJECTIVES"
 
-- takeScreenshot: "controls-modal"
+- takeScreenshot: "help-modal"
 
-# Close controls modal
+# Close help modal
 - tapOn:
     text: "CLOSE"
 
 - extendedWaitUntil:
-    notVisible: "OPERATIONS MANUAL"
+    notVisible: "OPERATIONS GUIDE"
     timeout: 5000
 
 # Verify we're back at main menu
 - assertVisible:
-    text: "NEW CAMPAIGN"
+    text: "NEW GAME"
 
 - takeScreenshot: "main-menu-after-close"
