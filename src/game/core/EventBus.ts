@@ -19,23 +19,46 @@ export type TriggerType =
 export type GameEvent =
   // Core gameplay events
   | { type: 'ENEMY_KILLED'; position: Vector3; enemyType: string; enemyId?: string }
-  | { type: 'PLAYER_DAMAGED'; amount: number; direction?: number }
+  | { type: 'ENEMY_ALERTED'; enemyId: string; enemyType: string; position: Vector3 }
+  | { type: 'ENEMY_ATTACK'; enemyId: string; position: Vector3; damage: number }
+  | { type: 'PLAYER_DAMAGED'; amount: number; source?: string; direction?: number }
+  | { type: 'PLAYER_DEATH'; cause: string; position: Vector3 }
   | { type: 'PLAYER_HEALED'; amount: number }
+  | { type: 'LOW_HEALTH_WARNING'; currentHealth: number; maxHealth: number }
   | { type: 'OBJECTIVE_UPDATED'; title: string; instructions: string }
+  | { type: 'OBJECTIVE_STARTED'; objectiveId: string; title: string }
   | { type: 'OBJECTIVE_COMPLETED'; objectiveId: string }
+  | { type: 'OBJECTIVE_FAILED'; objectiveId: string; reason?: string }
   | { type: 'COMBAT_STATE_CHANGED'; inCombat: boolean }
-  | { type: 'WEAPON_SWITCHED'; weaponId: string }
-  | { type: 'WEAPON_FIRED'; weaponId: string; position: Vector3 }
+  | { type: 'WEAPON_SWITCHED'; weaponId: string; fromWeapon?: string; toWeapon?: string; slot?: number }
+  | { type: 'WEAPON_FIRED'; weaponId: string; position: Vector3; direction?: Vector3 }
+  | { type: 'RELOAD_STARTED'; weaponId: string; reloadTime: number }
+  | { type: 'RELOAD_COMPLETE'; weaponId: string; ammoLoaded: number }
+  | { type: 'PROJECTILE_IMPACT'; position: Vector3; damage: number; isCritical: boolean }
   | { type: 'AMMO_CHANGED'; current: number; max: number }
+  | { type: 'ITEM_COLLECTED'; itemId: string; itemType: string; quantity: number }
   | { type: 'COLLECTIBLE_PICKED_UP'; collectibleId: string; collectibleType: string }
+  | { type: 'PICKUP_COLLECTED'; pickupId: string; pickupType: string; value?: number }
   | { type: 'AUDIO_LOG_FOUND'; logId: string }
   | { type: 'SECRET_FOUND'; secretId: string }
   | { type: 'VEHICLE_ENTERED'; vehicleType: string }
   | { type: 'VEHICLE_EXITED'; vehicleType: string }
-  | { type: 'CHECKPOINT_REACHED'; checkpointId: string }
-  | { type: 'DIALOGUE_STARTED'; triggerId: string }
+  | { type: 'CHECKPOINT_REACHED'; checkpointId: string; phase?: string }
+  | { type: 'DIALOGUE_STARTED'; triggerId: string; speakerId?: string; dialogueId?: string; text?: string; duration?: number }
   | { type: 'DIALOGUE_ENDED'; triggerId: string }
   | { type: 'NOTIFICATION'; text: string; duration?: number }
+  | { type: 'FOOTSTEP'; position: Vector3; surface: string }
+  // Level lifecycle events
+  | { type: 'LEVEL_LOADED'; levelId: string }
+  | { type: 'LEVEL_STARTED'; levelId: string; chapter: number }
+  | { type: 'LEVEL_COMPLETE'; levelId: string; stats: { time: number; kills: number; accuracy: number; secretsFound: number; damageTaken: number } }
+  | { type: 'LEVEL_FAILED'; levelId: string; reason: string }
+  // Wave events
+  | { type: 'WAVE_STARTED'; levelId: string; waveNumber: number; waveId?: string; totalEnemies?: number; label?: string }
+  | { type: 'WAVE_COMPLETED'; levelId: string; waveNumber: number; waveId?: string }
+  // Boss events
+  | { type: 'BOSS_DAMAGED'; bossId: string; damage: number; currentHealth: number; maxHealth: number }
+  | { type: 'BOSS_DEFEATED'; bossId: string; bossType: string; position: Vector3 }
   // Trigger system events
   | { type: 'TRIGGER_ENTER'; triggerId: string; triggerType: TriggerType }
   | { type: 'TRIGGER_EXIT'; triggerId: string; triggerType: TriggerType }
@@ -46,7 +69,7 @@ export type GameEvent =
   | { type: 'TRIGGER_COLLECTIBLE'; triggerId: string; collectibleId: string }
   | { type: 'TRIGGER_GROUP_COMPLETE'; groupId: string; mode: 'all' | 'any' }
   // SpawnManager events (wave-based enemy spawning)
-  | { type: 'ENEMY_SPAWNED'; levelId: string; speciesId: string; entityId: string; position: { x: number; y: number; z: number }; facingAngle: number }
+  | { type: 'ENEMY_SPAWNED'; levelId: string; speciesId: string; entityId: string; position: { x: number; y: number; z: number }; facingAngle: number; waveId?: string }
   | { type: 'WAVE_START'; levelId: string; waveNumber: number; label?: string }
   | { type: 'WAVE_COMPLETE'; levelId: string; waveNumber: number }
   | { type: 'ALL_WAVES_COMPLETE'; levelId: string };

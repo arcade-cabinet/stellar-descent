@@ -145,6 +145,10 @@ function createMockMesh() {
   };
 }
 
+vi.mock('../../entities/aliens', () => ({
+  // Mock types - they're just used for type checking
+}));
+
 vi.mock('../../core/AssetManager', () => ({
   AssetManager: {
     loadAssetByPath: vi.fn().mockResolvedValue({}),
@@ -186,7 +190,7 @@ import {
   BURROW_CONFIG,
   type IceChitinState,
   type IceChitinInstance,
-} from './IceChitin';
+} from '../../entities/IceChitin';
 
 // ============================================================================
 // UNIT TESTS
@@ -195,27 +199,28 @@ import {
 describe('IceChitin', () => {
   describe('ICE_CHITIN_SPECIES Configuration', () => {
     it('should define correct species ID', () => {
-      expect(ICE_CHITIN_SPECIES.id).toBe('ice_chitin');
+      // ICE_CHITIN_SPECIES is now an alias for ICE_WARRIOR_SPECIES
+      expect(ICE_CHITIN_SPECIES.id).toBe('ice_warrior');
     });
 
     it('should define correct species name', () => {
-      expect(ICE_CHITIN_SPECIES.name).toBe('Ice Chitin');
+      expect(ICE_CHITIN_SPECIES.name).toBe('Ice Warrior');
     });
 
     it('should define correct designation', () => {
-      expect(ICE_CHITIN_SPECIES.designation).toBe('STRAIN-X6-CRYO');
+      expect(ICE_CHITIN_SPECIES.designation).toBe('STRAIN-X6-CRYO-W');
     });
 
-    it('should have base health of 100', () => {
-      expect(ICE_CHITIN_SPECIES.baseHealth).toBe(100);
+    it('should have base health of 150', () => {
+      expect(ICE_CHITIN_SPECIES.baseHealth).toBe(150);
     });
 
     it('should have base damage of 18', () => {
       expect(ICE_CHITIN_SPECIES.baseDamage).toBe(18);
     });
 
-    it('should have move speed of 12', () => {
-      expect(ICE_CHITIN_SPECIES.moveSpeed).toBe(12);
+    it('should have move speed of 10', () => {
+      expect(ICE_CHITIN_SPECIES.moveSpeed).toBe(10);
     });
 
     it('should have attack range of 22', () => {
@@ -658,11 +663,12 @@ describe('IceChitin', () => {
         lastKnownPlayerDistance: Infinity,
         frostAuraActive: true,
         awakenTimer: 0,
+        variant: 'warrior',
       };
 
-      expect(instance.health).toBe(100);
-      expect(instance.maxHealth).toBe(100);
-      expect(instance.speed).toBe(12);
+      expect(instance.health).toBe(150);
+      expect(instance.maxHealth).toBe(150);
+      expect(instance.speed).toBe(10);
       expect(instance.state).toBe('idle');
       expect(instance.frostAuraActive).toBe(true);
     });
@@ -682,6 +688,7 @@ describe('IceChitin', () => {
         lastKnownPlayerDistance: Infinity,
         frostAuraActive: false,
         awakenTimer: 0,
+        variant: 'warrior',
       };
 
       expect(instance.state).toBe('dormant');
@@ -703,6 +710,7 @@ describe('IceChitin', () => {
         lastKnownPlayerDistance: 10,
         frostAuraActive: true,
         awakenTimer: 0,
+        variant: 'warrior',
       };
 
       // Take damage
@@ -733,6 +741,7 @@ describe('IceChitin', () => {
         lastKnownPlayerDistance: 10,
         frostAuraActive: true,
         awakenTimer: 0,
+        variant: 'warrior',
       };
 
       // Decrease cooldowns
@@ -759,6 +768,7 @@ describe('IceChitin', () => {
         lastKnownPlayerDistance: 10,
         frostAuraActive: false,
         awakenTimer: 0,
+        variant: 'warrior',
       };
 
       // Increase state timer
@@ -778,28 +788,33 @@ describe('IceChitin', () => {
       const weaponDPS = 150; // Kinetic DPS
       const effectiveDPS = weaponDPS * ICE_CHITIN_RESISTANCES.kinetic;
       const ttk = ICE_CHITIN_SPECIES.baseHealth / effectiveDPS;
-      expect(ttk).toBeCloseTo(0.417, 2);
+      // ICE_CHITIN_SPECIES is now ICE_WARRIOR_SPECIES with 150 HP
+      // 150 / (150 * 1.6) = 150 / 240 = 0.625
+      expect(ttk).toBeCloseTo(0.625, 2);
     });
 
     it('should calculate plasma weapon TTK', () => {
       const weaponDPS = 150; // Plasma DPS
       const effectiveDPS = weaponDPS * ICE_CHITIN_RESISTANCES.plasma;
       const ttk = ICE_CHITIN_SPECIES.baseHealth / effectiveDPS;
-      expect(ttk).toBeCloseTo(1.905, 2);
+      // 150 / (150 * 0.35) = 150 / 52.5 = 2.857
+      expect(ttk).toBeCloseTo(2.857, 2);
     });
 
     it('should calculate fire weapon TTK', () => {
       const weaponDPS = 150; // Fire DPS
       const effectiveDPS = weaponDPS * ICE_CHITIN_RESISTANCES.fire;
       const ttk = ICE_CHITIN_SPECIES.baseHealth / effectiveDPS;
-      expect(ttk).toBeCloseTo(0.370, 2);
+      // 150 / (150 * 1.8) = 150 / 270 = 0.556
+      expect(ttk).toBeCloseTo(0.556, 2);
     });
 
     it('should calculate melee attacks to kill', () => {
       const meleeDamage = 40;
       const effectiveDamage = meleeDamage * ICE_CHITIN_RESISTANCES.melee;
       const attacksToKill = Math.ceil(ICE_CHITIN_SPECIES.baseHealth / effectiveDamage);
-      expect(attacksToKill).toBe(3);
+      // ceil(150 / (40 * 1.2)) = ceil(150 / 48) = ceil(3.125) = 4
+      expect(attacksToKill).toBe(4);
     });
 
     it('should calculate ice shard attacks to kill player', () => {

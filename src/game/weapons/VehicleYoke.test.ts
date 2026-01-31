@@ -2,7 +2,7 @@
  * VehicleYoke.test.ts - Unit tests for vehicle steering yoke system
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock BabylonJS dependencies
 vi.mock('@babylonjs/core/Materials/standardMaterial', () => {

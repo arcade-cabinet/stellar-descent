@@ -1114,7 +1114,7 @@ describe('MiningDepthsLevel', () => {
       level['spawnBurrower'](new Vector3(10, 0, -35));
       level['burrowers'][0].state = 'chase';
       level['updateActionButtons']();
-      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls.at(-1)[0];
+      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls.at(-1)![0];
       const combatGroup = groups.find((g: any) => g.id === 'combat');
       expect(combatGroup).toBeDefined();
     });
@@ -1124,7 +1124,7 @@ describe('MiningDepthsLevel', () => {
       level['shaftGateOpen'] = false;
       level['camera'].position = new Vector3(-10, -13, -110);
       level['updateActionButtons']();
-      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls.at(-1)[0];
+      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls.at(-1)![0];
       const interactGroup = groups.find((g: any) => g.id === 'interact');
       expect(interactGroup).toBeDefined();
     });

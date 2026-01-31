@@ -16,20 +16,31 @@ import { createEntity, type Entity } from '../core/ecs';
 // GLB model paths and per-species scale factors
 // ---------------------------------------------------------------------------
 
+/**
+ * Available GLB models in public/assets/models/enemies/chitin/:
+ * - spider.glb      -> Small, fast crawler (skitterer)
+ * - soldier.glb     -> Armored ranged (spitter, spewer)
+ * - alienmale.glb   -> Humanoid melee (warrior, husk)
+ * - scout.glb       -> Tall stalker (stalker, lurker)
+ * - tentakel.glb    -> Large boss/heavy (heavy, broodmother, queen)
+ * - flyingalien.glb -> Aerial drone
+ * - alienmonster.glb, alienfemale.glb -> Reserved for future use
+ */
+
 /** Map each alien species to its GLB file path and scale factor */
 const SPECIES_GLB_CONFIG: Record<string, { path: string; scale: number }> = {
-  // New enemy types
-  skitterer: { path: '/models/enemies/chitin/spider.glb', scale: 0.4 },
-  spitter: { path: '/models/enemies/chitin/soldier.glb', scale: 0.5 },
-  warrior: { path: '/models/enemies/chitin/alienmale.glb', scale: 0.7 },
-  heavy: { path: '/models/enemies/chitin/tentakel.glb', scale: 0.8 },
-  stalker: { path: '/models/enemies/chitin/scout.glb', scale: 0.6 },
-  broodmother: { path: '/models/enemies/chitin/tentakel.glb', scale: 1.0 },
-  queen: { path: '/models/enemies/chitin/tentakel.glb', scale: 1.5 },
-  // Legacy mappings for backward compatibility
-  lurker: { path: '/models/enemies/chitin/scout.glb', scale: 0.7 },
-  spewer: { path: '/models/enemies/chitin/soldier.glb', scale: 0.6 },
-  husk: { path: '/models/enemies/chitin/alienmale.glb', scale: 0.6 },
+  // Primary enemy types
+  skitterer: { path: '/assets/models/enemies/chitin/spider.glb', scale: 0.4 },
+  spitter: { path: '/assets/models/enemies/chitin/soldier.glb', scale: 0.5 },
+  warrior: { path: '/assets/models/enemies/chitin/alienmale.glb', scale: 0.7 },
+  heavy: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 0.8 },
+  stalker: { path: '/assets/models/enemies/chitin/scout.glb', scale: 0.6 },
+  broodmother: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 1.0 },
+  queen: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 1.5 },
+  // Legacy mappings (deprecated, kept for backward compatibility)
+  lurker: { path: '/assets/models/enemies/chitin/scout.glb', scale: 0.7 },
+  spewer: { path: '/assets/models/enemies/chitin/soldier.glb', scale: 0.6 },
+  husk: { path: '/assets/models/enemies/chitin/alienmale.glb', scale: 0.6 },
 };
 
 // Alien species definitions - creepy, surreal, procedurally generated

@@ -549,6 +549,7 @@ describe('Audio Integration', () => {
 
       eventBus.emit({
         type: 'DIALOGUE_STARTED',
+        triggerId: 'dialogue_intro_01',
         speakerId: 'commander_reyes',
         dialogueId: 'intro_01',
         text: 'Welcome to the mission.',

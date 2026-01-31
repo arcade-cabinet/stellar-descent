@@ -1,37 +1,75 @@
 # Active Context
 
 ## Current Development Phase
-**Phase 5: FPS Completeness & Polish** (In Progress)
+**Phase 5: Asset Conversion & Polish** (In Progress)
 
-## Session Summary (Jan 30, 2026)
+## Session Summary (Jan 31, 2026)
 
-### Major Accomplishments This Session
+### Current Focus
+1. **TypeScript Error Fixing** - Integration tests are out of sync with codebase changes
+2. **MeshBuilder to GLB Conversion** - Systematic conversion of ~490 MeshBuilder calls
+3. **GenAI Asset Generation** - Manifest-driven asset generation system
 
-#### Quest Chain System
-- Created `QuestChain.ts` with 10 main campaign quests (one per level)
-- Added 18 optional branch quests discoverable from objects/NPCs
-- Created `QuestManager.ts` for runtime quest state tracking
-- Updated `GameSave` to v5 with quest persistence
-- Removed deprecated `tutorialStep` field
+### Recent Changes (Jan 31, 2026)
 
-#### Logger Migration
-- Converted 60+ files from `console.log` to centralized `Logger`
-- Categories: core, levels, effects, collectibles, persistence, context
+#### Asset Reorganization
+All assets consolidated under `public/assets/`:
+- `public/models/` -> `public/assets/models/`
+- `public/textures/` -> `public/assets/textures/`
+- `public/audio/` -> `public/assets/audio/`
+- `public/video/` -> `public/assets/videos/`
+- Splash videos renamed: `splash-16-9.mp4` -> `main_16x9.mp4`, `splash-9-16.mp4` -> `main_9x16.mp4`
 
-#### GameChronometer
-- Created in-universe time tracking (year 3147)
-- Microsecond precision using `performance.now()`
-- Military-style formatting for HUD display
+#### GenAI Asset Generation System
+- Manifest-driven generation with Zod schemas
+- Manifests live alongside assets (e.g., `public/assets/videos/splash/manifest.json`)
+- CLI: `pnpm exec tsx scripts/generate-assets.ts [portraits|splash|cinematics|status]`
+- VCR testing with Polly.JS for deterministic CI replay
+- Models: Gemini 3 Pro (images), Veo 3.1 (videos)
+- Video config: 1080p, 8s duration, 16:9 and 9:16 aspect ratios, native audio
 
-#### Documentation
-- Created `CLAUDE.md` project guide with **PNPM** requirement
-- Created `FPS-COMPLETENESS-ANALYSIS.md` comparing to 8 AAA FPS games
-- Updated `ARCHITECTURE.md` with quest chain system
-- Updated memory bank with current state
+#### Schema Locations
+- `src/game/ai/schemas/GenerationManifestSchemas.ts` - Zod schemas for generation manifests
+- `src/game/ai/schemas/AssetManifestSchemas.ts` - Zod schemas for asset metadata
 
-### FPS Completeness Analysis
+### Previous Session (Jan 30, 2026)
+- Completed major asset reorganization
+- GLB library now contains **803 models** in `public/assets/models/`
+- Quest chain system implemented
+- Logger migration completed (60+ files)
 
-Researched Halo, DOOM, Wolfenstein, Half-Life 2, Titanfall 2, Metro, Far Cry, BioShock to identify gaps:
+### MeshBuilder Elimination Strategy
+
+The codebase uses ~490 MeshBuilder calls that create geometry at runtime. These should be converted to pre-made GLB assets for:
+- Better visual consistency with existing PSX-style assets
+- Improved load times (pre-baked vs runtime generation)
+- Easier artist iteration
+
+#### Wave-Based Execution Plan
+
+| Wave | Focus | Files | Priority |
+|------|-------|-------|----------|
+| **Wave 1** | FPS Weapons | Weapon view models | Critical |
+| **Wave 2** | Projectiles/Effects | Bullets, grenades, explosions | High |
+| **Wave 3** | Environment Props | Crates, barrels, doors | High |
+| **Wave 4** | Level-Specific | Unique level geometry | Medium |
+| **Wave 5** | UI/Debug | Markers, indicators | Low |
+
+### Asset Gaps Identified
+
+| Category | Missing Assets | Notes |
+|----------|----------------|-------|
+| **FPS Weapons** | First-person rifle, pistol, shotgun, SMG | No view models exist |
+| **Asteroids** | Space debris, asteroid variants | Anchor Station needs |
+| **Ice Crystals** | Frozen environment props | Southern Ice level |
+| **Mine Assets** | Mining equipment, ore deposits | Multiple levels |
+
+### TypeScript Status
+- `pnpm exec tsc --noEmit` currently fails
+- Integration tests reference outdated interfaces/methods
+- Needs synchronization pass before new feature work
+
+## FPS Completeness Analysis (from Jan 30)
 
 #### Critical Gaps (Game-Breaking)
 | Gap | Status | Priority |
@@ -40,14 +78,6 @@ Researched Halo, DOOM, Wolfenstein, Half-Life 2, Titanfall 2, Metro, Far Cry, Bi
 | Enemy Hit Reactions (stagger, pain, death) | Minimal | IMMEDIATE |
 | Hitmarker System | Missing | IMMEDIATE |
 | Player Feedback (low health, low ammo) | Basic | IMMEDIATE |
-
-#### High Priority Gaps
-| Gap | Status | Priority |
-|-----|--------|----------|
-| Movement (slide, mantle, lean) | Missing | SHORT-TERM |
-| Audio (positional, variety) | Basic | SHORT-TERM |
-| Resource Loop (visible pickups) | Minimal | SHORT-TERM |
-| Enemy AI (flank, cover, grenades) | Basic | SHORT-TERM |
 
 #### Scores vs AAA
 - Weapon Feel: **3/10**
@@ -59,32 +89,19 @@ Researched Halo, DOOM, Wolfenstein, Half-Life 2, Titanfall 2, Metro, Far Cry, Bi
 
 ## Immediate Priorities
 
-### 1. Weapon Feel Pass
+### 1. Fix TypeScript Errors
+- Update integration tests to match current interfaces
+- Ensure `pnpm exec tsc --noEmit` passes
+
+### 2. Wave 1: FPS Weapon GLBs
+- Create/source first-person weapon models
+- Replace MeshBuilder weapon geometry
+
+### 3. Weapon Feel Pass
 - Add visual recoil (camera kick)
 - Add screen shake on firing/impact
 - Improve muzzle flash with light emission
 - Add shell casing particles
-- Add bullet trails/tracers
-- Add impact decals (bullet holes, blood)
-
-### 2. Enemy Hit Reactions
-- Add stagger animations
-- Add pain vocalization sounds
-- Add multiple death animations
-- Add knockback on heavy weapons
-- Add ragdoll physics on death
-
-### 3. Hitmarker System
-- Add visual hitmarker (optional toggle)
-- Add audio hit confirmation
-- Add critical hit indicator (headshots)
-- Add kill confirmation
-
-### 4. Player Feedback
-- Add low health heartbeat/warning
-- Add low ammo warning sounds
-- Add directional damage indicator duration
-- Add grenade indicator
 
 ## Active Decisions
 - **Package Manager**: PNPM exclusively (never npm/npx)
@@ -92,22 +109,22 @@ Researched Halo, DOOM, Wolfenstein, Half-Life 2, Titanfall 2, Metro, Far Cry, Bi
 - **No Skip Tutorial**: Linear campaign, unlock levels by completion
 - **Immersive Storytelling**: No popups, controls learned in-game
 - **Save Format**: v5 with quest chain persistence
+- **Asset Strategy**: Convert all MeshBuilder calls to GLB models
 
-## Key Files Modified This Session
-| File | Changes |
-|------|---------|
-| `src/game/campaign/QuestChain.ts` | NEW - Quest definitions |
-| `src/game/campaign/QuestManager.ts` | NEW - Runtime state |
-| `src/game/timer/GameChronometer.ts` | NEW - In-universe time |
-| `src/game/persistence/GameSave.ts` | Quest fields, v5 |
-| `src/game/persistence/SaveSystem.ts` | Quest methods, v5 migration |
-| `CLAUDE.md` | NEW - Project guide |
-| `docs/FPS-COMPLETENESS-ANALYSIS.md` | NEW - Gap analysis |
-| `docs/ARCHITECTURE.md` | Quest chain docs |
-| 60+ files | Logger migration |
+## Key Files to Watch
+| File | Status |
+|------|--------|
+| `src/game/db/CapacitorDatabase.ts` | Modified (staged) |
+| `src/main.tsx` | Modified (unstaged) |
+| `vite.config.ts` | Modified (unstaged) |
+| `src/game/ai/schemas/GenerationManifestSchemas.ts` | GenAI manifest schemas |
+| `src/game/ai/schemas/AssetManifestSchemas.ts` | Asset metadata schemas |
+| `scripts/generate-assets.ts` | Asset generation CLI |
+| Integration test files | Need sync with interfaces |
 
 ## Next Steps
-1. Start weapon feel pass (recoil, screen shake)
-2. Wire QuestManager to CampaignDirector
-3. Add hitmarker system to combat
-4. Add enemy hit reaction animations
+1. Fix TypeScript compilation errors (integration tests)
+2. Begin Wave 1: FPS weapon GLB conversion
+3. Wire QuestManager to CampaignDirector
+4. Add hitmarker system to combat
+5. Add enemy hit reaction animations

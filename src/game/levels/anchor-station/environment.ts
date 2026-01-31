@@ -404,6 +404,17 @@ const MODEL_PATHS = {
   poster11: '/models/props/decals/poster_cx_11.glb',
   poster12: '/models/props/decals/poster_cx_12.glb',
   poster13: '/models/props/decals/poster_cx_13.glb',
+
+  // Interactive element GLBs (replacing MeshBuilder primitives)
+  modCapsule: '/models/environment/modular/Props_Capsule.glb',
+  modChest: '/models/environment/modular/Props_Chest.glb',
+  modPod: '/models/environment/modular/Props_Pod.glb',
+  modCrate: '/models/environment/modular/Props_Crate.glb',
+  modBase: '/models/environment/modular/Props_Base.glb',
+  doorSingle: '/models/environment/modular/Door_Single.glb',
+  doorDouble: '/models/environment/modular/Door_Double.glb',
+  doorWallSideA: '/models/environment/modular/DoorSingle_Wall_SideA.glb',
+  doorWallSideB: '/models/environment/modular/DoorSingle_Wall_SideB.glb',
 };
 
 // ============================================================================
@@ -1207,23 +1218,17 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   log.info(`All GLB models loaded. Total meshes: ${allMeshes.length}`);
 
   // ============================================================================
-  // INTERACTIVE ELEMENTS (MeshBuilder for precise collision/animation shapes)
+  // INTERACTIVE ELEMENTS
   // ============================================================================
-  // These remain as MeshBuilder primitives because they need:
+  // Some elements use GLB models for visual quality, while animated/VFX elements
+  // remain as MeshBuilder primitives for:
   // - Precise collision shapes for ray-casting (targets)
   // - Animation on specific mesh properties (doors, drop pod)
-  // - Simple geometry that doesn't warrant a GLB asset
+  // - VFX elements with alpha/emissive materials (holographic projections)
   // ============================================================================
 
-  // Hologram table in briefing room (placeholder - no GLB holotable asset)
-  const holoTable = MeshBuilder.CreateCylinder(
-    'holoTable',
-    { height: 0.8, diameter: 3, tessellation: 16 },
-    scene
-  );
-  holoTable.position = new Vector3(BC.x, 0.4, BC.z);
-  holoTable.material = materials.get('hull')!;
-  holoTable.parent = briefingRoom;
+  // Hologram table in briefing room (GLB model - modular computer console)
+  pp(P.modComputer, 'holoTable', briefingRoom, BC.x, 0, BC.z, 0, 1.5);
 
   // Hologram projection (planet)
   const holoPlanet = MeshBuilder.CreateSphere('holoPlanet', { diameter: 1.5, segments: 16 }, scene);
@@ -1239,10 +1244,12 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   suitLockerContainer.position = ROOM_POSITIONS.suitLocker.clone();
   suitLockerContainer.parent = equipmentBayRoom;
 
-  const lockerFrame = MeshBuilder.CreateBox('lockerFrame', { width: 2, height: 2.5, depth: 0.6 }, scene);
-  lockerFrame.position.y = 1.25;
-  lockerFrame.material = materials.get('hull')!;
-  lockerFrame.parent = suitLockerContainer;
+  // Locker frame using GLB model (capsule container)
+  pp(P.modCapsule, 'lockerFrame', suitLockerContainer, 0, 0, 0, 0, 1.0);
+  // Create a reference mesh for compatibility with suitLocker return value
+  const lockerFrameRef = new TransformNode('lockerFrameRef', scene);
+  lockerFrameRef.position.y = 1.25;
+  lockerFrameRef.parent = suitLockerContainer;
 
   const suitBody = MeshBuilder.CreateCapsule('suitBody', { height: 1.6, radius: 0.3 }, scene);
   suitBody.position.set(0, 1.3, 0.15);
@@ -1274,26 +1281,23 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   lockerLight.animations.push(lockerPulse);
   scene.beginAnimation(lockerLight, 0, 30, true);
 
-  const suitLocker = lockerFrame;
+  // Placeholder mesh for suitLocker return value (actual visual is GLB)
+  const suitLocker = MeshBuilder.CreateBox('suitLockerRef', { width: 0.1, height: 0.1, depth: 0.1 }, scene);
+  suitLocker.isVisible = false;
+  suitLocker.parent = suitLockerContainer;
 
   // === WEAPON RACK ===
   const weaponRackContainer = new TransformNode('weaponRackContainer', scene);
   weaponRackContainer.position = ROOM_POSITIONS.weaponRack.clone();
   weaponRackContainer.parent = equipmentBayRoom;
 
-  const rackFrame = MeshBuilder.CreateBox('rackFrame', { width: 3, height: 2, depth: 0.5 }, scene);
-  rackFrame.position.y = 1;
-  rackFrame.material = materials.get('hull')!;
-  rackFrame.parent = weaponRackContainer;
+  // Weapon rack using GLB model (shelf)
+  pp(P.modShelfTall, 'rackFrame', weaponRackContainer, 0, 0, 0, 0, 0.8);
 
-  for (let i = 0; i < 3; i++) {
-    const rifle = MeshBuilder.CreateBox(`rifle_${i}`, { width: 0.8, height: 0.15, depth: 0.1 }, scene);
-    rifle.position.set(-0.8 + i * 0.8, 1.2, 0.15);
-    rifle.material = materials.get('windowFrame')!;
-    rifle.parent = weaponRackContainer;
-  }
-
-  const equipmentRack = rackFrame;
+  // Placeholder mesh for equipmentRack return value (actual visual is GLB)
+  const equipmentRack = MeshBuilder.CreateBox('equipmentRackRef', { width: 0.1, height: 0.1, depth: 0.1 }, scene);
+  equipmentRack.isVisible = false;
+  equipmentRack.parent = weaponRackContainer;
 
   // === CORRIDOR DOOR (equipment) ===
   const corridorToEquipmentDoor = createInteractiveDoor(
@@ -1425,10 +1429,8 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // === DROP POD ===
   const podPosition = ROOM_POSITIONS.dropPod.clone();
 
-  const platform = MeshBuilder.CreateCylinder('platform', { height: 0.3, diameter: 6, tessellation: 16 }, scene);
-  platform.position = new Vector3(podPosition.x, 0.15, podPosition.z);
-  platform.material = materials.get('hull')!;
-  platform.parent = hangarBayRoom;
+  // Drop pod platform using GLB model (modular base)
+  pp(P.modBase, 'podPlatform', hangarBayRoom, podPosition.x, 0, podPosition.z, 0, 1.5);
 
   const dropPod = MeshBuilder.CreateCylinder('podBody', { height: 3, diameter: 2.5, tessellation: 12 }, scene);
   dropPod.position = new Vector3(podPosition.x, 1.8, podPosition.z);

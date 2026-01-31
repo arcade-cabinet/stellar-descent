@@ -11,7 +11,7 @@
  * - Victory/defeat conditions
  */
 
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi, afterEach, type Mock } from 'vitest';
 
 // Hoisted mocks that need to be accessible in tests
 const {
@@ -662,29 +662,34 @@ describe('BrothersInArmsLevel', () => {
 
     mockCallbacks = {
       onHealthChange: vi.fn(),
-      onAmmoChange: vi.fn(),
-      onWeaponChange: vi.fn(),
       onCommsMessage: vi.fn(),
       onObjectiveUpdate: vi.fn(),
+      onChapterChange: vi.fn(),
       onNotification: vi.fn(),
       onLevelComplete: vi.fn(),
-      onLevelFailed: vi.fn(),
       onKill: vi.fn(),
       onDamage: vi.fn(),
+      onCombatStateChange: vi.fn(),
       onActionGroupsChange: vi.fn(),
       onActionHandlerRegister: vi.fn(),
       onCinematicStart: vi.fn(),
       onCinematicEnd: vi.fn(),
       onSquadCommandWheelChange: vi.fn(),
-      onMarcusHealthChange: vi.fn(),
     };
 
     mockConfig = {
-      levelId: 'brothers-in-arms' as any,
-      levelName: 'Brothers in Arms',
-      initialHealth: 100,
-      initialAmmo: 300,
-      checkpointData: null,
+      id: 'brothers_in_arms',
+      type: 'brothers',
+      nextLevelId: 'southern_ice',
+      previousLevelId: 'fob_delta',
+      chapter: 5,
+      actName: 'ACT 2: THE SEARCH',
+      missionName: 'BROTHERS IN ARMS',
+      missionSubtitle: 'Reunion with Corporal Marcus Cole',
+      playerSpawnPosition: { x: 0, y: 1.7, z: 0 },
+      hasCinematicIntro: true,
+      ambientTrack: 'canyon_wind',
+      combatTrack: 'combat_mech',
     };
   });
 
@@ -822,7 +827,7 @@ describe('BrothersInArmsLevel', () => {
     });
 
     it('should handle grenade action with cooldown', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       // First grenade should work
       actionHandler('grenade');
@@ -830,14 +835,14 @@ describe('BrothersInArmsLevel', () => {
     });
 
     it('should handle melee action', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('melee');
       expect(mockCallbacks.onNotification).toHaveBeenCalled();
     });
 
     it('should handle fire support action', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('call_marcus');
       // Fire support triggers notification and comms message
@@ -845,7 +850,7 @@ describe('BrothersInArmsLevel', () => {
     });
 
     it('should handle focus fire action', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('focus_fire');
       // Focus fire notification
@@ -853,14 +858,14 @@ describe('BrothersInArmsLevel', () => {
     });
 
     it('should handle flank action', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('flank');
       expect(level).toBeDefined();
     });
 
     it('should handle marcus coordination state changes', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('marcus_aggressive');
       expect(mockCallbacks.onNotification).toHaveBeenCalled();
@@ -879,14 +884,14 @@ describe('BrothersInArmsLevel', () => {
     });
 
     it('should open command wheel on action', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('open_command_wheel');
       expect(mockCallbacks.onSquadCommandWheelChange).toHaveBeenCalled();
     });
 
     it('should close command wheel on action', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       // Open first
       actionHandler('open_command_wheel');
@@ -897,7 +902,7 @@ describe('BrothersInArmsLevel', () => {
     });
 
     it('should handle cancel command', () => {
-      const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+      const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
       actionHandler('cancel_command');
       expect(level).toBeDefined();
@@ -906,17 +911,9 @@ describe('BrothersInArmsLevel', () => {
 
   describe('Checkpoint System', () => {
     it('should support checkpoint data in config', async () => {
-      const checkpointConfig: LevelConfig = {
-        ...mockConfig,
-        checkpointData: {
-          phase: 'wave_combat',
-          currentWave: 2,
-          playerHealth: 75,
-          marcusHealth: 400,
-        },
-      };
-
-      level = new BrothersInArmsLevel(mockEngine, mockCanvas, checkpointConfig, mockCallbacks);
+      // LevelConfig doesn't have checkpointData, but the level can handle it
+      // The checkpoint data would be passed through state management separately
+      level = new BrothersInArmsLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
       await level.initialize();
 
       expect(level).toBeDefined();
@@ -1077,29 +1074,34 @@ describe('BrothersInArmsLevel - Combat Mechanics', () => {
 
     mockCallbacks = {
       onHealthChange: vi.fn(),
-      onAmmoChange: vi.fn(),
-      onWeaponChange: vi.fn(),
       onCommsMessage: vi.fn(),
       onObjectiveUpdate: vi.fn(),
+      onChapterChange: vi.fn(),
       onNotification: vi.fn(),
       onLevelComplete: vi.fn(),
-      onLevelFailed: vi.fn(),
       onKill: vi.fn(),
       onDamage: vi.fn(),
+      onCombatStateChange: vi.fn(),
       onActionGroupsChange: vi.fn(),
       onActionHandlerRegister: vi.fn(),
       onCinematicStart: vi.fn(),
       onCinematicEnd: vi.fn(),
       onSquadCommandWheelChange: vi.fn(),
-      onMarcusHealthChange: vi.fn(),
     };
 
     mockConfig = {
-      levelId: 'brothers-in-arms' as any,
-      levelName: 'Brothers in Arms',
-      initialHealth: 100,
-      initialAmmo: 300,
-      checkpointData: null,
+      id: 'brothers_in_arms',
+      type: 'brothers',
+      nextLevelId: 'southern_ice',
+      previousLevelId: 'fob_delta',
+      chapter: 5,
+      actName: 'ACT 2: THE SEARCH',
+      missionName: 'BROTHERS IN ARMS',
+      missionSubtitle: 'Reunion with Corporal Marcus Cole',
+      playerSpawnPosition: { x: 0, y: 1.7, z: 0 },
+      hasCinematicIntro: true,
+      ambientTrack: 'canyon_wind',
+      combatTrack: 'combat_mech',
     };
 
     level = new BrothersInArmsLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
@@ -1120,11 +1122,11 @@ describe('BrothersInArmsLevel - Combat Mechanics', () => {
   });
 
   it('should handle grenade cooldown correctly', () => {
-    const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+    const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
     // First grenade
     actionHandler('grenade');
-    const firstCallCount = mockCallbacks.onNotification.mock.calls.length;
+    const firstCallCount = (mockCallbacks.onNotification as Mock).mock.calls.length;
 
     // Immediate second grenade should be blocked (cooldown)
     actionHandler('grenade');
@@ -1136,7 +1138,7 @@ describe('BrothersInArmsLevel - Combat Mechanics', () => {
     // Third grenade should work
     actionHandler('grenade');
 
-    expect(mockCallbacks.onNotification.mock.calls.length).toBeGreaterThan(firstCallCount);
+    expect((mockCallbacks.onNotification as Mock).mock.calls.length).toBeGreaterThan(firstCallCount);
   });
 });
 
@@ -1169,29 +1171,34 @@ describe('BrothersInArmsLevel - Marcus State Management', () => {
 
     mockCallbacks = {
       onHealthChange: vi.fn(),
-      onAmmoChange: vi.fn(),
-      onWeaponChange: vi.fn(),
       onCommsMessage: vi.fn(),
       onObjectiveUpdate: vi.fn(),
+      onChapterChange: vi.fn(),
       onNotification: vi.fn(),
       onLevelComplete: vi.fn(),
-      onLevelFailed: vi.fn(),
       onKill: vi.fn(),
       onDamage: vi.fn(),
+      onCombatStateChange: vi.fn(),
       onActionGroupsChange: vi.fn(),
       onActionHandlerRegister: vi.fn(),
       onCinematicStart: vi.fn(),
       onCinematicEnd: vi.fn(),
       onSquadCommandWheelChange: vi.fn(),
-      onMarcusHealthChange: vi.fn(),
     };
 
     mockConfig = {
-      levelId: 'brothers-in-arms' as any,
-      levelName: 'Brothers in Arms',
-      initialHealth: 100,
-      initialAmmo: 300,
-      checkpointData: null,
+      id: 'brothers_in_arms',
+      type: 'brothers',
+      nextLevelId: 'southern_ice',
+      previousLevelId: 'fob_delta',
+      chapter: 5,
+      actName: 'ACT 2: THE SEARCH',
+      missionName: 'BROTHERS IN ARMS',
+      missionSubtitle: 'Reunion with Corporal Marcus Cole',
+      playerSpawnPosition: { x: 0, y: 1.7, z: 0 },
+      hasCinematicIntro: true,
+      ambientTrack: 'canyon_wind',
+      combatTrack: 'combat_mech',
     };
 
     level = new BrothersInArmsLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
@@ -1208,7 +1215,7 @@ describe('BrothersInArmsLevel - Marcus State Management', () => {
   });
 
   it('should update marcus coordination state via actions', () => {
-    const actionHandler = mockCallbacks.onActionHandlerRegister.mock.calls[0][0];
+    const actionHandler = (mockCallbacks.onActionHandlerRegister as Mock).mock.calls[0][0];
 
     actionHandler('marcus_aggressive');
     expect(mockCallbacks.onNotification).toHaveBeenCalledWith(

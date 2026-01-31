@@ -59,7 +59,7 @@ const ROLL_LIMIT = Math.PI / 6;
 const PITCH_LIMIT = Math.PI / 8;
 
 // GLB model path (absolute from public root, used by AssetManager)
-const PHANTOM_GLB_PATH = '/models/spaceships/Dispatcher.glb';
+const PHANTOM_GLB_PATH = '/assets/models/vehicles/phantom.glb';
 
 // Colors (used for VFX: shield bubble, projectiles, engine glow animation)
 const GLOW_PRIMARY = '#7B4FE0'; // Purple glow
@@ -97,6 +97,12 @@ export class PhantomDropship extends VehicleBase {
   private modelReady = false;
   private glbRoot: TransformNode | null = null;
   private glbMeshes: AbstractMesh[] = [];
+
+  // Cached animated part references (from GLB child meshes)
+  private rampMesh: AbstractMesh | null = null;
+  private leftEngineMesh: AbstractMesh | null = null;
+  private rightEngineMesh: AbstractMesh | null = null;
+  private turretMesh: AbstractMesh | null = null;
 
   // Visual references
   private engineGlowMeshes: Mesh[] = [];
@@ -187,6 +193,9 @@ export class PhantomDropship extends VehicleBase {
           }
         }
 
+        // Cache animated part references for animations
+        this.cacheAnimatedParts(childMeshes);
+
         this.modelReady = true;
         log.info(
           `GLB loaded via AssetManager: ${childMeshes.length} mesh instances`
@@ -196,6 +205,40 @@ export class PhantomDropship extends VehicleBase {
       }
     } catch (error) {
       log.error('Failed to load GLB model:', error);
+    }
+  }
+
+  /**
+   * Cache references to animated mesh parts from the loaded GLB.
+   * These are used for landing ramp animation, engine glow effects,
+   * and turret rotation.
+   */
+  private cacheAnimatedParts(childMeshes: AbstractMesh[]): void {
+    for (const mesh of childMeshes) {
+      const name = mesh.name.toLowerCase();
+
+      // Match ramp mesh for landing animation
+      if (name.includes('ramp') || name.includes('door') || name.includes('hatch')) {
+        this.rampMesh = mesh;
+        log.info(`Cached ramp mesh: ${mesh.name}`);
+      }
+
+      // Match engine meshes for thrust glow
+      if (name.includes('engine')) {
+        if (name.includes('left') || name.includes('_l') || name.endsWith('l')) {
+          this.leftEngineMesh = mesh;
+          log.info(`Cached left engine mesh: ${mesh.name}`);
+        } else if (name.includes('right') || name.includes('_r') || name.endsWith('r')) {
+          this.rightEngineMesh = mesh;
+          log.info(`Cached right engine mesh: ${mesh.name}`);
+        }
+      }
+
+      // Match turret mesh for weapon rotation
+      if (name.includes('turret') || name.includes('gun') || name.includes('cannon')) {
+        this.turretMesh = mesh;
+        log.info(`Cached turret mesh: ${mesh.name}`);
+      }
     }
   }
 

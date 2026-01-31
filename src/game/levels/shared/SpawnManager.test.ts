@@ -132,10 +132,10 @@ describe('SpawnManager', () => {
     onAllWavesCompleteSpy = vi.fn();
 
     mockCallbacks = {
-      onSpawnEnemy: onSpawnEnemySpy,
-      onWaveStart: onWaveStartSpy,
-      onWaveComplete: onWaveCompleteSpy,
-      onAllWavesComplete: onAllWavesCompleteSpy,
+      onSpawnEnemy: onSpawnEnemySpy as SpawnManagerCallbacks['onSpawnEnemy'],
+      onWaveStart: onWaveStartSpy as SpawnManagerCallbacks['onWaveStart'],
+      onWaveComplete: onWaveCompleteSpy as SpawnManagerCallbacks['onWaveComplete'],
+      onAllWavesComplete: onAllWavesCompleteSpy as SpawnManagerCallbacks['onAllWavesComplete'],
     };
 
     // Create spawn manager with test config

@@ -43,31 +43,31 @@ import {
 
 /** Ground tile GLB paths */
 const GROUND_GLB_PATHS = [
-  '/models/environment/station/asphalt_hr_1_large.glb',
-  '/models/environment/station/asphalt_hr_1.glb',
-  '/models/environment/station/asphalt_hr_2.glb',
-  '/models/environment/station/asphalt_hr_3.glb',
-  '/models/environment/station/floor_ceiling_hr_4.glb',
-  '/models/environment/station/floor_ceiling_hr_5.glb',
-  '/models/environment/station/floor_ceiling_hr_6.glb',
+  '/assets/models/environment/station/asphalt_hr_1_large.glb',
+  '/assets/models/environment/station/asphalt_hr_1.glb',
+  '/assets/models/environment/station/asphalt_hr_2.glb',
+  '/assets/models/environment/station/asphalt_hr_3.glb',
+  '/assets/models/environment/station/floor_ceiling_hr_4.glb',
+  '/assets/models/environment/station/floor_ceiling_hr_5.glb',
+  '/assets/models/environment/station/floor_ceiling_hr_6.glb',
 ];
 
 /** Tall, pillar-like rock formations -- good for vertical obstacles */
 const TALL_ROCK_GLBS = [
-  '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-  '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-  '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
 ];
 
 /** Medium rocks for variety */
 const MEDIUM_ROCK_GLBS = [
-  '/models/environment/alien-flora/alien_rock_medium_1.glb',
-  '/models/environment/alien-flora/alien_rock_medium_2.glb',
-  '/models/environment/alien-flora/alien_rock_medium_3.glb',
+  '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+  '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+  '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
 ];
 
 /** Large boulder accent */
-const BOULDER_GLBS = ['/models/environment/alien-flora/alien_boulder_polyhaven.glb'];
+const BOULDER_GLBS = ['/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb'];
 
 /** All rock GLBs combined for preloading */
 const ALL_ROCK_GLBS = [...TALL_ROCK_GLBS, ...MEDIUM_ROCK_GLBS, ...BOULDER_GLBS];

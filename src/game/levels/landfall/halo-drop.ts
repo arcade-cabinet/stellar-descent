@@ -22,8 +22,16 @@ import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
-import type { Asteroid, AsteroidType, DistantThreat, DistantThreatDefinition } from './types';
-import { ASTEROID_GLB_PATHS } from './constants';
+import type {
+  Asteroid,
+  AsteroidType,
+  DistantThreat,
+  DistantThreatDefinition,
+  DistantSpaceship,
+  DistantSpaceshipDefinition,
+  DistantSpaceshipType,
+} from './types';
+import { ASTEROID_GLB_PATHS, SPACESHIP_GLB_PATHS } from './constants';
 
 // ---------------------------------------------------------------------------
 // Particle Texture Creation
@@ -306,6 +314,143 @@ export function updateDistantThreat(threat: DistantThreat, deltaTime: number): v
 
   if (threat.type === 'phantom') {
     threat.node.position.y += Math.sin(performance.now() * 0.001) * 0.02;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Distant Spaceship Definitions (GLB models from spaceships/)
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the GLB path for a spaceship type.
+ */
+export function getSpaceshipGlbPath(type: DistantSpaceshipType): string {
+  const pathMap: Record<DistantSpaceshipType, string> = {
+    challenger: SPACESHIP_GLB_PATHS.challenger,
+    dispatcher: SPACESHIP_GLB_PATHS.dispatcher,
+    imperial: SPACESHIP_GLB_PATHS.imperial,
+    striker: SPACESHIP_GLB_PATHS.striker,
+    zenith: SPACESHIP_GLB_PATHS.zenith,
+    executioner: SPACESHIP_GLB_PATHS.executioner,
+    insurgent: SPACESHIP_GLB_PATHS.insurgent,
+    omen: SPACESHIP_GLB_PATHS.omen,
+    spitfire: SPACESHIP_GLB_PATHS.spitfire,
+  };
+  return pathMap[type];
+}
+
+/**
+ * Default distant spaceship definitions.
+ * Friendlies are human military ships providing cover during descent.
+ * Hostiles are alien craft engaging with the friendlies.
+ */
+export const DISTANT_SPACESHIP_DEFINITIONS: DistantSpaceshipDefinition[] = [
+  // Friendly escort fighters (left flank)
+  {
+    type: 'striker',
+    position: new Vector3(-120, -20, -80),
+    velocity: new Vector3(6, 0.5, 2),
+    rotationSpeed: 0.1,
+    scale: 8,
+    isFriendly: true,
+  },
+  {
+    type: 'challenger',
+    position: new Vector3(-140, -35, -70),
+    velocity: new Vector3(5, 0.3, 3),
+    rotationSpeed: 0.08,
+    scale: 10,
+    isFriendly: true,
+  },
+  // Friendly capital ship (rear)
+  {
+    type: 'imperial',
+    position: new Vector3(0, -100, -200),
+    velocity: new Vector3(0, 0.2, 1),
+    rotationSpeed: 0.02,
+    scale: 25,
+    isFriendly: true,
+  },
+  // Hostile interceptors (right flank)
+  {
+    type: 'executioner',
+    position: new Vector3(100, -15, -90),
+    velocity: new Vector3(-8, 0.4, 4),
+    rotationSpeed: 0.15,
+    scale: 7,
+    isFriendly: false,
+  },
+  {
+    type: 'omen',
+    position: new Vector3(130, -40, -60),
+    velocity: new Vector3(-6, 0.2, 3),
+    rotationSpeed: 0.12,
+    scale: 9,
+    isFriendly: false,
+  },
+  // Hostile bomber (approaching from below)
+  {
+    type: 'insurgent',
+    position: new Vector3(50, -80, 40),
+    velocity: new Vector3(-2, 1, -5),
+    rotationSpeed: 0.05,
+    scale: 12,
+    isFriendly: false,
+  },
+];
+
+/**
+ * Spawns a distant spaceship using GLB models.
+ */
+export function spawnDistantSpaceship(
+  scene: Scene,
+  def: DistantSpaceshipDefinition,
+  index: number
+): DistantSpaceship | null {
+  const glbPath = getSpaceshipGlbPath(def.type);
+
+  const instance = AssetManager.createInstanceByPath(
+    glbPath,
+    `distant_spaceship_${def.type}_${index}`,
+    scene,
+    true,
+    'environment'
+  );
+
+  if (!instance) {
+    throw new Error(`[Landfall] Failed to create distant spaceship GLB instance for ${def.type} at ${glbPath}`);
+  }
+
+  instance.position = def.position.clone();
+  instance.scaling.setAll(def.scale);
+  instance.setEnabled(true);
+
+  return {
+    node: instance,
+    position: def.position.clone(),
+    velocity: def.velocity.clone(),
+    rotationSpeed: def.rotationSpeed,
+    type: def.type,
+    isFriendly: def.isFriendly,
+  };
+}
+
+/**
+ * Updates distant spaceship positions and animations.
+ */
+export function updateDistantSpaceship(spaceship: DistantSpaceship, deltaTime: number): void {
+  spaceship.position.addInPlace(spaceship.velocity.scale(deltaTime));
+  spaceship.node.position = spaceship.position;
+  spaceship.node.rotation.y += spaceship.rotationSpeed * deltaTime;
+
+  // Add subtle banking for fighters
+  if (spaceship.type === 'striker' || spaceship.type === 'challenger' || spaceship.type === 'executioner') {
+    spaceship.node.rotation.z = Math.sin(performance.now() * 0.0015) * 0.15;
+  }
+
+  // Add slight bobbing for capital ships
+  if (spaceship.type === 'imperial' || spaceship.type === 'insurgent') {
+    spaceship.node.position.y += Math.sin(performance.now() * 0.0005) * 0.05;
   }
 }
 

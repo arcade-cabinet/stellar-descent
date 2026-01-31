@@ -8,13 +8,13 @@ import type { LevelAudioConfig, MusicTrack, TrackInfo } from './types';
 
 // Music file paths (relative to public/)
 export const MUSIC_PATHS: Record<MusicTrack, string> = {
-  menu: '/audio/music/menu.ogg',
-  ambient: '/audio/music/ambient.ogg',
-  combat: '/audio/music/combat.ogg',
-  exploration: '/audio/music/exploration.ogg',
-  boss: '/audio/music/boss.ogg',
-  victory: '/audio/music/victory.ogg',
-  defeat: '/audio/music/combat.ogg', // Reuse combat for defeat tension
+  menu: '/assets/audio/music/menu.ogg',
+  ambient: '/assets/audio/music/ambient.ogg',
+  combat: '/assets/audio/music/combat.ogg',
+  exploration: '/assets/audio/music/exploration.ogg',
+  boss: '/assets/audio/music/boss.ogg',
+  victory: '/assets/audio/music/victory.ogg',
+  defeat: '/assets/audio/music/combat.ogg', // Reuse combat for defeat tension
 };
 
 // Track characteristics for intelligent blending

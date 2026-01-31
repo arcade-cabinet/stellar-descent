@@ -50,10 +50,10 @@ describe('ModularStationBuilder - Module Constants', () => {
   describe('Model Paths', () => {
     it('should define corridor model paths', () => {
       const MODELS = {
-        corridorMain: '/models/environment/station/corridor_main.glb',
-        corridorJunction: '/models/environment/station/corridor_junction.glb',
-        corridorCorner: '/models/environment/station/corridor_corner.glb',
-        corridorWide: '/models/environment/station/corridor_wide.glb',
+        corridorMain: '/assets/models/environment/station/corridor_main.glb',
+        corridorJunction: '/assets/models/environment/station/corridor_junction.glb',
+        corridorCorner: '/assets/models/environment/station/corridor_corner.glb',
+        corridorWide: '/assets/models/environment/station/corridor_wide.glb',
       };
 
       expect(MODELS.corridorMain).toContain('corridor_main');
@@ -62,11 +62,11 @@ describe('ModularStationBuilder - Module Constants', () => {
 
     it('should define station element paths', () => {
       const MODELS = {
-        stationDoor: '/models/environment/station/station_door.glb',
-        stationBarrel: '/models/environment/station/station_barrel.glb',
-        wall: '/models/environment/station/wall_hr_1_double.glb',
-        doorway: '/models/environment/station/doorway_hr_1.glb',
-        floorCeiling: '/models/environment/station/floor_ceiling_hr_1.glb',
+        stationDoor: '/assets/models/environment/station/station_door.glb',
+        stationBarrel: '/assets/models/environment/station/station_barrel.glb',
+        wall: '/assets/models/environment/station/wall_hr_1_double.glb',
+        doorway: '/assets/models/environment/station/doorway_hr_1.glb',
+        floorCeiling: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
       };
 
       expect(MODELS.stationDoor).toContain('station_door');

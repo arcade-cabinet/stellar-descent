@@ -202,77 +202,77 @@ describe('HiveAssault Environment', () => {
 
   describe('GLB Asset Paths', () => {
     it('should define modular wall path', () => {
-      const wall5Path = '/models/environment/modular/Wall_5.glb';
+      const wall5Path = '/assets/models/environment/modular/Wall_5.glb';
       expect(wall5Path).toContain('Wall_5.glb');
     });
 
     it('should define door paths', () => {
       const doorPaths = [
-        '/models/environment/modular/DoorDoubleLong_Wall_SideA.glb',
-        '/models/environment/modular/DoorSingleLong_Wall_SideA.glb',
-        '/models/environment/modular/DoorSingle_Wall_SideA.glb',
-        '/models/environment/modular/DoorSingle_Wall_SideB.glb',
+        '/assets/models/environment/modular/DoorDoubleLong_Wall_SideA.glb',
+        '/assets/models/environment/modular/DoorSingleLong_Wall_SideA.glb',
+        '/assets/models/environment/modular/DoorSingle_Wall_SideA.glb',
+        '/assets/models/environment/modular/DoorSingle_Wall_SideB.glb',
       ];
       expect(doorPaths).toHaveLength(4);
     });
 
     it('should define roof tile paths', () => {
       const roofPaths = [
-        '/models/environment/modular/RoofTile_Corner_Pipes.glb',
-        '/models/environment/modular/RoofTile_InnerCorner_Pipes.glb',
-        '/models/environment/modular/RoofTile_Sides_Pipes.glb',
-        '/models/environment/modular/RoofTile_OrangeVent.glb',
-        '/models/environment/modular/RoofTile_Vents.glb',
+        '/assets/models/environment/modular/RoofTile_Corner_Pipes.glb',
+        '/assets/models/environment/modular/RoofTile_InnerCorner_Pipes.glb',
+        '/assets/models/environment/modular/RoofTile_Sides_Pipes.glb',
+        '/assets/models/environment/modular/RoofTile_OrangeVent.glb',
+        '/assets/models/environment/modular/RoofTile_Vents.glb',
       ];
       expect(roofPaths).toHaveLength(5);
     });
 
     it('should define prop paths', () => {
       const propPaths = [
-        '/models/environment/modular/Props_Base.glb',
-        '/models/environment/modular/Props_ContainerFull.glb',
-        '/models/environment/modular/Props_Chest.glb',
+        '/assets/models/environment/modular/Props_Base.glb',
+        '/assets/models/environment/modular/Props_ContainerFull.glb',
+        '/assets/models/environment/modular/Props_Chest.glb',
       ];
       expect(propPaths).toHaveLength(3);
     });
 
     it('should define station backdrop path', () => {
-      const station06Path = '/models/environment/station-external/station06.glb';
+      const station06Path = '/assets/models/environment/station-external/station06.glb';
       expect(station06Path).toContain('station06.glb');
     });
 
     it('should define spaceship paths', () => {
       const spaceshipPaths = [
-        '/models/spaceships/Imperial.glb',
-        '/models/spaceships/Executioner.glb',
+        '/assets/models/spaceships/Imperial.glb',
+        '/assets/models/spaceships/Executioner.glb',
       ];
       expect(spaceshipPaths).toHaveLength(2);
     });
 
     it('should define alien flora paths', () => {
       const floraPaths = [
-        '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
-        '/models/environment/alien-flora/alien_rock_medium_1.glb',
-        '/models/environment/alien-flora/alien_mushroom_tall_01.glb',
-        '/models/environment/alien-flora/alien_twistedtree_1.glb',
+        '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+        '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+        '/assets/models/environment/alien-flora/alien_mushroom_tall_01.glb',
+        '/assets/models/environment/alien-flora/alien_twistedtree_1.glb',
       ];
       expect(floraPaths).toHaveLength(4);
     });
 
     it('should define barricade paths', () => {
       const barricadePaths = [
-        '/models/props/modular/barricade_a_1.glb',
-        '/models/props/modular/barricade_b_1.glb',
+        '/assets/models/props/modular/barricade_a_1.glb',
+        '/assets/models/props/modular/barricade_b_1.glb',
       ];
       expect(barricadePaths).toHaveLength(2);
     });
 
     it('should define debris paths', () => {
       const debrisPaths = [
-        '/models/props/containers/scrap_metal_mx_1.glb',
-        '/models/props/containers/metal_barrel_hr_1.glb',
-        '/models/props/containers/tire_1.glb',
-        '/models/props/debris/gravel_pile_hr_1.glb',
+        '/assets/models/props/containers/scrap_metal_mx_1.glb',
+        '/assets/models/props/containers/metal_barrel_hr_1.glb',
+        '/assets/models/props/containers/tire_1.glb',
+        '/assets/models/props/debris/gravel_pile_hr_1.glb',
       ];
       expect(debrisPaths).toHaveLength(4);
     });
@@ -987,9 +987,9 @@ describe('HiveAssault Environment', () => {
   describe('Asset Loading', () => {
     it('should load all GLB assets', async () => {
       const paths = [
-        '/models/environment/modular/Wall_5.glb',
-        '/models/spaceships/Imperial.glb',
-        '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+        '/assets/models/environment/modular/Wall_5.glb',
+        '/assets/models/spaceships/Imperial.glb',
+        '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
       ];
 
       const loadPromises = paths.map(() => Promise.resolve(null));
@@ -999,10 +999,10 @@ describe('HiveAssault Environment', () => {
     });
 
     it('should skip already cached assets', () => {
-      const isPathCached = vi.fn(() => true);
+      const isPathCached = vi.fn((_path: string) => true);
       const loadAssetByPath = vi.fn().mockResolvedValue(null);
 
-      const path = '/models/environment/modular/Wall_5.glb';
+      const path = '/assets/models/environment/modular/Wall_5.glb';
       if (!isPathCached(path)) {
         loadAssetByPath(path);
       }
@@ -1018,16 +1018,16 @@ describe('HiveAssault Environment', () => {
 
   describe('GLB Instance Helper', () => {
     it('should return null if path not cached', () => {
-      const isPathCached = vi.fn(() => false);
-      const path = '/models/nonexistent.glb';
+      const isPathCached = vi.fn((_path: string) => false);
+      const path = '/assets/models/nonexistent.glb';
 
       const result = isPathCached(path) ? createMockMesh('instance') : null;
       expect(result).toBeNull();
     });
 
     it('should return instance if path is cached', () => {
-      const isPathCached = vi.fn(() => true);
-      const path = '/models/environment/modular/Wall_5.glb';
+      const isPathCached = vi.fn((_path: string) => true);
+      const path = '/assets/models/environment/modular/Wall_5.glb';
 
       const result = isPathCached(path) ? createMockMesh('instance') : null;
       expect(result).not.toBeNull();
@@ -1041,7 +1041,7 @@ describe('HiveAssault Environment', () => {
   describe('Modular Building Placement', () => {
     it('should place modular pieces with position and rotation', () => {
       const placement = {
-        path: '/models/environment/modular/Wall_5.glb',
+        path: '/assets/models/environment/modular/Wall_5.glb',
         name: 'cmd_backwall_0',
         x: -22,
         y: 0,

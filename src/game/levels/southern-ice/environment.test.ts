@@ -429,7 +429,7 @@ describe('Southern Ice Environment', () => {
     it('should position aurora at correct altitude', () => {
       const baseAltitude = 150;
       const curtainSpacing = 25;
-      const altitudes = [];
+      const altitudes: number[] = [];
 
       for (let i = 0; i < 5; i++) {
         altitudes.push(baseAltitude + i * curtainSpacing);
@@ -544,7 +544,7 @@ describe('Southern Ice Environment', () => {
 
     it('should create crack lines on lake', () => {
       const crackCount = 12;
-      const cracks = [];
+      const cracks: { angle: number; index: number }[] = [];
 
       for (let i = 0; i < crackCount; i++) {
         const angle = (i / crackCount) * Math.PI * 2;
@@ -570,7 +570,7 @@ describe('Southern Ice Environment', () => {
       const lakeRadius = 60;
       const lakeCenter = new Vector3(0, 0, -160);
 
-      const poles = [];
+      const poles: { x: number; z: number }[] = [];
       for (let i = 0; i < poleCount; i++) {
         const angle = (i / poleCount) * Math.PI * 2;
         poles.push({
@@ -868,10 +868,10 @@ describe('Southern Ice Environment', () => {
   describe('GLB Asset Paths', () => {
     it('should define modular wall paths', () => {
       const wallPaths = [
-        '/models/environment/modular/LongWindow_Wall_SideA.glb',
-        '/models/environment/modular/LongWindow_Wall_SideB.glb',
-        '/models/environment/modular/SmallWindows_Wall_SideA.glb',
-        '/models/environment/modular/SmallWindows_Wall_SideB.glb',
+        '/assets/models/environment/modular/LongWindow_Wall_SideA.glb',
+        '/assets/models/environment/modular/LongWindow_Wall_SideB.glb',
+        '/assets/models/environment/modular/SmallWindows_Wall_SideA.glb',
+        '/assets/models/environment/modular/SmallWindows_Wall_SideB.glb',
       ];
 
       expect(wallPaths.length).toBe(4);
@@ -879,10 +879,10 @@ describe('Southern Ice Environment', () => {
 
     it('should define prop paths', () => {
       const propPaths = [
-        '/models/environment/modular/Props_Capsule.glb',
-        '/models/environment/modular/Props_Pod.glb',
-        '/models/environment/modular/Props_Vessel.glb',
-        '/models/environment/modular/Props_Crate.glb',
+        '/assets/models/environment/modular/Props_Capsule.glb',
+        '/assets/models/environment/modular/Props_Pod.glb',
+        '/assets/models/environment/modular/Props_Vessel.glb',
+        '/assets/models/environment/modular/Props_Crate.glb',
       ];
 
       expect(propPaths.length).toBe(4);
@@ -890,9 +890,9 @@ describe('Southern Ice Environment', () => {
 
     it('should define metal fence paths', () => {
       const fencePaths = [
-        '/models/props/modular/metal_fence_hr_1.glb',
-        '/models/props/modular/metal_fence_hr_1_pillar_1.glb',
-        '/models/props/modular/metal_fence_hr_1_pillar_1_corner.glb',
+        '/assets/models/props/modular/metal_fence_hr_1.glb',
+        '/assets/models/props/modular/metal_fence_hr_1_pillar_1.glb',
+        '/assets/models/props/modular/metal_fence_hr_1_pillar_1_corner.glb',
       ];
 
       expect(fencePaths.length).toBe(3);
@@ -900,10 +900,10 @@ describe('Southern Ice Environment', () => {
 
     it('should define rock paths', () => {
       const rockPaths = [
-        '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-        '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-        '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
-        '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+        '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+        '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+        '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+        '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
       ];
 
       expect(rockPaths.length).toBe(4);

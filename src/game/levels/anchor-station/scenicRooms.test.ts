@@ -205,8 +205,8 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('Floor and Ceiling', () => {
     it('should define floor/ceiling model paths', () => {
       const SCENIC_MODELS = {
-        floorCeiling1: '/models/environment/station/floor_ceiling_hr_1.glb',
-        floorCeilingRtx1: '/models/environment/station/floor_ceiling_rtx_1.glb',
+        floorCeiling1: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+        floorCeilingRtx1: '/assets/models/environment/station/floor_ceiling_rtx_1.glb',
       };
 
       expect(SCENIC_MODELS.floorCeiling1).toContain('floor_ceiling');
@@ -216,9 +216,9 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('Walls', () => {
     it('should define wall model paths', () => {
       const SCENIC_MODELS = {
-        wallSingle: '/models/environment/station/wall_hr_1.glb',
-        wallDouble: '/models/environment/station/wall_hr_1_double.glb',
-        wallHole: '/models/environment/station/wall_hr_1_hole_1.glb',
+        wallSingle: '/assets/models/environment/station/wall_hr_1.glb',
+        wallDouble: '/assets/models/environment/station/wall_hr_1_double.glb',
+        wallHole: '/assets/models/environment/station/wall_hr_1_hole_1.glb',
       };
 
       expect(SCENIC_MODELS.wallSingle).toContain('wall_hr_1');
@@ -229,8 +229,8 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('Windows', () => {
     it('should define window model paths', () => {
       const SCENIC_MODELS = {
-        window1: '/models/environment/station/window_hr_1.glb',
-        window2: '/models/environment/station/window_hr_2.glb',
+        window1: '/assets/models/environment/station/window_hr_1.glb',
+        window2: '/assets/models/environment/station/window_hr_2.glb',
       };
 
       expect(SCENIC_MODELS.window1).toContain('window');
@@ -240,9 +240,9 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('Doorways', () => {
     it('should define doorway model paths', () => {
       const SCENIC_MODELS = {
-        doorway: '/models/environment/station/doorway_hr_1.glb',
-        doorway2: '/models/environment/station/doorway_hr_2_regular.glb',
-        stationDoor: '/models/environment/station/station_door.glb',
+        doorway: '/assets/models/environment/station/doorway_hr_1.glb',
+        doorway2: '/assets/models/environment/station/doorway_hr_2_regular.glb',
+        stationDoor: '/assets/models/environment/station/station_door.glb',
       };
 
       expect(SCENIC_MODELS.doorway).toContain('doorway');
@@ -252,9 +252,9 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('Columns and Pillars', () => {
     it('should define column model paths', () => {
       const SCENIC_MODELS = {
-        pillar2: '/models/environment/station/pillar_hr_2.glb',
-        modColumn1: '/models/environment/modular/Column_1.glb',
-        modColumnSlim: '/models/environment/modular/Column_Slim.glb',
+        pillar2: '/assets/models/environment/station/pillar_hr_2.glb',
+        modColumn1: '/assets/models/environment/modular/Column_1.glb',
+        modColumnSlim: '/assets/models/environment/modular/Column_Slim.glb',
       };
 
       expect(SCENIC_MODELS.modColumn1).toContain('Column');
@@ -264,10 +264,10 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('Props', () => {
     it('should define furniture prop paths', () => {
       const SCENIC_MODELS = {
-        bench: '/models/props/furniture/bench_mx_1.glb',
-        modComputer: '/models/environment/modular/Props_Computer.glb',
-        modShelf: '/models/environment/modular/Props_Shelf.glb',
-        modCrate: '/models/environment/modular/Props_Crate.glb',
+        bench: '/assets/models/props/furniture/bench_mx_1.glb',
+        modComputer: '/assets/models/environment/modular/Props_Computer.glb',
+        modShelf: '/assets/models/environment/modular/Props_Shelf.glb',
+        modCrate: '/assets/models/environment/modular/Props_Crate.glb',
       };
 
       expect(SCENIC_MODELS.bench).toContain('bench');
@@ -276,10 +276,10 @@ describe('Scenic Rooms - GLB Model Paths', () => {
 
     it('should define decorative vessel paths', () => {
       const SCENIC_MODELS = {
-        modVessel: '/models/environment/modular/Props_Vessel.glb',
-        modVesselShort: '/models/environment/modular/Props_Vessel_Short.glb',
-        modPod: '/models/environment/modular/Props_Pod.glb',
-        modStatue: '/models/environment/modular/Props_Statue.glb',
+        modVessel: '/assets/models/environment/modular/Props_Vessel.glb',
+        modVesselShort: '/assets/models/environment/modular/Props_Vessel_Short.glb',
+        modPod: '/assets/models/environment/modular/Props_Pod.glb',
+        modStatue: '/assets/models/environment/modular/Props_Statue.glb',
       };
 
       expect(SCENIC_MODELS.modVessel).toContain('Vessel');
@@ -289,8 +289,8 @@ describe('Scenic Rooms - GLB Model Paths', () => {
   describe('NPC Models', () => {
     it('should define NPC marine model paths', () => {
       const SCENIC_MODELS = {
-        npcMarine: '/models/npcs/marine/marine_soldier.glb',
-        npcMarineSergeant: '/models/npcs/marine/marine_sergeant.glb',
+        npcMarine: '/assets/models/npcs/marine/marine_soldier.glb',
+        npcMarineSergeant: '/assets/models/npcs/marine/marine_sergeant.glb',
       };
 
       expect(SCENIC_MODELS.npcMarine).toContain('marine_soldier');
@@ -716,9 +716,9 @@ describe('Scenic Rooms - ScenicRoomsResult Interface', () => {
 describe('Scenic Rooms - Asset Preloading', () => {
   it('should preload unique model paths', async () => {
     const paths = [
-      '/models/environment/station/floor_ceiling_hr_1.glb',
-      '/models/environment/station/wall_hr_1.glb',
-      '/models/environment/station/floor_ceiling_hr_1.glb', // Duplicate
+      '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+      '/assets/models/environment/station/wall_hr_1.glb',
+      '/assets/models/environment/station/floor_ceiling_hr_1.glb', // Duplicate
     ];
 
     const unique = [...new Set(paths)];
@@ -729,7 +729,7 @@ describe('Scenic Rooms - Asset Preloading', () => {
   it('should use Promise.allSettled for preloading', async () => {
     const loadAsset = vi.fn().mockResolvedValue(undefined);
 
-    const paths = ['/models/a.glb', '/models/b.glb'];
+    const paths = ['/assets/models/a.glb', '/assets/models/b.glb'];
 
     await Promise.allSettled(paths.map((p) => loadAsset(p)));
 
@@ -755,7 +755,7 @@ describe('Scenic Rooms - GLB Instance Placement', () => {
       });
 
       const instance = createInstance(
-        '/models/test.glb',
+        '/assets/models/test.glb',
         'testInstance',
         new Vector3(1, 2, 3),
         new Vector3(0, Math.PI / 2, 0),

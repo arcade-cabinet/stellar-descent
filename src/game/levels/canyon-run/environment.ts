@@ -140,153 +140,156 @@ function seededRandom(seed: number): () => number {
 
 const GLB = {
   // Barriers and barricades (props/modular)
-  barricadeA1: '/models/props/modular/barricade_a_1.glb',
-  barricadeA2: '/models/props/modular/barricade_a_2.glb',
-  barricadeA3: '/models/props/modular/barricade_a_3.glb',
-  barricadeB1: '/models/props/modular/barricade_b_1.glb',
-  barricadeB2: '/models/props/modular/barricade_b_2.glb',
-  barricadeB3: '/models/props/modular/barricade_b_3.glb',
-  barricadeB4: '/models/props/modular/barricade_b_4.glb',
-  concreteFence: '/models/props/modular/concrete_fence_hr_1.glb',
-  concreteFence2: '/models/props/modular/concrete_fence_hr_2.glb',
-  concreteFencePillar: '/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
-  concreteFenceCorner: '/models/props/modular/concrete_fence_hr_1_pillar_1_corner.glb',
-  metalFence: '/models/props/modular/metal_fence_hr_1.glb',
-  metalFenceTall: '/models/props/modular/metal_fence_hr_1_tall.glb',
-  metalFencePillar: '/models/props/modular/metal_fence_hr_1_pillar_1.glb',
+  barricadeA1: '/assets/models/props/modular/barricade_a_1.glb',
+  barricadeA2: '/assets/models/props/modular/barricade_a_2.glb',
+  barricadeA3: '/assets/models/props/modular/barricade_a_3.glb',
+  barricadeB1: '/assets/models/props/modular/barricade_b_1.glb',
+  barricadeB2: '/assets/models/props/modular/barricade_b_2.glb',
+  barricadeB3: '/assets/models/props/modular/barricade_b_3.glb',
+  barricadeB4: '/assets/models/props/modular/barricade_b_4.glb',
+  concreteFence: '/assets/models/props/modular/concrete_fence_hr_1.glb',
+  concreteFence2: '/assets/models/props/modular/concrete_fence_hr_2.glb',
+  concreteFencePillar: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
+  concreteFenceCorner: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1_corner.glb',
+  metalFence: '/assets/models/props/modular/metal_fence_hr_1.glb',
+  metalFenceTall: '/assets/models/props/modular/metal_fence_hr_1_tall.glb',
+  metalFencePillar: '/assets/models/props/modular/metal_fence_hr_1_pillar_1.glb',
 
   // Alien rocks (boulders)
-  alienBoulder: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
-  alienRockMed1: '/models/environment/alien-flora/alien_rock_medium_1.glb',
-  alienRockMed2: '/models/environment/alien-flora/alien_rock_medium_2.glb',
-  alienRockMed3: '/models/environment/alien-flora/alien_rock_medium_3.glb',
-  alienTallRock1: '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-  alienTallRock2: '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  alienBoulder: '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+  alienRockMed1: '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+  alienRockMed2: '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+  alienRockMed3: '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
+  alienTallRock1: '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  alienTallRock2: '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
 
   // Alien vegetation
-  alienBush: '/models/environment/alien-flora/alien_bush_common.glb',
-  alienFern: '/models/environment/alien-flora/alien_fern_1.glb',
-  alienGrass: '/models/environment/alien-flora/alien_grass.glb',
-  alienIceplant: '/models/environment/alien-flora/alien_iceplant.glb',
-  alienMushroom1: '/models/environment/alien-flora/alien_mushroom_01.glb',
-  alienMushroom2: '/models/environment/alien-flora/alien_mushroom_02.glb',
-  alienDeadTree1: '/models/environment/alien-flora/alien_deadtree_1.glb',
-  alienDeadTree2: '/models/environment/alien-flora/alien_deadtree_2.glb',
-  alienTwistedTree1: '/models/environment/alien-flora/alien_twistedtree_1.glb',
-  alienTwistedTree2: '/models/environment/alien-flora/alien_twistedtree_2.glb',
+  alienBush: '/assets/models/environment/alien-flora/alien_bush_common.glb',
+  alienFern: '/assets/models/environment/alien-flora/alien_fern_1.glb',
+  alienGrass: '/assets/models/environment/alien-flora/alien_grass.glb',
+  alienIceplant: '/assets/models/environment/alien-flora/alien_iceplant.glb',
+  alienMushroom1: '/assets/models/environment/alien-flora/alien_mushroom_01.glb',
+  alienMushroom2: '/assets/models/environment/alien-flora/alien_mushroom_02.glb',
+  alienDeadTree1: '/assets/models/environment/alien-flora/alien_deadtree_1.glb',
+  alienDeadTree2: '/assets/models/environment/alien-flora/alien_deadtree_2.glb',
+  alienTwistedTree1: '/assets/models/environment/alien-flora/alien_twistedtree_1.glb',
+  alienTwistedTree2: '/assets/models/environment/alien-flora/alien_twistedtree_2.glb',
 
   // Rockslide debris
-  rockBrick1: '/models/props/debris/brick_mx_1.glb',
-  rockBrick2: '/models/props/debris/brick_mx_2.glb',
-  rockBrick3: '/models/props/debris/brick_mx_3.glb',
-  rockBrick4: '/models/props/debris/brick_mx_4.glb',
-  rockBrickStacked1: '/models/props/debris/bricks_stacked_mx_1.glb',
-  rockBrickStacked2: '/models/props/debris/bricks_stacked_mx_2.glb',
+  rockBrick1: '/assets/models/props/debris/brick_mx_1.glb',
+  rockBrick2: '/assets/models/props/debris/brick_mx_2.glb',
+  rockBrick3: '/assets/models/props/debris/brick_mx_3.glb',
+  rockBrick4: '/assets/models/props/debris/brick_mx_4.glb',
+  rockBrickStacked1: '/assets/models/props/debris/bricks_stacked_mx_1.glb',
+  rockBrickStacked2: '/assets/models/props/debris/bricks_stacked_mx_2.glb',
 
-  // Bridge structure parts (pillars and handrails)
-  bridgePillarHr2: '/models/environment/station/pillar_hr_2.glb',
-  bridgePillarHr4: '/models/environment/station/pillar_hr_4.glb',
-  bridgeHandrail1: '/models/environment/station/platform_b_handrail_1.glb',
-  bridgeHandrail2: '/models/environment/station/platform_b_handrail_2.glb',
+  // Bridge structure parts (pillars, handrails, and deck segments)
+  bridgePillarHr2: '/assets/models/environment/station/pillar_hr_2.glb',
+  bridgePillarHr4: '/assets/models/environment/station/pillar_hr_4.glb',
+  bridgeHandrail1: '/assets/models/environment/station/platform_b_handrail_1.glb',
+  bridgeHandrail2: '/assets/models/environment/station/platform_b_handrail_2.glb',
+  bridgeDeckFloor1: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+  bridgeDeckFloor2: '/assets/models/environment/station/floor_ceiling_hr_3.glb',
+  bridgeDeckFloor3: '/assets/models/environment/station/floor_ceiling_rtx_1.glb',
 
   // Industrial structures
-  boiler: '/models/environment/industrial/boiler_hx_4.glb',
-  waterTower: '/models/environment/industrial/water_tower_hm_1.glb',
-  storageTank: '/models/environment/industrial/storage_tank_mx_1.glb',
-  tankSystem: '/models/environment/industrial/tank_system_mx_1.glb',
-  shippingContainer1: '/models/environment/industrial/shipping_container_mx_1.glb',
-  shippingContainer2: '/models/environment/industrial/shipping_container_mx_2.glb',
-  shippingContainerHollow: '/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
-  cage: '/models/environment/industrial/cage_mx_1.glb',
-  machinery: '/models/environment/industrial/machinery_mx_1.glb',
-  distillery: '/models/environment/industrial/distillery_mx_1.glb',
-  chimney1: '/models/environment/industrial/chimney_a_1.glb',
-  chimney2: '/models/environment/industrial/chimney_a_2.glb',
-  chimney3: '/models/environment/industrial/chimney_a_3.glb',
-  pipes: '/models/environment/industrial/pipes_hr_1.glb',
-  pipeElbow: '/models/environment/industrial/pipes_hr_1_elbow_1.glb',
-  pipeHorizMid1: '/models/environment/industrial/pipes_hr_1_horizontal_middle_1.glb',
-  pipeHorizMid2: '/models/environment/industrial/pipes_hr_1_horizontal_middle_2.glb',
-  warehouse: '/models/environment/industrial/warehouse_hl_1.glb',
-  electricalEquip1: '/models/environment/industrial/electrical_equipment_1.glb',
-  electricalEquip2: '/models/environment/industrial/electrical_equipment_2.glb',
-  portal: '/models/environment/industrial/portal_mx_1.glb',
-  platform: '/models/environment/industrial/platform_mx_1.glb',
+  boiler: '/assets/models/environment/industrial/boiler_hx_4.glb',
+  waterTower: '/assets/models/environment/industrial/water_tower_hm_1.glb',
+  storageTank: '/assets/models/environment/industrial/storage_tank_mx_1.glb',
+  tankSystem: '/assets/models/environment/industrial/tank_system_mx_1.glb',
+  shippingContainer1: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+  shippingContainer2: '/assets/models/environment/industrial/shipping_container_mx_2.glb',
+  shippingContainerHollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  cage: '/assets/models/environment/industrial/cage_mx_1.glb',
+  machinery: '/assets/models/environment/industrial/machinery_mx_1.glb',
+  distillery: '/assets/models/environment/industrial/distillery_mx_1.glb',
+  chimney1: '/assets/models/environment/industrial/chimney_a_1.glb',
+  chimney2: '/assets/models/environment/industrial/chimney_a_2.glb',
+  chimney3: '/assets/models/environment/industrial/chimney_a_3.glb',
+  pipes: '/assets/models/environment/industrial/pipes_hr_1.glb',
+  pipeElbow: '/assets/models/environment/industrial/pipes_hr_1_elbow_1.glb',
+  pipeHorizMid1: '/assets/models/environment/industrial/pipes_hr_1_horizontal_middle_1.glb',
+  pipeHorizMid2: '/assets/models/environment/industrial/pipes_hr_1_horizontal_middle_2.glb',
+  warehouse: '/assets/models/environment/industrial/warehouse_hl_1.glb',
+  electricalEquip1: '/assets/models/environment/industrial/electrical_equipment_1.glb',
+  electricalEquip2: '/assets/models/environment/industrial/electrical_equipment_2.glb',
+  portal: '/assets/models/environment/industrial/portal_mx_1.glb',
+  platform: '/assets/models/environment/industrial/platform_mx_1.glb',
 
   // Station pieces (ramps, platforms, asphalt, pipes)
-  rampSlim: '/models/environment/station/ramp_platform_slim_mx_1.glb',
-  rampWide: '/models/environment/station/ramp_platform_wide_mx_1.glb',
-  asphalt1: '/models/environment/station/asphalt_hr_1.glb',
-  asphalt2: '/models/environment/station/asphalt_hr_2.glb',
-  asphalt3: '/models/environment/station/asphalt_hr_3.glb',
-  asphaltLarge: '/models/environment/station/asphalt_hr_1_large.glb',
-  concretePipeEnd: '/models/environment/station/concrete_pipe_hm_1_end.glb',
-  concretePipeMid: '/models/environment/station/concrete_pipe_hm_1_middle.glb',
-  concretePipeBars: '/models/environment/station/concrete_pipe_hm_1_end_bars_1.glb',
-  pillarBroken: '/models/environment/station/pillar_hr_1_broken.glb',
-  pillar2: '/models/environment/station/pillar_hr_2.glb',
-  pillar4: '/models/environment/station/pillar_hr_4.glb',
-  pillar5: '/models/environment/station/pillar_hr_5.glb',
-  wallDouble: '/models/environment/station/wall_hr_1_double.glb',
-  wallSingle: '/models/environment/station/wall_hr_1.glb',
-  wallHole1: '/models/environment/station/wall_hr_1_hole_1.glb',
-  wallHole2: '/models/environment/station/wall_hr_1_hole_2.glb',
-  garageBlock: '/models/environment/station/garages_block_hr_1.glb',
-  garage1: '/models/environment/station/garage_hl_1.glb',
-  garage2: '/models/environment/station/garage_hl_2.glb',
-  shed1: '/models/environment/station/shed_ax_1.glb',
-  shed2: '/models/environment/station/shed_ax_2.glb',
-  shed3: '/models/environment/station/shed_ax_3.glb',
-  platformAx1: '/models/environment/station/platform_ax_1.glb',
-  platformAx2: '/models/environment/station/platform_ax_2.glb',
-  platformBx1: '/models/environment/station/platform_bx_1.glb',
-  platformCx1: '/models/environment/station/platform_cx_1.glb',
-  platformLarge: '/models/environment/station/platform_large_mx_1.glb',
-  platformSmall: '/models/environment/station/platform_small_mx_1.glb',
-  beamHoriz1: '/models/environment/station/beam_hc_horizontal_1.glb',
-  beamHoriz2: '/models/environment/station/beam_hc_horizontal_2.glb',
-  beamVert1: '/models/environment/station/beam_hc_vertical_1.glb',
-  beamVert2: '/models/environment/station/beam_hc_vertical_2.glb',
-  beamRtx1: '/models/environment/station/beam_rtx_1.glb',
-  roofBx1: '/models/environment/station/roof_bx_1.glb',
-  warehouseMx1: '/models/environment/station/warehouse_mx_1.glb',
-  warehouseMx2: '/models/environment/station/warehouse_mx_2.glb',
+  rampSlim: '/assets/models/environment/station/ramp_platform_slim_mx_1.glb',
+  rampWide: '/assets/models/environment/station/ramp_platform_wide_mx_1.glb',
+  asphalt1: '/assets/models/environment/station/asphalt_hr_1.glb',
+  asphalt2: '/assets/models/environment/station/asphalt_hr_2.glb',
+  asphalt3: '/assets/models/environment/station/asphalt_hr_3.glb',
+  asphaltLarge: '/assets/models/environment/station/asphalt_hr_1_large.glb',
+  concretePipeEnd: '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
+  concretePipeMid: '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
+  concretePipeBars: '/assets/models/environment/station/concrete_pipe_hm_1_end_bars_1.glb',
+  pillarBroken: '/assets/models/environment/station/pillar_hr_1_broken.glb',
+  pillar2: '/assets/models/environment/station/pillar_hr_2.glb',
+  pillar4: '/assets/models/environment/station/pillar_hr_4.glb',
+  pillar5: '/assets/models/environment/station/pillar_hr_5.glb',
+  wallDouble: '/assets/models/environment/station/wall_hr_1_double.glb',
+  wallSingle: '/assets/models/environment/station/wall_hr_1.glb',
+  wallHole1: '/assets/models/environment/station/wall_hr_1_hole_1.glb',
+  wallHole2: '/assets/models/environment/station/wall_hr_1_hole_2.glb',
+  garageBlock: '/assets/models/environment/station/garages_block_hr_1.glb',
+  garage1: '/assets/models/environment/station/garage_hl_1.glb',
+  garage2: '/assets/models/environment/station/garage_hl_2.glb',
+  shed1: '/assets/models/environment/station/shed_ax_1.glb',
+  shed2: '/assets/models/environment/station/shed_ax_2.glb',
+  shed3: '/assets/models/environment/station/shed_ax_3.glb',
+  platformAx1: '/assets/models/environment/station/platform_ax_1.glb',
+  platformAx2: '/assets/models/environment/station/platform_ax_2.glb',
+  platformBx1: '/assets/models/environment/station/platform_bx_1.glb',
+  platformCx1: '/assets/models/environment/station/platform_cx_1.glb',
+  platformLarge: '/assets/models/environment/station/platform_large_mx_1.glb',
+  platformSmall: '/assets/models/environment/station/platform_small_mx_1.glb',
+  beamHoriz1: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
+  beamHoriz2: '/assets/models/environment/station/beam_hc_horizontal_2.glb',
+  beamVert1: '/assets/models/environment/station/beam_hc_vertical_1.glb',
+  beamVert2: '/assets/models/environment/station/beam_hc_vertical_2.glb',
+  beamRtx1: '/assets/models/environment/station/beam_rtx_1.glb',
+  roofBx1: '/assets/models/environment/station/roof_bx_1.glb',
+  warehouseMx1: '/assets/models/environment/station/warehouse_mx_1.glb',
+  warehouseMx2: '/assets/models/environment/station/warehouse_mx_2.glb',
 
   // Station external (crashed ship)
-  stationExt03: '/models/environment/station-external/station03.glb',
-  stationExt05: '/models/environment/station-external/station05.glb',
+  stationExt03: '/assets/models/environment/station-external/station03.glb',
+  stationExt05: '/assets/models/environment/station-external/station05.glb',
 
   // Spaceships (wrecked)
-  spaceshipChallenger: '/models/spaceships/Challenger.glb',
-  spaceshipOmen: '/models/spaceships/Omen.glb',
+  spaceshipChallenger: '/assets/models/spaceships/Challenger.glb',
+  spaceshipOmen: '/assets/models/spaceships/Omen.glb',
 
   // Wrecked spaceships (for canyon wreck obstacles)
-  wreckSpaceship2: '/models/spaceships/Spaceship2.glb',
-  wreckSpaceship3: '/models/spaceships/Spaceship3.glb',
-  wreckSpaceship4: '/models/spaceships/Spaceship4.glb',
-  wreckSpaceship5: '/models/spaceships/Spaceship5.glb',
+  wreckSpaceship2: '/assets/models/spaceships/Spaceship2.glb',
+  wreckSpaceship3: '/assets/models/spaceships/Spaceship3.glb',
+  wreckSpaceship4: '/assets/models/spaceships/Spaceship4.glb',
+  wreckSpaceship5: '/assets/models/spaceships/Spaceship5.glb',
 
   // Wreck debris parts
-  debrisBrick0: '/models/props/debris/debris_bricks_mx_1_0.glb',
-  debrisBrick2_0: '/models/props/debris/debris_bricks_mx_2_0.glb',
-  bricksStacked1: '/models/props/debris/bricks_stacked_mx_1.glb',
-  bricksStacked2: '/models/props/debris/bricks_stacked_mx_2.glb',
-  scrapMetal1_1: '/models/props/containers/scrap_metal_mx_1_1.glb',
-  scrapMetal1_2: '/models/props/containers/scrap_metal_mx_1_2.glb',
+  debrisBrick0: '/assets/models/props/debris/debris_bricks_mx_1_0.glb',
+  debrisBrick2_0: '/assets/models/props/debris/debris_bricks_mx_2_0.glb',
+  bricksStacked1: '/assets/models/props/debris/bricks_stacked_mx_1.glb',
+  bricksStacked2: '/assets/models/props/debris/bricks_stacked_mx_2.glb',
+  scrapMetal1_1: '/assets/models/props/containers/scrap_metal_mx_1_1.glb',
+  scrapMetal1_2: '/assets/models/props/containers/scrap_metal_mx_1_2.glb',
 
   // Props - containers/debris
-  barrel3: '/models/props/containers/metal_barrel_hr_3.glb',
-  barrel4: '/models/props/containers/metal_barrel_hr_4.glb',
-  tire1: '/models/props/containers/tire_1.glb',
-  tire2: '/models/props/containers/tire_2.glb',
-  jerrycan: '/models/props/containers/jerrycan_mx_1.glb',
-  woodenCrate1: '/models/props/containers/wooden_crate_1.glb',
-  woodenCrate2a: '/models/props/containers/wooden_crate_2_a.glb',
-  scrapMetal1: '/models/props/containers/scrap_metal_mx_1.glb',
-  gravelPile1: '/models/props/debris/gravel_pile_hr_1.glb',
-  gravelPile2: '/models/props/debris/gravel_pile_hr_2.glb',
-  debrisBricks1: '/models/props/debris/debris_bricks_mx_1.glb',
-  debrisBricks2: '/models/props/debris/debris_bricks_mx_2.glb',
+  barrel3: '/assets/models/props/containers/metal_barrel_hr_3.glb',
+  barrel4: '/assets/models/props/containers/metal_barrel_hr_4.glb',
+  tire1: '/assets/models/props/containers/tire_1.glb',
+  tire2: '/assets/models/props/containers/tire_2.glb',
+  jerrycan: '/assets/models/props/containers/jerrycan_mx_1.glb',
+  woodenCrate1: '/assets/models/props/containers/wooden_crate_1.glb',
+  woodenCrate2a: '/assets/models/props/containers/wooden_crate_2_a.glb',
+  scrapMetal1: '/assets/models/props/containers/scrap_metal_mx_1.glb',
+  gravelPile1: '/assets/models/props/debris/gravel_pile_hr_1.glb',
+  gravelPile2: '/assets/models/props/debris/gravel_pile_hr_2.glb',
+  debrisBricks1: '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  debrisBricks2: '/assets/models/props/debris/debris_bricks_mx_2.glb',
 } as const;
 
 // ============================================================================
@@ -787,11 +790,14 @@ async function preloadEnvironmentGLBs(scene: Scene): Promise<void> {
     GLB.alienDeadTree2,
     GLB.alienTwistedTree1,
     GLB.alienTwistedTree2,
-    // Bridge parts
+    // Bridge parts (pillars, handrails, and deck floors)
     GLB.bridgePillarHr2,
     GLB.bridgePillarHr4,
     GLB.bridgeHandrail1,
     GLB.bridgeHandrail2,
+    GLB.bridgeDeckFloor1,
+    GLB.bridgeDeckFloor2,
+    GLB.bridgeDeckFloor3,
     // Rockslide debris
     GLB.rockBrick1,
     GLB.rockBrick2,
@@ -943,9 +949,14 @@ export function sampleTerrainHeight(x: number, z: number): number {
 // CANYON WALLS
 // ============================================================================
 
+/**
+ * Create canyon walls using GLB rock models for visual geometry.
+ * Returns invisible collision boxes for interface compatibility (Mesh[])
+ * while the actual visuals come from instanced GLB rock formations.
+ */
 function createCanyonWalls(
   scene: Scene,
-  materials: CanyonMaterials,
+  _materials: CanyonMaterials,
   rand: () => number
 ): { leftWalls: Mesh[]; rightWalls: Mesh[] } {
   const leftWalls: Mesh[] = [];
@@ -954,42 +965,100 @@ function createCanyonWalls(
   for (let i = 0; i < WALL_SEGMENTS; i++) {
     const z = -i * WALL_SEGMENT_LENGTH;
 
-    // [FIX #41] Slightly randomize wall width to hide seams
-    const seamHideOverlap = 3; // Extra overlap to hide seams
-
     // Left wall - varies in distance from center
     const leftOffset = CANYON_HALF_WIDTH + rand() * 8;
-    const leftWall = MeshBuilder.CreateBox(
-      `canyon_wall_left_${i}`,
-      {
-        width: 15 + rand() * 10,
-        height: WALL_HEIGHT + rand() * 30,
-        depth: WALL_SEGMENT_LENGTH + seamHideOverlap, // [FIX #41] Extra overlap
-      },
+    const wallWidth = 15 + rand() * 10;
+    const wallHeight = WALL_HEIGHT + rand() * 30;
+    const wallDepth = WALL_SEGMENT_LENGTH + 3; // Overlap to hide seams
+
+    // Invisible collision box for interface compatibility
+    const leftCollider = MeshBuilder.CreateBox(
+      `canyon_wall_left_col_${i}`,
+      { width: wallWidth, height: wallHeight, depth: wallDepth },
       scene
     );
-    leftWall.material = materials.wall;
-    leftWall.position.set(-leftOffset - 5, WALL_HEIGHT / 2 - 5, z);
-    // [FIX #41] Reduce rotation to minimize visible gaps
-    leftWall.rotation.y = (rand() - 0.5) * 0.05;
-    leftWalls.push(leftWall);
+    leftCollider.isVisible = false;
+    leftCollider.position.set(-leftOffset - 5, wallHeight / 2 - 5, z);
+    leftCollider.rotation.y = (rand() - 0.5) * 0.05;
+    leftWalls.push(leftCollider);
+
+    // GLB rock instances for left wall visual - use multiple rocks stacked/layered
+    const leftGlbPath = CANYON_WALL_GLBS[i % CANYON_WALL_GLBS.length];
+    const leftRockNode = AssetManager.createInstanceByPath(
+      leftGlbPath,
+      `canyon_wall_left_glb_${i}`,
+      scene,
+      true,
+      'environment'
+    );
+    if (leftRockNode) {
+      leftRockNode.position.set(-leftOffset - 5, 0, z);
+      // Scale to match wall dimensions - tall rocks scaled up significantly
+      leftRockNode.scaling.set(wallWidth * 0.6, wallHeight * 0.35, wallDepth * 0.4);
+      leftRockNode.rotation.y = (rand() - 0.5) * 0.2 + Math.PI; // Face inward
+    }
+
+    // Add secondary rock formation for visual density on left wall
+    const leftGlbPath2 = CANYON_WALL_GLBS[(i + 2) % CANYON_WALL_GLBS.length];
+    const leftRockNode2 = AssetManager.createInstanceByPath(
+      leftGlbPath2,
+      `canyon_wall_left_glb2_${i}`,
+      scene,
+      true,
+      'environment'
+    );
+    if (leftRockNode2) {
+      leftRockNode2.position.set(-leftOffset - 8, wallHeight * 0.2, z + wallDepth * 0.3);
+      leftRockNode2.scaling.set(wallWidth * 0.4, wallHeight * 0.25, wallDepth * 0.3);
+      leftRockNode2.rotation.y = rand() * Math.PI * 2;
+    }
 
     // Right wall
     const rightOffset = CANYON_HALF_WIDTH + rand() * 8;
-    const rightWall = MeshBuilder.CreateBox(
-      `canyon_wall_right_${i}`,
-      {
-        width: 15 + rand() * 10,
-        height: WALL_HEIGHT + rand() * 30,
-        depth: WALL_SEGMENT_LENGTH + seamHideOverlap, // [FIX #41] Extra overlap
-      },
+    const rightWallWidth = 15 + rand() * 10;
+    const rightWallHeight = WALL_HEIGHT + rand() * 30;
+    const rightWallDepth = WALL_SEGMENT_LENGTH + 3;
+
+    // Invisible collision box for interface compatibility
+    const rightCollider = MeshBuilder.CreateBox(
+      `canyon_wall_right_col_${i}`,
+      { width: rightWallWidth, height: rightWallHeight, depth: rightWallDepth },
       scene
     );
-    rightWall.material = materials.wall;
-    rightWall.position.set(rightOffset + 5, WALL_HEIGHT / 2 - 5, z);
-    // [FIX #41] Reduce rotation to minimize visible gaps
-    rightWall.rotation.y = (rand() - 0.5) * 0.05;
-    rightWalls.push(rightWall);
+    rightCollider.isVisible = false;
+    rightCollider.position.set(rightOffset + 5, rightWallHeight / 2 - 5, z);
+    rightCollider.rotation.y = (rand() - 0.5) * 0.05;
+    rightWalls.push(rightCollider);
+
+    // GLB rock instances for right wall visual
+    const rightGlbPath = CANYON_WALL_GLBS[(i + 1) % CANYON_WALL_GLBS.length];
+    const rightRockNode = AssetManager.createInstanceByPath(
+      rightGlbPath,
+      `canyon_wall_right_glb_${i}`,
+      scene,
+      true,
+      'environment'
+    );
+    if (rightRockNode) {
+      rightRockNode.position.set(rightOffset + 5, 0, z);
+      rightRockNode.scaling.set(rightWallWidth * 0.6, rightWallHeight * 0.35, rightWallDepth * 0.4);
+      rightRockNode.rotation.y = (rand() - 0.5) * 0.2; // Face inward
+    }
+
+    // Add secondary rock formation for visual density on right wall
+    const rightGlbPath2 = CANYON_WALL_GLBS[(i + 3) % CANYON_WALL_GLBS.length];
+    const rightRockNode2 = AssetManager.createInstanceByPath(
+      rightGlbPath2,
+      `canyon_wall_right_glb2_${i}`,
+      scene,
+      true,
+      'environment'
+    );
+    if (rightRockNode2) {
+      rightRockNode2.position.set(rightOffset + 8, rightWallHeight * 0.2, z - rightWallDepth * 0.3);
+      rightRockNode2.scaling.set(rightWallWidth * 0.4, rightWallHeight * 0.25, rightWallDepth * 0.3);
+      rightRockNode2.rotation.y = rand() * Math.PI * 2;
+    }
   }
 
   return { leftWalls, rightWalls };
@@ -1007,6 +1076,16 @@ const BOULDER_GLBS = [
   GLB.alienRockMed3,
   GLB.alienTallRock1,
   GLB.alienTallRock2,
+];
+
+/** GLB models cycled for canyon wall segments (tall rock formations). */
+const CANYON_WALL_GLBS = [
+  GLB.alienTallRock1,
+  GLB.alienTallRock2,
+  GLB.alienBoulder,
+  GLB.alienRockMed1,
+  GLB.alienRockMed2,
+  GLB.alienRockMed3,
 ];
 
 function createBoulders(scene: Scene, _materials: CanyonMaterials, rand: () => number): Mesh[] {
@@ -1079,9 +1158,12 @@ function createBridges(scene: Scene, materials: CanyonMaterials): BridgeStructur
   return bridges;
 }
 
+/** GLB models cycled for bridge deck segments. */
+const BRIDGE_DECK_GLBS = [GLB.bridgeDeckFloor1, GLB.bridgeDeckFloor2, GLB.bridgeDeckFloor3];
+
 function createSingleBridge(
   scene: Scene,
-  materials: CanyonMaterials,
+  _materials: CanyonMaterials,
   position: Vector3,
   isCollapsible: boolean
 ): BridgeStructure {
@@ -1091,42 +1173,71 @@ function createSingleBridge(
   const segments: Mesh[] = [];
 
   // Bridge deck - split into segments for collapse animation
-  // [FIX #30] Increased overlap to eliminate visible gaps
+  // Uses invisible collision boxes for segment array (used by collapse system)
+  // with GLB floor pieces as children for visual appearance
   const segmentOverlap = 0.3;
   for (let i = 0; i < segmentCount; i++) {
+    // Invisible collision box that the collapse system manipulates
     const segment = MeshBuilder.CreateBox(
       `canyon_bridge_segment_${position.z}_${i}`,
       { width: bridgeWidth, height: 1.5, depth: segmentDepth + segmentOverlap },
       scene
     );
-    segment.material = materials.bridge;
+    segment.isVisible = false;
     segment.position.set(
       position.x,
       position.y,
       position.z + (i - segmentCount / 2) * segmentDepth
     );
+
+    // GLB floor piece as visual for this segment (parented so it falls with the segment)
+    const deckGlbPath = BRIDGE_DECK_GLBS[i % BRIDGE_DECK_GLBS.length];
+    const deckNode = AssetManager.createInstanceByPath(
+      deckGlbPath,
+      `canyon_bridge_deck_glb_${position.z}_${i}`,
+      scene,
+      true,
+      'environment'
+    );
+    if (deckNode) {
+      deckNode.parent = segment;
+      deckNode.position.set(0, 0, 0);
+      // Scale to match segment dimensions (width, height=thickness, depth)
+      deckNode.scaling.set(bridgeWidth * 0.15, 1.5, (segmentDepth + segmentOverlap) * 0.5);
+    }
+
     segments.push(segment);
   }
 
-  // Support pillars
+  // Support pillars - using GLB pillar models
   const pillarPositions = [
-    new Vector3(-bridgeWidth / 2 + 2, position.y / 2, position.z),
-    new Vector3(bridgeWidth / 2 - 2, position.y / 2, position.z),
+    new Vector3(-bridgeWidth / 2 + 2, 0, position.z),
+    new Vector3(bridgeWidth / 2 - 2, 0, position.z),
   ];
 
   for (let p = 0; p < pillarPositions.length; p++) {
-    const pillar = MeshBuilder.CreateBox(
+    // Use GLB pillar model (preloaded in preloadEnvironmentGLBs)
+    const pillarGlb = p === 0 ? GLB.bridgePillarHr2 : GLB.bridgePillarHr4;
+    const pillarNode = AssetManager.createInstanceByPath(
+      pillarGlb,
       `canyon_bridge_pillar_${position.z}_${p}`,
-      { width: 2, height: position.y, depth: 3 },
-      scene
+      scene,
+      true,
+      'environment'
     );
-    pillar.material = materials.bridgeMetal;
-    pillar.position = pillarPositions[p];
+
+    if (pillarNode) {
+      pillarNode.position = pillarPositions[p];
+      // Scale pillar height to match bridge height
+      const heightScale = position.y / 8; // Assume base model is ~8 units tall
+      pillarNode.scaling.set(1.5, heightScale, 1.5);
+    } else {
+      log.warn(`Bridge pillar GLB failed to load: ${pillarGlb}`);
+    }
   }
 
-  // [FIX #15] Railing meshes using GLB handrail assets
+  // [FIX #15] Railing meshes using GLB handrail assets (preloaded in preloadEnvironmentGLBs)
   for (const side of [-1, 1]) {
-    // Try to use GLB handrail, fall back to MeshBuilder
     const handrailPath = side === 1 ? GLB.bridgeHandrail1 : GLB.bridgeHandrail2;
     const handrailNode = AssetManager.createInstanceByPath(
       handrailPath,
@@ -1145,14 +1256,7 @@ function createSingleBridge(
       handrailNode.rotation.y = side === 1 ? 0 : Math.PI;
       handrailNode.scaling.setAll(2.0);
     } else {
-      // Fallback to primitive
-      const railing = MeshBuilder.CreateBox(
-        `canyon_bridge_railing_fallback_${position.z}_${side}`,
-        { width: 0.3, height: 1.5, depth: 10 },
-        scene
-      );
-      railing.material = materials.bridgeMetal;
-      railing.position.set(position.x + side * (bridgeWidth / 2 - 0.5), position.y + 1.0, position.z);
+      log.warn(`Bridge handrail GLB failed to load: ${handrailPath}`);
     }
   }
 

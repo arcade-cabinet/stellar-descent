@@ -39,7 +39,7 @@ import { getLogger } from '../../core/Logger';
 const log = getLogger('EscapeRouteEnvironment');
 
 // GLB path for the escape shuttle (replaces procedural box geometry)
-const SHUTTLE_GLB_PATH = '/models/spaceships/Challenger.glb';
+const SHUTTLE_GLB_PATH = '/assets/models/spaceships/Challenger.glb';
 
 // ============================================================================
 // TYPES
@@ -83,67 +83,67 @@ interface Placement {
 
 const ASSETS = {
   // Environment modular
-  columnB: '/models/environment/modular/Column_B.glb',
-  detailA: '/models/environment/modular/Detail_A.glb',
-  detailB: '/models/environment/modular/Detail_B.glb',
+  columnB: '/assets/models/environment/modular/Column_1.glb',
+  detailA: '/assets/models/environment/modular/Details_Arrow.glb',
+  detailB: '/assets/models/environment/modular/Details_Basic_1.glb',
 
   // Quaternius modular props
-  laser: '/models/environment/modular/Props_Laser.glb',
-  statue: '/models/environment/modular/Props_Statue.glb',
-  teleporter1: '/models/environment/modular/Props_Teleporter_1.glb',
-  teleporter2: '/models/environment/modular/Props_Teleporter_2.glb',
-  detailArrow: '/models/environment/modular/Details_Arrow.glb',
-  detailArrow2: '/models/environment/modular/Details_Arrow_2.glb',
-  detailBasic1: '/models/environment/modular/Details_Basic_1.glb',
-  detailBasic2: '/models/environment/modular/Details_Basic_2.glb',
-  detailBasic3: '/models/environment/modular/Details_Basic_3.glb',
-  detailBasic4: '/models/environment/modular/Details_Basic_4.glb',
+  laser: '/assets/models/environment/modular/Props_Laser.glb',
+  statue: '/assets/models/environment/modular/Props_Statue.glb',
+  teleporter1: '/assets/models/environment/modular/Props_Teleporter_1.glb',
+  teleporter2: '/assets/models/environment/modular/Props_Teleporter_2.glb',
+  detailArrow: '/assets/models/environment/modular/Details_Arrow.glb',
+  detailArrow2: '/assets/models/environment/modular/Details_Arrow_2.glb',
+  detailBasic1: '/assets/models/environment/modular/Details_Basic_1.glb',
+  detailBasic2: '/assets/models/environment/modular/Details_Basic_2.glb',
+  detailBasic3: '/assets/models/environment/modular/Details_Basic_3.glb',
+  detailBasic4: '/assets/models/environment/modular/Details_Basic_4.glb',
 
   // Metal fences
-  metalFence2: '/models/props/modular/metal_fence_hr_2.glb',
-  metalFence2Tall: '/models/props/modular/metal_fence_hr_2_tall.glb',
-  ladder: '/models/props/modular/ladder_hr_1_long.glb',
+  metalFence2: '/assets/models/props/modular/metal_fence_hr_2.glb',
+  metalFence2Tall: '/assets/models/props/modular/metal_fence_hr_2_tall.glb',
+  ladder: '/assets/models/props/modular/ladder_hr_1_long.glb',
 
   // Spaceships (crashed wreckage)
-  wreckBob: '/models/spaceships/Bob.glb',
-  wreckPancake: '/models/spaceships/Pancake.glb',
-  wreckSpitfire: '/models/spaceships/Spitfire.glb',
-  wreckZenith: '/models/spaceships/Zenith.glb',
+  wreckBob: '/assets/models/spaceships/Bob.glb',
+  wreckPancake: '/assets/models/spaceships/Pancake.glb',
+  wreckSpitfire: '/assets/models/spaceships/Spitfire.glb',
+  wreckZenith: '/assets/models/spaceships/Zenith.glb',
 
   // Station external
-  station05b: '/models/environment/station-external/station05.glb',
+  station05b: '/assets/models/environment/station-external/station05.glb',
 
   // Additional modular pieces for tunnel walls
-  column1: '/models/environment/modular/Column_1.glb',
-  column2: '/models/environment/modular/Column_2.glb',
-  column3: '/models/environment/modular/Column_3.glb',
-  columnSlim: '/models/environment/modular/Column_Slim.glb',
-  pipes: '/models/environment/modular/Pipes.glb',
-  doorDouble: '/models/environment/modular/Door_Double.glb',
-  floorTile: '/models/environment/modular/FloorTile_Basic.glb',
-  floorTile2: '/models/environment/modular/FloorTile_Basic2.glb',
-  wallSideA: '/models/environment/modular/DoorDouble_Wall_SideA.glb',
-  wallSideB: '/models/environment/modular/DoorDouble_Wall_SideB.glb',
-  crate: '/models/environment/modular/Props_Crate.glb',
-  crateLong: '/models/environment/modular/Props_CrateLong.glb',
-  container: '/models/environment/modular/Props_ContainerFull.glb',
+  column1: '/assets/models/environment/modular/Column_1.glb',
+  column2: '/assets/models/environment/modular/Column_2.glb',
+  column3: '/assets/models/environment/modular/Column_3.glb',
+  columnSlim: '/assets/models/environment/modular/Column_Slim.glb',
+  pipes: '/assets/models/environment/modular/Pipes.glb',
+  doorDouble: '/assets/models/environment/modular/Door_Double.glb',
+  floorTile: '/assets/models/environment/modular/FloorTile_Basic.glb',
+  floorTile2: '/assets/models/environment/modular/FloorTile_Basic2.glb',
+  wallSideA: '/assets/models/environment/modular/DoorDouble_Wall_SideA.glb',
+  wallSideB: '/assets/models/environment/modular/DoorDouble_Wall_SideB.glb',
+  crate: '/assets/models/environment/modular/Props_Crate.glb',
+  crateLong: '/assets/models/environment/modular/Props_CrateLong.glb',
+  container: '/assets/models/environment/modular/Props_ContainerFull.glb',
 
   // Shuttle GLB (replaces procedural box/cylinder geometry)
   shuttle: SHUTTLE_GLB_PATH,
 
   // Station environment GLBs (replacing procedural floor/wall/platform geometry)
-  floorHr1: '/models/environment/station/floor_ceiling_hr_1.glb',
-  floorHr3: '/models/environment/station/floor_ceiling_hr_3.glb',
-  floorRtx1: '/models/environment/station/floor_ceiling_rtx_1.glb',
-  platformBx1: '/models/environment/station/platform_bx_1.glb',
-  platformBx2: '/models/environment/station/platform_bx_2.glb',
-  platformLarge: '/models/environment/station/platform_large_mx_1.glb',
-  asphalt1: '/models/environment/station/asphalt_hr_1.glb',
-  asphalt2: '/models/environment/station/asphalt_hr_2.glb',
-  asphaltLarge: '/models/environment/station/asphalt_hr_1_large.glb',
-  wallHr1: '/models/environment/station/wall_hr_1.glb',
-  wallHr15: '/models/environment/station/wall_hr_15.glb',
-  wallRg1: '/models/environment/station/wall_rg_1.glb',
+  floorHr1: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+  floorHr3: '/assets/models/environment/station/floor_ceiling_hr_3.glb',
+  floorRtx1: '/assets/models/environment/station/floor_ceiling_rtx_1.glb',
+  platformBx1: '/assets/models/environment/station/platform_bx_1.glb',
+  platformBx2: '/assets/models/environment/station/platform_bx_2.glb',
+  platformLarge: '/assets/models/environment/station/platform_large_mx_1.glb',
+  asphalt1: '/assets/models/environment/station/asphalt_hr_1.glb',
+  asphalt2: '/assets/models/environment/station/asphalt_hr_2.glb',
+  asphaltLarge: '/assets/models/environment/station/asphalt_hr_1_large.glb',
+  wallHr1: '/assets/models/environment/station/wall_hr_1.glb',
+  wallHr15: '/assets/models/environment/station/wall_hr_15.glb',
+  wallRg1: '/assets/models/environment/station/wall_rg_1.glb',
 } as const;
 
 // ============================================================================

@@ -389,10 +389,10 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Station Corridor Segments', () => {
     it('should define corridor model paths', () => {
       const MODEL_PATHS = {
-        corridorMain: '/models/environment/station/corridor_main.glb',
-        corridorWide: '/models/environment/station/corridor_wide.glb',
-        corridorJunction: '/models/environment/station/corridor_junction.glb',
-        corridorCorner: '/models/environment/station/corridor_corner.glb',
+        corridorMain: '/assets/models/environment/station/corridor_main.glb',
+        corridorWide: '/assets/models/environment/station/corridor_wide.glb',
+        corridorJunction: '/assets/models/environment/station/corridor_junction.glb',
+        corridorCorner: '/assets/models/environment/station/corridor_corner.glb',
       };
 
       expect(MODEL_PATHS.corridorMain).toContain('corridor_main.glb');
@@ -403,9 +403,9 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Floor and Ceiling Tiles', () => {
     it('should define floor/ceiling model paths', () => {
       const MODEL_PATHS = {
-        floorCeiling1: '/models/environment/station/floor_ceiling_hr_1.glb',
-        floorCeiling3: '/models/environment/station/floor_ceiling_hr_3.glb',
-        floorCeilingRtx1: '/models/environment/station/floor_ceiling_rtx_1.glb',
+        floorCeiling1: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+        floorCeiling3: '/assets/models/environment/station/floor_ceiling_hr_3.glb',
+        floorCeilingRtx1: '/assets/models/environment/station/floor_ceiling_rtx_1.glb',
       };
 
       expect(MODEL_PATHS.floorCeiling1).toContain('floor_ceiling');
@@ -415,10 +415,10 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Wall Segments', () => {
     it('should define wall model paths', () => {
       const MODEL_PATHS = {
-        wallDouble: '/models/environment/station/wall_hr_1_double.glb',
-        wallSingle: '/models/environment/station/wall_hr_1.glb',
-        wallM2: '/models/environment/station/wall_hr_1_m_2.glb',
-        wallHole: '/models/environment/station/wall_hr_1_hole_1.glb',
+        wallDouble: '/assets/models/environment/station/wall_hr_1_double.glb',
+        wallSingle: '/assets/models/environment/station/wall_hr_1.glb',
+        wallM2: '/assets/models/environment/station/wall_hr_1_m_2.glb',
+        wallHole: '/assets/models/environment/station/wall_hr_1_hole_1.glb',
       };
 
       expect(MODEL_PATHS.wallDouble).toContain('wall_hr_1_double');
@@ -429,10 +429,10 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Doorway Models', () => {
     it('should define doorway model paths', () => {
       const MODEL_PATHS = {
-        doorway: '/models/environment/station/doorway_hr_1.glb',
-        doorwayWide: '/models/environment/station/doorway_hr_1_wide.glb',
-        doorway2: '/models/environment/station/doorway_hr_2_regular.glb',
-        stationDoor: '/models/environment/station/station_door.glb',
+        doorway: '/assets/models/environment/station/doorway_hr_1.glb',
+        doorwayWide: '/assets/models/environment/station/doorway_hr_1_wide.glb',
+        doorway2: '/assets/models/environment/station/doorway_hr_2_regular.glb',
+        stationDoor: '/assets/models/environment/station/station_door.glb',
       };
 
       expect(MODEL_PATHS.doorwayWide).toContain('wide');
@@ -443,10 +443,10 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Industrial Props', () => {
     it('should define industrial prop paths', () => {
       const MODEL_PATHS = {
-        barrel1: '/models/props/industrial/metal_barrel_hr_1.glb',
-        shelf: '/models/props/industrial/shelf_mx_1.glb',
-        machinery: '/models/props/industrial/machinery_mx_1.glb',
-        lamp1: '/models/props/industrial/lamp_mx_1_a_on.glb',
+        barrel1: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
+        shelf: '/assets/models/props/industrial/shelf_mx_1.glb',
+        machinery: '/assets/models/props/industrial/machinery_mx_1.glb',
+        lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
       };
 
       expect(MODEL_PATHS.barrel1).toContain('barrel');
@@ -457,9 +457,9 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Modular Sci-Fi Pieces', () => {
     it('should define modular floor paths', () => {
       const MODEL_PATHS = {
-        modFloorBasic: '/models/environment/modular/FloorTile_Basic.glb',
-        modFloorCorner: '/models/environment/modular/FloorTile_Corner.glb',
-        modFloorSide: '/models/environment/modular/FloorTile_Side.glb',
+        modFloorBasic: '/assets/models/environment/modular/FloorTile_Basic.glb',
+        modFloorCorner: '/assets/models/environment/modular/FloorTile_Corner.glb',
+        modFloorSide: '/assets/models/environment/modular/FloorTile_Side.glb',
       };
 
       expect(MODEL_PATHS.modFloorBasic).toContain('FloorTile');
@@ -467,9 +467,9 @@ describe('Environment - GLB Asset Paths', () => {
 
     it('should define modular wall and column paths', () => {
       const MODEL_PATHS = {
-        modWall1: '/models/environment/modular/Wall_1.glb',
-        modColumn1: '/models/environment/modular/Column_1.glb',
-        modColumn2: '/models/environment/modular/Column_2.glb',
+        modWall1: '/assets/models/environment/modular/Wall_1.glb',
+        modColumn1: '/assets/models/environment/modular/Column_1.glb',
+        modColumn2: '/assets/models/environment/modular/Column_2.glb',
       };
 
       expect(MODEL_PATHS.modColumn1).toContain('Column');
@@ -477,9 +477,9 @@ describe('Environment - GLB Asset Paths', () => {
 
     it('should define modular prop paths', () => {
       const MODEL_PATHS = {
-        modComputer: '/models/environment/modular/Props_Computer.glb',
-        modShelf: '/models/environment/modular/Props_Shelf.glb',
-        modShelfTall: '/models/environment/modular/Props_Shelf_Tall.glb',
+        modComputer: '/assets/models/environment/modular/Props_Computer.glb',
+        modShelf: '/assets/models/environment/modular/Props_Shelf.glb',
+        modShelfTall: '/assets/models/environment/modular/Props_Shelf_Tall.glb',
       };
 
       expect(MODEL_PATHS.modComputer).toContain('Computer');
@@ -491,7 +491,7 @@ describe('Environment - Model Cache', () => {
   it('should cache loaded models for reuse', () => {
     const modelCache = new Map<string, object[]>();
 
-    const path = '/models/test.glb';
+    const path = '/assets/models/test.glb';
     const meshes = [{ name: 'mesh1' }, { name: 'mesh2' }];
 
     // First load - cache miss
@@ -507,8 +507,8 @@ describe('Environment - Model Cache', () => {
 
   it('should clear model cache on dispose', () => {
     const modelCache = new Map<string, object[]>();
-    modelCache.set('/models/test1.glb', [{ name: 'mesh1' }]);
-    modelCache.set('/models/test2.glb', [{ name: 'mesh2' }]);
+    modelCache.set('/assets/models/test1.glb', [{ name: 'mesh1' }]);
+    modelCache.set('/assets/models/test2.glb', [{ name: 'mesh2' }]);
 
     expect(modelCache.size).toBe(2);
 
@@ -994,7 +994,7 @@ describe('Environment - Disposal', () => {
     const modelCache = new Map<string, object[]>();
     const meshes = [{ name: 'mesh1', dispose: vi.fn(), isDisposed: vi.fn(() => false) }];
 
-    modelCache.set('/models/test.glb', meshes);
+    modelCache.set('/assets/models/test.glb', meshes);
 
     const clearModelCache = () => {
       for (const [, cachedMeshes] of modelCache) {

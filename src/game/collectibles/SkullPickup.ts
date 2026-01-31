@@ -38,7 +38,7 @@ import { getSkullSystem, SKULLS, type SkullDefinition, type SkullId } from './Sk
 // ============================================================================
 
 /** Path to the skull collectible GLB model */
-const SKULL_MODEL_PATH = '/models/props/collectibles/alien_artifact.glb';
+const SKULL_MODEL_PATH = '/assets/models/props/collectibles/alien_artifact.glb';
 
 // ============================================================================
 // TYPES

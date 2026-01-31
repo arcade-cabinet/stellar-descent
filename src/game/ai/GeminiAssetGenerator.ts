@@ -38,17 +38,17 @@ const CACHE_DB_VERSION = 1;
 const CACHE_STORE_NAME = 'generated_assets';
 const CACHE_METADATA_KEY = 'cache_metadata';
 
-/** Model identifiers following codegen instructions */
+/** Model identifiers - Updated January 2026 */
 const MODELS = {
-  // Text generation - use Gemini 3 Flash for general tasks
-  text: 'gemini-3-flash-preview',
-  // Image generation - use Gemini 2.5 Flash Image
+  // Text generation - Gemini 3 Pro for best quality
+  text: 'gemini-3-pro-preview',
+  // Image generation - Gemini 2.5 Flash Image for speed
   image: 'gemini-2.5-flash-image',
-  // High quality images - use Gemini 3 Pro Image
+  // High quality images - Gemini 3 Pro Image
   imageHighQuality: 'gemini-3-pro-image-preview',
-  // Video generation - Veo 3.0 fast for quick iterations
-  videoFast: 'veo-3.0-fast-generate-001',
-  // Video generation - Veo 3.1 for final quality
+  // Video generation - Veo 3.1 Fast for quick iterations
+  videoFast: 'veo-3.1-fast-generate-preview',
+  // Video generation - Veo 3.1 for final quality (720p/1080p/4K, native audio)
   video: 'veo-3.1-generate-preview',
 } as const;
 
@@ -294,7 +294,7 @@ export class GeminiAssetGenerator {
 
     if (!this.apiKey) {
       log.warn('Gemini API key not configured. Asset generation disabled.');
-      log.info('Set VITE_GEMINI_API_KEY environment variable to enable AI features.');
+      log.info('Set GEMINI_API_KEY environment variable to enable AI features.');
       return false;
     }
 
@@ -312,15 +312,20 @@ export class GeminiAssetGenerator {
 
   /**
    * Get API key from environment
+   * Checks GEMINI_API_KEY first (standard), then VITE_GEMINI_API_KEY for backwards compat
    */
   private getApiKeyFromEnv(): string | null {
-    // Vite environment variable
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
-      return import.meta.env.VITE_GEMINI_API_KEY;
-    }
-    // Node.js environment (for build scripts)
+    // Node.js environment - check GEMINI_API_KEY first
     if (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) {
       return process.env.GEMINI_API_KEY;
+    }
+    // Vite environment - check GEMINI_API_KEY (exposed via define)
+    if (typeof import.meta !== 'undefined' && import.meta.env?.GEMINI_API_KEY) {
+      return import.meta.env.GEMINI_API_KEY;
+    }
+    // Backwards compatibility: VITE_GEMINI_API_KEY
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
+      return import.meta.env.VITE_GEMINI_API_KEY;
     }
     return null;
   }
@@ -372,11 +377,11 @@ export class GeminiAssetGenerator {
       const fullPrompt = this.buildVideoPrompt(def);
 
       // Start video generation operation
+      // Note: personGeneration 'dont_allow' is not supported by API as of Jan 2026
       let operation = await this.ai!.models.generateVideos({
         model,
         prompt: fullPrompt,
         config: {
-          personGeneration: def.personGeneration ? 'allow' : 'dont_allow',
           aspectRatio: def.aspectRatio,
         },
       });

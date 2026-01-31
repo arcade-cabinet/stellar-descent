@@ -3,17 +3,28 @@
  *
  * Creates the BabylonJS mesh environment for an abandoned mining facility
  * deep underground on LV-847. Features:
- * - Tunnel systems with rock walls and ore veins
- * - Mining equipment (drills, carts, conveyor fragments)
- * - Crystal formations as natural light sources
- * - Cave-in debris and structural damage
- * - Minecart tracks (decorative)
+ * - Tunnel systems with modular floor, wall, and ceiling GLB tiles
+ * - Mining equipment (drill rigs, storage tanks, industrial machinery) from GLB
+ * - Crystal formations as natural light sources (procedural for randomization)
+ * - Cave-in debris and structural damage using GLB debris variants
+ * - Minecart tracks (decorative, kept as thin procedural geometry)
  * - Volumetric fog via point lights
  * - Three distinct sections: Mining Hub, Collapsed Tunnels, Deep Shaft
  *
- * GLB models are loaded via AssetManager for props, equipment, structural
- * elements, and collectibles. MeshBuilder is retained for terrain surfaces,
- * collision volumes, VFX planes, and procedural geometry (crystals, tracks).
+ * GLB Asset Categories Used:
+ * - environment/modular/ - Floor tiles, wall sections, ceiling tiles, columns
+ * - environment/industrial/ - Machinery, pipes, tanks, electrical equipment
+ * - environment/station/ - Structural elements, doorways, platforms
+ * - props/debris/ - Gravel piles, bricks, debris
+ * - props/containers/ - Crates, scrap metal, planks
+ * - props/electrical/ - Lamps, gears, first aid kit
+ * - props/weapons/ - Mining tools (pickaxe, shovel, crowbar) as decorative props
+ *
+ * MeshBuilder is retained only for:
+ * - VFX planes (gas vents, water, resin patches, blood stains)
+ * - Invisible collision volumes for interactables
+ * - Procedural crystals (randomized shard generation)
+ * - Minecart rail tracks (very thin geometry)
  */
 
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
@@ -36,45 +47,155 @@ const log = getLogger('MiningDepthsEnv');
 
 const GLB_PATHS = {
   // Structural beams
-  beamVertical: '/models/environment/station/beam_hc_vertical_2.glb',
-  beamHorizontal: '/models/environment/station/beam_hc_horizontal_2.glb',
+  beamVertical: '/assets/models/environment/station/beam_hc_vertical_2.glb',
+  beamHorizontal: '/assets/models/environment/station/beam_hc_horizontal_2.glb',
 
   // Support pillars
-  pillar: '/models/environment/station/pillar_hr_2.glb',
+  pillar: '/assets/models/environment/station/pillar_hr_2.glb',
+  pillarRg: '/assets/models/environment/station/pillar_rg_1.glb',
+  pillarRgBroken: '/assets/models/environment/station/pillar_rg_1_broken.glb',
+  column1: '/assets/models/environment/modular/Column_1.glb',
+  column2: '/assets/models/environment/modular/Column_2.glb',
+  columnSlim: '/assets/models/environment/modular/Column_Slim.glb',
 
   // Industrial equipment
-  machinery: '/models/environment/industrial/machinery_mx_1.glb',
-  platform: '/models/environment/industrial/platform_mx_1.glb',
+  machinery: '/assets/models/environment/industrial/machinery_mx_1.glb',
+  platform: '/assets/models/environment/industrial/platform_mx_1.glb',
+  storageTank: '/assets/models/environment/industrial/storage_tank_mx_1.glb',
+  tankSystem: '/assets/models/environment/industrial/tank_system_mx_1.glb',
+  boiler: '/assets/models/environment/industrial/boiler_hx_4.glb',
+  testMachine: '/assets/models/environment/industrial/test_machine_mx_1.glb',
+  cage: '/assets/models/environment/industrial/cage_mx_1.glb',
+  pipes: '/assets/models/environment/industrial/pipes_hr_1.glb',
+  pipesElbow: '/assets/models/environment/industrial/pipes_hr_1_elbow_1.glb',
+  pipesHorizontal: '/assets/models/environment/industrial/pipes_hr_1_horizontal_middle_1.glb',
+  pipesVertical: '/assets/models/environment/industrial/pipes_hr_1_vertical_end_1.glb',
+  electricalEquip1: '/assets/models/environment/industrial/electrical_equipment_1.glb',
+  electricalEquip2: '/assets/models/environment/industrial/electrical_equipment_2.glb',
+  wires1: '/assets/models/environment/industrial/wires_hr_1.glb',
+  wires2: '/assets/models/environment/industrial/wires_hr_2.glb',
+  wiresHolder: '/assets/models/environment/industrial/wires_holder_hr_small_1.glb',
+  shippingContainer: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+  shippingContainerHollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+
+  // Modular floor tiles
+  floorTileBasic: '/assets/models/environment/modular/FloorTile_Basic.glb',
+  floorTileBasic2: '/assets/models/environment/modular/FloorTile_Basic2.glb',
+  floorTileCorner: '/assets/models/environment/modular/FloorTile_Corner.glb',
+  floorTileSide: '/assets/models/environment/modular/FloorTile_Side.glb',
+  floorTileEmpty: '/assets/models/environment/modular/FloorTile_Empty.glb',
+  floorTileHallway: '/assets/models/environment/modular/FloorTile_Double_Hallway.glb',
+
+  // Modular walls
+  wall1: '/assets/models/environment/modular/Wall_1.glb',
+  wall2: '/assets/models/environment/modular/Wall_2.glb',
+  wall3: '/assets/models/environment/modular/Wall_3.glb',
+  wall4: '/assets/models/environment/modular/Wall_4.glb',
+  wall5: '/assets/models/environment/modular/Wall_5.glb',
+  wallEmpty: '/assets/models/environment/modular/Wall_Empty.glb',
+  doorSingleWall: '/assets/models/environment/modular/DoorSingle_Wall_SideA.glb',
+  doorDoubleWall: '/assets/models/environment/modular/DoorDouble_Wall_SideA.glb',
+
+  // Modular roof/ceiling tiles
+  roofTileEmpty: '/assets/models/environment/modular/RoofTile_Empty.glb',
+  roofTilePipes1: '/assets/models/environment/modular/RoofTile_Pipes1.glb',
+  roofTilePipes2: '/assets/models/environment/modular/RoofTile_Pipes2.glb',
+  roofTileVents: '/assets/models/environment/modular/RoofTile_Vents.glb',
+  roofTileDetails: '/assets/models/environment/modular/RoofTile_Details.glb',
+
+  // Modular details
+  detailsVent1: '/assets/models/environment/modular/Details_Vent_1.glb',
+  detailsVent2: '/assets/models/environment/modular/Details_Vent_2.glb',
+  detailsPipesLong: '/assets/models/environment/modular/Details_Pipes_Long.glb',
+  detailsPipesMedium: '/assets/models/environment/modular/Details_Pipes_Medium.glb',
+  detailsPipesSmall: '/assets/models/environment/modular/Details_Pipes_Small.glb',
+  detailsPlate: '/assets/models/environment/modular/Details_Plate_Large.glb',
+  staircase: '/assets/models/environment/modular/Staircase.glb',
+
+  // Modular props
+  propsCrate: '/assets/models/environment/modular/Props_Crate.glb',
+  propsCrateLong: '/assets/models/environment/modular/Props_CrateLong.glb',
+  propsChest: '/assets/models/environment/modular/Props_Chest.glb',
+  propsShelf: '/assets/models/environment/modular/Props_Shelf.glb',
+  propsShelfTall: '/assets/models/environment/modular/Props_Shelf_Tall.glb',
+  propsComputer: '/assets/models/environment/modular/Props_Computer.glb',
+  propsComputerSmall: '/assets/models/environment/modular/Props_ComputerSmall.glb',
+  propsContainer: '/assets/models/environment/modular/Props_ContainerFull.glb',
+  propsVessel: '/assets/models/environment/modular/Props_Vessel.glb',
+
+  // Station structural elements
+  doorwayWide: '/assets/models/environment/station/doorway_hs_1_wide.glb',
+  doorwayRegular: '/assets/models/environment/station/doorway_hs_1_regular.glb',
+  wallHs1: '/assets/models/environment/station/wall_hs_1.glb',
+  wallRg1: '/assets/models/environment/station/wall_rg_1.glb',
+  garageDoorFrame: '/assets/models/environment/station/garage_door_frame_hs_1.glb',
+  roofBx1: '/assets/models/environment/station/roof_bx_1.glb',
+  roofMx1: '/assets/models/environment/station/roof_mx_1.glb',
+  floorCeiling: '/assets/models/environment/station/floor_ceiling_hy_1.glb',
+  concretePipeMiddle: '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
+  concretePipeEnd: '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
 
   // Crates and containers
-  crateSmall: '/models/props/containers/wooden_crate_1.glb',
-  crateMedium: '/models/props/containers/wooden_crate_2_a.glb',
-  crateLarge: '/models/props/containers/wooden_crate_2_b.glb',
-  metalBarrel: '/models/props/containers/metal_barrel_hr_1.glb',
-  toolbox: '/models/props/containers/toolbox_mx_1.glb',
+  crateSmall: '/assets/models/props/containers/wooden_crate_hx_2_1.glb',
+  crateMedium: '/assets/models/props/containers/wooden_crate_hx_3_1.glb',
+  crateLarge: '/assets/models/props/containers/wooden_crate_hx_4_1.glb',
+  crateStack: '/assets/models/props/containers/wooden_crate_hx_5_1.glb',
+  metalBarrel: '/assets/models/props/containers/tire_1.glb',
+  toolbox: '/assets/models/props/containers/stool_mx_1_1.glb',
+  scrapMetal1: '/assets/models/props/containers/scrap_metal_mx_1.glb',
+  scrapMetal2: '/assets/models/props/containers/scrap_metal_mx_1_1.glb',
+  woodenPlank1: '/assets/models/props/containers/wooden_plank_1.glb',
+  woodenPlank2: '/assets/models/props/containers/wooden_plank_2.glb',
+  woodenBoard: '/assets/models/props/containers/wooden_board_1.glb',
 
   // Debris
-  gravelPile1: '/models/props/debris/gravel_pile_hr_1.glb',
-  gravelPile2: '/models/props/debris/gravel_pile_hr_2.glb',
-  debrisBricks: '/models/props/debris/debris_bricks_mx_1.glb',
-  brick1: '/models/props/debris/brick_mx_1.glb',
-  brick2: '/models/props/debris/brick_mx_2.glb',
+  gravelPile1: '/assets/models/props/debris/gravel_pile_hr_1.glb',
+  gravelPile2: '/assets/models/props/debris/gravel_pile_hr_2.glb',
+  debrisBricks: '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  debrisBricks2: '/assets/models/props/debris/debris_bricks_mx_2.glb',
+  brick1: '/assets/models/props/debris/brick_mx_1.glb',
+  brick2: '/assets/models/props/debris/brick_mx_2.glb',
+  brick3: '/assets/models/props/debris/brick_mx_3.glb',
+  brick4: '/assets/models/props/debris/brick_mx_4.glb',
+  bricksStacked1: '/assets/models/props/debris/bricks_stacked_mx_1.glb',
+  bricksStacked2: '/assets/models/props/debris/bricks_stacked_mx_2.glb',
 
   // Doors and gates
-  gate: '/models/props/doors/gate_1.glb',
-  door: '/models/props/doors/door_hr_6.glb',
+  gate: '/assets/models/props/doors/gate_1.glb',
+  door: '/assets/models/props/doors/door_hr_6.glb',
+  door8: '/assets/models/props/doors/door_hr_8.glb',
+  door12: '/assets/models/props/doors/door_hr_12.glb',
+  modulardoorSingle: '/assets/models/environment/modular/Door_Single.glb',
+  modulardoorDouble: '/assets/models/environment/modular/Door_Double.glb',
 
   // Platforms and railings
-  platformLedge: '/models/environment/station/platform_bx_1.glb',
-  handrail: '/models/environment/station/platform_b_handrail_1.glb',
-  elevatorPlatform: '/models/environment/station/platform_small_mx_1.glb',
+  platformLedge: '/assets/models/environment/station/platform_bx_1.glb',
+  handrail: '/assets/models/environment/station/platform_b_handrail_1.glb',
+  elevatorPlatform: '/assets/models/environment/station/platform_small_mx_1.glb',
 
   // Collectibles
-  audioLog: '/models/props/collectibles/audio_log.glb',
-  dataPad: '/models/props/collectibles/data_pad.glb',
+  audioLog: '/assets/models/props/collectibles/audio_log.glb',
+  dataPad: '/assets/models/props/collectibles/data_pad.glb',
 
-  // Lamps
-  lampOn: '/models/props/electrical/lamp_mx_1_a_on.glb',
+  // Lamps and electrical
+  lampOn: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
+  lampOff: '/assets/models/props/electrical/lamp_mx_1_a_off.glb',
+  lamp2On: '/assets/models/props/electrical/lamp_mx_2_on.glb',
+  lamp3On: '/assets/models/props/electrical/lamp_mx_3_on.glb',
+  lamp4On: '/assets/models/props/electrical/lamp_mx_4_on.glb',
+  gear1: '/assets/models/props/electrical/gear_mx_1.glb',
+  gear2: '/assets/models/props/electrical/gear_mx_2.glb',
+  firstAidKit: '/assets/models/props/electrical/first_aid_kit_hr_1.glb',
+  concreteBlock: '/assets/models/props/electrical/concrete_block_mx_1.glb',
+
+  // Mining-specific tools (from weapons folder - used as props)
+  pickaxe: '/assets/models/props/weapons/pick_axe_mx_1.glb',
+  shovel: '/assets/models/props/weapons/shovel_mx_1.glb',
+  wrench1: '/assets/models/props/weapons/wrench_mx_1.glb',
+  wrench2: '/assets/models/props/weapons/wrench_mx_2.glb',
+  crowbar: '/assets/models/environment/industrial/rusty_crowbar_mx_1.glb',
+  hammer: '/assets/models/props/weapons/hammer_mx_1_1.glb',
+  pipeMelee: '/assets/models/props/weapons/pipe_melee_mx_1.glb',
 } as const;
 
 // Unique set of all GLB paths for preloading
@@ -85,8 +206,11 @@ const CRATE_VARIANTS: readonly string[] = [
   GLB_PATHS.crateSmall,
   GLB_PATHS.crateMedium,
   GLB_PATHS.crateLarge,
-  GLB_PATHS.toolbox,
-  GLB_PATHS.metalBarrel,
+  GLB_PATHS.crateStack,
+  GLB_PATHS.propsCrate,
+  GLB_PATHS.propsCrateLong,
+  GLB_PATHS.propsChest,
+  GLB_PATHS.propsContainer,
 ];
 
 // Debris model rotation for visual variety
@@ -94,8 +218,94 @@ const DEBRIS_VARIANTS: readonly string[] = [
   GLB_PATHS.gravelPile1,
   GLB_PATHS.gravelPile2,
   GLB_PATHS.debrisBricks,
+  GLB_PATHS.debrisBricks2,
   GLB_PATHS.brick1,
   GLB_PATHS.brick2,
+  GLB_PATHS.brick3,
+  GLB_PATHS.brick4,
+  GLB_PATHS.bricksStacked1,
+  GLB_PATHS.bricksStacked2,
+  GLB_PATHS.scrapMetal1,
+  GLB_PATHS.scrapMetal2,
+  GLB_PATHS.woodenPlank1,
+  GLB_PATHS.woodenPlank2,
+  GLB_PATHS.woodenBoard,
+  GLB_PATHS.concreteBlock,
+];
+
+// Wall variants for tunnel and room construction
+const WALL_VARIANTS: readonly string[] = [
+  GLB_PATHS.wall1,
+  GLB_PATHS.wall2,
+  GLB_PATHS.wall3,
+  GLB_PATHS.wall4,
+  GLB_PATHS.wall5,
+];
+
+// Floor tile variants
+const FLOOR_VARIANTS: readonly string[] = [
+  GLB_PATHS.floorTileBasic,
+  GLB_PATHS.floorTileBasic2,
+  GLB_PATHS.floorTileSide,
+];
+
+// Ceiling tile variants
+const CEILING_VARIANTS: readonly string[] = [
+  GLB_PATHS.roofTileEmpty,
+  GLB_PATHS.roofTilePipes1,
+  GLB_PATHS.roofTilePipes2,
+  GLB_PATHS.roofTileVents,
+  GLB_PATHS.roofTileDetails,
+];
+
+// Column variants
+const COLUMN_VARIANTS: readonly string[] = [
+  GLB_PATHS.column1,
+  GLB_PATHS.column2,
+  GLB_PATHS.columnSlim,
+  GLB_PATHS.pillarRg,
+  GLB_PATHS.pillarRgBroken,
+];
+
+// Pipe variants for industrial atmosphere
+const PIPE_VARIANTS: readonly string[] = [
+  GLB_PATHS.pipes,
+  GLB_PATHS.pipesElbow,
+  GLB_PATHS.pipesHorizontal,
+  GLB_PATHS.pipesVertical,
+  GLB_PATHS.detailsPipesLong,
+  GLB_PATHS.detailsPipesMedium,
+  GLB_PATHS.detailsPipesSmall,
+];
+
+// Industrial equipment variants
+const EQUIPMENT_VARIANTS: readonly string[] = [
+  GLB_PATHS.machinery,
+  GLB_PATHS.storageTank,
+  GLB_PATHS.tankSystem,
+  GLB_PATHS.boiler,
+  GLB_PATHS.testMachine,
+  GLB_PATHS.electricalEquip1,
+  GLB_PATHS.electricalEquip2,
+];
+
+// Mining tool variants (decorative)
+const TOOL_VARIANTS: readonly string[] = [
+  GLB_PATHS.pickaxe,
+  GLB_PATHS.shovel,
+  GLB_PATHS.wrench1,
+  GLB_PATHS.wrench2,
+  GLB_PATHS.crowbar,
+  GLB_PATHS.hammer,
+  GLB_PATHS.pipeMelee,
+];
+
+// Lamp variants
+const LAMP_VARIANTS: readonly string[] = [
+  GLB_PATHS.lampOn,
+  GLB_PATHS.lamp2On,
+  GLB_PATHS.lamp3On,
+  GLB_PATHS.lamp4On,
 ];
 
 // ============================================================================
@@ -137,6 +347,9 @@ const SHAFT_CENTER = new Vector3(-10, -15, -120);
 const HUB_WIDTH = 40;
 const HUB_DEPTH = 30;
 const HUB_HEIGHT = 8;
+
+// GLB tile size (modular tiles are typically 4m x 4m)
+const TILE_SIZE = 4;
 
 const TUNNEL_WIDTH = 5;
 const TUNNEL_HEIGHT = 4;
@@ -531,91 +744,106 @@ function createTunnelSegment(
   const mid = start.add(dir.scale(0.5));
   const angle = Math.atan2(dir.x, dir.z);
 
-  // Floor (terrain surface -- kept as MeshBuilder)
-  const floor = MeshBuilder.CreateBox(
-    `tunnel_floor_${allMeshes.length}`,
-    { width, height: 0.3, depth: length },
-    scene
-  );
-  floor.position = mid.clone();
-  floor.position.y = start.y - 0.15;
-  floor.rotation.y = angle;
-  floor.material = materials.get('floor')!;
-  floor.parent = parent;
-  allMeshes.push(floor);
+  // Calculate tile counts based on module-level TILE_SIZE constant
+  const tileCountLength = Math.max(1, Math.ceil(length / TILE_SIZE));
+  const tileCountWidth = Math.max(1, Math.ceil(width / TILE_SIZE));
 
-  // Left wall (terrain surface -- kept as MeshBuilder)
-  const leftWall = MeshBuilder.CreateBox(
-    `tunnel_lwall_${allMeshes.length}`,
-    { width: 0.5, height, depth: length },
-    scene
-  );
-  leftWall.position = mid.clone();
-  leftWall.position.y = start.y + height / 2;
-  leftWall.position.x += Math.cos(angle) * (width / 2 + 0.25);
-  leftWall.position.z -= Math.sin(angle) * (width / 2 + 0.25);
-  leftWall.rotation.y = angle;
-  leftWall.material = materials.get('rock')!;
-  leftWall.parent = parent;
-  allMeshes.push(leftWall);
+  // Floor tiles -> GLB modular floor tiles
+  for (let i = 0; i < tileCountLength; i++) {
+    const t = (i + 0.5) / tileCountLength;
+    const tilePos = start.add(dir.scale(t));
+    tilePos.y = start.y - 0.1;
 
-  // Right wall (terrain surface -- kept as MeshBuilder)
-  const rightWall = MeshBuilder.CreateBox(
-    `tunnel_rwall_${allMeshes.length}`,
-    { width: 0.5, height, depth: length },
-    scene
-  );
-  rightWall.position = mid.clone();
-  rightWall.position.y = start.y + height / 2;
-  rightWall.position.x -= Math.cos(angle) * (width / 2 + 0.25);
-  rightWall.position.z += Math.sin(angle) * (width / 2 + 0.25);
-  rightWall.rotation.y = angle;
-  rightWall.material = materials.get('rock')!;
-  rightWall.parent = parent;
-  allMeshes.push(rightWall);
+    // Place floor tiles across width
+    for (let w = 0; w < tileCountWidth; w++) {
+      const wOffset = (w - (tileCountWidth - 1) / 2) * (width / tileCountWidth);
+      const floorPos = tilePos.clone();
+      floorPos.x += Math.cos(angle) * wOffset;
+      floorPos.z -= Math.sin(angle) * wOffset;
 
-  // Ceiling (terrain surface -- kept as MeshBuilder)
-  const ceiling = MeshBuilder.CreateBox(
-    `tunnel_ceil_${allMeshes.length}`,
-    { width: width + 1, height: 0.4, depth: length },
-    scene
-  );
-  ceiling.position = mid.clone();
-  ceiling.position.y = start.y + height;
-  ceiling.rotation.y = angle;
-  ceiling.material = materials.get('rock')!;
-  ceiling.parent = parent;
-  allMeshes.push(ceiling);
+      const floorVariant = FLOOR_VARIANTS[(i + w) % FLOOR_VARIANTS.length];
+      placeGLBInstance(scene, parent, floorVariant, 'tunnel_floor', floorPos, glbInstances, {
+        rotationY: angle,
+        scale: new Vector3(width / (TILE_SIZE * tileCountWidth), 0.3, length / (TILE_SIZE * tileCountLength)),
+      });
+    }
+  }
 
-  // Support beams every 6 meters -> GLB instances
+  // Wall sections -> GLB modular wall tiles
+  const wallSegments = Math.max(1, Math.ceil(length / TILE_SIZE));
+  for (let i = 0; i < wallSegments; i++) {
+    const t = (i + 0.5) / wallSegments;
+    const wallBasePos = start.add(dir.scale(t));
+
+    // Left wall -> GLB
+    const lWallPos = wallBasePos.clone();
+    lWallPos.y = start.y + height / 2;
+    lWallPos.x += Math.cos(angle) * (width / 2 + 0.25);
+    lWallPos.z -= Math.sin(angle) * (width / 2 + 0.25);
+
+    const leftWallVariant = WALL_VARIANTS[i % WALL_VARIANTS.length];
+    placeGLBInstance(scene, parent, leftWallVariant, 'tunnel_lwall', lWallPos, glbInstances, {
+      rotationY: angle + Math.PI / 2,
+      scale: new Vector3(0.5, height / TILE_SIZE, length / (TILE_SIZE * wallSegments)),
+    });
+
+    // Right wall -> GLB
+    const rWallPos = wallBasePos.clone();
+    rWallPos.y = start.y + height / 2;
+    rWallPos.x -= Math.cos(angle) * (width / 2 + 0.25);
+    rWallPos.z += Math.sin(angle) * (width / 2 + 0.25);
+
+    const rightWallVariant = WALL_VARIANTS[(i + 2) % WALL_VARIANTS.length];
+    placeGLBInstance(scene, parent, rightWallVariant, 'tunnel_rwall', rWallPos, glbInstances, {
+      rotationY: angle - Math.PI / 2,
+      scale: new Vector3(0.5, height / TILE_SIZE, length / (TILE_SIZE * wallSegments)),
+    });
+  }
+
+  // Ceiling tiles -> GLB modular roof tiles
+  for (let i = 0; i < tileCountLength; i++) {
+    const t = (i + 0.5) / tileCountLength;
+    const ceilPos = start.add(dir.scale(t));
+    ceilPos.y = start.y + height;
+
+    const ceilVariant = CEILING_VARIANTS[i % CEILING_VARIANTS.length];
+    placeGLBInstance(scene, parent, ceilVariant, 'tunnel_ceil', ceilPos, glbInstances, {
+      rotationY: angle,
+      scale: new Vector3((width + 1) / TILE_SIZE, 0.4, length / (TILE_SIZE * tileCountLength)),
+    });
+  }
+
+  // Support beams every 6 meters -> GLB instances (columns and beams)
   const beamCount = Math.floor(length / 6);
   for (let i = 0; i <= beamCount; i++) {
     const t = beamCount > 0 ? i / beamCount : 0.5;
     const beamPos = start.add(dir.scale(t));
 
-    // Left vertical beam -> GLB
-    const lBeamPos = beamPos.clone();
-    lBeamPos.y += height / 2;
-    lBeamPos.x += Math.cos(angle) * (width / 2 - 0.1);
-    lBeamPos.z -= Math.sin(angle) * (width / 2 - 0.1);
-    placeGLBInstance(scene, parent, GLB_PATHS.beamVertical, 'beam_l', lBeamPos, glbInstances, {
+    // Left column -> GLB column variant
+    const lColPos = beamPos.clone();
+    lColPos.y = start.y;
+    lColPos.x += Math.cos(angle) * (width / 2 - 0.1);
+    lColPos.z -= Math.sin(angle) * (width / 2 - 0.1);
+    const leftColVariant = COLUMN_VARIANTS[i % COLUMN_VARIANTS.length];
+    placeGLBInstance(scene, parent, leftColVariant, 'column_l', lColPos, glbInstances, {
       rotationY: angle,
-      scale: new Vector3(0.15, height / 4, 0.15),
+      scale: new Vector3(0.3, height / TILE_SIZE, 0.3),
     });
 
-    // Right vertical beam -> GLB
-    const rBeamPos = beamPos.clone();
-    rBeamPos.y += height / 2;
-    rBeamPos.x -= Math.cos(angle) * (width / 2 - 0.1);
-    rBeamPos.z += Math.sin(angle) * (width / 2 - 0.1);
-    placeGLBInstance(scene, parent, GLB_PATHS.beamVertical, 'beam_r', rBeamPos, glbInstances, {
+    // Right column -> GLB column variant
+    const rColPos = beamPos.clone();
+    rColPos.y = start.y;
+    rColPos.x -= Math.cos(angle) * (width / 2 - 0.1);
+    rColPos.z += Math.sin(angle) * (width / 2 - 0.1);
+    const rightColVariant = COLUMN_VARIANTS[(i + 1) % COLUMN_VARIANTS.length];
+    placeGLBInstance(scene, parent, rightColVariant, 'column_r', rColPos, glbInstances, {
       rotationY: angle,
-      scale: new Vector3(0.15, height / 4, 0.15),
+      scale: new Vector3(0.3, height / TILE_SIZE, 0.3),
     });
 
-    // Cross beam -> GLB
+    // Cross beam -> GLB horizontal beam
     const crossPos = beamPos.clone();
-    crossPos.y += height - 0.1;
+    crossPos.y = start.y + height - 0.1;
     placeGLBInstance(
       scene,
       parent,
@@ -628,17 +856,30 @@ function createTunnelSegment(
         scale: new Vector3((width - 0.2) / 4, 0.12, 0.15),
       }
     );
+
+    // Add pipes along ceiling for industrial atmosphere
+    if (i % 2 === 0) {
+      const pipeVariant = PIPE_VARIANTS[i % PIPE_VARIANTS.length];
+      const pipePos = crossPos.clone();
+      pipePos.y += 0.2;
+      pipePos.x += Math.cos(angle) * (width / 4);
+      placeGLBInstance(scene, parent, pipeVariant, 'tunnel_pipe', pipePos, glbInstances, {
+        rotationY: angle,
+        scale: new Vector3(0.3, 0.3, 0.5),
+      });
+    }
   }
 
-  // Mining lamp lights every 8 meters
+  // Mining lamp lights every 8 meters -> GLB lamp variants
   const lampCount = Math.max(1, Math.floor(length / 8));
   for (let i = 0; i < lampCount; i++) {
     const t = (i + 0.5) / lampCount;
     const lampPos = start.add(dir.scale(t));
     lampPos.y += height - 0.5;
 
-    // Lamp fixture -> GLB
-    placeGLBInstance(scene, parent, GLB_PATHS.lampOn, 'tunnel_lamp', lampPos, glbInstances, {
+    // Lamp fixture -> GLB variant
+    const lampVariant = LAMP_VARIANTS[i % LAMP_VARIANTS.length];
+    placeGLBInstance(scene, parent, lampVariant, 'tunnel_lamp', lampPos, glbInstances, {
       scale: new Vector3(0.15, 0.15, 0.15),
     });
 
@@ -658,6 +899,24 @@ function createTunnelSegment(
       isOff: false,
       offDuration: 0,
       offTimer: 0,
+    });
+  }
+
+  // Add scattered mining tools for atmosphere
+  const toolCount = Math.floor(length / 12);
+  for (let i = 0; i < toolCount; i++) {
+    const toolT = (i + 0.3 + Math.random() * 0.4) / Math.max(toolCount, 1);
+    const toolPos = start.add(dir.scale(toolT));
+    toolPos.y = start.y + 0.1;
+    // Offset to side of tunnel
+    const sideOffset = (Math.random() - 0.5) * (width - 1);
+    toolPos.x += Math.cos(angle) * sideOffset;
+    toolPos.z -= Math.sin(angle) * sideOffset;
+
+    const toolVariant = TOOL_VARIANTS[Math.floor(Math.random() * TOOL_VARIANTS.length)];
+    placeGLBInstance(scene, parent, toolVariant, 'tunnel_tool', toolPos, glbInstances, {
+      rotationY: Math.random() * Math.PI * 2,
+      scale: new Vector3(0.4, 0.4, 0.4),
     });
   }
 }
@@ -933,17 +1192,29 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   // SECTION 1: ENTRY ELEVATOR & MINING HUB
   // ===========================================================================
 
-  // Entry elevator shaft - player arrives from surface (structural -- kept as MeshBuilder)
-  const elevatorShaft = MeshBuilder.CreateBox(
-    'elevatorShaft',
-    { width: 4, height: 12, depth: 4 },
-    scene
-  );
-  elevatorShaft.position = ENTRY_CENTER.clone();
-  elevatorShaft.position.y += 6;
-  elevatorShaft.material = materials.get('elevator')!;
-  elevatorShaft.parent = entrySection;
-  allMeshes.push(elevatorShaft);
+  // Entry elevator shaft - player arrives from surface -> GLB walls around shaft
+  const SHAFT_WALL_SIZE = 4;
+  const SHAFT_HEIGHT = 12;
+
+  // North wall of elevator shaft
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wall1, 'elevShaft_n',
+    new Vector3(ENTRY_CENTER.x, SHAFT_HEIGHT / 2, ENTRY_CENTER.z + SHAFT_WALL_SIZE / 2),
+    glbInstances, { rotationY: 0, scale: new Vector3(SHAFT_WALL_SIZE / 4, SHAFT_HEIGHT / 4, 0.25) });
+
+  // South wall of elevator shaft
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wall2, 'elevShaft_s',
+    new Vector3(ENTRY_CENTER.x, SHAFT_HEIGHT / 2, ENTRY_CENTER.z - SHAFT_WALL_SIZE / 2),
+    glbInstances, { rotationY: Math.PI, scale: new Vector3(SHAFT_WALL_SIZE / 4, SHAFT_HEIGHT / 4, 0.25) });
+
+  // East wall of elevator shaft
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wall3, 'elevShaft_e',
+    new Vector3(ENTRY_CENTER.x + SHAFT_WALL_SIZE / 2, SHAFT_HEIGHT / 2, ENTRY_CENTER.z),
+    glbInstances, { rotationY: Math.PI / 2, scale: new Vector3(SHAFT_WALL_SIZE / 4, SHAFT_HEIGHT / 4, 0.25) });
+
+  // West wall of elevator shaft
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wall4, 'elevShaft_w',
+    new Vector3(ENTRY_CENTER.x - SHAFT_WALL_SIZE / 2, SHAFT_HEIGHT / 2, ENTRY_CENTER.z),
+    glbInstances, { rotationY: -Math.PI / 2, scale: new Vector3(SHAFT_WALL_SIZE / 4, SHAFT_HEIGHT / 4, 0.25) });
 
   // Elevator platform (destroyed) -> GLB
   const elevPlatPos = ENTRY_CENTER.clone();
@@ -958,18 +1229,22 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     { rotationY: 0.08, scale: new Vector3(1.0, 0.3, 1.0) }
   );
 
-  // Destroyed elevator cable (thin cylinder -- kept as MeshBuilder)
-  const cable = MeshBuilder.CreateCylinder(
-    'elevatorCable',
-    { height: 10, diameter: 0.08, tessellation: 6 },
-    scene
-  );
-  cable.position = ENTRY_CENTER.clone();
-  cable.position.y = 5;
-  cable.position.x = 0.5;
-  cable.material = materials.get('metal')!;
-  cable.parent = entrySection;
-  allMeshes.push(cable);
+  // Destroyed elevator cable -> GLB pipe/wire
+  const cablePos = ENTRY_CENTER.clone();
+  cablePos.y = 5;
+  cablePos.x = 0.5;
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wires1, 'elevatorCable', cablePos, glbInstances, {
+    rotationY: Math.random() * Math.PI,
+    scale: new Vector3(0.1, 2.5, 0.1),
+  });
+
+  // Additional hanging cables for atmosphere
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wires2, 'hangingCable1',
+    new Vector3(ENTRY_CENTER.x - 0.8, 7, ENTRY_CENTER.z + 0.5), glbInstances,
+    { rotationY: 0.5, scale: new Vector3(0.08, 1.5, 0.08) });
+  placeGLBInstance(scene, entrySection, GLB_PATHS.wiresHolder, 'cableHolder',
+    new Vector3(ENTRY_CENTER.x, 11, ENTRY_CENTER.z), glbInstances,
+    { scale: new Vector3(0.5, 0.5, 0.5) });
 
   // Entry tunnel to hub
   createTunnelSegment(
@@ -989,88 +1264,74 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   // ------ MINING HUB (40m x 30m x 8m) ------
   // Large open room - central processing area
 
-  // Floor (terrain surface -- kept as MeshBuilder)
-  const hubFloor = MeshBuilder.CreateBox(
-    'hubFloor',
-    { width: HUB_WIDTH, height: 0.3, depth: HUB_DEPTH },
-    scene
-  );
-  hubFloor.position = HUB_CENTER.clone();
-  hubFloor.position.y = -0.15;
-  hubFloor.material = materials.get('floor')!;
-  hubFloor.parent = hubSection;
-  allMeshes.push(hubFloor);
+  // Floor tiles -> GLB modular floor tiles in a grid
+  const TILE_SIZE = 4;
+  const hubFloorTilesX = Math.ceil(HUB_WIDTH / TILE_SIZE);
+  const hubFloorTilesZ = Math.ceil(HUB_DEPTH / TILE_SIZE);
 
-  // Ceiling (terrain surface -- kept as MeshBuilder)
-  const hubCeiling = MeshBuilder.CreateBox(
-    'hubCeiling',
-    { width: HUB_WIDTH, height: 0.4, depth: HUB_DEPTH },
-    scene
-  );
-  hubCeiling.position = HUB_CENTER.clone();
-  hubCeiling.position.y = HUB_HEIGHT;
-  hubCeiling.material = materials.get('rock')!;
-  hubCeiling.parent = hubSection;
-  allMeshes.push(hubCeiling);
+  for (let x = 0; x < hubFloorTilesX; x++) {
+    for (let z = 0; z < hubFloorTilesZ; z++) {
+      const tileX = HUB_CENTER.x - HUB_WIDTH / 2 + (x + 0.5) * (HUB_WIDTH / hubFloorTilesX);
+      const tileZ = HUB_CENTER.z - HUB_DEPTH / 2 + (z + 0.5) * (HUB_DEPTH / hubFloorTilesZ);
+      const floorVariant = FLOOR_VARIANTS[(x + z) % FLOOR_VARIANTS.length];
 
-  // Hub walls (terrain/structural rock -- kept as MeshBuilder)
-  const hubWalls: Array<{ pos: Vector3; w: number; d: number; ry: number }> = [
-    // North wall (with entry opening)
-    {
-      pos: new Vector3(-12, HUB_HEIGHT / 2, HUB_CENTER.z + HUB_DEPTH / 2),
-      w: 16,
-      d: 0.5,
-      ry: 0,
-    },
-    {
-      pos: new Vector3(12, HUB_HEIGHT / 2, HUB_CENTER.z + HUB_DEPTH / 2),
-      w: 16,
-      d: 0.5,
-      ry: 0,
-    },
-    // South wall (with tunnel exit opening)
-    {
-      pos: new Vector3(-12, HUB_HEIGHT / 2, HUB_CENTER.z - HUB_DEPTH / 2),
-      w: 16,
-      d: 0.5,
-      ry: 0,
-    },
-    {
-      pos: new Vector3(12, HUB_HEIGHT / 2, HUB_CENTER.z - HUB_DEPTH / 2),
-      w: 16,
-      d: 0.5,
-      ry: 0,
-    },
-    // East wall
-    {
-      pos: new Vector3(HUB_CENTER.x + HUB_WIDTH / 2, HUB_HEIGHT / 2, HUB_CENTER.z),
-      w: 0.5,
-      d: HUB_DEPTH,
-      ry: 0,
-    },
-    // West wall
-    {
-      pos: new Vector3(HUB_CENTER.x - HUB_WIDTH / 2, HUB_HEIGHT / 2, HUB_CENTER.z),
-      w: 0.5,
-      d: HUB_DEPTH,
-      ry: 0,
-    },
-  ];
-
-  for (const wall of hubWalls) {
-    const mesh = MeshBuilder.CreateBox(
-      `hubWall_${allMeshes.length}`,
-      { width: wall.w, height: HUB_HEIGHT, depth: wall.d },
-      scene
-    );
-    mesh.position = wall.pos;
-    mesh.rotation.y = wall.ry;
-    mesh.material = materials.get('rock')!;
-    mesh.parent = hubSection;
-    allMeshes.push(mesh);
+      placeGLBInstance(scene, hubSection, floorVariant, 'hub_floor',
+        new Vector3(tileX, -0.1, tileZ), glbInstances,
+        { scale: new Vector3(HUB_WIDTH / (hubFloorTilesX * TILE_SIZE), 0.3, HUB_DEPTH / (hubFloorTilesZ * TILE_SIZE)) });
+    }
   }
 
-  // Hub support columns (4 large pillars) -> GLB
+  // Ceiling tiles -> GLB modular roof tiles in a grid
+  for (let x = 0; x < hubFloorTilesX; x++) {
+    for (let z = 0; z < hubFloorTilesZ; z++) {
+      const tileX = HUB_CENTER.x - HUB_WIDTH / 2 + (x + 0.5) * (HUB_WIDTH / hubFloorTilesX);
+      const tileZ = HUB_CENTER.z - HUB_DEPTH / 2 + (z + 0.5) * (HUB_DEPTH / hubFloorTilesZ);
+      const ceilVariant = CEILING_VARIANTS[(x + z + 1) % CEILING_VARIANTS.length];
+
+      placeGLBInstance(scene, hubSection, ceilVariant, 'hub_ceil',
+        new Vector3(tileX, HUB_HEIGHT, tileZ), glbInstances,
+        { scale: new Vector3(HUB_WIDTH / (hubFloorTilesX * TILE_SIZE), 0.4, HUB_DEPTH / (hubFloorTilesZ * TILE_SIZE)) });
+    }
+  }
+
+  // Hub walls -> GLB modular wall sections
+  const hubWallDefs: Array<{ pos: Vector3; scaleX: number; scaleZ: number; ry: number; variant: string }> = [
+    // North wall segments (with entry opening gap in middle)
+    { pos: new Vector3(-12, HUB_HEIGHT / 2, HUB_CENTER.z + HUB_DEPTH / 2), scaleX: 4, scaleZ: 0.125, ry: 0, variant: 'wall1' },
+    { pos: new Vector3(12, HUB_HEIGHT / 2, HUB_CENTER.z + HUB_DEPTH / 2), scaleX: 4, scaleZ: 0.125, ry: 0, variant: 'wall2' },
+    // South wall segments (with tunnel exit opening gap in middle)
+    { pos: new Vector3(-12, HUB_HEIGHT / 2, HUB_CENTER.z - HUB_DEPTH / 2), scaleX: 4, scaleZ: 0.125, ry: Math.PI, variant: 'wall3' },
+    { pos: new Vector3(12, HUB_HEIGHT / 2, HUB_CENTER.z - HUB_DEPTH / 2), scaleX: 4, scaleZ: 0.125, ry: Math.PI, variant: 'wall4' },
+    // East wall (full length)
+    { pos: new Vector3(HUB_CENTER.x + HUB_WIDTH / 2, HUB_HEIGHT / 2, HUB_CENTER.z), scaleX: 0.125, scaleZ: HUB_DEPTH / TILE_SIZE, ry: Math.PI / 2, variant: 'wall5' },
+    // West wall (full length)
+    { pos: new Vector3(HUB_CENTER.x - HUB_WIDTH / 2, HUB_HEIGHT / 2, HUB_CENTER.z), scaleX: 0.125, scaleZ: HUB_DEPTH / TILE_SIZE, ry: -Math.PI / 2, variant: 'wall1' },
+  ];
+
+  const wallPathMap: Record<string, string> = {
+    wall1: GLB_PATHS.wall1,
+    wall2: GLB_PATHS.wall2,
+    wall3: GLB_PATHS.wall3,
+    wall4: GLB_PATHS.wall4,
+    wall5: GLB_PATHS.wall5,
+  };
+
+  for (const wallDef of hubWallDefs) {
+    placeGLBInstance(scene, hubSection, wallPathMap[wallDef.variant], 'hub_wall', wallDef.pos, glbInstances, {
+      rotationY: wallDef.ry,
+      scale: new Vector3(wallDef.scaleX, HUB_HEIGHT / TILE_SIZE, wallDef.scaleZ),
+    });
+  }
+
+  // Add doorway frames at entry and exit points
+  placeGLBInstance(scene, hubSection, GLB_PATHS.doorwayWide, 'hub_entry_doorway',
+    new Vector3(0, 0, HUB_CENTER.z + HUB_DEPTH / 2), glbInstances,
+    { rotationY: 0, scale: new Vector3(1.5, HUB_HEIGHT / TILE_SIZE, 0.3) });
+  placeGLBInstance(scene, hubSection, GLB_PATHS.doorwayWide, 'hub_exit_doorway',
+    new Vector3(0, 0, HUB_CENTER.z - HUB_DEPTH / 2), glbInstances,
+    { rotationY: Math.PI, scale: new Vector3(1.5, HUB_HEIGHT / TILE_SIZE, 0.3) });
+
+  // Hub support columns (4 large pillars) -> GLB column variants
   const pillarPositions = [
     new Vector3(HUB_CENTER.x - 10, 0, HUB_CENTER.z - 6),
     new Vector3(HUB_CENTER.x + 10, 0, HUB_CENTER.z - 6),
@@ -1078,17 +1339,50 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     new Vector3(HUB_CENTER.x + 10, 0, HUB_CENTER.z + 6),
   ];
 
-  for (const pp of pillarPositions) {
+  for (let pi = 0; pi < pillarPositions.length; pi++) {
+    const pp = pillarPositions[pi];
     const pillarPos = pp.clone();
-    pillarPos.y = HUB_HEIGHT / 2;
-    placeGLBInstance(scene, hubSection, GLB_PATHS.pillar, 'hub_pillar', pillarPos, glbInstances, {
-      scale: new Vector3(0.5, HUB_HEIGHT / 4, 0.5),
+    pillarPos.y = 0;
+    const colVariant = COLUMN_VARIANTS[pi % COLUMN_VARIANTS.length];
+    placeGLBInstance(scene, hubSection, colVariant, 'hub_pillar', pillarPos, glbInstances, {
+      scale: new Vector3(0.8, HUB_HEIGHT / TILE_SIZE, 0.8),
     });
   }
 
-  // Mining equipment in hub -> GLB drill rigs
+  // Add additional smaller columns for atmosphere
+  const smallColPositions = [
+    new Vector3(HUB_CENTER.x - 5, 0, HUB_CENTER.z - 10),
+    new Vector3(HUB_CENTER.x + 5, 0, HUB_CENTER.z - 10),
+    new Vector3(HUB_CENTER.x - 15, 0, HUB_CENTER.z),
+    new Vector3(HUB_CENTER.x + 15, 0, HUB_CENTER.z),
+  ];
+
+  for (let si = 0; si < smallColPositions.length; si++) {
+    const sp = smallColPositions[si];
+    placeGLBInstance(scene, hubSection, GLB_PATHS.columnSlim, 'hub_smallCol', sp, glbInstances, {
+      scale: new Vector3(0.4, HUB_HEIGHT / TILE_SIZE, 0.4),
+    });
+  }
+
+  // Mining equipment in hub -> GLB industrial equipment variants
   createDrillRig(scene, hubSection, new Vector3(8, 0, -20), 0, glbInstances);
   createDrillRig(scene, hubSection, new Vector3(-8, 0, -28), Math.PI / 3, glbInstances);
+
+  // Additional industrial equipment
+  placeGLBInstance(scene, hubSection, GLB_PATHS.storageTank, 'hub_tank1',
+    new Vector3(-15, 0, -35), glbInstances, { rotationY: 0.3, scale: new Vector3(1.2, 1.2, 1.2) });
+  placeGLBInstance(scene, hubSection, GLB_PATHS.tankSystem, 'hub_tankSystem',
+    new Vector3(15, 0, -18), glbInstances, { rotationY: -0.5, scale: new Vector3(1.0, 1.0, 1.0) });
+  placeGLBInstance(scene, hubSection, GLB_PATHS.boiler, 'hub_boiler',
+    new Vector3(-16, 0, -22), glbInstances, { rotationY: 0.8, scale: new Vector3(0.8, 0.8, 0.8) });
+  placeGLBInstance(scene, hubSection, GLB_PATHS.testMachine, 'hub_testMachine',
+    new Vector3(12, 0, -32), glbInstances, { rotationY: -0.2, scale: new Vector3(1.0, 1.0, 1.0) });
+
+  // Electrical equipment
+  placeGLBInstance(scene, hubSection, GLB_PATHS.electricalEquip1, 'hub_elec1',
+    new Vector3(-12, 0, -15), glbInstances, { rotationY: 0.5, scale: new Vector3(0.8, 0.8, 0.8) });
+  placeGLBInstance(scene, hubSection, GLB_PATHS.electricalEquip2, 'hub_elec2',
+    new Vector3(10, 0, -38), glbInstances, { rotationY: -0.3, scale: new Vector3(0.7, 0.7, 0.7) });
 
   // Conveyor belt fragment -> GLB platform
   placeGLBInstance(
@@ -1100,6 +1394,16 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     glbInstances,
     { scale: new Vector3(1.0, 0.5, 2.0) }
   );
+
+  // Shipping container as storage area
+  placeGLBInstance(scene, hubSection, GLB_PATHS.shippingContainerHollow, 'hub_container',
+    new Vector3(-18, 0, -28), glbInstances, { rotationY: Math.PI / 4, scale: new Vector3(0.6, 0.6, 0.6) });
+
+  // Wire runs along ceiling for industrial atmosphere
+  placeGLBInstance(scene, hubSection, GLB_PATHS.wires1, 'hub_wires1',
+    new Vector3(5, HUB_HEIGHT - 0.5, HUB_CENTER.z), glbInstances, { scale: new Vector3(0.5, 0.5, 3.0) });
+  placeGLBInstance(scene, hubSection, GLB_PATHS.wires2, 'hub_wires2',
+    new Vector3(-8, HUB_HEIGHT - 0.5, HUB_CENTER.z - 5), glbInstances, { scale: new Vector3(0.4, 0.4, 2.0) });
 
   // Scattered crates -> GLB crate variants
   const cratePositions = [
@@ -1273,14 +1577,62 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   createOverturnedEquipment(scene, hubSection, new Vector3(12, 0, -31), glbInstances);
   createOverturnedEquipment(scene, hubSection, new Vector3(-8, 0, -25), glbInstances);
 
-  // Scattered tools (hasty evacuation)
-  placeGLBInstance(scene, hubSection, GLB_PATHS.toolbox, 'scattered_tools_1',
-    new Vector3(10, 0, -24), glbInstances,
-    { rotationY: 2.1, scale: new Vector3(0.4, 0.4, 0.4) }
+  // Scattered tools (hasty evacuation) -> GLB mining tool variants
+  placeGLBInstance(scene, hubSection, GLB_PATHS.pickaxe, 'scattered_tool_1',
+    new Vector3(10, 0.1, -24), glbInstances,
+    { rotationY: 2.1, scale: new Vector3(0.5, 0.5, 0.5) }
   );
-  placeGLBInstance(scene, hubSection, GLB_PATHS.toolbox, 'scattered_tools_2',
-    new Vector3(-15, 0, -20), glbInstances,
-    { rotationY: 0.5, scale: new Vector3(0.35, 0.35, 0.35) }
+  placeGLBInstance(scene, hubSection, GLB_PATHS.shovel, 'scattered_tool_2',
+    new Vector3(-15, 0.1, -20), glbInstances,
+    { rotationY: 0.5, scale: new Vector3(0.5, 0.5, 0.5) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.crowbar, 'scattered_tool_3',
+    new Vector3(5, 0.1, -30), glbInstances,
+    { rotationY: 1.2, scale: new Vector3(0.4, 0.4, 0.4) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.wrench1, 'scattered_tool_4',
+    new Vector3(-8, 0.1, -22), glbInstances,
+    { rotationY: -0.8, scale: new Vector3(0.4, 0.4, 0.4) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.hammer, 'scattered_tool_5',
+    new Vector3(14, 0.1, -28), glbInstances,
+    { rotationY: 0.9, scale: new Vector3(0.4, 0.4, 0.4) }
+  );
+
+  // Shelving units with supplies
+  placeGLBInstance(scene, hubSection, GLB_PATHS.propsShelf, 'hub_shelf1',
+    new Vector3(-17, 0, -18), glbInstances,
+    { rotationY: Math.PI / 2, scale: new Vector3(0.8, 0.8, 0.8) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.propsShelfTall, 'hub_shelf2',
+    new Vector3(17, 0, -25), glbInstances,
+    { rotationY: -Math.PI / 2, scale: new Vector3(0.7, 0.7, 0.7) }
+  );
+
+  // Computer terminals (abandoned operations center)
+  placeGLBInstance(scene, hubSection, GLB_PATHS.propsComputer, 'hub_computer1',
+    new Vector3(-10, 0, -16), glbInstances,
+    { rotationY: 0.3, scale: new Vector3(0.6, 0.6, 0.6) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.propsComputerSmall, 'hub_computer2',
+    new Vector3(-12, 0, -17), glbInstances,
+    { rotationY: 0.5, scale: new Vector3(0.5, 0.5, 0.5) }
+  );
+
+  // First aid kit (environmental storytelling - some tried to survive)
+  placeGLBInstance(scene, hubSection, GLB_PATHS.firstAidKit, 'hub_firstAid',
+    new Vector3(7, 0.3, -32), glbInstances,
+    { rotationY: 0.2, scale: new Vector3(0.4, 0.4, 0.4) }
+  );
+
+  // Additional scattered gear
+  placeGLBInstance(scene, hubSection, GLB_PATHS.gear1, 'hub_gear1',
+    new Vector3(3, 0.1, -19), glbInstances,
+    { rotationY: 1.5, scale: new Vector3(0.3, 0.3, 0.3) }
+  );
+  placeGLBInstance(scene, hubSection, GLB_PATHS.gear2, 'hub_gear2',
+    new Vector3(-5, 0.1, -27), glbInstances,
+    { rotationY: 2.2, scale: new Vector3(0.25, 0.25, 0.25) }
   );
 
   // ===========================================================================
@@ -1302,17 +1654,15 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
     glbInstances
   );
 
-  // Warning sign at tunnel entrance (environmental storytelling)
-  const warningSign = MeshBuilder.CreateBox(
-    'warningSign',
-    { width: 1.5, height: 1.0, depth: 0.05 },
-    scene
-  );
-  warningSign.position = new Vector3(2, 1.5, -48);
-  warningSign.rotation.y = Math.PI * 0.1;
-  warningSign.material = materials.get('caution')!;
-  warningSign.parent = tunnelSection;
-  allMeshes.push(warningSign);
+  // Warning sign at tunnel entrance (environmental storytelling) -> GLB detail plate
+  placeGLBInstance(scene, tunnelSection, GLB_PATHS.detailsPlate, 'warningSign',
+    new Vector3(2, 1.5, -48), glbInstances,
+    { rotationY: Math.PI * 0.1, scale: new Vector3(0.5, 0.3, 0.05) });
+
+  // Additional warning signs/details
+  placeGLBInstance(scene, tunnelSection, GLB_PATHS.detailsVent1, 'ventWarning',
+    new Vector3(-2, 2, -49), glbInstances,
+    { rotationY: 0.2, scale: new Vector3(0.3, 0.3, 0.3) });
 
   // ===========================================================================
   // SECTION 2: COLLAPSED TUNNELS
@@ -1600,17 +1950,17 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   shaftGate.parent = shaftSection;
   allMeshes.push(shaftGate);
 
-  // Gate warning stripes (simple thin indicator -- kept as MeshBuilder)
-  const gateStripe = MeshBuilder.CreateBox(
-    'gateStripe',
-    { width: TUNNEL_WIDTH - 0.5, height: 0.2, depth: 0.32 },
-    scene
-  );
-  gateStripe.position = shaftGate.position.clone();
-  gateStripe.position.y += 0.8;
-  gateStripe.material = materials.get('caution')!;
-  gateStripe.parent = shaftSection;
-  allMeshes.push(gateStripe);
+  // Gate warning stripes -> GLB detail plate
+  const gateStripePos = shaftGate.position.clone();
+  gateStripePos.y += 0.8;
+  placeGLBInstance(scene, shaftSection, GLB_PATHS.detailsPlate, 'gateStripe', gateStripePos, glbInstances, {
+    scale: new Vector3((TUNNEL_WIDTH - 0.5) / TILE_SIZE, 0.05, 0.08),
+  });
+
+  // Additional gate frame details
+  placeGLBInstance(scene, shaftSection, GLB_PATHS.detailsVent2, 'gateVent',
+    new Vector3(gatePos.x + 2, gatePos.y - 0.5, gatePos.z - 0.2), glbInstances,
+    { scale: new Vector3(0.2, 0.2, 0.2) });
 
   // Short tunnel to shaft
   createTunnelSegment(
@@ -1628,79 +1978,92 @@ export async function createMiningEnvironment(scene: Scene): Promise<MiningEnvir
   );
 
   // Deep Shaft room (25m x 25m x 30m tall)
-  // Floor (terrain surface -- kept as MeshBuilder)
-  const shaftFloor = MeshBuilder.CreateBox(
-    'shaftFloor',
-    { width: SHAFT_WIDTH, height: 0.4, depth: SHAFT_DEPTH },
-    scene
-  );
-  shaftFloor.position = SHAFT_CENTER.clone();
-  shaftFloor.position.y -= SHAFT_HEIGHT / 2;
-  shaftFloor.material = materials.get('floor')!;
-  shaftFloor.parent = shaftSection;
-  allMeshes.push(shaftFloor);
+  // Floor tiles -> GLB modular floor tiles in a grid
+  const shaftFloorTilesX = Math.ceil(SHAFT_WIDTH / TILE_SIZE);
+  const shaftFloorTilesZ = Math.ceil(SHAFT_DEPTH / TILE_SIZE);
 
-  // Shaft walls (terrain/structural rock -- kept as MeshBuilder)
-  const shaftWalls: Array<{ pos: Vector3; w: number; h: number; d: number }> = [
-    // North wall (with entry)
-    {
-      pos: new Vector3(SHAFT_CENTER.x - 8, SHAFT_CENTER.y, SHAFT_CENTER.z + SHAFT_DEPTH / 2),
-      w: 9,
-      h: SHAFT_HEIGHT,
-      d: 0.5,
-    },
-    {
-      pos: new Vector3(SHAFT_CENTER.x + 8, SHAFT_CENTER.y, SHAFT_CENTER.z + SHAFT_DEPTH / 2),
-      w: 9,
-      h: SHAFT_HEIGHT,
-      d: 0.5,
-    },
-    // South wall
-    {
-      pos: new Vector3(SHAFT_CENTER.x, SHAFT_CENTER.y, SHAFT_CENTER.z - SHAFT_DEPTH / 2),
-      w: SHAFT_WIDTH,
-      h: SHAFT_HEIGHT,
-      d: 0.5,
-    },
-    // East wall
-    {
-      pos: new Vector3(SHAFT_CENTER.x + SHAFT_WIDTH / 2, SHAFT_CENTER.y, SHAFT_CENTER.z),
-      w: 0.5,
-      h: SHAFT_HEIGHT,
-      d: SHAFT_DEPTH,
-    },
-    // West wall
-    {
-      pos: new Vector3(SHAFT_CENTER.x - SHAFT_WIDTH / 2, SHAFT_CENTER.y, SHAFT_CENTER.z),
-      w: 0.5,
-      h: SHAFT_HEIGHT,
-      d: SHAFT_DEPTH,
-    },
-  ];
+  for (let x = 0; x < shaftFloorTilesX; x++) {
+    for (let z = 0; z < shaftFloorTilesZ; z++) {
+      const tileX = SHAFT_CENTER.x - SHAFT_WIDTH / 2 + (x + 0.5) * (SHAFT_WIDTH / shaftFloorTilesX);
+      const tileZ = SHAFT_CENTER.z - SHAFT_DEPTH / 2 + (z + 0.5) * (SHAFT_DEPTH / shaftFloorTilesZ);
+      const floorVariant = FLOOR_VARIANTS[(x + z + 2) % FLOOR_VARIANTS.length];
 
-  for (const sw of shaftWalls) {
-    const mesh = MeshBuilder.CreateBox(
-      `shaftWall_${allMeshes.length}`,
-      { width: sw.w, height: sw.h, depth: sw.d },
-      scene
-    );
-    mesh.position = sw.pos.clone();
-    mesh.material = materials.get('rock')!;
-    mesh.parent = shaftSection;
-    allMeshes.push(mesh);
+      placeGLBInstance(scene, shaftSection, floorVariant, 'shaft_floor',
+        new Vector3(tileX, SHAFT_CENTER.y - SHAFT_HEIGHT / 2, tileZ), glbInstances,
+        { scale: new Vector3(SHAFT_WIDTH / (shaftFloorTilesX * TILE_SIZE), 0.4, SHAFT_DEPTH / (shaftFloorTilesZ * TILE_SIZE)) });
+    }
   }
 
-  // Shaft ceiling (terrain surface -- kept as MeshBuilder)
-  const shaftCeiling = MeshBuilder.CreateBox(
-    'shaftCeiling',
-    { width: SHAFT_WIDTH, height: 0.5, depth: SHAFT_DEPTH },
-    scene
-  );
-  shaftCeiling.position = SHAFT_CENTER.clone();
-  shaftCeiling.position.y += SHAFT_HEIGHT / 2;
-  shaftCeiling.material = materials.get('rock')!;
-  shaftCeiling.parent = shaftSection;
-  allMeshes.push(shaftCeiling);
+  // Shaft walls -> GLB modular wall sections
+  // Wall height segments for tall shaft
+  const wallHeightSegments = Math.ceil(SHAFT_HEIGHT / TILE_SIZE);
+
+  // North wall segments (with entry gap)
+  for (let h = 0; h < wallHeightSegments; h++) {
+    const yPos = SHAFT_CENTER.y - SHAFT_HEIGHT / 2 + (h + 0.5) * (SHAFT_HEIGHT / wallHeightSegments);
+
+    // Left side of north wall
+    placeGLBInstance(scene, shaftSection, WALL_VARIANTS[h % WALL_VARIANTS.length], 'shaft_wall_n_l',
+      new Vector3(SHAFT_CENTER.x - 8, yPos, SHAFT_CENTER.z + SHAFT_DEPTH / 2), glbInstances,
+      { rotationY: 0, scale: new Vector3(9 / TILE_SIZE, SHAFT_HEIGHT / (wallHeightSegments * TILE_SIZE), 0.125) });
+
+    // Right side of north wall
+    placeGLBInstance(scene, shaftSection, WALL_VARIANTS[(h + 1) % WALL_VARIANTS.length], 'shaft_wall_n_r',
+      new Vector3(SHAFT_CENTER.x + 8, yPos, SHAFT_CENTER.z + SHAFT_DEPTH / 2), glbInstances,
+      { rotationY: 0, scale: new Vector3(9 / TILE_SIZE, SHAFT_HEIGHT / (wallHeightSegments * TILE_SIZE), 0.125) });
+
+    // South wall (full width)
+    placeGLBInstance(scene, shaftSection, WALL_VARIANTS[(h + 2) % WALL_VARIANTS.length], 'shaft_wall_s',
+      new Vector3(SHAFT_CENTER.x, yPos, SHAFT_CENTER.z - SHAFT_DEPTH / 2), glbInstances,
+      { rotationY: Math.PI, scale: new Vector3(SHAFT_WIDTH / TILE_SIZE, SHAFT_HEIGHT / (wallHeightSegments * TILE_SIZE), 0.125) });
+
+    // East wall
+    placeGLBInstance(scene, shaftSection, WALL_VARIANTS[(h + 3) % WALL_VARIANTS.length], 'shaft_wall_e',
+      new Vector3(SHAFT_CENTER.x + SHAFT_WIDTH / 2, yPos, SHAFT_CENTER.z), glbInstances,
+      { rotationY: Math.PI / 2, scale: new Vector3(0.125, SHAFT_HEIGHT / (wallHeightSegments * TILE_SIZE), SHAFT_DEPTH / TILE_SIZE) });
+
+    // West wall
+    placeGLBInstance(scene, shaftSection, WALL_VARIANTS[(h + 4) % WALL_VARIANTS.length], 'shaft_wall_w',
+      new Vector3(SHAFT_CENTER.x - SHAFT_WIDTH / 2, yPos, SHAFT_CENTER.z), glbInstances,
+      { rotationY: -Math.PI / 2, scale: new Vector3(0.125, SHAFT_HEIGHT / (wallHeightSegments * TILE_SIZE), SHAFT_DEPTH / TILE_SIZE) });
+  }
+
+  // Shaft ceiling tiles -> GLB
+  for (let x = 0; x < shaftFloorTilesX; x++) {
+    for (let z = 0; z < shaftFloorTilesZ; z++) {
+      const tileX = SHAFT_CENTER.x - SHAFT_WIDTH / 2 + (x + 0.5) * (SHAFT_WIDTH / shaftFloorTilesX);
+      const tileZ = SHAFT_CENTER.z - SHAFT_DEPTH / 2 + (z + 0.5) * (SHAFT_DEPTH / shaftFloorTilesZ);
+      const ceilVariant = CEILING_VARIANTS[(x + z) % CEILING_VARIANTS.length];
+
+      placeGLBInstance(scene, shaftSection, ceilVariant, 'shaft_ceil',
+        new Vector3(tileX, SHAFT_CENTER.y + SHAFT_HEIGHT / 2, tileZ), glbInstances,
+        { scale: new Vector3(SHAFT_WIDTH / (shaftFloorTilesX * TILE_SIZE), 0.5, SHAFT_DEPTH / (shaftFloorTilesZ * TILE_SIZE)) });
+    }
+  }
+
+  // Add industrial pipes and vents along shaft walls
+  for (let i = 0; i < 4; i++) {
+    const pipeAngle = (i / 4) * Math.PI * 2;
+    const pipeRadius = SHAFT_WIDTH / 2 - 1;
+    const pipePos = new Vector3(
+      SHAFT_CENTER.x + Math.cos(pipeAngle) * pipeRadius,
+      SHAFT_CENTER.y,
+      SHAFT_CENTER.z + Math.sin(pipeAngle) * pipeRadius
+    );
+    const pipeVariant = PIPE_VARIANTS[i % PIPE_VARIANTS.length];
+    placeGLBInstance(scene, shaftSection, pipeVariant, 'shaft_pipe', pipePos, glbInstances, {
+      rotationY: pipeAngle,
+      scale: new Vector3(0.5, SHAFT_HEIGHT / (TILE_SIZE * 2), 0.5),
+    });
+  }
+
+  // Add vents on walls
+  placeGLBInstance(scene, shaftSection, GLB_PATHS.detailsVent2, 'shaft_vent1',
+    new Vector3(SHAFT_CENTER.x - 5, SHAFT_CENTER.y + 5, SHAFT_CENTER.z + SHAFT_DEPTH / 2 - 0.3), glbInstances,
+    { scale: new Vector3(0.5, 0.5, 0.5) });
+  placeGLBInstance(scene, shaftSection, GLB_PATHS.detailsVent1, 'shaft_vent2',
+    new Vector3(SHAFT_CENTER.x + 5, SHAFT_CENTER.y + 3, SHAFT_CENTER.z - SHAFT_DEPTH / 2 + 0.3), glbInstances,
+    { rotationY: Math.PI, scale: new Vector3(0.6, 0.6, 0.6) });
 
   // Spiral descent ledges (player navigates down) -> GLB platforms + handrails
   const ledgeCount = 6;

@@ -100,7 +100,7 @@ interface StragglerEnemy {
 }
 
 interface DebrisChunk {
-  mesh: Mesh;
+  mesh: TransformNode;
   velocity: Vector3;
   rotationSpeed: Vector3;
   lifetime: number;
@@ -118,8 +118,18 @@ const SECTION_BOUNDARIES = {
 // GLB paths for vehicle and mech - use available assets
 // Vehicle: Challenger spaceship (shuttle-like, fits escape theme)
 // Mech: Fallback to Phantom dropship scaled down as armored walker
-const VEHICLE_GLB_PATH = '/models/spaceships/Challenger.glb';
-const MARCUS_MECH_GLB_PATH = '/models/vehicles/phantom_dropship.glb';
+const VEHICLE_GLB_PATH = '/assets/models/spaceships/Challenger.glb';
+const MARCUS_MECH_GLB_PATH = '/assets/models/vehicles/marcus_mech.glb';
+
+// GLB paths for tunnel debris (falling chunks in Section A)
+const TUNNEL_DEBRIS_GLB_PATHS = [
+  '/assets/models/props/debris/brick_mx_1.glb',
+  '/assets/models/props/debris/brick_mx_2.glb',
+  '/assets/models/props/debris/brick_mx_3.glb',
+  '/assets/models/props/debris/brick_mx_4.glb',
+  '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  '/assets/models/props/debris/debris_bricks_mx_2.glb',
+] as const;
 
 const VEHICLE_SPEED = 30; // Base vehicle speed (m/s)
 const VEHICLE_BOOST_MULTIPLIER = 1.5;
@@ -165,9 +175,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private tunnelCollapseWall: Mesh | null = null;
   private tunnelCollapseZ = 10; // Z position of the collapse wall
 
-  // Tunnel debris (procedural falling chunks during Section A)
+  // Tunnel debris (GLB-based falling chunks during Section A)
   private tunnelDebris: DebrisChunk[] = [];
   private tunnelDebrisTimer = 0;
+  private tunnelDebrisCounter = 0;
 
   // Marcus mech companion
   private marcusMech: TransformNode | null = null;
@@ -281,10 +292,16 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Override lighting for apocalyptic atmosphere
     this.setupApocalypticLighting();
 
-    // Preload vehicle and mech GLBs (used by createVehicle / createMarcusMech)
+    // Preload vehicle, mech, and debris GLBs
     await Promise.all([
       AssetManager.loadAssetByPath(VEHICLE_GLB_PATH, this.scene),
       AssetManager.loadAssetByPath(MARCUS_MECH_GLB_PATH, this.scene),
+      ...TUNNEL_DEBRIS_GLB_PATHS.map((path) =>
+        AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
+          log.warn(`Failed to preload debris GLB ${path}:`, err);
+          return null;
+        })
+      ),
     ]);
 
     // Build the GLB-based escape route environment (all 4 sections)
@@ -1666,16 +1683,30 @@ export class FinalEscapeLevel extends SurfaceLevel {
   // ============================================================================
 
   /**
-   * Spawn falling debris in the hive tunnel.
+   * Spawn falling debris in the hive tunnel using GLB models.
    */
   private spawnTunnelDebris(): void {
     const size = 0.3 + Math.random() * 0.8;
 
-    const mesh = MeshBuilder.CreatePolyhedron(
-      `tunnel_debris_${this.tunnelDebris.length}`,
-      { type: Math.floor(Math.random() * 3), size },
-      this.scene
+    // Pick a random debris GLB path
+    const debrisIndex = Math.floor(Math.random() * TUNNEL_DEBRIS_GLB_PATHS.length);
+    const debrisPath = TUNNEL_DEBRIS_GLB_PATHS[debrisIndex];
+    const instanceName = `tunnel_debris_${this.tunnelDebrisCounter++}`;
+
+    // Create GLB instance
+    const mesh = AssetManager.createInstanceByPath(
+      debrisPath,
+      instanceName,
+      this.scene,
+      false, // not animated
+      'debris'
     );
+
+    if (!mesh) {
+      // Skip if GLB not loaded yet
+      log.warn(`Failed to create tunnel debris instance from ${debrisPath}`);
+      return;
+    }
 
     // Spawn from ceiling, near player's forward path
     mesh.position.set(
@@ -1684,9 +1715,9 @@ export class FinalEscapeLevel extends SurfaceLevel {
       this.camera.position.z - 10 - Math.random() * 20
     );
 
-    const debrisMat = new StandardMaterial(`debris_mat_${this.tunnelDebris.length}`, this.scene);
-    debrisMat.diffuseColor = Color3.FromHexString('#4A3A4A');
-    mesh.material = debrisMat;
+    // Scale the GLB to desired size
+    const scale = size * 0.4;
+    mesh.scaling.set(scale, scale, scale);
 
     this.tunnelDebris.push({
       mesh,

@@ -28,10 +28,29 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import type { CommsMessage } from '../../types';
 
 // Import animation module for easing
 import '@babylonjs/core/Animations/animatable';
+
+const log = getLogger('BrothersInArmsCinematics');
+
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS for cover rubble (replaces MeshBuilder rock boxes)
+// ---------------------------------------------------------------------------
+
+const COVER_RUBBLE_PATHS = {
+  /** Debris brick piles - varied sizes */
+  debris_bricks_1: '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  debris_bricks_2: '/assets/models/props/debris/debris_bricks_mx_2.glb',
+  /** Stacked bricks - larger rubble pieces */
+  bricks_stacked_1: '/assets/models/props/debris/bricks_stacked_mx_1.glb',
+  bricks_stacked_2: '/assets/models/props/debris/bricks_stacked_mx_2.glb',
+  /** Gravel piles for variety */
+  gravel_pile: '/assets/models/props/debris/gravel_pile_hr_1.glb',
+} as const;
 
 // ============================================================================
 // TYPES
@@ -313,8 +332,9 @@ export class ReunionCinematic {
     this.callbacks.onNotification('MARCUS LOCATED', 2000);
     this.callbacks.onObjectiveUpdate('REUNION', 'Link up with Marcus');
 
-    // Create cover rubble that Marcus will emerge from
-    this.createCoverRubble();
+    // Create cover rubble that Marcus will emerge from (async, fire-and-forget)
+    // The rubble loading happens in parallel with other cinematic setup
+    void this.createCoverRubble();
 
     // Create dramatic lighting on Marcus
     this.createDramaticLighting();
@@ -478,39 +498,69 @@ export class ReunionCinematic {
   }
 
   /**
-   * Create rubble/cover that Marcus is hiding behind
+   * Create rubble/cover that Marcus is hiding behind using GLB debris models.
+   * The debris pieces will be scattered when Marcus emerges from cover.
    */
-  private createCoverRubble(): void {
-    const rubbleMat = new StandardMaterial('rubbleMat', this.scene);
-    rubbleMat.diffuseColor = Color3.FromHexString('#6B4423');
-    rubbleMat.specularColor = new Color3(0.1, 0.1, 0.1);
-
-    // Create several rock pieces around Marcus's position
-    const rubblePositions = [
-      new Vector3(12, 0.8, 8),
-      new Vector3(18, 1.2, 9),
-      new Vector3(14, 0.6, 12),
-      new Vector3(16, 1.0, 7),
-      new Vector3(13, 0.9, 11),
+  private async createCoverRubble(): Promise<void> {
+    // Rubble placement data: position, GLB path, scale
+    const rubblePlacements: Array<{
+      position: Vector3;
+      path: string;
+      scale: number;
+    }> = [
+      { position: new Vector3(12, 0.8, 8), path: COVER_RUBBLE_PATHS.debris_bricks_1, scale: 2.5 },
+      { position: new Vector3(18, 1.2, 9), path: COVER_RUBBLE_PATHS.bricks_stacked_1, scale: 2.0 },
+      { position: new Vector3(14, 0.6, 12), path: COVER_RUBBLE_PATHS.debris_bricks_2, scale: 2.2 },
+      { position: new Vector3(16, 1.0, 7), path: COVER_RUBBLE_PATHS.gravel_pile, scale: 2.8 },
+      { position: new Vector3(13, 0.9, 11), path: COVER_RUBBLE_PATHS.bricks_stacked_2, scale: 1.8 },
     ];
 
-    rubblePositions.forEach((pos, i) => {
-      const size = 1.5 + Math.random() * 2;
-      const rock = MeshBuilder.CreateBox(
-        `coverRubble_${i}`,
-        {
-          width: size * (0.8 + Math.random() * 0.4),
-          height: size * (0.5 + Math.random() * 0.5),
-          depth: size * (0.8 + Math.random() * 0.4),
-        },
-        this.scene
-      );
-      rock.position = pos;
-      rock.rotation.y = Math.random() * Math.PI * 2;
-      rock.rotation.x = (Math.random() - 0.5) * 0.3;
-      rock.material = rubbleMat;
-      this.coverRubble.push(rock);
+    // Preload all unique GLB paths
+    const uniquePaths = [...new Set(rubblePlacements.map((p) => p.path))];
+    const loadPromises = uniquePaths.map(async (path) => {
+      try {
+        if (!AssetManager.isPathCached(path)) {
+          await AssetManager.loadAssetByPath(path, this.scene);
+        }
+      } catch (err) {
+        log.warn(`Failed to load cover rubble GLB: ${path}`, err);
+      }
     });
+
+    await Promise.all(loadPromises);
+
+    // Create instances for each rubble piece
+    for (let i = 0; i < rubblePlacements.length; i++) {
+      const { position, path, scale } = rubblePlacements[i];
+
+      if (!AssetManager.isPathCached(path)) {
+        log.warn(`Skipping rubble ${i}: GLB not cached: ${path}`);
+        continue;
+      }
+
+      const instance = AssetManager.createInstanceByPath(
+        path,
+        `coverRubble_${i}`,
+        this.scene,
+        true,
+        'environment'
+      );
+
+      if (!instance) {
+        log.warn(`Failed to create rubble instance ${i}`);
+        continue;
+      }
+
+      instance.position = position.clone();
+      instance.rotation.y = Math.random() * Math.PI * 2;
+      instance.rotation.x = (Math.random() - 0.5) * 0.3;
+      instance.scaling.setAll(scale);
+
+      // Store as Mesh for animation compatibility
+      this.coverRubble.push(instance as unknown as Mesh);
+    }
+
+    log.info(`Created ${this.coverRubble.length} cover rubble pieces using GLB models`);
   }
 
   /**

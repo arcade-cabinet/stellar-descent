@@ -81,32 +81,32 @@ export interface SkyboxResult {
  */
 const HDRI_PATHS: Record<SkyboxType, { cubemap: string; env: string }> = {
   space: {
-    cubemap: '/textures/skybox/space/space',
-    env: '/textures/hdri/space.exr',
+    cubemap: '/assets/textures/skybox/space/space',
+    env: '/assets/textures/hdri/space.exr',
   },
   desert: {
-    cubemap: '/textures/skybox/desert/desert',
-    env: '/textures/hdri/desert.exr',
+    cubemap: '/assets/textures/skybox/desert/desert',
+    env: '/assets/textures/hdri/desert.exr',
   },
   ice: {
-    cubemap: '/textures/skybox/ice/ice',
-    env: '/textures/hdri/ice.exr',
+    cubemap: '/assets/textures/skybox/ice/ice',
+    env: '/assets/textures/hdri/ice.exr',
   },
   hive: {
-    cubemap: '/textures/skybox/hive/hive',
-    env: '/textures/hdri/hive.exr',
+    cubemap: '/assets/textures/skybox/hive/hive',
+    env: '/assets/textures/hdri/hive.exr',
   },
   dusk: {
-    cubemap: '/textures/skybox/dusk/dusk',
-    env: '/textures/hdri/dusk.exr',
+    cubemap: '/assets/textures/skybox/dusk/dusk',
+    env: '/assets/textures/hdri/dusk.exr',
   },
   night: {
-    cubemap: '/textures/skybox/night/night',
-    env: '/textures/hdri/night.exr',
+    cubemap: '/assets/textures/skybox/night/night',
+    env: '/assets/textures/hdri/night.exr',
   },
   underground: {
     cubemap: '', // No skybox for underground
-    env: '/textures/hdri/underground.exr',
+    env: '/assets/textures/hdri/underground.exr',
   },
 };
 
@@ -114,7 +114,7 @@ const HDRI_PATHS: Record<SkyboxType, { cubemap: string; env: string }> = {
  * Indoor HDRI for station interior ambient lighting.
  * This provides neutral, soft lighting for indoor spaces.
  */
-const INDOOR_HDRI_PATH = '/textures/hdri/indoor.exr';
+const INDOOR_HDRI_PATH = '/assets/textures/hdri/indoor.exr';
 
 // ============================================================================
 // FALLBACK COLORS (used when HDRIs are not available)

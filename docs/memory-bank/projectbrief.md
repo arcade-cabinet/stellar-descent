@@ -47,16 +47,23 @@ stellar-descent/
 ├── src/
 │   ├── components/     # React UI components
 │   ├── game/
+│   │   ├── ai/
+│   │   │   └── schemas/  # Zod schemas for GenAI manifests
 │   │   ├── context/    # GameContext, KeybindingsContext, WeaponContext
 │   │   ├── core/       # AudioManager, AssetManager, PSXModelLoader
 │   │   ├── ecs/        # ECS components and systems
-│   │   ├── levels/     # Campaign levels (6 total)
+│   │   ├── levels/     # Campaign levels (10 total)
 │   │   └── systems/    # Combat, AI, Player systems
 │   └── App.tsx
+├── scripts/
+│   └── generate-assets.ts  # GenAI asset generation CLI
 ├── e2e/                # Playwright E2E tests
 ├── public/
-│   ├── models/         # GLB model files
-│   └── textures/       # Texture atlas
+│   └── assets/         # All game assets
+│       ├── models/     # GLB model files (803+)
+│       ├── textures/   # Texture atlas
+│       ├── audio/      # Sound effects and music
+│       └── videos/     # Splash screens and cinematics
 ├── docs/
 │   └── memory-bank/    # AI context files
 └── .github/workflows/  # CI/CD configuration

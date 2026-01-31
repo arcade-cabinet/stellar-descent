@@ -57,10 +57,10 @@ export const HIVE_COLORS = {
 // ============================================================================
 
 /** Base path for hive structure GLBs. */
-const HIVE_GLB_BASE = '/models/environment/hive';
+const HIVE_GLB_BASE = '/assets/models/environment/hive';
 
 /** Base path for alien flora GLBs (used for organic growths). */
-const FLORA_GLB_BASE = '/models/environment/alien-flora';
+const FLORA_GLB_BASE = '/assets/models/environment/alien-flora';
 
 /**
  * GLB assets used for structural hive geometry.
@@ -98,6 +98,23 @@ const BIO_PATCH_GLBS = [
   `${FLORA_GLB_BASE}/alien_mushroom_red_01.glb`,
   `${FLORA_GLB_BASE}/alien_mushroom_laetiporus.glb`,
 ] as const;
+
+/**
+ * GLBs for organic growths on captured vehicles (hive absorption effect).
+ * Uses mushroom and plant variants for alien biological matter.
+ */
+const VEHICLE_GROWTH_GLBS = [
+  `${FLORA_GLB_BASE}/alien_mushroom_08.glb`,
+  `${FLORA_GLB_BASE}/alien_mushroom_09.glb`,
+  `${FLORA_GLB_BASE}/alien_mushroom_brown_01.glb`,
+  `${FLORA_GLB_BASE}/alien_plant_1_big.glb`,
+] as const;
+
+/**
+ * GLB for tendril-like connections from captured vehicles to hive walls.
+ * Hanging moss provides an organic tendril appearance.
+ */
+const VEHICLE_TENDRIL_GLB = `${FLORA_GLB_BASE}/alien_hanging_moss_01.glb`;
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -157,7 +174,7 @@ export interface CapturedVehicle {
   type: 'wraith' | 'phantom';
   zone: HiveZone;
   scale: number;
-  organicGrowth: Mesh[]; // Organic matter growing over the vehicle
+  organicGrowth: TransformNode[]; // Organic matter growing over the vehicle (GLB instances)
 }
 
 // ============================================================================
@@ -210,9 +227,9 @@ export class HiveEnvironmentBuilder {
   }
 
   /**
-   * Preload GLB assets used for tunnels, chambers, and organic growths.
-   * Must be called (and awaited) before {@link createTunnelSegment} or
-   * {@link createChamber}.
+   * Preload GLB assets used for tunnels, chambers, organic growths, and vehicle decorations.
+   * Must be called (and awaited) before {@link createTunnelSegment},
+   * {@link createChamber}, or {@link placeCapturedVehicle}.
    */
   async loadHiveGeometry(): Promise<void> {
     const allPaths = [
@@ -220,6 +237,8 @@ export class HiveEnvironmentBuilder {
       HIVE_STRUCTURE_GLBS.chamber,
       ...ORGANIC_GROWTH_GLBS,
       ...BIO_PATCH_GLBS,
+      ...VEHICLE_GROWTH_GLBS,
+      VEHICLE_TENDRIL_GLB,
     ];
 
     try {
@@ -550,7 +569,10 @@ export class HiveEnvironmentBuilder {
   }
 
   /**
-   * Place a captured vehicle with organic growth effects.
+   * Place a captured vehicle with organic growth effects using GLB models.
+   *
+   * Requires both vehicles and hive geometry to be preloaded. Call
+   * {@link loadCapturedVehicles} and {@link loadHiveGeometry} first.
    */
   placeCapturedVehicle(
     type: 'wraith' | 'phantom',
@@ -562,6 +584,10 @@ export class HiveEnvironmentBuilder {
     if (!this.vehiclesLoaded) {
       log.warn(`[${this.logPrefix}] Vehicles not loaded, skipping placement`);
       return null;
+    }
+
+    if (!this.geometryLoaded) {
+      log.warn(`[${this.logPrefix}] Hive geometry not loaded, skipping vehicle growth decorations`);
     }
 
     const instance = AssetManager.createInstance(
@@ -580,70 +606,76 @@ export class HiveEnvironmentBuilder {
     instance.scaling.setAll(scale);
     instance.rotation = rotation;
 
-    // Create organic growth over the vehicle (hive absorption)
-    // These remain as MeshBuilder -- transient VFX parented to the vehicle node
-    const organicGrowth: Mesh[] = [];
+    // Create organic growth over the vehicle using GLB flora assets
+    const organicGrowth: TransformNode[] = [];
     const growthCount = 3 + Math.floor(Math.random() * 3);
-
-    const growthMat = new StandardMaterial(
-      `vehicleGrowth_${this.capturedVehicles.length}`,
-      this.scene
-    );
-    growthMat.diffuseColor = Color3.FromHexString(this.colors.chitinPurple);
-    growthMat.emissiveColor = Color3.FromHexString(this.colors.bioGlowDim).scale(0.2);
+    const vehicleIndex = this.capturedVehicles.length;
 
     for (let j = 0; j < growthCount; j++) {
-      const growth = MeshBuilder.CreateSphere(
-        `growth_${type}_${this.capturedVehicles.length}_${j}`,
-        {
-          diameterX: 0.8 + Math.random() * 1.2,
-          diameterY: 0.5 + Math.random() * 0.8,
-          diameterZ: 0.8 + Math.random() * 1.2,
-          segments: 8,
-        },
-        this.scene
-      );
-      growth.material = growthMat;
+      const glbPath = VEHICLE_GROWTH_GLBS[j % VEHICLE_GROWTH_GLBS.length];
 
-      // Position growth on the vehicle surface
-      growth.position.set(
-        (Math.random() - 0.5) * 2,
-        Math.random() * 1.5,
-        (Math.random() - 0.5) * 3
-      );
-      growth.parent = instance;
-      organicGrowth.push(growth);
+      if (this.geometryLoaded && AssetManager.isPathCached(glbPath)) {
+        const growth = AssetManager.createInstanceByPath(
+          glbPath,
+          `growth_${type}_${vehicleIndex}_${j}`,
+          this.scene,
+          false // No LOD for small decorations
+        );
+
+        if (growth) {
+          // Position growth on the vehicle surface with random offsets
+          growth.position.set(
+            (Math.random() - 0.5) * 2,
+            Math.random() * 1.5,
+            (Math.random() - 0.5) * 3
+          );
+          // Random scale for organic variation
+          const s = 0.3 + Math.random() * 0.4;
+          growth.scaling.setAll(s);
+          growth.rotation.set(
+            (Math.random() - 0.5) * 0.5,
+            Math.random() * Math.PI * 2,
+            (Math.random() - 0.5) * 0.5
+          );
+          growth.parent = instance;
+          organicGrowth.push(growth);
+        }
+      }
     }
 
-    // Add tendril-like connections to surrounding hive
-    const tendrilMat = new StandardMaterial(`tendril_${this.capturedVehicles.length}`, this.scene);
-    tendrilMat.diffuseColor = Color3.FromHexString(this.colors.chitinDark);
-
+    // Add tendril-like connections to surrounding hive using hanging moss GLB
     for (let k = 0; k < 2; k++) {
-      const tendril = MeshBuilder.CreateCylinder(
-        `tendril_${type}_${this.capturedVehicles.length}_${k}`,
-        {
-          height: 2 + Math.random() * 2,
-          diameterTop: 0.1,
-          diameterBottom: 0.3,
-          tessellation: 6,
-        },
-        this.scene
-      );
-      tendril.material = tendrilMat;
-      tendril.position.set((Math.random() - 0.5) * 2, 1 + Math.random(), (Math.random() - 0.5) * 2);
-      tendril.rotation.set(
-        (Math.random() - 0.5) * 0.5,
-        Math.random() * Math.PI,
-        (Math.random() - 0.5) * 0.5
-      );
-      tendril.parent = instance;
-      organicGrowth.push(tendril);
+      if (this.geometryLoaded && AssetManager.isPathCached(VEHICLE_TENDRIL_GLB)) {
+        const tendril = AssetManager.createInstanceByPath(
+          VEHICLE_TENDRIL_GLB,
+          `tendril_${type}_${vehicleIndex}_${k}`,
+          this.scene,
+          false
+        );
+
+        if (tendril) {
+          tendril.position.set(
+            (Math.random() - 0.5) * 2,
+            1 + Math.random(),
+            (Math.random() - 0.5) * 2
+          );
+          // Scale to approximate tendril dimensions
+          const tendrilScale = 0.4 + Math.random() * 0.3;
+          tendril.scaling.set(tendrilScale, tendrilScale * 1.5, tendrilScale);
+          tendril.rotation.set(
+            (Math.random() - 0.5) * 0.5,
+            Math.random() * Math.PI,
+            (Math.random() - 0.5) * 0.5
+          );
+          tendril.parent = instance;
+          organicGrowth.push(tendril);
+        }
+      }
     }
 
     // Add eerie dim glow underneath (damaged systems)
     const damageLight = new PointLight(
-      `vehicleDamage_${this.capturedVehicles.length}`,
+      `vehicleDamage_${vehicleIndex}`,
       position.add(new Vector3(0, 0.5, 0)),
       this.scene
     );

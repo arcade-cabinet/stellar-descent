@@ -17,8 +17,8 @@ const log = getLogger('SplashAudioManager');
 
 // Audio file paths
 const SPLASH_AUDIO_PATHS = {
-  portrait: '/audio/splash/splash-portrait.ogg',
-  landscape: '/audio/splash/splash-landscape.ogg',
+  portrait: '/assets/audio/splash/splash-portrait.ogg',
+  landscape: '/assets/audio/splash/splash-landscape.ogg',
 } as const;
 
 // Storage keys for volume persistence

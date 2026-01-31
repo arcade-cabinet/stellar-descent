@@ -215,20 +215,20 @@ const WAVE_REST_DURATION = 20000; // 20 seconds between waves (reduced for bette
 
 const CANYON_WALL_PATHS = {
   /** Long horizontal wall segment, tiled along N/S boundaries */
-  wall_long: '/models/environment/station/wall_hr_15_double.glb',
+  wall_long: '/assets/models/environment/station/wall_hr_15_double.glb',
   /** Shorter wall segment used to fill gaps at E/W boundaries */
-  wall_short: '/models/environment/station/wall_hr_1.glb',
+  wall_short: '/assets/models/environment/station/wall_hr_1.glb',
   /** Pillar segments placed at wall junctions for visual variety */
-  pillar: '/models/environment/station/pillar_hr_8.glb',
+  pillar: '/assets/models/environment/station/pillar_hr_8.glb',
 } as const;
 
 const BREACH_RIM_PATHS = {
   /** Debris bricks scattered around breach lip */
-  debris_bricks: '/models/props/debris/debris_bricks_mx_1.glb',
+  debris_bricks: '/assets/models/props/debris/debris_bricks_mx_1.glb',
   /** Gravel piles at breach edge */
-  gravel: '/models/props/debris/gravel_pile_hr_1.glb',
+  gravel: '/assets/models/props/debris/gravel_pile_hr_1.glb',
   /** Scrap metal fragments */
-  scrap: '/models/props/containers/scrap_metal_mx_1.glb',
+  scrap: '/assets/models/props/containers/scrap_metal_mx_1.glb',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -241,13 +241,13 @@ const BREACH_RIM_PATHS = {
  */
 const ENEMY_GLB_PATHS: Record<EnemyType, string> = {
   /** Flying drone - fast, small flyer */
-  drone: '/models/enemies/chitin/flyingalien.glb',
+  drone: '/assets/models/enemies/chitin/flyingalien.glb',
   /** Grunt - standard ground enemy (lurker/scout type) */
-  grunt: '/models/enemies/chitin/scout.glb',
+  grunt: '/assets/models/enemies/chitin/scout.glb',
   /** Spitter - ranged acid attacker (spewer/soldier type) */
-  spitter: '/models/enemies/chitin/soldier.glb',
+  spitter: '/assets/models/enemies/chitin/soldier.glb',
   /** Brute - heavy tank enemy (large alien monster) */
-  brute: '/models/enemies/chitin/alienmonster.glb',
+  brute: '/assets/models/enemies/chitin/alienmonster.glb',
 } as const;
 
 /**
@@ -695,7 +695,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     const skyboxManager = new SkyboxManager(this.scene);
 
     // Try to load HDRI first for best quality
-    const hdriPath = '/textures/hdri/dusk_canyon.exr';
+    const hdriPath = '/assets/textures/hdri/dusk_canyon.exr';
 
     // Create fallback dusk skybox - will be replaced if HDRI loads successfully
     this.skyboxResult = skyboxManager.createFallbackSkybox({
@@ -775,15 +775,15 @@ export class BrothersInArmsLevel extends BaseLevel {
     root.position = MARCUS_START_POSITION.clone();
 
     // Load the Marcus mech GLB model
-    const MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
+    const MECH_GLB_PATH = '/assets/models/vehicles/tea/marcus_mech.glb';
 
-    try {
-      await AssetManager.loadAssetByPath(MECH_GLB_PATH, this.scene);
-    } catch (err) {
-      log.error(`Failed to load marcus_mech.glb: ${err}`);
-      // Create fallback mech geometry if GLB fails
-      this.createFallbackMarcusMech(root);
-      return;
+    await AssetManager.loadAssetByPath(MECH_GLB_PATH, this.scene);
+
+    if (!AssetManager.isPathCached(MECH_GLB_PATH)) {
+      throw new Error(
+        `[BrothersInArms] FATAL: Failed to load marcus_mech.glb from ${MECH_GLB_PATH}. ` +
+        `Ensure the asset exists and is accessible.`
+      );
     }
 
     const mechModel = AssetManager.createInstanceByPath(
@@ -794,29 +794,30 @@ export class BrothersInArmsLevel extends BaseLevel {
       'vehicle'
     );
 
-    if (mechModel) {
-      mechModel.parent = root;
-      // Scale GLB to match the ~8m tall mech (adjust if model is a different base size)
-      mechModel.scaling.setAll(4);
-      mechModel.position.y = 0;
-
-      // Ensure mech is visible and receives proper lighting
-      const mechMeshes = mechModel.getChildMeshes();
-      for (const mesh of mechMeshes) {
-        mesh.receiveShadows = true;
-        mesh.isPickable = true;
-        // Ensure materials render correctly with sunset lighting
-        if (mesh.material && mesh.material instanceof PBRMaterial) {
-          mesh.material.environmentIntensity = 1.0;
-        }
-      }
-
-      log.info(`Marcus mech loaded successfully with ${mechMeshes.length} meshes`);
-    } else {
-      log.warn('GLB instance creation failed, using fallback');
-      this.createFallbackMarcusMech(root);
-      return;
+    if (!mechModel) {
+      throw new Error(
+        `[BrothersInArms] FATAL: Failed to create instance of marcus_mech.glb. ` +
+        `Asset was cached but instance creation failed.`
+      );
     }
+
+    mechModel.parent = root;
+    // Scale GLB to match the ~8m tall mech (adjust if model is a different base size)
+    mechModel.scaling.setAll(4);
+    mechModel.position.y = 0;
+
+    // Ensure mech is visible and receives proper lighting
+    const mechMeshes = mechModel.getChildMeshes();
+    for (const mesh of mechMeshes) {
+      mesh.receiveShadows = true;
+      mesh.isPickable = true;
+      // Ensure materials render correctly with sunset lighting
+      if (mesh.material && mesh.material instanceof PBRMaterial) {
+        mesh.material.environmentIntensity = 1.0;
+      }
+    }
+
+    log.info(`Marcus mech loaded successfully with ${mechMeshes.length} meshes`);
 
     // Create invisible proxy meshes for arms, body, and legs.
     // These are required by MarcusCombatAI for projectile spawn positions
@@ -944,136 +945,6 @@ export class BrothersInArmsLevel extends BaseLevel {
         holdPositionTolerance: 3,
         suppressionDuration: 5000,
         regroupSpeedMultiplier: 1.5,
-      }
-    );
-  }
-
-  /**
-   * Create fallback Marcus mech using MeshBuilder if GLB fails to load.
-   * This ensures the level remains playable even without the GLB model.
-   */
-  private createFallbackMarcusMech(root: TransformNode): void {
-    log.warn('Creating fallback mech geometry');
-
-    // Create the mech body using primitive shapes
-    const body = MeshBuilder.CreateBox('mechBody_fallback', { width: 3, height: 4, depth: 2 }, this.scene);
-    body.parent = root;
-    body.position.y = 6;
-
-    const bodyMat = new PBRMaterial('mechBodyMat', this.scene);
-    bodyMat.albedoColor = Color3.FromHexString('#5A5A6A');
-    bodyMat.metallic = 0.9;
-    bodyMat.roughness = 0.3;
-    body.material = bodyMat;
-
-    // Create left arm
-    const leftArm = MeshBuilder.CreateCylinder('mechLeftArm_fallback', { height: 4, diameter: 0.8 }, this.scene);
-    leftArm.parent = root;
-    leftArm.position.set(-2.5, 5.5, 0);
-    leftArm.rotation.z = 0.3;
-    leftArm.material = bodyMat;
-
-    // Create right arm
-    const rightArm = MeshBuilder.CreateCylinder('mechRightArm_fallback', { height: 4, diameter: 0.8 }, this.scene);
-    rightArm.parent = root;
-    rightArm.position.set(2.5, 5.5, 0);
-    rightArm.rotation.z = -0.3;
-    rightArm.material = bodyMat;
-
-    // Create legs
-    const legs = MeshBuilder.CreateBox('mechLegs_fallback', { width: 2, height: 3, depth: 1.5 }, this.scene);
-    legs.parent = root;
-    legs.position.y = 2;
-    legs.material = bodyMat;
-
-    // Create head/cockpit
-    const head = MeshBuilder.CreateBox('mechHead_fallback', { width: 1.5, height: 1.2, depth: 1 }, this.scene);
-    head.parent = root;
-    head.position.y = 8.5;
-
-    const cockpitMat = new PBRMaterial('mechCockpitMat', this.scene);
-    cockpitMat.albedoColor = Color3.FromHexString('#1A4A6A');
-    cockpitMat.metallic = 0.5;
-    cockpitMat.roughness = 0.1;
-    cockpitMat.emissiveColor = Color3.FromHexString('#0A2A4A');
-    head.material = cockpitMat;
-
-    // Initialize marcus struct with fallback meshes
-    this.marcus = {
-      rootNode: root,
-      body,
-      leftArm,
-      rightArm,
-      legs,
-      position: MARCUS_START_POSITION.clone(),
-      health: 500,
-      maxHealth: 500,
-      targetEnemy: null,
-      state: 'dialogue',
-      lastFireTime: 0,
-      fireRate: 2.5,
-      damage: 50,
-      range: 80,
-    };
-
-    // Initialize combat AI with fallback meshes
-    this.marcusCombatAI = new MarcusCombatAI(
-      this.scene,
-      root,
-      leftArm,
-      rightArm,
-      {
-        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
-        onMarcusHealthChange: (health, maxHealth) => {
-          this.updateMarcusHealthBar(health, maxHealth);
-          if (this.marcus) {
-            this.marcus.health = health;
-            this.marcus.maxHealth = maxHealth;
-          }
-          this.handleMarcusHealthBanter(health, maxHealth);
-        },
-        onMarcusShieldChange: (shields, maxShields) => {
-          this.updateMarcusShieldBar(shields, maxShields);
-        },
-        onStateChange: (newState, oldState) => {
-          this.onMarcusCombatStateChange(newState, oldState);
-        },
-        onCoordinatedAttack: (attack) => {
-          this.onCoordinatedAttackStarted(attack);
-        },
-        onNotification: (text, duration) => {
-          this.callbacks.onNotification(text, duration);
-        },
-        onMarcusDowned: () => {
-          this.onMarcusDowned();
-        },
-        onMarcusRevived: () => {
-          this.onMarcusRevived();
-        },
-      },
-      {
-        maxHealth: 500,
-        damage: 50,
-        fireRate: 2.5,
-        range: 80,
-        moveSpeed: 12,
-        rotationSpeed: 2,
-        repairRate: 8,
-        lowHealthThreshold: 0.4,
-        criticalHealthThreshold: 0.15,
-      }
-    );
-
-    // Create health bar
-    this.createMarcusHealthBar(root);
-
-    // Initialize banter system
-    this.marcusBanterManager = createMarcusBanterManager(
-      (message) => this.callbacks.onCommsMessage(message),
-      {
-        globalCooldown: 4000,
-        banterChance: 0.35,
-        allowInterrupts: true,
       }
     );
   }

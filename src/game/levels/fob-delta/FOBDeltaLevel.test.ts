@@ -422,9 +422,18 @@ function createMockCanvas() {
 
 function createMockConfig() {
   return {
-    levelId: 'fob_delta' as const,
-    levelName: 'FOB Delta',
-    difficulty: 'normal' as const,
+    id: 'fob_delta' as const,
+    type: 'base' as const,
+    nextLevelId: 'brothers_in_arms' as const,
+    previousLevelId: 'canyon_run' as const,
+    chapter: 4,
+    actName: 'ACT 2: THE SEARCH',
+    missionName: 'FOB DELTA',
+    missionSubtitle: 'Forward Operating Base - Abandoned',
+    playerSpawnPosition: { x: 0, y: 1.7, z: -5 },
+    hasCinematicIntro: true,
+    ambientTrack: 'horror_ambient',
+    combatTrack: 'combat_interior',
   };
 }
 
@@ -433,7 +442,9 @@ function createMockCallbacks() {
     onNotification: vi.fn(),
     onObjectiveUpdate: vi.fn(),
     onCommsMessage: vi.fn(),
+    onChapterChange: vi.fn(),
     onHealthChange: vi.fn(),
+    onDamage: vi.fn(),
     onActionHandlerRegister: vi.fn(),
     onActionGroupsChange: vi.fn(),
     onCombatStateChange: vi.fn(),
@@ -476,7 +487,7 @@ describe('FOBDeltaLevel', () => {
     });
 
     it('should have correct level config', () => {
-      expect((level as any).config.levelId).toBe('fob_delta');
+      expect((level as any).config.id).toBe('fob_delta');
     });
 
     it('should initialize with approach phase', async () => {

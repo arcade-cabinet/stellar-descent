@@ -18,6 +18,7 @@ import { getLogger } from '../core/Logger';
 import { CAMPAIGN_LEVELS, type LevelId } from '../levels/types';
 import { saveSystem } from '../persistence';
 import { disposeGameTimer, getGameTimer } from '../timer';
+import { hasLevelCinematic } from '../utils/cinematics';
 import { BONUS_LEVELS } from './MissionDefinitions';
 import {
   getQuestStateForSave,
@@ -129,6 +130,11 @@ export class CampaignDirector {
 
       case 'BEGIN_MISSION':
         this.setPhase('intro');
+        break;
+
+      case 'CINEMATIC_COMPLETE':
+        // Cinematic finished or skipped - proceed to briefing
+        this.setPhase('briefing');
         break;
 
       case 'INTRO_COMPLETE':
@@ -407,8 +413,12 @@ export class CampaignDirector {
       // Reset quest manager for new game
       resetQuestManager();
 
-      // Skip text walls - go straight to loading. Story unfolds in-level.
-      this.setPhase('loading');
+      // Play cinematic if available, otherwise go straight to briefing
+      if (hasLevelCinematic(levelId)) {
+        this.setPhase('cinematic');
+      } else {
+        this.setPhase('briefing');
+      }
     });
   }
 
@@ -433,8 +443,12 @@ export class CampaignDirector {
       // Load quest state from save
       this.loadQuestStateFromSave();
 
-      // Skip briefing - go straight to loading
-      this.setPhase('loading');
+      // Play cinematic if available, otherwise go straight to briefing
+      if (hasLevelCinematic(save.currentLevel)) {
+        this.setPhase('cinematic');
+      } else {
+        this.setPhase('briefing');
+      }
     });
   }
 
@@ -443,8 +457,12 @@ export class CampaignDirector {
     this.skipTutorial = levelId !== 'anchor_station';
     this.snapshot.completionStats = null;
     this.snapshot.isBonusLevel = false;
-    // Skip briefing - go straight to loading
-    this.setPhase('loading');
+    // Play cinematic if available, otherwise go to briefing
+    if (hasLevelCinematic(levelId)) {
+      this.setPhase('cinematic');
+    } else {
+      this.setPhase('briefing');
+    }
   }
 
   private handleLoadingComplete(): void {
@@ -559,8 +577,12 @@ export class CampaignDirector {
       if (nextConfig) {
         saveSystem.setChapter(nextConfig.chapter);
       }
-      // Skip briefing - go straight to loading
-      this.setPhase('loading');
+      // Play cinematic if available, otherwise go to briefing
+      if (hasLevelCinematic(nextId)) {
+        this.setPhase('cinematic');
+      } else {
+        this.setPhase('briefing');
+      }
     } else {
       // Final level complete - show credits
       // Issue #76: Save final stats before credits

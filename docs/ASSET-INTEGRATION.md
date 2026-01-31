@@ -67,9 +67,9 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 
 ---
 
-## Integrated Models (public/models/)
+## Integrated Models (public/assets/models/)
 
-### Aliens (8 models) - `public/models/aliens/`
+### Aliens (8 models) - `public/assets/models/aliens/`
 | Model | Size | Enemy Type | Levels |
 |-------|------|------------|--------|
 | scout.glb | 1.6MB | Drone - fast, weak scouts | 2, 3, 4, 5, 6 |
@@ -81,7 +81,7 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 | alienfemale.glb | 3.3MB | Elite variant | 4, 5 |
 | alienmale.glb | 2.2MB | Elite variant | 4, 5, 6 |
 
-### Alien Structures (7 models) - `public/models/structures/`
+### Alien Structures (7 models) - `public/assets/models/structures/`
 | Model | Size | Purpose | Levels |
 |-------|------|---------|--------|
 | building_birther.glb | 4.3MB | Enemy spawner | 5 (The Breach) |
@@ -92,13 +92,13 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 | building_terraformer.glb | 2.2MB | Environmental hazard | 2, 3 |
 | building_undercrystal.glb | 1.6MB | Underground variant | 5 |
 
-### Vehicles (2 models) - `public/models/vehicles/`
+### Vehicles (2 models) - `public/assets/models/vehicles/`
 | Model | Size | Purpose | Levels |
 |-------|------|---------|--------|
 | phantom.glb | 11.3MB | Dropship/extraction vehicle | 1, 6 |
 | wraith.glb | 11.9MB | Enemy heavy vehicle | 4, 6 |
 
-### PSX Station Models - `public/models/psx/`
+### PSX Station Models - `public/assets/models/psx/`
 
 #### Structures (11 pieces)
 | Model | Use Case |
@@ -135,7 +135,7 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 
 ### 1. Marcus Mech (PRIORITY)
 **Source:** `~/assets/full bot.blend`
-**Target:** `public/models/vehicles/marcus_mech.glb`
+**Target:** `public/assets/models/vehicles/marcus_mech.glb`
 **Stats:** 42 meshes, 1 material (needs texturing), has armature
 
 **Texturing Plan:**
@@ -153,7 +153,7 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 
 ### 2. Spaceship Corridors (Anchor Station)
 **Source:** `~/assets/assets spaceship/`
-**Target:** `public/models/station/`
+**Target:** `public/assets/models/station/`
 
 | FBX File | Target GLB | Notes |
 |----------|------------|-------|
@@ -271,7 +271,7 @@ bpy.ops.export_scene.gltf(
 - [x] Marcus mech conversion and texturing (marcus_mech.glb - 0.56MB)
 - [x] Spaceship corridor conversion (6 models - ~21MB total)
 
-### Station Models - `public/models/environment/station/`
+### Station Models - `public/assets/models/environment/station/`
 | Model | Size | Purpose |
 |-------|------|---------|
 | corridor_main.glb | 7.4MB | Main corridor segment |
@@ -290,7 +290,7 @@ bpy.ops.export_scene.gltf(
 
 ### NEW Directory Structure
 ```
-public/models/
+public/assets/models/
 ├── enemies/
 │   └── chitin/           # 8 alien enemy models
 ├── environment/
@@ -322,3 +322,106 @@ public/models/
 | **Total** | **71MB** | **100MB** | ✅ Under |
 
 *Note: Marcus mech estimated at 3-5MB after optimization*
+
+---
+
+## GenAI Asset Generation
+
+### Overview
+AI-generated assets (portraits, videos, cinematics) are managed through a manifest-driven CLI system using Google's Gemini API for images and Veo 3.1 for video generation.
+
+### Asset Directory Structure
+```
+public/assets/
+├── images/
+│   ├── portraits/
+│   │   ├── manifest.json           # Portrait generation manifest
+│   │   ├── cole_james/
+│   │   │   ├── neutral.png
+│   │   │   ├── combat.png
+│   │   │   └── injured.png
+│   │   ├── marcus/
+│   │   ├── reyes_commander/
+│   │   └── athena/
+│   ├── quest/                      # Quest/loading screen images
+│   └── ui/                         # UI background images
+├── videos/
+│   ├── splash/
+│   │   ├── manifest.json           # Splash video manifest
+│   │   ├── logo_16x9.mp4
+│   │   └── logo_9x16.mp4
+│   └── cinematics/
+│       ├── manifest.json           # Cinematic manifest
+│       ├── anchor_station/
+│       │   └── intro.mp4
+│       └── landfall/
+│           └── intro.mp4
+└── manifests/
+    ├── shared.manifest.json
+    └── anchor_station.manifest.json
+```
+
+### CLI Commands
+```bash
+# Generate specific asset categories
+pnpm exec tsx scripts/generate-assets.ts portraits          # All portraits
+pnpm exec tsx scripts/generate-assets.ts portraits 0        # First portrait only
+pnpm exec tsx scripts/generate-assets.ts portraits cole     # By ID match
+pnpm exec tsx scripts/generate-assets.ts splash             # Splash videos
+pnpm exec tsx scripts/generate-assets.ts splash 16:9        # Specific aspect ratio
+pnpm exec tsx scripts/generate-assets.ts cinematics         # Level cinematics
+pnpm exec tsx scripts/generate-assets.ts cinematics anchor_station  # By level
+
+# Generate all assets
+pnpm exec tsx scripts/generate-assets.ts all
+
+# Check generation status
+pnpm exec tsx scripts/generate-assets.ts status
+
+# Force regeneration (ignores cache)
+pnpm exec tsx scripts/generate-assets.ts portraits --force
+```
+
+### Manifest Schema
+Each manifest file follows a Zod-validated schema with:
+- Asset definitions (id, prompt, resolution, aspect ratio)
+- Generation metadata (promptHash, generatedAt, model used)
+- Status tracking (pending, generating, generated, failed)
+- Lore branding (unit patches, rank insignia for portraits)
+
+### Idempotency
+The system uses SHA-256 prompt hashing for idempotency:
+1. Prompts are hashed before generation
+2. Hash is stored in asset metadata after generation
+3. On subsequent runs, prompt hash is compared
+4. Assets only regenerate when prompts change or `--force` is used
+
+### VCR Testing for CI
+GenAI API calls are recorded using Polly.JS for deterministic CI testing:
+```bash
+# Record new API responses (requires API key)
+VCR_MODE=record pnpm test
+
+# Replay recorded responses (default, no API key needed)
+VCR_MODE=replay pnpm test
+
+# Pass through to real API (for manual testing)
+VCR_MODE=passthrough pnpm test
+```
+
+Recordings are stored in `src/test/vcr/__recordings__/` with API keys automatically sanitized.
+
+### Environment Variables
+```bash
+# Required for generation (not needed for replay tests)
+GEMINI_API_KEY=your_api_key_here
+
+# Optional: verbose logging
+VERBOSE=1
+```
+
+### Video Generation Config (Veo 3.1)
+- Resolution: 1080p native HD
+- Duration: 8 seconds
+- Audio: Native 48kHz synchronized audio
+- Aspect ratios: 16:9 (landscape), 9:16 (portrait/mobile)

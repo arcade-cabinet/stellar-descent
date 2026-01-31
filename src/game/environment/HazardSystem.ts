@@ -1153,7 +1153,7 @@ export class HazardSystem {
 
     // Sound
     try {
-      getAudioManager().play('debris_fall', { position });
+      getAudioManager().play('debris_impact', { position });
     } catch {
       // Audio may not be initialized
     }
@@ -1620,10 +1620,13 @@ export class HazardSystem {
   // ============================================================================
 
   /**
-   * Get state for a specific zone hazard type
+   * Get state for a specific zone hazard type.
+   * Returns undefined for instant hazard types (fire, acid_pool, etc.)
+   * since those don't have persistent meter states.
    */
-  getState(type: HazardType): HazardState | undefined {
-    return this.states.get(type);
+  getState(type: AnyHazardType): HazardState | undefined {
+    // Only zone hazard types have states - instant hazards return undefined
+    return this.states.get(type as HazardType);
   }
 
   /**

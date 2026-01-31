@@ -32,7 +32,7 @@ const log = getLogger('AlienFloraBuilder');
 // ============================================================================
 
 /** Base path for all alien flora GLB files. */
-const FLORA_BASE = '/models/environment/alien-flora';
+const FLORA_BASE = '/assets/models/environment/alien-flora';
 
 /**
  * Complete catalog of alien flora assets grouped by category.
@@ -108,7 +108,7 @@ function floraCatalogPath(filename: string): string {
 // ============================================================================
 
 export interface FloraPlacement {
-  /** Full path to the GLB file (e.g. "/models/environment/alien-flora/alien_tree_01.glb"). */
+  /** Full path to the GLB file (e.g. "/assets/models/environment/alien-flora/alien_tree_01.glb"). */
   path: string;
   /** World-space position. */
   position: Vector3;
@@ -464,7 +464,7 @@ export async function buildFloraFromPlacements(
 
 /**
  * Extract the base filename from a full GLB path for node naming.
- * "/models/environment/alien-flora/alien_tree_01.glb" -> "alien_tree_01"
+ * "/assets/models/environment/alien-flora/alien_tree_01.glb" -> "alien_tree_01"
  */
 function stripFilename(glbPath: string): string {
   const lastSlash = glbPath.lastIndexOf('/');

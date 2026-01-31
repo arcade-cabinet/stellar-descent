@@ -47,6 +47,10 @@ stellar-descent/
 │   │   ├── LandingFlow.tsx        # Pre-game screens (splash, menu)
 │   │   └── ui/                    # UI components (MainMenu, HUD, etc.)
 │   ├── game/
+│   │   ├── ai/
+│   │   │   └── schemas/           # Zod schemas for GenAI manifests
+│   │   │       ├── GenerationManifestSchemas.ts
+│   │   │       └── AssetManifestSchemas.ts
 │   │   ├── campaign/              # CampaignDirector state machine
 │   │   ├── core/                  # Core systems (Audio, Logger, etc.)
 │   │   ├── context/               # React contexts
@@ -56,10 +60,23 @@ stellar-descent/
 │   │   ├── timer/                 # GameTimer, GameChronometer
 │   │   └── weapons/               # Weapon systems
 │   └── hooks/                     # React hooks
+├── scripts/
+│   └── generate-assets.ts         # GenAI asset generation CLI
 ├── public/
-│   ├── models/                    # GLB 3D models
-│   ├── audio/                     # Sound effects and music
-│   └── textures/                  # Texture files
+│   └── assets/                    # All game assets (consolidated)
+│       ├── models/                # GLB 3D models (803+)
+│       ├── audio/                 # Sound effects and music
+│       ├── textures/              # Texture files
+│       ├── images/                # Generated portraits, UI images
+│       │   └── portraits/
+│       │       └── manifest.json  # Portrait generation manifest
+│       └── videos/                # Splash and cinematic videos
+│           ├── splash/
+│           │   ├── main_16x9.mp4  # Landscape splash
+│           │   ├── main_9x16.mp4  # Portrait splash
+│           │   └── manifest.json  # Splash generation manifest
+│           └── cinematics/
+│               └── manifest.json  # Cinematic generation manifest
 └── docs/                          # Documentation
 ```
 
@@ -180,13 +197,56 @@ import { AssetManager } from '../core/AssetManager';
 
 // Load and instance
 const node = AssetManager.createInstanceByPath(
-  '/models/enemies/chitin/soldier.glb',
+  '/assets/models/enemies/chitin/soldier.glb',
   'enemy_soldier_1',
   scene,
   false, // not animated
   'enemy' // category for LOD
 );
 ```
+
+### GenAI Asset Generation
+Assets (portraits, splash videos, cinematics) are generated via the manifest-driven CLI:
+```bash
+# Generate specific asset types
+pnpm exec tsx scripts/generate-assets.ts portraits          # Character portraits
+pnpm exec tsx scripts/generate-assets.ts splash             # Splash/title videos
+pnpm exec tsx scripts/generate-assets.ts cinematics         # Level intro cinematics
+pnpm exec tsx scripts/generate-assets.ts all                # Generate everything
+pnpm exec tsx scripts/generate-assets.ts status             # Show generation status
+
+# Options
+pnpm exec tsx scripts/generate-assets.ts portraits 0        # Generate specific index
+pnpm exec tsx scripts/generate-assets.ts portraits --force  # Force regeneration
+```
+
+#### Manifests
+Manifests live alongside their generated assets:
+- `public/assets/images/portraits/manifest.json`
+- `public/assets/videos/splash/manifest.json`
+- `public/assets/videos/cinematics/manifest.json`
+
+#### Schemas (Zod)
+- `src/game/ai/schemas/GenerationManifestSchemas.ts` - Generation manifest validation
+- `src/game/ai/schemas/AssetManifestSchemas.ts` - Asset metadata validation
+
+#### AI Models
+- **Gemini 3 Pro**: Image generation (portraits, textures)
+- **Veo 3.1**: Video generation (cinematics, splash screens)
+
+#### Video Configuration
+- Resolution: 1080p
+- Duration: 8 seconds
+- Aspect Ratios: 16:9 (landscape) and 9:16 (portrait)
+- Audio: Native AI-generated audio
+
+#### VCR Testing (Polly.JS)
+Deterministic CI testing via recorded API responses:
+- Records live API responses during development
+- Replays recordings in CI for reliable tests
+- Avoids flaky tests and API rate limits
+
+The system uses prompt hashing for idempotency - assets only regenerate when prompts change.
 
 ### Time Tracking
 Two time systems:
@@ -215,6 +275,8 @@ Enemies are the "Chitin" - insectoid aliens from underground hives.
 | `src/game/persistence/SaveSystem.ts` | Save/load system |
 | `src/game/timer/GameTimer.ts` | Mission timing |
 | `src/game/timer/GameChronometer.ts` | In-universe time |
+| `scripts/generate-assets.ts` | GenAI asset generation CLI |
+| `src/test/vcr/VCRSetup.ts` | VCR test recording/replay for GenAI |
 
 ## UI Components
 
@@ -263,6 +325,7 @@ Detailed documentation is in the `docs/` directory:
 | `docs/PERFORMANCE.md` | Performance optimization, LOD, mobile targets |
 | `docs/TESTING.md` | Unit test patterns, E2E flow writing |
 | `docs/PSX-ASSETS.md` | PSX-style asset creation guidelines |
+| `docs/GENAI-ASSET-MANAGEMENT.md` | GenAI asset generation architecture |
 
 ## New Game Flow
 

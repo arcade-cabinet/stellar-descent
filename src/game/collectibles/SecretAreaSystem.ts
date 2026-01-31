@@ -37,7 +37,7 @@ import { getSecretsByLevel } from './secrets';
 // ============================================================================
 
 /** Path to the data pad model used for secret area hint markers */
-const SECRET_HINT_MODEL_PATH = '/models/props/collectibles/data_pad.glb';
+const SECRET_HINT_MODEL_PATH = '/assets/models/props/collectibles/data_pad.glb';
 
 /**
  * Secret area pickup state in the game world

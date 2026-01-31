@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { GameCanvas } from './GameCanvas';
+import { CinematicPlayer } from './ui/CinematicPlayer';
 import { CommsDisplay } from './ui/CommsDisplay';
 import { ControlHints } from './ui/ControlHints';
 import { DeathScreen } from './ui/DeathScreen';
@@ -32,6 +33,7 @@ import type { CampaignCommand, CampaignPhase, CampaignSnapshot } from '../game/c
 import { useGame } from '../game/context/GameContext';
 import { CAMPAIGN_LEVELS, type LevelId } from '../game/levels/types';
 import { saveSystem } from '../game/persistence';
+import { getLevelCinematicPath } from '../game/utils/cinematics';
 
 interface GameFlowProps {
   snapshot: CampaignSnapshot;
@@ -50,7 +52,7 @@ const PHASES_NEEDING_3D: Set<CampaignPhase> = new Set([
  * Game flow phases that this component handles
  */
 const GAME_PHASES: Set<CampaignPhase> = new Set([
-  'introBriefing', 'briefing', 'intro', 'loading',
+  'introBriefing', 'cinematic', 'briefing', 'intro', 'loading',
   'tutorial', 'dropping', 'playing', 'paused',
   'gameover', 'levelComplete',
 ]);
@@ -144,6 +146,18 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
       {phase === 'introBriefing' && (
         <IntroBriefing onComplete={() => dispatch({ type: 'INTRO_BRIEFING_COMPLETE' })} />
       )}
+
+      {/* Level Intro Cinematic (video) */}
+      {phase === 'cinematic' && (() => {
+        const cinematicPath = getLevelCinematicPath(currentLevelId);
+        return cinematicPath ? (
+          <CinematicPlayer
+            src={cinematicPath}
+            onComplete={() => dispatch({ type: 'CINEMATIC_COMPLETE' })}
+            skippable={true}
+          />
+        ) : null;
+      })()}
 
       {/* Mission Briefing */}
       {phase === 'briefing' && (

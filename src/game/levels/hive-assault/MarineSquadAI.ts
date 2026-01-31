@@ -27,8 +27,6 @@
  * - If all squad members are downed, squad is "wiped"
  */
 
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
@@ -39,10 +37,10 @@ import type { CommsMessage } from '../../types';
 
 // Marine GLB model paths
 const MARINE_GLBS = [
-  '/models/npcs/marine/marine_soldier.glb',
-  '/models/npcs/marine/marine_sergeant.glb',
-  '/models/npcs/marine/marine_elite.glb',
-  '/models/npcs/marine/marine_crusader.glb',
+  '/assets/models/npcs/marine/marine_soldier.glb',
+  '/assets/models/npcs/marine/marine_sergeant.glb',
+  '/assets/models/npcs/marine/marine_elite.glb',
+  '/assets/models/npcs/marine/marine_crusader.glb',
 ] as const;
 
 // ============================================================================
@@ -360,15 +358,12 @@ export class MarineSquadManager {
     bodyMesh.parent = rootNode;
     bodyMesh.isVisible = false;
 
-    const helmetMat = new StandardMaterial(`${marineId}_helmetMat`, this.scene);
-    helmetMat.diffuseColor = Color3.FromHexString('#4A5A4A');
-
+    // Invisible collision proxy for helmet (GLB model provides visuals)
     const helmetMesh = MeshBuilder.CreateSphere(
       `${marineId}_helmet`,
       { diameter: 0.45, segments: 4 },
       this.scene
     );
-    helmetMesh.material = helmetMat;
     helmetMesh.position.y = 1.8;
     helmetMesh.parent = rootNode;
     helmetMesh.isVisible = false;
@@ -758,15 +753,9 @@ export class MarineSquadManager {
     marine.state = 'downed';
     marine.reviveProgress = 0;
 
-    // Update body visual
+    // Update collision proxy position to indicate downed state
     marine.bodyMesh.position.y = 0.3;
     marine.rootNode.rotation.x = Math.PI / 6;
-
-    // Dim the helmet to indicate downed
-    const helmetMat = marine.helmetMesh.material as StandardMaterial;
-    if (helmetMat) {
-      helmetMat.emissiveColor = new Color3(0.3, 0.05, 0.05);
-    }
 
     // Find the squad and update count
     const squad = this.squads.find((s) => s.id === marine.squadId);
@@ -816,14 +805,9 @@ export class MarineSquadManager {
     marine.health = marine.maxHealth * 0.5; // Revive at half health
     marine.reviveProgress = 0;
 
-    // Reset visuals
+    // Reset collision proxy position
     marine.bodyMesh.position.y = 0.9;
     marine.rootNode.rotation.x = 0;
-
-    const helmetMat = marine.helmetMesh.material as StandardMaterial;
-    if (helmetMat) {
-      helmetMat.emissiveColor = Color3.Black();
-    }
 
     // Update squad
     const squad = this.squads.find((s) => s.id === marine.squadId);

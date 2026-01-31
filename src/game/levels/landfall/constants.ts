@@ -10,51 +10,76 @@
 /** Station-external GLBs used to build the Anchor Station Prometheus */
 export const STATION_GLB_PATHS = {
   /** Main hull sections (composed to form the station) */
-  hullCenter: '/models/environment/station-external/station01.glb',
-  hullRingA: '/models/environment/station-external/station02.glb',
-  hullRingB: '/models/environment/station-external/station03.glb',
-  solarWing: '/models/environment/station-external/station04.glb',
-  dockingBay: '/models/environment/station-external/station05.glb',
-  antenna: '/models/environment/station-external/station06.glb',
+  hullCenter: '/assets/models/environment/station-external/station01.glb',
+  hullRingA: '/assets/models/environment/station-external/station02.glb',
+  hullRingB: '/assets/models/environment/station-external/station03.glb',
+  solarWing: '/assets/models/environment/station-external/station04.glb',
+  dockingBay: '/assets/models/environment/station-external/station05.glb',
+  antenna: '/assets/models/environment/station-external/station06.glb',
 } as const;
 
 /** Props used in the combat arena for cover and environmental detail */
 export const ARENA_GLB_PATHS = {
   /** Natural cover -- alien boulder formations */
-  boulderA: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
-  rockMedA: '/models/environment/alien-flora/alien_rock_medium_1.glb',
-  rockMedB: '/models/environment/alien-flora/alien_rock_medium_2.glb',
-  rockMedC: '/models/environment/alien-flora/alien_rock_medium_3.glb',
+  boulderA: '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+  rockMedA: '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+  rockMedB: '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+  rockMedC: '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
   /** Crashed debris -- shipping container as hull wreckage */
-  shippingContainer: '/models/environment/industrial/shipping_container_mx_1.glb',
+  shippingContainer: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
   /** Metallic wing debris */
-  scrapMetalA: '/models/props/containers/scrap_metal_mx_1.glb',
-  scrapMetalB: '/models/props/containers/scrap_metal_mx_1_1.glb',
-  scrapMetalC: '/models/props/containers/scrap_metal_mx_1_2.glb',
+  scrapMetalA: '/assets/models/props/containers/scrap_metal_mx_1.glb',
+  scrapMetalB: '/assets/models/props/containers/scrap_metal_mx_1_1.glb',
+  scrapMetalC: '/assets/models/props/containers/scrap_metal_mx_1_2.glb',
   /** Metal barrels for additional cover detail */
-  metalBarrel: '/models/props/containers/metal_barrel_hr_1.glb',
+  metalBarrel: '/assets/models/props/containers/metal_barrel_hr_1.glb',
 } as const;
 
 /** GLB paths for surface environment (LZ pad, canyon walls) */
 export const SURFACE_GLB_PATHS = {
   /** Landing zone asphalt pad */
-  lzPadAsphalt: '/models/environment/station/asphalt_hr_1_large.glb',
+  lzPadAsphalt: '/assets/models/environment/station/asphalt_hr_1_large.glb',
   /** Canyon wall segments */
-  wallRg1: '/models/environment/station/wall_rg_1.glb',
-  wallRg15: '/models/environment/station/wall_rg_15.glb',
-  wallHs1: '/models/environment/station/wall_hs_1.glb',
-  wallHs15: '/models/environment/station/wall_hs_15.glb',
+  wallRg1: '/assets/models/environment/station/wall_rg_1.glb',
+  wallRg15: '/assets/models/environment/station/wall_rg_15.glb',
+  wallHs1: '/assets/models/environment/station/wall_hs_1.glb',
+  wallHs15: '/assets/models/environment/station/wall_hs_15.glb',
 } as const;
 
 /** GLB paths for asteroid belt debris (alien rocks) */
 export const ASTEROID_GLB_PATHS = {
-  rockMedium1: '/models/environment/alien-flora/alien_rock_medium_1.glb',
-  rockMedium2: '/models/environment/alien-flora/alien_rock_medium_2.glb',
-  rockMedium3: '/models/environment/alien-flora/alien_rock_medium_3.glb',
-  rockTall1: '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-  rockTall2: '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-  rockTall3: '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
-  boulder: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+  rockMedium1: '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+  rockMedium2: '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+  rockMedium3: '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
+  rockTall1: '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  rockTall2: '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  rockTall3: '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+  boulder: '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+} as const;
+
+/** GLB paths for spaceships visible during HALO drop */
+export const SPACESHIP_GLB_PATHS = {
+  // Human military ships (distant friendlies)
+  challenger: '/assets/models/spaceships/Challenger.glb',
+  dispatcher: '/assets/models/spaceships/Dispatcher.glb',
+  imperial: '/assets/models/spaceships/Imperial.glb',
+  striker: '/assets/models/spaceships/Striker.glb',
+  zenith: '/assets/models/spaceships/Zenith.glb',
+  // Alien/hostile ships (threats)
+  executioner: '/assets/models/spaceships/Executioner.glb',
+  insurgent: '/assets/models/spaceships/Insurgent.glb',
+  omen: '/assets/models/spaceships/Omen.glb',
+  spitfire: '/assets/models/spaceships/Spitfire.glb',
+} as const;
+
+/** GLB paths for drop pod / capsule during powered descent */
+export const DROP_POD_GLB_PATHS = {
+  /** Sci-fi escape/drop pod for player's HALO drop */
+  dropPod: '/assets/models/environment/modular/Props_Pod.glb',
+  /** Alternative capsule design */
+  capsule: '/assets/models/environment/modular/Props_Capsule.glb',
+  /** Cylindrical vessel for drop pod interior frame */
+  vesselFrame: '/assets/models/environment/modular/Props_Vessel.glb',
 } as const;
 
 /** Collect all unique GLB paths that need preloading */
@@ -63,6 +88,8 @@ export const ALL_LANDFALL_GLB_PATHS: string[] = [
   ...Object.values(ARENA_GLB_PATHS),
   ...Object.values(SURFACE_GLB_PATHS),
   ...Object.values(ASTEROID_GLB_PATHS),
+  ...Object.values(SPACESHIP_GLB_PATHS),
+  ...Object.values(DROP_POD_GLB_PATHS),
 ];
 
 // ---------------------------------------------------------------------------

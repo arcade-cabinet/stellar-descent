@@ -17,10 +17,8 @@
  */
 
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
@@ -37,19 +35,19 @@ export { HiveEnvironmentBuilder, updateBiolights } from '../shared/HiveEnvironme
 
 /** Station beam GLB paths (path-based loading) */
 const STATION_BEAM_PATHS: Record<string, string> = {
-  beam_hc_h1: '/models/environment/station/beam_hc_horizonatal_1.glb',
-  beam_hc_h2: '/models/environment/station/beam_hc_horizonatal_2.glb',
-  beam_hc_v2: '/models/environment/station/beam_hc_vertical_2.glb',
-  beam_hl_1: '/models/environment/station/beam_hl_1.glb',
+  beam_hc_h1: '/assets/models/environment/station/beam_hc_horizonatal_1.glb',
+  beam_hc_h2: '/assets/models/environment/station/beam_hc_horizonatal_2.glb',
+  beam_hc_v2: '/assets/models/environment/station/beam_hc_vertical_2.glb',
+  beam_hl_1: '/assets/models/environment/station/beam_hl_1.glb',
 };
 
 /** Quaternius modular detail GLB paths (path-based loading) */
 const MODULAR_DETAIL_PATHS: Record<string, string> = {
-  plate_detail: '/models/environment/modular/Details_Plate_Details.glb',
-  plate_long: '/models/environment/modular/Details_Plate_Long.glb',
-  plate_sm: '/models/environment/modular/Details_Plate_Small.glb',
-  detail_x: '/models/environment/modular/Details_X.glb',
-  detail_triangles: '/models/environment/modular/Details_Triangles.glb',
+  plate_detail: '/assets/models/environment/modular/Details_Plate_Details.glb',
+  plate_long: '/assets/models/environment/modular/Details_Plate_Long.glb',
+  plate_sm: '/assets/models/environment/modular/Details_Plate_Small.glb',
+  detail_x: '/assets/models/environment/modular/Details_X.glb',
+  detail_triangles: '/assets/models/environment/modular/Details_Triangles.glb',
 };
 
 // ============================================================================
@@ -629,7 +627,7 @@ export const HIVE_STRUCTURE_PLACEMENTS: HiveStructurePlacement[] = [
 // ============================================================================
 
 /**
- * Preload all station beam and modular detail GLBs needed for the level.
+ * Preload all station beam, modular detail, and organic growth GLBs needed for the level.
  * Call this during level initialization before placing assets.
  */
 export async function loadBreachAssets(scene: Scene): Promise<void> {
@@ -649,8 +647,29 @@ export async function loadBreachAssets(scene: Scene): Promise<void> {
     }
   }
 
+  // Load organic growth GLBs for beam decorations
+  for (const path of BEAM_GROWTH_GLBS) {
+    if (!AssetManager.isPathCached(path)) {
+      loadPromises.push(AssetManager.loadAssetByPath(path, scene));
+    }
+  }
+
+  // Load tendril GLBs for beam decorations
+  for (const path of BEAM_TENDRIL_GLBS) {
+    if (!AssetManager.isPathCached(path)) {
+      loadPromises.push(AssetManager.loadAssetByPath(path, scene));
+    }
+  }
+
+  // Load corrosion patch GLBs for detail decorations
+  for (const path of CORROSION_PATCH_GLBS) {
+    if (!AssetManager.isPathCached(path)) {
+      loadPromises.push(AssetManager.loadAssetByPath(path, scene));
+    }
+  }
+
   await Promise.all(loadPromises);
-  log.info('Station beam and modular detail assets loaded');
+  log.info('Station beam, modular detail, and organic growth assets loaded');
 }
 
 // ============================================================================
@@ -717,6 +736,26 @@ export function placeBreachAssets(scene: Scene): PlacedAsset[] {
 }
 
 // ============================================================================
+// ORGANIC GROWTH GLB PATHS
+// ============================================================================
+
+/** GLB paths for organic growths on beams (alien flora assets) */
+const BEAM_GROWTH_GLBS = [
+  '/assets/models/environment/alien-flora/alien_mushroom_01.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_03.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_05.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_07.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_common.glb',
+] as const;
+
+/** GLB paths for tendril-like growths on beams */
+const BEAM_TENDRIL_GLBS = [
+  '/assets/models/environment/alien-flora/alien_hanging_moss_01.glb',
+  '/assets/models/environment/alien-flora/alien_fern_1.glb',
+  '/assets/models/environment/alien-flora/alien_reed.glb',
+] as const;
+
+// ============================================================================
 // ORGANIC GROWTH EFFECTS
 // ============================================================================
 
@@ -724,7 +763,8 @@ export function placeBreachAssets(scene: Scene): PlacedAsset[] {
  * Add organic hive growth meshes on and around a station beam to simulate
  * the alien hive absorbing the human infrastructure.
  *
- * Creates bulbous growths and tendrils, with density increasing by zone.
+ * Uses GLB models from alien-flora for bulbous growths and tendrils,
+ * with density increasing by zone.
  */
 function addOrganicGrowthToBeam(
   scene: Scene,
@@ -734,26 +774,40 @@ function addOrganicGrowthToBeam(
   // More growth in deeper zones
   const growthCount = zone === 'entry' ? 2 : zone === 'deep_hive' ? 4 : 5;
 
-  const growthMat = new StandardMaterial(`beamGrowth_${beamNode.name}`, scene);
-  growthMat.diffuseColor = Color3.FromHexString('#5A3A5A');
-  growthMat.emissiveColor = Color3.FromHexString('#2A8888').scale(zone === 'entry' ? 0.1 : 0.25);
-
   for (let i = 0; i < growthCount; i++) {
-    const growth = MeshBuilder.CreateSphere(
+    const glbPath = BEAM_GROWTH_GLBS[i % BEAM_GROWTH_GLBS.length];
+
+    if (!AssetManager.isPathCached(glbPath)) {
+      log.warn(`[BreachEnvironment] Beam growth GLB not cached: ${glbPath}`);
+      continue;
+    }
+
+    const growth = AssetManager.createInstanceByPath(
+      glbPath,
       `growth_${beamNode.name}_${i}`,
-      {
-        diameterX: 0.3 + Math.random() * 0.6,
-        diameterY: 0.2 + Math.random() * 0.5,
-        diameterZ: 0.3 + Math.random() * 0.6,
-        segments: 6,
-      },
-      scene
+      scene,
+      false // No LOD for small decorations
     );
-    growth.material = growthMat;
+
+    if (!growth) {
+      log.warn(`[BreachEnvironment] Failed to create beam growth instance: ${glbPath}`);
+      continue;
+    }
+
+    // Scale based on zone depth (larger growths deeper in hive)
+    const baseScale = zone === 'entry' ? 0.15 : zone === 'deep_hive' ? 0.25 : 0.35;
+    const scale = baseScale + Math.random() * 0.15;
+    growth.scaling.setAll(scale);
+
     growth.position.set(
       (Math.random() - 0.5) * 2,
       (Math.random() - 0.5) * 1.5,
       (Math.random() - 0.5) * 2
+    );
+    growth.rotation.set(
+      (Math.random() - 0.5) * 0.4,
+      Math.random() * Math.PI * 2,
+      (Math.random() - 0.5) * 0.4
     );
     growth.parent = beamNode;
   }
@@ -761,21 +815,31 @@ function addOrganicGrowthToBeam(
   // Add tendrils connecting to surrounding hive walls
   if (zone !== 'entry') {
     const tendrilCount = zone === 'deep_hive' ? 2 : 3;
-    const tendrilMat = new StandardMaterial(`tendril_${beamNode.name}`, scene);
-    tendrilMat.diffuseColor = Color3.FromHexString('#3A2A3A');
 
     for (let t = 0; t < tendrilCount; t++) {
-      const tendril = MeshBuilder.CreateCylinder(
+      const glbPath = BEAM_TENDRIL_GLBS[t % BEAM_TENDRIL_GLBS.length];
+
+      if (!AssetManager.isPathCached(glbPath)) {
+        log.warn(`[BreachEnvironment] Beam tendril GLB not cached: ${glbPath}`);
+        continue;
+      }
+
+      const tendril = AssetManager.createInstanceByPath(
+        glbPath,
         `tendril_${beamNode.name}_${t}`,
-        {
-          height: 1.5 + Math.random() * 2.5,
-          diameterTop: 0.05 + Math.random() * 0.05,
-          diameterBottom: 0.15 + Math.random() * 0.15,
-          tessellation: 6,
-        },
-        scene
+        scene,
+        false
       );
-      tendril.material = tendrilMat;
+
+      if (!tendril) {
+        log.warn(`[BreachEnvironment] Failed to create beam tendril instance: ${glbPath}`);
+        continue;
+      }
+
+      // Scale to approximate tendril dimensions
+      const tendrilScale = 0.2 + Math.random() * 0.2;
+      tendril.scaling.set(tendrilScale, tendrilScale * 1.5, tendrilScale);
+
       tendril.position.set(
         (Math.random() - 0.5) * 1.5,
         Math.random() * 1.5,
@@ -791,9 +855,18 @@ function addOrganicGrowthToBeam(
   }
 }
 
+/** GLB paths for corrosion patches (small glowing mushrooms) */
+const CORROSION_PATCH_GLBS = [
+  '/assets/models/environment/alien-flora/alien_mushroom_02.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_04.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_06.glb',
+] as const;
+
 /**
  * Add a dim corrosion/bioluminescent glow around a tech fragment that has
  * been sitting in the hive for a long time (deep hive and queen chamber).
+ *
+ * Uses GLB models for bioluminescent patches instead of MeshBuilder primitives.
  */
 function addCorrosionOverlay(scene: Scene, detailNode: TransformNode, index: number): void {
   // Add a point light for eerie glow from corroded tech
@@ -807,21 +880,39 @@ function addCorrosionOverlay(scene: Scene, detailNode: TransformNode, index: num
   glowLight.range = 3;
   glowLight.parent = detailNode;
 
-  // Small bioluminescent patch on the surface
-  const patch = MeshBuilder.CreateDisc(
+  // Small bioluminescent patch on the surface using alien mushroom GLB
+  const glbPath = CORROSION_PATCH_GLBS[index % CORROSION_PATCH_GLBS.length];
+
+  if (!AssetManager.isPathCached(glbPath)) {
+    log.warn(`[BreachEnvironment] Corrosion patch GLB not cached: ${glbPath}`);
+    return;
+  }
+
+  const patch = AssetManager.createInstanceByPath(
+    glbPath,
     `corrosion_patch_${index}`,
-    { radius: 0.15 + Math.random() * 0.15, tessellation: 6 },
-    scene
+    scene,
+    false
   );
-  const patchMat = new StandardMaterial(`corrosion_mat_${index}`, scene);
-  patchMat.emissiveColor = Color3.FromHexString('#4AC8C8');
-  patchMat.alpha = 0.5;
-  patchMat.disableLighting = true;
-  patch.material = patchMat;
+
+  if (!patch) {
+    log.warn(`[BreachEnvironment] Failed to create corrosion patch instance: ${glbPath}`);
+    return;
+  }
+
+  // Scale down for small patch appearance
+  const scale = 0.08 + Math.random() * 0.06;
+  patch.scaling.setAll(scale);
+
   patch.position.set(
     (Math.random() - 0.5) * 0.3,
     (Math.random() - 0.5) * 0.3,
     0.05
+  );
+  patch.rotation.set(
+    (Math.random() - 0.5) * 0.3,
+    Math.random() * Math.PI * 2,
+    (Math.random() - 0.5) * 0.3
   );
   patch.parent = detailNode;
 }

@@ -19,63 +19,63 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // ENVIRONMENT MODELS - Damaged Station Architecture
   {
     id: 'station/pillar_broken',
-    path: '/models/environment/station/pillar_hr_1_broken.glb',
+    path: '/assets/models/environment/station/pillar_hr_1_broken.glb',
     category: 'model',
     sizeKB: 478,
 
   },
   {
     id: 'station/wall_hole_2',
-    path: '/models/environment/station/wall_hr_1_hole_2.glb',
+    path: '/assets/models/environment/station/wall_hr_1_hole_2.glb',
     category: 'model',
     sizeKB: 1559,
 
   },
   {
     id: 'station/wall_15',
-    path: '/models/environment/station/wall_hr_15.glb',
+    path: '/assets/models/environment/station/wall_hr_15.glb',
     category: 'model',
     sizeKB: 858,
 
   },
   {
     id: 'station/floor_ceiling_2_hole',
-    path: '/models/environment/station/floor_ceiling_hr_2_hole.glb',
+    path: '/assets/models/environment/station/floor_ceiling_hr_2_hole.glb',
     category: 'model',
     sizeKB: 593,
 
   },
   {
     id: 'station/floor_ceiling_4',
-    path: '/models/environment/station/floor_ceiling_hr_4.glb',
+    path: '/assets/models/environment/station/floor_ceiling_hr_4.glb',
     category: 'model',
     sizeKB: 1581,
 
   },
   {
     id: 'station/floor_ceiling_5',
-    path: '/models/environment/station/floor_ceiling_hr_5.glb',
+    path: '/assets/models/environment/station/floor_ceiling_hr_5.glb',
     category: 'model',
     sizeKB: 561,
 
   },
   {
     id: 'station/floor_ceiling_6',
-    path: '/models/environment/station/floor_ceiling_hr_6.glb',
+    path: '/assets/models/environment/station/floor_ceiling_hr_6.glb',
     category: 'model',
     sizeKB: 931,
 
   },
   {
     id: 'station/beam_rtx_2_pipes',
-    path: '/models/environment/station/beam_rtx_2_pipes.glb',
+    path: '/assets/models/environment/station/beam_rtx_2_pipes.glb',
     category: 'model',
     sizeKB: 1400,
 
   },
   {
     id: 'station/doorway_2_wide',
-    path: '/models/environment/station/doorway_hr_2_wide.glb',
+    path: '/assets/models/environment/station/doorway_hr_2_wide.glb',
     category: 'model',
     sizeKB: 1532,
 
@@ -84,35 +84,35 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // INDUSTRIAL - Exposed Infrastructure
   {
     id: 'industrial/wires_1',
-    path: '/models/environment/industrial/wires_hr_1.glb',
+    path: '/assets/models/environment/industrial/wires_hr_1.glb',
     category: 'model',
     sizeKB: 125,
 
   },
   {
     id: 'industrial/wires_2',
-    path: '/models/environment/industrial/wires_hr_2.glb',
+    path: '/assets/models/environment/industrial/wires_hr_2.glb',
     category: 'model',
     sizeKB: 130,
 
   },
   {
     id: 'industrial/wires_3',
-    path: '/models/environment/industrial/wires_hr_3.glb',
+    path: '/assets/models/environment/industrial/wires_hr_3.glb',
     category: 'model',
     sizeKB: 130,
 
   },
   {
     id: 'industrial/wires_holder_large',
-    path: '/models/environment/industrial/wires_holder_hr_large_1.glb',
+    path: '/assets/models/environment/industrial/wires_holder_hr_large_1.glb',
     category: 'model',
     sizeKB: 160,
 
   },
   {
     id: 'industrial/wires_holder_small',
-    path: '/models/environment/industrial/wires_holder_hr_small_1.glb',
+    path: '/assets/models/environment/industrial/wires_holder_hr_small_1.glb',
     category: 'model',
     sizeKB: 120,
 
@@ -121,7 +121,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // ATMOSPHERIC - Horror Elements
   {
     id: 'atmospheric/hallway_2',
-    path: '/models/props/atmospheric/hallway 2.glb',
+    path: '/assets/models/props/atmospheric/hallway 2.glb',
     category: 'model',
     sizeKB: 3976,
 
@@ -130,21 +130,21 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // PROPS - Battle Damage & Debris
   {
     id: 'prop/debris_bricks_1',
-    path: '/models/props/debris/debris_bricks_mx_1.glb',
+    path: '/assets/models/props/debris/debris_bricks_mx_1.glb',
     category: 'model',
     sizeKB: 100,
 
   },
   {
     id: 'prop/debris_bricks_2',
-    path: '/models/props/debris/debris_bricks_mx_2.glb',
+    path: '/assets/models/props/debris/debris_bricks_mx_2.glb',
     category: 'model',
     sizeKB: 100,
 
   },
   {
     id: 'prop/gravel_1',
-    path: '/models/props/debris/gravel_pile_hr_1.glb',
+    path: '/assets/models/props/debris/gravel_pile_hr_1.glb',
     category: 'model',
     sizeKB: 150,
 
@@ -153,14 +153,14 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // PROPS - Evidence & Story Items
   {
     id: 'prop/flare',
-    path: '/models/props/weapons/flare_mx_1.glb',
+    path: '/assets/models/props/weapons/flare_mx_1.glb',
     category: 'model',
     sizeKB: 50,
 
   },
   {
     id: 'prop/flare_used',
-    path: '/models/props/weapons/flare_mx_1_used.glb',
+    path: '/assets/models/props/weapons/flare_mx_1_used.glb',
     category: 'model',
     sizeKB: 50,
 
@@ -169,21 +169,21 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // PROPS - Furniture & Interior
   {
     id: 'prop/shelf_2',
-    path: '/models/props/furniture/shelf_mx_2.glb',
+    path: '/assets/models/props/furniture/shelf_mx_2.glb',
     category: 'model',
     sizeKB: 140,
 
   },
   {
     id: 'prop/shelf_3',
-    path: '/models/props/furniture/shelf_mx_3.glb',
+    path: '/assets/models/props/furniture/shelf_mx_3.glb',
     category: 'model',
     sizeKB: 140,
 
   },
   {
     id: 'prop/ladder',
-    path: '/models/props/furniture/ladder_hr_1_short.glb',
+    path: '/assets/models/props/furniture/ladder_hr_1_short.glb',
     category: 'model',
     sizeKB: 80,
 
@@ -192,14 +192,14 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // PROPS - Doors
   {
     id: 'prop/door_8',
-    path: '/models/props/doors/door_hr_8.glb',
+    path: '/assets/models/props/doors/door_hr_8.glb',
     category: 'model',
     sizeKB: 135,
 
   },
   {
     id: 'prop/door_14',
-    path: '/models/props/doors/door_hr_14.glb',
+    path: '/assets/models/props/doors/door_hr_14.glb',
     category: 'model',
     sizeKB: 140,
 
@@ -208,14 +208,14 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // PROPS - Emergency Lighting
   {
     id: 'prop/lamp_4_on',
-    path: '/models/props/electrical/lamp_mx_4_on.glb',
+    path: '/assets/models/props/electrical/lamp_mx_4_on.glb',
     category: 'model',
     sizeKB: 75,
 
   },
   {
     id: 'prop/lamp_4_off',
-    path: '/models/props/electrical/lamp_mx_4_off.glb',
+    path: '/assets/models/props/electrical/lamp_mx_4_off.glb',
     category: 'model',
     sizeKB: 75,
 
@@ -224,21 +224,21 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // TEXTURES - Rust & Decay
   {
     id: 'tex/fob/rust',
-    path: '/textures/levels/fob-delta/Rust005_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/fob-delta/Rust005_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/rust_normal',
-    path: '/textures/levels/fob-delta/Rust005_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/fob-delta/Rust005_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/rust_roughness',
-    path: '/textures/levels/fob-delta/Rust005_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/fob-delta/Rust005_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
@@ -247,21 +247,21 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // TEXTURES - Concrete
   {
     id: 'tex/fob/concrete',
-    path: '/textures/levels/fob-delta/Concrete033_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/fob-delta/Concrete033_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/concrete_normal',
-    path: '/textures/levels/fob-delta/Concrete033_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/fob-delta/Concrete033_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/concrete_roughness',
-    path: '/textures/levels/fob-delta/Concrete033_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/fob-delta/Concrete033_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
@@ -270,21 +270,21 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // TEXTURES - Painted Metal
   {
     id: 'tex/fob/painted_metal',
-    path: '/textures/levels/fob-delta/PaintedMetal009_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/fob-delta/PaintedMetal009_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/painted_metal_normal',
-    path: '/textures/levels/fob-delta/PaintedMetal009_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/fob-delta/PaintedMetal009_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/painted_metal_roughness',
-    path: '/textures/levels/fob-delta/PaintedMetal009_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/fob-delta/PaintedMetal009_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
@@ -293,21 +293,21 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // TEXTURES - Surface Damage
   {
     id: 'tex/fob/damage',
-    path: '/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/damage_normal',
-    path: '/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/fob/damage_roughness',
-    path: '/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
@@ -316,7 +316,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // TEXTURES - Skybox
   {
     id: 'tex/fob/skybox',
-    path: '/textures/levels/fob-delta/skybox.exr',
+    path: '/assets/textures/levels/fob-delta/skybox.exr',
     category: 'texture',
     sizeKB: 2000,
 
@@ -325,121 +325,121 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // QUATERNIUS MODULAR - Damaged/Abandoned Interiors
   {
     id: 'modular/floor_empty',
-    path: '/models/environment/modular/FloorTile_Empty.glb',
+    path: '/assets/models/environment/modular/FloorTile_Empty.glb',
     category: 'model',
     sizeKB: 4,
   },
   {
     id: 'modular/floor_hallway',
-    path: '/models/environment/modular/FloorTile_Double_Hallway.glb',
+    path: '/assets/models/environment/modular/FloorTile_Double_Hallway.glb',
     category: 'model',
     sizeKB: 24,
   },
   {
     id: 'modular/wall_3',
-    path: '/models/environment/modular/Wall_3.glb',
+    path: '/assets/models/environment/modular/Wall_3.glb',
     category: 'model',
     sizeKB: 57,
   },
   {
     id: 'modular/wall_4',
-    path: '/models/environment/modular/Wall_4.glb',
+    path: '/assets/models/environment/modular/Wall_4.glb',
     category: 'model',
     sizeKB: 68,
   },
   {
     id: 'modular/wall_empty',
-    path: '/models/environment/modular/Wall_Empty.glb',
+    path: '/assets/models/environment/modular/Wall_Empty.glb',
     category: 'model',
     sizeKB: 15,
   },
   {
     id: 'modular/door_double',
-    path: '/models/environment/modular/Door_Double.glb',
+    path: '/assets/models/environment/modular/Door_Double.glb',
     category: 'model',
     sizeKB: 87,
   },
   {
     id: 'modular/door_dbl_wall_a',
-    path: '/models/environment/modular/DoorDouble_Wall_SideA.glb',
+    path: '/assets/models/environment/modular/DoorDouble_Wall_SideA.glb',
     category: 'model',
     sizeKB: 16,
   },
   {
     id: 'modular/door_dbl_wall_b',
-    path: '/models/environment/modular/DoorDouble_Wall_SideB.glb',
+    path: '/assets/models/environment/modular/DoorDouble_Wall_SideB.glb',
     category: 'model',
     sizeKB: 11,
   },
   {
     id: 'modular/column_3',
-    path: '/models/environment/modular/Column_3.glb',
+    path: '/assets/models/environment/modular/Column_3.glb',
     category: 'model',
     sizeKB: 33,
   },
   {
     id: 'modular/roof_details',
-    path: '/models/environment/modular/RoofTile_Details.glb',
+    path: '/assets/models/environment/modular/RoofTile_Details.glb',
     category: 'model',
     sizeKB: 38,
   },
   {
     id: 'modular/roof_pipes1',
-    path: '/models/environment/modular/RoofTile_Pipes1.glb',
+    path: '/assets/models/environment/modular/RoofTile_Pipes1.glb',
     category: 'model',
     sizeKB: 22,
   },
   {
     id: 'modular/roof_pipes2',
-    path: '/models/environment/modular/RoofTile_Pipes2.glb',
+    path: '/assets/models/environment/modular/RoofTile_Pipes2.glb',
     category: 'model',
     sizeKB: 47,
   },
   {
     id: 'modular/detail_pipes_long',
-    path: '/models/environment/modular/Details_Pipes_Long.glb',
+    path: '/assets/models/environment/modular/Details_Pipes_Long.glb',
     category: 'model',
     sizeKB: 24,
   },
   {
     id: 'modular/detail_pipes_med',
-    path: '/models/environment/modular/Details_Pipes_Medium.glb',
+    path: '/assets/models/environment/modular/Details_Pipes_Medium.glb',
     category: 'model',
     sizeKB: 25,
   },
   {
     id: 'modular/detail_pipes_sm',
-    path: '/models/environment/modular/Details_Pipes_Small.glb',
+    path: '/assets/models/environment/modular/Details_Pipes_Small.glb',
     category: 'model',
     sizeKB: 18,
   },
   {
     id: 'modular/detail_vent3',
-    path: '/models/environment/modular/Details_Vent_3.glb',
+    path: '/assets/models/environment/modular/Details_Vent_3.glb',
     category: 'model',
     sizeKB: 21,
   },
   {
     id: 'modular/detail_vent4',
-    path: '/models/environment/modular/Details_Vent_4.glb',
+    path: '/assets/models/environment/modular/Details_Vent_4.glb',
     category: 'model',
     sizeKB: 33,
   },
   {
     id: 'modular/detail_vent5',
-    path: '/models/environment/modular/Details_Vent_5.glb',
+    path: '/assets/models/environment/modular/Details_Vent_5.glb',
     category: 'model',
     sizeKB: 33,
   },
   {
     id: 'modular/crate',
-    path: '/models/environment/modular/Props_Crate.glb',
+    path: '/assets/models/environment/modular/Props_Crate.glb',
     category: 'model',
     sizeKB: 134,
   },
   {
     id: 'modular/crate_long',
-    path: '/models/environment/modular/Props_CrateLong.glb',
+    path: '/assets/models/environment/modular/Props_CrateLong.glb',
     category: 'model',
     sizeKB: 146,
   },
@@ -447,31 +447,31 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // DECALS - Horror Graffiti, Blood-Splattered Walls
   {
     id: 'decal/graffiti_1',
-    path: '/models/props/decals/graffiti_mx_1.glb',
+    path: '/assets/models/props/decals/graffiti_mx_1.glb',
     category: 'model',
     sizeKB: 25,
   },
   {
     id: 'decal/graffiti_2',
-    path: '/models/props/decals/graffiti_mx_2.glb',
+    path: '/assets/models/props/decals/graffiti_mx_2.glb',
     category: 'model',
     sizeKB: 111,
   },
   {
     id: 'decal/graffiti_4',
-    path: '/models/props/decals/graffiti_mx_4.glb',
+    path: '/assets/models/props/decals/graffiti_mx_4.glb',
     category: 'model',
     sizeKB: 63,
   },
   {
     id: 'decal/graffiti_5',
-    path: '/models/props/decals/graffiti_mx_5.glb',
+    path: '/assets/models/props/decals/graffiti_mx_5.glb',
     category: 'model',
     sizeKB: 33,
   },
   {
     id: 'decal/poster_4',
-    path: '/models/props/decals/poster_cx_4.glb',
+    path: '/assets/models/props/decals/poster_cx_4.glb',
     category: 'model',
     sizeKB: 17,
   },
@@ -479,7 +479,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // STATION EXTERNAL - Dark Silhouette
   {
     id: 'station-ext/station04',
-    path: '/models/environment/station-external/station04.glb',
+    path: '/assets/models/environment/station-external/station04.glb',
     category: 'model',
     sizeKB: 533,
   },
@@ -487,7 +487,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // SUPPLY/PICKUP PROPS - Gameplay Items
   {
     id: 'prop/supply_drop',
-    path: '/models/props/collectibles/supply_drop.glb',
+    path: '/assets/models/props/collectibles/supply_drop.glb',
     category: 'model',
     sizeKB: 80,
   },
@@ -495,37 +495,37 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // FORTIFICATION PROPS - Defensive Structures
   {
     id: 'prop/cement_pallet_1',
-    path: '/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+    path: '/assets/models/props/containers/cement_bags_mp_1_pallet_1.glb',
     category: 'model',
     sizeKB: 120,
   },
   {
     id: 'prop/cement_pallet_2',
-    path: '/models/props/containers/cement_bags_mp_1_pallet_2.glb',
+    path: '/assets/models/props/containers/cement_bags_mp_1_pallet_2.glb',
     category: 'model',
     sizeKB: 120,
   },
   {
     id: 'station/shed_1',
-    path: '/models/environment/station/shed_ax_1.glb',
+    path: '/assets/models/environment/station/shed_ax_1.glb',
     category: 'model',
     sizeKB: 180,
   },
   {
     id: 'station/shed_2',
-    path: '/models/environment/station/shed_ax_2.glb',
+    path: '/assets/models/environment/station/shed_ax_2.glb',
     category: 'model',
     sizeKB: 200,
   },
   {
     id: 'station/platform_small',
-    path: '/models/environment/station/platform_small_mx_1.glb',
+    path: '/assets/models/environment/station/platform_small_mx_1.glb',
     category: 'model',
     sizeKB: 150,
   },
   {
     id: 'station/platform_ax_1',
-    path: '/models/environment/station/platform_ax_1.glb',
+    path: '/assets/models/environment/station/platform_ax_1.glb',
     category: 'model',
     sizeKB: 160,
   },
@@ -533,25 +533,25 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // WAREHOUSE BUILDINGS
   {
     id: 'station/warehouse_1',
-    path: '/models/environment/station/warehouse_mx_1.glb',
+    path: '/assets/models/environment/station/warehouse_mx_1.glb',
     category: 'model',
     sizeKB: 400,
   },
   {
     id: 'station/warehouse_2',
-    path: '/models/environment/station/warehouse_mx_2.glb',
+    path: '/assets/models/environment/station/warehouse_mx_2.glb',
     category: 'model',
     sizeKB: 420,
   },
   {
     id: 'station/garages_block',
-    path: '/models/environment/station/garages_block_hr_1.glb',
+    path: '/assets/models/environment/station/garages_block_hr_1.glb',
     category: 'model',
     sizeKB: 500,
   },
   {
     id: 'station/garage_door_frame',
-    path: '/models/environment/station/garage_door_frame_hr_1.glb',
+    path: '/assets/models/environment/station/garage_door_frame_hr_1.glb',
     category: 'model',
     sizeKB: 150,
   },
@@ -559,13 +559,13 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // GROUND TILES - Asphalt
   {
     id: 'station/asphalt_large',
-    path: '/models/environment/station/asphalt_hr_1_large.glb',
+    path: '/assets/models/environment/station/asphalt_hr_1_large.glb',
     category: 'model',
     sizeKB: 200,
   },
   {
     id: 'station/asphalt_1',
-    path: '/models/environment/station/asphalt_hr_1.glb',
+    path: '/assets/models/environment/station/asphalt_hr_1.glb',
     category: 'model',
     sizeKB: 180,
   },
@@ -573,13 +573,13 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // PERIMETER WALLS
   {
     id: 'station/wall_hr_1',
-    path: '/models/environment/station/wall_hr_1.glb',
+    path: '/assets/models/environment/station/wall_hr_1.glb',
     category: 'model',
     sizeKB: 300,
   },
   {
     id: 'station/wall_hr_15',
-    path: '/models/environment/station/wall_hr_15.glb',
+    path: '/assets/models/environment/station/wall_hr_15.glb',
     category: 'model',
     sizeKB: 320,
   },
@@ -587,19 +587,19 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // CONTAINERS AND CLUTTER
   {
     id: 'prop/shipping_container',
-    path: '/models/environment/industrial/shipping_container_mx_1.glb',
+    path: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
     category: 'model',
     sizeKB: 250,
   },
   {
     id: 'prop/wooden_crate_1',
-    path: '/models/props/containers/wooden_crate_1.glb',
+    path: '/assets/models/props/containers/wooden_crate_1.glb',
     category: 'model',
     sizeKB: 60,
   },
   {
     id: 'prop/metal_barrel',
-    path: '/models/props/containers/metal_barrel_hr_1.glb',
+    path: '/assets/models/props/containers/metal_barrel_hr_1.glb',
     category: 'model',
     sizeKB: 50,
   },
@@ -607,13 +607,13 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // BARRACKS INTERIOR
   {
     id: 'prop/bench_1',
-    path: '/models/props/furniture/bench_mx_1.glb',
+    path: '/assets/models/props/furniture/bench_mx_1.glb',
     category: 'model',
     sizeKB: 80,
   },
   {
     id: 'prop/marine_body',
-    path: '/models/npcs/marine/marine_soldier.glb',
+    path: '/assets/models/npcs/marine/marine_soldier.glb',
     category: 'model',
     sizeKB: 300,
   },
@@ -621,19 +621,19 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // COMMAND CENTER
   {
     id: 'prop/computer',
-    path: '/models/environment/modular/Props_Computer.glb',
+    path: '/assets/models/environment/modular/Props_Computer.glb',
     category: 'model',
     sizeKB: 100,
   },
   {
     id: 'prop/door_hr_6',
-    path: '/models/props/doors/door_hr_6.glb',
+    path: '/assets/models/props/doors/door_hr_6.glb',
     category: 'model',
     sizeKB: 120,
   },
   {
     id: 'prop/chimney',
-    path: '/models/environment/industrial/chimney_a_1.glb',
+    path: '/assets/models/environment/industrial/chimney_a_1.glb',
     category: 'model',
     sizeKB: 180,
   },
@@ -641,19 +641,19 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // DETAIL ARROWS
   {
     id: 'modular/detail_arrow',
-    path: '/models/environment/modular/Details_Arrow.glb',
+    path: '/assets/models/environment/modular/Details_Arrow.glb',
     category: 'model',
     sizeKB: 15,
   },
   {
     id: 'modular/detail_arrow_2',
-    path: '/models/environment/modular/Details_Arrow_2.glb',
+    path: '/assets/models/environment/modular/Details_Arrow_2.glb',
     category: 'model',
     sizeKB: 15,
   },
   {
     id: 'modular/detail_plate_long',
-    path: '/models/environment/modular/Details_Plate_Long.glb',
+    path: '/assets/models/environment/modular/Details_Plate_Long.glb',
     category: 'model',
     sizeKB: 20,
   },
@@ -661,7 +661,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // UNDERGROUND HATCH
   {
     id: 'prop/hatch_door',
-    path: '/models/props/doors/door_hr_12.glb',
+    path: '/assets/models/props/doors/door_hr_12.glb',
     category: 'model',
     sizeKB: 130,
   }

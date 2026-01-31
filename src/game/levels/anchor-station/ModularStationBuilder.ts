@@ -22,18 +22,18 @@ const MODULE_HEIGHT = 3.09; // Z-axis height (becomes Y in Babylon)
 
 // Model paths (reorganized asset structure)
 const MODELS = {
-  corridorMain: '/models/environment/station/corridor_main.glb',
-  corridorJunction: '/models/environment/station/corridor_junction.glb',
-  corridorCorner: '/models/environment/station/corridor_corner.glb',
-  corridorWide: '/models/environment/station/corridor_wide.glb',
-  stationDoor: '/models/environment/station/station_door.glb',
-  stationBarrel: '/models/environment/station/station_barrel.glb',
+  corridorMain: '/assets/models/environment/station/corridor_main.glb',
+  corridorJunction: '/assets/models/environment/station/corridor_junction.glb',
+  corridorCorner: '/assets/models/environment/station/corridor_corner.glb',
+  corridorWide: '/assets/models/environment/station/corridor_wide.glb',
+  stationDoor: '/assets/models/environment/station/station_door.glb',
+  stationBarrel: '/assets/models/environment/station/station_barrel.glb',
   // Additional station pieces
-  wall: '/models/environment/station/wall_hr_1_double.glb',
-  doorway: '/models/environment/station/doorway_hr_1.glb',
-  floorCeiling: '/models/environment/station/floor_ceiling_hr_1.glb',
-  beam: '/models/environment/station/beam_hc_vertical_1.glb',
-  pipe: '/models/environment/station/pipe_cx_1.glb',
+  wall: '/assets/models/environment/station/wall_hr_1_double.glb',
+  doorway: '/assets/models/environment/station/doorway_hr_1.glb',
+  floorCeiling: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+  beam: '/assets/models/environment/station/beam_hc_vertical_1.glb',
+  pipe: '/assets/models/environment/station/pipe_cx_1.glb',
 };
 
 // Station layout definition

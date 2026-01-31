@@ -135,9 +135,12 @@ vi.mock('../../core/AssetManager', () => ({
     loadAssetByPath: vi.fn().mockResolvedValue({}),
     createInstanceByPath: vi.fn().mockReturnValue({
       position: { x: 0, y: 0, z: 0, set: vi.fn() },
-      rotation: { y: 0 },
+      rotation: { x: 0, y: 0, z: 0, set: vi.fn() },
+      scaling: { set: vi.fn(), setAll: vi.fn() },
       setEnabled: vi.fn(),
       dispose: vi.fn(),
+      parent: null,
+      isVisible: true,
     }),
   },
 }));
@@ -188,12 +191,12 @@ vi.mock('./ExtractionEnvironmentBuilder', () => ({
 vi.mock('./constants', () => ({
   ESCAPE_TUNNEL_LENGTH: 300,
   LZ_POSITION: { x: 0, y: 0, z: -500 },
-  GLB_MECH: '/models/vehicles/mech.glb',
-  GLB_DROPSHIP: '/models/vehicles/dropship.glb',
-  GLB_SUPPLY_DROP: '/models/props/supply_drop.glb',
-  GLB_AMMO_BOX: '/models/props/ammo_box.glb',
-  GLB_CRUMBLING_WALL: '/models/props/crumbling_wall.glb',
-  GLB_DEBRIS_VARIANTS: ['/models/props/debris1.glb'],
+  GLB_MECH: '/assets/models/vehicles/mech.glb',
+  GLB_DROPSHIP: '/assets/models/vehicles/dropship.glb',
+  GLB_SUPPLY_DROP: '/assets/models/props/supply_drop.glb',
+  GLB_AMMO_BOX: '/assets/models/props/ammo_box.glb',
+  GLB_CRUMBLING_WALL: '/assets/models/props/crumbling_wall.glb',
+  GLB_DEBRIS_VARIANTS: ['/assets/models/props/debris1.glb'],
 }));
 
 import {
@@ -218,7 +221,8 @@ describe('Environment Creation', () => {
   });
 
   describe('createEscapeTunnel', () => {
-    it('should create tunnel environment with all components', () => {
+    it('should create tunnel environment with all components', async () => {
+      const AssetManagerModule = await import('../../core/AssetManager');
       const tunnel = createEscapeTunnel(mockScene);
 
       expect(tunnel.hiveBuilder).toBeDefined();
@@ -226,6 +230,8 @@ describe('Environment Creation', () => {
       expect(tunnel.tunnelLights).toBeDefined();
       expect(tunnel.collapseWall).toBeDefined();
       expect(tunnel.exitLight).toBeDefined();
+      // Collapse wall uses GLB assets
+      expect(AssetManagerModule.AssetManager.createInstanceByPath).toHaveBeenCalled();
     });
 
     it('should setup glow layer', () => {
@@ -252,11 +258,18 @@ describe('Environment Creation', () => {
       expect(tunnel.hiveBuilder.createChamber).toHaveBeenCalled();
     });
 
-    it('should create collapse wall mesh', async () => {
-      const MeshBuilderModule = await import('@babylonjs/core/Meshes/meshBuilder');
+    it('should create collapse wall using GLB rubble assets', async () => {
+      const AssetManagerModule = await import('../../core/AssetManager');
       createEscapeTunnel(mockScene);
 
-      expect(MeshBuilderModule.MeshBuilder.CreateCylinder).toHaveBeenCalled();
+      // Collapse wall now uses GLB rubble assets instead of MeshBuilder cylinder
+      expect(AssetManagerModule.AssetManager.createInstanceByPath).toHaveBeenCalledWith(
+        expect.stringContaining('bricks_stacked'),
+        expect.stringContaining('collapseWall'),
+        mockScene,
+        false,
+        'environment'
+      );
     });
 
     it('should create exit light with high intensity', () => {
@@ -418,6 +431,20 @@ describe('Environment Creation', () => {
       createDropship(mockScene);
 
       expect(AssetManagerModule.AssetManager.createInstanceByPath).toHaveBeenCalled();
+    });
+
+    it('should create ramp using GLB floor tile', async () => {
+      const AssetManagerModule = await import('../../core/AssetManager');
+      createDropship(mockScene);
+
+      // Ramp now uses GLB floor tile instead of MeshBuilder box
+      expect(AssetManagerModule.AssetManager.createInstanceByPath).toHaveBeenCalledWith(
+        expect.stringContaining('FloorTile_Basic'),
+        'dropshipRamp',
+        mockScene,
+        false,
+        'vehicle'
+      );
     });
   });
 

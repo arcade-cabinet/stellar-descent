@@ -115,18 +115,34 @@ vi.mock('../../core/AssetManager', () => {
       y: 0,
       z: 0,
       clone: function () {
-        return { x: this.x, y: this.y, z: this.z };
+        return { x: this.x, y: this.y, z: this.z, set: vi.fn(), clone: this.clone.bind(this) };
       },
+      set: vi.fn(function (this: any, x: number, y: number, z: number) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+      }),
     },
     rotation: {
       x: 0,
       y: 0,
       z: 0,
       clone: function () {
-        return { x: this.x, y: this.y, z: this.z };
+        return { x: this.x, y: this.y, z: this.z, set: vi.fn(), clone: this.clone.bind(this) };
       },
+      set: vi.fn(function (this: any, x: number, y: number, z: number) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+      }),
     },
-    scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+    scaling: {
+      x: 1,
+      y: 1,
+      z: 1,
+      setAll: vi.fn(),
+      set: vi.fn(),
+    },
     parent: null,
     dispose: vi.fn(),
     getChildren: vi.fn().mockReturnValue([
@@ -282,61 +298,75 @@ describe('The Breach Environment', () => {
       expect(Array.isArray(assets)).toBe(true);
     });
 
-    it('should add organic growth to beams', () => {
-      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(
-        (_path, name) => ({
-          name,
-          position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-          parent: null,
-          dispose: vi.fn(),
-          getChildren: vi.fn().mockReturnValue([]),
-        })
-      );
+    it('should add organic growth to beams using GLB models', () => {
+      const createInstanceByPathMock = vi.fn().mockImplementation((_path, name) => ({
+        name,
+        position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn(), set: vi.fn() },
+        parent: null,
+        dispose: vi.fn(),
+        getChildren: vi.fn().mockReturnValue([]),
+      }));
+      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(createInstanceByPathMock);
+      (AssetManager.isPathCached as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
       placeBreachAssets(mockScene);
 
-      // MeshBuilder.CreateSphere should be called for organic growths
-      expect(MeshBuilder.CreateSphere).toHaveBeenCalled();
+      // AssetManager.createInstanceByPath should be called for organic growths on beams
+      // Growth GLB paths include alien_mushroom_*.glb
+      const growthCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) => call[0].includes('alien_mushroom')
+      );
+      expect(growthCalls.length).toBeGreaterThan(0);
     });
 
-    it('should add tendrils to deep zone beams', () => {
-      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(
-        (_path, name) => ({
-          name,
-          position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-          parent: null,
-          dispose: vi.fn(),
-          getChildren: vi.fn().mockReturnValue([]),
-        })
-      );
+    it('should add tendrils to deep zone beams using GLB models', () => {
+      const createInstanceByPathMock = vi.fn().mockImplementation((_path, name) => ({
+        name,
+        position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn(), set: vi.fn() },
+        parent: null,
+        dispose: vi.fn(),
+        getChildren: vi.fn().mockReturnValue([]),
+      }));
+      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(createInstanceByPathMock);
+      (AssetManager.isPathCached as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
       placeBreachAssets(mockScene);
 
-      // MeshBuilder.CreateCylinder should be called for tendrils
-      expect(MeshBuilder.CreateCylinder).toHaveBeenCalled();
+      // AssetManager.createInstanceByPath should be called for tendrils
+      // Tendril GLB paths include hanging_moss, fern, reed
+      const tendrilCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) => call[0].includes('hanging_moss') || call[0].includes('fern') || call[0].includes('reed')
+      );
+      expect(tendrilCalls.length).toBeGreaterThan(0);
     });
 
-    it('should add corrosion overlay to deep zone details', () => {
-      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(
-        (_path, name) => ({
-          name,
-          position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-          parent: null,
-          dispose: vi.fn(),
-          getChildren: vi.fn().mockReturnValue([]),
-        })
-      );
+    it('should add corrosion overlay to deep zone details using GLB models', () => {
+      const createInstanceByPathMock = vi.fn().mockImplementation((_path, name) => ({
+        name,
+        position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn(), set: vi.fn() },
+        parent: null,
+        dispose: vi.fn(),
+        getChildren: vi.fn().mockReturnValue([]),
+      }));
+      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(createInstanceByPathMock);
+      (AssetManager.isPathCached as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
       placeBreachAssets(mockScene);
 
-      // MeshBuilder.CreateDisc should be called for corrosion patches
-      expect(MeshBuilder.CreateDisc).toHaveBeenCalled();
+      // Corrosion patches use alien_mushroom_02/04/06 GLBs
+      const corrosionCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) =>
+          call[0].includes('alien_mushroom_02') ||
+          call[0].includes('alien_mushroom_04') ||
+          call[0].includes('alien_mushroom_06')
+      );
+      expect(corrosionCalls.length).toBeGreaterThan(0);
     });
   });
 
@@ -537,63 +567,72 @@ describe('The Breach Environment', () => {
   });
 
   // ==========================================================================
-  // ORGANIC GROWTH EFFECTS
+  // ORGANIC GROWTH EFFECTS (GLB-based)
   // ==========================================================================
 
   describe('Organic Growth Effects', () => {
+    let createInstanceByPathMock: ReturnType<typeof vi.fn>;
+
     beforeEach(() => {
-      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(
-        (_path, name) => ({
-          name,
-          position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-          parent: null,
-          dispose: vi.fn(),
-          getChildren: vi.fn().mockReturnValue([]),
-        })
+      createInstanceByPathMock = vi.fn().mockImplementation((_path, name) => ({
+        name,
+        position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0, set: vi.fn() }), set: vi.fn() },
+        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn(), set: vi.fn() },
+        parent: null,
+        dispose: vi.fn(),
+        getChildren: vi.fn().mockReturnValue([]),
+      }));
+      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(createInstanceByPathMock);
+      (AssetManager.isPathCached as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    });
+
+    it('should create GLB growths on beams', () => {
+      placeBreachAssets(mockScene);
+
+      // Should create instances from alien_mushroom GLBs for growths
+      const growthCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) => call[0].includes('alien_mushroom')
       );
+      expect(growthCalls.length).toBeGreaterThan(0);
     });
 
-    it('should create sphere growths on beams', () => {
+    it('should create GLB tendrils on deep zone beams', () => {
       placeBreachAssets(mockScene);
 
-      expect(MeshBuilder.CreateSphere).toHaveBeenCalled();
+      // Should create instances from tendril GLBs (hanging_moss, fern, reed)
+      const tendrilCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) => call[0].includes('hanging_moss') || call[0].includes('fern') || call[0].includes('reed')
+      );
+      expect(tendrilCalls.length).toBeGreaterThan(0);
     });
 
-    it('should create cylinder tendrils on deep zone beams', () => {
+    it('should create GLB patches for corrosion', () => {
       placeBreachAssets(mockScene);
 
-      expect(MeshBuilder.CreateCylinder).toHaveBeenCalled();
-    });
-
-    it('should create disc patches for corrosion', () => {
-      placeBreachAssets(mockScene);
-
-      expect(MeshBuilder.CreateDisc).toHaveBeenCalled();
+      // Should create instances from corrosion GLBs (alien_mushroom_02/04/06)
+      const corrosionCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) =>
+          call[0].includes('alien_mushroom_02') ||
+          call[0].includes('alien_mushroom_04') ||
+          call[0].includes('alien_mushroom_06')
+      );
+      expect(corrosionCalls.length).toBeGreaterThan(0);
     });
 
     it('should vary growth count by zone', () => {
       // Reset call counts
       vi.clearAllMocks();
-
-      (AssetManager.createInstanceByPath as ReturnType<typeof vi.fn>).mockImplementation(
-        (_path, name) => ({
-          name,
-          position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          rotation: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }) },
-          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-          parent: null,
-          dispose: vi.fn(),
-          getChildren: vi.fn().mockReturnValue([]),
-        })
-      );
+      createInstanceByPathMock.mockClear();
 
       placeBreachAssets(mockScene);
 
-      // Deeper zones should have more organic growth
-      // This is implicit in the implementation
-      expect(MeshBuilder.CreateSphere).toHaveBeenCalled();
+      // Deeper zones should have more organic growth GLB instances
+      // Count growth instances (alien flora paths)
+      const allGrowthCalls = createInstanceByPathMock.mock.calls.filter(
+        (call: any[]) => call[0].includes('alien-flora')
+      );
+      expect(allGrowthCalls.length).toBeGreaterThan(0);
     });
   });
 
@@ -632,7 +671,7 @@ describe('The Breach Environment', () => {
     });
 
     it('should handle scene with no observable', () => {
-      const minimalScene = {};
+      const minimalScene = {} as any;
 
       // Should not throw
       expect(() => placeBreachAssets(minimalScene)).not.toThrow();

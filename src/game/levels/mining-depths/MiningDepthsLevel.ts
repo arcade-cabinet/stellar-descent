@@ -51,11 +51,11 @@ import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 
 const BOSS_GLB_PATHS = {
   /** Chitin alien body -- used for the Mining Drill Chitin boss */
-  chitinBody: '/models/enemies/chitin/alien_scifi.glb',
+  chitinBody: '/assets/models/enemies/chitin/alien_scifi.glb',
   /** Industrial pipe -- stand-in for drill arm appendages */
-  drillArm: '/models/environment/industrial/pipes_hr_1.glb',
+  drillArm: '/assets/models/environment/industrial/pipes_hr_1.glb',
   /** Lamp for boss eye glow effect */
-  eyeGlow: '/models/environment/industrial/lamp_mx_1_a_on.glb',
+  eyeGlow: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
 } as const;
 
 const ALL_BOSS_GLB_PATHS: readonly string[] = [

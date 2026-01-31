@@ -113,10 +113,10 @@ export interface TransitionConfig {
 // ============================================================================
 
 const VEHICLE_GLB_PATHS: Record<VehicleType, string> = {
-  buggy: '/models/spaceships/Bob.glb',
-  tank: '/models/vehicles/chitin/wraith.glb',
-  transport: '/models/vehicles/phantom_dropship.glb',
-  escape_shuttle: '/models/spaceships/Challenger.glb',
+  buggy: '/assets/models/spaceships/Bob.glb',
+  tank: '/assets/models/vehicles/chitin/wraith.glb',
+  transport: '/assets/models/vehicles/phantom_dropship.glb',
+  escape_shuttle: '/assets/models/spaceships/Challenger.glb',
 };
 
 // ============================================================================

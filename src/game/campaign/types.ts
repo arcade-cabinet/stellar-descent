@@ -18,6 +18,7 @@ export type CampaignPhase =
   | 'title'
   | 'menu'
   | 'introBriefing'
+  | 'cinematic' // Video cinematic before briefing
   | 'briefing'
   | 'intro'
   | 'loading'
@@ -40,6 +41,7 @@ export type CampaignCommand =
   | { type: 'SELECT_LEVEL'; levelId: LevelId }
   | { type: 'BEGIN_MISSION' }
   | { type: 'SPLASH_COMPLETE' }
+  | { type: 'CINEMATIC_COMPLETE' } // Video cinematic finished or skipped
   | { type: 'INTRO_COMPLETE' }
   | { type: 'INTRO_BRIEFING_COMPLETE' }
   | { type: 'LOADING_COMPLETE' }

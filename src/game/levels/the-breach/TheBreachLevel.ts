@@ -58,11 +58,19 @@ import {
 /** GLB paths for queen chamber structural elements */
 const QUEEN_CHAMBER_GLBS = {
   /** Arena floor tile */
-  arenaFloor: '/models/environment/modular/FloorTile_Basic.glb',
+  arenaFloor: '/assets/models/environment/modular/FloorTile_Basic.glb',
   /** Chamber dome (organic stomach structure) */
-  dome: '/models/environment/hive/building_stomach.glb',
+  dome: '/assets/models/environment/hive/building_stomach.glb',
   /** Chamber entrance door */
-  door: '/models/environment/modular/Door_Double.glb',
+  door: '/assets/models/environment/modular/Door_Double.glb',
+  /** Arena pillar (organic claw structure) */
+  pillar: '/assets/models/environment/hive/building_claw.glb',
+  /** Pillar organic growth decorations */
+  pillarGrowth: [
+    '/assets/models/environment/alien-flora/alien_mushroom_01.glb',
+    '/assets/models/environment/alien-flora/alien_mushroom_03.glb',
+    '/assets/models/environment/alien-flora/alien_mushroom_05.glb',
+  ],
 } as const;
 // Import from subpackage modules
 import {
@@ -262,8 +270,9 @@ export class TheBreachLevel extends BaseLevel {
     // Connect damage feedback screen shake to base level shake system
     damageFeedback.setScreenShakeCallback((intensity) => this.triggerShake(intensity));
 
-    // Load assets -- hive structures, captured vehicles, station/detail GLBs, queen models, and chamber GLBs
+    // Load assets -- hive geometry (tunnels/chambers), hive structures, captured vehicles, station/detail GLBs, queen models, and chamber GLBs
     await Promise.all([
+      this.environmentBuilder.loadHiveGeometry(),
       this.environmentBuilder.loadHiveStructures(),
       this.environmentBuilder.loadCapturedVehicles(),
       loadBreachAssets(this.scene),
@@ -273,12 +282,27 @@ export class TheBreachLevel extends BaseLevel {
   }
 
   /**
-   * Preload GLB assets used for the queen chamber (floor, dome, door).
+   * Preload GLB assets used for the queen chamber (floor, dome, door, pillars).
    */
   private async loadQueenChamberAssets(): Promise<void> {
     const loadPromises: Promise<unknown>[] = [];
 
-    for (const path of Object.values(QUEEN_CHAMBER_GLBS)) {
+    // Load floor, dome, door, and pillar base
+    const basePaths = [
+      QUEEN_CHAMBER_GLBS.arenaFloor,
+      QUEEN_CHAMBER_GLBS.dome,
+      QUEEN_CHAMBER_GLBS.door,
+      QUEEN_CHAMBER_GLBS.pillar,
+    ];
+
+    for (const path of basePaths) {
+      if (!AssetManager.isPathCached(path)) {
+        loadPromises.push(AssetManager.loadAssetByPath(path, this.scene));
+      }
+    }
+
+    // Load pillar growth decorations
+    for (const path of QUEEN_CHAMBER_GLBS.pillarGrowth) {
       if (!AssetManager.isPathCached(path)) {
         loadPromises.push(AssetManager.loadAssetByPath(path, this.scene));
       }
@@ -708,12 +732,15 @@ export class TheBreachLevel extends BaseLevel {
   }
 
   /**
-   * Create cover pillars arranged around the boss arena.
+   * Create cover pillars arranged around the boss arena using GLB models.
+   * Uses hive claw structure as pillar base with alien flora decorations.
    */
   private createArenaPillars(center: Vector3, arenaRadius: number): void {
-    const pillarMat = new StandardMaterial('arenaPillarMat', this.scene);
-    pillarMat.diffuseColor = Color3.FromHexString(COLORS.chitinDark);
-    pillarMat.emissiveColor = Color3.FromHexString(COLORS.bioGlowDim).scale(0.1);
+    const pillarPath = QUEEN_CHAMBER_GLBS.pillar;
+
+    if (!AssetManager.isPathCached(pillarPath)) {
+      throw new Error(`[TheBreachLevel] Arena pillar GLB not preloaded: ${pillarPath}`);
+    }
 
     for (let i = 0; i < ARENA_PILLAR_COUNT; i++) {
       // Offset angle so pillars don't block entrance or queen
@@ -727,39 +754,63 @@ export class TheBreachLevel extends BaseLevel {
         center.z + Math.sin(angle) * radius
       );
 
-      // Main pillar body - organic irregular shape
-      const pillar = MeshBuilder.CreateCylinder(
+      // Main pillar body - organic claw structure from GLB
+      const pillar = AssetManager.createInstanceByPath(
+        pillarPath,
         `pillarBody_${i}`,
-        {
-          height: ARENA_PILLAR_HEIGHT,
-          diameterTop: 0.8 + Math.random() * 0.3,
-          diameterBottom: 1.2 + Math.random() * 0.4,
-          tessellation: 8,
-        },
-        this.scene
+        this.scene,
+        false,
+        'environment'
       );
-      pillar.material = pillarMat;
-      pillar.position.y = ARENA_PILLAR_HEIGHT / 2;
+
+      if (!pillar) {
+        throw new Error(`[TheBreachLevel] Failed to create pillar instance at index ${i}`);
+      }
+
+      // Scale the claw GLB to approximate pillar dimensions
+      // Building_claw is roughly 2 units tall, scale to match ARENA_PILLAR_HEIGHT
+      const heightScale = ARENA_PILLAR_HEIGHT / 2;
+      const widthVariation = 0.8 + Math.random() * 0.4;
+      pillar.scaling.set(widthVariation, heightScale, widthVariation);
+      pillar.position.y = 0;
+      // Random rotation for organic variation
+      pillar.rotation.y = Math.random() * Math.PI * 2;
       pillar.parent = pillarRoot;
 
-      // Add organic growths on pillar
+      // Add organic growths on pillar using alien flora GLBs
       const growthCount = 2 + Math.floor(Math.random() * 2);
       for (let g = 0; g < growthCount; g++) {
-        const growth = MeshBuilder.CreateSphere(
+        const growthPath = QUEEN_CHAMBER_GLBS.pillarGrowth[g % QUEEN_CHAMBER_GLBS.pillarGrowth.length];
+
+        if (!AssetManager.isPathCached(growthPath)) {
+          log.warn(`[TheBreachLevel] Pillar growth GLB not cached: ${growthPath}`);
+          continue;
+        }
+
+        const growth = AssetManager.createInstanceByPath(
+          growthPath,
           `pillarGrowth_${i}_${g}`,
-          {
-            diameterX: 0.4 + Math.random() * 0.3,
-            diameterY: 0.3 + Math.random() * 0.2,
-            diameterZ: 0.4 + Math.random() * 0.3,
-            segments: 6,
-          },
-          this.scene
+          this.scene,
+          false
         );
-        growth.material = pillarMat;
+
+        if (!growth) {
+          log.warn(`[TheBreachLevel] Failed to create pillar growth instance: ${growthPath}`);
+          continue;
+        }
+
+        // Scale for small organic decoration
+        const growthScale = 0.2 + Math.random() * 0.15;
+        growth.scaling.setAll(growthScale);
         growth.position.set(
           (Math.random() - 0.5) * 0.8,
           1 + Math.random() * 2,
           (Math.random() - 0.5) * 0.8
+        );
+        growth.rotation.set(
+          (Math.random() - 0.5) * 0.4,
+          Math.random() * Math.PI * 2,
+          (Math.random() - 0.5) * 0.4
         );
         growth.parent = pillarRoot;
       }
@@ -779,7 +830,7 @@ export class TheBreachLevel extends BaseLevel {
       this.arenaPillars.push(pillarRoot);
     }
 
-    log.info(`Created ${ARENA_PILLAR_COUNT} arena cover pillars`);
+    log.info(`Created ${ARENA_PILLAR_COUNT} arena cover pillars with GLB models`);
   }
 
   /**

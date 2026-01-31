@@ -48,6 +48,7 @@ import {
 import { getLogger } from '../core/Logger';
 import { getMeleeSystem } from '../combat';
 import type { ILevel, LevelCallbacks, LevelConfig, LevelId, LevelState, LevelStats, LevelType, VictoryResult } from './types';
+import { getEventBus } from '../core/EventBus';
 
 const log = getLogger('BaseLevel');
 
@@ -307,6 +308,13 @@ export abstract class BaseLevel implements ILevel {
     // Mark state
     this.state.visited = true;
     this.isInitialized = true;
+
+    // Emit level started event
+    getEventBus().emit({
+      type: 'LEVEL_STARTED',
+      levelId: this.id,
+      chapter: this.config.chapter,
+    });
 
     log.info(`Level ${this.id} initialized`);
   }
@@ -614,7 +622,7 @@ export abstract class BaseLevel implements ILevel {
 
   /**
    * Mark an objective as completed.
-   * Emits 'objective:completed' event via callbacks.
+   * Emits OBJECTIVE_COMPLETED event via EventBus.
    */
   protected completeObjective(objectiveId: string): void {
     if (this.objectivesCompleted.has(objectiveId)) return;
@@ -622,7 +630,13 @@ export abstract class BaseLevel implements ILevel {
     this.objectivesCompleted.add(objectiveId);
     this.levelStats.objectivesCompleted = this.objectivesCompleted.size;
 
-    // Emit objective completed notification
+    // Emit objective completed event via EventBus
+    getEventBus().emit({
+      type: 'OBJECTIVE_COMPLETED',
+      objectiveId,
+    });
+
+    // Also notify via callback for legacy compatibility
     this.callbacks.onNotification(`Objective Complete: ${objectiveId}`, 3000);
 
     log.info(`Objective completed: ${objectiveId} (${this.objectivesCompleted.size}/${this.objectivesRequired.size})`);
@@ -655,6 +669,8 @@ export abstract class BaseLevel implements ILevel {
 
   /**
    * Record an enemy kill. Call when player kills an enemy.
+   * Note: This updates stats only. The ENEMY_KILLED event should be emitted
+   * by the combat system with full enemy details (position, type, etc.)
    */
   protected recordKill(options?: {
     isHeadshot?: boolean;
@@ -671,7 +687,7 @@ export abstract class BaseLevel implements ILevel {
     if (options?.isGrenade) {
       this.levelStats.grenadeKills = (this.levelStats.grenadeKills ?? 0) + 1;
     }
-    // Notify game context
+    // Notify game context (legacy callback)
     this.callbacks.onKill();
   }
 
@@ -694,10 +710,18 @@ export abstract class BaseLevel implements ILevel {
 
   /**
    * Record damage taken by player.
+   * Emits PLAYER_DAMAGED event via EventBus.
    */
-  protected recordDamageTaken(damage: number): void {
+  protected recordDamageTaken(damage: number, source?: string): void {
     this.levelStats.damageTaken = (this.levelStats.damageTaken ?? 0) + damage;
     this.trackPlayerDamage(damage);
+
+    // Emit player damaged event via EventBus
+    getEventBus().emit({
+      type: 'PLAYER_DAMAGED',
+      amount: damage,
+      source,
+    });
   }
 
   /**
@@ -723,10 +747,19 @@ export abstract class BaseLevel implements ILevel {
 
   /**
    * Record a player death.
+   * Emits PLAYER_DEATH event via EventBus.
    */
-  protected recordDeath(): void {
+  protected recordDeath(cause?: string): void {
     this.levelStats.deaths++;
     this.playerDiedInLevel = true;
+
+    // Emit player death event via EventBus
+    getEventBus().emit({
+      type: 'PLAYER_DEATH',
+      cause: cause ?? 'unknown',
+      position: this.camera.position.clone(),
+    });
+
     this.onPlayerDeath();
   }
 
@@ -744,8 +777,10 @@ export abstract class BaseLevel implements ILevel {
   /**
    * Save a checkpoint at the current position.
    * Use before boss fights or major encounters.
+   * Emits CHECKPOINT_REACHED event via EventBus.
    */
   protected saveCheckpoint(phase?: string): void {
+    const checkpointId = `${this.id}_${phase ?? 'default'}_${Date.now()}`;
     this.state.checkpoint = {
       position: {
         x: this.camera.position.x,
@@ -755,6 +790,14 @@ export abstract class BaseLevel implements ILevel {
       rotation: this.rotationY,
       phase,
     };
+
+    // Emit checkpoint reached event via EventBus
+    getEventBus().emit({
+      type: 'CHECKPOINT_REACHED',
+      checkpointId,
+      phase,
+    });
+
     log.info(`Checkpoint saved at phase: ${phase ?? 'default'}`);
     this.callbacks.onNotification('Checkpoint Saved', 2000);
   }
@@ -1331,6 +1374,166 @@ export abstract class BaseLevel implements ILevel {
     } catch (error) {
       log.warn(`Failed to initialize melee system:`, error);
     }
+  }
+
+  // ============================================================================
+  // EVENT BUS HELPERS
+  // ============================================================================
+
+  /**
+   * Emit an enemy killed event via EventBus.
+   * Use this when an enemy is killed to notify HUD, audio, and other systems.
+   */
+  protected emitEnemyKilled(
+    enemyType: string,
+    position: Vector3,
+    enemyId?: string
+  ): void {
+    getEventBus().emit({
+      type: 'ENEMY_KILLED',
+      enemyType,
+      position,
+      enemyId,
+    });
+    // Also update stats
+    this.recordKill();
+  }
+
+  /**
+   * Emit an enemy spawned event via EventBus.
+   */
+  protected emitEnemySpawned(
+    speciesId: string,
+    entityId: string,
+    position: { x: number; y: number; z: number },
+    facingAngle: number,
+    waveId?: string
+  ): void {
+    getEventBus().emit({
+      type: 'ENEMY_SPAWNED',
+      levelId: this.id,
+      speciesId,
+      entityId,
+      position,
+      facingAngle,
+      waveId,
+    });
+  }
+
+  /**
+   * Emit a wave started event via EventBus.
+   */
+  protected emitWaveStarted(
+    waveNumber: number,
+    waveId?: string,
+    totalEnemies?: number,
+    label?: string
+  ): void {
+    getEventBus().emit({
+      type: 'WAVE_STARTED',
+      levelId: this.id,
+      waveNumber,
+      waveId,
+      totalEnemies,
+      label,
+    });
+  }
+
+  /**
+   * Emit a wave completed event via EventBus.
+   */
+  protected emitWaveCompleted(waveNumber: number, waveId?: string): void {
+    getEventBus().emit({
+      type: 'WAVE_COMPLETED',
+      levelId: this.id,
+      waveNumber,
+      waveId,
+    });
+  }
+
+  /**
+   * Emit an objective updated event via EventBus.
+   * Also notifies via callback for legacy compatibility.
+   */
+  protected emitObjectiveUpdate(title: string, instructions: string): void {
+    getEventBus().emit({
+      type: 'OBJECTIVE_UPDATED',
+      title,
+      instructions,
+    });
+    // Also notify via callback for legacy compatibility
+    this.callbacks.onObjectiveUpdate(title, instructions);
+  }
+
+  /**
+   * Emit a dialogue started event via EventBus.
+   */
+  protected emitDialogueStarted(
+    triggerId: string,
+    options?: {
+      speakerId?: string;
+      dialogueId?: string;
+      text?: string;
+      duration?: number;
+    }
+  ): void {
+    getEventBus().emit({
+      type: 'DIALOGUE_STARTED',
+      triggerId,
+      ...options,
+    });
+  }
+
+  /**
+   * Emit a dialogue ended event via EventBus.
+   */
+  protected emitDialogueEnded(triggerId: string): void {
+    getEventBus().emit({
+      type: 'DIALOGUE_ENDED',
+      triggerId,
+    });
+  }
+
+  /**
+   * Emit a notification event via EventBus.
+   */
+  protected emitNotification(text: string, duration?: number): void {
+    getEventBus().emit({
+      type: 'NOTIFICATION',
+      text,
+      duration,
+    });
+    // Also notify via callback for legacy compatibility
+    this.callbacks.onNotification(text, duration);
+  }
+
+  /**
+   * Emit a pickup collected event via EventBus.
+   */
+  protected emitPickupCollected(
+    pickupId: string,
+    pickupType: string,
+    value?: number
+  ): void {
+    getEventBus().emit({
+      type: 'PICKUP_COLLECTED',
+      pickupId,
+      pickupType,
+      value,
+    });
+  }
+
+  /**
+   * Emit a combat state changed event via EventBus.
+   */
+  protected emitCombatStateChanged(inCombat: boolean): void {
+    getEventBus().emit({
+      type: 'COMBAT_STATE_CHANGED',
+      inCombat,
+    });
+    // Also notify via callback and audio
+    this.callbacks.onCombatStateChange(inCombat);
+    this.setCombatState(inCombat);
   }
 
   // ============================================================================

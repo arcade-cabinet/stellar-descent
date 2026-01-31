@@ -69,11 +69,13 @@ import {
   FROST_AURA,
   ICE_CHITIN_RESISTANCES,
   ICE_CHITIN_SPECIES,
+  ICE_CHITIN_VARIANTS,
   ICE_SHARD_PROJECTILE,
   type IceChitinInstance,
   type IceChitinState,
+  type IceChitinVariant,
   preloadIceChitinAssets,
-} from './IceChitin';
+} from '../../entities/IceChitin';
 
 // ============================================================================
 // TYPES
@@ -83,7 +85,7 @@ import {
 // GLB MODEL PATHS
 // ============================================================================
 
-const MARCUS_MECH_GLB = '/models/vehicles/tea/marcus_mech.glb';
+const MARCUS_MECH_GLB = '/assets/models/vehicles/tea/marcus_mech.glb';
 
 type LevelPhase = 'ice_fields' | 'frozen_lake' | 'ice_caverns' | 'complete';
 
@@ -1046,18 +1048,19 @@ export class SouthernIceLevel extends SurfaceLevel {
     });
   }
 
-  private spawnIceChitin(position: Vector3, initialState: IceChitinState): IceChitinInstance {
+  private spawnIceChitin(position: Vector3, initialState: IceChitinState, variant: IceChitinVariant = 'warrior'): IceChitinInstance {
     const seed = this.nextChitinSeed++;
-    const mesh = createIceChitinMesh(this.scene, seed);
+    const species = ICE_CHITIN_VARIANTS[variant];
+    const mesh = createIceChitinMesh(this.scene, seed, variant);
     mesh.position.copyFrom(position);
 
     const chitin: IceChitinInstance = {
       rootNode: mesh,
-      health: ICE_CHITIN_SPECIES.baseHealth,
-      maxHealth: ICE_CHITIN_SPECIES.baseHealth,
+      health: species.baseHealth,
+      maxHealth: species.baseHealth,
       state: initialState,
       position: position.clone(),
-      speed: ICE_CHITIN_SPECIES.moveSpeed,
+      speed: species.moveSpeed,
       attackCooldown: 0,
       burrowCooldown: BURROW_CONFIG.burrowCooldown,
       stateTimer: 0,
@@ -1065,6 +1068,7 @@ export class SouthernIceLevel extends SurfaceLevel {
       lastKnownPlayerDistance: Infinity,
       frostAuraActive: initialState !== 'dormant',
       awakenTimer: 0,
+      variant,
     };
 
     this.iceChitins.push(chitin);

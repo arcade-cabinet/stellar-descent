@@ -13,27 +13,27 @@ import type { WaveConfig } from './types';
 // ============================================================================
 
 /** Marcus's Titan mech GLB model */
-export const GLB_MECH = '/models/vehicles/tea/marcus_mech.glb';
+export const GLB_MECH = '/assets/models/vehicles/tea/marcus_mech.glb';
 
 /** Dropship GLB model */
-export const GLB_DROPSHIP = '/models/spaceships/Dispatcher.glb';
+export const GLB_DROPSHIP = '/assets/models/spaceships/Dispatcher.glb';
 
 /** Supply drop container GLB model */
-export const GLB_SUPPLY_DROP = '/models/props/collectibles/supply_drop.glb';
+export const GLB_SUPPLY_DROP = '/assets/models/props/collectibles/supply_drop.glb';
 
 /** Ammo box GLB model */
-export const GLB_AMMO_BOX = '/models/props/weapons/ammo_box_556.glb';
+export const GLB_AMMO_BOX = '/assets/models/props/weapons/ammo_box_556.glb';
 
 /** Debris variant GLB models */
 export const GLB_DEBRIS_VARIANTS = [
-  '/models/props/debris/brick_mx_1.glb',
-  '/models/props/debris/brick_mx_2.glb',
-  '/models/props/debris/brick_mx_3.glb',
-  '/models/props/debris/brick_mx_4.glb',
+  '/assets/models/props/debris/brick_mx_1.glb',
+  '/assets/models/props/debris/brick_mx_2.glb',
+  '/assets/models/props/debris/brick_mx_3.glb',
+  '/assets/models/props/debris/brick_mx_4.glb',
 ];
 
 /** Crumbling wall GLB model */
-export const GLB_CRUMBLING_WALL = '/models/props/debris/bricks_stacked_mx_4.glb';
+export const GLB_CRUMBLING_WALL = '/assets/models/props/debris/bricks_stacked_mx_4.glb';
 
 // ============================================================================
 // COLORS

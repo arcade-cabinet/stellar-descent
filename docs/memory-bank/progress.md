@@ -8,10 +8,14 @@
 | **Phase 2: Core Gameplay** | ✅ Complete | Combat loop, AI behaviors, procedural world. |
 | **Phase 3: Tutorial & Story** | ✅ Complete | Anchor Station level, dialogue system, shooting range. |
 | **Phase 4: Content** | ✅ Complete | Full 10-level campaign, vehicles, boss fights. |
-| **Phase 5: Polish** | 🔄 In Progress | Quest system, audio, weapon feel, FPS completeness. |
+| **Phase 5: Polish** | 🔄 In Progress | Asset conversion, TypeScript fixes, FPS completeness. |
 | **Phase 6: Release** | ⏳ Planned | Final testing, production deployment. |
 
 ## Current Status (Phase 5)
+
+### Known Issues
+- **TypeScript Errors**: Integration tests are out of sync with codebase changes; `pnpm exec tsc --noEmit` currently fails
+- **MeshBuilder Usage**: ~490 MeshBuilder calls remain that should be converted to GLB assets
 
 ### Completed (Jan 30, 2026)
 
@@ -47,9 +51,60 @@
 - **Achievement System**: 30+ achievements
 
 ### In Progress
+- **TypeScript Error Fixing**: Integration tests out of sync with codebase
+- **MeshBuilder to GLB Conversion**: ~490 MeshBuilder calls to convert
 - **FPS Completeness Pass**: Weapon feel, hit reactions, game juice
 - **Quest Integration**: Wire QuestManager to CampaignDirector
 - **Level Polish**: Environmental storytelling, alternate routes
+
+## Asset Status
+
+### Asset Organization
+All assets now consolidated under `public/assets/`:
+```
+public/assets/
+├── models/       # 803+ GLB 3D models
+├── textures/     # Texture files
+├── audio/        # Sound effects and music
+└── videos/
+    └── splash/   # Splash videos (main_16x9.mp4, main_9x16.mp4)
+```
+
+### GLB Model Library
+- **Total GLBs**: 803 models in `public/assets/models/`
+- **Previous Session**: Completed major asset reorganization and consolidation
+
+### GenAI Asset Generation System
+- **CLI**: `pnpm exec tsx scripts/generate-assets.ts [portraits|splash|cinematics|status]`
+- **Manifests**: Live alongside assets (e.g., `public/assets/videos/splash/manifest.json`)
+- **Schemas**:
+  - `src/game/ai/schemas/GenerationManifestSchemas.ts` - Generation manifests
+  - `src/game/ai/schemas/AssetManifestSchemas.ts` - Asset metadata
+- **Models**:
+  - Gemini 3 Pro - Image generation (portraits, textures)
+  - Veo 3.1 - Video generation (cinematics, splash screens)
+- **Video Config**: 1080p, 8s duration, 16:9/9:16 aspect ratios, native audio
+- **Testing**: VCR testing with Polly.JS for deterministic CI replay
+
+### MeshBuilder Elimination Goal
+The codebase contains ~490 MeshBuilder calls that should be converted to proper GLB assets for consistency and performance. A Wave-based execution plan exists for systematic conversion.
+
+#### Wave-Based Conversion Plan
+| Wave | Category | Priority | Scope |
+|------|----------|----------|-------|
+| Wave 1 | FPS Weapons | Critical | First-person weapon models (rifle, pistol, shotgun, etc.) |
+| Wave 2 | Projectiles/Effects | High | Bullets, grenades, explosions, muzzle flashes |
+| Wave 3 | Environment Props | High | Crates, barrels, doors, terminals |
+| Wave 4 | Level-Specific | Medium | Per-level unique geometry |
+| Wave 5 | UI/Debug | Low | Markers, indicators, debug shapes |
+
+### Asset Gaps Identified
+| Category | Missing Assets | Priority |
+|----------|----------------|----------|
+| FPS Weapons | First-person weapon models | Critical |
+| Asteroids | Space debris, asteroid variants | High |
+| Ice Crystals | Frozen environment props | High |
+| Mine Assets | Mining equipment, ore deposits | Medium |
 
 ## Campaign Level Status
 

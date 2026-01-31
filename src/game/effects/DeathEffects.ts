@@ -151,12 +151,12 @@ const DISSOLVE_CONFIGS: Record<DeathEffectType, DissolveConfig> = {
 
 /** Debris GLB models for mechanical death effects. */
 const DEBRIS_GLB_PATHS = [
-  '/models/props/debris/brick_mx_1_0.glb',
-  '/models/props/debris/brick_mx_1_1.glb',
-  '/models/props/debris/brick_mx_1_2.glb',
-  '/models/props/debris/brick_mx_2_0.glb',
-  '/models/props/debris/brick_mx_2_1.glb',
-  '/models/props/debris/brick_mx_3_0.glb',
+  '/assets/models/props/debris/brick_mx_1_0.glb',
+  '/assets/models/props/debris/brick_mx_1_1.glb',
+  '/assets/models/props/debris/brick_mx_1_2.glb',
+  '/assets/models/props/debris/brick_mx_2_0.glb',
+  '/assets/models/props/debris/brick_mx_2_1.glb',
+  '/assets/models/props/debris/brick_mx_3_0.glb',
 ];
 
 /** Whether debris GLB assets have been preloaded. */

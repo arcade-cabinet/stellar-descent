@@ -248,20 +248,6 @@ export const WEAPON_BALANCE: Partial<Record<WeaponId, WeaponBalanceEntry>> = {
     defaultReserveAmmo: 300,
     reloadTimeMs: 5000,
   },
-  // Rocket Launcher: 200 AOE damage, 1.0x headshot (no bonus for explosives)
-  rocket_launcher: {
-    id: 'rocket_launcher' as WeaponId,
-    name: 'M41 Rocket Launcher',
-    damage: 200,
-    fireRate: 0.5,
-    projectileSpeed: 40,
-    range: 150,
-    critMultiplier: 1.0, // No headshot bonus for explosives
-    magazineSize: 1,
-    maxReserveAmmo: 8,
-    defaultReserveAmmo: 4,
-    reloadTimeMs: 3500,
-  },
 };
 
 // ---------------------------------------------------------------------------

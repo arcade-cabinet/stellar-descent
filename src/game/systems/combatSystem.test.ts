@@ -519,14 +519,14 @@ describe('CombatSystem', () => {
   describe('Difficulty scaling', () => {
     it('should scale player damage received by difficulty multiplier', () => {
       // Higher difficulty = more damage received
-      combatSystem.setDifficulty('veteran');
+      combatSystem.setDifficulty('hard');
       const modifiers = combatSystem.getDifficultyModifiers();
       expect(modifiers.playerDamageReceivedMultiplier).toBeDefined();
     });
 
     it('should scale enemy fire rate by difficulty', () => {
       // Higher difficulty = faster enemy fire rate
-      combatSystem.setDifficulty('lethal');
+      combatSystem.setDifficulty('nightmare');
       const modifiers = combatSystem.getDifficultyModifiers();
       expect(modifiers.enemyFireRateMultiplier).toBeDefined();
     });

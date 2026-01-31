@@ -90,10 +90,12 @@ import type {
   QueenAIState,
 } from './types';
 
+export type { Queen, QueenAttackType, QueenPhase, QueenWeakPoint, QueenWeakPointId, QueenAIState };
+
 // GLB paths for queen body parts
-const QUEEN_BODY_PATH = '/models/enemies/chitin/tentakel.glb';
-const QUEEN_CLAW_PATH = '/models/environment/hive/building_claw.glb';
-const QUEEN_TAIL_PATH = '/models/environment/alien-flora/alien_fern_1.glb';
+const QUEEN_BODY_PATH = '/assets/models/enemies/chitin/tentakel.glb';
+const QUEEN_CLAW_PATH = '/assets/models/environment/hive/building_claw.glb';
+const QUEEN_TAIL_PATH = '/assets/models/environment/alien-flora/alien_fern_1.glb';
 
 // Current difficulty level for queen scaling
 let currentDifficulty: DifficultyLevel = loadDifficultySetting();

@@ -350,9 +350,10 @@ export function getMechIntegrityCapForWave(waveNumber: number): number {
  * FIX #2: Scale wave difficulty based on game settings
  */
 const DIFFICULTY_ENEMY_MULTIPLIERS: Record<DifficultyLevel, number> = {
+  easy: 0.8,
   normal: 1.0,
-  veteran: 1.3,
-  legendary: 1.6,
+  hard: 1.3,
+  nightmare: 1.6,
 };
 
 /**

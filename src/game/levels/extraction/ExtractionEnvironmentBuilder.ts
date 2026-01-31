@@ -66,55 +66,74 @@ export interface ExtractionEnvironmentResult {
 // ============================================================================
 
 const FENCE = {
-  b_1: '/models/props/modular/fence_b_1.glb',
-  b_pillar: '/models/props/modular/fence_b_pillar.glb',
-  e_1: '/models/props/modular/fence_e_1.glb',
-  e_2: '/models/props/modular/fence_e_2.glb',
-  e_pillar: '/models/props/modular/fence_e_pillar_1.glb',
-  e_corner: '/models/props/modular/fence_e_pillar_1_corner.glb',
+  b_1: '/assets/models/props/modular/fence_b_1.glb',
+  b_pillar: '/assets/models/props/modular/fence_b_pillar.glb',
+  e_1: '/assets/models/props/modular/fence_e_1.glb',
+  e_2: '/assets/models/props/modular/fence_e_2.glb',
+  e_pillar: '/assets/models/props/modular/fence_e_pillar_1.glb',
+  e_corner: '/assets/models/props/modular/fence_e_pillar_1_corner.glb',
 } as const;
 
 const MODULAR = {
-  window_wall_a: '/models/environment/modular/Window_Wall_SideA.glb',
-  window_wall_b: '/models/environment/modular/Window_Wall_SideB.glb',
-  threewin_wall_a: '/models/environment/modular/ThreeWindows_Wall_SideA.glb',
-  threewin_wall_b: '/models/environment/modular/ThreeWindows_Wall_SideB.glb',
-  wall_empty: '/models/environment/modular/Wall_Empty.glb',
-  door_single_wall_a: '/models/environment/modular/DoorSingle_Wall_SideA.glb',
-  floor_basic: '/models/environment/modular/FloorTile_Basic.glb',
-  floor_empty: '/models/environment/modular/FloorTile_Empty.glb',
-  roof_empty: '/models/environment/modular/RoofTile_Empty.glb',
-  roof_plate2: '/models/environment/modular/RoofTile_Plate2.glb',
-  roof_vents: '/models/environment/modular/RoofTile_Vents.glb',
-  column_1: '/models/environment/modular/Column_1.glb',
-  computer_sm: '/models/environment/modular/Props_ComputerSmall.glb',
-  computer: '/models/environment/modular/Props_Computer.glb',
-  crate: '/models/environment/modular/Props_Crate.glb',
-  crate_long: '/models/environment/modular/Props_CrateLong.glb',
-  shelf: '/models/environment/modular/Props_Shelf.glb',
-  details_plate_large: '/models/environment/modular/Details_Plate_Large.glb',
-  details_vent_1: '/models/environment/modular/Details_Vent_1.glb',
-  pipes_modular: '/models/environment/modular/Pipes.glb',
+  window_wall_a: '/assets/models/environment/modular/Window_Wall_SideA.glb',
+  window_wall_b: '/assets/models/environment/modular/Window_Wall_SideB.glb',
+  threewin_wall_a: '/assets/models/environment/modular/ThreeWindows_Wall_SideA.glb',
+  threewin_wall_b: '/assets/models/environment/modular/ThreeWindows_Wall_SideB.glb',
+  wall_empty: '/assets/models/environment/modular/Wall_Empty.glb',
+  door_single_wall_a: '/assets/models/environment/modular/DoorSingle_Wall_SideA.glb',
+  floor_basic: '/assets/models/environment/modular/FloorTile_Basic.glb',
+  floor_empty: '/assets/models/environment/modular/FloorTile_Empty.glb',
+  roof_empty: '/assets/models/environment/modular/RoofTile_Empty.glb',
+  roof_plate2: '/assets/models/environment/modular/RoofTile_Plate2.glb',
+  roof_vents: '/assets/models/environment/modular/RoofTile_Vents.glb',
+  column_1: '/assets/models/environment/modular/Column_1.glb',
+  computer_sm: '/assets/models/environment/modular/Props_ComputerSmall.glb',
+  computer: '/assets/models/environment/modular/Props_Computer.glb',
+  crate: '/assets/models/environment/modular/Props_Crate.glb',
+  crate_long: '/assets/models/environment/modular/Props_CrateLong.glb',
+  shelf: '/assets/models/environment/modular/Props_Shelf.glb',
+  details_plate_large: '/assets/models/environment/modular/Details_Plate_Large.glb',
+  details_vent_1: '/assets/models/environment/modular/Details_Vent_1.glb',
+  pipes_modular: '/assets/models/environment/modular/Pipes.glb',
 } as const;
 
 const PROPS = {
-  pipe_1: '/models/props/pipes/pipe_e_1.glb',
-  pipe_2: '/models/props/pipes/pipe_e_2.glb',
-  pipe_3: '/models/props/pipes/pipe_mx_1.glb',
-  pipe_4: '/models/props/pipes/pipe_mx_2.glb',
-  elec_1: '/models/props/industrial/electrical_equipment_1.glb',
-  gear_1: '/models/props/electrical/gear_mx_1.glb',
-  gear_2: '/models/props/electrical/gear_mx_2.glb',
-  lamp_off: '/models/props/electrical/lamp_mx_4_off.glb',
-  concrete_block: '/models/props/electrical/concrete_block_mx_1.glb',
-  radio: '/models/props/electrical/handheld_fm_radio_etx_1.glb',
+  pipe_1: '/assets/models/props/pipes/pipe_e_1.glb',
+  pipe_2: '/assets/models/props/pipes/pipe_e_2.glb',
+  pipe_3: '/assets/models/props/pipes/pipe_mx_1.glb',
+  pipe_4: '/assets/models/props/pipes/pipe_mx_2.glb',
+  elec_1: '/assets/models/props/industrial/electrical_equipment_1.glb',
+  gear_1: '/assets/models/props/electrical/gear_mx_1.glb',
+  gear_2: '/assets/models/props/electrical/gear_mx_2.glb',
+  lamp_off: '/assets/models/props/electrical/lamp_mx_4_off.glb',
+  concrete_block: '/assets/models/props/electrical/concrete_block_mx_1.glb',
+  radio: '/assets/models/props/electrical/handheld_fm_radio_etx_1.glb',
 } as const;
 
 // Station wall GLBs for canyon walls (replacing procedural boxes)
 const STATION_WALLS = {
-  wall_hr_1: '/models/environment/station/wall_hr_1.glb',
-  wall_hr_15: '/models/environment/station/wall_hr_15.glb',
-  wall_rg_1: '/models/environment/station/wall_rg_1.glb',
+  wall_hr_1: '/assets/models/environment/station/wall_hr_1.glb',
+  wall_hr_15: '/assets/models/environment/station/wall_hr_15.glb',
+  wall_rg_1: '/assets/models/environment/station/wall_rg_1.glb',
+} as const;
+
+// Breach hole GLBs (concrete pipes for alien emergence points)
+const BREACH_HOLES = {
+  pipe_end: '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
+  pipe_middle: '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
+} as const;
+
+// Landing pad GLBs (Quaternius modular pieces)
+const LANDING_PAD = {
+  floor_basic: '/assets/models/environment/modular/FloorTile_Basic.glb',
+  floor_basic2: '/assets/models/environment/modular/FloorTile_Basic2.glb',
+  floor_empty: '/assets/models/environment/modular/FloorTile_Empty.glb',
+  floor_corner: '/assets/models/environment/modular/FloorTile_Corner.glb',
+  floor_side: '/assets/models/environment/modular/FloorTile_Side.glb',
+  floor_inner_corner: '/assets/models/environment/modular/FloorTile_InnerCorner.glb',
+  details_arrow: '/assets/models/environment/modular/Details_Arrow.glb',
+  details_x: '/assets/models/environment/modular/Details_X.glb',
+  details_plate_large: '/assets/models/environment/modular/Details_Plate_Large.glb',
 } as const;
 
 // ============================================================================
@@ -822,32 +841,125 @@ function createNightLighting(
 }
 
 // ============================================================================
-// PROCEDURAL ELEMENTS (things that must remain procedural)
+// GLB-BASED LANDING PAD
 // ============================================================================
 
 /**
- * Create the LZ pad -- a flat circular concrete platform with markings.
- * This remains procedural because it is a simple geometric shape.
+ * Get placements for the landing pad using modular floor tiles.
+ * Creates a roughly 30m diameter hexagonal pad using Quaternius modular pieces.
+ * The pad uses FloorTile_Basic for the central tiles and FloorTile_Side/Corner
+ * for the perimeter, creating an industrial-looking landing platform.
  */
-function createLandingPad(scene: Scene, root: TransformNode): Mesh[] {
+function getLandingPadPlacements(): Placement[] {
+  const p: Placement[] = [];
+
+  // Quaternius floor tiles are approximately 5.55 x 5.55 units
+  const TILE_SIZE = 5.55;
+
+  // Create a 5x5 grid of floor tiles centered on the LZ
+  // This creates roughly a 28m x 28m pad area
+  for (let row = -2; row <= 2; row++) {
+    for (let col = -2; col <= 2; col++) {
+      const x = col * TILE_SIZE;
+      const z = row * TILE_SIZE;
+
+      // Skip corner tiles to create a more circular/octagonal shape
+      const isCorner = Math.abs(row) === 2 && Math.abs(col) === 2;
+      if (isCorner) continue;
+
+      // Determine tile type based on position
+      let tilePath: string;
+      const isEdge = Math.abs(row) === 2 || Math.abs(col) === 2;
+
+      if (isEdge) {
+        // Use side tiles for edges, alternating for variety
+        tilePath = (row + col) % 2 === 0 ? LANDING_PAD.floor_side : LANDING_PAD.floor_basic2;
+      } else if (row === 0 && col === 0) {
+        // Center tile - use empty for the helipad "H" markings to go on top
+        tilePath = LANDING_PAD.floor_empty;
+      } else {
+        // Inner tiles - alternate between basic variants
+        tilePath = (row + col) % 2 === 0 ? LANDING_PAD.floor_basic : LANDING_PAD.floor_basic2;
+      }
+
+      // Calculate rotation for edge tiles to face outward
+      let rotY = 0;
+      if (isEdge) {
+        if (row === -2) rotY = 0; // South edge
+        else if (row === 2) rotY = Math.PI; // North edge
+        else if (col === -2) rotY = Math.PI / 2; // West edge
+        else if (col === 2) rotY = -Math.PI / 2; // East edge
+      }
+
+      p.push({
+        path: tilePath,
+        position: lz(x, 0, z),
+        rotationY: rotY,
+        scale: 1.0,
+        label: `pad_tile_${row}_${col}`,
+      });
+    }
+  }
+
+  // Add detail arrows pointing inward at cardinal positions (guides for landing)
+  const arrowPositions = [
+    { x: 0, z: -12, rot: 0, label: 'arrow_s' },
+    { x: 0, z: 12, rot: Math.PI, label: 'arrow_n' },
+    { x: -12, z: 0, rot: Math.PI / 2, label: 'arrow_w' },
+    { x: 12, z: 0, rot: -Math.PI / 2, label: 'arrow_e' },
+  ];
+  for (const ap of arrowPositions) {
+    p.push({
+      path: LANDING_PAD.details_arrow,
+      position: lz(ap.x, 0.1, ap.z),
+      rotationY: ap.rot,
+      scale: 1.5,
+      label: ap.label,
+    });
+  }
+
+  // Add center "X" marker for precise landing target
+  p.push({
+    path: LANDING_PAD.details_x,
+    position: lz(0, 0.1, 0),
+    rotationY: Math.PI / 4, // 45 degrees for visual interest
+    scale: 2.0,
+    label: 'center_x',
+  });
+
+  // Add corner detail plates at the diagonal positions
+  const platePositions = [
+    { x: -8, z: -8, rot: 0, label: 'plate_sw' },
+    { x: 8, z: -8, rot: Math.PI / 2, label: 'plate_se' },
+    { x: -8, z: 8, rot: -Math.PI / 2, label: 'plate_nw' },
+    { x: 8, z: 8, rot: Math.PI, label: 'plate_ne' },
+  ];
+  for (const pp of platePositions) {
+    p.push({
+      path: LANDING_PAD.details_plate_large,
+      position: lz(pp.x, 0.05, pp.z),
+      rotationY: pp.rot,
+      scale: 1.2,
+      label: pp.label,
+    });
+  }
+
+  return p;
+}
+
+// ============================================================================
+// TRANSIENT VFX (procedural elements for visual effects)
+// ============================================================================
+
+/**
+ * Create landing pad markings -- procedural VFX overlay on the GLB pad.
+ * These are thin emissive markers that sit on top of the floor tiles.
+ * Kept as MeshBuilder for precise control over emissive effects.
+ */
+function createLandingPadMarkings(scene: Scene, root: TransformNode): Mesh[] {
   const meshes: Mesh[] = [];
 
-  // Main pad surface
-  const pad = MeshBuilder.CreateCylinder(
-    'lz_pad',
-    { height: 0.3, diameter: 30, tessellation: 32 },
-    scene
-  );
-  const padMat = new StandardMaterial('lz_padMat', scene);
-  padMat.diffuseColor = new Color3(0.35, 0.35, 0.35);
-  padMat.specularColor = new Color3(0.1, 0.1, 0.1);
-  pad.material = padMat;
-  pad.position = lz(0, 0.15, 0);
-  pad.parent = root;
-  pad.receiveShadows = true;
-  meshes.push(pad);
-
-  // Landing markings (4 crossing lines)
+  // Landing markings (4 crossing lines) - yellow emissive
   const markingMat = new StandardMaterial('lz_markingMat', scene);
   markingMat.diffuseColor = new Color3(0.8, 0.8, 0);
   markingMat.emissiveColor = new Color3(0.15, 0.15, 0);
@@ -859,13 +971,13 @@ function createLandingPad(scene: Scene, root: TransformNode): Mesh[] {
       scene
     );
     marking.material = markingMat;
-    marking.position = lz(0, 0.35, 0);
+    marking.position = lz(0, 0.15, 0);
     marking.rotation.y = (i / 4) * Math.PI;
     marking.parent = root;
     meshes.push(marking);
   }
 
-  // Outer ring marking
+  // Outer ring marking - yellow emissive torus
   const ring = MeshBuilder.CreateTorus(
     'lz_ring',
     { diameter: 28, thickness: 0.3, tessellation: 32 },
@@ -875,31 +987,31 @@ function createLandingPad(scene: Scene, root: TransformNode): Mesh[] {
   ringMat.diffuseColor = new Color3(0.6, 0.6, 0);
   ringMat.emissiveColor = new Color3(0.1, 0.1, 0);
   ring.material = ringMat;
-  ring.position = lz(0, 0.35, 0);
+  ring.position = lz(0, 0.15, 0);
   ring.rotation.x = Math.PI / 2;
   ring.parent = root;
   meshes.push(ring);
 
-  // "H" landing mark (two vertical bars + one horizontal)
+  // "H" landing mark (two vertical bars + one horizontal) - white emissive
   const hBarMat = new StandardMaterial('lz_hBarMat', scene);
   hBarMat.diffuseColor = new Color3(1, 1, 1);
   hBarMat.emissiveColor = new Color3(0.2, 0.2, 0.2);
 
   const hLeft = MeshBuilder.CreateBox('lz_hLeft', { width: 0.4, height: 0.05, depth: 4 }, scene);
   hLeft.material = hBarMat;
-  hLeft.position = lz(-1.5, 0.36, 0);
+  hLeft.position = lz(-1.5, 0.16, 0);
   hLeft.parent = root;
   meshes.push(hLeft);
 
   const hRight = MeshBuilder.CreateBox('lz_hRight', { width: 0.4, height: 0.05, depth: 4 }, scene);
   hRight.material = hBarMat;
-  hRight.position = lz(1.5, 0.36, 0);
+  hRight.position = lz(1.5, 0.16, 0);
   hRight.parent = root;
   meshes.push(hRight);
 
   const hMid = MeshBuilder.CreateBox('lz_hMid', { width: 3.4, height: 0.05, depth: 0.4 }, scene);
   hMid.material = hBarMat;
-  hMid.position = lz(0, 0.36, 0);
+  hMid.position = lz(0, 0.16, 0);
   hMid.parent = root;
   meshes.push(hMid);
 
@@ -938,36 +1050,70 @@ export function getExtractionSkyboxResult(): SkyboxResult | null {
 
 /**
  * Create breach holes where aliens emerge from underground during the holdout.
- * These are positioned outside the fence perimeter.
+ * These are positioned outside the fence perimeter using concrete pipe GLBs.
  * FIX #13: Added pulsing glow lights for breach holes
  */
-function createBreachHoles(scene: Scene, root: TransformNode): Mesh[] {
+async function createBreachHoles(scene: Scene, root: TransformNode): Promise<Mesh[]> {
   const meshes: Mesh[] = [];
-  const holeMat = new StandardMaterial('lz_breachMat', scene);
-  holeMat.diffuseColor = Color3.FromHexString('#1A0A1A');
-  holeMat.emissiveColor = new Color3(0.12, 0.04, 0.1);
+
+  // Preload breach hole GLBs
+  if (!AssetManager.isPathCached(BREACH_HOLES.pipe_end)) {
+    await AssetManager.loadAssetByPath(BREACH_HOLES.pipe_end, scene);
+  }
+  if (!AssetManager.isPathCached(BREACH_HOLES.pipe_middle)) {
+    await AssetManager.loadAssetByPath(BREACH_HOLES.pipe_middle, scene);
+  }
 
   // 4 breach holes placed outside the perimeter
-  const holePositions = [
-    lz(-50, -2, 15),
-    lz(50, -2, 10),
-    lz(-30, -2, 55),
-    lz(30, -2, 55),
+  const holeConfigs = [
+    { pos: lz(-50, -2, 15), rot: 0.3, scale: 2.5 },
+    { pos: lz(50, -2, 10), rot: -0.4, scale: 2.8 },
+    { pos: lz(-30, -2, 55), rot: 0.6, scale: 2.2 },
+    { pos: lz(30, -2, 55), rot: -0.2, scale: 2.6 },
   ];
 
-  for (let i = 0; i < holePositions.length; i++) {
-    const hole = MeshBuilder.CreateCylinder(
+  for (let i = 0; i < holeConfigs.length; i++) {
+    const config = holeConfigs[i];
+
+    // Use pipe_end for main breach hole (open end facing up)
+    const holeNode = AssetManager.createInstanceByPath(
+      BREACH_HOLES.pipe_end,
       `lz_breach_${i}`,
-      { height: 5, diameter: 8, tessellation: 8 },
-      scene
+      scene,
+      false,
+      'environment'
     );
-    hole.material = holeMat;
-    hole.position = holePositions[i];
-    hole.parent = root;
-    meshes.push(hole);
+
+    if (!holeNode) {
+      log.error(`Failed to load breach hole GLB ${BREACH_HOLES.pipe_end} for breach ${i}`);
+      continue;
+    }
+
+    holeNode.position = config.pos.clone();
+    holeNode.rotation = new Vector3(Math.PI / 2, config.rot, 0); // Point opening upward
+    holeNode.scaling.setAll(config.scale);
+    holeNode.parent = root;
+    meshes.push(holeNode as unknown as Mesh);
+
+    // Add secondary pipe segment for depth
+    const depthNode = AssetManager.createInstanceByPath(
+      BREACH_HOLES.pipe_middle,
+      `lz_breach_depth_${i}`,
+      scene,
+      false,
+      'environment'
+    );
+    if (depthNode) {
+      depthNode.position = config.pos.clone();
+      depthNode.position.y -= 3;
+      depthNode.rotation = new Vector3(Math.PI / 2, config.rot + 0.1, 0);
+      depthNode.scaling.setAll(config.scale * 0.9);
+      depthNode.parent = root;
+      meshes.push(depthNode as unknown as Mesh);
+    }
 
     // FIX #13: Add warning glow around breach holes
-    const glowLight = new PointLight(`lz_breach_glow_${i}`, holePositions[i].clone(), scene);
+    const glowLight = new PointLight(`lz_breach_glow_${i}`, config.pos.clone(), scene);
     glowLight.position.y = 1;
     glowLight.diffuse = Color3.FromHexString('#8B0040'); // Dark magenta
     glowLight.intensity = 0.8;
@@ -1051,10 +1197,12 @@ function collectMeshes(node: TransformNode, out: Mesh[]): void {
 /**
  * Build the complete LZ Omega extraction environment.
  *
- * 1. Collects all unique asset paths from placement data
+ * 1. Collects all unique asset paths from placement data (fences, bunkers,
+ *    infrastructure, lamps, and landing pad floor tiles)
  * 2. Loads them in parallel via AssetManager.loadAssetByPath
  * 3. Creates positioned instances for each placement
- * 4. Adds procedural elements (landing pad, sky dome, breach holes, canyon walls)
+ * 4. Adds transient VFX (pad markings) and procedural elements (sky dome,
+ *    breach holes, canyon walls)
  * 5. Sets up night lighting
  *
  * @param scene - Active BabylonJS scene
@@ -1074,12 +1222,14 @@ export async function buildExtractionEnvironment(
   const bunkerPlacements = getSouthBunker();
   const flankPlacements = getFlankInfrastructure();
   const lampPlacements = getLampPosts();
+  const landingPadPlacements = getLandingPadPlacements();
 
   const allPlacements: Placement[] = [
     ...fencePlacements,
     ...bunkerPlacements,
     ...flankPlacements,
     ...lampPlacements,
+    ...landingPadPlacements,
   ];
 
   // ------------------------------------------------------------------
@@ -1161,19 +1311,19 @@ export async function buildExtractionEnvironment(
   );
 
   // ------------------------------------------------------------------
-  // 4. Procedural elements
+  // 4. Transient VFX and procedural elements
   // ------------------------------------------------------------------
 
-  // Landing pad
-  const padMeshes = createLandingPad(scene, root);
-  allMeshes.push(...padMeshes);
+  // Landing pad markings (emissive VFX on top of GLB floor tiles)
+  const padMarkingMeshes = createLandingPadMarkings(scene, root);
+  allMeshes.push(...padMarkingMeshes);
 
   // Night sky dome
   const skyDome = createNightSky(scene, root);
   allMeshes.push(skyDome);
 
-  // Breach holes
-  const breachMeshes = createBreachHoles(scene, root);
+  // Breach holes (GLB-based concrete pipes)
+  const breachMeshes = await createBreachHoles(scene, root);
   allMeshes.push(...breachMeshes);
 
   // Canyon walls (GLB-based)

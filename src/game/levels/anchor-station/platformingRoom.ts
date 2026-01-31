@@ -18,15 +18,16 @@ const log = getLogger('PlatformingRoom');
 
 // GLB asset paths for platforming room visuals
 const PLATFORM_ASSETS = {
-  platformSmall: '/models/environment/station/platform_small_mx_1.glb',
-  platformLarge: '/models/environment/station/platform_large_mx_1.glb',
-  platformBx1: '/models/environment/station/platform_bx_1.glb',
-  platformBx2: '/models/environment/station/platform_bx_2.glb',
-  handrail: '/models/environment/station/platform_b_handrail_1.glb',
-  beam: '/models/environment/station/beam_hc_horizontal_1.glb',
-  pillar: '/models/environment/station/pillar_hr_2.glb',
-  wallPanel: '/models/environment/station/wall_hr_1.glb',
-  floorTile: '/models/environment/station/floor_ceiling_hr_1.glb',
+  platformSmall: '/assets/models/environment/station/platform_small_mx_1.glb',
+  platformLarge: '/assets/models/environment/station/platform_large_mx_1.glb',
+  platformBx1: '/assets/models/environment/station/platform_bx_1.glb',
+  platformBx2: '/assets/models/environment/station/platform_bx_2.glb',
+  handrail: '/assets/models/environment/station/platform_b_handrail_1.glb',
+  beam: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
+  pillar: '/assets/models/environment/station/pillar_hr_2.glb',
+  wallPanel: '/assets/models/environment/station/wall_hr_1.glb',
+  floorTile: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+  roofPanel: '/assets/models/environment/station/roof_bx_1.glb',
 } as const;
 
 export interface PlatformingCallbacks {
@@ -192,11 +193,7 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1.5, 1, 1.5)
   );
   if (!platform2Visual) {
-    const platform2 = MeshBuilder.CreateBox('platform2', { width: 3, height: 0.3, depth: 3 }, scene);
-    platform2.position = new Vector3(roomCenter.x, 0.95, roomCenter.z + 2);
-    platform2.material = materials.get('hull')!;
-    platform2.parent = parent;
-    allMeshes.push(platform2);
+    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformBx1}`);
   }
 
   // Caution stripes (keep as simple boxes for visual clarity)
@@ -235,11 +232,7 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1.5, 1, 1.5)
   );
   if (!platform3Visual) {
-    const platform3 = MeshBuilder.CreateBox('platform3', { width: 3, height: 0.3, depth: 3 }, scene);
-    platform3.position = new Vector3(roomCenter.x - 3, 1.45, roomCenter.z - 1);
-    platform3.material = materials.get('hull')!;
-    platform3.parent = parent;
-    allMeshes.push(platform3);
+    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformBx2}`);
   }
 
   // Handrail on platform 3
@@ -280,16 +273,31 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
   );
 
   // Low ceiling collision (critical for crouch mechanic)
-  const passageCeiling = MeshBuilder.CreateBox(
-    'passageCeiling',
+  // Invisible collision box for physics
+  const passageCeilingCollider = MeshBuilder.CreateBox(
+    'passageCeiling_collider',
     { width: 3, height: 0.5, depth: 4 },
     scene
   );
-  passageCeiling.position = new Vector3(0, 1.25, 0);
-  passageCeiling.material = materials.get('hull')!;
-  passageCeiling.parent = crouchPassageFrame;
-  allMeshes.push(passageCeiling);
-  platformColliders.push(passageCeiling);
+  passageCeilingCollider.position = new Vector3(0, 1.25, 0);
+  passageCeilingCollider.isVisible = false;
+  passageCeilingCollider.checkCollisions = true;
+  passageCeilingCollider.parent = crouchPassageFrame;
+  platformColliders.push(passageCeilingCollider);
+
+  // Visual GLB model for ceiling
+  const passageCeilingVisual = placeVisualModel(
+    scene,
+    crouchPassageFrame,
+    PLATFORM_ASSETS.roofPanel,
+    'passageCeiling_visual',
+    new Vector3(0, 1.0, 0),
+    new Vector3(0, 0, Math.PI), // Flip upside down
+    new Vector3(0.75, 1, 1)
+  );
+  if (!passageCeilingVisual) {
+    throw new Error(`[PlatformingRoom] Failed to load ceiling GLB: ${PLATFORM_ASSETS.roofPanel}`);
+  }
 
   // Warning stripes at passage entrance/exit
   const passageStripe1 = MeshBuilder.CreateBox(
@@ -342,11 +350,7 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1, 1, 1)
   );
   if (!platform4Visual) {
-    const platform4 = MeshBuilder.CreateBox('platform4', { width: 4, height: 0.3, depth: 4 }, scene);
-    platform4.position = new Vector3(roomCenter.x - 4, 0.15, roomCenter.z - 6.5);
-    platform4.material = materials.get('hull')!;
-    platform4.parent = parent;
-    allMeshes.push(platform4);
+    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformLarge}`);
   }
 
   // Completion marker (keep as MeshBuilder for animation)

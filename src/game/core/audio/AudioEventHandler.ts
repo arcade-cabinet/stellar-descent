@@ -173,6 +173,38 @@ export class AudioEventHandler {
       const audioManager = getAudioManager();
       audioManager.play('door_open');
     });
+
+    // Level started
+    this.subscribe('LEVEL_STARTED', () => {
+      // Reset player health state on new level
+      this.setPlayerMaxHealth(100);
+    });
+
+    // Wave started
+    this.subscribe('WAVE_STARTED', (event) => {
+      const audioManager = getAudioManager();
+      audioManager.play('notification');
+      // Enter combat mode when wave starts
+      audioManager.enterCombat();
+    });
+
+    // Wave completed
+    this.subscribe('WAVE_COMPLETED', () => {
+      const audioManager = getAudioManager();
+      audioManager.play('achievement_unlock');
+    });
+
+    // Player death
+    this.subscribe('PLAYER_DEATH', () => {
+      const audioManager = getAudioManager();
+      audioManager.playDefeat();
+      this.exitLowHealthState();
+    });
+
+    // Pickup collected
+    this.subscribe('PICKUP_COLLECTED', (event) => {
+      this.handleCollectiblePickedUp(event.pickupType);
+    });
   }
 
   /**

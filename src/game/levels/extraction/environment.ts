@@ -2,6 +2,7 @@
  * ExtractionLevel - Environment Creation
  *
  * Contains environment setup methods for tunnel, surface, and LZ areas.
+ * Uses GLB assets for all static geometry; MeshBuilder only for VFX beacons.
  */
 
 import type { Scene } from '@babylonjs/core/scene';
@@ -22,6 +23,16 @@ import { createDynamicTerrain, SAND_TERRAIN, type TerrainResult } from '../share
 import { buildExtractionEnvironment, type ExtractionEnvironmentResult } from './ExtractionEnvironmentBuilder';
 
 import * as C from './constants';
+
+// ============================================================================
+// GLB ASSET PATHS FOR ENVIRONMENT
+// ============================================================================
+
+/** Debris/rubble for collapse wall */
+const GLB_COLLAPSE_RUBBLE = '/assets/models/props/debris/bricks_stacked_mx_4.glb';
+
+/** Floor tile for dropship ramp */
+const GLB_RAMP_FLOOR = '/assets/models/environment/modular/FloorTile_Basic.glb';
 
 // ============================================================================
 // ENVIRONMENT REFS
@@ -98,22 +109,77 @@ export function createEscapeTunnel(scene: Scene): TunnelEnvironment {
   // Create starting chamber
   hiveBuilder.createChamber(new Vector3(0, 0, 5), 8, 'lower');
 
-  // FIX #33: Create more cave-like collapse wall
-  const collapseMat = new StandardMaterial('collapseMat', scene);
-  collapseMat.diffuseColor = new Color3(0.25, 0.12, 0.08);
-  collapseMat.emissiveColor = new Color3(0.4, 0.2, 0.08);
+  // FIX #33: Create cave collapse wall using GLB rubble asset
+  // Stack multiple rubble instances to create a convincing collapse barrier
+  const collapseRoot = new TransformNode('collapseWallRoot', scene);
+  collapseRoot.position.z = 30;
+  collapseRoot.position.y = 0;
 
-  // Use cylinder + hemisphere for more natural cave collapse look
-  const collapseWall = MeshBuilder.CreateCylinder('collapseWall', {
-    height: 12,
-    diameter: 10,
-    tessellation: 12,
-  }, scene);
-  collapseWall.material = collapseMat;
-  collapseWall.position.z = 30;
-  collapseWall.position.y = 0;
-  collapseWall.rotation.x = Math.PI / 2; // Lay horizontal
-  collapseWall.scaling.set(1.5, 3, 1.5); // Stretch along tunnel
+  // Load and instance rubble GLB for collapse wall
+  const rubbleNode = AssetManager.createInstanceByPath(
+    GLB_COLLAPSE_RUBBLE,
+    'collapseWall_main',
+    scene,
+    false,
+    'environment'
+  );
+
+  let collapseWall: Mesh;
+  if (rubbleNode) {
+    rubbleNode.position.set(0, 2, 0);
+    rubbleNode.scaling.set(4, 6, 3);
+    rubbleNode.rotation.set(0.3, 0, 0.1);
+    rubbleNode.parent = collapseRoot;
+
+    // Add secondary rubble for more coverage
+    const rubbleNode2 = AssetManager.createInstanceByPath(
+      GLB_COLLAPSE_RUBBLE,
+      'collapseWall_secondary',
+      scene,
+      false,
+      'environment'
+    );
+    if (rubbleNode2) {
+      rubbleNode2.position.set(-3, 1, 1);
+      rubbleNode2.scaling.set(3, 4, 2.5);
+      rubbleNode2.rotation.set(-0.2, 0.5, 0.15);
+      rubbleNode2.parent = collapseRoot;
+    }
+
+    const rubbleNode3 = AssetManager.createInstanceByPath(
+      GLB_COLLAPSE_RUBBLE,
+      'collapseWall_tertiary',
+      scene,
+      false,
+      'environment'
+    );
+    if (rubbleNode3) {
+      rubbleNode3.position.set(3, 0.5, -0.5);
+      rubbleNode3.scaling.set(2.5, 5, 2);
+      rubbleNode3.rotation.set(0.1, -0.3, -0.1);
+      rubbleNode3.parent = collapseRoot;
+    }
+
+    // Cast the root's first mesh child as the collision reference
+    collapseWall = rubbleNode as unknown as Mesh;
+  } else {
+    // Fallback: create simple box if GLB fails (should not happen per CLAUDE.md)
+    log.warn('Failed to load collapse rubble GLB, using fallback');
+    const collapseMat = new StandardMaterial('collapseMat', scene);
+    collapseMat.diffuseColor = new Color3(0.25, 0.12, 0.08);
+    collapseMat.emissiveColor = new Color3(0.4, 0.2, 0.08);
+
+    collapseWall = MeshBuilder.CreateCylinder('collapseWall', {
+      height: 12,
+      diameter: 10,
+      tessellation: 12,
+    }, scene);
+    collapseWall.material = collapseMat;
+    collapseWall.position.z = 30;
+    collapseWall.position.y = 0;
+    collapseWall.rotation.x = Math.PI / 2;
+    collapseWall.scaling.set(1.5, 3, 1.5);
+  }
 
   // FIX #32: Stronger exit light to guide player
   const exitLight = new PointLight('exitLight', new Vector3(0, 2, -C.ESCAPE_TUNNEL_LENGTH), scene);
@@ -243,16 +309,36 @@ export function createDropship(scene: Scene): DropshipAssets {
   const hullNode = AssetManager.createInstanceByPath(C.GLB_DROPSHIP, 'dropshipHull', scene, true, 'vehicle');
   if (hullNode) hullNode.parent = dropship;
 
-  // Create ramp
-  const rampMat = new StandardMaterial('rampMat', scene);
-  rampMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
-  rampMat.specularColor = new Color3(0.2, 0.2, 0.2);
+  // Create ramp using GLB floor tile asset
+  let dropshipRamp: Mesh;
+  const rampNode = AssetManager.createInstanceByPath(
+    GLB_RAMP_FLOOR,
+    'dropshipRamp',
+    scene,
+    false,
+    'vehicle'
+  );
 
-  const dropshipRamp = MeshBuilder.CreateBox('dropshipRamp', { width: 4, height: 0.2, depth: 6 }, scene);
-  dropshipRamp.material = rampMat;
-  dropshipRamp.position.set(0, -2, 7.5);
-  dropshipRamp.setPivotPoint(new Vector3(0, 0, -3));
-  dropshipRamp.parent = dropship;
+  if (rampNode) {
+    // Scale and position the floor tile to serve as a ramp
+    rampNode.scaling.set(0.72, 0.05, 1.1); // Width ~4m, thin, depth ~6m
+    rampNode.position.set(0, -2, 7.5);
+    rampNode.rotation.set(0, 0, 0);
+    rampNode.parent = dropship;
+    dropshipRamp = rampNode as unknown as Mesh;
+  } else {
+    // Fallback: create simple box if GLB fails
+    log.warn('Failed to load ramp GLB, using fallback');
+    const rampMat = new StandardMaterial('rampMat', scene);
+    rampMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
+    rampMat.specularColor = new Color3(0.2, 0.2, 0.2);
+
+    dropshipRamp = MeshBuilder.CreateBox('dropshipRamp', { width: 4, height: 0.2, depth: 6 }, scene);
+    dropshipRamp.material = rampMat;
+    dropshipRamp.position.set(0, -2, 7.5);
+    dropshipRamp.setPivotPoint(new Vector3(0, 0, -3));
+    dropshipRamp.parent = dropship;
+  }
 
   // Ramp light
   const dropshipRampLight = new PointLight('rampLight', new Vector3(0, -1, 5), scene);
@@ -346,6 +432,8 @@ export async function preloadAssets(scene: Scene): Promise<void> {
     AssetManager.loadAssetByPath(C.GLB_SUPPLY_DROP, scene),
     AssetManager.loadAssetByPath(C.GLB_AMMO_BOX, scene),
     AssetManager.loadAssetByPath(C.GLB_CRUMBLING_WALL, scene),
+    AssetManager.loadAssetByPath(GLB_COLLAPSE_RUBBLE, scene),
+    AssetManager.loadAssetByPath(GLB_RAMP_FLOOR, scene),
     ...C.GLB_DEBRIS_VARIANTS.map((p) => AssetManager.loadAssetByPath(p, scene)),
   ]);
 }

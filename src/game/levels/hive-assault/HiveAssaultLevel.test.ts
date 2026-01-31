@@ -1124,7 +1124,7 @@ describe('HiveAssaultLevel', () => {
     });
 
     it('should update action button highlights on command change', () => {
-      const squadCommandMode = 'follow';
+      const squadCommandMode: string = 'follow';
       const buttons = [
         { id: 'squad_follow', variant: squadCommandMode === 'follow' ? 'primary' : 'secondary' },
         { id: 'squad_hold', variant: squadCommandMode === 'hold' ? 'primary' : 'secondary' },
@@ -1260,8 +1260,8 @@ describe('HiveAssaultLevel', () => {
     });
 
     it('should generate AA destroyed message with count', () => {
-      const count = 2;
-      const total = 4;
+      const count: number = 2;
+      const total: number = 4;
       const text = `AA turret destroyed. ${count} of ${total} neutralized. ${count === total ? 'Airspace is clear!' : 'Continue advancing.'}`;
       expect(text).toContain('2 of 4');
       expect(text).toContain('Continue advancing.');
@@ -1555,7 +1555,7 @@ describe('HiveAssaultLevel', () => {
 
     it('should handle 1-3 keys for squad commands', () => {
       const commands: string[] = [];
-      const phase = 'field_assault';
+      const phase: string = 'field_assault';
 
       const handleKeyDown = (code: string) => {
         if (phase !== 'staging') {

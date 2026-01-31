@@ -82,12 +82,12 @@ import '@babylonjs/core/Animations/animatable';
 // ============================================================================
 
 const LEVEL_GLB = {
-  marcusMech: '/models/vehicles/tea/marcus_mech.glb',
-  marineSoldier: '/models/npcs/marine/marine_soldier.glb',
-  marineSergeant: '/models/npcs/marine/marine_sergeant.glb',
-  marineElite: '/models/npcs/marine/marine_elite.glb',
-  marineCrusader: '/models/npcs/marine/marine_crusader.glb',
-  playerVehicle: '/models/vehicles/chitin/wraith.glb',
+  marcusMech: '/assets/models/vehicles/tea/marcus_mech.glb',
+  marineSoldier: '/assets/models/npcs/marine/marine_soldier.glb',
+  marineSergeant: '/assets/models/npcs/marine/marine_sergeant.glb',
+  marineElite: '/assets/models/npcs/marine/marine_elite.glb',
+  marineCrusader: '/assets/models/npcs/marine/marine_crusader.glb',
+  playerVehicle: '/assets/models/vehicles/chitin/wraith.glb',
 } as const;
 
 // ============================================================================

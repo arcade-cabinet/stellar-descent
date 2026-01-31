@@ -1,7 +1,7 @@
 /**
  * FirstPersonWeapons - First-person weapon view model system (GLB-backed)
  *
- * Loads weapon models from GLB files in public/models/props/weapons/ and
+ * Loads weapon models from GLB files in public/assets/models/props/weapons/ and
  * attaches them to the active camera. Drives per-frame animation (bob, sway,
  * recoil, ADS, reload, switch) via WeaponAnimationController.
  *

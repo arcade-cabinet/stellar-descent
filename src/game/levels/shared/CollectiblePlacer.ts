@@ -82,11 +82,11 @@ export interface CollectibleSystemResult {
 
 /** GLB paths for each collectible type */
 const COLLECTIBLE_PATHS: Record<CollectibleType, string> = {
-  data_pad: '/models/props/collectibles/data_pad.glb',
-  audio_log: '/models/props/collectibles/audio_log.glb',
-  weapon_cache: '/models/props/collectibles/weapon_cache.glb',
-  alien_artifact: '/models/props/collectibles/alien_artifact.glb',
-  supply_drop: '/models/props/collectibles/supply_drop.glb',
+  data_pad: '/assets/models/props/collectibles/data_pad.glb',
+  audio_log: '/assets/models/props/collectibles/audio_log.glb',
+  weapon_cache: '/assets/models/props/collectibles/weapon_cache.glb',
+  alien_artifact: '/assets/models/props/collectibles/alien_artifact.glb',
+  supply_drop: '/assets/models/props/collectibles/supply_drop.glb',
 };
 
 /** Glow colors per type */

@@ -16,14 +16,14 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'industrial/shipping_container_2',
     category: 'model',
-    path: '/models/environment/industrial/shipping_container_mx_2.glb',
+    path: '/assets/models/environment/industrial/shipping_container_mx_2.glb',
     sizeKB: 5000,
 
   },
   {
     id: 'industrial/cage',
     category: 'model',
-    path: '/models/environment/industrial/cage_mx_1.glb',
+    path: '/assets/models/environment/industrial/cage_mx_1.glb',
     sizeKB: 1145,
 
   },
@@ -34,28 +34,28 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'barrier/concrete_fence',
     category: 'model',
-    path: '/models/props/modular/concrete_fence_hr_1.glb',
+    path: '/assets/models/props/modular/concrete_fence_hr_1.glb',
     sizeKB: 360,
 
   },
   {
     id: 'barrier/concrete_pillar',
     category: 'model',
-    path: '/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
+    path: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
     sizeKB: 357,
 
   },
   {
     id: 'barrier/concrete_corner',
     category: 'model',
-    path: '/models/props/modular/concrete_fence_hr_1_pillar_1_corner.glb',
+    path: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1_corner.glb',
     sizeKB: 358,
 
   },
   {
     id: 'barrier/concrete_fence_2',
     category: 'model',
-    path: '/models/props/modular/concrete_fence_hr_2.glb',
+    path: '/assets/models/props/modular/concrete_fence_hr_2.glb',
     sizeKB: 912,
 
   },
@@ -66,42 +66,42 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'station/asphalt_2',
     category: 'model',
-    path: '/models/environment/station/asphalt_hr_2.glb',
+    path: '/assets/models/environment/station/asphalt_hr_2.glb',
     sizeKB: 560,
 
   },
   {
     id: 'station/asphalt_3',
     category: 'model',
-    path: '/models/environment/station/asphalt_hr_3.glb',
+    path: '/assets/models/environment/station/asphalt_hr_3.glb',
     sizeKB: 561,
 
   },
   {
     id: 'station/ramp_platform_slim',
     category: 'model',
-    path: '/models/environment/station/ramp_platform_slim_mx_1.glb',
+    path: '/assets/models/environment/station/ramp_platform_slim_mx_1.glb',
     sizeKB: 844,
 
   },
   {
     id: 'station/ramp_platform_wide',
     category: 'model',
-    path: '/models/environment/station/ramp_platform_wide_mx_1.glb',
+    path: '/assets/models/environment/station/ramp_platform_wide_mx_1.glb',
     sizeKB: 497,
 
   },
   {
     id: 'station/concrete_pipe_end',
     category: 'model',
-    path: '/models/environment/station/concrete_pipe_hm_1_end.glb',
+    path: '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
     sizeKB: 586,
 
   },
   {
     id: 'station/concrete_pipe_mid',
     category: 'model',
-    path: '/models/environment/station/concrete_pipe_hm_1_middle.glb',
+    path: '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
     sizeKB: 579,
 
   },
@@ -112,7 +112,7 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'station-ext/station03',
     category: 'model',
-    path: '/models/environment/station-external/station03.glb',
+    path: '/assets/models/environment/station-external/station03.glb',
     sizeKB: 769,
 
   },
@@ -123,14 +123,14 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'prop/barrel_3',
     category: 'model',
-    path: '/models/props/containers/metal_barrel_hr_3.glb',
+    path: '/assets/models/props/containers/metal_barrel_hr_3.glb',
     sizeKB: 400,
 
   },
   {
     id: 'prop/barrel_4',
     category: 'model',
-    path: '/models/props/containers/metal_barrel_hr_4.glb',
+    path: '/assets/models/props/containers/metal_barrel_hr_4.glb',
     sizeKB: 400,
 
   },
@@ -141,14 +141,14 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'spaceship/challenger',
     category: 'model',
-    path: '/models/spaceships/Challenger.glb',
+    path: '/assets/models/spaceships/Challenger.glb',
     sizeKB: 3500,
 
   },
   {
     id: 'spaceship/omen',
     category: 'model',
-    path: '/models/spaceships/Omen.glb',
+    path: '/assets/models/spaceships/Omen.glb',
     sizeKB: 3237,
 
   },
@@ -159,91 +159,91 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'tex/canyon/rock',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Rock041_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/canyon-run/Rock041_1K-JPG_Color.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/rock_normal',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Rock041_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/canyon-run/Rock041_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/rock_roughness',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Rock041_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/canyon-run/Rock041_1K-JPG_Roughness.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/ground',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Ground054_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/canyon-run/Ground054_1K-JPG_Color.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/ground_normal',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Ground054_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/canyon-run/Ground054_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/ground_roughness',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Ground054_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/canyon-run/Ground054_1K-JPG_Roughness.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/rocks',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Rocks011_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/canyon-run/Rocks011_1K-JPG_Color.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/rocks_normal',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Rocks011_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/canyon-run/Rocks011_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/rocks_roughness',
     category: 'texture',
-    path: '/textures/levels/canyon-run/Rocks011_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/canyon-run/Rocks011_1K-JPG_Roughness.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/steel',
     category: 'texture',
-    path: '/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_Color.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/steel_normal',
     category: 'texture',
-    path: '/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/steel_roughness',
     category: 'texture',
-    path: '/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_Roughness.jpg',
     sizeKB: 200,
 
   },
   {
     id: 'tex/canyon/skybox',
     category: 'texture',
-    path: '/textures/levels/canyon-run/skybox.exr',
+    path: '/assets/textures/levels/canyon-run/skybox.exr',
     sizeKB: 2000,
   },
 
@@ -253,55 +253,55 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
   {
     id: 'vehicle/phantom',
     category: 'model',
-    path: '/models/spaceships/Bob.glb',
+    path: '/assets/models/spaceships/Bob.glb',
     sizeKB: 2500,
   },
   {
     id: 'vehicle/wraith',
     category: 'model',
-    path: '/models/vehicles/chitin/wraith.glb',
+    path: '/assets/models/vehicles/chitin/wraith.glb',
     sizeKB: 3000,
   },
   {
     id: 'prop/tire_1',
     category: 'model',
-    path: '/models/props/containers/tire_1.glb',
+    path: '/assets/models/props/containers/tire_1.glb',
     sizeKB: 200,
   },
   {
     id: 'prop/tire_2',
     category: 'model',
-    path: '/models/props/containers/tire_2.glb',
+    path: '/assets/models/props/containers/tire_2.glb',
     sizeKB: 200,
   },
   {
     id: 'weapon/plasma_cannon',
     category: 'model',
-    path: '/models/props/weapons/fps_plasma_cannon.glb',
+    path: '/assets/models/props/weapons/fps_plasma_cannon.glb',
     sizeKB: 400,
   },
   {
     id: 'flora/alien_boulder',
     category: 'model',
-    path: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+    path: '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
     sizeKB: 800,
   },
   {
     id: 'flora/alien_rock_med_1',
     category: 'model',
-    path: '/models/environment/alien-flora/alien_rock_medium_1.glb',
+    path: '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
     sizeKB: 600,
   },
   {
     id: 'station/bridge_pillar',
     category: 'model',
-    path: '/models/environment/station/pillar_hr_2.glb',
+    path: '/assets/models/environment/station/pillar_hr_2.glb',
     sizeKB: 400,
   },
   {
     id: 'station/bridge_handrail',
     category: 'model',
-    path: '/models/environment/station/platform_b_handrail_1.glb',
+    path: '/assets/models/environment/station/platform_b_handrail_1.glb',
     sizeKB: 300,
   }
 ];

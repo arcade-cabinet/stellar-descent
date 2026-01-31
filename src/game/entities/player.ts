@@ -32,7 +32,7 @@ import { getScreenInfo, vibrate } from '../utils/responsive';
 const log = getLogger('Player');
 
 // Path to the marine soldier GLB model
-const PLAYER_MODEL_PATH = '/models/npcs/marine/marine_soldier.glb';
+const PLAYER_MODEL_PATH = '/assets/models/npcs/marine/marine_soldier.glb';
 
 // Sun direction for optimal visuals - sun should be top-right when facing forward
 const SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();

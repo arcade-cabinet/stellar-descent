@@ -259,6 +259,19 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
     }));
   });
 
+  // Subscribe to WAVE_STARTED events for wave announcements
+  useGameEvent('WAVE_STARTED', (event) => {
+    // Could show wave notification here
+    if (event.label) {
+      // Wave label announcement handled by notification system
+    }
+  });
+
+  // Subscribe to CHECKPOINT_REACHED events
+  useGameEvent('CHECKPOINT_REACHED', () => {
+    // Checkpoint notification is handled by the level, but HUD could show an icon
+  });
+
   // Clean up kill feed entries
   useEffect(() => {
     const interval = setInterval(() => {

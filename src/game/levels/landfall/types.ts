@@ -66,6 +66,20 @@ export interface Asteroid {
 export type DistantThreatType = 'wraith' | 'phantom';
 
 /**
+ * Type of distant spaceship visible during descent (atmosphere/background).
+ */
+export type DistantSpaceshipType =
+  | 'challenger'
+  | 'dispatcher'
+  | 'imperial'
+  | 'striker'
+  | 'zenith'
+  | 'executioner'
+  | 'insurgent'
+  | 'omen'
+  | 'spitfire';
+
+/**
  * A distant alien vehicle threat visible during the HALO drop.
  */
 export interface DistantThreat {
@@ -75,6 +89,18 @@ export interface DistantThreat {
   rotationSpeed: number;
   type: DistantThreatType;
   spawnAltitude: number;
+}
+
+/**
+ * A distant spaceship visible during the HALO drop (atmospheric ships).
+ */
+export interface DistantSpaceship {
+  node: TransformNode;
+  position: Vector3;
+  velocity: Vector3;
+  rotationSpeed: number;
+  type: DistantSpaceshipType;
+  isFriendly: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +143,18 @@ export interface DistantThreatDefinition {
   velocity: Vector3;
   rotationSpeed: number;
   scale: number;
+}
+
+/**
+ * Definition for spawning a distant spaceship.
+ */
+export interface DistantSpaceshipDefinition {
+  type: DistantSpaceshipType;
+  position: Vector3;
+  velocity: Vector3;
+  rotationSpeed: number;
+  scale: number;
+  isFriendly: boolean;
 }
 
 // ---------------------------------------------------------------------------

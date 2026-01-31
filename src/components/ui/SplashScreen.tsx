@@ -175,7 +175,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       <video
         ref={landscapeRef}
         className={`${styles.video} ${isPortrait ? styles.hidden : ''}`}
-        src="/video/splash-16-9.mp4"
+        src="/assets/videos/splash/main_16x9.mp4"
         playsInline
         muted
         onEnded={handleVideoEnd}
@@ -184,7 +184,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       <video
         ref={portraitRef}
         className={`${styles.video} ${!isPortrait ? styles.hidden : ''}`}
-        src="/video/splash-9-16.mp4"
+        src="/assets/videos/splash/main_9x16.mp4"
         playsInline
         muted
         onEnded={handleVideoEnd}

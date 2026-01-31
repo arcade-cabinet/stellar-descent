@@ -32,21 +32,22 @@ export type GameEventPayload<T extends GameEventType> = Extract<
 // ---------------------------------------------------------------------------
 
 /**
- * Subscribe a React component to a specific {@link GameEvent} from the
+ * Subscribe a React component to one or more {@link GameEvent} types from the
  * shared {@link EventBus}.
  *
  * The subscription is created when the component mounts (or when
- * `eventName` changes) and is automatically cleaned up on unmount.
+ * `eventTypes` changes) and is automatically cleaned up on unmount.
  *
  * The handler reference is kept stable via `useRef`, so the latest
  * handler closure is always invoked without needing to tear down and
  * recreate the subscription every render.
  *
- * @param eventName - The discriminated-union event type to listen for.
- * @param handler   - Callback invoked with the full typed event payload.
+ * @param eventTypes - A single event type or an array of event types to listen for.
+ * @param handler    - Callback invoked with the full typed event payload.
  *
  * @example
  * ```tsx
+ * // Single event type
  * function KillFeed() {
  *   const [kills, setKills] = useState<string[]>([]);
  *
@@ -56,10 +57,21 @@ export type GameEventPayload<T extends GameEventType> = Extract<
  *
  *   return <ul>{kills.map((k, i) => <li key={i}>{k}</li>)}</ul>;
  * }
+ *
+ * // Multiple event types
+ * function CombatLog() {
+ *   useGameEvent(['ENEMY_KILLED', 'BOSS_DEFEATED'], (event) => {
+ *     if (event.type === 'ENEMY_KILLED') {
+ *       console.log('Enemy killed:', event.enemyType);
+ *     } else {
+ *       console.log('Boss defeated:', event.bossType);
+ *     }
+ *   });
+ * }
  * ```
  */
 export function useGameEvent<T extends GameEventType>(
-  eventName: T,
+  eventTypes: T | T[],
   handler: GameEventListener<T>,
 ): void {
   // Store the latest handler in a ref so the subscription callback never
@@ -72,6 +84,10 @@ export function useGameEvent<T extends GameEventType>(
     handlerRef.current = handler;
   });
 
+  // Normalize to array and create stable key for dependency tracking
+  const typesArray = Array.isArray(eventTypes) ? eventTypes : [eventTypes];
+  const typesKey = typesArray.join(',');
+
   useEffect(() => {
     const bus = getEventBus();
 
@@ -82,12 +98,17 @@ export function useGameEvent<T extends GameEventType>(
       handlerRef.current(event);
     };
 
-    const unsubscribe = bus.on(eventName, stableListener);
+    // Subscribe to all event types and collect unsubscribe functions
+    const unsubscribers = typesArray.map((eventType) =>
+      bus.on(eventType, stableListener),
+    );
 
     return () => {
-      unsubscribe();
+      // Unsubscribe from all event types on cleanup
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, [eventName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typesKey]);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,238 @@
+{
+  "$schema": "../../../../src/game/ai/schemas/GenerationManifestSchemas.ts#CinematicManifestSchema",
+  "schemaVersion": "1.0.0",
+  "description": "Level cinematic video generation manifest - Stellar Descent",
+  "updatedAt": "2026-01-31T20:37:47.011Z",
+  "assets": [
+    {
+      "id": "cinematic_anchor_station_intro",
+      "prompt": "Cinematic sci-fi space station interior scene. Camera slowly moves through a cryo-bay with multiple hibernation pods glowing with soft blue light. Warning alarms flash red in the background. One pod begins to open with steam and hydraulic sounds. Dark metallic corridors with holographic displays. Dramatic lighting with lens flares. Ambient humming of machinery. Subtle warning klaxons. High-end CGI quality, Alien movie aesthetic, atmospheric tension. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "anchor_station/intro.mp4",
+      "levelId": "anchor_station",
+      "tags": [
+        "intro",
+        "tutorial",
+        "space_station"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "200ae898",
+        "generatedAt": "2026-01-31T20:22:00.539Z",
+        "generationTimeMs": 102427,
+        "fileSizeBytes": 16443770,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_landfall_intro",
+      "prompt": "Cinematic military dropship descent through alien planet atmosphere. POV from inside looking out window at orange-red sky with swirling dust clouds. Turbulence shakes the camera. Silhouettes of other drop pods falling alongside. Surface approaching rapidly with alien terrain visible - red canyons and strange rock formations. Military HUD elements flickering. Engine roar, radio chatter, atmospheric buffeting sounds. Intensity increases as ground approaches. Starship Troopers meets Halo ODST aesthetic. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "landfall/intro.mp4",
+      "levelId": "landfall",
+      "tags": [
+        "intro",
+        "drop",
+        "atmosphere"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "7be0063c",
+        "generatedAt": "2026-01-31T20:23:43.266Z",
+        "generationTimeMs": 102726,
+        "fileSizeBytes": 26161676,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_canyon_run_intro",
+      "prompt": "Cinematic vehicle chase scene in alien canyon environment. Military ATV/buggy speeding through narrow red rock canyons at high speed. Dust clouds trailing behind. Alien flora glimpsed on canyon walls - bioluminescent plants. Quick cuts between vehicle exterior and cockpit view. Hostile creatures glimpsed pursuing in distance. Engine roar, gravel spray, wind rushing. Mad Max meets Starship Troopers aesthetic. Dynamic camera work, intense action. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "canyon_run/intro.mp4",
+      "levelId": "canyon_run",
+      "tags": [
+        "intro",
+        "vehicle",
+        "chase"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "24f57c8d",
+        "generatedAt": "2026-01-31T20:25:26.585Z",
+        "generationTimeMs": 103319,
+        "fileSizeBytes": 38274588,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_fob_delta_intro",
+      "prompt": "Cinematic establishing shot of abandoned military forward operating base on alien planet. Camera slowly pans across damaged structures, overturned vehicles, blast craters. Wind howls through broken buildings. Flickering emergency lights. Signs of desperate last stand - sandbag emplacements, spent shell casings. Eerie silence broken by distant alien screech. Atmospheric horror, Aliens movie aesthetic. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "fob_delta/intro.mp4",
+      "levelId": "fob_delta",
+      "tags": [
+        "intro",
+        "base",
+        "horror"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "60c78b51",
+        "generatedAt": "2026-01-31T20:27:29.477Z",
+        "generationTimeMs": 122893,
+        "fileSizeBytes": 30205695,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_brothers_intro",
+      "prompt": "Cinematic reunion scene in destroyed industrial complex. Military mech walking through rubble, searchlights scanning. Cockpit view shows pilot searching. Infantry soldier (protagonist) emerges from cover, waves. Emotional music swell. Brothers reunited. Quick embrace before return to combat readiness. War zone ambience, distant explosions. Band of Brothers meets Pacific Rim aesthetic. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "brothers_in_arms/intro.mp4",
+      "levelId": "brothers_in_arms",
+      "tags": [
+        "intro",
+        "reunion",
+        "emotional"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "2f93717f",
+        "generatedAt": "2026-01-31T20:29:12.406Z",
+        "generationTimeMs": 102928,
+        "fileSizeBytes": 20160484,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_southern_ice_intro",
+      "prompt": "Cinematic frozen wasteland establishing shot. Camera flies over endless ice fields toward distant alien hive structure. Blizzard conditions, visibility dropping. Aurora borealis crackling overhead in alien colors. Ice variant creatures glimpsed moving beneath frozen surface. Wind howling, ice cracking sounds. The Thing meets Prometheus aesthetic. Isolation and dread. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "southern_ice/intro.mp4",
+      "levelId": "southern_ice",
+      "tags": [
+        "intro",
+        "ice",
+        "horror"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "0ff9acd7",
+        "generatedAt": "2026-01-31T20:31:05.206Z",
+        "generationTimeMs": 112800,
+        "fileSizeBytes": 28660833,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_the_breach_intro",
+      "prompt": "Cinematic descent into alien hive underground. Camera follows soldiers rappelling into massive organic cavern. Bioluminescent growths pulse on walls. Alien architecture - impossible geometry, chitinous structures. Movement glimpsed in shadows. Claustrophobic atmosphere. Dripping sounds, distant chittering, heartbeat-like pulse from depths. Aliens meets Annihilation aesthetic. Pure horror. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "the_breach/intro.mp4",
+      "levelId": "the_breach",
+      "tags": [
+        "intro",
+        "underground",
+        "boss"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "40aa659b",
+        "generatedAt": "2026-01-31T20:32:48.271Z",
+        "generationTimeMs": 103065,
+        "fileSizeBytes": 35638866,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_hive_assault_intro",
+      "prompt": "Cinematic combined arms assault on alien hive entrance. Multiple dropships deploying troops. Tanks and mechs advancing. Orbital strike impacts in background. Coordinated military operation at full scale. Radio chatter, explosions, weapon fire. Epic orchestral score. Independence Day meets Starship Troopers aesthetic. Peak action, humanity fights back. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "hive_assault/intro.mp4",
+      "levelId": "hive_assault",
+      "tags": [
+        "intro",
+        "assault",
+        "epic"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "22feb7e0",
+        "generatedAt": "2026-01-31T20:34:31.185Z",
+        "generationTimeMs": 102913,
+        "fileSizeBytes": 37330818,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_extraction_intro",
+      "prompt": "Cinematic desperate evacuation scene. Survivors running toward extraction point as alien swarm closes in. Dropship hovering, door gunners providing cover fire. Explosions and chaos. Timer counting down. Some don't make it. Emotional tension. Black Hawk Down meets Aliens aesthetic. Sacrifice and survival. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "extraction/intro.mp4",
+      "levelId": "extraction",
+      "tags": [
+        "intro",
+        "extraction",
+        "tense"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "30f8df0a",
+        "generatedAt": "2026-01-31T20:36:03.939Z",
+        "generationTimeMs": 92754,
+        "fileSizeBytes": 30175173,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "cinematic_final_escape_intro",
+      "prompt": "Cinematic final escape sequence opening. Orbital view of planet as nuclear detonations begin underground. Surface cracking, explosions visible from space. Cut to interior: protagonist running through collapsing tunnels toward escape shuttle. Debris falling, fire spreading. Emergency klaxons, structural collapse sounds. Everything falling apart. Armageddon meets Aliens aesthetic. Now or never. Style is grounded military science fiction with realistic materials and physically plausible lighting.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "final_escape/intro.mp4",
+      "levelId": "final_escape",
+      "tags": [
+        "intro",
+        "finale",
+        "escape"
+      ],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "537efd59",
+        "generatedAt": "2026-01-31T20:37:47.011Z",
+        "generationTimeMs": 103072,
+        "fileSizeBytes": 39177431,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    }
+  ]
+}

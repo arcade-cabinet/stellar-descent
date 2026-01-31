@@ -125,3 +125,49 @@ src/components/
     ├── TouchControls.tsx # Mobile input
     └── CommsDisplay.tsx  # Dialogue system
 ```
+
+### Asset Structure
+```
+public/assets/
+├── models/               # GLB 3D models
+├── textures/             # Texture files
+├── audio/                # Sound effects and music
+└── videos/
+    └── splash/           # Splash screen videos
+        ├── main_16x9.mp4
+        ├── main_9x16.mp4
+        └── manifest.json # Generation manifest
+```
+
+## GenAI Asset Generation
+
+### Manifest-Driven Generation
+Assets are generated via manifests that define generation parameters:
+```typescript
+// Example manifest structure
+{
+  "assets": [{
+    "name": "main",
+    "prompt": "...",
+    "aspectRatios": ["16:9", "9:16"],
+    "duration": 8,
+    "resolution": "1080p"
+  }]
+}
+```
+
+### Schema Validation
+- **GenerationManifestSchemas.ts**: Defines Zod schemas for generation manifests
+- **AssetManifestSchemas.ts**: Defines Zod schemas for asset metadata
+
+### Generation Flow
+1. Manifest parsed with Zod validation
+2. API calls to Gemini 3 Pro (images) or Veo 3.1 (videos)
+3. Assets saved alongside manifest
+4. VCR recordings saved for CI replay
+
+### VCR Testing with Polly.JS
+Deterministic CI testing via recorded API responses:
+- Records live API responses during development
+- Replays recordings in CI for deterministic tests
+- Avoids flaky tests and API rate limits

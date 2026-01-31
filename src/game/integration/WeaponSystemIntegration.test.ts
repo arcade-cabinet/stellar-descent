@@ -292,6 +292,7 @@ describe('Weapon System Integration', () => {
 
       eventBus.emit({
         type: 'WEAPON_SWITCHED',
+        weaponId: toWeapon,
         fromWeapon,
         toWeapon,
         slot: currentSlot,

@@ -215,10 +215,11 @@ vi.mock('@babylonjs/core/Meshes/transformNode', () => ({
     name: string;
     position = createMockVector3(0, 0, 0);
     rotation = { x: 0, y: 0, z: 0 };
-    scaling = { x: 1, y: 1, z: 1, setAll: () => {} };
+    scaling = { x: 1, y: 1, z: 1, set: () => {}, setAll: () => {} };
     parent: any = null;
     dispose = () => {};
     getAbsolutePosition = () => createMockVector3(0, 2, 0);
+    getWorldMatrix = () => ({});
     constructor(name: string) {
       this.name = name;
     }
@@ -231,9 +232,11 @@ vi.mock('../../core/AssetManager', () => ({
     createInstanceByPath: vi.fn().mockReturnValue({
       position: createMockVector3(0, 0, 0),
       rotation: { x: 0, y: 0, z: 0 },
-      scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+      scaling: { x: 1, y: 1, z: 1, set: vi.fn(), setAll: vi.fn() },
       parent: null,
       dispose: vi.fn(),
+      getWorldMatrix: vi.fn().mockReturnValue({}),
+      getAbsolutePosition: () => createMockVector3(0, 2, 0),
     }),
   },
 }));

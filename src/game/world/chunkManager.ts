@@ -52,49 +52,49 @@ export const UNLOAD_RADIUS = 5;
 
 const BUILDING_GLB_PATHS: Record<string, string[]> = {
   tower: [
-    '/models/environment/industrial/chimney_a_1.glb',
-    '/models/environment/industrial/chimney_a_2.glb',
-    '/models/environment/industrial/chimney_a_3.glb',
+    '/assets/models/environment/industrial/chimney_a_1.glb',
+    '/assets/models/environment/industrial/chimney_a_2.glb',
+    '/assets/models/environment/industrial/chimney_a_3.glb',
   ],
   bunker: [
-    '/models/environment/industrial/shipping_container_mx_1.glb',
-    '/models/environment/industrial/shipping_container_mx_1_1.glb',
-    '/models/environment/industrial/shipping_container_mx_2.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_2.glb',
   ],
   depot: [
-    '/models/environment/industrial/warehouse_hl_1.glb',
-    '/models/environment/industrial/storage_tank_mx_1.glb',
+    '/assets/models/environment/industrial/warehouse_hl_1.glb',
+    '/assets/models/environment/industrial/storage_tank_mx_1.glb',
   ],
   ruin: [
-    '/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
-    '/models/environment/industrial/shipping_container_mx_1_hollow_1_1.glb',
-    '/models/environment/industrial/shipping_container_mx_1_hollow_1_2.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1_2.glb',
   ],
 };
 
 const OBSTACLE_GLB_PATHS: Record<string, string[]> = {
   pillar: [
-    '/models/environment/modular/Column_1.glb',
-    '/models/environment/modular/Column_2.glb',
-    '/models/environment/modular/Column_3.glb',
-    '/models/environment/modular/Column_Slim.glb',
+    '/assets/models/environment/modular/Column_1.glb',
+    '/assets/models/environment/modular/Column_2.glb',
+    '/assets/models/environment/modular/Column_3.glb',
+    '/assets/models/environment/modular/Column_Slim.glb',
   ],
   debris: [
-    '/models/environment/modular/Props_Crate.glb',
-    '/models/environment/modular/Props_CrateLong.glb',
-    '/models/environment/modular/Props_Chest.glb',
-    '/models/environment/modular/Props_ContainerFull.glb',
+    '/assets/models/environment/modular/Props_Crate.glb',
+    '/assets/models/environment/modular/Props_CrateLong.glb',
+    '/assets/models/environment/modular/Props_Chest.glb',
+    '/assets/models/environment/modular/Props_ContainerFull.glb',
   ],
   rock: [
-    '/models/environment/alien-flora/alien_rock_medium_1.glb',
-    '/models/environment/alien-flora/alien_rock_medium_2.glb',
-    '/models/environment/alien-flora/alien_rock_medium_3.glb',
-    '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+    '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+    '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+    '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
+    '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
   ],
   tallRock: [
-    '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-    '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-    '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+    '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+    '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+    '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
   ],
 };
 

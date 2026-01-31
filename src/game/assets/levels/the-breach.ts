@@ -13,49 +13,49 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
   // ENVIRONMENT MODELS - Exclusive hive structures
   {
     id: 'structure/birther',
-    path: '/models/environment/hive/building_birther.glb',
+    path: '/assets/models/environment/hive/building_birther.glb',
     category: 'model',
     sizeKB: 520,
 
   },
   {
     id: 'structure/brain',
-    path: '/models/environment/hive/building_brain.glb',
+    path: '/assets/models/environment/hive/building_brain.glb',
     category: 'model',
     sizeKB: 480,
 
   },
   {
     id: 'structure/claw',
-    path: '/models/environment/hive/building_claw.glb',
+    path: '/assets/models/environment/hive/building_claw.glb',
     category: 'model',
     sizeKB: 440,
 
   },
   {
     id: 'structure/crystals',
-    path: '/models/environment/hive/building_crystals.glb',
+    path: '/assets/models/environment/hive/building_crystals.glb',
     category: 'model',
     sizeKB: 500,
 
   },
   {
     id: 'structure/stomach',
-    path: '/models/environment/hive/building_stomach.glb',
+    path: '/assets/models/environment/hive/building_stomach.glb',
     category: 'model',
     sizeKB: 460,
 
   },
   {
     id: 'structure/terraformer',
-    path: '/models/environment/hive/building_terraformer.glb',
+    path: '/assets/models/environment/hive/building_terraformer.glb',
     category: 'model',
     sizeKB: 530,
 
   },
   {
     id: 'structure/undercrystal',
-    path: '/models/environment/hive/building_undercrystal.glb',
+    path: '/assets/models/environment/hive/building_undercrystal.glb',
     category: 'model',
     sizeKB: 490,
 
@@ -64,31 +64,31 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
   // QUATERNIUS DETAILS - Technology absorbed by hive growth
   {
     id: 'modular/detail_plate_detail',
-    path: '/models/environment/modular/Details_Plate_Details.glb',
+    path: '/assets/models/environment/modular/Details_Plate_Details.glb',
     category: 'model',
     sizeKB: 16,
   },
   {
     id: 'modular/detail_plate_long',
-    path: '/models/environment/modular/Details_Plate_Long.glb',
+    path: '/assets/models/environment/modular/Details_Plate_Long.glb',
     category: 'model',
     sizeKB: 14,
   },
   {
     id: 'modular/detail_plate_sm',
-    path: '/models/environment/modular/Details_Plate_Small.glb',
+    path: '/assets/models/environment/modular/Details_Plate_Small.glb',
     category: 'model',
     sizeKB: 11,
   },
   {
     id: 'modular/detail_x',
-    path: '/models/environment/modular/Details_X.glb',
+    path: '/assets/models/environment/modular/Details_X.glb',
     category: 'model',
     sizeKB: 3,
   },
   {
     id: 'modular/detail_triangles',
-    path: '/models/environment/modular/Details_Triangles.glb',
+    path: '/assets/models/environment/modular/Details_Triangles.glb',
     category: 'model',
     sizeKB: 2,
   },
@@ -96,25 +96,25 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
   // STATION PIECES - Broken, consumed by hive
   {
     id: 'station/beam_hc_h1',
-    path: '/models/environment/station/beam_hc_horizonatal_1.glb',
+    path: '/assets/models/environment/station/beam_hc_horizonatal_1.glb',
     category: 'model',
     sizeKB: 470,
   },
   {
     id: 'station/beam_hc_h2',
-    path: '/models/environment/station/beam_hc_horizonatal_2.glb',
+    path: '/assets/models/environment/station/beam_hc_horizonatal_2.glb',
     category: 'model',
     sizeKB: 470,
   },
   {
     id: 'station/beam_hc_v2',
-    path: '/models/environment/station/beam_hc_vertical_2.glb',
+    path: '/assets/models/environment/station/beam_hc_vertical_2.glb',
     category: 'model',
     sizeKB: 501,
   },
   {
     id: 'station/beam_hl_1',
-    path: '/models/environment/station/beam_hl_1.glb',
+    path: '/assets/models/environment/station/beam_hl_1.glb',
     category: 'model',
     sizeKB: 429,
   },
@@ -122,84 +122,84 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
   // TEXTURES - Exclusive underground hive textures
   {
     id: 'tex/breach/lava',
-    path: '/textures/levels/the-breach/Lava002_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/the-breach/Lava002_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/lava-normal',
-    path: '/textures/levels/the-breach/Lava002_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/the-breach/Lava002_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/lava-rough',
-    path: '/textures/levels/the-breach/Lava002_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/the-breach/Lava002_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/moss',
-    path: '/textures/levels/the-breach/Moss002_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/the-breach/Moss002_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/moss-normal',
-    path: '/textures/levels/the-breach/Moss002_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/the-breach/Moss002_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/moss-rough',
-    path: '/textures/levels/the-breach/Moss002_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/the-breach/Moss002_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/rock',
-    path: '/textures/levels/the-breach/Rock007_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/the-breach/Rock007_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/rock-normal',
-    path: '/textures/levels/the-breach/Rock007_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/the-breach/Rock007_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/rock-rough',
-    path: '/textures/levels/the-breach/Rock007_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/the-breach/Rock007_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/ground',
-    path: '/textures/levels/the-breach/Ground017_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/the-breach/Ground017_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/ground-normal',
-    path: '/textures/levels/the-breach/Ground017_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/the-breach/Ground017_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
 
   },
   {
     id: 'tex/breach/ground-rough',
-    path: '/textures/levels/the-breach/Ground017_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/the-breach/Ground017_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
 

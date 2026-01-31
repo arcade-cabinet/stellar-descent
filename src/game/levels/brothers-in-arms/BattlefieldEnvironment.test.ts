@@ -91,11 +91,11 @@ const mockAssetInstances: any[] = [];
 vi.mock('../../core/AssetManager', () => ({
   AssetManager: {
     loadAssetByPath: vi.fn().mockResolvedValue({}),
-    createInstanceByPath: vi.fn().mockImplementation((path, name, scene, applyLOD, category) => {
+    createInstanceByPath: vi.fn().mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
       const instance = {
         name,
         path,
-        category,
+        category: lodCategory,
         position: { x: 0, y: 0, z: 0, set: vi.fn() },
         rotation: { x: 0, y: 0, z: 0 },
         scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
@@ -394,11 +394,11 @@ describe('BattlefieldEnvironment - Edge Cases', () => {
 
     // Reset mock implementations to defaults
     vi.mocked(AssetManager.isPathCached).mockReturnValue(true);
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene: any, _applyLOD: any, category: string) => {
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
       const instance = {
         name,
         path,
-        category,
+        category: lodCategory,
         position: { x: 0, y: 0, z: 0, set: vi.fn() },
         rotation: { x: 0, y: 0, z: 0 },
         scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
@@ -427,7 +427,7 @@ describe('BattlefieldEnvironment - Edge Cases', () => {
   it('should handle instance creation failures', async () => {
     // Only return null for some instances (not all - that would trigger the FATAL error)
     let callCount = 0;
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene: any, _applyLOD: any, category: string) => {
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
       callCount++;
       // Return null for every 5th call to simulate occasional failures
       if (callCount % 5 === 0) {
@@ -436,7 +436,7 @@ describe('BattlefieldEnvironment - Edge Cases', () => {
       const instance = {
         name,
         path,
-        category,
+        category: lodCategory,
         position: { x: 0, y: 0, z: 0, set: vi.fn() },
         rotation: { x: 0, y: 0, z: 0 },
         scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
@@ -460,11 +460,11 @@ describe('BattlefieldEnvironment - Placement Validation', () => {
 
     // Reset mock implementations to defaults
     vi.mocked(AssetManager.isPathCached).mockReturnValue(true);
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene: any, _applyLOD: any, category: string) => {
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
       const instance = {
         name,
         path,
-        category,
+        category: lodCategory,
         position: { x: 0, y: 0, z: 0, set: vi.fn() },
         rotation: { x: 0, y: 0, z: 0 },
         scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
@@ -478,7 +478,7 @@ describe('BattlefieldEnvironment - Placement Validation', () => {
   });
 
   it('should ensure minimum spacing between placements', async () => {
-    const mockScene = { getMeshByName: vi.fn() };
+    const mockScene = { getMeshByName: vi.fn() } as any;
 
     await buildBattlefieldEnvironment(mockScene);
 
@@ -492,7 +492,7 @@ describe('BattlefieldEnvironment - Placement Validation', () => {
   });
 
   it('should place assets within arena bounds', async () => {
-    const mockScene = { getMeshByName: vi.fn() };
+    const mockScene = { getMeshByName: vi.fn() } as any;
 
     await buildBattlefieldEnvironment(mockScene);
 
@@ -515,11 +515,11 @@ describe('BattlefieldEnvironment - Asset Categories', () => {
 
     // Reset mock implementations to defaults
     vi.mocked(AssetManager.isPathCached).mockReturnValue(true);
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene: any, _applyLOD: any, category: string) => {
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
       const instance = {
         name,
         path,
-        category,
+        category: lodCategory,
         position: { x: 0, y: 0, z: 0, set: vi.fn() },
         rotation: { x: 0, y: 0, z: 0 },
         scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
@@ -534,7 +534,7 @@ describe('BattlefieldEnvironment - Asset Categories', () => {
   });
 
   it('should tag assets with environment category', async () => {
-    const mockScene = { getMeshByName: vi.fn() };
+    const mockScene = { getMeshByName: vi.fn() } as any;
 
     await buildBattlefieldEnvironment(mockScene);
 

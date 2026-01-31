@@ -690,10 +690,11 @@ export class SimulatedPlayer {
       this.updateExplorer(state);
     } else {
       // Enemies cleared - find collectibles then complete objectives
+      const stats = this.runner.getLevelStats();
       const collectiblesFound =
-        this.runner.getLevelStats().secretsFound +
-        this.runner.getLevelStats().audioLogsFound +
-        this.runner.getLevelStats().skullsFound;
+        (stats?.secretsFound ?? 0) +
+        (stats?.audioLogsFound ?? 0) +
+        (stats?.skullsFound ?? 0);
 
       if (collectiblesFound < 3) {
         this.updateExplorer(state);

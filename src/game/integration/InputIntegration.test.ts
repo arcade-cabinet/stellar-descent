@@ -27,6 +27,20 @@ import {
   type Keybindings,
 } from '../context/KeybindingsContext';
 
+// Mutable gamepad type for testing - allows modifying buttons and axes
+// Defined here before use in mockGamepads type
+interface MutableGamepad {
+  id: string;
+  index: number;
+  connected: boolean;
+  timestamp: number;
+  mapping: GamepadMappingType;
+  axes: number[];
+  buttons: GamepadButton[];
+  hapticActuators: GamepadHapticActuator[];
+  vibrationActuator: GamepadHapticActuator | null;
+}
+
 // Mock localStorage
 const mockStorage: Record<string, string> = {};
 vi.stubGlobal('localStorage', {
@@ -43,7 +57,8 @@ vi.stubGlobal('localStorage', {
 });
 
 // Mock navigator.getGamepads
-let mockGamepads: (Gamepad | null)[] = [null, null, null, null];
+// Use MutableGamepad | Gamepad to allow both our mutable mock and the standard type
+let mockGamepads: (MutableGamepad | Gamepad | null)[] = [null, null, null, null];
 vi.stubGlobal('navigator', {
   getGamepads: () => mockGamepads,
 });
@@ -81,7 +96,7 @@ function dispatchMouseEvent(type: 'mousedown' | 'mouseup', button: number): void
   }
 }
 
-function createMockGamepad(index: number): Gamepad {
+function createMockGamepad(index: number): MutableGamepad {
   return {
     id: `Mock Gamepad ${index}`,
     index,
@@ -94,7 +109,7 @@ function createMockGamepad(index: number): Gamepad {
       .map(() => ({ pressed: false, touched: false, value: 0 })),
     hapticActuators: [],
     vibrationActuator: null,
-  } as any;
+  };
 }
 
 describe('Input Integration', () => {

@@ -27,6 +27,7 @@ import {
 import {
   disposeHazardSystem,
   getHazardSystem,
+  type AnyHazardType,
   type HazardType,
   type HazardSystem,
   type HazardZoneConfig,
@@ -616,12 +617,12 @@ export class EnvironmentalConditionsManager {
   // HAZARD EVENT HANDLERS
   // ============================================================================
 
-  private handleHazardWarning(hazardType: HazardType, isCritical: boolean): void {
+  private handleHazardWarning(hazardType: AnyHazardType, isCritical: boolean): void {
     const conditionKey = `${hazardType}_${isCritical ? 'critical' : 'warning'}`;
     this.triggerMarcusComment(conditionKey);
 
-    // Show notification
-    const preset = {
+    // Show notification for zone-based hazards
+    const preset: Record<string, { warning: string; critical: string }> = {
       cold: { warning: 'HYPOTHERMIA WARNING', critical: 'HYPOTHERMIA CRITICAL' },
       toxic: { warning: 'TOXICITY WARNING', critical: 'TOXICITY CRITICAL' },
       oxygen: { warning: 'LOW OXYGEN', critical: 'OXYGEN CRITICAL' },

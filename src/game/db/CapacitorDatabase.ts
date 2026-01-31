@@ -135,25 +135,99 @@ export class CapacitorDatabase {
 
   /**
    * Initialize web platform specific components
+   * Note: jeep-sqlite element should already be in index.html and initialized by main.tsx
    */
   private async initWebPlatform(): Promise<void> {
-    // Ensure jeep-sqlite element exists
-    let jeepSqliteEl = document.querySelector('jeep-sqlite');
+    log.info('initWebPlatform: starting');
+
+    // Wait for the custom element to be defined first
+    await customElements.whenDefined('jeep-sqlite');
+    log.info('initWebPlatform: custom element defined');
+
+    // Get the jeep-sqlite element (should already exist in DOM from index.html)
+    // Cast through unknown because HTMLJeepSqliteElement's componentOnReady returns
+    // Promise<HTMLJeepSqliteElement> but we only need to await it (treat as Promise<void>)
+    const jeepSqliteEl = document.querySelector('jeep-sqlite') as unknown as HTMLElement & {
+      componentOnReady?: () => Promise<void>;
+      isStoreOpen?: () => Promise<boolean>;
+    };
 
     if (!jeepSqliteEl) {
-      // Create and append the jeep-sqlite element
-      const element = document.createElement('jeep-sqlite');
-      document.body.appendChild(element);
-      jeepSqliteEl = element;
+      throw new Error('jeep-sqlite element not found in DOM. Ensure it is in index.html.');
+    }
+    log.info('initWebPlatform: element found in DOM');
+
+    // Wait for the Stencil component to be fully ready
+    if (typeof jeepSqliteEl.componentOnReady === 'function') {
+      log.info('initWebPlatform: waiting for componentOnReady');
+      await jeepSqliteEl.componentOnReady();
+      log.info('initWebPlatform: componentOnReady resolved');
     }
 
-    // Wait for the custom element to be defined
-    await customElements.whenDefined('jeep-sqlite');
+    // Check if the web store is already open
+    // Note: isStoreOpen() returns Promise<boolean> directly, not { result: boolean }
+    const checkStoreOpen = async (): Promise<boolean> => {
+      if (typeof jeepSqliteEl.isStoreOpen === 'function') {
+        try {
+          const result = await jeepSqliteEl.isStoreOpen();
+          return result === true;
+        } catch (e) {
+          log.warn('initWebPlatform: isStoreOpen error:', e);
+          return false;
+        }
+      }
+      log.warn('initWebPlatform: isStoreOpen method not available');
+      return false;
+    };
 
-    // Always initialize the web store on web platform
+    // The jeep-sqlite component's connectedCallback calls openStore() asynchronously
+    // with a .then() handler. We need to wait for that async operation to complete.
+    // Give it a brief moment to initialize, then poll for readiness.
+    const maxWait = 5000;
+    const pollInterval = 100;
+    const startTime = Date.now();
+
+    // First, wait for the store to be open from the element's internal initialization
+    let pollCount = 0;
+    while (Date.now() - startTime < maxWait) {
+      const isOpen = await checkStoreOpen();
+      pollCount++;
+      if (pollCount <= 5 || pollCount % 10 === 0) {
+        log.info(`initWebPlatform: poll #${pollCount}, isStoreOpen=${isOpen}`);
+      }
+      if (isOpen) {
+        log.info('initWebPlatform: store ready from element initialization');
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+
+    // Now initialize the SQLiteConnection's web store handler
+    log.info('initWebPlatform: calling sqlite.initWebStore()');
     await this.sqlite.initWebStore();
+    log.info('initWebPlatform: initWebStore() completed');
 
-    log.info('Web store initialized');
+    // Verify the store is actually open
+    const finalCheck = await checkStoreOpen();
+    log.info(`initWebPlatform: final isStoreOpen check = ${finalCheck}`);
+
+    if (finalCheck) {
+      log.info('initWebPlatform: web store initialized successfully');
+      return;
+    }
+
+    // If still not open after initWebStore, poll a bit more
+    log.info('initWebPlatform: extended polling...');
+    const extendedStart = Date.now();
+    while (Date.now() - extendedStart < 2000) {
+      if (await checkStoreOpen()) {
+        log.info('initWebPlatform: store ready (extended wait)');
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+
+    throw new Error('Web store failed to open after initialization');
   }
 
   /**

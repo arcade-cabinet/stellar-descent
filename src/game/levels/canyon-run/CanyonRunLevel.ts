@@ -90,7 +90,7 @@ type CanyonPhase =
   | 'complete'; // Level complete
 
 /** GLB path for the enemy wraith hover-tank model. */
-const WRAITH_GLB = '/models/vehicles/chitin/wraith.glb';
+const WRAITH_GLB = '/assets/models/vehicles/chitin/wraith.glb';
 
 interface EnemyWraith {
   rootNode: TransformNode;

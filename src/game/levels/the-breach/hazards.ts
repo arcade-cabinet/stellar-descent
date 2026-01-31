@@ -29,11 +29,11 @@ import type { AcidPool, EggCluster, HiveZone, PheromoneCloud } from './types';
 
 /** GLB paths for egg cluster models (organic pod-like shapes) */
 const EGG_CLUSTER_GLBS = [
-  '/models/environment/alien-flora/alien_mushroom_01.glb',
-  '/models/environment/alien-flora/alien_mushroom_02.glb',
-  '/models/environment/alien-flora/alien_mushroom_04.glb',
-  '/models/environment/alien-flora/alien_mushroom_06.glb',
-  '/models/environment/alien-flora/alien_mushroom_08.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_01.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_02.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_04.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_06.glb',
+  '/assets/models/environment/alien-flora/alien_mushroom_08.glb',
 ] as const;
 
 // ============================================================================

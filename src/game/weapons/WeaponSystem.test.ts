@@ -500,7 +500,7 @@ describe('Weapon Helper Functions', () => {
     it('should return valid path for all weapons', () => {
       for (const id of ALL_WEAPON_IDS) {
         const path = getWeaponGLBPath(id);
-        expect(path).toMatch(/^\/models\/props\/weapons\/.+\.glb$/);
+        expect(path).toMatch(/^\/assets\/models\/props\/weapons\/.+\.glb$/);
       }
     });
 

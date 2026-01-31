@@ -67,72 +67,72 @@ export interface ScenicRoomsResult {
 
 const SCENIC_MODELS = {
   // Floor/ceiling
-  floorCeiling1: '/models/environment/station/floor_ceiling_hr_1.glb',
-  floorCeilingRtx1: '/models/environment/station/floor_ceiling_rtx_1.glb',
+  floorCeiling1: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+  floorCeilingRtx1: '/assets/models/environment/station/floor_ceiling_rtx_1.glb',
 
   // Walls
-  wallSingle: '/models/environment/station/wall_hr_1.glb',
-  wallDouble: '/models/environment/station/wall_hr_1_double.glb',
-  wallHole: '/models/environment/station/wall_hr_1_hole_1.glb',
+  wallSingle: '/assets/models/environment/station/wall_hr_1.glb',
+  wallDouble: '/assets/models/environment/station/wall_hr_1_double.glb',
+  wallHole: '/assets/models/environment/station/wall_hr_1_hole_1.glb',
 
   // Doorways
-  doorway: '/models/environment/station/doorway_hr_1.glb',
-  doorway2: '/models/environment/station/doorway_hr_2_regular.glb',
+  doorway: '/assets/models/environment/station/doorway_hr_1.glb',
+  doorway2: '/assets/models/environment/station/doorway_hr_2_regular.glb',
 
   // Windows
-  window1: '/models/environment/station/window_hr_1.glb',
-  window2: '/models/environment/station/window_hr_2.glb',
+  window1: '/assets/models/environment/station/window_hr_1.glb',
+  window2: '/assets/models/environment/station/window_hr_2.glb',
 
   // Pillars / columns
-  pillar2: '/models/environment/station/pillar_hr_2.glb',
-  modColumn1: '/models/environment/modular/Column_1.glb',
-  modColumnSlim: '/models/environment/modular/Column_Slim.glb',
+  pillar2: '/assets/models/environment/station/pillar_hr_2.glb',
+  modColumn1: '/assets/models/environment/modular/Column_1.glb',
+  modColumnSlim: '/assets/models/environment/modular/Column_Slim.glb',
 
   // Roof
-  modRoofPlate: '/models/environment/modular/RoofTile_Plate.glb',
-  modRoofVents: '/models/environment/modular/RoofTile_SmallVents.glb',
+  modRoofPlate: '/assets/models/environment/modular/RoofTile_Plate.glb',
+  modRoofVents: '/assets/models/environment/modular/RoofTile_SmallVents.glb',
 
   // Modular floor
-  modFloorBasic: '/models/environment/modular/FloorTile_Basic.glb',
-  modFloorBasic2: '/models/environment/modular/FloorTile_Basic2.glb',
+  modFloorBasic: '/assets/models/environment/modular/FloorTile_Basic.glb',
+  modFloorBasic2: '/assets/models/environment/modular/FloorTile_Basic2.glb',
 
   // Beams / pipes
-  beamHorizontal1: '/models/environment/station/beam_hc_horizontal_1.glb',
-  pipe1: '/models/environment/station/pipe_cx_1.glb',
+  beamHorizontal1: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
+  pipe1: '/assets/models/environment/station/pipe_cx_1.glb',
 
   // Modular props
-  modComputer: '/models/environment/modular/Props_Computer.glb',
-  modComputerSmall: '/models/environment/modular/Props_ComputerSmall.glb',
-  modShelf: '/models/environment/modular/Props_Shelf.glb',
-  modShelfTall: '/models/environment/modular/Props_Shelf_Tall.glb',
-  modCrate: '/models/environment/modular/Props_Crate.glb',
-  modCrateLong: '/models/environment/modular/Props_CrateLong.glb',
-  modChest: '/models/environment/modular/Props_Chest.glb',
-  modBase: '/models/environment/modular/Props_Base.glb',
-  modVessel: '/models/environment/modular/Props_Vessel.glb',
-  modVesselShort: '/models/environment/modular/Props_Vessel_Short.glb',
-  modPod: '/models/environment/modular/Props_Pod.glb',
-  modStatue: '/models/environment/modular/Props_Statue.glb',
+  modComputer: '/assets/models/environment/modular/Props_Computer.glb',
+  modComputerSmall: '/assets/models/environment/modular/Props_ComputerSmall.glb',
+  modShelf: '/assets/models/environment/modular/Props_Shelf.glb',
+  modShelfTall: '/assets/models/environment/modular/Props_Shelf_Tall.glb',
+  modCrate: '/assets/models/environment/modular/Props_Crate.glb',
+  modCrateLong: '/assets/models/environment/modular/Props_CrateLong.glb',
+  modChest: '/assets/models/environment/modular/Props_Chest.glb',
+  modBase: '/assets/models/environment/modular/Props_Base.glb',
+  modVessel: '/assets/models/environment/modular/Props_Vessel.glb',
+  modVesselShort: '/assets/models/environment/modular/Props_Vessel_Short.glb',
+  modPod: '/assets/models/environment/modular/Props_Pod.glb',
+  modStatue: '/assets/models/environment/modular/Props_Statue.glb',
 
   // Details
-  modVent1: '/models/environment/modular/Details_Vent_1.glb',
-  modVent2: '/models/environment/modular/Details_Vent_2.glb',
-  modPlateLarge: '/models/environment/modular/Details_Plate_Large.glb',
-  modPlateSmall: '/models/environment/modular/Details_Plate_Small.glb',
+  modVent1: '/assets/models/environment/modular/Details_Vent_1.glb',
+  modVent2: '/assets/models/environment/modular/Details_Vent_2.glb',
+  modPlateLarge: '/assets/models/environment/modular/Details_Plate_Large.glb',
+  modPlateSmall: '/assets/models/environment/modular/Details_Plate_Small.glb',
 
   // Industrial props
-  barrel1: '/models/props/industrial/metal_barrel_hr_1.glb',
-  barrel2: '/models/props/industrial/metal_barrel_hr_2.glb',
-  bench: '/models/props/furniture/bench_mx_1.glb',
-  lamp1: '/models/props/industrial/lamp_mx_1_a_on.glb',
-  lamp2: '/models/props/industrial/lamp_mx_2_on.glb',
+  barrel1: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
+  barrel2: '/assets/models/props/industrial/metal_barrel_hr_2.glb',
+  bench: '/assets/models/props/furniture/bench_mx_1.glb',
+  lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
+  lamp2: '/assets/models/props/industrial/lamp_mx_2_on.glb',
 
   // Station door
-  stationDoor: '/models/environment/station/station_door.glb',
+  stationDoor: '/assets/models/environment/station/station_door.glb',
 
   // NPC models (marines standing around)
-  npcMarine: '/models/npcs/marine/marine_soldier.glb',
-  npcMarineSergeant: '/models/npcs/marine/marine_sergeant.glb',
+  npcMarine: '/assets/models/npcs/marine/marine_soldier.glb',
+  npcMarineSergeant: '/assets/models/npcs/marine/marine_sergeant.glb',
 };
 
 // ============================================================================

@@ -461,30 +461,38 @@ describe('CanyonRunLevel', () => {
     mockCanvas = document.createElement('canvas');
 
     mockConfig = {
-      levelId: 'canyon_run',
-      name: 'Canyon Run',
+      id: 'canyon_run',
+      type: 'vehicle',
+      nextLevelId: 'fob_delta',
+      previousLevelId: 'landfall',
       chapter: 3,
-      difficulty: 'normal',
+      actName: 'ACT 2: THE SEARCH',
+      missionName: 'CANYON RUN',
+      missionSubtitle: "Kepler's Promise - Southern Rift Valley",
+      playerSpawnPosition: { x: 0, y: 2, z: 0 },
+      playerSpawnRotation: 0,
+      hasCinematicIntro: true,
+      ambientTrack: 'canyon_wind',
+      combatTrack: 'combat_vehicle',
     };
 
     mockCallbacks = {
       onChapterChange: vi.fn(),
       onObjectiveUpdate: vi.fn(),
       onHealthChange: vi.fn(),
-      onAmmoChange: vi.fn(),
-      onWeaponChange: vi.fn(),
+      onKill: vi.fn(),
+      onDamage: vi.fn(),
       onNotification: vi.fn(),
       onCommsMessage: vi.fn(),
       onCinematicStart: vi.fn(),
       onCinematicEnd: vi.fn(),
-      onDamage: vi.fn(),
+      onCombatStateChange: vi.fn(),
       onLevelComplete: vi.fn(),
-      onPlayerDeath: vi.fn(),
       onActionGroupsChange: vi.fn(),
       onActionHandlerRegister: vi.fn(),
     };
 
-    level = new CanyonRunLevel(mockEngine, mockCanvas, mockConfig as any, mockCallbacks);
+    level = new CanyonRunLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
   });
 
   afterEach(() => {
@@ -823,31 +831,39 @@ describe('CanyonRunLevel Integration', () => {
 
     const mockCanvas = document.createElement('canvas');
 
-    const mockConfig = {
-      levelId: 'canyon_run',
-      name: 'Canyon Run',
+    const mockConfig: LevelConfig = {
+      id: 'canyon_run',
+      type: 'vehicle',
+      nextLevelId: 'fob_delta',
+      previousLevelId: 'landfall',
       chapter: 3,
-      difficulty: 'normal' as const,
+      actName: 'ACT 2: THE SEARCH',
+      missionName: 'CANYON RUN',
+      missionSubtitle: "Kepler's Promise - Southern Rift Valley",
+      playerSpawnPosition: { x: 0, y: 2, z: 0 },
+      playerSpawnRotation: 0,
+      hasCinematicIntro: true,
+      ambientTrack: 'canyon_wind',
+      combatTrack: 'combat_vehicle',
     };
 
     mockCallbacks = {
       onChapterChange: vi.fn(),
       onObjectiveUpdate: vi.fn(),
       onHealthChange: vi.fn(),
-      onAmmoChange: vi.fn(),
-      onWeaponChange: vi.fn(),
+      onKill: vi.fn(),
+      onDamage: vi.fn(),
       onNotification: vi.fn(),
       onCommsMessage: vi.fn(),
       onCinematicStart: vi.fn(),
       onCinematicEnd: vi.fn(),
-      onDamage: vi.fn(),
+      onCombatStateChange: vi.fn(),
       onLevelComplete: vi.fn(),
-      onPlayerDeath: vi.fn(),
       onActionGroupsChange: vi.fn(),
       onActionHandlerRegister: vi.fn(),
     };
 
-    level = new CanyonRunLevel(mockEngine as any, mockCanvas, mockConfig as any, mockCallbacks);
+    level = new CanyonRunLevel(mockEngine as any, mockCanvas, mockConfig, mockCallbacks);
   });
 
   describe('Level Flow', () => {

@@ -6,7 +6,7 @@
  * Target: 95%+ line coverage
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock all dependencies
 vi.mock('@babylonjs/core/Engines/engine', () => ({

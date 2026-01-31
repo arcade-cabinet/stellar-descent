@@ -5,7 +5,7 @@
  * Integrates with AssetPipeline for smart priority-based loading, memory
  * budgeting, and background prefetch.
  *
- * All game-ready GLB assets are stored in public/models/ (enemies, vehicles,
+ * All game-ready GLB assets are stored in public/assets/models/ (enemies, vehicles,
  * environment, props).
  */
 
@@ -30,10 +30,10 @@ import { LODManager } from './LODManager';
 
 // Asset categories and their base paths
 const ASSET_PATHS = {
-  aliens: '/models/aliens/',
-  vehicles: '/models/vehicles/',
-  structures: '/models/structures/',
-  props: '/models/psx/props/',
+  aliens: '/assets/models/aliens/',
+  vehicles: '/assets/models/vehicles/',
+  structures: '/assets/models/structures/',
+  props: '/assets/models/psx/props/',
 } as const;
 
 // Asset manifest - maps logical names to GLB files
@@ -53,7 +53,7 @@ export const ASSET_MANIFEST = {
   // Vehicles
   vehicles: {
     wraith: 'chitin/wraith.glb', // Enemy hover tank
-    phantom: 'tea/phantom.glb', // Dropship for extraction
+    phantom: 'phantom.glb', // Dropship for extraction
   },
   // Organic hive structures for The Breach
   structures: {

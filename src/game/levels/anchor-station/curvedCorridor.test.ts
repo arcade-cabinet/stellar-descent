@@ -465,7 +465,7 @@ describe('CurvedCorridor - Geometry Generation', () => {
       };
 
       const windowSpacing = config.arcAngle / (config.windowCount + 1);
-      const windowAngles = [];
+      const windowAngles: number[] = [];
 
       for (let i = 1; i <= config.windowCount; i++) {
         windowAngles.push(windowSpacing * i);
@@ -484,7 +484,7 @@ describe('CurvedCorridor - Geometry Generation', () => {
       };
 
       const lightSpacing = config.arcAngle / (config.lightCount + 1);
-      const lightPositions = [];
+      const lightPositions: number[] = [];
 
       for (let i = 1; i <= config.lightCount; i++) {
         lightPositions.push(lightSpacing * i);

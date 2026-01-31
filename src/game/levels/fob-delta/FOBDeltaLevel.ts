@@ -64,149 +64,149 @@ import '@babylonjs/core/Animations/animatable';
 
 /** Props used as debris at the perimeter breach */
 const GLB_DEBRIS = {
-  brick_pile_1: '/models/props/debris/debris_bricks_mx_1.glb',
-  brick_pile_2: '/models/props/debris/debris_bricks_mx_2.glb',
-  brick_1: '/models/props/debris/brick_mx_1.glb',
-  brick_2: '/models/props/debris/brick_mx_2.glb',
-  brick_3: '/models/props/debris/brick_mx_3.glb',
-  brick_4: '/models/props/debris/brick_mx_4.glb',
-  gravel_1: '/models/props/debris/gravel_pile_hr_1.glb',
-  gravel_2: '/models/props/debris/gravel_pile_hr_2.glb',
+  brick_pile_1: '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  brick_pile_2: '/assets/models/props/debris/debris_bricks_mx_2.glb',
+  brick_1: '/assets/models/props/debris/brick_mx_1.glb',
+  brick_2: '/assets/models/props/debris/brick_mx_2.glb',
+  brick_3: '/assets/models/props/debris/brick_mx_3.glb',
+  brick_4: '/assets/models/props/debris/brick_mx_4.glb',
+  gravel_1: '/assets/models/props/debris/gravel_pile_hr_1.glb',
+  gravel_2: '/assets/models/props/debris/gravel_pile_hr_2.glb',
 } as const;
 
 /** Sandbag / barrier props */
 const GLB_BARRIERS = {
-  cement_pallet_1: '/models/props/containers/cement_bags_mp_1_pallet_1.glb',
-  cement_pallet_2: '/models/props/containers/cement_bags_mp_1_pallet_2.glb',
+  cement_pallet_1: '/assets/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+  cement_pallet_2: '/assets/models/props/containers/cement_bags_mp_1_pallet_2.glb',
 } as const;
 
 /** Courtyard clutter -- vehicles, crates, barrels */
 const GLB_COURTYARD = {
-  shipping_container: '/models/environment/industrial/shipping_container_mx_1.glb',
-  shipping_container_hollow: '/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
-  tire_1: '/models/props/containers/tire_1.glb',
-  tire_2: '/models/props/containers/tire_2.glb',
-  wooden_crate_1: '/models/props/containers/wooden_crate_1.glb',
-  wooden_crate_2a: '/models/props/containers/wooden_crate_2_a.glb',
-  wooden_crate_2b: '/models/props/containers/wooden_crate_2_b.glb',
-  wooden_crate_3: '/models/props/containers/wooden_crate_3.glb',
-  wooden_crate_hx_2: '/models/props/containers/wooden_crate_hx_2.glb',
-  wooden_crate_hx_3: '/models/props/containers/wooden_crate_hx_3.glb',
-  wooden_crate_hx_4: '/models/props/containers/wooden_crate_hx_4.glb',
-  metal_barrel_1: '/models/props/containers/metal_barrel_hr_1.glb',
-  metal_barrel_2: '/models/props/containers/metal_barrel_hr_2.glb',
-  metal_barrel_3: '/models/props/containers/metal_barrel_hr_3.glb',
-  metal_barrel_4: '/models/props/containers/metal_barrel_hr_4.glb',
-  barrel_atmo: '/models/props/atmospheric/barrel.glb',
+  shipping_container: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+  shipping_container_hollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  tire_1: '/assets/models/props/containers/tire_1.glb',
+  tire_2: '/assets/models/props/containers/tire_2.glb',
+  wooden_crate_1: '/assets/models/props/containers/wooden_crate_1.glb',
+  wooden_crate_2a: '/assets/models/props/containers/wooden_crate_2_a.glb',
+  wooden_crate_2b: '/assets/models/props/containers/wooden_crate_2_b.glb',
+  wooden_crate_3: '/assets/models/props/containers/wooden_crate_3.glb',
+  wooden_crate_hx_2: '/assets/models/props/containers/wooden_crate_hx_2.glb',
+  wooden_crate_hx_3: '/assets/models/props/containers/wooden_crate_hx_3.glb',
+  wooden_crate_hx_4: '/assets/models/props/containers/wooden_crate_hx_4.glb',
+  metal_barrel_1: '/assets/models/props/containers/metal_barrel_hr_1.glb',
+  metal_barrel_2: '/assets/models/props/containers/metal_barrel_hr_2.glb',
+  metal_barrel_3: '/assets/models/props/containers/metal_barrel_hr_3.glb',
+  metal_barrel_4: '/assets/models/props/containers/metal_barrel_hr_4.glb',
+  barrel_atmo: '/assets/models/props/atmospheric/barrel.glb',
 } as const;
 
 /** Barracks interior props */
 const GLB_BARRACKS = {
-  bench_1: '/models/props/furniture/bench_mx_1.glb',
-  bench_2: '/models/props/furniture/bench_mx_1_1.glb',
-  bench_3: '/models/props/furniture/bench_mx_1_2.glb',
-  shelf_1: '/models/props/furniture/shelf_mx_1.glb',
-  shelf_2: '/models/props/furniture/shelf_mx_2.glb',
-  old_mattress: '/models/props/containers/old_mattress_mx_1.glb',
-  marine_body: '/models/npcs/marine/marine_soldier.glb',
+  bench_1: '/assets/models/props/furniture/bench_mx_1.glb',
+  bench_2: '/assets/models/props/furniture/bench_mx_1_1.glb',
+  bench_3: '/assets/models/props/furniture/bench_mx_1_2.glb',
+  shelf_1: '/assets/models/props/furniture/shelf_mx_1.glb',
+  shelf_2: '/assets/models/props/furniture/shelf_mx_2.glb',
+  old_mattress: '/assets/models/props/containers/old_mattress_mx_1.glb',
+  marine_body: '/assets/models/npcs/marine/marine_soldier.glb',
 } as const;
 
 /** Command center / terminal props */
 const GLB_COMMAND = {
-  computer: '/models/environment/modular/Props_Computer.glb',
-  computer_sm: '/models/environment/modular/Props_ComputerSmall.glb',
-  door_hr_6: '/models/props/doors/door_hr_6.glb',
-  door_hr_8: '/models/props/doors/door_hr_8.glb',
-  chimney: '/models/environment/industrial/chimney_a_1.glb',
+  computer: '/assets/models/environment/modular/Props_Computer.glb',
+  computer_sm: '/assets/models/environment/modular/Props_ComputerSmall.glb',
+  door_hr_6: '/assets/models/props/doors/door_hr_6.glb',
+  door_hr_8: '/assets/models/props/doors/door_hr_8.glb',
+  chimney: '/assets/models/environment/industrial/chimney_a_1.glb',
 } as const;
 
 /** Building structures -- buildings, hangars */
 const GLB_BUILDINGS = {
-  warehouse_1: '/models/environment/station/warehouse_mx_1.glb',
-  warehouse_2: '/models/environment/station/warehouse_mx_2.glb',
-  warehouse_3: '/models/environment/station/warehouse_mx_3.glb',
-  warehouse_4: '/models/environment/station/warehouse_mx_4.glb',
-  garages_block: '/models/environment/station/garages_block_hr_1.glb',
-  garage_door_frame_1: '/models/environment/station/garage_door_frame_hr_1.glb',
-  garage_door_frame_2: '/models/environment/station/garage_door_frame_hr_2.glb',
-  garage_hl_1: '/models/environment/station/garage_hl_1.glb',
-  garage_hl_2: '/models/environment/station/garage_hl_2.glb',
-  shed_1: '/models/environment/station/shed_ax_1.glb',
-  shed_2: '/models/environment/station/shed_ax_2.glb',
+  warehouse_1: '/assets/models/environment/station/warehouse_mx_1.glb',
+  warehouse_2: '/assets/models/environment/station/warehouse_mx_2.glb',
+  warehouse_3: '/assets/models/environment/station/warehouse_mx_3.glb',
+  warehouse_4: '/assets/models/environment/station/warehouse_mx_4.glb',
+  garages_block: '/assets/models/environment/station/garages_block_hr_1.glb',
+  garage_door_frame_1: '/assets/models/environment/station/garage_door_frame_hr_1.glb',
+  garage_door_frame_2: '/assets/models/environment/station/garage_door_frame_hr_2.glb',
+  garage_hl_1: '/assets/models/environment/station/garage_hl_1.glb',
+  garage_hl_2: '/assets/models/environment/station/garage_hl_2.glb',
+  shed_1: '/assets/models/environment/station/shed_ax_1.glb',
+  shed_2: '/assets/models/environment/station/shed_ax_2.glb',
 } as const;
 
 /** Caution stripe replacements -- directional arrows/details */
 const GLB_DETAILS = {
-  arrow: '/models/environment/modular/Details_Arrow.glb',
-  arrow_2: '/models/environment/modular/Details_Arrow_2.glb',
-  caution_plate: '/models/environment/modular/Details_Plate_Long.glb',
+  arrow: '/assets/models/environment/modular/Details_Arrow.glb',
+  arrow_2: '/assets/models/environment/modular/Details_Arrow_2.glb',
+  caution_plate: '/assets/models/environment/modular/Details_Plate_Long.glb',
 } as const;
 
 /** Perimeter walls -- station wall GLBs tiled along the perimeter */
 const GLB_PERIMETER = {
-  wall_hr_1: '/models/environment/station/wall_hr_1.glb',
-  wall_hr_15: '/models/environment/station/wall_hr_15.glb',
-  wall_hr_1_hole_2: '/models/environment/station/wall_hr_1_hole_2.glb',
-  wall_hr_2: '/models/environment/station/wall_hr_2.glb',
+  wall_hr_1: '/assets/models/environment/station/wall_hr_1.glb',
+  wall_hr_15: '/assets/models/environment/station/wall_hr_15.glb',
+  wall_hr_1_hole_2: '/assets/models/environment/station/wall_hr_1_hole_2.glb',
+  wall_hr_2: '/assets/models/environment/station/wall_hr_2.glb',
 } as const;
 
 /** Antenna dish / comm tower detail */
 const GLB_ANTENNA = {
-  platform_ax_1: '/models/environment/station/platform_ax_1.glb',
+  platform_ax_1: '/assets/models/environment/station/platform_ax_1.glb',
 } as const;
 
 /** Underground hatch components */
 const GLB_HATCH = {
-  floor_plate: '/models/environment/station/floor_ceiling_hr_4.glb',
-  hatch_door: '/models/props/doors/door_hr_12.glb',
-  hatch_handle: '/models/props/pipes/pipe_mx_1.glb',
-  caution_ring: '/models/environment/modular/Details_Plate_Long.glb',
+  floor_plate: '/assets/models/environment/station/floor_ceiling_hr_4.glb',
+  hatch_door: '/assets/models/props/doors/door_hr_12.glb',
+  hatch_handle: '/assets/models/props/pipes/pipe_mx_1.glb',
+  caution_ring: '/assets/models/environment/modular/Details_Plate_Long.glb',
 } as const;
 
 /** Supply/pickup props for ammo and health */
 const GLB_SUPPLIES = {
-  ammo_crate: '/models/props/containers/ammo_crate_mx_1.glb',
-  med_kit: '/models/props/containers/med_kit_mx_1.glb',
-  supply_crate: '/models/props/collectibles/supply_drop.glb',
-  flare_box: '/models/props/weapons/flare_mx_1.glb',
+  ammo_crate: '/assets/models/props/containers/ammo_crate_mx_1.glb',
+  med_kit: '/assets/models/props/containers/med_kit_mx_1.glb',
+  supply_crate: '/assets/models/props/collectibles/supply_drop.glb',
+  flare_box: '/assets/models/props/weapons/flare_mx_1.glb',
 } as const;
 
 /** Fortification props - sandbags, barriers, defensive positions */
 const GLB_FORTIFICATIONS = {
-  sandbag_wall: '/models/props/containers/sandbag_wall_mx_1.glb',
-  sandbag_corner: '/models/props/containers/sandbag_corner_mx_1.glb',
-  barricade: '/models/props/containers/barricade_mx_1.glb',
-  bunker_small: '/models/environment/station/shed_ax_3.glb',
-  bunker_large: '/models/environment/station/shed_ax_4.glb',
-  watchtower_base: '/models/environment/station/platform_bx_1.glb',
-  guard_rail: '/models/props/furniture/railing_mx_1.glb',
+  sandbag_wall: '/assets/models/props/containers/sandbag_wall_mx_1.glb',
+  sandbag_corner: '/assets/models/props/containers/sandbag_corner_mx_1.glb',
+  barricade: '/assets/models/props/containers/barricade_mx_1.glb',
+  bunker_small: '/assets/models/environment/station/shed_ax_3.glb',
+  bunker_large: '/assets/models/environment/station/shed_ax_4.glb',
+  watchtower_base: '/assets/models/environment/station/platform_bx_1.glb',
+  guard_rail: '/assets/models/props/furniture/railing_mx_1.glb',
 } as const;
 
 /** Turret/defense system props */
 const GLB_DEFENSES = {
-  turret_base: '/models/props/weapons/turret_base_mx_1.glb',
-  turret_gun: '/models/props/weapons/turret_gun_mx_1.glb',
-  radar_dish: '/models/environment/station/platform_ax_1.glb',
-  spotlight: '/models/props/electrical/lamp_mx_4_on.glb',
+  turret_base: '/assets/models/props/weapons/turret_base_mx_1.glb',
+  turret_gun: '/assets/models/props/weapons/turret_gun_mx_1.glb',
+  radar_dish: '/assets/models/environment/station/platform_ax_1.glb',
+  spotlight: '/assets/models/props/electrical/lamp_mx_4_on.glb',
 } as const;
 
 /** Ground surface - large asphalt tiles */
 const GLB_GROUND = {
-  asphalt_large: '/models/environment/station/asphalt_hr_1_large.glb',
-  asphalt_1: '/models/environment/station/asphalt_hr_1.glb',
-  asphalt_2: '/models/environment/station/asphalt_hr_2.glb',
-  asphalt_3: '/models/environment/station/asphalt_hr_3.glb',
+  asphalt_large: '/assets/models/environment/station/asphalt_hr_1_large.glb',
+  asphalt_1: '/assets/models/environment/station/asphalt_hr_1.glb',
+  asphalt_2: '/assets/models/environment/station/asphalt_hr_2.glb',
+  asphalt_3: '/assets/models/environment/station/asphalt_hr_3.glb',
 } as const;
 
 /** Antenna dish / platform components */
 const GLB_ANTENNA_PLATFORM = {
-  platform_small: '/models/environment/station/platform_small_mx_1.glb',
-  platform_large: '/models/environment/station/platform_large_mx_1.glb',
+  platform_small: '/assets/models/environment/station/platform_small_mx_1.glb',
+  platform_large: '/assets/models/environment/station/platform_large_mx_1.glb',
 } as const;
 
 /** Marcus's TITAN mech */
 const GLB_MECH = {
-  marcus_mech: '/models/vehicles/tea/marcus_mech.glb',
+  marcus_mech: '/assets/models/vehicles/tea/marcus_mech.glb',
 } as const;
 
 /**
@@ -337,7 +337,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
   // Supply pickup system
   private supplyPickups: Array<{
-    mesh: Mesh;
+    mesh: TransformNode;
     type: 'ammo' | 'health' | 'armor';
     amount: number;
     position: Vector3;
@@ -1342,9 +1342,9 @@ export class FOBDeltaLevel extends BaseLevel {
     // PHASE 1 -- Pre-load ALL Quaternius modular, decal, and external
     // assets by path so they are available for instancing.
     // ================================================================
-    const modularBasePath = '/models/environment/modular/';
-    const decalBasePath = '/models/props/decals/';
-    const stationExtBasePath = '/models/environment/station-external/';
+    const modularBasePath = '/assets/models/environment/modular/';
+    const decalBasePath = '/assets/models/props/decals/';
+    const stationExtBasePath = '/assets/models/environment/station-external/';
 
     const modularGLBs: Record<string, string> = {
       // Floors
@@ -2166,25 +2166,30 @@ export class FOBDeltaLevel extends BaseLevel {
       armor: new Color3(0.3, 0.5, 1.0),    // Blue
     };
 
+    // GLB path mapping for supply types
+    const supplyGLBPaths: Record<string, string> = {
+      ammo: GLB_SUPPLIES.ammo_crate,
+      health: GLB_SUPPLIES.med_kit,
+      armor: GLB_SUPPLIES.supply_crate,
+    };
+
     for (let i = 0; i < supplySpawns.length; i++) {
       const spawn = supplySpawns[i];
 
-      // Create a visible pickup mesh (simple box with glow)
-      const pickupMesh = MeshBuilder.CreateBox(
+      // Create pickup mesh using GLB model
+      const glbPath = supplyGLBPaths[spawn.type];
+      const pickupMesh = this.placeGLB(
+        glbPath,
         `supply_${spawn.type}_${i}`,
-        { width: 0.6, height: 0.4, depth: 0.4 },
-        this.scene
+        spawn.position.clone(),
+        { scale: 0.8 }
       );
-      pickupMesh.position = spawn.position.clone();
 
-      // Material with type-specific color
-      const pickupMat = new StandardMaterial(`supplyMat_${i}`, this.scene);
-      pickupMat.diffuseColor = supplyColors[spawn.type].scale(0.6);
-      pickupMat.emissiveColor = supplyColors[spawn.type].scale(0.3);
-      pickupMat.specularColor = new Color3(0.4, 0.4, 0.4);
-      pickupMesh.material = pickupMat;
-      pickupMesh.parent = this.fobRoot;
-      this.allMeshes.push(pickupMesh);
+      // Skip if GLB failed to load
+      if (!pickupMesh) {
+        log.warn(`Failed to load GLB for supply pickup: ${spawn.type}`);
+        continue;
+      }
 
       // Glow light for visibility
       const glowLight = new PointLight(

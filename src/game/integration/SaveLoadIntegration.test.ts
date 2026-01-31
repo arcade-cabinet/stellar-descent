@@ -109,12 +109,12 @@ describe('Save/Load Integration', () => {
       const easy = createNewSave('easy_save', 'easy', 'anchor_station', 1, 'manual');
       const normal = createNewSave('normal_save', 'normal', 'anchor_station', 1, 'manual');
       const hard = createNewSave('hard_save', 'hard', 'anchor_station', 1, 'manual');
-      const legendary = createNewSave('legendary_save', 'legendary', 'anchor_station', 1, 'manual');
+      const nightmare = createNewSave('nightmare_save', 'nightmare', 'anchor_station', 1, 'manual');
 
       expect(easy.difficulty).toBe('easy');
       expect(normal.difficulty).toBe('normal');
       expect(hard.difficulty).toBe('hard');
-      expect(legendary.difficulty).toBe('legendary');
+      expect(nightmare.difficulty).toBe('nightmare');
     });
   });
 
@@ -262,10 +262,9 @@ describe('Save/Load Integration', () => {
 
     it('should track level flags', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
-      save.levelFlags = {
-        anchor_station: { tutorial_complete: true, found_secret: true },
-        landfall: { survived_halo_drop: true },
-      };
+      // Update specific level flags (levelFlags is already initialized with all levels)
+      save.levelFlags.anchor_station = { tutorial_complete: true, found_secret: true };
+      save.levelFlags.landfall = { survived_halo_drop: true };
 
       mockDatabase['test_save'] = JSON.stringify(save);
       const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
@@ -484,12 +483,24 @@ describe('Save/Load Integration', () => {
     it('should track active quest states', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.activeQuests = {
-        quest_main: { step: 3, objective: 'reach_extraction' },
-        quest_side: { collected: 5, total: 10 },
+        quest_main: {
+          questId: 'quest_main',
+          status: 'active',
+          currentObjectiveIndex: 3,
+          objectiveProgress: { reach_extraction: 0 },
+          objectiveStatus: { reach_extraction: 'active' },
+        },
+        quest_side: {
+          questId: 'quest_side',
+          status: 'active',
+          currentObjectiveIndex: 0,
+          objectiveProgress: { collect_items: 5 },
+          objectiveStatus: { collect_items: 'active' },
+        },
       };
 
-      expect(save.activeQuests.quest_main.step).toBe(3);
-      expect(save.activeQuests.quest_side.collected).toBe(5);
+      expect(save.activeQuests.quest_main.currentObjectiveIndex).toBe(3);
+      expect(save.activeQuests.quest_side.objectiveProgress.collect_items).toBe(5);
     });
 
     it('should track failed quests', () => {

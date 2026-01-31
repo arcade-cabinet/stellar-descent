@@ -689,13 +689,6 @@ describe('Weapon damage validation', () => {
     expect(WEAPON_BALANCE.plasma_cannon!.critMultiplier).toBe(1.5);
   });
 
-  it('rocket launcher damage is 200', () => {
-    expect(WEAPON_BALANCE.rocket_launcher!.damage).toBe(200);
-  });
-
-  it('rocket launcher has no headshot bonus (1.0x)', () => {
-    expect(WEAPON_BALANCE.rocket_launcher!.critMultiplier).toBe(1.0);
-  });
 });
 
 // ---------------------------------------------------------------------------

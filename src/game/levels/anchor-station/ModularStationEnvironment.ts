@@ -41,15 +41,19 @@ const log = getLogger('ModularStationEnv');
 
 const INTERACTIVE_ASSETS = {
   // Suit locker uses a tall shelf model
-  suitLocker: '/models/props/furniture/shelf_mx_1.glb',
-  // Door panels
-  doorPanel: '/models/props/doors/door_hr_6.glb',
-  garageDoor: '/models/environment/station/garage_door_frame_hr_1.glb',
-  // Platform for holodeck
-  holodeckPlatform: '/models/environment/station/platform_small_mx_1.glb',
-  holodeckPlatformLarge: '/models/environment/station/platform_large_mx_1.glb',
+  suitLocker: '/assets/models/props/furniture/shelf_mx_1.glb',
+  // Suit stand (capsule for displaying suit)
+  suitStand: '/assets/models/environment/modular/Props_Vessel_Tall.glb',
+  // Door panels - modular double doors for bay doors
+  bayDoor: '/assets/models/environment/modular/Door_Double.glb',
+  // Drop pod - capsule/pod model
+  dropPod: '/assets/models/environment/modular/Props_Capsule.glb',
+  // Platform for holodeck - modular floor tiles
+  holodeckPlatform: '/assets/models/environment/modular/FloorTile_Basic.glb',
   // Beam for crouch obstacle
-  beam: '/models/environment/station/beam_hc_horizontal_1.glb',
+  beam: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
+  // Wall segment for holodeck passage walls
+  wallSegment: '/assets/models/environment/modular/Wall_Empty.glb',
 } as const;
 
 // ============================================================================
@@ -242,19 +246,36 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   suitLocker.checkCollisions = true;
   suitLocker.parent = root;
 
-  // Suit body and helmet (visible until equipped)
-  const suitBody = MeshBuilder.CreateCylinder('suitBody', { height: 1.4, diameter: 0.6 }, scene);
+  // Suit display stand using GLB model (visible until equipped)
+  // The suit is displayed on a tall vessel/stand model
+  const suitStandNode = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.suitStand,
+    'suitStand_visual',
+    new Vector3(lockerPos.x, 0, lockerPos.z + 0.5),
+    new Vector3(0, 0, 0),
+    new Vector3(0.8, 1.2, 0.8)
+  );
+
+  // Create a Mesh wrapper for the suit body to enable animations
+  // The GLB provides the visual, this mesh provides animation target
+  const suitBody = MeshBuilder.CreateBox('suitBody', { width: 0.6, height: 1.4, depth: 0.6 }, scene);
   suitBody.position = lockerPos.clone();
   suitBody.position.y = 0.9;
   suitBody.position.z += 0.5;
-  suitBody.material = materials.suitMat;
+  suitBody.isVisible = false; // Invisible - GLB provides visual
   suitBody.parent = root;
 
-  const suitHelmet = MeshBuilder.CreateSphere('suitHelmet', { diameter: 0.4, segments: 16 }, scene);
-  suitHelmet.position = suitBody.position.clone();
-  suitHelmet.position.y += 0.9;
-  suitHelmet.material = materials.suitMat;
-  suitHelmet.parent = root;
+  // Link the GLB visual to the animation wrapper
+  if (suitStandNode) {
+    suitStandNode.parent = suitBody;
+    suitStandNode.position = Vector3.Zero();
+  }
+
+  // suitHelmet is now part of the suitStand GLB model, but we keep a reference
+  // for animation compatibility (visibility control)
+  const suitHelmet: Mesh | null = null;
 
   // ============================================================================
   // BAY DOORS (Hangar)
@@ -264,6 +285,18 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   const doorWidth = 6;
   const doorHeight = 8;
 
+  // Left bay door using GLB model with invisible collision mesh for animation
+  const bayDoorLeftVisual = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.bayDoor,
+    'bayDoorLeft_visual',
+    Vector3.Zero(),
+    new Vector3(0, 0, 0),
+    new Vector3(3, 4, 1) // Scale to match door dimensions
+  );
+
+  // Animation wrapper mesh (invisible, provides animation target)
   const bayDoorLeft = MeshBuilder.CreateBox(
     'bayDoorLeft',
     { width: doorWidth, height: doorHeight, depth: 0.3 },
@@ -274,8 +307,26 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
     doorHeight / 2,
     hangarCenter.z - 10
   );
-  bayDoorLeft.material = materials.doorMat;
+  bayDoorLeft.isVisible = false; // GLB provides visual
+  bayDoorLeft.checkCollisions = true;
   bayDoorLeft.parent = root;
+
+  // Parent the GLB visual to the animation mesh
+  if (bayDoorLeftVisual) {
+    bayDoorLeftVisual.parent = bayDoorLeft;
+    bayDoorLeftVisual.position = Vector3.Zero();
+  }
+
+  // Right bay door using GLB model
+  const bayDoorRightVisual = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.bayDoor,
+    'bayDoorRight_visual',
+    Vector3.Zero(),
+    new Vector3(0, Math.PI, 0), // Mirrored
+    new Vector3(3, 4, 1)
+  );
 
   const bayDoorRight = MeshBuilder.CreateBox(
     'bayDoorRight',
@@ -287,8 +338,14 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
     doorHeight / 2,
     hangarCenter.z - 10
   );
-  bayDoorRight.material = materials.doorMat;
+  bayDoorRight.isVisible = false; // GLB provides visual
+  bayDoorRight.checkCollisions = true;
   bayDoorRight.parent = root;
+
+  if (bayDoorRightVisual) {
+    bayDoorRightVisual.parent = bayDoorRight;
+    bayDoorRightVisual.position = Vector3.Zero();
+  }
 
   // Door lights for depressurization effect
   const doorLightLeft = MeshBuilder.CreateBox('doorLightL', { size: 0.3 }, scene);
@@ -309,26 +366,41 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
 
   const podPos = MODULAR_ROOM_POSITIONS.dropPod;
 
-  const dropPod = MeshBuilder.CreateCylinder(
+  // Drop pod using GLB capsule model
+  const dropPodVisual = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.dropPod,
+    'dropPod_visual',
+    Vector3.Zero(),
+    new Vector3(0, 0, 0),
+    new Vector3(1.5, 1.5, 1.5)
+  );
+
+  // Animation wrapper mesh for drop pod (invisible, enables position animation)
+  const dropPod = MeshBuilder.CreateBox(
     'dropPod',
-    { height: 3, diameter: 2, tessellation: 8 },
+    { width: 2, height: 3, depth: 2 },
     scene
   );
   dropPod.position = podPos.clone();
   dropPod.position.y = 1.5;
-  dropPod.material = materials.metalMat;
+  dropPod.isVisible = false; // GLB provides visual
+  dropPod.checkCollisions = true;
   dropPod.parent = root;
 
-  // Pod cone
-  const podCone = MeshBuilder.CreateCylinder(
-    'podCone',
-    { height: 1, diameterTop: 0, diameterBottom: 2, tessellation: 8 },
-    scene
-  );
+  if (dropPodVisual) {
+    dropPodVisual.parent = dropPod;
+    dropPodVisual.position = Vector3.Zero();
+  }
+
+  // podCone is now integrated into the drop pod GLB model
+  // We keep a reference mesh for animation compatibility
+  const podCone = MeshBuilder.CreateBox('podCone', { width: 0.1, height: 0.1, depth: 0.1 }, scene);
   podCone.position = dropPod.position.clone();
   podCone.position.y -= 2;
-  podCone.material = materials.metalMat;
-  podCone.parent = root;
+  podCone.isVisible = false; // No separate visual needed - part of pod GLB
+  podCone.parent = dropPod; // Parent to dropPod so it animates together
 
   // ============================================================================
   // SHOOTING RANGE TARGETS
@@ -405,6 +477,18 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   ];
 
   for (let i = 0; i < platformPositions.length; i++) {
+    // Create GLB visual for holodeck platform
+    const platformVisual = placeVisualModel(
+      scene,
+      root,
+      INTERACTIVE_ASSETS.holodeckPlatform,
+      `holoPlatform${i}_visual`,
+      Vector3.Zero(),
+      new Vector3(0, 0, 0),
+      new Vector3(2.5, 0.3, 2.5) // Scale to match platform size
+    );
+
+    // Collision mesh for platform (invisible, handles physics)
     const platform = MeshBuilder.CreateBox(
       `holoPlatform${i}`,
       { width: 2.5, height: 0.3, depth: 2.5 },
@@ -412,15 +496,38 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
     );
     platform.position = platformPositions[i].clone();
     platform.position.y += 0.15; // Center of 0.3m tall platform
-    platform.material = materials.holoMat;
+    platform.material = materials.holoMat; // Keep material for fallback/effect
     platform.checkCollisions = true; // Enable collision for landing
-    platform.isVisible = false; // Hidden until holodeck activates
+    platform.isVisible = false; // Hidden - GLB provides visual when activated
     platform.parent = root;
+
+    // Parent GLB visual to collision mesh so they move together
+    if (platformVisual) {
+      platformVisual.parent = platform;
+      platformVisual.position = Vector3.Zero();
+      // Apply holographic material to GLB meshes
+      const visualMeshes = platformVisual.getChildMeshes();
+      for (const mesh of visualMeshes) {
+        mesh.material = materials.holoMat;
+        mesh.isVisible = false; // Hidden until holodeck activates
+      }
+    }
+
     holodeckPlatforms.push(platform);
   }
 
-  // Create crouch obstacle - a low bar players must crouch under
-  // Positioned between platform 4 and exit platform
+  // Create crouch obstacle using GLB beam model
+  const crouchBarVisual = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.beam,
+    'crouchObstacle_visual',
+    Vector3.Zero(),
+    new Vector3(0, 0, Math.PI / 2), // Rotate to horizontal
+    new Vector3(5, 0.4, 0.4)
+  );
+
+  // Collision mesh for crouch bar
   const crouchBar = MeshBuilder.CreateBox(
     'crouchObstacle',
     { width: 5, height: 0.4, depth: 0.4 },
@@ -432,9 +539,30 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   crouchBar.checkCollisions = true;
   crouchBar.isVisible = false;
   crouchBar.parent = root;
+
+  if (crouchBarVisual) {
+    crouchBarVisual.parent = crouchBar;
+    crouchBarVisual.position = Vector3.Zero();
+    const barMeshes = crouchBarVisual.getChildMeshes();
+    for (const mesh of barMeshes) {
+      mesh.material = materials.holoMat;
+      mesh.isVisible = false;
+    }
+  }
+
   holodeckObstacles.push(crouchBar);
 
-  // Crouch passage walls (visible guides)
+  // Crouch passage walls using GLB wall models
+  const passageWallLeftVisual = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.wallSegment,
+    'crouchPassageWallLeft_visual',
+    Vector3.Zero(),
+    new Vector3(0, 0, 0),
+    new Vector3(0.3, 2.5, 3)
+  );
+
   const passageWallLeft = MeshBuilder.CreateBox(
     'crouchPassageWallLeft',
     { width: 0.3, height: 2.5, depth: 3 },
@@ -443,8 +571,30 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   passageWallLeft.position = new Vector3(holoCenter.x - 2.5, 1.25, holoCenter.z - 5);
   passageWallLeft.material = materials.holoMat;
   passageWallLeft.isVisible = false;
+  passageWallLeft.checkCollisions = true;
   passageWallLeft.parent = root;
+
+  if (passageWallLeftVisual) {
+    passageWallLeftVisual.parent = passageWallLeft;
+    passageWallLeftVisual.position = Vector3.Zero();
+    const leftWallMeshes = passageWallLeftVisual.getChildMeshes();
+    for (const mesh of leftWallMeshes) {
+      mesh.material = materials.holoMat;
+      mesh.isVisible = false;
+    }
+  }
+
   holodeckObstacles.push(passageWallLeft);
+
+  const passageWallRightVisual = placeVisualModel(
+    scene,
+    root,
+    INTERACTIVE_ASSETS.wallSegment,
+    'crouchPassageWallRight_visual',
+    Vector3.Zero(),
+    new Vector3(0, 0, 0),
+    new Vector3(0.3, 2.5, 3)
+  );
 
   const passageWallRight = MeshBuilder.CreateBox(
     'crouchPassageWallRight',
@@ -454,7 +604,19 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   passageWallRight.position = new Vector3(holoCenter.x + 2.5, 1.25, holoCenter.z - 5);
   passageWallRight.material = materials.holoMat;
   passageWallRight.isVisible = false;
+  passageWallRight.checkCollisions = true;
   passageWallRight.parent = root;
+
+  if (passageWallRightVisual) {
+    passageWallRightVisual.parent = passageWallRight;
+    passageWallRightVisual.position = Vector3.Zero();
+    const rightWallMeshes = passageWallRightVisual.getChildMeshes();
+    for (const mesh of rightWallMeshes) {
+      mesh.material = materials.holoMat;
+      mesh.isVisible = false;
+    }
+  }
+
   holodeckObstacles.push(passageWallRight);
 
   // ============================================================================
@@ -465,16 +627,16 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   // ============================================================================
 
   const INDUSTRIAL_PROP_MODELS = {
-    shelf: '/models/props/industrial/shelf_mx_1.glb',
-    barrel1: '/models/props/industrial/metal_barrel_hr_1.glb',
-    barrel2: '/models/props/industrial/metal_barrel_hr_2.glb',
-    cardboardBox: '/models/props/industrial/cardboard_box_1.glb',
-    electricalEquipment: '/models/props/industrial/electrical_equipment_1.glb',
-    machinery: '/models/props/industrial/machinery_mx_1.glb',
-    pipes: '/models/props/industrial/pipes_hr_1.glb',
-    lamp1: '/models/props/industrial/lamp_mx_1_a_on.glb',
-    lamp2: '/models/props/industrial/lamp_mx_2_on.glb',
-    lamp3: '/models/props/industrial/lamp_mx_3_on.glb',
+    shelf: '/assets/models/props/industrial/shelf_mx_1.glb',
+    barrel1: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
+    barrel2: '/assets/models/props/industrial/metal_barrel_hr_2.glb',
+    cardboardBox: '/assets/models/props/industrial/cardboard_box_1.glb',
+    electricalEquipment: '/assets/models/props/industrial/electrical_equipment_1.glb',
+    machinery: '/assets/models/props/industrial/machinery_mx_1.glb',
+    pipes: '/assets/models/props/industrial/pipes_hr_1.glb',
+    lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
+    lamp2: '/assets/models/props/industrial/lamp_mx_2_on.glb',
+    lamp3: '/assets/models/props/industrial/lamp_mx_3_on.glb',
   };
 
   interface PropPlacement {
@@ -701,13 +863,23 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
       { frame: 0, value: 1 },
       { frame: 30, value: 0 },
     ]);
-    suitBody.animations = [fadeAnim];
-    suitHelmet.animations = [fadeAnim];
 
-    scene.beginAnimation(suitBody, 0, 30, false);
-    scene.beginAnimation(suitHelmet, 0, 30, false, 1, () => {
+    // Fade out the suit body and all its children (including GLB visual)
+    suitBody.animations = [fadeAnim];
+
+    // Also fade out GLB child meshes
+    const suitChildMeshes = suitBody.getChildMeshes();
+    for (const mesh of suitChildMeshes) {
+      mesh.animations = [fadeAnim.clone()];
+      scene.beginAnimation(mesh, 0, 30, false);
+    }
+
+    scene.beginAnimation(suitBody, 0, 30, false, 1, () => {
       suitBody.isVisible = false;
-      suitHelmet.isVisible = false;
+      // Hide all child GLB meshes
+      for (const mesh of suitChildMeshes) {
+        mesh.isVisible = false;
+      }
       callback();
     });
   };
@@ -883,7 +1055,14 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
     // Show platforms with wave animation
     for (let i = 0; i < holodeckPlatforms.length; i++) {
       setTimeout(() => {
+        // Show the collision mesh (for fallback rendering)
         holodeckPlatforms[i].isVisible = true;
+        // Also show all child GLB meshes
+        const childMeshes = holodeckPlatforms[i].getChildMeshes();
+        for (const mesh of childMeshes) {
+          mesh.isVisible = true;
+        }
+
         // Add slight bob animation
         const bob = new Animation(
           'platformBob',
@@ -903,11 +1082,16 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
       }, i * 300);
     }
 
-    // Show crouch obstacle
+    // Show crouch obstacle and passage walls
     setTimeout(
       () => {
         for (const obstacle of holodeckObstacles) {
           obstacle.isVisible = true;
+          // Also show all child GLB meshes
+          const childMeshes = obstacle.getChildMeshes();
+          for (const mesh of childMeshes) {
+            mesh.isVisible = true;
+          }
         }
       },
       holodeckPlatforms.length * 300 + 500
@@ -984,12 +1168,12 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
     // Dispose station meshes
     stationMeshes.dispose();
 
-    // Dispose interactive elements
+    // Dispose interactive elements (including their GLB children)
     dropPod.dispose();
     podCone.dispose();
     suitLocker.dispose();
     suitBody.dispose();
-    suitHelmet.dispose();
+    // suitHelmet is now null (integrated into suitBody GLB), skip disposal
     bayDoorLeft.dispose();
     bayDoorRight.dispose();
     doorLightLeft.dispose();

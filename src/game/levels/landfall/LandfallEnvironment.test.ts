@@ -112,7 +112,7 @@ vi.mock('../../core/Logger', () => ({
 }));
 
 // Mock Scene
-const createMockScene = () => ({
+const createMockScene = (): any => ({
   lights: [],
   meshes: [],
   materials: [],
@@ -469,49 +469,49 @@ describe('Environment Placement Configuration', () => {
 describe('Asset Path Configuration', () => {
   it('should reference valid GLB paths for industrial assets', () => {
     const industrialPaths = [
-      '/models/environment/industrial/shipping_container_mx_1.glb',
-      '/models/environment/industrial/water_tower_hm_1.glb',
-      '/models/environment/industrial/storage_tank_mx_1.glb',
+      '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+      '/assets/models/environment/industrial/water_tower_hm_1.glb',
+      '/assets/models/environment/industrial/storage_tank_mx_1.glb',
     ];
 
     for (const path of industrialPaths) {
-      expect(path).toMatch(/^\/models\/.+\.glb$/);
+      expect(path).toMatch(/^\/assets\/models\/.+\.glb$/);
     }
   });
 
   it('should reference valid GLB paths for station assets', () => {
     const stationPaths = [
-      '/models/environment/station/asphalt_hr_1_large.glb',
-      '/models/environment/station/platform_large_mx_1.glb',
-      '/models/environment/station-external/station02.glb',
+      '/assets/models/environment/station/asphalt_hr_1_large.glb',
+      '/assets/models/environment/station/platform_large_mx_1.glb',
+      '/assets/models/environment/station-external/station02.glb',
     ];
 
     for (const path of stationPaths) {
-      expect(path).toMatch(/^\/models\/.+\.glb$/);
+      expect(path).toMatch(/^\/assets\/models\/.+\.glb$/);
     }
   });
 
   it('should reference valid GLB paths for props', () => {
     const propPaths = [
-      '/models/props/modular/barricade_a_1.glb',
-      '/models/props/containers/gas_cylinder_mx_1.glb',
-      '/models/props/containers/metal_barrel_hr_1.glb',
+      '/assets/models/props/modular/barricade_a_1.glb',
+      '/assets/models/props/containers/gas_cylinder_mx_1.glb',
+      '/assets/models/props/containers/metal_barrel_hr_1.glb',
     ];
 
     for (const path of propPaths) {
-      expect(path).toMatch(/^\/models\/.+\.glb$/);
+      expect(path).toMatch(/^\/assets\/models\/.+\.glb$/);
     }
   });
 
   it('should reference valid GLB paths for modular sci-fi', () => {
     const modularPaths = [
-      '/models/environment/modular/Column_1.glb',
-      '/models/environment/modular/Props_Pod.glb',
-      '/models/environment/modular/Details_Plate_Large.glb',
+      '/assets/models/environment/modular/Column_1.glb',
+      '/assets/models/environment/modular/Props_Pod.glb',
+      '/assets/models/environment/modular/Details_Plate_Large.glb',
     ];
 
     for (const path of modularPaths) {
-      expect(path).toMatch(/^\/models\/.+\.glb$/);
+      expect(path).toMatch(/^\/assets\/models\/.+\.glb$/);
     }
   });
 });

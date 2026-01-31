@@ -43,9 +43,9 @@ import styles from './GameCanvas.module.css';
 
 /** Tall rock pillar GLBs for menu scene background decoration */
 const ROCK_FORMATION_GLBS = [
-  '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-  '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-  '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
 ];
 
 // Planet configuration

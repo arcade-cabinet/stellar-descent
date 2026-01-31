@@ -33,12 +33,12 @@ import { particleManager } from './ParticleManager';
 // ---------------------------------------------------------------------------
 
 /** Debris GLB models used for ice shard body and shatter fragments. */
-const ICE_SHARD_BODY_GLB = '/models/props/debris/brick_mx_1_0.glb';
+const ICE_SHARD_BODY_GLB = '/assets/models/props/debris/brick_mx_1_0.glb';
 const ICE_FRAGMENT_GLBS = [
-  '/models/props/debris/brick_mx_1_1.glb',
-  '/models/props/debris/brick_mx_1_2.glb',
-  '/models/props/debris/brick_mx_1_3.glb',
-  '/models/props/debris/brick_mx_2_0.glb',
+  '/assets/models/props/debris/brick_mx_1_1.glb',
+  '/assets/models/props/debris/brick_mx_1_2.glb',
+  '/assets/models/props/debris/brick_mx_1_3.glb',
+  '/assets/models/props/debris/brick_mx_2_0.glb',
 ];
 
 /** Whether GLB assets have been preloaded. */

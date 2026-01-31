@@ -177,11 +177,11 @@ describe('The Breach Enemies', () => {
 
   describe('Difficulty Management', () => {
     it('should set and get difficulty level', () => {
-      setEnemyDifficulty('veteran');
-      expect(getEnemyDifficulty()).toBe('veteran');
+      setEnemyDifficulty('hard');
+      expect(getEnemyDifficulty()).toBe('hard');
 
-      setEnemyDifficulty('legendary');
-      expect(getEnemyDifficulty()).toBe('legendary');
+      setEnemyDifficulty('nightmare');
+      expect(getEnemyDifficulty()).toBe('nightmare');
 
       setEnemyDifficulty('normal');
       expect(getEnemyDifficulty()).toBe('normal');
@@ -192,7 +192,7 @@ describe('The Breach Enemies', () => {
       resetEnemyAssets();
       // After reset, check default
       const difficulty = getEnemyDifficulty();
-      expect(['normal', 'veteran', 'legendary']).toContain(difficulty);
+      expect(['easy', 'normal', 'hard', 'nightmare']).toContain(difficulty);
     });
   });
 
@@ -355,12 +355,12 @@ describe('The Breach Enemies', () => {
 
     it('should not update dead enemies', () => {
       enemy.state = 'dead';
-      const originalPosition = { ...enemy.position };
+      const originalX = enemy.position.x;
 
       updateEnemyAI(enemy, playerPosition, 0.016);
 
       // Position should not change
-      expect(enemy.position.x).toBe(originalPosition.x);
+      expect(enemy.position.x).toBe(originalX);
     });
 
     it('should reduce attack cooldown over time', () => {

@@ -615,16 +615,16 @@ describe('SaveSystem', () => {
     });
 
     it('sets and gets difficulty', () => {
-      saveSystem.setDifficulty('brutal');
+      saveSystem.setDifficulty('nightmare');
       const diff = saveSystem.getDifficulty();
 
-      expect(diff).toBe('brutal');
+      expect(diff).toBe('nightmare');
     });
 
     it('gets default difficulty when not set', async () => {
       // newGame uses default difficulty
       const diff = saveSystem.getDifficulty();
-      expect(['easy', 'normal', 'hard', 'brutal']).toContain(diff);
+      expect(['easy', 'normal', 'hard', 'nightmare']).toContain(diff);
     });
   });
 

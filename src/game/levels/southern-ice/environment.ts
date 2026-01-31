@@ -13,6 +13,24 @@
  *
  * Aesthetic reference: Halo 3 "Sierra 117" crossed with The Thing's
  * Antarctic research base.
+ *
+ * GLB ASSET USAGE:
+ *   - Ice formations: alien-flora rocks with PBR ice material override
+ *   - Cave arches: alien-flora tall rocks with PBR ice material
+ *   - Outpost buildings: modular/ GLBs with frost tint
+ *   - Fencing: metal fence GLBs with frost tint
+ *   - Atmospheric props: barrels, hallway debris with frost tint
+ *   - Ice plants: alien-flora iceplant with frost tint
+ *
+ * VFX ELEMENTS (kept as MeshBuilder for special effects):
+ *   - Aurora ribbons: animated ribbon mesh
+ *   - Blizzard/snow particles: emitter boxes
+ *   - Ice cracks on lake: thin plane decals
+ *   - Thin ice patches: disc warning indicators
+ *   - Icicles in caves: tapered cylinders
+ *   - Frozen waterfall columns: tapered ice columns
+ *   - Heat zone rings: torus indicators
+ *   - Frost overlay: translucent box overlay
  */
 
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
@@ -21,6 +39,7 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
@@ -47,51 +66,60 @@ import {
 /** All GLB paths used by the ice environment. Exported for preloading. */
 export const ICE_ENVIRONMENT_GLB_PATHS: readonly string[] = [
   // Quaternius modular kit - wall / window segments
-  '/models/environment/modular/LongWindow_Wall_SideA.glb',
-  '/models/environment/modular/LongWindow_Wall_SideB.glb',
-  '/models/environment/modular/SmallWindows_Wall_SideA.glb',
-  '/models/environment/modular/SmallWindows_Wall_SideB.glb',
+  '/assets/models/environment/modular/LongWindow_Wall_SideA.glb',
+  '/assets/models/environment/modular/LongWindow_Wall_SideB.glb',
+  '/assets/models/environment/modular/SmallWindows_Wall_SideA.glb',
+  '/assets/models/environment/modular/SmallWindows_Wall_SideB.glb',
   // Quaternius modular kit - props
-  '/models/environment/modular/Props_Capsule.glb',
-  '/models/environment/modular/Props_Pod.glb',
-  '/models/environment/modular/Props_Vessel.glb',
-  '/models/environment/modular/Props_Vessel_Short.glb',
-  '/models/environment/modular/Props_Vessel_Tall.glb',
-  '/models/environment/modular/Props_Crate.glb',
-  '/models/environment/modular/Props_CrateLong.glb',
-  '/models/environment/modular/Props_ContainerFull.glb',
+  '/assets/models/environment/modular/Props_Capsule.glb',
+  '/assets/models/environment/modular/Props_Pod.glb',
+  '/assets/models/environment/modular/Props_Vessel.glb',
+  '/assets/models/environment/modular/Props_Vessel_Short.glb',
+  '/assets/models/environment/modular/Props_Vessel_Tall.glb',
+  '/assets/models/environment/modular/Props_Crate.glb',
+  '/assets/models/environment/modular/Props_CrateLong.glb',
+  '/assets/models/environment/modular/Props_ContainerFull.glb',
   // Quaternius modular kit - detail pieces
-  '/models/environment/modular/Details_Cylinder.glb',
-  '/models/environment/modular/Details_Cylinder_Long.glb',
-  '/models/environment/modular/Details_Dots.glb',
-  '/models/environment/modular/Details_Hexagon.glb',
+  '/assets/models/environment/modular/Details_Cylinder.glb',
+  '/assets/models/environment/modular/Details_Cylinder_Long.glb',
+  '/assets/models/environment/modular/Details_Dots.glb',
+  '/assets/models/environment/modular/Details_Hexagon.glb',
   // Metal fences
-  '/models/props/modular/metal_fence_hr_1.glb',
-  '/models/props/modular/metal_fence_hr_1_pillar_1.glb',
-  '/models/props/modular/metal_fence_hr_1_pillar_1_corner.glb',
-  '/models/props/modular/metal_fence_hr_1_pillar_1_corner_tall.glb',
-  '/models/props/modular/metal_fence_hr_1_pillar_1_tall.glb',
-  '/models/props/modular/metal_fence_hr_1_tall.glb',
+  '/assets/models/props/modular/metal_fence_hr_1.glb',
+  '/assets/models/props/modular/metal_fence_hr_1_pillar_1.glb',
+  '/assets/models/props/modular/metal_fence_hr_1_pillar_1_corner.glb',
+  '/assets/models/props/modular/metal_fence_hr_1_pillar_1_corner_tall.glb',
+  '/assets/models/props/modular/metal_fence_hr_1_pillar_1_tall.glb',
+  '/assets/models/props/modular/metal_fence_hr_1_tall.glb',
   // Station external (crashed ship)
-  '/models/environment/station-external/station05.glb',
+  '/assets/models/environment/station-external/station05.glb',
   // Alien-flora rocks
-  '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-  '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-  '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
-  '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+  '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
   // Industrial props
-  '/models/environment/industrial/chimney_a_1.glb',
-  '/models/props/containers/metal_barrel_hr_1.glb',
+  '/assets/models/environment/industrial/chimney_a_1.glb',
+  '/assets/models/props/containers/metal_barrel_hr_1.glb',
   // Alien-flora medium rocks
-  '/models/environment/alien-flora/alien_rock_medium_1.glb',
-  '/models/environment/alien-flora/alien_rock_medium_2.glb',
-  '/models/environment/alien-flora/alien_rock_medium_3.glb',
+  '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+  '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+  '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
   // Station pillars
-  '/models/environment/station/pillar_hr_2.glb',
-  '/models/environment/station/pillar_hr_1_broken.glb',
+  '/assets/models/environment/station/pillar_hr_2.glb',
+  '/assets/models/environment/station/pillar_hr_1_broken.glb',
   // Pipe props
-  '/models/props/pipes/pipe_e_1.glb',
-  '/models/props/pipes/pipe_e_2.glb',
+  '/assets/models/props/pipes/pipe_e_1.glb',
+  '/assets/models/props/pipes/pipe_e_2.glb',
+  // Atmospheric props (weather / environmental ambiance)
+  '/assets/models/props/atmospheric/barrel.glb',
+  '/assets/models/props/atmospheric/hallway 1.glb',
+  '/assets/models/props/atmospheric/hallway 2.glb',
+  // Ice plant (frozen vegetation)
+  '/assets/models/environment/alien-flora/alien_iceplant.glb',
+  // Station floor pieces (cave floor replacements)
+  '/assets/models/environment/station/asphalt_hr_1.glb',
+  '/assets/models/environment/station/floor_ceiling_hs_1_slope.glb',
 ] as const;
 
 export interface TemperatureZone {
@@ -164,60 +192,72 @@ const DEFAULT_CONFIG: IceEnvironmentConfig = {
 
 const GLB = {
   // Quaternius modular kit - wall / window segments
-  longWindowA: '/models/environment/modular/LongWindow_Wall_SideA.glb',
-  longWindowB: '/models/environment/modular/LongWindow_Wall_SideB.glb',
-  smallWindowsA: '/models/environment/modular/SmallWindows_Wall_SideA.glb',
-  smallWindowsB: '/models/environment/modular/SmallWindows_Wall_SideB.glb',
+  longWindowA: '/assets/models/environment/modular/LongWindow_Wall_SideA.glb',
+  longWindowB: '/assets/models/environment/modular/LongWindow_Wall_SideB.glb',
+  smallWindowsA: '/assets/models/environment/modular/SmallWindows_Wall_SideA.glb',
+  smallWindowsB: '/assets/models/environment/modular/SmallWindows_Wall_SideB.glb',
 
   // Quaternius modular kit - props
-  capsule: '/models/environment/modular/Props_Capsule.glb',
-  pod: '/models/environment/modular/Props_Pod.glb',
-  vessel: '/models/environment/modular/Props_Vessel.glb',
-  vesselShort: '/models/environment/modular/Props_Vessel_Short.glb',
-  vesselTall: '/models/environment/modular/Props_Vessel_Tall.glb',
-  crate: '/models/environment/modular/Props_Crate.glb',
-  crateLong: '/models/environment/modular/Props_CrateLong.glb',
-  containerFull: '/models/environment/modular/Props_ContainerFull.glb',
+  capsule: '/assets/models/environment/modular/Props_Capsule.glb',
+  pod: '/assets/models/environment/modular/Props_Pod.glb',
+  vessel: '/assets/models/environment/modular/Props_Vessel.glb',
+  vesselShort: '/assets/models/environment/modular/Props_Vessel_Short.glb',
+  vesselTall: '/assets/models/environment/modular/Props_Vessel_Tall.glb',
+  crate: '/assets/models/environment/modular/Props_Crate.glb',
+  crateLong: '/assets/models/environment/modular/Props_CrateLong.glb',
+  containerFull: '/assets/models/environment/modular/Props_ContainerFull.glb',
 
   // Quaternius modular kit - detail pieces
-  detailCylinder: '/models/environment/modular/Details_Cylinder.glb',
-  detailCylLong: '/models/environment/modular/Details_Cylinder_Long.glb',
-  detailDots: '/models/environment/modular/Details_Dots.glb',
-  detailHexagon: '/models/environment/modular/Details_Hexagon.glb',
+  detailCylinder: '/assets/models/environment/modular/Details_Cylinder.glb',
+  detailCylLong: '/assets/models/environment/modular/Details_Cylinder_Long.glb',
+  detailDots: '/assets/models/environment/modular/Details_Dots.glb',
+  detailHexagon: '/assets/models/environment/modular/Details_Hexagon.glb',
 
   // Metal fences
-  metalFence: '/models/props/modular/metal_fence_hr_1.glb',
-  metalPillar: '/models/props/modular/metal_fence_hr_1_pillar_1.glb',
-  metalCorner: '/models/props/modular/metal_fence_hr_1_pillar_1_corner.glb',
-  metalCornerTall: '/models/props/modular/metal_fence_hr_1_pillar_1_corner_tall.glb',
-  metalPillarTall: '/models/props/modular/metal_fence_hr_1_pillar_1_tall.glb',
-  metalFenceTall: '/models/props/modular/metal_fence_hr_1_tall.glb',
+  metalFence: '/assets/models/props/modular/metal_fence_hr_1.glb',
+  metalPillar: '/assets/models/props/modular/metal_fence_hr_1_pillar_1.glb',
+  metalCorner: '/assets/models/props/modular/metal_fence_hr_1_pillar_1_corner.glb',
+  metalCornerTall: '/assets/models/props/modular/metal_fence_hr_1_pillar_1_corner_tall.glb',
+  metalPillarTall: '/assets/models/props/modular/metal_fence_hr_1_pillar_1_tall.glb',
+  metalFenceTall: '/assets/models/props/modular/metal_fence_hr_1_tall.glb',
 
   // Station external (crashed ship)
-  station05: '/models/environment/station-external/station05.glb',
+  station05: '/assets/models/environment/station-external/station05.glb',
 
   // Alien-flora rocks (cave arch pillars and roof boulders)
-  tallRock1: '/models/environment/alien-flora/alien_tall_rock_1_01.glb',
-  tallRock2: '/models/environment/alien-flora/alien_tall_rock_2_01.glb',
-  tallRock3: '/models/environment/alien-flora/alien_tall_rock_3_01.glb',
-  boulder: '/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+  tallRock1: '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  tallRock2: '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  tallRock3: '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+  boulder: '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
 
   // Industrial props (outpost antenna and heater)
-  chimney: '/models/environment/industrial/chimney_a_1.glb',
-  metalBarrel: '/models/props/containers/metal_barrel_hr_1.glb',
+  chimney: '/assets/models/environment/industrial/chimney_a_1.glb',
+  metalBarrel: '/assets/models/props/containers/metal_barrel_hr_1.glb',
 
   // Alien-flora medium rocks (ice formations, snow drifts, warning poles)
-  rockMedium1: '/models/environment/alien-flora/alien_rock_medium_1.glb',
-  rockMedium2: '/models/environment/alien-flora/alien_rock_medium_2.glb',
-  rockMedium3: '/models/environment/alien-flora/alien_rock_medium_3.glb',
+  rockMedium1: '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+  rockMedium2: '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+  rockMedium3: '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
 
   // Station pillars (warning poles around frozen lake)
-  stationPillar: '/models/environment/station/pillar_hr_2.glb',
-  stationPillarBroken: '/models/environment/station/pillar_hr_1_broken.glb',
+  stationPillar: '/assets/models/environment/station/pillar_hr_2.glb',
+  stationPillarBroken: '/assets/models/environment/station/pillar_hr_1_broken.glb',
 
   // Pipe props (ice formation replacement for tall cylinders)
-  pipeE1: '/models/props/pipes/pipe_e_1.glb',
-  pipeE2: '/models/props/pipes/pipe_e_2.glb',
+  pipeE1: '/assets/models/props/pipes/pipe_e_1.glb',
+  pipeE2: '/assets/models/props/pipes/pipe_e_2.glb',
+
+  // Atmospheric props (weather / environmental ambiance)
+  atmosphericBarrel: '/assets/models/props/atmospheric/barrel.glb',
+  atmosphericHallway1: '/assets/models/props/atmospheric/hallway 1.glb',
+  atmosphericHallway2: '/assets/models/props/atmospheric/hallway 2.glb',
+
+  // Ice plant (frozen vegetation)
+  icePlant: '/assets/models/environment/alien-flora/alien_iceplant.glb',
+
+  // Station floor pieces (cave floor replacements)
+  stationFloor: '/assets/models/environment/station/asphalt_hr_1.glb',
+  stationFloorSlope: '/assets/models/environment/station/floor_ceiling_hs_1_slope.glb',
 } as const;
 
 // ============================================================================
@@ -373,6 +413,73 @@ function createFrostOverlayMaterial(scene: Scene, name: string): StandardMateria
   mat.alpha = 0.35;
   mat.emissiveColor = new Color3(0.03, 0.05, 0.08);
   mat.backFaceCulling = false;
+  return mat;
+}
+
+// ============================================================================
+// ICE PBR MATERIAL -- high-quality ice material for GLB meshes
+// ============================================================================
+
+/**
+ * Create a PBR ice material for GLB-loaded meshes (ice formations, frozen rocks).
+ * This material provides realistic ice appearance with subsurface scattering hints,
+ * high reflectivity, and translucent blue-white coloring.
+ */
+export function createIcePBRMaterial(scene: Scene, name = 'icePBR'): PBRMaterial {
+  const mat = new PBRMaterial(name, scene);
+
+  // Ice is blue-white with high albedo
+  mat.albedoColor = new Color3(0.8, 0.9, 1.0);
+
+  // Very smooth/glossy for ice surface
+  mat.roughness = 0.1;
+
+  // Non-metallic (ice is a dielectric)
+  mat.metallic = 0.0;
+
+  // Semi-transparent for ice depth effect
+  mat.alpha = 0.9;
+
+  // Enable transparency
+  mat.transparencyMode = PBRMaterial.PBRMATERIAL_ALPHABLEND;
+
+  // Subtle emissive for subsurface scattering approximation
+  mat.emissiveColor = new Color3(0.02, 0.04, 0.06);
+
+  // Index of refraction for ice (~1.31)
+  mat.indexOfRefraction = 1.31;
+
+  // Back face culling off for transparency
+  mat.backFaceCulling = false;
+
+  // Enable specular anti-aliasing for smooth reflections
+  mat.enableSpecularAntiAliasing = true;
+
+  return mat;
+}
+
+/**
+ * Create a PBR frost material for coating existing GLB surfaces.
+ * Less transparent than pure ice, more matte due to frost crystals.
+ */
+export function createFrostPBRMaterial(scene: Scene, name = 'frostPBR'): PBRMaterial {
+  const mat = new PBRMaterial(name, scene);
+
+  // Frost is whiter and more opaque than clear ice
+  mat.albedoColor = new Color3(0.85, 0.9, 0.95);
+
+  // More rough due to crystalline frost structure
+  mat.roughness = 0.35;
+
+  // Non-metallic
+  mat.metallic = 0.0;
+
+  // More opaque frost layer
+  mat.alpha = 0.95;
+
+  // Subtle cold emissive
+  mat.emissiveColor = new Color3(0.01, 0.02, 0.03);
+
   return mat;
 }
 
@@ -733,20 +840,49 @@ function createIceCaveBase(scene: Scene, position: Vector3, index: number): Tran
     }
   );
 
-  // Interior floor (terrain with frost overlay -- kept as MeshBuilder)
-  const floor = MeshBuilder.CreateGround(
-    `caveFloor_${index}`,
-    { width: 10, height: 14, subdivisions: 4 },
-    scene
-  );
-  const floorMat = new StandardMaterial(`caveFloorMat_${index}`, scene);
-  floorMat.diffuseColor = new Color3(0.35, 0.4, 0.48); // Slightly blue-grey for ice tint
-  floorMat.specularColor = new Color3(0.2, 0.25, 0.3);
-  floorMat.specularPower = 32;
-  floorMat.emissiveColor = new Color3(0.02, 0.03, 0.05); // Subtle ice glow
-  floor.material = floorMat;
-  floor.parent = root;
-  floor.position.set(0, 0.1, -4);
+  // Interior floor (GLB station floor -- replaces MeshBuilder.CreateGround)
+  // Use multiple tiled floor pieces to cover the cave interior area
+  const floorPlacements: GLBPlacement[] = [
+    // Row 1 (front of cave)
+    {
+      path: GLB.stationFloor,
+      name: `caveFloor_${index}_0`,
+      position: new Vector3(position.x - 3, 0.05, position.z - 1),
+      rotationY: 0,
+      scale: 2.0,
+    },
+    {
+      path: GLB.stationFloor,
+      name: `caveFloor_${index}_1`,
+      position: new Vector3(position.x + 3, 0.05, position.z - 1),
+      rotationY: 0,
+      scale: 2.0,
+    },
+    // Row 2 (deeper into cave)
+    {
+      path: GLB.stationFloor,
+      name: `caveFloor_${index}_2`,
+      position: new Vector3(position.x - 3, 0.05, position.z - 6),
+      rotationY: Math.PI * 0.5,
+      scale: 2.0,
+    },
+    {
+      path: GLB.stationFloor,
+      name: `caveFloor_${index}_3`,
+      position: new Vector3(position.x + 3, 0.05, position.z - 6),
+      rotationY: Math.PI * 0.5,
+      scale: 2.0,
+    },
+    // Sloped transition at entrance
+    {
+      path: GLB.stationFloorSlope,
+      name: `caveFloorSlope_${index}`,
+      position: new Vector3(position.x, 0.1, position.z + 2),
+      rotationY: Math.PI,
+      scale: 1.8,
+    },
+  ];
+  iceCaveGLBPlacements.push(...floorPlacements);
 
   // Icicles hanging from ceiling (VFX -- kept as MeshBuilder)
   const icicleCount = 8 + Math.floor(Math.random() * 5);
@@ -1277,6 +1413,115 @@ function createLakeSurroundings(
 }
 
 // ============================================================================
+// ATMOSPHERIC PROPS (weather-themed environmental details) -- GLB models
+// ============================================================================
+
+/**
+ * Create atmospheric prop placements using GLB barrels and hallway debris.
+ * These add environmental storytelling elements scattered throughout the level.
+ * Returns GLBPlacement array to be loaded by the batch loader.
+ */
+function buildAtmosphericPropPlacements(): GLBPlacement[] {
+  const placements: GLBPlacement[] = [];
+
+  // Scattered atmospheric barrels (fuel drums, supply containers) around the level
+  const barrelPositions = [
+    // Near outpost perimeter
+    { pos: new Vector3(25, 0, -35), rotY: 0.4, scale: 1.2 },
+    { pos: new Vector3(-18, 0, -60), rotY: 1.7, scale: 1.1 },
+    // Along path to frozen lake
+    { pos: new Vector3(-40, 0, -90), rotY: 2.1, scale: 1.3 },
+    { pos: new Vector3(55, 0, -85), rotY: 0.9, scale: 1.0 },
+    // Near cave entrances
+    { pos: new Vector3(-75, 0, -115), rotY: 1.2, scale: 1.2 },
+    { pos: new Vector3(65, 0, -195), rotY: 2.8, scale: 1.1 },
+    { pos: new Vector3(-25, 0, -275), rotY: 0.5, scale: 1.3 },
+  ];
+
+  for (let i = 0; i < barrelPositions.length; i++) {
+    const bp = barrelPositions[i];
+    placements.push({
+      path: GLB.atmosphericBarrel,
+      name: `atmos_barrel_${i}`,
+      position: bp.pos,
+      rotationY: bp.rotY,
+      scale: bp.scale,
+    });
+  }
+
+  // Collapsed hallway debris (broken station sections buried in snow)
+  const hallwayPlacements = [
+    // Half-buried research station hallway segment near outpost
+    {
+      path: GLB.atmosphericHallway1,
+      name: 'atmos_hallway_1',
+      position: new Vector3(70, -1.5, -70),
+      rotationY: -0.3,
+      scale: 2.0,
+    },
+    // Another collapsed section near the frozen lake
+    {
+      path: GLB.atmosphericHallway2,
+      name: 'atmos_hallway_2',
+      position: new Vector3(-90, -2.0, -140),
+      rotationY: 1.8,
+      scale: 2.2,
+    },
+  ];
+
+  placements.push(...hallwayPlacements);
+
+  return placements;
+}
+
+// ============================================================================
+// ICE PLANTS (frozen vegetation) -- GLB models
+// ============================================================================
+
+/**
+ * Create ice plant placements using the alien_iceplant GLB.
+ * These are scattered throughout the level to add frozen vegetation variety.
+ * Returns GLBPlacement array to be loaded by the batch loader.
+ */
+function buildIcePlantPlacements(): GLBPlacement[] {
+  const placements: GLBPlacement[] = [];
+
+  // Ice plant positions scattered across the frozen wasteland
+  const icePlantPositions = [
+    // Ice fields area (northern section)
+    { pos: new Vector3(-30, 0, 10), rotY: 0.5, scale: 1.8 },
+    { pos: new Vector3(45, 0, -15), rotY: 2.1, scale: 1.5 },
+    { pos: new Vector3(-55, 0, -45), rotY: 1.3, scale: 2.0 },
+    { pos: new Vector3(20, 0, -70), rotY: 0.8, scale: 1.6 },
+    // Around frozen lake perimeter
+    { pos: new Vector3(65, 0, -130), rotY: 1.9, scale: 1.7 },
+    { pos: new Vector3(-70, 0, -155), rotY: 2.5, scale: 1.4 },
+    { pos: new Vector3(40, 0, -185), rotY: 0.3, scale: 1.9 },
+    { pos: new Vector3(-45, 0, -200), rotY: 1.1, scale: 1.5 },
+    // Near ice cavern entrances
+    { pos: new Vector3(-85, 0, -130), rotY: 2.2, scale: 1.6 },
+    { pos: new Vector3(55, 0, -210), rotY: 0.7, scale: 1.8 },
+    { pos: new Vector3(-35, 0, -290), rotY: 1.6, scale: 1.4 },
+    // Deeper cavern area
+    { pos: new Vector3(15, 0, -260), rotY: 2.9, scale: 1.7 },
+    { pos: new Vector3(-60, 0, -250), rotY: 0.2, scale: 2.1 },
+  ];
+
+  for (let i = 0; i < icePlantPositions.length; i++) {
+    const ip = icePlantPositions[i];
+    placements.push({
+      path: GLB.icePlant,
+      name: `icePlant_${i}`,
+      position: ip.pos,
+      rotationY: ip.rotY,
+      scale: ip.scale,
+    });
+  }
+
+  return placements;
+}
+
+// ============================================================================
 // ICE FORMATIONS (crystalline pillars, wind-carved structures) -- GLB rocks
 // ============================================================================
 
@@ -1491,6 +1736,9 @@ export function createIceEnvironment(
   const caveRockNodes = placeGLBBatchSync(scene, iceCaveGLBPlacements);
   const lakePoleNodes = placeGLBBatchSync(scene, frozenLakeGLBPlacements);
   const iceFormationNodes = placeGLBBatchSync(scene, buildIceFormationPlacements());
+  // Atmospheric props (barrels, hallway debris) and ice plants (frozen vegetation)
+  const atmosphericProps = placeGLBBatchSync(scene, buildAtmosphericPropPlacements());
+  const icePlantNodes = placeGLBBatchSync(scene, buildIcePlantPlacements());
 
   const outpost = outpostResult.root;
   allGlbNodes.push(...outpostResult.glbNodes);
@@ -1503,9 +1751,28 @@ export function createIceEnvironment(
   allGlbNodes.push(...caveRockNodes);
   allGlbNodes.push(...lakePoleNodes);
   allGlbNodes.push(...iceFormationNodes);
+  allGlbNodes.push(...atmosphericProps);
+  allGlbNodes.push(...icePlantNodes);
 
-  // Apply frost tint to all GLB-loaded meshes for visual cohesion
-  applyFrostTint(scene, allGlbNodes);
+  // Apply full ice PBR material override to ice formations (crystalline pillars)
+  // These should look like solid ice, not just frosted rock
+  applyIceMaterialOverride(scene, iceFormationNodes, 'iceFormationMat');
+
+  // Apply full ice PBR material to cave rock arches (frozen cave entrance)
+  applyIceMaterialOverride(scene, caveRockNodes, 'caveIceMat');
+
+  // Apply frost tint to remaining GLB-loaded meshes for visual cohesion
+  // (outpost, fences, props - these get frosted but not fully iced)
+  const frostTintNodes = [
+    ...outpostResult.glbNodes,
+    ...fenceNodes,
+    ...(crashedStation ? [crashedStation] : []),
+    ...lakeProps,
+    ...lakePoleNodes,
+    ...atmosphericProps,
+    ...icePlantNodes,
+  ];
+  applyFrostTint(scene, frostTintNodes);
 
   return {
     terrain,
@@ -1532,6 +1799,8 @@ export function createIceEnvironment(
  * This modifies material diffuseColor toward ice-white and adds a faint
  * emissive glow, giving the appearance of frost and ice buildup on all
  * exterior surfaces.
+ *
+ * Supports both StandardMaterial and PBRMaterial for GLB assets.
  */
 function applyFrostTint(scene: Scene, nodes: TransformNode[]): void {
   const frostBlend = 0.25; // How much to blend toward frost colour
@@ -1554,7 +1823,42 @@ function applyFrostTint(scene: Scene, nodes: TransformNode[]): void {
           frostBlend
         );
         mat.specularPower = Math.min(mat.specularPower + 16, 128);
+      } else if (mesh.material instanceof PBRMaterial) {
+        const mat = mesh.material;
+        // Blend albedo toward frost color
+        mat.albedoColor = Color3.Lerp(mat.albedoColor, frostColor, frostBlend);
+        // Add subtle emissive
+        mat.emissiveColor = Color3.Lerp(mat.emissiveColor, emissiveBoost, 0.5);
+        // Reduce roughness slightly for icy sheen (frozen surfaces are smoother)
+        const currentRoughness = mat.roughness ?? 0.5;
+        mat.roughness = Math.max(0.1, currentRoughness - 0.1 * frostBlend);
       }
+    }
+  }
+}
+
+/**
+ * Apply full ice material override to meshes under the given nodes.
+ * This replaces the original material entirely with ice PBR material,
+ * suitable for ice formations like crystalline pillars and frozen rocks.
+ *
+ * @param scene - The Babylon scene
+ * @param nodes - Transform nodes containing meshes to convert
+ * @param materialName - Base name for the ice material
+ */
+function applyIceMaterialOverride(scene: Scene, nodes: TransformNode[], materialName = 'iceOverride'): void {
+  // Create shared ice material for performance
+  const iceMat = createIcePBRMaterial(scene, materialName);
+
+  for (const node of nodes) {
+    const meshes = node.getChildMeshes(false);
+    for (const mesh of meshes) {
+      // Store original material reference for potential restoration
+      (mesh as AbstractMesh & { _originalMaterial?: PBRMaterial | StandardMaterial | null })._originalMaterial =
+        mesh.material as PBRMaterial | StandardMaterial | null;
+
+      // Apply ice material
+      mesh.material = iceMat;
     }
   }
 }

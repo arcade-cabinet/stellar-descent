@@ -760,7 +760,7 @@ export function categoryToEffectType(
  * Get the GLB model path for a weapon (absolute from webroot).
  */
 export function getWeaponGLBPath(id: WeaponId): string {
-  return `/models/props/weapons/${WEAPONS[id].glbFile}`;
+  return `/assets/models/props/weapons/${WEAPONS[id].glbFile}`;
 }
 
 // ---------------------------------------------------------------------------

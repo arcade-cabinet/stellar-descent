@@ -281,7 +281,11 @@ export default ({ mode }: any) => {
       },
     },
     optimizeDeps: {
-      exclude: ['@babylonjs/havok'],
+      exclude: [
+        '@babylonjs/havok',
+        'jeep-sqlite',
+        'sql.js',
+      ],
     },
   });
 };

@@ -81,43 +81,43 @@ interface GLBPlacement {
 
 const PATHS = {
   // Barricades (military defensive cover)
-  barricade_b1: '/models/props/modular/barricade_b_1.glb',
-  barricade_b2: '/models/props/modular/barricade_b_2.glb',
-  barricade_b3: '/models/props/modular/barricade_b_3.glb',
-  barricade_b4: '/models/props/modular/barricade_b_4.glb',
-  barricade_a1: '/models/props/modular/barricade_a_1.glb',
-  barricade_a2: '/models/props/modular/barricade_a_2.glb',
+  barricade_b1: '/assets/models/props/modular/barricade_b_1.glb',
+  barricade_b2: '/assets/models/props/modular/barricade_b_2.glb',
+  barricade_b3: '/assets/models/props/modular/barricade_b_3.glb',
+  barricade_b4: '/assets/models/props/modular/barricade_b_4.glb',
+  barricade_a1: '/assets/models/props/modular/barricade_a_1.glb',
+  barricade_a2: '/assets/models/props/modular/barricade_a_2.glb',
 
   // Industrial structures (battlefield landmarks)
-  water_tower: '/models/environment/industrial/water_tower_hm_1.glb',
-  platform: '/models/environment/industrial/platform_mx_1.glb',
-  boiler: '/models/environment/industrial/boiler_hx_4.glb',
-  storage_tank: '/models/environment/industrial/storage_tank_mx_1.glb',
-  shipping_container: '/models/environment/industrial/shipping_container_mx_1.glb',
-  shipping_container_hollow: '/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  water_tower: '/assets/models/environment/industrial/water_tower_hm_1.glb',
+  platform: '/assets/models/environment/industrial/platform_mx_1.glb',
+  boiler: '/assets/models/environment/industrial/boiler_hx_4.glb',
+  storage_tank: '/assets/models/environment/industrial/storage_tank_mx_1.glb',
+  shipping_container: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+  shipping_container_hollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
 
   // Station external (burning wreckage on horizon)
-  station_wreck: '/models/environment/station-external/station03.glb',
+  station_wreck: '/assets/models/environment/station-external/station03.glb',
 
   // Decal posters (military propaganda on barricades)
-  poster_5: '/models/props/decals/poster_cx_5.glb',
-  poster_9: '/models/props/decals/poster_cx_9.glb',
+  poster_5: '/assets/models/props/decals/poster_cx_5.glb',
+  poster_9: '/assets/models/props/decals/poster_cx_9.glb',
 
   // Props (supply crates, debris)
-  wooden_crate: '/models/props/containers/wooden_crate_1.glb',
-  metal_barrel: '/models/props/containers/metal_barrel_hr_1.glb',
-  metal_barrel_2: '/models/props/containers/metal_barrel_hr_2.glb',
-  scrap_metal: '/models/props/containers/scrap_metal_mx_1.glb',
-  gravel_pile: '/models/props/debris/gravel_pile_hr_2.glb',
-  bricks_stacked: '/models/props/debris/bricks_stacked_mx_1.glb',
-  cement_bags: '/models/props/containers/cement_bags_mp_1_pallet_1.glb',
-  jerrycan: '/models/props/containers/jerrycan_mx_1.glb',
-  tire: '/models/props/containers/tire_1.glb',
-  toolbox: '/models/props/containers/toolbox_mx_1.glb',
+  wooden_crate: '/assets/models/props/containers/wooden_crate_1.glb',
+  metal_barrel: '/assets/models/props/containers/metal_barrel_hr_1.glb',
+  metal_barrel_2: '/assets/models/props/containers/metal_barrel_hr_2.glb',
+  scrap_metal: '/assets/models/props/containers/scrap_metal_mx_1.glb',
+  gravel_pile: '/assets/models/props/debris/gravel_pile_hr_2.glb',
+  bricks_stacked: '/assets/models/props/debris/bricks_stacked_mx_1.glb',
+  cement_bags: '/assets/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+  jerrycan: '/assets/models/props/containers/jerrycan_mx_1.glb',
+  tire: '/assets/models/props/containers/tire_1.glb',
+  toolbox: '/assets/models/props/containers/toolbox_mx_1.glb',
 
   // Fencing / perimeter
-  concrete_fence: '/models/props/modular/concrete_fence_hr_1.glb',
-  metal_fence: '/models/props/modular/metal_fence_hr_1.glb',
+  concrete_fence: '/assets/models/props/modular/concrete_fence_hr_1.glb',
+  metal_fence: '/assets/models/props/modular/metal_fence_hr_1.glb',
 } as const;
 
 // ============================================================================

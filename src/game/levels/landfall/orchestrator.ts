@@ -65,7 +65,7 @@ import {
 } from './LandfallEnvironment';
 
 // Import modular components
-import type { DropPhase, LandingOutcome, Asteroid, DistantThreat, SurfaceEnemy } from './types';
+import type { DropPhase, LandingOutcome, Asteroid, DistantThreat, DistantSpaceship, SurfaceEnemy } from './types';
 import { VehicleController } from '../canyon-run/VehicleController';
 import {
   preloadVehicleAssets,
@@ -75,6 +75,7 @@ import {
   ALL_LANDFALL_GLB_PATHS,
   SURFACE_GLB_PATHS,
   ARENA_GLB_PATHS,
+  DROP_POD_GLB_PATHS,
   FREEFALL_FOV,
   POWERED_DESCENT_FOV,
   SURFACE_FOV,
@@ -99,6 +100,9 @@ import {
   DISTANT_THREAT_DEFINITIONS,
   spawnDistantThreat,
   updateDistantThreat,
+  DISTANT_SPACESHIP_DEFINITIONS,
+  spawnDistantSpaceship,
+  updateDistantSpaceship,
 } from './halo-drop';
 import {
   spawnFirstEncounterEnemy,
@@ -169,6 +173,9 @@ export class LandfallLevel extends BaseLevel {
   private coverObjects: (Mesh | TransformNode)[] = [];
   private glbEnvironment: LandfallEnvironmentNodes | null = null;
 
+  // Drop pod GLB for powered descent phase
+  private dropPodInterior: TransformNode | null = null;
+
   // Anchor Station
   private anchorStation: AnchorStationNodes | null = null;
 
@@ -197,6 +204,7 @@ export class LandfallLevel extends BaseLevel {
 
   // Distant threats
   private distantThreats: DistantThreat[] = [];
+  private distantSpaceships: DistantSpaceship[] = [];
   private threatsSpawned = false;
 
   // Landing outcome
@@ -277,6 +285,7 @@ export class LandfallLevel extends BaseLevel {
     this.anchorStation = createAnchorStation(this.scene);
     this.createFreefallView();
     this.createPoweredDescentView();
+    this.createDropPodInterior();
     this.createEntryEffects();
     this.createLandingZone();
     this.createSurface();
@@ -382,6 +391,7 @@ export class LandfallLevel extends BaseLevel {
 
   private async preloadDistantThreats(): Promise<void> {
     try {
+      // Preload vehicle threats
       await Promise.all([
         AssetManager.loadAsset('vehicles', 'wraith', this.scene),
         AssetManager.loadAsset('vehicles', 'phantom', this.scene),
@@ -389,6 +399,9 @@ export class LandfallLevel extends BaseLevel {
     } catch (error) {
       log.warn('Could not preload vehicle models:', error);
     }
+
+    // Preload spaceship GLBs (already added to ALL_LANDFALL_GLB_PATHS, but ensure they are loaded)
+    // The spaceships are preloaded via preloadAssets() which loads ALL_LANDFALL_GLB_PATHS
   }
 
   private createStarfield(): void {
@@ -473,6 +486,37 @@ export class LandfallLevel extends BaseLevel {
     this.thrusterGlow.material = thrusterMat;
     this.thrusterGlow.position.set(0, -1, 1);
     this.thrusterGlow.rotation.x = Math.PI / 2;
+  }
+
+  /**
+   * Create the drop pod interior GLB model for powered descent phase.
+   * Uses Props_Pod.glb as the interior frame visible around the player.
+   */
+  private createDropPodInterior(): void {
+    // Create drop pod interior from GLB
+    const podNode = AssetManager.createInstanceByPath(
+      DROP_POD_GLB_PATHS.dropPod,
+      'dropPodInterior',
+      this.scene,
+      true,
+      'vehicle'
+    );
+
+    if (podNode) {
+      // Position around the camera for first-person interior view
+      podNode.position.set(0, -0.5, 0.8);
+      podNode.rotation.set(Math.PI / 2, 0, 0);
+      podNode.scaling.setAll(1.2);
+      podNode.setEnabled(false);
+      this.dropPodInterior = podNode;
+
+      // Add interior lighting from control panels
+      const interiorLight = new PointLight('dropPodLight', new Vector3(0, 0, 0.5), this.scene);
+      interiorLight.diffuse = new Color3(0.3, 0.5, 0.8);
+      interiorLight.intensity = 0.3;
+      interiorLight.range = 3;
+      interiorLight.parent = podNode;
+    }
   }
 
   private createEntryEffects(): void {
@@ -760,6 +804,11 @@ export class LandfallLevel extends BaseLevel {
     this.setFreefallVisible(false);
     this.setPoweredDescentVisible(true);
 
+    // Show the drop pod interior GLB
+    if (this.dropPodInterior) {
+      this.dropPodInterior.setEnabled(true);
+    }
+
     const rotationAnim = new Animation('cameraRotationTransition', 'rotation.x', 60, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
     const easing = new CubicEase();
     easing.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
@@ -1006,6 +1055,7 @@ export class LandfallLevel extends BaseLevel {
 
     if (this.altitude < 900 && !this.threatsSpawned) this.spawnDistantThreats();
     this.distantThreats.forEach((t) => updateDistantThreat(t, deltaTime));
+    this.distantSpaceships.forEach((s) => updateDistantSpaceship(s, deltaTime));
 
     if (this.altitude < 650) this.transitionToPhase('freefall_clear');
   }
@@ -1017,6 +1067,7 @@ export class LandfallLevel extends BaseLevel {
     Descent.disposeAsteroids(asteroidUpdate.removedAsteroids);
 
     this.distantThreats.forEach((t) => updateDistantThreat(t, deltaTime));
+    this.distantSpaceships.forEach((s) => updateDistantSpaceship(s, deltaTime));
 
     if (this.altitude < 200) this.callbacks.onNotification('IGNITE JETS NOW!', 1000);
     if (this.altitude < 50) {
@@ -1047,9 +1098,20 @@ export class LandfallLevel extends BaseLevel {
     if (this.threatsSpawned) return;
     this.threatsSpawned = true;
 
+    // Spawn vehicle threats (wraith, phantom)
     for (let i = 0; i < DISTANT_THREAT_DEFINITIONS.length; i++) {
       const threat = spawnDistantThreat(this.scene, DISTANT_THREAT_DEFINITIONS[i], i);
       if (threat) this.distantThreats.push(threat);
+    }
+
+    // Spawn spaceship GLB models for atmosphere
+    for (let i = 0; i < DISTANT_SPACESHIP_DEFINITIONS.length; i++) {
+      try {
+        const spaceship = spawnDistantSpaceship(this.scene, DISTANT_SPACESHIP_DEFINITIONS[i], i);
+        if (spaceship) this.distantSpaceships.push(spaceship);
+      } catch (error) {
+        log.warn(`Failed to spawn spaceship ${i}:`, error);
+      }
     }
 
     setTimeout(() => comms.sendEnemyAirTrafficWarning(this.callbacks), 500);
@@ -1108,12 +1170,20 @@ export class LandfallLevel extends BaseLevel {
     getAudioManager().stopLoop('drop_thrust');
 
     this.setPoweredDescentVisible(false);
+
+    // Hide drop pod interior GLB
+    if (this.dropPodInterior) {
+      this.dropPodInterior.setEnabled(false);
+    }
+
     [this.planet, this.planetAtmosphere, this.starfield, this.plasmaGlow, this.lzBeacon].forEach((m) => { if (m) m.isVisible = false; });
 
     Descent.disposeAsteroids(this.asteroids);
     this.asteroids = [];
     this.distantThreats.forEach((t) => t.node.dispose());
     this.distantThreats = [];
+    this.distantSpaceships.forEach((s) => s.node.dispose());
+    this.distantSpaceships = [];
     stopAllDescentEffects({
       reentryParticles: this.reentryParticles,
       playerSmokeTrail: this.playerSmokeTrail,
@@ -1533,6 +1603,12 @@ export class LandfallLevel extends BaseLevel {
     this.skyboxResult = null;
     this.skyDome = null;
 
+    // Dispose drop pod interior GLB
+    if (this.dropPodInterior) {
+      this.dropPodInterior.dispose(false, true);
+      this.dropPodInterior = null;
+    }
+
     [this.planet, this.planetAtmosphere, this.starfield, this.leftArm, this.rightArm, this.leftGlove, this.rightGlove, this.visorFrame, this.leftHandle, this.rightHandle, this.thrusterGlow, this.plasmaGlow, this.lzPad, this.lzBeacon, this.terrain, this.heatDistortion, this.fobDeltaMarker, this.fobDeltaBeacon].forEach((m) => m?.dispose());
     this.canyonWalls.forEach((w) => w.dispose());
 
@@ -1547,6 +1623,8 @@ export class LandfallLevel extends BaseLevel {
 
     this.distantThreats.forEach((t) => t.node.dispose());
     this.distantThreats = [];
+    this.distantSpaceships.forEach((s) => s.node.dispose());
+    this.distantSpaceships = [];
 
     this.surfaceEnemies.forEach((e) => { if (e.mesh && !e.mesh.isDisposed()) e.mesh.dispose(); });
     this.surfaceEnemies = [];

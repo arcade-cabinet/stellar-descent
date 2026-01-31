@@ -33,9 +33,10 @@ import type { VehicleYokeInput } from '../../weapons/VehicleYoke';
 // GLB paths for vehicle parts
 // ---------------------------------------------------------------------------
 
-const VEHICLE_BODY_GLB = '/models/spaceships/Bob.glb';
-const VEHICLE_TURRET_GLB = '/models/props/weapons/fps_plasma_cannon.glb';
-const VEHICLE_WHEEL_GLB = '/models/props/containers/tire_1.glb';
+const VEHICLE_BODY_GLB = '/assets/models/spaceships/Bob.glb';
+const VEHICLE_TURRET_GLB = '/assets/models/props/weapons/fps_plasma_cannon.glb';
+const VEHICLE_WHEEL_GLB = '/assets/models/props/containers/tire_1.glb';
+const VEHICLE_BARREL_GLB = '/assets/models/props/weapons/pipe_melee_mx_1.glb';
 
 // ============================================================================
 // TYPES
@@ -222,9 +223,9 @@ export class VehicleController {
 
   // Mesh hierarchy
   private rootNode: TransformNode;
-  private chassis: Mesh;
-  private turret: Mesh;
-  private turretBarrel: Mesh | null = null;
+  private chassis: TransformNode;
+  private turret: TransformNode;
+  private turretBarrel: TransformNode | null = null;
   private turretMuzzle: TransformNode | null = null;
   private wheels: TransformNode[] = [];
   private boostFlame: Mesh | null = null;
@@ -299,6 +300,7 @@ export class VehicleController {
       AssetManager.loadAssetByPath(VEHICLE_BODY_GLB, scene),
       AssetManager.loadAssetByPath(VEHICLE_TURRET_GLB, scene),
       AssetManager.loadAssetByPath(VEHICLE_WHEEL_GLB, scene),
+      AssetManager.loadAssetByPath(VEHICLE_BARREL_GLB, scene),
     ]);
     return new VehicleController(scene, camera, spawnPosition, config, cameraConfig);
   }
@@ -366,7 +368,7 @@ export class VehicleController {
   // MESH CREATION
   // ==========================================================================
 
-  private createChassis(): Mesh {
+  private createChassis(): TransformNode {
     // Load GLB body model (pre-loaded via VehicleController.create)
     const bodyNode = AssetManager.createInstanceByPath(
       VEHICLE_BODY_GLB,
@@ -375,13 +377,8 @@ export class VehicleController {
       false
     );
 
-    // Create a thin invisible box as the chassis reference mesh (needed for tilt animation)
-    const chassis = MeshBuilder.CreateBox(
-      'vehicle_chassis_ref',
-      { width: 2.8, height: 0.05, depth: 5.5 },
-      this.scene
-    );
-    chassis.isVisible = false;
+    // Create a TransformNode as the chassis reference (for tilt animation)
+    const chassis = new TransformNode('vehicle_chassis_ref', this.scene);
     chassis.parent = this.rootNode;
     chassis.position.y = 0.5;
 
@@ -395,7 +392,12 @@ export class VehicleController {
     return chassis;
   }
 
-  private createTurret(): Mesh {
+  private createTurret(): TransformNode {
+    // Create a TransformNode as the turret base for rotation tracking
+    const turret = new TransformNode('vehicle_turret_ref', this.scene);
+    turret.parent = this.rootNode;
+    turret.position.set(0, 1.5, -1.5);
+
     // Load GLB turret / weapon model (pre-loaded via VehicleController.create)
     const turretNode = AssetManager.createInstanceByPath(
       VEHICLE_TURRET_GLB,
@@ -403,16 +405,6 @@ export class VehicleController {
       this.scene,
       false
     );
-
-    // Invisible reference mesh for turret position tracking
-    const turret = MeshBuilder.CreateBox(
-      'vehicle_turret_ref',
-      { width: 0.05, height: 0.05, depth: 0.05 },
-      this.scene
-    );
-    turret.isVisible = false;
-    turret.parent = this.rootNode;
-    turret.position.set(0, 1.5, -1.5);
 
     if (turretNode) {
       turretNode.parent = turret;
@@ -497,26 +489,32 @@ export class VehicleController {
    * Create turret visual elements (barrel, muzzle flash, light).
    */
   private createTurretVisuals(): void {
-    // Turret barrel (extends from turret base)
-    this.turretBarrel = MeshBuilder.CreateCylinder(
-      'vehicle_turret_barrel',
-      { diameterTop: 0.12, diameterBottom: 0.15, height: 1.5, tessellation: 12 },
-      this.scene
+    // Turret barrel - load GLB pipe model (pre-loaded via VehicleController.create)
+    const barrelNode = AssetManager.createInstanceByPath(
+      VEHICLE_BARREL_GLB,
+      'vehicle_turret_barrel_glb',
+      this.scene,
+      false
     );
-    const barrelMat = new StandardMaterial('turret_barrel_mat', this.scene);
-    barrelMat.diffuseColor = Color3.FromHexString('#2A2A2A');
-    barrelMat.specularColor = new Color3(0.3, 0.3, 0.3);
-    this.turretBarrel.material = barrelMat;
+
+    // Create a TransformNode as the barrel base for rotation
+    this.turretBarrel = new TransformNode('vehicle_turret_barrel', this.scene);
     this.turretBarrel.parent = this.turret;
     this.turretBarrel.rotation.x = -Math.PI / 2; // Point forward
     this.turretBarrel.position.set(0, 0.2, -0.75);
+
+    if (barrelNode) {
+      barrelNode.parent = this.turretBarrel;
+      barrelNode.scaling.set(0.15, 1.5, 0.15); // Scale to barrel dimensions
+      barrelNode.rotation.x = Math.PI / 2; // Align pipe along barrel axis
+    }
 
     // Muzzle position (for projectile spawning)
     this.turretMuzzle = new TransformNode('turret_muzzle', this.scene);
     this.turretMuzzle.parent = this.turretBarrel;
     this.turretMuzzle.position.set(0, 0.75, 0); // End of barrel
 
-    // Muzzle flash (initially invisible)
+    // Muzzle flash (VFX - keep as MeshBuilder for dynamic effect)
     this.muzzleFlash = MeshBuilder.CreateSphere(
       'vehicle_muzzle_flash',
       { diameter: 0.4, segments: 6 },

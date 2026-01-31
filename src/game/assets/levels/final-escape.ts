@@ -19,19 +19,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'env/column_b',
     category: 'model',
-    path: '/models/environment/modular/Column_B.glb',
+    path: '/assets/models/environment/modular/Column_B.glb',
     sizeKB: 150,
   },
   {
     id: 'env/detail_a',
     category: 'model',
-    path: '/models/environment/modular/Detail_A.glb',
+    path: '/assets/models/environment/modular/Detail_A.glb',
     sizeKB: 100,
   },
   {
     id: 'env/detail_b',
     category: 'model',
-    path: '/models/environment/modular/Detail_B.glb',
+    path: '/assets/models/environment/modular/Detail_B.glb',
     sizeKB: 100,
   },
 
@@ -39,25 +39,25 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'wreck/bob',
     category: 'model',
-    path: '/models/spaceships/Bob.glb',
+    path: '/assets/models/spaceships/Bob.glb',
     sizeKB: 2000,
   },
   {
     id: 'wreck/pancake',
     category: 'model',
-    path: '/models/spaceships/Pancake.glb',
+    path: '/assets/models/spaceships/Pancake.glb',
     sizeKB: 2000,
   },
   {
     id: 'wreck/spitfire',
     category: 'model',
-    path: '/models/spaceships/Spitfire.glb',
+    path: '/assets/models/spaceships/Spitfire.glb',
     sizeKB: 2000,
   },
   {
     id: 'wreck/zenith',
     category: 'model',
-    path: '/models/spaceships/Zenith.glb',
+    path: '/assets/models/spaceships/Zenith.glb',
     sizeKB: 2000,
   },
 
@@ -66,19 +66,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'tex/escape/lava/color',
     category: 'texture',
-    path: '/textures/levels/final-escape/Lava004_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/final-escape/Lava004_1K-JPG_Color.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/lava/normal',
     category: 'texture',
-    path: '/textures/levels/final-escape/Lava004_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/final-escape/Lava004_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/lava/roughness',
     category: 'texture',
-    path: '/textures/levels/final-escape/Lava004_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/final-escape/Lava004_1K-JPG_Roughness.jpg',
     sizeKB: 200,
   },
 
@@ -86,19 +86,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'tex/escape/ground/color',
     category: 'texture',
-    path: '/textures/levels/final-escape/Ground029_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/final-escape/Ground029_1K-JPG_Color.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/ground/normal',
     category: 'texture',
-    path: '/textures/levels/final-escape/Ground029_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/final-escape/Ground029_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/ground/roughness',
     category: 'texture',
-    path: '/textures/levels/final-escape/Ground029_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/final-escape/Ground029_1K-JPG_Roughness.jpg',
     sizeKB: 200,
   },
 
@@ -106,19 +106,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'tex/escape/rock/color',
     category: 'texture',
-    path: '/textures/levels/final-escape/Rock030_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/final-escape/Rock030_1K-JPG_Color.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/rock/normal',
     category: 'texture',
-    path: '/textures/levels/final-escape/Rock030_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/final-escape/Rock030_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/rock/roughness',
     category: 'texture',
-    path: '/textures/levels/final-escape/Rock030_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/final-escape/Rock030_1K-JPG_Roughness.jpg',
     sizeKB: 200,
   },
 
@@ -126,19 +126,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'tex/escape/concrete/color',
     category: 'texture',
-    path: '/textures/levels/final-escape/Concrete028_1K-JPG_Color.jpg',
+    path: '/assets/textures/levels/final-escape/Concrete028_1K-JPG_Color.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/concrete/normal',
     category: 'texture',
-    path: '/textures/levels/final-escape/Concrete028_1K-JPG_NormalGL.jpg',
+    path: '/assets/textures/levels/final-escape/Concrete028_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
   },
   {
     id: 'tex/escape/concrete/roughness',
     category: 'texture',
-    path: '/textures/levels/final-escape/Concrete028_1K-JPG_Roughness.jpg',
+    path: '/assets/textures/levels/final-escape/Concrete028_1K-JPG_Roughness.jpg',
     sizeKB: 200,
   },
 
@@ -146,68 +146,68 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'tex/escape/skybox',
     category: 'texture',
-    path: '/textures/levels/final-escape/skybox.exr',
+    path: '/assets/textures/levels/final-escape/skybox.exr',
     sizeKB: 2000,
   },
 
   // QUATERNIUS MODULAR - Broken tech, destroyed equipment
   {
     id: 'modular/laser',
-    path: '/models/environment/modular/Props_Laser.glb',
+    path: '/assets/models/environment/modular/Props_Laser.glb',
     category: 'model',
     sizeKB: 79,
   },
   {
     id: 'modular/statue',
-    path: '/models/environment/modular/Props_Statue.glb',
+    path: '/assets/models/environment/modular/Props_Statue.glb',
     category: 'model',
     sizeKB: 58,
   },
   {
     id: 'modular/teleporter_1',
-    path: '/models/environment/modular/Props_Teleporter_1.glb',
+    path: '/assets/models/environment/modular/Props_Teleporter_1.glb',
     category: 'model',
     sizeKB: 36,
   },
   {
     id: 'modular/teleporter_2',
-    path: '/models/environment/modular/Props_Teleporter_2.glb',
+    path: '/assets/models/environment/modular/Props_Teleporter_2.glb',
     category: 'model',
     sizeKB: 49,
   },
   {
     id: 'modular/detail_arrow',
-    path: '/models/environment/modular/Details_Arrow.glb',
+    path: '/assets/models/environment/modular/Details_Arrow.glb',
     category: 'model',
     sizeKB: 3,
   },
   {
     id: 'modular/detail_arrow2',
-    path: '/models/environment/modular/Details_Arrow_2.glb',
+    path: '/assets/models/environment/modular/Details_Arrow_2.glb',
     category: 'model',
     sizeKB: 3,
   },
   {
     id: 'modular/detail_basic1',
-    path: '/models/environment/modular/Details_Basic_1.glb',
+    path: '/assets/models/environment/modular/Details_Basic_1.glb',
     category: 'model',
     sizeKB: 6,
   },
   {
     id: 'modular/detail_basic2',
-    path: '/models/environment/modular/Details_Basic_2.glb',
+    path: '/assets/models/environment/modular/Details_Basic_2.glb',
     category: 'model',
     sizeKB: 9,
   },
   {
     id: 'modular/detail_basic3',
-    path: '/models/environment/modular/Details_Basic_3.glb',
+    path: '/assets/models/environment/modular/Details_Basic_3.glb',
     category: 'model',
     sizeKB: 3,
   },
   {
     id: 'modular/detail_basic4',
-    path: '/models/environment/modular/Details_Basic_4.glb',
+    path: '/assets/models/environment/modular/Details_Basic_4.glb',
     category: 'model',
     sizeKB: 7,
   },
@@ -215,19 +215,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   // METAL FENCES - Collapsed perimeter
   {
     id: 'fence/metal_2',
-    path: '/models/props/modular/metal_fence_hr_2.glb',
+    path: '/assets/models/props/modular/metal_fence_hr_2.glb',
     category: 'model',
     sizeKB: 839,
   },
   {
     id: 'fence/metal_2_tall',
-    path: '/models/props/modular/metal_fence_hr_2_tall.glb',
+    path: '/assets/models/props/modular/metal_fence_hr_2_tall.glb',
     category: 'model',
     sizeKB: 337,
   },
   {
     id: 'ladder/long',
-    path: '/models/props/modular/ladder_hr_1_long.glb',
+    path: '/assets/models/props/modular/ladder_hr_1_long.glb',
     category: 'model',
     sizeKB: 155,
   },
@@ -235,7 +235,7 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   // STATION EXTERNAL - Massive collapsing wreckage
   {
     id: 'station-ext/station05b',
-    path: '/models/environment/station-external/station05.glb',
+    path: '/assets/models/environment/station-external/station05.glb',
     category: 'model',
     sizeKB: 1965,
   },

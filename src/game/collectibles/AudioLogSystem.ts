@@ -31,10 +31,10 @@ import { getAudioLogsByLevel } from './audioLogs';
 // ============================================================================
 
 /** Path to the audio log GLB model */
-const AUDIO_LOG_MODEL_PATH = '/models/props/collectibles/audio_log.glb';
+const AUDIO_LOG_MODEL_PATH = '/assets/models/props/collectibles/audio_log.glb';
 
 /** Path to the data pad GLB model (used for the glow ring base) */
-const GLOW_RING_MODEL_PATH = '/models/props/collectibles/data_pad.glb';
+const GLOW_RING_MODEL_PATH = '/assets/models/props/collectibles/data_pad.glb';
 
 /**
  * Audio log pickup in the game world

@@ -1,4 +1,3 @@
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -8,6 +7,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
+import { AssetManager } from '../core/AssetManager';
 import { createEntity, type Entity } from '../core/ecs';
 import { getLogger } from '../core/Logger';
 import { tokens } from '../utils/designTokens';
@@ -15,7 +15,7 @@ import { tokens } from '../utils/designTokens';
 const log = getLogger('MechWarrior');
 
 /** Path to the Marcus mech GLB model (relative to public/) */
-const MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
+const MECH_GLB_PATH = '/assets/models/vehicles/marcus_mech.glb';
 
 /**
  * Try to find a child mesh whose name contains one of the given substrings
@@ -82,34 +82,48 @@ export class MechWarrior {
   // -----------------------------------------------------------------------
 
   /**
-   * Create a MechWarrior by loading the GLB model asynchronously.
+   * Create a MechWarrior by loading the GLB model asynchronously via AssetManager.
    *
    * Replaces the previous synchronous constructor that used MeshBuilder.
    * The loaded GLB is searched for child meshes matching body, arm, and leg
-   * naming conventions. If a particular part is not found, a tiny invisible
-   * placeholder mesh is used so that animation & fire logic degrades
-   * gracefully rather than crashing.
+   * naming conventions. Uses AssetManager for caching and consistent loading.
    */
   static async create(scene: Scene, position: Vector3): Promise<MechWarrior> {
     const rootNode = new TransformNode('mechRoot', scene);
 
     // ------------------------------------------------------------------
-    // Load GLB
+    // Load GLB via AssetManager for caching and consistent loading
     // ------------------------------------------------------------------
-    const result = await SceneLoader.ImportMeshAsync('', MECH_GLB_PATH, '', scene);
+    log.info(`Loading mech GLB: ${MECH_GLB_PATH}`);
+    const cachedAsset = await AssetManager.loadAssetByPath(MECH_GLB_PATH, scene);
 
-    // Parent all top-level meshes under our root transform
-    for (const mesh of result.meshes) {
-      if (!mesh.parent) {
-        mesh.parent = rootNode;
+    if (!cachedAsset) {
+      throw new Error(`[MechWarrior] Failed to load GLB at ${MECH_GLB_PATH}`);
+    }
+
+    // Clone meshes for this mech instance (originals are hidden for instancing)
+    // The mech needs direct mesh access for animation, not instances
+    for (const mesh of cachedAsset.meshes) {
+      if (mesh instanceof Mesh && mesh.getTotalVertices() > 0) {
+        const clone = mesh.clone(`mech_${mesh.name}`, rootNode);
+        if (clone) {
+          clone.setEnabled(true);
+          clone.isVisible = true;
+        }
+      } else if (!mesh.parent || mesh.parent === cachedAsset.root) {
+        // Handle TransformNodes in the hierarchy
+        if (mesh instanceof TransformNode && !(mesh instanceof Mesh)) {
+          // Skip non-mesh transform nodes, their children will be cloned
+        }
       }
-      mesh.isVisible = true;
     }
 
     // ------------------------------------------------------------------
-    // Locate key sub-meshes by name convention from the GLB
+    // Locate key sub-meshes by name convention from the cloned hierarchy
     // ------------------------------------------------------------------
     const allMeshes = rootNode.getChildMeshes(false) as AbstractMesh[];
+
+    log.info(`Mech meshes available: ${allMeshes.map((m) => m.name).join(', ')}`);
 
     const body = findChildMesh(allMeshes, 'body', 'torso', 'chassis', 'hull');
     if (!body) {
@@ -149,6 +163,7 @@ export class MechWarrior {
     rightArm.name = 'mechRightArm';
     legs.name = 'mechLegs';
 
+    log.info('Mech GLB loaded successfully');
     return new MechWarrior(scene, position, rootNode, body, leftArm, rightArm, legs);
   }
 
