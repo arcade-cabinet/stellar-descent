@@ -8,7 +8,7 @@
 - **Physics**: Havok Physics 1.3+
 - **ECS**: Miniplex 2.0
 - **AI**: Yuka 0.7+
-- **Persistence**: SQL.js (SQLite in browser)
+- **Persistence**: SQLite (sql.js on web, Capacitor SQLite on native)
 - **Audio**: Tone.js 15.x (music), Web Audio API (SFX)
 - **Animation**: Anime.js 4.x (DOM only), Manual RAF (Babylon objects)
 - **UI**: React 19, CSS Modules
@@ -102,7 +102,8 @@ Uses Polly.JS for deterministic CI replay of API responses, enabling reliable te
 - `@babylonjs/loaders`, `@babylonjs/materials`: Asset loading
 - `miniplex`: Entity Component System
 - `yuka`: AI behaviors and state machines
-- `sql.js`: SQLite database in browser
+- `sql.js`: SQLite database (web platform)
+- `@capacitor-community/sqlite`: SQLite database (native platforms)
 - `tone`: Music playback system
 
 ### UI
@@ -124,6 +125,7 @@ Uses Polly.JS for deterministic CI replay of API responses, enabling reliable te
 - **GameContext**: Player health, kills, missions, HUD visibility
 - **KeybindingsContext**: Configurable controls with localStorage
 - **WeaponContext**: Weapon state and switching
+- **DifficultyManager**: Singleton for difficulty level and modifiers
 
 ### Level System
 - **ILevel Interface**: Standard lifecycle (initialize, update, dispose)
@@ -136,3 +138,17 @@ Uses Polly.JS for deterministic CI replay of API responses, enabling reliable te
 - **PSXModelLoader**: Retro-style model processing
 - **AudioManager**: SFX playback with pooling from `public/assets/audio/`
 - **GenAI Generation**: Manifest-driven asset generation with Zod schemas
+
+### Persistence Layer
+- **CapacitorDatabase**: Native SQLite for iOS/Android via @capacitor-community/sqlite
+- **WebSQLiteDatabase**: Browser SQLite via sql.js with IndexedDB backing
+- **Platform Detection**: Auto-routes to correct implementation
+
+### Social Systems
+- **LeaderboardSystem**: Local leaderboards with categories (speedrun, score, accuracy, kills)
+- **i18n**: Internationalization with translation hooks
+
+### Game Modes
+- **GameModeManager**: Unified modifier system combining difficulty, NG+, skulls
+- **NewGamePlus**: Tiered NG+ progression
+- **ChallengeMode**: Time-limited score challenges

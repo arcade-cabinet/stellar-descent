@@ -171,3 +171,142 @@ Deterministic CI testing via recorded API responses:
 - Records live API responses during development
 - Replays recordings in CI for deterministic tests
 - Avoids flaky tests and API rate limits
+
+## Difficulty System
+
+### DifficultySettings Pattern
+Centralized difficulty configuration with type-safe presets:
+```typescript
+type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'nightmare' | 'ultra_nightmare';
+
+interface DifficultyModifiers {
+  enemyHealthMultiplier: number;
+  enemyDamageMultiplier: number;
+  playerDamageReceivedMultiplier: number;
+  playerHealthRegenMultiplier: number;
+  forcesPermadeath: boolean;
+  // ... more modifiers
+}
+```
+
+### ULTRA-NIGHTMARE Mode
+Extreme difficulty with forced permadeath:
+- 2.0x enemy health, 2.5x enemy damage
+- No health regeneration (0.0 multiplier)
+- One death ends entire campaign
+- 2.0x XP reward
+
+### Permadeath Toggle
+Optional permadeath mode for any difficulty:
+- Stored in localStorage (`stellar_descent_permadeath`)
+- +50% XP bonus when enabled
+- ULTRA-NIGHTMARE always forces permadeath
+
+### DifficultyManager Singleton
+```typescript
+const manager = getDifficultyManager();
+manager.getDifficulty();
+manager.setDifficulty('nightmare');
+manager.scaleHealth(100);  // Returns scaled enemy health
+manager.addListener((newDiff, oldDiff) => { /* react */ });
+```
+
+## Database Pattern
+
+### Platform-Aware SQLite
+Two implementations with unified interface:
+
+**CapacitorDatabase** (Native)
+- Uses @capacitor-community/sqlite
+- jeep-sqlite web component for web fallback
+- Supports encryption on native
+
+**WebSQLiteDatabase** (Web)
+- Uses sql.js (compiled SQLite)
+- IndexedDB backing for persistence
+- WASM loaded from `/assets/sql-wasm.js`
+
+### Singleton Initialization
+```typescript
+// Both databases use singleton init promise to prevent race conditions
+private static initPromise: Promise<void> | null = null;
+
+async init(): Promise<void> {
+  if (this.initialized) return;
+  if (CapacitorDatabase.initPromise) {
+    return CapacitorDatabase.initPromise;
+  }
+  CapacitorDatabase.initPromise = this.doInit();
+  // ...
+}
+```
+
+## Player Governor (Dev Mode)
+
+### Autonomous Player Control
+Uses Yuka AI for automated testing:
+```typescript
+const governor = getPlayerGovernor();
+governor.setPlayer(playerEntity);
+governor.setGoal({ type: 'navigate', target: position });
+governor.setGoal({ type: 'engage_enemies', aggressive: true });
+governor.setGoal({ type: 'complete_tutorial' });
+```
+
+### Goal Queue
+Goals can be queued for sequential execution:
+```typescript
+governor.queueGoal({ type: 'wait', duration: 2000 });
+governor.queueGoal({ type: 'advance_dialogue' });
+governor.queueGoal({ type: 'follow_objective' });
+```
+
+### DevMenu Integration
+Toggle "Player Governor (Unlock All)" enables `devMode.allLevelsUnlocked`
+
+## Leaderboard System
+
+### Local Leaderboards
+```
+src/game/social/
+├── LeaderboardSystem.ts   # Core leaderboard logic
+├── LeaderboardTypes.ts    # Type definitions
+└── index.ts
+```
+
+### Categories
+- **speedrun**: Lower time is better
+- **score**: Total performance score
+- **accuracy**: Shot accuracy percentage
+- **kills**: Total enemies killed
+
+### Query Pattern
+```typescript
+const results = await leaderboardSystem.getLeaderboard({
+  levelId: 'landfall',
+  type: 'speedrun',
+  difficulty: 'nightmare',
+  limit: 10,
+});
+```
+
+## Internationalization (i18n)
+
+### Translation System
+```typescript
+import { t, setLanguage } from '../i18n';
+
+// Use translations
+const text = t('menu.new_game');
+
+// Change language
+setLanguage('es');
+
+// React hook
+const { t, language } = useTranslation();
+```
+
+### Language Management
+- Supports multiple languages via `SUPPORTED_LANGUAGES`
+- Language stored in localStorage
+- React components re-render on language change via `onLanguageChange()`

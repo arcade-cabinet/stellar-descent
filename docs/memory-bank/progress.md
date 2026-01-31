@@ -9,36 +9,56 @@
 | **Phase 3: Tutorial & Story** | ✅ Complete | Anchor Station level, dialogue system, shooting range. |
 | **Phase 4: Content** | ✅ Complete | Full 10-level campaign, vehicles, boss fights. |
 | **Phase 5: Polish** | ✅ Complete | GLB asset migration, architecture improvements, test fixes. |
-| **Phase 6: Release** | 🔄 In Progress | Final testing, production deployment. |
+| **Phase 6: Release** | 🔄 In Progress | Final testing, production deployment, feature polish. |
 
 ## Current Status (Phase 6 - Release)
 
 ### Completed (Jan 31, 2026)
+
+#### Difficulty System Overhaul ✅
+- **5 difficulty levels**: easy, normal, hard, nightmare, ultra_nightmare
+- **ULTRA-NIGHTMARE mode**: Extreme difficulty with forced permadeath (DOOM-inspired)
+  - 2.0x enemy health, 2.5x enemy damage, no health regen
+  - One death ends entire campaign
+  - 2.0x XP multiplier for masochists
+- **Permadeath toggle**: Optional +50% XP on any difficulty
+- **DifficultyManager singleton**: Centralized difficulty management with listener support
+
+#### SQLite Persistence Split ✅
+- **Native platforms**: `CapacitorDatabase.ts` using @capacitor-community/sqlite
+- **Web platform**: `WebSQLiteDatabase.ts` using sql.js with IndexedDB
+- **Race condition fix**: Singleton init promise prevents duplicate initWebStore() calls
+- **Platform detection**: Automatic routing via `Capacitor.isNativePlatform()`
+
+#### Player Governor (Dev Mode) ✅
+- **Autonomous player control**: Yuka AI behaviors for testing
+- **DevMenu toggle**: "Player Governor (Unlock All)" checkbox
+- **Goal system**: navigate, engage_enemies, advance_dialogue, complete_tutorial
+- **E2E testing support**: Event-driven verification
+
+#### Leaderboard System ✅
+- **Local leaderboards**: SQLite storage via capacitorDb
+- **Categories**: speedrun, high score, accuracy, kills
+- **Per-level and global**: Tracks best times, scores, stats
+- **Personal bests**: Difficulty-filtered tracking
+- **UI component**: `LeaderboardScreen.tsx`
+
+#### Internationalization (i18n) ✅
+- **Translation system**: `t()` function with key-based lookups
+- **Language management**: `getLanguage()`, `setLanguage()`, `onLanguageChange()`
+- **React hooks**: `useTranslation()`, `useT()`
+- **UI selector**: `LanguageSelector.tsx`
+
+#### Game Mode Manager ✅
+- **Unified modifiers**: Combines difficulty, NG+, skulls
+- **Modes**: normal, new_game_plus, arcade, survival
+- **Combined modifiers**: Enemy stats, player stats, resources, gameplay flags
 
 #### GLB Asset Migration (Complete)
 - **1,106 files modified** across the codebase
 - **MeshBuilder reduced**: 589 remaining (all VFX/collision/terrain - intentional)
 - **All structural geometry** now uses GLB loading via AssetManager
 - **Asset reorganization**: `public/models/` → `public/assets/models/`
-
-#### Entity Systems (Wave 1) ✅
-- IceChitin: PBR ice materials with subsurface scattering
-- PhantomDropship: GLB loading with animated part caching
-- WraithTank/WraithAI: GLB vehicle models
-- Player/Mech: GLB character models
-
-#### Level Environments (Waves 2-3) ✅
-- All 10 campaign levels converted to GLB loading
-- Mining Depths: 45% MeshBuilder reduction, industrial equipment GLBs
-- Southern Ice: PBR ice materials, frozen environment
-- The Breach: Queen boss GLBs, hive tunnels, chambers
-
-#### Architecture Improvements (Wave 4) ✅
-- **SpawnConfigZod**: Zod-validated spawn wave system with 33 tests
-- **SpawnManagerZod**: Runtime wave orchestrator
-- **EventBus**: New event types (WAVE_STARTED, PLAYER_DEATH, PICKUP_COLLECTED, etc.)
-- **useGameEvent hook**: React integration for game events
-- **Cinematics wiring**: Integrated with CampaignDirector
 
 #### Build Status ✅
 - **TypeScript**: Zero errors

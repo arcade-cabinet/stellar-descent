@@ -1,107 +1,102 @@
 # Active Context
 
 ## Current Development Phase
-**Phase 5: Asset Conversion & Polish** (In Progress)
+**Phase 6: Release** (In Progress)
 
 ## Session Summary (Jan 31, 2026)
 
 ### Current Focus
-1. **TypeScript Error Fixing** - Integration tests are out of sync with codebase changes
-2. **MeshBuilder to GLB Conversion** - Systematic conversion of ~490 MeshBuilder calls
-3. **GenAI Asset Generation** - Manifest-driven asset generation system
+1. **Documentation Alignment** - Memory bank docs need sync with recent features
+2. **Final Testing** - Production deployment verification
+3. **Feature Polish** - Recently completed difficulty, persistence, and social systems
 
-### Recent Changes (Jan 31, 2026)
+### Recently Implemented Features
 
-#### Asset Reorganization
+#### ULTRA-NIGHTMARE Difficulty
+New extreme difficulty mode with forced permadeath (inspired by DOOM Eternal):
+- Location: `src/game/core/DifficultySettings.ts`
+- Five difficulty levels: easy, normal, hard, nightmare, ultra_nightmare
+- ULTRA-NIGHTMARE features:
+  - 2.0x enemy health, 2.5x enemy damage
+  - No health regeneration
+  - Forced permadeath (one death ends campaign)
+  - 2.0x XP multiplier
+- UI: `src/components/ui/DifficultySelector.tsx` shows bottom row with nightmare | permadeath toggle | ultra-nightmare
+
+#### Permadeath Toggle System
+Optional permadeath mode that can be enabled on any difficulty:
+- Stored in localStorage (`stellar_descent_permadeath`)
+- Adds +50% XP bonus when enabled
+- Functions: `loadPermadeathSetting()`, `savePermadeathSetting()`, `isPermadeathActive()`
+- ULTRA-NIGHTMARE always forces permadeath regardless of toggle
+
+#### Player Governor (Dev Mode)
+Autonomous player control system for e2e testing and level unlocking:
+- Location: `src/game/systems/PlayerGovernor.ts`
+- Uses Yuka AI behaviors to control player character
+- DevMenu toggle (`src/components/ui/DevMenu.tsx`): "Player Governor (Unlock All)"
+- Enables: `devMode.allLevelsUnlocked` flag in `src/game/core/DevMode.ts`
+- Goals: navigate, follow_objective, engage_enemies, advance_dialogue, complete_tutorial
+
+#### SQLite Web/Native Split
+Dual SQLite implementation for cross-platform persistence:
+- **Native (iOS/Android)**: `src/game/db/CapacitorDatabase.ts` - Uses @capacitor-community/sqlite
+- **Web**: `src/game/db/WebSQLiteDatabase.ts` - Uses sql.js with IndexedDB persistence
+- Singleton initialization with race condition protection
+- Platform detection via `Capacitor.isNativePlatform()`
+
+#### Leaderboard System
+Local leaderboards stored in SQLite:
+- Location: `src/game/social/LeaderboardSystem.ts`
+- Per-level and global campaign leaderboards
+- Categories: speedrun, high score, accuracy, kills
+- Top 100 entries per category
+- Personal best tracking with difficulty filtering
+- UI: `src/components/ui/LeaderboardScreen.tsx`
+
+#### Internationalization (i18n)
+Multi-language support:
+- Location: `src/i18n/`
+- Core: `i18n.ts` - translation functions, language management
+- React hooks: `useTranslation.ts` - component integration
+- Language selector UI: `src/components/ui/LanguageSelector.tsx`
+
+#### Game Mode Manager
+Unified modifier system for different game modes:
+- Location: `src/game/modes/GameModeManager.ts`
+- Modes: normal, new_game_plus, arcade, survival
+- Coordinates: NewGamePlus tiers, Skull modifiers, Difficulty settings
+- Combined modifiers affect enemies, player, resources, gameplay flags
+
+### Build Status
+- **TypeScript**: Zero errors
+- **Production build**: Passes (1185 assets precached)
+- **Tests**: 94 files pass, 4,659 tests passed
+
+## Asset Status
+
+### Asset Organization
 All assets consolidated under `public/assets/`:
-- `public/models/` -> `public/assets/models/`
-- `public/textures/` -> `public/assets/textures/`
-- `public/audio/` -> `public/assets/audio/`
-- `public/video/` -> `public/assets/videos/`
-- Splash videos renamed: `splash-16-9.mp4` -> `main_16x9.mp4`, `splash-9-16.mp4` -> `main_9x16.mp4`
+```
+public/assets/
+├── models/       # 803+ GLB 3D models
+├── textures/     # PBR textures (AmbientCG)
+├── audio/        # Sound effects and music
+├── images/       # Portraits, UI elements
+│   └── portraits/ # Character portraits (Cole, Marcus, Reyes, Athena)
+├── videos/
+│   └── splash/   # Splash videos
+└── manifests/    # Asset manifests for levels
+```
 
-#### GenAI Asset Generation System
-- Manifest-driven generation with Zod schemas
-- Manifests live alongside assets (e.g., `public/assets/videos/splash/manifest.json`)
-- CLI: `pnpm exec tsx scripts/generate-assets.ts [portraits|splash|cinematics|status]`
-- VCR testing with Polly.JS for deterministic CI replay
-- Models: Gemini 3 Pro (images), Veo 3.1 (videos)
-- Video config: 1080p, 8s duration, 16:9 and 9:16 aspect ratios, native audio
+### GenAI Asset Generation (Complete)
+- **Portraits**: 9 generated (Cole 3, Marcus 2, Athena 2, Reyes 2)
+- **Splash Videos**: 2 generated (16:9 and 9:16)
+- **Cinematics**: 10 generated (one per level)
+- **Total**: 21 assets, 0 pending, 0 failed
 
-#### Schema Locations
-- `src/game/ai/schemas/GenerationManifestSchemas.ts` - Zod schemas for generation manifests
-- `src/game/ai/schemas/AssetManifestSchemas.ts` - Zod schemas for asset metadata
-
-### Previous Session (Jan 30, 2026)
-- Completed major asset reorganization
-- GLB library now contains **803 models** in `public/assets/models/`
-- Quest chain system implemented
-- Logger migration completed (60+ files)
-
-### MeshBuilder Elimination Strategy
-
-The codebase uses ~490 MeshBuilder calls that create geometry at runtime. These should be converted to pre-made GLB assets for:
-- Better visual consistency with existing PSX-style assets
-- Improved load times (pre-baked vs runtime generation)
-- Easier artist iteration
-
-#### Wave-Based Execution Plan
-
-| Wave | Focus | Files | Priority |
-|------|-------|-------|----------|
-| **Wave 1** | FPS Weapons | Weapon view models | Critical |
-| **Wave 2** | Projectiles/Effects | Bullets, grenades, explosions | High |
-| **Wave 3** | Environment Props | Crates, barrels, doors | High |
-| **Wave 4** | Level-Specific | Unique level geometry | Medium |
-| **Wave 5** | UI/Debug | Markers, indicators | Low |
-
-### Asset Gaps Identified
-
-| Category | Missing Assets | Notes |
-|----------|----------------|-------|
-| **FPS Weapons** | First-person rifle, pistol, shotgun, SMG | No view models exist |
-| **Asteroids** | Space debris, asteroid variants | Anchor Station needs |
-| **Ice Crystals** | Frozen environment props | Southern Ice level |
-| **Mine Assets** | Mining equipment, ore deposits | Multiple levels |
-
-### TypeScript Status
-- `pnpm exec tsc --noEmit` currently fails
-- Integration tests reference outdated interfaces/methods
-- Needs synchronization pass before new feature work
-
-## FPS Completeness Analysis (from Jan 30)
-
-#### Critical Gaps (Game-Breaking)
-| Gap | Status | Priority |
-|-----|--------|----------|
-| Weapon Feel (recoil, shake, muzzle flash) | Missing | IMMEDIATE |
-| Enemy Hit Reactions (stagger, pain, death) | Minimal | IMMEDIATE |
-| Hitmarker System | Missing | IMMEDIATE |
-| Player Feedback (low health, low ammo) | Basic | IMMEDIATE |
-
-#### Scores vs AAA
-- Weapon Feel: **3/10**
-- Enemy Reactions: **2/10**
-- Movement: **4/10**
-- Audio: **4/10**
-- Level Design: **5/10**
-- Progression: **3/10**
-
-## Immediate Priorities
-
-### 1. Fix TypeScript Errors
-- Update integration tests to match current interfaces
-- Ensure `pnpm exec tsc --noEmit` passes
-
-### 2. Wave 1: FPS Weapon GLBs
-- Create/source first-person weapon models
-- Replace MeshBuilder weapon geometry
-
-### 3. Weapon Feel Pass
-- Add visual recoil (camera kick)
-- Add screen shake on firing/impact
-- Improve muzzle flash with light emission
-- Add shell casing particles
+### MeshBuilder Status (Final)
+- **589 remaining** - All intentionally kept for VFX/collision/terrain
 
 ## Active Decisions
 - **Package Manager**: PNPM exclusively (never npm/npx)
@@ -109,22 +104,22 @@ The codebase uses ~490 MeshBuilder calls that create geometry at runtime. These 
 - **No Skip Tutorial**: Linear campaign, unlock levels by completion
 - **Immersive Storytelling**: No popups, controls learned in-game
 - **Save Format**: v5 with quest chain persistence
-- **Asset Strategy**: Convert all MeshBuilder calls to GLB models
+- **Difficulty**: 5 levels with optional permadeath toggle
+- **SQLite Strategy**: Web uses sql.js, native uses Capacitor plugin
 
 ## Key Files to Watch
-| File | Status |
-|------|--------|
-| `src/game/db/CapacitorDatabase.ts` | Modified (staged) |
-| `src/main.tsx` | Modified (unstaged) |
-| `vite.config.ts` | Modified (unstaged) |
-| `src/game/ai/schemas/GenerationManifestSchemas.ts` | GenAI manifest schemas |
-| `src/game/ai/schemas/AssetManifestSchemas.ts` | Asset metadata schemas |
-| `scripts/generate-assets.ts` | Asset generation CLI |
-| Integration test files | Need sync with interfaces |
+| File | Purpose |
+|------|---------|
+| `src/game/core/DifficultySettings.ts` | ULTRA-NIGHTMARE and permadeath |
+| `src/game/systems/PlayerGovernor.ts` | Autonomous player control |
+| `src/game/db/CapacitorDatabase.ts` | Native SQLite persistence |
+| `src/game/db/WebSQLiteDatabase.ts` | Web SQLite persistence |
+| `src/game/social/LeaderboardSystem.ts` | Local leaderboards |
+| `src/i18n/i18n.ts` | Internationalization core |
+| `src/game/modes/GameModeManager.ts` | Game mode modifiers |
 
 ## Next Steps
-1. Fix TypeScript compilation errors (integration tests)
-2. Begin Wave 1: FPS weapon GLB conversion
-3. Wire QuestManager to CampaignDirector
-4. Add hitmarker system to combat
-5. Add enemy hit reaction animations
+1. Final production testing
+2. Mobile app store submissions
+3. Performance profiling on target devices
+4. User feedback integration

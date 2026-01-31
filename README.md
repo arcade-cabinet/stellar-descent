@@ -51,7 +51,9 @@ pnpm preview
 - **AI-driven enemies** with patrol, chase, attack, and flee behaviors
 - **Mech ally** (Marcus) that assists in battle
 - **Mission timer** with level best times tracking
-- **Difficulty settings** (Easy, Normal, Hard, Nightmare)
+- **Difficulty settings** (Easy, Normal, Hard, Nightmare, ULTRA-NIGHTMARE)
+- **Permadeath mode** - Optional on any difficulty (+50% XP), forced on ULTRA-NIGHTMARE
+- **Leaderboards** - Local speedrun, score, accuracy, and kill leaderboards
 - **Achievement system** with unlockable challenges
 
 ### Technical
@@ -63,7 +65,8 @@ pnpm preview
 - **Virtual joystick controls** for touch devices
 - **HDR rendering pipeline** with bloom, tone mapping, and chromatic aberration
 - **Entity Component System** for efficient game object management
-- **Save system v4** with level progress, best times, and difficulty
+- **Save system v5** with level progress, best times, difficulty, and quest chain state
+- **Internationalization** - Multi-language support
 
 ### Save System
 
@@ -71,7 +74,7 @@ pnpm preview
 - **Level best times** tracking for speedrunning
 - **Difficulty persistence** across sessions
 - **Progress tracking** for levels visited and completed
-- **IndexedDB storage** for PWA offline support
+- **SQLite storage** - sql.js on web, Capacitor SQLite on native (IndexedDB backing)
 
 ### Accessibility
 

@@ -21,20 +21,32 @@
 - **Physics**: Havok
 - **ECS**: Miniplex
 - **AI**: Yuka
-- **Persistence**: SQL.js (SQLite in browser)
+- **Persistence**: SQLite (sql.js web, Capacitor native)
 - **Audio**: Tone.js (music), Web Audio API (SFX)
 - **Styling**: CSS Modules with Design Tokens
 - **Node.js**: 22 LTS (pinned in `.nvmrc`)
 - **Package Manager**: pnpm 10.x
 
 ## Campaign Overview
-6 levels across 3 acts:
+10 levels across 4 acts:
+
+**ACT 1: THE DROP**
 1. Anchor Station (Tutorial)
 2. Landfall (HALO Drop)
-3. FOB Delta (Horror/Investigation)
-4. Brothers in Arms (Mech Ally Combat)
-5. The Breach (Boss Fight)
-6. Extraction (Escape Sequence)
+
+**ACT 2: THE SEARCH**
+3. Canyon Run (Vehicle Chase)
+4. FOB Delta (Horror/Investigation)
+5. Brothers in Arms (Mech Ally Combat)
+
+**ACT 3: THE TRUTH**
+6. Southern Ice (Ice Variants)
+7. The Breach (Queen Boss Fight)
+
+**ACT 4: ENDGAME**
+8. Hive Assault (Combined Arms)
+9. Extraction (Wave Holdout)
+10. Final Escape (Vehicle Finale)
 
 ## Deployment
 - **URL**: https://stellar-descent.netlify.app

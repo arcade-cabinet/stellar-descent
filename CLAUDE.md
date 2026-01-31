@@ -272,9 +272,17 @@ Enemies are the "Chitin" - insectoid aliens from underground hives.
 | `src/game/core/lore.ts` | Game lore and mission briefings |
 | `src/game/core/AudioManager.ts` | Sound system |
 | `src/game/core/Logger.ts` | Logging system |
+| `src/game/core/DifficultySettings.ts` | Difficulty levels, modifiers, permadeath |
+| `src/game/core/DevMode.ts` | Runtime dev flags (god mode, noclip, etc.) |
 | `src/game/persistence/SaveSystem.ts` | Save/load system |
+| `src/game/db/CapacitorDatabase.ts` | Native SQLite persistence |
+| `src/game/db/WebSQLiteDatabase.ts` | Web SQLite persistence |
 | `src/game/timer/GameTimer.ts` | Mission timing |
 | `src/game/timer/GameChronometer.ts` | In-universe time |
+| `src/game/social/LeaderboardSystem.ts` | Local leaderboards |
+| `src/game/modes/GameModeManager.ts` | Game mode modifiers |
+| `src/game/systems/PlayerGovernor.ts` | Autonomous player control (dev/testing) |
+| `src/i18n/i18n.ts` | Internationalization core |
 | `scripts/generate-assets.ts` | GenAI asset generation CLI |
 | `src/test/vcr/VCRSetup.ts` | VCR test recording/replay for GenAI |
 
@@ -290,8 +298,11 @@ Enemies are the "Chitin" - insectoid aliens from underground hives.
 | `MissionBriefing.tsx` | Pre-mission briefing |
 | `LoadingScreen.tsx` | Level loading with tips |
 | `SettingsMenu.tsx` | Audio/graphics settings |
-| `DifficultySelector.tsx` | Difficulty selection cards |
+| `DifficultySelector.tsx` | Difficulty selection with permadeath toggle |
 | `LevelSelect.tsx` | Campaign level selection |
+| `DevMenu.tsx` | Developer tools overlay (backtick to toggle) |
+| `LeaderboardScreen.tsx` | Local leaderboards display |
+| `LanguageSelector.tsx` | i18n language picker |
 
 ## Testing
 
@@ -341,3 +352,71 @@ The flow is managed in `MainMenu.tsx` with state variables:
 - `selectedDifficulty` - Difficulty chosen
 
 This dispatches: `{ type: 'NEW_GAME', difficulty, startLevel }` to CampaignDirector.
+
+## Difficulty System
+
+Five difficulty levels with modifiers:
+
+| Level | Enemy HP | Enemy Damage | XP Bonus | Permadeath |
+|-------|----------|--------------|----------|------------|
+| Easy | 0.625x | 0.625x | 0.75x | Optional |
+| Normal | 1.0x | 1.0x | 1.0x | Optional |
+| Hard | 1.25x | 1.39x | 1.25x | Optional |
+| Nightmare | 1.625x | 1.95x | 1.5x | Optional |
+| ULTRA-NIGHTMARE | 2.0x | 2.5x | 2.0x | **Forced** |
+
+### Permadeath Toggle
+- Optional on any difficulty (adds +50% XP)
+- ULTRA-NIGHTMARE always forces permadeath
+- Stored in localStorage
+
+### DifficultyManager
+```typescript
+import { getDifficultyManager } from '../core/DifficultySettings';
+
+const manager = getDifficultyManager();
+manager.getDifficulty();  // 'normal'
+manager.setDifficulty('nightmare');
+manager.scaleHealth(100);  // Apply difficulty scaling
+```
+
+## Dev Mode
+
+Toggle with backtick (`) key when `BUILD_FLAGS.DEV_MENU` is true.
+
+| Flag | Purpose |
+|------|---------|
+| `godMode` | Player takes no damage |
+| `noclip` | Fly through walls |
+| `showColliders` | Render physics wireframes |
+| `showEntityCount` | Live entity count overlay |
+| `showFPS` | Framerate counter |
+| `allLevelsUnlocked` | Player Governor: unlock all levels |
+
+### Player Governor
+Autonomous player control for e2e testing:
+```typescript
+import { getPlayerGovernor } from '../systems/PlayerGovernor';
+
+const governor = getPlayerGovernor();
+governor.setPlayer(playerEntity);
+governor.setGoal({ type: 'navigate', target: position });
+governor.setGoal({ type: 'engage_enemies' });
+```
+
+## Database System
+
+Platform-aware SQLite with unified interface:
+
+| Platform | Implementation | Backing |
+|----------|---------------|---------|
+| Web | `WebSQLiteDatabase` | sql.js + IndexedDB |
+| iOS/Android | `CapacitorDatabase` | @capacitor-community/sqlite |
+
+```typescript
+import { capacitorDb } from '../db/database';
+
+await capacitorDb.init();
+await capacitorDb.run('INSERT INTO saves (id, data) VALUES (?, ?)', [id, json]);
+const results = await capacitorDb.query('SELECT * FROM saves WHERE id = ?', [id]);
+```

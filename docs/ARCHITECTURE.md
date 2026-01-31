@@ -580,9 +580,107 @@ private migrateSave(save: GameSave): void {
 ```
 
 ### Storage
-- **Primary**: IndexedDB via worldDb
+- **Primary**: SQLite (sql.js on web, Capacitor SQLite on native)
 - **Key format**: `save_{saveId}`
-- **PWA support**: Persisted for offline access
+- **PWA support**: IndexedDB backing for web persistence
+
+## Difficulty System
+
+### Five Difficulty Levels
+```typescript
+type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'nightmare' | 'ultra_nightmare';
+```
+
+| Level | Enemy HP | Enemy Damage | XP Bonus | Notes |
+|-------|----------|--------------|----------|-------|
+| Easy | 0.625x | 0.625x | 0.75x | Story mode |
+| Normal | 1.0x | 1.0x | 1.0x | Default |
+| Hard | 1.25x | 1.39x | 1.25x | +25% XP |
+| Nightmare | 1.625x | 1.95x | 1.5x | +50% XP |
+| ULTRA-NIGHTMARE | 2.0x | 2.5x | 2.0x | Forced permadeath |
+
+### Permadeath System
+- Optional toggle for any difficulty (+50% XP bonus)
+- ULTRA-NIGHTMARE always forces permadeath
+- One death ends the entire campaign run
+- Stored in localStorage (`stellar_descent_permadeath`)
+
+### DifficultyManager Singleton
+```typescript
+import { getDifficultyManager } from './game/core/DifficultySettings';
+
+const manager = getDifficultyManager();
+
+// Query
+manager.getDifficulty();
+manager.getModifiers();
+
+// Scale values
+manager.scaleHealth(100);
+manager.scaleDamage(50);
+manager.scaleXP(100);
+
+// Listen for changes
+manager.addListener((newDiff, oldDiff) => {
+  console.log(`Difficulty changed: ${oldDiff} -> ${newDiff}`);
+});
+```
+
+## Database Layer
+
+### Platform-Aware SQLite
+Two implementations with identical interface:
+
+**CapacitorDatabase** (Native iOS/Android)
+```typescript
+// Uses @capacitor-community/sqlite
+// Supports encryption
+// Direct native SQLite access
+```
+
+**WebSQLiteDatabase** (Browser)
+```typescript
+// Uses sql.js (compiled SQLite to WASM)
+// IndexedDB backing for persistence
+// WASM loaded from /assets/sql-wasm.js
+```
+
+### Unified API
+```typescript
+import { capacitorDb } from './game/db/database';
+
+await capacitorDb.init();
+await capacitorDb.run('INSERT INTO ...', [params]);
+const results = await capacitorDb.query<T>('SELECT ...', [params]);
+await capacitorDb.persist(); // Web only - save to IndexedDB
+```
+
+## Leaderboard System
+
+Local leaderboards stored in SQLite:
+```typescript
+import { getLeaderboardSystem } from './game/social';
+
+const lb = getLeaderboardSystem();
+
+// Submit score
+await lb.submitScore({
+  levelId: 'landfall',
+  completionTime: 145.7,
+  totalScore: 15000,
+  accuracy: 0.85,
+  enemiesKilled: 47,
+  difficulty: 'nightmare',
+});
+
+// Query leaderboard
+const results = await lb.getLeaderboard({
+  levelId: 'landfall',
+  type: 'speedrun', // or 'score', 'accuracy', 'kills'
+  difficulty: 'nightmare',
+  limit: 10,
+});
+```
 
 ## Entity Component System
 
