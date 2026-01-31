@@ -25,7 +25,10 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import { getPostProcessManager } from '../core/PostProcessManager';
+
+const log = getLogger('FrostEffect');
 
 // ---------------------------------------------------------------------------
 // CONFIGURATION
@@ -170,7 +173,7 @@ export class FrostEffectManager {
       ensureFrostOverlayElements();
     }
 
-    console.log('[FrostEffect] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -348,7 +351,7 @@ export class FrostEffectManager {
     this.scene = null;
     FrostEffectManager.instance = null;
 
-    console.log('[FrostEffect] Disposed');
+    log.info('Disposed');
   }
 }
 

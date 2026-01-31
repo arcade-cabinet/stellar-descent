@@ -21,8 +21,11 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
+import { getLogger } from '../core/Logger';
 import { getAdjustedParticleCount, getPerformanceManager } from '../core/PerformanceManager';
 import { particleManager } from './ParticleManager';
+
+const log = getLogger('DeathEffects');
 
 /**
  * Types of death effects
@@ -209,7 +212,7 @@ export class DeathEffects {
    */
   init(scene: Scene): void {
     this.scene = scene;
-    console.log('[DeathEffects] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -1001,7 +1004,7 @@ export class DeathEffects {
 
     this.scene = null;
     DeathEffects.instance = null;
-    console.log('[DeathEffects] Disposed');
+    log.info('Disposed');
   }
 }
 

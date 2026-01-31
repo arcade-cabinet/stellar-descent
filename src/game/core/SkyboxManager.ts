@@ -28,6 +28,9 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 // Import EXR texture loader for HDRI support
 import '@babylonjs/core/Materials/Textures/Loaders/exrTextureLoader';
+import { getLogger } from './Logger';
+
+const log = getLogger('SkyboxManager');
 
 // ============================================================================
 // TYPES
@@ -211,7 +214,7 @@ export class SkyboxManager {
             this.scene.environmentIntensity = environmentIntensity * 0.3; // Dimmer for underground
           }
         } catch (error) {
-          console.warn(`[SkyboxManager] Failed to load env for ${type}:`, error);
+          log.warn(`Failed to load env for ${type}:`, error);
         }
       }
 
@@ -240,7 +243,7 @@ export class SkyboxManager {
           }
         }
       } catch (error) {
-        console.warn(`[SkyboxManager] Failed to load cubemap for ${type}, using fallback:`, error);
+        log.warn(`Failed to load cubemap for ${type}, using fallback:`, error);
         cubeTexture = null;
       }
     }
@@ -264,7 +267,7 @@ export class SkyboxManager {
           this.scene.environmentIntensity = environmentIntensity;
         }
       } catch (error) {
-        console.warn(`[SkyboxManager] Failed to load env for ${type}, using ambient:`, error);
+        log.warn(`Failed to load env for ${type}, using ambient:`, error);
         envTexture = null;
       }
     }
@@ -346,7 +349,7 @@ export class SkyboxManager {
           }
         })
         .catch((error) => {
-          console.warn(`[SkyboxManager] Failed to load env for ${type}:`, error);
+          log.warn(`Failed to load env for ${type}:`, error);
         });
     }
 
@@ -382,7 +385,7 @@ export class SkyboxManager {
         this.scene.environmentIntensity = intensity;
       }
     } catch (error) {
-      console.warn('[SkyboxManager] Failed to load indoor environment:', error);
+      log.warn('Failed to load indoor environment:', error);
     }
   }
 
@@ -423,7 +426,7 @@ export class SkyboxManager {
         },
         (message, exception) => {
           // On error
-          console.warn(`[SkyboxManager] CubeTexture load failed: ${message}`, exception);
+          log.warn(`CubeTexture load failed: ${message}`, exception);
           resolve(null);
         }
       );
@@ -446,7 +449,7 @@ export class SkyboxManager {
         },
         (message, exception) => {
           // On error
-          console.warn(`[SkyboxManager] HDRCubeTexture load failed: ${message}`, exception);
+          log.warn(`HDRCubeTexture load failed: ${message}`, exception);
           resolve(null);
         }
       );
@@ -471,7 +474,7 @@ export class SkyboxManager {
         },
         (message, exception) => {
           // On error
-          console.warn(`[SkyboxManager] EquiRectangularCubeTexture load failed: ${message}`, exception);
+          log.warn(`EquiRectangularCubeTexture load failed: ${message}`, exception);
           resolve(null);
         }
       );

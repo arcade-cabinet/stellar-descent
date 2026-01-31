@@ -94,9 +94,9 @@ export function setLogLevel(level: LogLevelNames, persist = true): void {
 /**
  * Get current log level
  */
-export function getLogLevel(): LogLevelNames {
+export function getLogLevel(): string {
   const level = log.getLevel();
-  const levelNames: LogLevelNames[] = ['trace', 'debug', 'info', 'warn', 'error', 'silent'];
+  const levelNames = ['trace', 'debug', 'info', 'warn', 'error', 'silent'];
   return levelNames[level] || 'info';
 }
 
@@ -111,7 +111,7 @@ export function enableAllLogs(): void {
  * Disable all logging (for production/performance)
  */
 export function disableLogs(): void {
-  setLogLevel('silent', false);
+  setLogLevel('error', false);
 }
 
 // Export the root logger for simple usage

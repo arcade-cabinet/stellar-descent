@@ -22,6 +22,9 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('LandfallEnv');
 
 // ---------------------------------------------------------------------------
 // Types
@@ -849,9 +852,7 @@ export async function buildLandfallEnvironment(
   // --- Phase 1: Batch-load every unique GLB --------------------------------
   const uniquePaths = collectUniquePaths(allGroups);
 
-  console.log(
-    `[LandfallEnv] Loading ${uniquePaths.length} unique GLB models...`
-  );
+  log.info(`Loading ${uniquePaths.length} unique GLB models...`);
 
   const loadResults = await Promise.allSettled(
     uniquePaths.map((p) => AssetManager.loadAssetByPath(p, scene))
@@ -865,16 +866,14 @@ export async function buildLandfallEnvironment(
       loadedCount++;
     } else {
       failedCount++;
-      console.warn(
-        `[LandfallEnv] Failed to load: ${uniquePaths[i]}`,
+      log.warn(
+        `Failed to load: ${uniquePaths[i]}`,
         r.status === 'rejected' ? r.reason : 'null result'
       );
     }
   }
 
-  console.log(
-    `[LandfallEnv] Loaded ${loadedCount}/${uniquePaths.length} GLBs (${failedCount} failed)`
-  );
+  log.info(`Loaded ${loadedCount}/${uniquePaths.length} GLBs (${failedCount} failed)`);
 
   // --- Phase 2: Instance each placement ------------------------------------
   for (const group of allGroups) {
@@ -918,9 +917,7 @@ export async function buildLandfallEnvironment(
     }
   }
 
-  console.log(
-    `[LandfallEnv] Placed ${allNodes.length} environment instances`
-  );
+  log.info(`Placed ${allNodes.length} environment instances`);
 
   // --- Phase 3: Add atmospheric point lights to wreckage -------------------
   addWreckageLights(scene, root);

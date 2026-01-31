@@ -35,7 +35,7 @@ export type CampaignPhase =
 // ============================================================================
 
 export type CampaignCommand =
-  | { type: 'NEW_GAME'; difficulty?: DifficultyLevel }
+  | { type: 'NEW_GAME'; difficulty?: DifficultyLevel; startLevel?: LevelId }
   | { type: 'CONTINUE' }
   | { type: 'SELECT_LEVEL'; levelId: LevelId }
   | { type: 'BEGIN_MISSION' }

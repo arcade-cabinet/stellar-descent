@@ -26,11 +26,14 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import {
   buildModularStation,
   MODULAR_ROOM_POSITIONS,
   type ModularStationResult,
 } from './ModularStationBuilder';
+
+const log = getLogger('ModularStationEnv');
 
 // ============================================================================
 // GLB ASSET PATHS for interactive elements
@@ -165,7 +168,7 @@ export async function preloadModularStationAssets(scene: Scene): Promise<void> {
     AssetManager.loadAssetByPath(path, scene)
   );
   await Promise.allSettled(loadPromises);
-  console.log('[ModularStationEnv] Interactive assets preloaded');
+  log.info('Interactive assets preloaded');
 }
 
 /**
@@ -195,7 +198,7 @@ function placeVisualModel(
 // ============================================================================
 
 export async function createModularStationEnvironment(scene: Scene): Promise<ModularStationEnv> {
-  console.log('[ModularStationEnv] Creating modular station environment');
+  log.info('Creating modular station environment');
   const root = new TransformNode('modularAnchorStation', scene);
   const materials = createInteractiveMaterials(scene);
   const lights: PointLight[] = [];
@@ -204,9 +207,9 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   await preloadModularStationAssets(scene);
 
   // Load modular GLB station geometry
-  console.log('[ModularStationEnv] Building modular station...');
+  log.info('Building modular station...');
   const stationMeshes = await buildModularStation(scene);
-  console.log('[ModularStationEnv] Station built successfully');
+  log.info('Station built successfully');
   stationMeshes.root.parent = root;
 
   // ============================================================================
@@ -659,14 +662,14 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
         industrialProps.push(mesh);
       }
     } catch (error) {
-      console.warn(`[ModularStationEnv] Failed to load prop ${placement.name}:`, error);
+      log.warn(`Failed to load prop ${placement.name}:`, error);
     }
   });
 
   // Wait for all props to finish loading (non-critical; station functions without them)
   await Promise.all(propLoadPromises);
-  console.log(
-    `[ModularStationEnv] Industrial props loaded: ${industrialProps.length} meshes from ${propPlacements.length} placements`
+  log.info(
+    `Industrial props loaded: ${industrialProps.length} meshes from ${propPlacements.length} placements`
   );
 
   // ============================================================================

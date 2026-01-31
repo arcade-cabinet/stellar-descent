@@ -13,6 +13,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('Queen');
 import {
   COLORS,
   QUEEN_MAX_HEALTH,
@@ -43,7 +46,7 @@ let currentDifficulty: DifficultyLevel = loadDifficultySetting();
  */
 export function setQueenDifficulty(difficulty: DifficultyLevel): void {
   currentDifficulty = difficulty;
-  console.log(`[Queen] Difficulty set to: ${difficulty}`);
+  log.info(`Difficulty set to: ${difficulty}`);
 }
 
 /**
@@ -84,7 +87,7 @@ export async function preloadQueenModels(scene: Scene): Promise<void> {
     AssetManager.loadAssetByPath(QUEEN_CLAW_PATH, scene),
     AssetManager.loadAssetByPath(QUEEN_TAIL_PATH, scene),
   ]);
-  console.log('[TheBreachLevel/queen] Queen GLB models preloaded');
+  log.info('Queen GLB models preloaded');
 }
 
 // ============================================================================

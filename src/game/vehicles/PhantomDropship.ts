@@ -26,8 +26,11 @@ import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import { createEntity, getEntitiesInRadius, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import { VehicleBase, type VehicleStats, type VehicleWeapon } from './VehicleBase';
+
+const log = getLogger('PhantomDropship');
 
 // --------------------------------------------------------------------------
 // Constants
@@ -156,7 +159,7 @@ export class PhantomDropship extends VehicleBase {
     if (this.modelReady) return;
 
     try {
-      console.log('[Phantom] Loading GLB model via AssetManager...');
+      log.info('Loading GLB model via AssetManager...');
 
       // Load the spaceship GLB through AssetManager (caches for instancing)
       await AssetManager.loadAssetByPath(PHANTOM_GLB_PATH, this.scene);
@@ -185,14 +188,14 @@ export class PhantomDropship extends VehicleBase {
         }
 
         this.modelReady = true;
-        console.log(
-          `[Phantom] GLB loaded via AssetManager: ${childMeshes.length} mesh instances`
+        log.info(
+          `GLB loaded via AssetManager: ${childMeshes.length} mesh instances`
         );
       } else {
-        console.warn('[Phantom] AssetManager instance creation failed');
+        log.warn('AssetManager instance creation failed');
       }
     } catch (error) {
-      console.error('[Phantom] Failed to load GLB model:', error);
+      log.error('Failed to load GLB model:', error);
     }
   }
 
@@ -523,7 +526,7 @@ export class PhantomDropship extends VehicleBase {
     this.landingProgress = 0;
     this.targetAltitude = HOVER_HEIGHT;
     this.startEngineSound();
-    console.log('[Phantom] Takeoff initiated');
+    log.info('Takeoff initiated');
   }
 
   private beginLanding(): void {
@@ -531,7 +534,7 @@ export class PhantomDropship extends VehicleBase {
     this.landingState = 'landing';
     this.landingProgress = 0;
     this.targetAltitude = LANDING_HEIGHT;
-    console.log('[Phantom] Landing initiated');
+    log.info('Landing initiated');
   }
 
   // ------------------------------------------------------------------
@@ -578,7 +581,7 @@ export class PhantomDropship extends VehicleBase {
       this.engineOscillator.start();
       this.engineLFO.start();
     } catch {
-      console.warn('[Phantom] Could not create engine audio');
+      log.warn('Could not create engine audio');
     }
   }
 
@@ -631,7 +634,7 @@ export class PhantomDropship extends VehicleBase {
       if (this.altitude >= this.targetAltitude) {
         this.landingState = 'airborne';
         this.altitude = HOVER_HEIGHT;
-        console.log('[Phantom] Airborne');
+        log.info('Airborne');
       }
     } else if (this.landingState === 'landing') {
       this.altitude = Math.max(
@@ -646,7 +649,7 @@ export class PhantomDropship extends VehicleBase {
         this.throttle = 0;
         this.stopEngineSound();
         getAudioManager().play('drop_impact', { volume: 0.3 });
-        console.log('[Phantom] Grounded');
+        log.info('Grounded');
       }
     }
   }

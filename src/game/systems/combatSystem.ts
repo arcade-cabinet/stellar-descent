@@ -6,6 +6,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getAudioManager } from '../core/AudioManager';
+import { getLogger } from '../core/Logger';
 import {
   type DifficultyLevel,
   type DifficultyModifiers,
@@ -21,6 +22,8 @@ import { muzzleFlash } from '../effects/MuzzleFlash';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
 import { tokens } from '../utils/designTokens';
+
+const log = getLogger('CombatSystem');
 
 export class CombatSystem {
   private scene: Scene;
@@ -53,7 +56,7 @@ export class CombatSystem {
     // Load difficulty settings
     this.difficulty = loadDifficultySetting();
     this.difficultyModifiers = getDifficultyModifiers(this.difficulty);
-    console.log(`[CombatSystem] Initialized with difficulty: ${this.difficulty}`);
+    log.info(`Initialized with difficulty: ${this.difficulty}`);
   }
 
   /**
@@ -62,7 +65,7 @@ export class CombatSystem {
   setDifficulty(difficulty: DifficultyLevel): void {
     this.difficulty = difficulty;
     this.difficultyModifiers = getDifficultyModifiers(difficulty);
-    console.log(`[CombatSystem] Difficulty changed to: ${difficulty}`);
+    log.info(`Difficulty changed to: ${difficulty}`);
   }
 
   /**

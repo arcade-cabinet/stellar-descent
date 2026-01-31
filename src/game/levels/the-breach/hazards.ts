@@ -17,6 +17,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('HazardBuilder');
 import { COLORS } from './constants';
 import type { AcidPool, EggCluster, HiveZone, PheromoneCloud } from './types';
 
@@ -68,7 +71,7 @@ export class HazardBuilder {
 
     await Promise.all(loadPromises);
     this.eggAssetsLoaded = true;
-    console.log('[HazardBuilder] Egg cluster GLB assets loaded');
+    log.info('Egg cluster GLB assets loaded');
   }
 
   // ============================================================================

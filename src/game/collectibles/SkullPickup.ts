@@ -27,6 +27,9 @@ import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('SkullPickup');
 import type { LevelId } from '../levels/types';
 import { getSkullSystem, SKULLS, type SkullDefinition, type SkullId } from './SkullSystem';
 
@@ -100,20 +103,20 @@ export class SkullPickupManager {
     // Find which skull belongs in this level
     const skull = this.getSkullForLevel();
     if (!skull) {
-      console.log(`[SkullPickup] No skull assigned to level ${this.levelId}`);
+      log.info(`No skull assigned to level ${this.levelId}`);
       return;
     }
 
     // Skip if already found
     const system = getSkullSystem();
     if (system.isFound(skull.id)) {
-      console.log(`[SkullPickup] Skull "${skull.name}" already found, skipping placement`);
+      log.info(`Skull "${skull.name}" already found, skipping placement`);
       return;
     }
 
     this.pickup = await this.createPickup(skull, position);
-    console.log(
-      `[SkullPickup] Placed "${skull.name}" skull at (${position.x}, ${position.y}, ${position.z})`
+    log.info(
+      `Placed "${skull.name}" skull at (${position.x}, ${position.y}, ${position.z})`
     );
   }
 
@@ -207,7 +210,7 @@ export class SkullPickupManager {
       // Scale the model to fit the pickup size (roughly 0.7 diameter)
       modelNode.scaling = new Vector3(0.35, 0.35, 0.35);
     } else {
-      console.warn(`[SkullPickup] Failed to create model instance for skull "${skull.id}"`);
+      log.warn(`Failed to create model instance for skull "${skull.id}"`);
     }
 
     // --- Point light ---

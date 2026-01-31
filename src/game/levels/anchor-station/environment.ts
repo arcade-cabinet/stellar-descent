@@ -40,6 +40,9 @@ import {
   type PlatformingRoomState,
 } from './platformingRoom';
 import { createScenicRooms, SCENIC_ROOM_POSITIONS, type ScenicRoomsResult } from './scenicRooms';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('Environment');
 
 // ============================================================================
 // Room Layout Constants (all in meters)
@@ -427,7 +430,7 @@ export function clearModelCache(): void {
     }
   }
   modelCache.clear();
-  console.log('[Environment] Model cache cleared');
+  log.info('Model cache cleared');
 }
 
 /**
@@ -506,7 +509,7 @@ async function placeGLB(
   } catch (err) {
     // Ensure timeout is cleared on any error
     if (timeoutId) clearTimeout(timeoutId);
-    console.warn(`[Environment] Failed to load ${modelPath} for ${name}:`, err);
+    log.warn(`Failed to load ${modelPath} for ${name}:`, err);
   }
 
   return node;
@@ -1199,9 +1202,9 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // WAIT FOR ALL GLB MODELS TO LOAD
   // ============================================================================
 
-  console.log(`[Environment] Loading ${loadPromises.length} GLB models...`);
+  log.info(`Loading ${loadPromises.length} GLB models...`);
   await Promise.allSettled(loadPromises);
-  console.log(`[Environment] All GLB models loaded. Total meshes: ${allMeshes.length}`);
+  log.info(`All GLB models loaded. Total meshes: ${allMeshes.length}`);
 
   // ============================================================================
   // INTERACTIVE ELEMENTS (MeshBuilder for precise collision/animation shapes)

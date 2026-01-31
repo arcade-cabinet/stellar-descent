@@ -13,6 +13,7 @@ import { MainMenu } from './ui/MainMenu';
 import { SplashScreen } from './ui/SplashScreen';
 import { TitleSequence } from './ui/TitleSequence';
 import type { CampaignCommand, CampaignPhase } from '../game/campaign/types';
+import type { DifficultyLevel } from '../game/core/DifficultySettings';
 import type { LevelId } from '../game/levels/types';
 
 interface LandingFlowProps {
@@ -60,8 +61,10 @@ export function LandingFlow({ phase, dispatch, isTouchDevice = false }: LandingF
       {effectivePhase === 'menu' && (
         <MainMenu
           onStart={() => dispatch({ type: 'NEW_GAME' })}
+          onNewGame={(difficulty: DifficultyLevel, startLevel: LevelId) =>
+            dispatch({ type: 'NEW_GAME', difficulty, startLevel })
+          }
           onContinue={() => dispatch({ type: 'CONTINUE' })}
-          onSkipTutorial={() => dispatch({ type: 'SELECT_LEVEL', levelId: 'landfall' })}
           onSelectLevel={(levelId: LevelId) => dispatch({ type: 'SELECT_LEVEL', levelId })}
           onReplayTitle={() => dispatch({ type: 'SPLASH_COMPLETE' })}
         />

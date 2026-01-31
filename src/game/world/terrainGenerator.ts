@@ -25,7 +25,10 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { AssetManager } from '../core/AssetManager';
+import { getLogger } from '../core/Logger';
 import { tokens } from '../utils/designTokens';
+
+const log = getLogger('TerrainGenerator');
 import {
   type TerrainBiomeConfig,
   LANDFALL_TERRAIN_CONFIG,
@@ -179,7 +182,7 @@ export class TerrainGenerator {
     await Promise.all(
       ALL_TERRAIN_GLBS.map((path) => AssetManager.loadAssetByPath(path, this.scene))
     );
-    console.log(`[TerrainGenerator] Preloaded ${ALL_TERRAIN_GLBS.length} terrain GLB assets`);
+    log.info(`Preloaded ${ALL_TERRAIN_GLBS.length} terrain GLB assets`);
   }
 
   /**
@@ -291,7 +294,7 @@ export class TerrainGenerator {
       );
 
       if (!node) {
-        console.warn(`[TerrainGenerator] Failed to instance ground tile: ${glbPath}`);
+        log.warn(`Failed to instance ground tile: ${glbPath}`);
         continue;
       }
 
@@ -349,7 +352,7 @@ export class TerrainGenerator {
       );
 
       if (!node) {
-        console.warn(`[TerrainGenerator] Failed to instance rock GLB: ${glbPath}`);
+        log.warn(`Failed to instance rock GLB: ${glbPath}`);
         continue;
       }
 

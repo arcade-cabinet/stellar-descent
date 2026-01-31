@@ -14,6 +14,9 @@ import { Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
 import { ArriveBehavior, EntityManager, SeekBehavior, Vehicle, Vector3 as YukaVector3 } from 'yuka';
 import type { Entity } from '../core/ecs';
 import { getEntitiesInRadius } from '../core/ecs';
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('PlayerGovernor');
 
 // Convert between Babylon and Yuka vectors
 function toYuka(v: BabylonVector3): YukaVector3 {
@@ -130,7 +133,7 @@ export class PlayerGovernor {
     if (player.transform) {
       this.vehicle.position = toYuka(player.transform.position);
     }
-    this.log('Player entity assigned');
+    this.logMessage('Player entity assigned');
   }
 
   addEventListener(listener: (event: GovernorEvent) => void): void {
@@ -149,13 +152,13 @@ export class PlayerGovernor {
       listener(event);
     }
     if (this.config.logActions) {
-      this.log(`Event: ${event.type}`);
+      this.logMessage(`Event: ${event.type}`);
     }
   }
 
-  private log(message: string): void {
+  private logMessage(message: string): void {
     if (this.config.logActions) {
-      console.log(`[PlayerGovernor] ${message}`);
+      log.info(message);
     }
   }
 
@@ -166,25 +169,25 @@ export class PlayerGovernor {
   setGoal(goal: GovernorGoal): void {
     this.currentGoal = goal;
     this.emit({ type: 'goal_started', goal });
-    this.log(`Goal set: ${goal.type}`);
+    this.logMessage(`Goal set: ${goal.type}`);
     this.updateBehaviors();
   }
 
   queueGoal(goal: GovernorGoal): void {
     this.goalQueue.push(goal);
-    this.log(`Goal queued: ${goal.type}`);
+    this.logMessage(`Goal queued: ${goal.type}`);
   }
 
   clearGoals(): void {
     this.currentGoal = { type: 'idle' };
     this.goalQueue = [];
     this.vehicle.steering.clear();
-    this.log('Goals cleared');
+    this.logMessage('Goals cleared');
   }
 
   private completeCurrentGoal(): void {
     this.emit({ type: 'goal_completed', goal: this.currentGoal });
-    this.log(`Goal completed: ${this.currentGoal.type}`);
+    this.logMessage(`Goal completed: ${this.currentGoal.type}`);
 
     // Move to next goal in queue
     if (this.goalQueue.length > 0) {
@@ -504,13 +507,13 @@ export class PlayerGovernor {
   setObjective(objective: string): void {
     this.currentObjective = objective;
     this.emit({ type: 'objective_updated', objectiveText: objective });
-    this.log(`Objective updated: ${objective}`);
+    this.logMessage(`Objective updated: ${objective}`);
   }
 
   markTutorialStepComplete(step: string): void {
     if (!this.tutorialStepsCompleted.includes(step)) {
       this.tutorialStepsCompleted.push(step);
-      this.log(`Tutorial step completed: ${step}`);
+      this.logMessage(`Tutorial step completed: ${step}`);
     }
   }
 
@@ -543,7 +546,7 @@ export class PlayerGovernor {
       this.setGoal(firstGoal);
     }
 
-    this.log('Tutorial playthrough started');
+    this.logMessage('Tutorial playthrough started');
   }
 
   /**
@@ -570,7 +573,7 @@ export class PlayerGovernor {
   dispose(): void {
     this.entityManager.clear();
     this.eventListeners = [];
-    this.log('Governor disposed');
+    this.logMessage('Governor disposed');
   }
 }
 

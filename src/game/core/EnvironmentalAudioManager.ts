@@ -17,6 +17,9 @@
 
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { LevelId } from '../levels/types';
+import { getLogger } from './Logger';
+
+const log = getLogger('EnvironmentalAudioManager');
 
 // ============================================================================
 // TYPES
@@ -260,7 +263,7 @@ export class EnvironmentalAudioManager {
   startEnvironment(levelId: LevelId, intensity = 1.0): void {
     const environmentType = LEVEL_ENVIRONMENT_MAP[levelId];
     if (!environmentType) {
-      console.warn(`[EnvironmentalAudio] No environment mapping for level: ${levelId}`);
+      log.warn(`No environment mapping for level: ${levelId}`);
       return;
     }
 

@@ -27,7 +27,10 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
+
+const log = getLogger('BrothersInArms');
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
@@ -367,8 +370,8 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Build GLB-based battlefield (replaces old MeshBuilder rock pillars)
     // Loads barricades, industrial structures, containers, debris, and decals
     this.battlefield = await buildBattlefieldEnvironment(this.scene);
-    console.log(
-      `[BrothersInArms] Battlefield built with ${this.battlefield.meshes.length} meshes, ` +
+    log.info(
+      `Battlefield built with ${this.battlefield.meshes.length} meshes, ` +
         `${this.battlefield.lights.length} lights, ` +
         `${this.battlefield.supplyCratePositions.length} supply positions`
     );
@@ -456,15 +459,15 @@ export class BrothersInArmsLevel extends BaseLevel {
           await AssetManager.loadAssetByPath(path, this.scene);
         }
       } catch (err) {
-        console.warn(`[BrothersInArms] Failed to load enemy GLB: ${path}`, err);
+        log.warn(`Failed to load enemy GLB: ${path}`, err);
       }
     });
 
     await Promise.all(loadPromises);
 
     const loaded = uniquePaths.filter((p) => AssetManager.isPathCached(p)).length;
-    console.log(
-      `[BrothersInArms] Preloaded ${loaded}/${uniquePaths.length} enemy models`
+    log.info(
+      `Preloaded ${loaded}/${uniquePaths.length} enemy models`
     );
   }
 
@@ -751,7 +754,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       }
     });
 
-    console.log(`[BrothersInArms] Generated ${this.spawnPoints.length} spawn points`);
+    log.info(`Generated ${this.spawnPoints.length} spawn points`);
   }
 
   // ============================================================================
@@ -768,7 +771,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     try {
       await AssetManager.loadAssetByPath(MECH_GLB_PATH, this.scene);
     } catch (err) {
-      console.error(`[BrothersInArms] Failed to load marcus_mech.glb: ${err}`);
+      log.error(`Failed to load marcus_mech.glb: ${err}`);
       // Create fallback mech geometry if GLB fails
       this.createFallbackMarcusMech(root);
       return;
@@ -799,9 +802,9 @@ export class BrothersInArmsLevel extends BaseLevel {
         }
       }
 
-      console.log(`[BrothersInArms] Marcus mech loaded successfully with ${mechMeshes.length} meshes`);
+      log.info(`Marcus mech loaded successfully with ${mechMeshes.length} meshes`);
     } else {
-      console.warn('[BrothersInArms] GLB instance creation failed, using fallback');
+      log.warn('GLB instance creation failed, using fallback');
       this.createFallbackMarcusMech(root);
       return;
     }
@@ -923,7 +926,7 @@ export class BrothersInArmsLevel extends BaseLevel {
    * This ensures the level remains playable even without the GLB model.
    */
   private createFallbackMarcusMech(root: TransformNode): void {
-    console.warn('[BrothersInArms] Creating fallback mech geometry');
+    log.warn('Creating fallback mech geometry');
 
     // Create the mech body using primitive shapes
     const body = MeshBuilder.CreateBox('mechBody_fallback', { width: 3, height: 4, depth: 2 }, this.scene);
@@ -2819,7 +2822,7 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   protected disposeLevel(): void {
-    console.log('[BrothersInArms] Disposing level resources...');
+    log.info('Disposing level resources...');
 
     // Dispose flora
     for (const node of this.floraNodes) {
@@ -2909,6 +2912,6 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.skyboxResult = null;
     this.skyDome = null;
 
-    console.log('[BrothersInArms] Level disposal complete');
+    log.info('Level disposal complete');
   }
 }

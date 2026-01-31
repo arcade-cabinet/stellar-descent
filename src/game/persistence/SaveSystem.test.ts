@@ -254,10 +254,11 @@ describe('SaveSystem', () => {
     });
 
     it('updates tutorial progress', () => {
-      saveSystem.setTutorialProgress(5);
+      // tutorialStep removed in v5 - now using quest chain system
+      saveSystem.setTutorialProgress(5, true);
       const save = saveSystem.getCurrentSave();
 
-      expect(save?.tutorialStep).toBe(5);
+      expect(save?.tutorialCompleted).toBe(true);
     });
 
     it('completes tutorial', () => {

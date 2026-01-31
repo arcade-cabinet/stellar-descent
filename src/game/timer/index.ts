@@ -12,4 +12,12 @@ export {
   type LevelBestTime,
 } from './GameTimer';
 
+export {
+  getGameChronometer,
+  disposeGameChronometer,
+  GameChronometer,
+  type ChronometerSnapshot,
+  type LoreDate,
+} from './GameChronometer';
+
 export { useGameTimer, useMissionTime, useTimerRunning } from './useGameTimer';

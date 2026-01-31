@@ -7,6 +7,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('PlatformingRoom');
 
 // ============================================================================
 // PLATFORMING ROOM GEOMETRY AND STATE
@@ -85,7 +88,7 @@ export async function preloadPlatformingRoomAssets(scene: Scene): Promise<void> 
     AssetManager.loadAssetByPath(path, scene)
   );
   await Promise.allSettled(loadPromises);
-  console.log('[PlatformingRoom] Assets preloaded');
+  log.info('Assets preloaded');
 }
 
 /**

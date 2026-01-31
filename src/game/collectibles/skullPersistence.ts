@@ -9,7 +9,10 @@
  * - Which found skulls are currently toggled active for gameplay
  */
 
+import { getLogger } from '../core/Logger';
 import type { SkullId } from './SkullSystem';
+
+const log = getLogger('SkullPersistence');
 
 const STORAGE_KEY_PREFIX = 'stellar_descent_skulls';
 const CURRENT_SAVE_KEY = 'stellar_descent_current_save';
@@ -138,7 +141,7 @@ export function activateSkull(skullId: SkullId, saveId?: string): SkullCollectio
   const state = loadSkullCollection(saveId);
 
   if (!state.foundSkulls.includes(skullId)) {
-    console.warn(`[SkullPersistence] Cannot activate unfound skull: ${skullId}`);
+    log.warn(`Cannot activate unfound skull: ${skullId}`);
     return state;
   }
 

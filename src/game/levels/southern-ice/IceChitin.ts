@@ -20,6 +20,9 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('IceChitin');
 import type { AlienSpecies, LootEntry } from '../../entities/aliens';
 
 // ============================================================================
@@ -197,7 +200,7 @@ export function createIceChitinMesh(scene: Scene, seed: number): TransformNode {
     // Apply ice-blue frost tint to all body meshes
     applyIceTint(scene, bodyNode, seed);
   } else {
-    console.warn(`[IceChitin] GLB not loaded for ice_chitin_${seed}, using empty root`);
+    log.warn(`GLB not loaded for ice_chitin_${seed}, using empty root`);
   }
 
   // --- Frost Aura Indicator (VFX -- kept as MeshBuilder) ---

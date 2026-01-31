@@ -23,7 +23,10 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../core/AudioManager';
 import { createEntity, type Entity, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import type { Player } from '../entities/player';
+
+const log = getLogger('VehicleBase');
 
 // --------------------------------------------------------------------------
 // Types
@@ -269,7 +272,7 @@ export abstract class VehicleBase {
 
     getAudioManager().play('door_open', { volume: 0.5 });
 
-    console.log(`[Vehicle] Player entered ${this.displayName}`);
+    log.info(`Player entered ${this.displayName}`);
   }
 
   public exit(): void {
@@ -299,7 +302,7 @@ export abstract class VehicleBase {
     this._pilot = null;
     this._savedPlayerCamera = null;
 
-    console.log(`[Vehicle] Player exited ${this.displayName}`);
+    log.info(`Player exited ${this.displayName}`);
   }
 
   // ------------------------------------------------------------------
@@ -405,7 +408,7 @@ export abstract class VehicleBase {
   }
 
   protected onDestroyed(): void {
-    console.log(`[Vehicle] ${this.displayName} destroyed`);
+    log.info(`${this.displayName} destroyed`);
     // Force eject player
     if (this._isOccupied) {
       this.exit();
@@ -551,6 +554,6 @@ export abstract class VehicleBase {
     // Remove ECS entity
     removeEntity(this.entity);
 
-    console.log(`[Vehicle] Disposed ${this.displayName}`);
+    log.info(`Disposed ${this.displayName}`);
   }
 }

@@ -49,6 +49,9 @@ import {
 } from './ModularStationEnvironment';
 import { TutorialManager } from './TutorialManager';
 import type { HUDUnlockState, TutorialPhase } from './tutorialSteps';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('AnchorStationLevel');
 
 export class AnchorStationLevel extends StationLevel {
   // Station environment (modular GLB-based)
@@ -106,20 +109,20 @@ export class AnchorStationLevel extends StationLevel {
   }
 
   protected async createEnvironment(): Promise<void> {
-    console.log('[AnchorStationLevel] createEnvironment() starting...');
+    log.info('createEnvironment() starting...');
 
     // CRITICAL: This is an INDOOR level - ensure fog is disabled before anything else
     this.disableFog();
 
     // Create modular station from GLB corridor segments
     // This replaces the legacy procedural generation with snap-together GLB corridors
-    console.log('[AnchorStationLevel] About to call createModularStationEnvironment');
-    console.log(
-      '[AnchorStationLevel] createModularStationEnvironment function exists:',
+    log.info('About to call createModularStationEnvironment');
+    log.debug(
+      'createModularStationEnvironment function exists:',
       typeof createModularStationEnvironment
     );
     this.stationEnvironment = await createModularStationEnvironment(this.scene);
-    console.log('[AnchorStationLevel] Station environment created');
+    log.info('Station environment created');
 
     // Add station-specific interior lights throughout the level
     // These are the PRIMARY light sources for the indoor level
@@ -389,9 +392,9 @@ export class AnchorStationLevel extends StationLevel {
   }
 
   private startTutorial(): void {
-    console.log('[AnchorStationLevel] startTutorial() called');
+    log.info('startTutorial() called');
     if (!this.tutorialManager) {
-      console.log('[AnchorStationLevel] No tutorialManager!');
+      log.warn('No tutorialManager!');
       return;
     }
 
@@ -421,8 +424,8 @@ export class AnchorStationLevel extends StationLevel {
         this.handlePhaseChange(phase);
       },
       onCommsMessage: (message) => {
-        console.log(
-          '[AnchorStationLevel] onCommsMessage callback received:',
+        log.debug(
+          'onCommsMessage callback received:',
           message.text.substring(0, 40)
         );
         this.callbacks.onCommsMessage({

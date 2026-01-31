@@ -163,12 +163,6 @@
   margin-bottom: 2rem;
 }
 
-/* Install button wrapper - centered below columns */
-.installButtonWrapper {
-  width: 50%;
-  margin-bottom: 1.5rem;
-}
-
 .button {
   width: 100%;
   padding: 0.875rem 1.25rem;
@@ -436,10 +430,6 @@
 
   .buttonColumn {
     gap: 0.5rem;
-  }
-
-  .installButtonWrapper {
-    width: 100%;
   }
 
   .insignia {

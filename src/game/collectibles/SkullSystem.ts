@@ -19,6 +19,7 @@
  */
 
 import type { DifficultyModifiers } from '../core/DifficultySettings';
+import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
 import {
   getActiveSkullIds,
@@ -27,6 +28,8 @@ import {
   type SkullCollectionState,
   saveSkullCollection,
 } from './skullPersistence';
+
+const log = getLogger('SkullSystem');
 
 // ============================================================================
 // TYPES
@@ -287,8 +290,8 @@ class SkullSystemImpl {
     if (this.initialized) return;
     this.state = loadSkullCollection();
     this.initialized = true;
-    console.log(
-      `[SkullSystem] Initialized with ${this.state.foundSkulls.length} found, ` +
+    log.info(
+      `Initialized with ${this.state.foundSkulls.length} found, ` +
         `${this.state.activeSkulls.length} active`
     );
   }
@@ -317,7 +320,7 @@ class SkullSystemImpl {
       try {
         cb();
       } catch (err) {
-        console.error('[SkullSystem] Error in change callback:', err);
+        log.error('Error in change callback:', err);
       }
     }
   }
@@ -333,7 +336,7 @@ class SkullSystemImpl {
     }
     this.state.foundSkulls.push(skullId);
     this.persist();
-    console.log(`[SkullSystem] Skull discovered: ${SKULLS[skullId].name}`);
+    log.info(`Skull discovered: ${SKULLS[skullId].name}`);
     return true;
   }
 
@@ -364,7 +367,7 @@ class SkullSystemImpl {
   /** Activate a skull (must be found first). Returns true on success. */
   activateSkull(skullId: SkullId): boolean {
     if (!this.state.foundSkulls.includes(skullId)) {
-      console.warn(`[SkullSystem] Cannot activate unfound skull: ${skullId}`);
+      log.warn(`Cannot activate unfound skull: ${skullId}`);
       return false;
     }
     if (this.state.activeSkulls.includes(skullId)) {
@@ -372,7 +375,7 @@ class SkullSystemImpl {
     }
     this.state.activeSkulls.push(skullId);
     this.persist();
-    console.log(`[SkullSystem] Skull activated: ${SKULLS[skullId].name}`);
+    log.info(`Skull activated: ${SKULLS[skullId].name}`);
     return true;
   }
 
@@ -382,7 +385,7 @@ class SkullSystemImpl {
     if (idx === -1) return false;
     this.state.activeSkulls.splice(idx, 1);
     this.persist();
-    console.log(`[SkullSystem] Skull deactivated: ${SKULLS[skullId].name}`);
+    log.info(`Skull deactivated: ${SKULLS[skullId].name}`);
     return true;
   }
 
@@ -415,7 +418,7 @@ class SkullSystemImpl {
     if (this.state.activeSkulls.length === 0) return;
     this.state.activeSkulls = [];
     this.persist();
-    console.log('[SkullSystem] All skulls deactivated');
+    log.info('All skulls deactivated');
   }
 
   // --------------------------------------------------------------------------
@@ -576,14 +579,14 @@ class SkullSystemImpl {
     this.state.foundSkulls = [];
     this.state.activeSkulls = [];
     this.persist();
-    console.log('[SkullSystem] All skull progress reset');
+    log.info('All skull progress reset');
   }
 
   /** Discover all skulls at once (debug/testing). */
   discoverAll(): void {
     this.state.foundSkulls = [...SKULL_ORDER];
     this.persist();
-    console.log('[SkullSystem] All skulls discovered');
+    log.info('All skulls discovered');
   }
 }
 

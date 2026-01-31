@@ -22,9 +22,12 @@ import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import type { Player } from '../entities/player';
 import { VehicleBase, type VehicleStats, type VehicleWeapon } from './VehicleBase';
+
+const log = getLogger('WraithTank');
 
 // --------------------------------------------------------------------------
 // Constants
@@ -157,7 +160,7 @@ export class WraithTank extends VehicleBase {
         instance.position = Vector3.Zero();
         this.glbNode = instance;
         this._modelLoaded = true;
-        console.log(`[WraithTank] GLB model loaded for ${this.vehicleId}`);
+        log.info(`GLB model loaded for ${this.vehicleId}`);
       } else {
         throw new Error(`[WraithTank] GLB instance creation failed for ${this.vehicleId} - asset not preloaded or path invalid`);
       }
@@ -342,7 +345,7 @@ export class WraithTank extends VehicleBase {
     if (this.isBoosting || this.boostCooldownTimer > 0) return;
     this.isBoosting = true;
     this.boostTimer = BOOST_DURATION;
-    console.log('[Wraith] Boost activated');
+    log.info('Boost activated');
   }
 
   private updateBoost(deltaTime: number): void {
@@ -364,7 +367,7 @@ export class WraithTank extends VehicleBase {
     if (this.boostTimer <= 0) {
       this.isBoosting = false;
       this.boostCooldownTimer = BOOST_COOLDOWN;
-      console.log('[Wraith] Boost ended, cooldown started');
+      log.info('Boost ended, cooldown started');
     }
 
     // Show boost trail
@@ -392,7 +395,7 @@ export class WraithTank extends VehicleBase {
       if (dot < -Math.cos(WEAK_POINT_ANGLE)) {
         // Hit from rear - double damage
         amount *= 2;
-        console.log('[Wraith] Weak point hit! Double damage');
+        log.info('Weak point hit! Double damage');
       }
     }
 
@@ -404,7 +407,7 @@ export class WraithTank extends VehicleBase {
       this.isHijackable = true;
       this.aiState = 'stunned';
       this.stunDuration = 10; // 10 seconds to hijack
-      console.log('[Wraith] Stunned - hijackable!');
+      log.info('Stunned - hijackable!');
     }
   }
 
@@ -443,7 +446,7 @@ export class WraithTank extends VehicleBase {
     this.scene.activeCamera = this.vehicleCamera;
 
     getAudioManager().play('door_open', { volume: 0.5 });
-    console.log('[Wraith] Hijacked by player!');
+    log.info('Hijacked by player!');
   }
 
   // ------------------------------------------------------------------
@@ -496,7 +499,7 @@ export class WraithTank extends VehicleBase {
     const dist = Vector3.Distance(this.rootNode.position, this.playerTarget.getPosition());
     if (dist < DETECTION_RANGE) {
       this.aiState = 'chase';
-      console.log('[Wraith] Player detected, chasing');
+      log.info('Player detected, chasing');
     }
   }
 
@@ -567,7 +570,7 @@ export class WraithTank extends VehicleBase {
     if (this.stunDuration <= 0) {
       this.isHijackable = false;
       this.aiState = 'patrol';
-      console.log('[Wraith] Recovered from stun');
+      log.info('Recovered from stun');
     }
   }
 

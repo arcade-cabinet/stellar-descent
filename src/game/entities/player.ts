@@ -11,6 +11,7 @@ import { getAchievementManager } from '../achievements';
 import { getCurrentWeaponDef } from '../context/useWeaponActions';
 import { getAudioManager } from '../core/AudioManager';
 import { AssetManager } from '../core/AssetManager';
+import { getLogger } from '../core/Logger';
 import {
   type DifficultyLevel,
   getDifficultyModifiers,
@@ -22,6 +23,8 @@ import { weaponEffects } from '../effects/WeaponEffects';
 import type { TouchInput } from '../types';
 import { tokens } from '../utils/designTokens';
 import { getScreenInfo, vibrate } from '../utils/responsive';
+
+const log = getLogger('Player');
 
 // Path to the marine soldier GLB model
 const PLAYER_MODEL_PATH = '/models/npcs/marine/marine_soldier.glb';
@@ -145,8 +148,8 @@ export class Player {
       throw new Error(`[Player] Failed to load player GLB model from ${PLAYER_MODEL_PATH}`);
     }
 
-    console.log(
-      `[Player] GLB loaded: ${asset.meshes.length} meshes in ${asset.loadTime.toFixed(0)}ms`
+    log.info(
+      `GLB loaded: ${asset.meshes.length} meshes in ${asset.loadTime.toFixed(0)}ms`
     );
 
     // ----- Third-person body (follows collision capsule) -----
@@ -251,8 +254,8 @@ export class Player {
     // Adjust scale so the GLB model looks right relative to the camera.
     this.weaponContainer.scaling.setAll(0.005);
 
-    console.log(
-      `[Player] First-person weapon view: ${meshesToClone.length} meshes cloned ` +
+    log.info(
+      `First-person weapon view: ${meshesToClone.length} meshes cloned ` +
       `(arms: ${armMeshes.length}, weapon: ${weaponMeshes.length})`
     );
   }
@@ -934,7 +937,7 @@ export class Player {
    * Handle player death - called when health reaches 0
    */
   private onDeath(): void {
-    console.log('[Player] Death triggered');
+    log.info('Death triggered');
 
     // Play death sound
     getAudioManager().play('player_damage', { volume: 0.8 });
@@ -989,6 +992,6 @@ export class Player {
       this.mesh.position = position.clone();
       this.mesh.position.y = 1;
     }
-    console.log('[Player] Respawned');
+    log.info('Respawned');
   }
 }

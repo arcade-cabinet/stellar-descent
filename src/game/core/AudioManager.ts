@@ -10,6 +10,9 @@ import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
 import type { WeaponId } from '../entities/weapons';
 import type { LevelId } from '../levels/types';
+import { getLogger } from './Logger';
+
+const log = getLogger('AudioManager');
 import {
   type AudioZone,
   disposeEnvironmentalAudioManager,
@@ -204,7 +207,10 @@ export class AudioManager {
 
   async startLevelAudio(levelId: LevelId): Promise<void> {
     const config = LEVEL_AUDIO_CONFIGS[levelId];
-    if (!config) return console.warn(`No audio config for level: ${levelId}`);
+    if (!config) {
+      log.warn(`No audio config for level: ${levelId}`);
+      return;
+    }
 
     this.currentLevelId = levelId;
     this.currentLevelConfig = config;
@@ -245,7 +251,10 @@ export class AudioManager {
 
   async transitionToLevel(newLevelId: LevelId, crossfadeDuration = 2): Promise<void> {
     const newConfig = LEVEL_AUDIO_CONFIGS[newLevelId];
-    if (!newConfig) return console.warn(`No audio config for level: ${newLevelId}`);
+    if (!newConfig) {
+      log.warn(`No audio config for level: ${newLevelId}`);
+      return;
+    }
 
     this.ambientGenerator.stop();
     this.currentLevelId = newLevelId;

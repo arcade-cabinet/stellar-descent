@@ -18,6 +18,9 @@ import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
+import { getLogger } from '../core/Logger';
+
+const logger = getLogger('AudioLogSystem');
 import type { LevelId } from '../levels/types';
 import { addDiscoveredAudioLog, getDiscoveredAudioLogIds } from './audioLogPersistence';
 import type { AudioLog } from './audioLogs';
@@ -103,8 +106,8 @@ export class AudioLogSystem {
       }
     }
 
-    console.log(
-      `[AudioLogSystem] Initialized ${this.pickups.size} audio log pickups for level ${this.levelId}`
+    logger.info(
+      `Initialized ${this.pickups.size} audio log pickups for level ${this.levelId}`
     );
   }
 
@@ -124,7 +127,7 @@ export class AudioLogSystem {
     );
 
     if (!meshNode) {
-      console.warn(`[AudioLogSystem] Failed to create audio log model for "${log.id}"`);
+      logger.warn(`Failed to create audio log model for "${log.id}"`);
       return;
     }
 
@@ -142,7 +145,7 @@ export class AudioLogSystem {
     );
 
     if (!glowNode) {
-      console.warn(`[AudioLogSystem] Failed to create glow ring model for "${log.id}"`);
+      logger.warn(`Failed to create glow ring model for "${log.id}"`);
       // Clean up the mesh node since we cannot create the full pickup
       meshNode.dispose();
       return;

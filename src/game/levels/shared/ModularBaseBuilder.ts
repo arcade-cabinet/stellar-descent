@@ -6,6 +6,10 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('ModularBaseBuilder');
+
 // ============================================================================
 // MODULAR BASE BUILDER
 // ============================================================================
@@ -247,7 +251,7 @@ export async function buildModularBase(
     const instance = createAssetInstance(assetId, instanceName, scene);
 
     if (!instance) {
-      console.warn(`[ModularBaseBuilder] Skipping segment ${i}: asset ${assetId} not available`);
+      log.warn(`Skipping segment ${i}: asset ${assetId} not available`);
       continue;
     }
 
@@ -297,7 +301,7 @@ export async function buildModularBase(
       const instance = createAssetInstance(prop.assetId, instanceName, scene);
 
       if (!instance) {
-        console.warn(`[ModularBaseBuilder] Skipping prop ${p}: asset ${prop.assetId} not available`);
+        log.warn(`Skipping prop ${p}: asset ${prop.assetId} not available`);
         continue;
       }
 
@@ -311,8 +315,8 @@ export async function buildModularBase(
     }
   }
 
-  console.log(
-    `[ModularBaseBuilder] Built base: ${layout.length} segments, ` +
+  log.info(
+    `Built base: ${layout.length} segments, ` +
       `${flickerLights.length} lights, ${props?.length ?? 0} props, ` +
       `${allMeshes.length} total meshes`
   );
@@ -424,7 +428,7 @@ function createAssetInstance(
     }
   }
 
-  console.warn(`[ModularBaseBuilder] Asset not cached: ${assetId} (path: ${path})`);
+  log.warn(`Asset not cached: ${assetId} (path: ${path})`);
   return null;
 }
 

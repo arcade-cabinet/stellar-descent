@@ -36,6 +36,9 @@ import {
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getPerformanceManager } from './PerformanceManager';
+import { getLogger } from './Logger';
+
+const log = getLogger('LODManager');
 
 // Side-effect import to register SimplificationQueue with the scene
 import '@babylonjs/core/Meshes/meshSimplificationSceneComponent';
@@ -223,7 +226,7 @@ class LODManagerClass {
     // Adjust configs based on device performance
     this.adjustConfigsForDevice();
 
-    console.log('[LODManager] Initialized with default configs');
+    log.info('Initialized with default configs');
   }
 
   /**
@@ -250,7 +253,7 @@ class LODManagerClass {
           });
         }
       }
-      console.log('[LODManager] Applied mobile LOD distance adjustments');
+      log.info('Applied mobile LOD distance adjustments');
     }
   }
 
@@ -304,7 +307,7 @@ class LODManagerClass {
     autoSimplify: boolean = true
   ): Promise<void> {
     if (!this.scene) {
-      console.warn('[LODManager] Not initialized, cannot register mesh');
+      log.warn('Not initialized, cannot register mesh');
       return;
     }
 
@@ -320,7 +323,7 @@ class LODManagerClass {
     this.collectMeshes(rootNode, meshes);
 
     if (meshes.length === 0) {
-      console.warn(`[LODManager] No meshes found under node: ${id}`);
+      log.warn(`No meshes found under node: ${id}`);
       return;
     }
 
@@ -432,7 +435,7 @@ class LODManagerClass {
 
         tracked.lodLevels.set(mesh, lodMeshes);
       } catch (error) {
-        console.warn(`[LODManager] Failed to generate LOD for mesh ${mesh.name}:`, error);
+        log.warn(`Failed to generate LOD for mesh ${mesh.name}:`, error);
       }
     }
   }
@@ -471,7 +474,7 @@ class LODManagerClass {
       }
       return clone;
     } catch (error) {
-      console.warn(`[LODManager] Failed to create simplified mesh:`, error);
+      log.warn(`Failed to create simplified mesh:`, error);
       return null;
     }
   }
@@ -531,7 +534,7 @@ class LODManagerClass {
 
       return simplified;
     } catch (error) {
-      console.warn(`[LODManager] Mesh decimation failed:`, error);
+      log.warn(`Mesh decimation failed:`, error);
       return null;
     }
   }
@@ -991,7 +994,7 @@ class LODManagerClass {
    * Log performance report to console
    */
   logPerformanceReport(): void {
-    console.log(this.getPerformanceReport());
+    log.info(this.getPerformanceReport());
   }
 
   /**
@@ -1026,8 +1029,8 @@ class LODManagerClass {
     const multiplier = this.getSuggestedDistanceMultiplier();
 
     if (Math.abs(multiplier - 1.0) > 0.05) {
-      console.log(
-        `[LODManager] Auto-tuning: applying ${multiplier.toFixed(2)}x distance multiplier (FPS: ${this.metrics.avgFPS.toFixed(1)})`
+      log.info(
+        `Auto-tuning: applying ${multiplier.toFixed(2)}x distance multiplier (FPS: ${this.metrics.avgFPS.toFixed(1)})`
       );
 
       for (const [category, config] of this.categoryConfigs) {
@@ -1079,7 +1082,7 @@ class LODManagerClass {
       performanceTargetMet: true,
     };
 
-    console.log('[LODManager] Disposed');
+    log.info('Disposed');
   }
 }
 

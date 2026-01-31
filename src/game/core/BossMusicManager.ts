@@ -11,6 +11,9 @@
  */
 
 import * as Tone from 'tone';
+import { getLogger } from './Logger';
+
+const log = getLogger('BossMusicManager');
 
 // Musical constants
 const BPM_PHASE_1 = 100; // Ominous, building
@@ -337,8 +340,8 @@ export class BossMusicManager {
       this.distortion.distortion = distortionAmount;
     }
 
-    // Console log for debugging
-    console.log(`Boss music: Phase ${previousPhase} -> Phase ${newPhase}`);
+    // Log for debugging
+    log.info(`Phase ${previousPhase} -> Phase ${newPhase}`);
   }
 
   /**

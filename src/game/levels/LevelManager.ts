@@ -11,6 +11,7 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { getMissionDefinition } from '../campaign/MissionDefinitions';
+import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
 import { saveSystem } from '../persistence';
 import {
@@ -23,6 +24,8 @@ import {
   type LevelId,
   type LevelState,
 } from './types';
+
+const log = getLogger('LevelManager');
 
 export interface LevelManagerConfig {
   engine: Engine;
@@ -56,7 +59,7 @@ export class LevelManager {
    */
   async startLevel(levelId: LevelId): Promise<void> {
     if (this.isTransitioning) {
-      console.warn('Cannot start level while transitioning');
+      log.warn('Cannot start level while transitioning');
       return;
     }
 
@@ -99,7 +102,7 @@ export class LevelManager {
       this.callbacks.onChapterChange(config.chapter);
 
       this.currentLevel = level;
-      console.log(`Level started: ${levelId}`);
+      log.info(`Level started: ${levelId}`);
     } finally {
       this.isTransitioning = false;
     }
@@ -110,13 +113,13 @@ export class LevelManager {
    */
   async transitionToNext(): Promise<void> {
     if (!this.currentLevel) {
-      console.warn('No current level to transition from');
+      log.warn('No current level to transition from');
       return;
     }
 
     const nextLevelId = this.currentLevel.config.nextLevelId;
     if (!nextLevelId) {
-      console.log('No next level - campaign complete!');
+      log.info('No next level - campaign complete!');
       // Issue #65: Notify callback with null for credits sequence
       this.callbacks.onLevelComplete(null);
       return;
@@ -134,13 +137,13 @@ export class LevelManager {
    */
   async transitionTo(levelId: LevelId): Promise<void> {
     if (this.isTransitioning) {
-      console.warn('Already transitioning');
+      log.warn('Already transitioning');
       return;
     }
 
     // Check if transition is allowed
     if (this.currentLevel && !this.currentLevel.canTransitionTo(levelId)) {
-      console.warn(`Cannot transition from ${this.currentLevel.id} to ${levelId}`);
+      log.warn(`Cannot transition from ${this.currentLevel.id} to ${levelId}`);
       return;
     }
 
@@ -207,7 +210,7 @@ export class LevelManager {
       }
     }
 
-    console.log(`[LevelManager] Loaded ${this.levelStates.size} level states from database`);
+    log.info(`Loaded ${this.levelStates.size} level states from database`);
   }
 
   /**

@@ -14,7 +14,10 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import { HiveEnvironmentBuilder } from '../shared/HiveEnvironmentBuilder';
+
+const log = getLogger('ExtractionEnvironment');
 import { createDynamicTerrain, SAND_TERRAIN, type TerrainResult } from '../shared/SurfaceTerrainFactory';
 import { buildExtractionEnvironment, type ExtractionEnvironmentResult } from './ExtractionEnvironmentBuilder';
 
@@ -157,7 +160,7 @@ export async function buildLZEnvironment(scene: Scene): Promise<ExtractionEnviro
   try {
     return await buildExtractionEnvironment(scene);
   } catch (err) {
-    console.error('[ExtractionLevel] Failed to build LZ environment:', err);
+    log.error('Failed to build LZ environment:', err);
     return null;
   }
 }

@@ -59,6 +59,58 @@ This document describes the technical architecture of STELLAR DESCENT: PROXIMA B
 +---------------+     +-------------------+
 ```
 
+## CampaignDirector (Game State Machine)
+
+The CampaignDirector is the game's central nervous system. Located at `src/game/campaign/CampaignDirector.ts`, it:
+
+1. **Manages Campaign State**: Tracks phase, level, kills, time, difficulty
+2. **Handles Commands**: All state mutations go through `dispatch(command)`
+3. **Wires Systems**: Connects achievements, dialogue, collectibles
+4. **React Integration**: Implements `subscribe/getSnapshot` for `useSyncExternalStore`
+
+### Campaign Phases
+```text
+idle → splash → menu
+                  ↓
+             ←── loading ←── briefing ←── intro
+                  ↓
+             tutorial / dropping / playing
+                  ↓
+             levelComplete → (ADVANCE) → loading (next level)
+                  ↓
+             credits → menu
+```
+
+### Command Types
+| Command | Description |
+|---------|-------------|
+| `NEW_GAME` | Start new campaign with difficulty and start level |
+| `CONTINUE` | Resume from save |
+| `SELECT_LEVEL` | Jump to specific level (mission select) |
+| `LOADING_COMPLETE` | Level finished loading |
+| `LEVEL_COMPLETE` | Player completed level |
+| `ADVANCE` | Proceed to next level |
+| `RETRY` | Restart current level |
+| `PAUSE` / `RESUME` | Pause state management |
+| `PLAYER_DIED` | Death handling |
+| `MAIN_MENU` | Return to menu |
+
+### Usage
+```typescript
+import { useCampaign } from './game/campaign/useCampaign';
+
+function MyComponent() {
+  const [snapshot, dispatch] = useCampaign();
+
+  // Read state
+  const { phase, currentLevelId, completionStats } = snapshot;
+
+  // Dispatch commands
+  dispatch({ type: 'NEW_GAME', difficulty: 'normal', startLevel: 'landfall' });
+  dispatch({ type: 'PAUSE' });
+}
+```
+
 ## Core Technologies
 
 ### Rendering: BabylonJS 8.x
@@ -303,6 +355,118 @@ level.dispose()
   - Release resources
 ```
 
+## Quest Chain System
+
+The quest chain wires all 10 campaign levels together with main quests and optional branch quests.
+
+### Architecture
+```text
+src/game/campaign/
+├── QuestChain.ts       # Quest definitions (main + branch)
+├── QuestManager.ts     # Runtime quest state management
+└── types.ts            # CampaignCommand, CampaignPhase, etc.
+```
+
+### Quest Types
+| Type | Description | Trigger |
+|------|-------------|---------|
+| `main` | Campaign progression quests (one per level) | Auto on level enter |
+| `branch` | Optional side content | Object/NPC interaction |
+| `secret` | Hidden quests for completionists | Area discovery |
+
+### Main Quest Chain
+Each level has exactly one main quest that drives progression:
+```text
+anchor_station → landfall → canyon_run → fob_delta → brothers_in_arms
+                                                           ↓
+final_escape ← extraction ← hive_assault ← the_breach ← southern_ice
+```
+
+### Quest Structure
+```typescript
+interface QuestDefinition {
+  id: string;
+  type: 'main' | 'branch' | 'secret';
+  levelId: LevelId;
+  name: string;
+  description: string;
+
+  objectives: QuestObjective[];
+
+  triggerType: 'level_enter' | 'object_interact' | 'npc_dialogue' | 'area_enter';
+  triggerData?: { objectId?: string; npcId?: string; areaId?: string };
+
+  prerequisites?: { quests?: string[]; levels?: LevelId[]; items?: string[] };
+  rewards?: { unlockArea?: string; giveItem?: string; achievement?: string };
+
+  branchQuests?: string[];  // Optional quests this unlocks
+  nextQuestId?: string;     // Next main quest in chain
+}
+```
+
+### Objective Types
+| Type | Description | Progress |
+|------|-------------|----------|
+| `reach_location` | Go to waypoint | Position check |
+| `interact` | Use object/terminal | Callback |
+| `kill_enemies` | Defeat count | Increment |
+| `kill_target` | Defeat specific enemy | Boolean |
+| `survive` | Survive duration | Timer |
+| `escort` | Keep NPC alive | NPC health |
+| `collect` | Find items | Increment |
+| `defend` | Protect location | Timer + enemies |
+| `vehicle` | Drive to destination | Position |
+
+### Quest Manager API
+```typescript
+import {
+  initializeQuestManager,
+  onLevelEnter,
+  onObjectInteract,
+  onEnemyKilled,
+  completeObjective,
+  getActiveMainQuest,
+} from './game/campaign/QuestManager';
+
+// Initialize with callbacks
+initializeQuestManager({
+  onObjectiveUpdate: (title, instructions) => { /* HUD update */ },
+  onObjectiveMarker: (position, label) => { /* Compass marker */ },
+  onDialogueTrigger: (trigger) => { /* Reyes dialogue */ },
+  onNotification: (text, duration) => { /* Toast notification */ },
+});
+
+// Level enter auto-activates main quest
+onLevelEnter('landfall', completedLevels, inventory);
+
+// Triggers from game events
+onObjectInteract('locker_personal', 'anchor_station', completedLevels, inventory);
+onEnemyKilled('chitin');
+
+// Manual objective completion
+completeObjective('main_landfall', 'landfall_combat');
+```
+
+### Branch Quest Discovery
+Branch quests are found organically in-world:
+
+| Trigger | Example |
+|---------|---------|
+| Object interaction | Read Marcus's letter in locker |
+| NPC dialogue | Talk to Marcus about fallen squad |
+| Area entry | Discover hidden observation deck |
+| Collectible found | Finding VANGUARD team logs |
+
+### Persistence
+Quest state is saved in GameSave:
+```typescript
+interface GameSave {
+  completedQuests: string[];
+  activeQuests: Record<string, QuestState>;
+  failedQuests: string[];
+}
+```
+
 ## Save System
 
 ### Architecture
@@ -313,7 +477,7 @@ class SaveSystem {
 
   // Lifecycle
   async initialize(): Promise<void>;
-  async newGame(difficulty?: DifficultyLevel): Promise<GameSave>;
+  async newGame(difficulty?: DifficultyLevel, startLevel?: LevelId): Promise<GameSave>;
   async loadGame(): Promise<GameSave | null>;
   save(): void;
   autoSave(): void;
@@ -329,11 +493,16 @@ class SaveSystem {
 }
 ```
 
-### Save Format (v4)
+**Note:** `newGame()` accepts an optional `startLevel` parameter. If provided:
+- Save starts at that level instead of `anchor_station`
+- Chapter is set based on level config
+- Tutorial is marked as completed if starting past `anchor_station`
+
+### Save Format (v5)
 ```typescript
 interface GameSave {
   id: string;
-  version: 4;
+  version: 5;
   timestamp: number;
   name: string;
 
@@ -357,13 +526,20 @@ interface GameSave {
 
   // Settings
   difficulty: DifficultyLevel;
-  tutorialCompleted: boolean;
   seenIntroBriefing: boolean;
 
-  // Inventory and objectives
+  // Inventory
   inventory: Record<string, number>;
-  objectives: Record<string, boolean>;
   levelFlags: Record<LevelId, Record<string, boolean>>;
+
+  // Quest Chain (v5)
+  completedQuests: string[];
+  activeQuests: Record<string, QuestState>;
+  failedQuests: string[];
+
+  // @deprecated - use completedQuests/activeQuests instead
+  objectives: Record<string, boolean>;
+  tutorialCompleted: boolean;
 }
 ```
 
@@ -383,6 +559,20 @@ private migrateSave(save: GameSave): void {
   // v3 -> v4: Add levelBestTimes
   if (save.version < 4) {
     save.levelBestTimes = {};
+  }
+
+  // v4 -> v5: Add quest chain state
+  if (save.version < 5) {
+    save.completedQuests = [];
+    save.activeQuests = {};
+    save.failedQuests = [];
+
+    // Migrate old objectives to completedQuests
+    if (save.objectives) {
+      for (const [questId, completed] of Object.entries(save.objectives)) {
+        if (completed) save.completedQuests.push(questId);
+      }
+    }
   }
 
   save.version = SAVE_FORMAT_VERSION;
@@ -594,6 +784,84 @@ function seededRandom(seed: number): () => number {
 6. Create meshes
 7. Create entities
 ```
+
+## Timer System
+
+Two complementary timing systems serve different purposes:
+
+### GameTimer (Real-World Timing)
+For speedruns and play time tracking:
+```typescript
+import { getGameTimer, formatTimeMMSS } from './game/timer';
+
+const timer = getGameTimer();
+
+// Mission timing
+timer.startMission('landfall');
+timer.pause();
+timer.resume();
+const finalTime = timer.stopMission(); // Returns seconds
+
+// Best times
+timer.checkAndSaveBestTime('landfall', 145.7);
+const best = timer.getBestTime('landfall');
+
+// Formatting
+formatTimeMMSS(145.7); // "02:25"
+```
+
+### GameChronometer (In-Universe Time)
+For immersive display using lore year 3147:
+```typescript
+import { getGameChronometer } from './game/timer';
+
+const chrono = getGameChronometer();
+
+// Start/stop aligned with mission
+chrono.startMission('landfall');
+chrono.pause();
+chrono.resume();
+
+// Get formatted times
+const snapshot = chrono.getSnapshot();
+snapshot.formattedMissionTime;   // "02:25.847"
+snapshot.formattedCampaignTime;  // "01:23:45"
+snapshot.militaryTimestamp;      // "3147.08.17 // 14:35:22.847Z"
+snapshot.loreDate;               // { year: 3147, month: 8, day: 17, ... }
+```
+
+**Key Differences:**
+| Aspect | GameTimer | GameChronometer |
+|--------|-----------|-----------------|
+| Precision | Milliseconds | Microseconds |
+| Base | Real time | Lore year 3147 |
+| Purpose | Speedruns, stats | HUD display, immersion |
+| Format | MM:SS | YYYY.MM.DD // HH:MM:SS.mmmZ |
+
+## Logging System
+
+Use `getLogger()` instead of `console.log`:
+```typescript
+import { getLogger } from './game/core/Logger';
+
+const log = getLogger('MySystem');
+
+log.trace('Detailed trace');  // Only in dev with trace level
+log.debug('Debug info');      // Only in dev
+log.info('Info message');     // Normal info
+log.warn('Warning');          // Warnings
+log.error('Error', error);    // Errors (always logged)
+
+// Set log level at runtime
+import { setLogLevel } from './game/core/Logger';
+setLogLevel('debug');  // 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent'
+```
+
+**Features:**
+- Named loggers with `[Prefix]` format
+- Log level control via localStorage (`stellar_log_level`)
+- Production mode defaults to 'warn'
+- Development mode defaults to 'debug'
 
 ## Audio System (Tone.js)
 

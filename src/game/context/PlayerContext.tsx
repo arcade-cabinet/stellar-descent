@@ -15,8 +15,11 @@ import {
   loadDifficultySetting,
   saveDifficultySetting,
 } from '../core/DifficultySettings';
+import { getLogger } from '../core/Logger';
 import type { TutorialPhase } from '../levels/anchor-station/tutorialSteps';
 import type { TouchInput } from '../types';
+
+const log = getLogger('PlayerContext');
 
 /**
  * HUD visibility state for progressive unlocking
@@ -163,7 +166,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     import('../persistence/SaveSystem').then(({ saveSystem }) => {
       saveSystem.setDifficulty(newDifficulty);
     });
-    console.log(`[PlayerContext] Difficulty set to ${newDifficulty}`);
+    log.info(`Difficulty set to ${newDifficulty}`);
   }, []);
 
   // HUD visibility management - allows partial updates

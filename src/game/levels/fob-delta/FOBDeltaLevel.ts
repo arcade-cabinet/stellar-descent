@@ -34,6 +34,9 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('FOBDelta');
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
@@ -664,7 +667,7 @@ export class FOBDeltaLevel extends BaseLevel {
       AssetManager.loadAssetByPath(path, this.scene)
     );
     await Promise.all(loadPromises);
-    console.log(`[FOBDelta] Preloaded ${ALL_FOB_GLB_PATHS.length} GLB assets`);
+    log.info(`Preloaded ${ALL_FOB_GLB_PATHS.length} GLB assets`);
   }
 
   /**
@@ -1973,9 +1976,7 @@ export class FOBDeltaLevel extends BaseLevel {
     // ================================================================
     place('staircase', { x: 28, y: 0, z: 10 }, -Math.PI / 2);
 
-    console.log(
-      `[FOBDelta] Dense modular environment built: ${instanceCounter} GLB instances placed`
-    );
+    log.info(`Dense modular environment built: ${instanceCounter} GLB instances placed`);
   }
 
   private createBloodDecals(): void {
@@ -2119,7 +2120,7 @@ export class FOBDeltaLevel extends BaseLevel {
       }
     }
 
-    console.log(`[FOBDelta] Created ${sandbagPositions.length + bunkerPositions.length + watchtowerPositions.length} fortification elements`);
+    log.info(`Created ${sandbagPositions.length + bunkerPositions.length + watchtowerPositions.length} fortification elements`);
   }
 
   /**
@@ -2217,7 +2218,7 @@ export class FOBDeltaLevel extends BaseLevel {
       });
     }
 
-    console.log(`[FOBDelta] Created ${supplySpawns.length} supply pickups`);
+    log.info(`Created ${supplySpawns.length} supply pickups`);
   }
 
   /**
@@ -2287,7 +2288,7 @@ export class FOBDeltaLevel extends BaseLevel {
       });
     }
 
-    console.log(`[FOBDelta] Created ${turretPositionDefs.length} destroyed defense positions`);
+    log.info(`Created ${turretPositionDefs.length} destroyed defense positions`);
   }
 
   /**
@@ -2344,7 +2345,7 @@ export class FOBDeltaLevel extends BaseLevel {
       });
     }
 
-    console.log(`[FOBDelta] Created ${spotlightDefs.length} perimeter spotlights (${spotlightDefs.filter(s => s.active).length} active)`);
+    log.info(`Created ${spotlightDefs.length} perimeter spotlights (${spotlightDefs.filter(s => s.active).length} active)`);
   }
 
   /**
@@ -2415,7 +2416,7 @@ export class FOBDeltaLevel extends BaseLevel {
         }
       }
 
-      console.log(`[FOBDelta] Loaded ${this.alienVehicles.length} alien vehicle wrecks`);
+      log.info(`Loaded ${this.alienVehicles.length} alien vehicle wrecks`);
     } catch (error) {
       throw new Error(`[FOBDelta] Failed to load alien vehicle models: ${error}`);
     }
@@ -2432,7 +2433,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
     await AssetManager.loadAsset('aliens', assetName, this.scene);
     this.ambushEnemiesPreloaded = true;
-    console.log(`[FOBDelta] Preloaded ambush enemy GLB: ${assetName}`);
+    log.info(`Preloaded ambush enemy GLB: ${assetName}`);
   }
 
   private createObjectiveMarker(): void {
@@ -3016,7 +3017,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
       glbInstance.scaling.setAll(AMBUSH_ENEMY_SCALE);
       const enemyMesh = glbInstance;
-      console.log(`[FOBDelta] Created GLB enemy instance ${i} (${assetName})`);
+      log.debug(`Created GLB enemy instance ${i} (${assetName})`);
 
       enemyMesh.position = spawnPos.clone();
       enemyMesh.position.y = 1;

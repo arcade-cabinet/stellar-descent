@@ -28,10 +28,7 @@
  *   - Reach extraction point to complete level
  *   - Dropship flyover at the end
  *
- * ENEMY VEHICLES:
- *   - Wraith-style hover tanks that fire plasma mortars
- *   - Appear behind the player and give chase
- *   - Can be slowed by obstacles or outrun with boost
+ * @module
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
@@ -45,6 +42,9 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('CanyonRun');
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
@@ -753,7 +753,7 @@ export class CanyonRunLevel extends SurfaceLevel {
   // ==========================================================================
 
   private transitionToPhase(newPhase: CanyonPhase): void {
-    console.log(`[CanyonRun] Phase transition: ${this.phase} -> ${newPhase}`);
+    log.info(`Phase transition: ${this.phase} -> ${newPhase}`);
     this.phase = newPhase;
     this.phaseTime = 0;
 

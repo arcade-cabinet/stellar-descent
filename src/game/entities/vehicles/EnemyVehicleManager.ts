@@ -26,9 +26,12 @@ import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../../core/AudioManager';
 import type { DifficultyLevel } from '../../core/DifficultySettings';
 import { removeEntity } from '../../core/ecs';
+import { getLogger } from '../../core/Logger';
 import { deathEffects } from '../../effects/DeathEffects';
 import { particleManager } from '../../effects/ParticleManager';
 import { WraithAI, type WraithConfig, type WraithWaypoint } from './WraithAI';
+
+const log = getLogger('EnemyVehicleManager');
 
 // ----------------------------------------------------------------------------
 // Types
@@ -122,8 +125,8 @@ export class EnemyVehicleManager {
 
     this.vehicles.set(wraith.id, managed);
 
-    console.log(
-      `[EnemyVehicleManager] Spawned wraith ${wraith.id} at (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)})`
+    log.info(
+      `Spawned wraith ${wraith.id} at (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)})`
     );
 
     return wraith;
@@ -233,7 +236,7 @@ export class EnemyVehicleManager {
 
     vehicle.isActive = false;
 
-    console.log(`[EnemyVehicleManager] Vehicle ${wraithId} destroyed`);
+    log.info(`Vehicle ${wraithId} destroyed`);
 
     // Play destruction effects
     const position = vehicle.ai.position;
@@ -511,6 +514,6 @@ export class EnemyVehicleManager {
     this.vehicles.clear();
     this.onVehicleDestroyed = null;
     this.onScreenShake = null;
-    console.log('[EnemyVehicleManager] Disposed');
+    log.info('Disposed');
   }
 }

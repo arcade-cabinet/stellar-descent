@@ -14,12 +14,15 @@ import {
   disposeReyesDialogueManager,
   getReyesDialogueManager,
 } from '../audio/ReyesDialogue';
+import { getLogger } from '../core/Logger';
 import { CAMPAIGN_LEVELS, type LevelId } from '../levels/types';
 import { saveSystem } from '../persistence';
 import { disposeGameTimer, getGameTimer } from '../timer';
 import { BONUS_LEVELS } from './MissionDefinitions';
 import type { CampaignCommand, CampaignSnapshot, LevelStats } from './types';
 import type { CampaignPhase } from './types'; // Issue #71: Separate import for type used in array
+
+const log = getLogger('CampaignDirector');
 
 // ============================================================================
 // Default snapshot
@@ -86,7 +89,7 @@ export class CampaignDirector {
 
     switch (command.type) {
       case 'NEW_GAME':
-        this.handleNewGame(command.difficulty);
+        this.handleNewGame(command.difficulty, command.startLevel);
         break;
 
       case 'CONTINUE':
@@ -195,7 +198,7 @@ export class CampaignDirector {
         break;
 
       default:
-        console.warn(`[CampaignDirector] Unknown command: ${(command as any).type}`);
+        log.warn(`Unknown command: ${(command as any).type}`);
     }
   }
 
@@ -250,11 +253,12 @@ export class CampaignDirector {
     this.snapshot.currentLevelConfig = CAMPAIGN_LEVELS[levelId] ?? null;
   }
 
-  private handleNewGame(difficulty?: string): void {
+  private handleNewGame(difficulty?: string, startLevel?: LevelId): void {
     const diff = (difficulty as any) ?? 'normal';
-    saveSystem.newGame(diff).then(() => {
-      this.skipTutorial = false;
-      this.setLevelId('anchor_station');
+    const levelId = startLevel ?? 'anchor_station';
+    saveSystem.newGame(diff, levelId).then(() => {
+      this.skipTutorial = levelId !== 'anchor_station';
+      this.setLevelId(levelId);
       this.snapshot.completionStats = null;
       this.snapshot.isBonusLevel = false;
       // Issue #14: Reset campaign-wide stats on new game
@@ -273,12 +277,13 @@ export class CampaignDirector {
     saveSystem.loadGame().then((save) => {
       if (!save) {
         // Issue #67: Handle case where save fails to load
-        console.warn('[CampaignDirector] No save found, starting new game');
+        log.warn('No save found, starting new game');
         this.handleNewGame();
         return;
       }
       this.setLevelId(save.currentLevel);
-      this.skipTutorial = save.tutorialCompleted;
+      // Check if anchor_station is completed - no separate flag needed
+      this.skipTutorial = save.levelsCompleted?.includes('anchor_station') ?? false;
       this.snapshot.completionStats = null;
       this.snapshot.isBonusLevel = false;
       // Issue #68: Restore difficulty from save
@@ -379,7 +384,7 @@ export class CampaignDirector {
 
     // Log if new best time
     if (isNewBest) {
-      console.log(`[CampaignDirector] New best time for ${levelId}: ${finalTime.toFixed(2)}s`);
+      log.info(`New best time for ${levelId}: ${finalTime.toFixed(2)}s`);
     }
 
     this.setPhase('levelComplete');
@@ -448,7 +453,7 @@ export class CampaignDirector {
   private handleEnterBonusLevel(levelId: string): void {
     const bonus = BONUS_LEVELS[levelId];
     if (!bonus) {
-      console.warn(`[CampaignDirector] Unknown bonus level: ${levelId}`);
+      log.warn(`Unknown bonus level: ${levelId}`);
       return;
     }
     // Issue #32: Store current level as return point before entering bonus
@@ -494,8 +499,7 @@ export class CampaignDirector {
     switch (levelId) {
       case 'anchor_station':
         am.onTutorialComplete();
-        // Issue #25: Mark tutorial as complete in save
-        saveSystem.completeTutorial();
+        // Level completion handled by saveSystem.completeLevel() in handleLevelComplete
         break;
       case 'landfall':
         am.onHaloDropComplete();

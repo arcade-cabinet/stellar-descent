@@ -38,6 +38,7 @@ import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
+import { getLogger } from '../../core/Logger';
 import {
   type DifficultyLevel,
   loadDifficultySetting,
@@ -54,6 +55,8 @@ import {
   predictTargetPosition,
   updateMortar,
 } from './WraithMortar';
+
+const log = getLogger('WraithAI');
 
 // ----------------------------------------------------------------------------
 // Wraith Configuration
@@ -280,7 +283,7 @@ export class WraithAI {
         instance.position = Vector3.Zero();
         this.glbNode = instance;
         this._modelLoaded = true;
-        console.log(`[WraithAI] GLB model loaded for ${this.id}`);
+        log.info(`GLB model loaded for ${this.id}`);
       } else {
         throw new Error(`[WraithAI] GLB instance creation failed for ${this.id} - asset not preloaded or path invalid`);
       }
@@ -377,7 +380,7 @@ export class WraithAI {
 
     this._isHijacked = true;
     this._state = 'destroyed'; // Stops AI updates
-    console.log(`[WraithAI] ${this.id} hijacked by player`);
+    log.info(`${this.id} hijacked by player`);
     return true;
   }
 
@@ -494,7 +497,7 @@ export class WraithAI {
     this._state = newState;
     this.stateTimer = 0;
 
-    console.log(`[WraithAI] ${this.id}: ${prev} -> ${newState}`);
+    log.info(`${this.id}: ${prev} -> ${newState}`);
 
     // Reset combat timers on entering combat
     if (newState === 'combat') {
@@ -823,7 +826,7 @@ export class WraithAI {
       this.engineGlow.gravity = new Vector3(0, -2, 0);
       this.engineGlow.start();
     } catch {
-      console.warn('[WraithAI] Could not create engine particle effects');
+      log.warn('Could not create engine particle effects');
     }
   }
 
@@ -889,7 +892,7 @@ export class WraithAI {
     if (this._state === 'destroyed') return;
     this._state = 'destroyed';
 
-    console.log(`[WraithAI] ${this.id} destroyed`);
+    log.info(`${this.id} destroyed`);
 
     // Stop engine effects
     this.engineGlow?.stop();

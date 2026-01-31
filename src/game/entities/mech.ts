@@ -9,7 +9,10 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 import { createEntity, type Entity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { tokens } from '../utils/designTokens';
+
+const log = getLogger('MechWarrior');
 
 /** Path to the Marcus mech GLB model (relative to public/) */
 const MECH_GLB_PATH = '/models/vehicles/tea/marcus_mech.glb';
@@ -445,7 +448,7 @@ export class MechWarrior {
    * Handle mech destruction with explosion effect
    */
   private onDestroyed(): void {
-    console.log('[Mech] Destroyed');
+    log.info('Destroyed');
 
     // Simple explosion flash
     const explosionPos = this.rootNode.position.clone();

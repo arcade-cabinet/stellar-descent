@@ -28,6 +28,9 @@ import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('Landfall');
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
@@ -278,7 +281,7 @@ export class LandfallLevel extends BaseLevel {
       ALL_LANDFALL_GLB_PATHS.map((path) => AssetManager.loadAssetByPath(path, this.scene))
     );
     const loaded = results.filter((r) => r.status === 'fulfilled' && r.value).length;
-    console.log(`[Landfall] Preloaded ${loaded}/${ALL_LANDFALL_GLB_PATHS.length} GLBs`);
+    log.info(`Preloaded ${loaded}/${ALL_LANDFALL_GLB_PATHS.length} GLBs`);
   }
 
   private async preloadSurfaceEnemyModels(): Promise<void> {
@@ -288,7 +291,7 @@ export class LandfallLevel extends BaseLevel {
       await AssetManager.loadAsset('aliens', assetName, this.scene);
       this.surfaceEnemiesPreloaded = true;
     } catch (error) {
-      console.warn('[Landfall] Failed to preload surface enemy GLB:', error);
+      log.warn('Failed to preload surface enemy GLB:', error);
     }
   }
 
@@ -299,7 +302,7 @@ export class LandfallLevel extends BaseLevel {
         AssetManager.loadAsset('vehicles', 'phantom', this.scene),
       ]);
     } catch (error) {
-      console.warn('[Landfall] Could not preload vehicle models:', error);
+      log.warn('Could not preload vehicle models:', error);
     }
   }
 

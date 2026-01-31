@@ -21,12 +21,15 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { GPUParticleSystem } from '@babylonjs/core/Particles/gpuParticleSystem';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import {
   getAdjustedParticleCount,
   getParticleMultiplier,
   getPerformanceManager,
 } from '../core/PerformanceManager';
 import { particleManager } from './ParticleManager';
+
+const log = getLogger('EnvironmentalParticles');
 
 // Import particle system components
 import '@babylonjs/core/Particles/particleSystemComponent';
@@ -280,7 +283,7 @@ export class EnvironmentalParticles {
    */
   init(scene: Scene): void {
     this.scene = scene;
-    console.log('[EnvironmentalParticles] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -302,7 +305,7 @@ export class EnvironmentalParticles {
     // Check performance budget
     const perfManager = getPerformanceManager();
     if (!perfManager.canCreateParticleSystem()) {
-      console.warn('[EnvironmentalParticles] Particle budget exceeded, skipping emitter');
+      log.warn('Particle budget exceeded, skipping emitter');
       return '';
     }
 
@@ -725,7 +728,7 @@ export class EnvironmentalParticles {
     this.removeAllEmitters();
     this.scene = null;
     EnvironmentalParticles.instance = null;
-    console.log('[EnvironmentalParticles] Disposed');
+    log.info('Disposed');
   }
 }
 

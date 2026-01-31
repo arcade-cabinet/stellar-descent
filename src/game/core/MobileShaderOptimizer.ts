@@ -18,6 +18,9 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Scene } from '@babylonjs/core/scene';
 import { getPerformanceManager } from './PerformanceManager';
+import { getLogger } from './Logger';
+
+const log = getLogger('MobileShaderOptimizer');
 
 // ============================================================================
 // SIMPLIFIED MOBILE SHADERS
@@ -154,7 +157,7 @@ class MobileShaderOptimizer {
     Effect.ShadersStore['unlitFragmentShader'] = UNLIT_FRAGMENT_SHADER;
 
     this.shadersRegistered = true;
-    console.log('[MobileShaderOptimizer] Shaders registered');
+    log.info('Shaders registered');
   }
 
   /**
@@ -357,7 +360,7 @@ class MobileShaderOptimizer {
       }
     }
 
-    console.log(`[MobileShaderOptimizer] Optimized ${optimizedCount} materials`);
+    log.info(`Optimized ${optimizedCount} materials`);
   }
 }
 

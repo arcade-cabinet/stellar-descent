@@ -41,6 +41,9 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('BattlefieldEnvironment');
 
 // ============================================================================
 // TYPES
@@ -728,14 +731,14 @@ export async function buildBattlefieldEnvironment(
         await AssetManager.loadAssetByPath(assetPath, scene);
       }
     } catch (err) {
-      console.warn(`[BattlefieldEnvironment] Failed to load: ${assetPath}`, err);
+      log.warn(`Failed to load: ${assetPath}`, err);
     }
   });
 
   await Promise.all(loadPromises);
 
-  console.log(
-    `[BattlefieldEnvironment] Loaded ${uniquePaths.size} unique assets, ` +
+  log.info(
+    `Loaded ${uniquePaths.size} unique assets, ` +
       `placing ${placements.length} instances`
   );
 
@@ -776,8 +779,8 @@ export async function buildBattlefieldEnvironment(
     placed++;
   }
 
-  console.log(
-    `[BattlefieldEnvironment] Placed ${placed} instances, skipped ${skipped}`
+  log.info(
+    `Placed ${placed} instances, skipped ${skipped}`
   );
 
   // ------------------------------------------------------------------

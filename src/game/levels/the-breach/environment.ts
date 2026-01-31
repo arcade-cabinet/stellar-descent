@@ -24,6 +24,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('BreachEnvironment');
 
 // Re-export shared builder so existing imports keep working
 export { HiveEnvironmentBuilder, updateBiolights } from '../shared/HiveEnvironmentBuilder';
@@ -647,7 +650,7 @@ export async function loadBreachAssets(scene: Scene): Promise<void> {
   }
 
   await Promise.all(loadPromises);
-  console.log('[BreachEnvironment] Station beam and modular detail assets loaded');
+  log.info('Station beam and modular detail assets loaded');
 }
 
 // ============================================================================
@@ -679,7 +682,7 @@ export function placeBreachAssets(scene: Scene): PlacedAsset[] {
     const pathMap = p.assetGroup === 'beam' ? STATION_BEAM_PATHS : MODULAR_DETAIL_PATHS;
     const path = pathMap[p.assetKey];
     if (!path) {
-      console.warn(`[BreachEnvironment] Unknown asset key: ${p.assetKey}`);
+      log.warn(`Unknown asset key: ${p.assetKey}`);
       continue;
     }
 
@@ -687,7 +690,7 @@ export function placeBreachAssets(scene: Scene): PlacedAsset[] {
     const node = AssetManager.createInstanceByPath(path, instanceName, scene, true, 'environment');
 
     if (!node) {
-      console.warn(`[BreachEnvironment] Failed to create instance for ${p.assetKey} at index ${i}`);
+      log.warn(`Failed to create instance for ${p.assetKey} at index ${i}`);
       continue;
     }
 
@@ -709,7 +712,7 @@ export function placeBreachAssets(scene: Scene): PlacedAsset[] {
     placed.push({ node, type: p.assetKey, zone: p.zone });
   }
 
-  console.log(`[BreachEnvironment] Placed ${placed.length} GLB assets across 3 zones`);
+  log.info(`Placed ${placed.length} GLB assets across 3 zones`);
   return placed;
 }
 
@@ -840,5 +843,5 @@ export function disposeBreachAssets(assets: PlacedAsset[]): void {
     }
     asset.node.dispose();
   }
-  console.log(`[BreachEnvironment] Disposed ${assets.length} placed assets`);
+  log.info(`Disposed ${assets.length} placed assets`);
 }

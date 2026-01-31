@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { getLogger } from '../../game/core/Logger';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/context/GameContext';
@@ -15,24 +16,26 @@ import {
 import { AchievementsPanel } from './AchievementsPanel';
 import { DifficultySelector } from './DifficultySelector';
 import { HelpModal } from './HelpModal';
-import { InstallPrompt, useInstallAvailable } from './InstallPrompt';
+// PWA install is handled transparently - no button or prompt needed
 import { LevelSelect } from './LevelSelect';
 import styles from './MainMenu.module.css';
 import { MilitaryButton } from './MilitaryButton';
 import { SettingsMenu } from './SettingsMenu';
 
+const log = getLogger('MainMenu');
+
 interface MainMenuProps {
   onStart: () => void;
+  onNewGame?: (difficulty: DifficultyLevel, startLevel: LevelId) => void;
   onContinue?: () => void;
-  onSkipTutorial?: () => void;
   onSelectLevel?: (levelId: LevelId) => void;
   onReplayTitle?: () => void;
 }
 
 export function MainMenu({
   onStart,
+  onNewGame,
   onContinue,
-  onSkipTutorial,
   onSelectLevel,
   onReplayTitle,
 }: MainMenuProps) {
@@ -40,17 +43,16 @@ export function MainMenu({
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [showCampaignSelect, setShowCampaignSelect] = useState(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const [saveMetadata, setSaveMetadata] = useState<GameSaveMetadata | null>(null);
+  const [selectedStartLevel, setSelectedStartLevel] = useState<LevelId | null>(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { difficulty } = useGame();
-
-  // PWA install availability
-  const { isAvailable: canInstall, isStandalone } = useInstallAvailable();
 
   // Check if running on web platform (not native iOS/Android)
   const isWebPlatform = !Capacitor.isNativePlatform();
@@ -84,41 +86,80 @@ export function MainMenu({
 
   const handleNewGame = useCallback(() => {
     playClickSound();
-    // If there's an existing save, ask for confirmation
+    // If there's an existing save, ask for confirmation first
     if (hasSave) {
       setShowNewGameConfirm(true);
     } else {
-      // No save exists, show difficulty selection first
-      setShowDifficultySelect(true);
+      // No save exists, show campaign selection first
+      setShowCampaignSelect(true);
     }
   }, [hasSave, playClickSound]);
 
-  const handleStartWithDifficulty = useCallback(
-    (selectedDifficulty: DifficultyLevel) => {
-      playClickSound();
-      setShowDifficultySelect(false);
-      saveSystem.newGame(selectedDifficulty).then(() => {
+  // When difficulty is selected in the difficulty modal, just store it
+  const handleDifficultySelect = useCallback(
+    (diff: DifficultyLevel) => {
+      setSelectedDifficulty(diff);
+    },
+    []
+  );
+
+  // When START CAMPAIGN is clicked in difficulty modal
+  const handleStartCampaign = useCallback(() => {
+    playClickSound();
+    if (!selectedStartLevel || !selectedDifficulty) return;
+
+    setShowDifficultySelect(false);
+    // Use onNewGame if available (dispatches to CampaignDirector)
+    if (onNewGame) {
+      onNewGame(selectedDifficulty, selectedStartLevel);
+    } else {
+      // Fallback to legacy behavior
+      saveSystem.newGame(selectedDifficulty, selectedStartLevel).then(() => {
         onStart();
       });
-    },
-    [onStart, playClickSound]
-  );
+    }
+  }, [selectedStartLevel, selectedDifficulty, onStart, onNewGame, playClickSound]);
+
+  // Go back from difficulty to campaign selection
+  const handleBackToCampaign = useCallback(() => {
+    playClickSound();
+    setShowDifficultySelect(false);
+    setShowCampaignSelect(true);
+  }, [playClickSound]);
 
   const handleCancelDifficultySelect = useCallback(() => {
     playClickSound();
     setShowDifficultySelect(false);
+    setSelectedStartLevel(null);
+    setSelectedDifficulty(null);
   }, [playClickSound]);
 
+  // After confirming overwrite, show campaign selection
   const handleConfirmNewGame = useCallback(async () => {
     playClickSound();
     setShowNewGameConfirm(false);
-    // Show difficulty selection for the new game
-    setShowDifficultySelect(true);
+    setShowCampaignSelect(true);
   }, [playClickSound]);
 
   const handleCancelNewGame = useCallback(() => {
     playClickSound();
     setShowNewGameConfirm(false);
+  }, [playClickSound]);
+
+  // When a level is selected in campaign selection, proceed to difficulty
+  const handleCampaignLevelSelect = useCallback(
+    (levelId: LevelId) => {
+      playClickSound();
+      setSelectedStartLevel(levelId);
+      setShowCampaignSelect(false);
+      setShowDifficultySelect(true);
+    },
+    [playClickSound]
+  );
+
+  const handleCancelCampaignSelect = useCallback(() => {
+    playClickSound();
+    setShowCampaignSelect(false);
   }, [playClickSound]);
 
   const handleContinue = useCallback(async () => {
@@ -151,7 +192,7 @@ export function MainMenu({
           onStart();
         }
       } catch (err) {
-        console.error('Failed to load save file', err);
+        log.error('Failed to load save file', err);
         alert(`Failed to load save file: ${err instanceof Error ? err.message : String(err)}`);
       }
 
@@ -194,15 +235,6 @@ export function MainMenu({
     playClickSound();
     setShowAchievements(false);
   }, [playClickSound]);
-
-  const handleShowInstall = useCallback(() => {
-    playClickSound();
-    setShowInstallPrompt(true);
-  }, [playClickSound]);
-
-  const handleCloseInstall = useCallback(() => {
-    setShowInstallPrompt(false);
-  }, []);
 
   const handleShowHelp = useCallback(() => {
     playClickSound();
@@ -294,15 +326,6 @@ export function MainMenu({
           </div>
         </div>
 
-        {/* Install App button - centered below columns */}
-        {canInstall && !isStandalone && (
-          <div className={styles.installButtonWrapper}>
-            <MilitaryButton onClick={handleShowInstall} icon={<>{'\u2193'}</>}>
-              INSTALL APP
-            </MilitaryButton>
-          </div>
-        )}
-
         {/* Footer info */}
         <div className={styles.footer}>
           <span className={styles.footerLeft}>v{GAME_VERSION}</span>
@@ -390,6 +413,15 @@ export function MainMenu({
         </div>
       )}
 
+      {/* Campaign Selection Modal */}
+      {showCampaignSelect && (
+        <LevelSelect
+          isOpen={showCampaignSelect}
+          onClose={handleCancelCampaignSelect}
+          onSelectLevel={handleCampaignLevelSelect}
+        />
+      )}
+
       {/* Difficulty Selection Modal */}
       {showDifficultySelect && (
         // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
@@ -413,24 +445,29 @@ export function MainMenu({
             </div>
 
             <div className={styles.modalContent}>
-              <DifficultySelector onSelect={handleStartWithDifficulty} />
+              <DifficultySelector onSelect={handleDifficultySelect} />
             </div>
 
             <div className={styles.modalButtons}>
               <button
                 type="button"
                 className={styles.modalButton}
-                onClick={handleCancelDifficultySelect}
+                onClick={handleBackToCampaign}
               >
-                CANCEL
+                ← BACK
+              </button>
+              <button
+                type="button"
+                className={`${styles.modalButton} ${styles.primaryButton}`}
+                onClick={handleStartCampaign}
+                disabled={!selectedDifficulty}
+              >
+                START CAMPAIGN →
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* PWA Install Prompt */}
-      <InstallPrompt triggerShow={showInstallPrompt} onClose={handleCloseInstall} />
 
       {/* Help Modal */}
       <HelpModal isOpen={showHelp} onClose={handleCloseHelp} />

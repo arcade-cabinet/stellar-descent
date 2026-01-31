@@ -22,6 +22,7 @@ import '@babylonjs/core/Shaders/default.vertex';
 import '@babylonjs/core/Shaders/default.fragment';
 
 import { useGame } from '../game/context/GameContext';
+import { getLogger } from '../game/core/Logger';
 import { AssetManager } from '../game/core/AssetManager';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
 import { GameManager } from '../game/core/GameManager';
@@ -228,6 +229,8 @@ const planetFragmentShader = `
 `;
 
 import type { CampaignPhase } from '../game/campaign/types';
+
+const log = getLogger('GameCanvas');
 
 /** @deprecated Use CampaignPhase from campaign/types instead */
 export type GameState = CampaignPhase;
@@ -443,7 +446,7 @@ export function GameCanvas({
         await Promise.all(
           ROCK_FORMATION_GLBS.map((path) =>
             AssetManager.loadAssetByPath(path, scene).catch((err) => {
-              console.warn(`[GameCanvas] Failed to preload rock GLB ${path}:`, err);
+              log.warn(`Failed to preload rock GLB ${path}:`, err);
               return null;
             })
           )
@@ -489,7 +492,7 @@ export function GameCanvas({
 
           rockNodes.push(rockNode);
         }
-        console.log(`[GameCanvas] Created ${rockNodes.length} rock formation GLB instances`);
+        log.info(`Created ${rockNodes.length} rock formation GLB instances`);
       })();
 
       // Render loop
@@ -623,8 +626,8 @@ export function GameCanvas({
       // Build LevelCallbacks for the ILevel interface
       const levelCallbacks: LevelCallbacks = {
         onCommsMessage: (msg) => {
-          console.log(
-            '[GameCanvas] onCommsMessage callback, showing comms:',
+          log.debug(
+            'onCommsMessage callback, showing comms:',
             msg.text?.substring(0, 40)
           );
           showComms(msg);
@@ -664,18 +667,18 @@ export function GameCanvas({
       // Use factory system to create the tutorial level
       const levelConfig = CAMPAIGN_LEVELS.anchor_station;
       const factory = defaultLevelFactories[levelConfig.type];
-      console.log(
-        `[GameCanvas] Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`
+      log.info(
+        `Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`
       );
       tutorialLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
-      console.log('[GameCanvas] Calling initialize()');
+      log.debug('Calling initialize()');
       tutorialLevelRef.current
         .initialize()
         .then(() => {
-          console.log('[GameCanvas] initialize() completed');
+          log.info('initialize() completed');
         })
         .catch((e) => {
-          console.error('[GameCanvas] initialize() failed:', e);
+          log.error('initialize() failed:', e);
         });
     }
 
@@ -747,17 +750,17 @@ export function GameCanvas({
           onDirectionalDamage: (angle, damage) => addDamageIndicator(angle, damage),
         };
 
-        console.log(
-          `[GameCanvas] Creating level via factory: ${levelId} (type: ${levelConfig.type})`
+        log.info(
+          `Creating level via factory: ${levelId} (type: ${levelConfig.type})`
         );
         tutorialLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
         tutorialLevelRef.current
           .initialize()
           .then(() => {
-            console.log(`[GameCanvas] Level ${levelId} initialized`);
+            log.info(`Level ${levelId} initialized`);
           })
           .catch((e) => {
-            console.error(`[GameCanvas] Level ${levelId} initialization failed:`, e);
+            log.error(`Level ${levelId} initialization failed:`, e);
           });
       }
     }

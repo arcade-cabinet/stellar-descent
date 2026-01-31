@@ -30,6 +30,10 @@ import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/core/Particles/particleSystemComponent';
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
 
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('AtmosphericEffects');
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -151,7 +155,7 @@ export class AtmosphericEffects {
     this.scene = scene;
     this.camera = camera ?? null;
     this.createParticleTexture();
-    console.log('[AtmosphericEffects] Initialized');
+    log.info('Initialized');
   }
 
   // ============================================================================
@@ -211,7 +215,7 @@ export class AtmosphericEffects {
    */
   createGodRays(id: string, config: GodRayConfig): void {
     if (!this.camera) {
-      console.warn('[AtmosphericEffects] Camera required for god rays');
+      log.warn('Camera required for god rays');
       return;
     }
 
@@ -264,7 +268,7 @@ export class AtmosphericEffects {
     }
 
     this.godRays.set(id, { postProcess: godRay, mesh: lightMesh, light });
-    console.log(`[AtmosphericEffects] Created god rays: ${id}`);
+    log.info(`Created god rays: ${id}`);
   }
 
   /**
@@ -544,7 +548,7 @@ export class AtmosphericEffects {
       config.particleColor.b
     );
 
-    console.log(`[AtmosphericEffects] Dust storm initialized at intensity ${config.intensity}`);
+    log.info(`Dust storm initialized at intensity ${config.intensity}`);
   }
 
   /**
@@ -949,7 +953,7 @@ export class AtmosphericEffects {
     this.particleTexture?.dispose();
     this.particleTexture = null;
 
-    console.log('[AtmosphericEffects] Disposed');
+    log.info('Disposed');
   }
 }
 

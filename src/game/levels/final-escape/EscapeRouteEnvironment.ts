@@ -34,6 +34,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('EscapeRouteEnvironment');
 
 // GLB path for the escape shuttle (replaces procedural box geometry)
 const SHUTTLE_GLB_PATH = '/models/spaceships/Challenger.glb';
@@ -190,7 +193,7 @@ function seededRandom(seed: number): () => number {
 export async function buildEscapeRouteEnvironment(
   scene: Scene
 ): Promise<EscapeRouteResult> {
-  console.log('[EscapeRouteEnv] Building escape route environment...');
+  log.info('Building escape route environment...');
 
   const root = new TransformNode('EscapeRouteRoot', scene);
   const instances: TransformNode[] = [];
@@ -204,12 +207,12 @@ export async function buildEscapeRouteEnvironment(
   const uniquePaths = new Set(Object.values(ASSETS));
   const loadPromises = [...uniquePaths].map((path) =>
     AssetManager.loadAssetByPath(path, scene).catch((err) => {
-      console.warn(`[EscapeRouteEnv] Failed to load ${path}:`, err);
+      log.warn(`Failed to load ${path}:`, err);
       return null;
     })
   );
   await Promise.all(loadPromises);
-  console.log(`[EscapeRouteEnv] Preloaded ${uniquePaths.size} unique assets`);
+  log.info(`Preloaded ${uniquePaths.size} unique assets`);
 
   // ------------------------------------------------------------------
   // Helper: place a single GLB instance
@@ -256,8 +259,8 @@ export async function buildEscapeRouteEnvironment(
   // ------------------------------------------------------------------
   const launchResult = buildSectionD(placeAsset, proceduralMeshes, lights, scene, root, rng);
 
-  console.log(
-    `[EscapeRouteEnv] Built escape route: ${instances.length} GLB instances, ` +
+  log.info(
+    `Built escape route: ${instances.length} GLB instances, ` +
       `${proceduralMeshes.length} procedural meshes, ${lights.length} lights`
   );
 

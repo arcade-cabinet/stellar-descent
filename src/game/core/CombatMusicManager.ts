@@ -17,6 +17,9 @@
 
 import * as Tone from 'tone';
 import type { LevelId } from '../levels/types';
+import { getLogger } from './Logger';
+
+const log = getLogger('CombatMusicManager');
 
 // Combat intensity levels (0-1 scale, maps to enemy threat)
 export type CombatIntensity = 'none' | 'low' | 'medium' | 'high' | 'boss';
@@ -930,7 +933,7 @@ export class CombatMusicManager {
 
     const config = LEVEL_COMBAT_CONFIGS[levelId];
     if (!config) {
-      console.warn(`[CombatMusicManager] No combat config for level: ${levelId}`);
+      log.warn(`No combat config for level: ${levelId}`);
       return;
     }
 
@@ -968,8 +971,8 @@ export class CombatMusicManager {
     // Start transport
     Tone.getTransport().start();
 
-    console.log(
-      `[CombatMusicManager] Started combat music: ${config.theme} theme @ ${config.baseBpm} BPM`
+    log.info(
+      `Started combat music: ${config.theme} theme @ ${config.baseBpm} BPM`
     );
   }
 
@@ -1032,7 +1035,7 @@ export class CombatMusicManager {
         this.currentIntensity = 'none';
         this.intensityValue = 0;
 
-        console.log('[CombatMusicManager] Combat music stopped');
+        log.info('Combat music stopped');
       },
       fadeDuration * 1000 + 100
     );
@@ -1068,7 +1071,7 @@ export class CombatMusicManager {
     // Adjust effects based on intensity
     this.updateIntensityEffects();
 
-    console.log(`[CombatMusicManager] Intensity set to: ${intensity} (${this.intensityValue})`);
+    log.info(`Intensity set to: ${intensity} (${this.intensityValue})`);
   }
 
   /**
@@ -1182,7 +1185,7 @@ export class CombatMusicManager {
       victoryReverb.dispose();
     }, 3000);
 
-    console.log('[CombatMusicManager] Victory jingle played');
+    log.info('Victory jingle played');
   }
 
   /**
@@ -1216,7 +1219,7 @@ export class CombatMusicManager {
       stingerGain.dispose();
     }, 1000);
 
-    console.log('[CombatMusicManager] Clear stinger played');
+    log.info('Clear stinger played');
   }
 
   /**

@@ -24,7 +24,10 @@ import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../../core/AudioManager';
 import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../../core/ecs';
+import { getLogger } from '../../core/Logger';
 import { particleManager } from '../../effects/ParticleManager';
+
+const log = getLogger('WraithMortar');
 
 // ----------------------------------------------------------------------------
 // Configuration
@@ -187,7 +190,7 @@ export function launchMortar(
     trailParticles.start();
   } catch {
     // Particle system creation may fail in test environments
-    console.warn('[WraithMortar] Could not create trail particles');
+    log.warn('Could not create trail particles');
   }
 
   // Animate glow pulsing

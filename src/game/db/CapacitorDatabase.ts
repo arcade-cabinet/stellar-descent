@@ -18,6 +18,9 @@ import {
   SQLiteConnection,
   SQLiteDBConnection,
 } from '@capacitor-community/sqlite';
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('CapacitorDatabase');
 
 const DATABASE_NAME = 'stellar_descent';
 const DATABASE_VERSION = 1;
@@ -123,9 +126,9 @@ export class CapacitorDatabase {
       await this.db.open();
 
       this.initialized = true;
-      console.log('[CapacitorDatabase] Database initialized successfully');
+      log.info('Database initialized successfully');
     } catch (error) {
-      console.error('[CapacitorDatabase] Failed to initialize:', error);
+      log.error('Failed to initialize:', error);
       throw error;
     }
   }
@@ -150,7 +153,7 @@ export class CapacitorDatabase {
     // Always initialize the web store on web platform
     await this.sqlite.initWebStore();
 
-    console.log('[CapacitorDatabase] Web store initialized');
+    log.info('Web store initialized');
   }
 
   /**
@@ -178,7 +181,7 @@ export class CapacitorDatabase {
         lastId: result.changes?.lastId ?? 0,
       };
     } catch (error) {
-      console.error('[CapacitorDatabase] Run error:', sql, error);
+      log.error('Run error:', sql, error);
       throw error;
     }
   }
@@ -194,7 +197,7 @@ export class CapacitorDatabase {
     try {
       await this.db.execute(sql);
     } catch (error) {
-      console.error('[CapacitorDatabase] Execute error:', sql, error);
+      log.error('Execute error:', sql, error);
       throw error;
     }
   }
@@ -214,7 +217,7 @@ export class CapacitorDatabase {
       const result = await this.db.query(sql, params);
       return (result.values ?? []) as T[];
     } catch (error) {
-      console.error('[CapacitorDatabase] Query error:', sql, error);
+      log.error('Query error:', sql, error);
       throw error;
     }
   }
@@ -249,7 +252,7 @@ export class CapacitorDatabase {
 
       return null;
     } catch (error) {
-      console.error('[CapacitorDatabase] Export error:', error);
+      log.error('Export error:', error);
       return null;
     }
   }
@@ -274,7 +277,7 @@ export class CapacitorDatabase {
       this.initialized = false;
       await this.init();
     } catch (error) {
-      console.error('[CapacitorDatabase] Import error:', error);
+      log.error('Import error:', error);
       throw error;
     }
   }
@@ -305,9 +308,9 @@ export class CapacitorDatabase {
         await this.sqlite.saveToStore(DATABASE_NAME);
       }
 
-      console.log('[CapacitorDatabase] Database deleted');
+      log.info('Database deleted');
     } catch (error) {
-      console.error('[CapacitorDatabase] Delete error:', error);
+      log.error('Delete error:', error);
       throw error;
     }
   }
@@ -320,7 +323,7 @@ export class CapacitorDatabase {
     if (!this.db || !this.isWeb) return;
 
     await this.sqlite.saveToStore(DATABASE_NAME);
-    console.log('[CapacitorDatabase] Saved to web store');
+    log.info('Saved to web store');
   }
 
   /**

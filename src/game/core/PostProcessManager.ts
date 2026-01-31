@@ -21,6 +21,9 @@ import { DepthOfFieldEffectBlurLevel } from '@babylonjs/core/PostProcesses/depth
 import { DefaultRenderingPipeline } from '@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline';
 import type { Scene } from '@babylonjs/core/scene';
 import type { LevelType } from '../levels/types';
+import { getLogger } from './Logger';
+
+const log = getLogger('PostProcessManager');
 
 // Side effect imports for post-processing pipeline
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
@@ -819,7 +822,7 @@ export class PostProcessManager {
 
     // If FPS is too low, reduce quality
     if (avgFPS < 30 && this.config.quality !== 'low') {
-      console.log(`[PostProcess] Reducing quality due to low FPS (${avgFPS.toFixed(1)})`);
+      log.info(`Reducing quality due to low FPS (${avgFPS.toFixed(1)})`);
       this.setQuality(this.getPreviousQuality());
     }
     // If FPS is high and stable, could increase quality (optional)
@@ -840,7 +843,7 @@ export class PostProcessManager {
   setQuality(quality: PostProcessQuality): void {
     if (quality === this.config.quality) return;
 
-    console.log(`[PostProcess] Setting quality to ${quality}`);
+    log.info(`Setting quality to ${quality}`);
     this.config.quality = quality;
     this.applyQualitySettings();
     this.applyColorGrading(this.currentLevelType);

@@ -23,6 +23,10 @@ import { AssetManager } from '../../core/AssetManager';
 
 import '@babylonjs/core/Layers/effectLayerSceneComponent';
 
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('HiveEnvironmentBuilder');
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -228,9 +232,9 @@ export class HiveEnvironmentBuilder {
         })
       );
       this.geometryLoaded = true;
-      console.log(`[${this.logPrefix}] Hive geometry GLBs loaded (${allPaths.length} assets)`);
+      log.info(`[${this.logPrefix}] Hive geometry GLBs loaded (${allPaths.length} assets)`);
     } catch (error) {
-      console.error(`[${this.logPrefix}] Failed to load hive geometry GLBs:`, error);
+      log.error(`[${this.logPrefix}] Failed to load hive geometry GLBs:`, error);
     }
   }
 
@@ -253,9 +257,9 @@ export class HiveEnvironmentBuilder {
         structureTypes.map((type) => AssetManager.loadAsset('structures', type, this.scene))
       );
       this.structuresLoaded = true;
-      console.log(`[${this.logPrefix}] Hive structures loaded successfully`);
+      log.info(`[${this.logPrefix}] Hive structures loaded successfully`);
     } catch (error) {
-      console.error(`[${this.logPrefix}] Failed to load hive structures:`, error);
+      log.error(`[${this.logPrefix}] Failed to load hive structures:`, error);
     }
   }
 
@@ -269,9 +273,9 @@ export class HiveEnvironmentBuilder {
         AssetManager.loadAsset('vehicles', 'phantom', this.scene),
       ]);
       this.vehiclesLoaded = true;
-      console.log(`[${this.logPrefix}] Captured vehicles loaded successfully`);
+      log.info(`[${this.logPrefix}] Captured vehicles loaded successfully`);
     } catch (error) {
-      console.warn(`[${this.logPrefix}] Failed to load vehicle assets:`, error);
+      log.warn(`[${this.logPrefix}] Failed to load vehicle assets:`, error);
     }
   }
 
@@ -512,7 +516,7 @@ export class HiveEnvironmentBuilder {
     rotationY: number
   ): HiveStructure | null {
     if (!this.structuresLoaded) {
-      console.warn(`[${this.logPrefix}] Structures not loaded, skipping placement`);
+      log.warn(`[${this.logPrefix}] Structures not loaded, skipping placement`);
       return null;
     }
 
@@ -520,7 +524,7 @@ export class HiveEnvironmentBuilder {
     const node = AssetManager.createInstance('structures', type, instanceName, this.scene);
 
     if (!node) {
-      console.warn(`[${this.logPrefix}] Failed to create instance for structure: ${type}`);
+      log.warn(`[${this.logPrefix}] Failed to create instance for structure: ${type}`);
       return null;
     }
 
@@ -556,7 +560,7 @@ export class HiveEnvironmentBuilder {
     rotation: Vector3
   ): CapturedVehicle | null {
     if (!this.vehiclesLoaded) {
-      console.warn(`[${this.logPrefix}] Vehicles not loaded, skipping placement`);
+      log.warn(`[${this.logPrefix}] Vehicles not loaded, skipping placement`);
       return null;
     }
 
@@ -568,7 +572,7 @@ export class HiveEnvironmentBuilder {
     );
 
     if (!instance) {
-      console.warn(`[${this.logPrefix}] Failed to create instance of ${type}`);
+      log.warn(`[${this.logPrefix}] Failed to create instance of ${type}`);
       return null;
     }
 
@@ -657,7 +661,7 @@ export class HiveEnvironmentBuilder {
     };
 
     this.capturedVehicles.push(vehicle);
-    console.log(`[${this.logPrefix}] Placed captured ${type} at ${zone}`);
+    log.info(`[${this.logPrefix}] Placed captured ${type} at ${zone}`);
     return vehicle;
   }
 

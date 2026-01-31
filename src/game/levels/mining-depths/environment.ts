@@ -26,6 +26,9 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('MiningDepthsEnv');
 
 // ============================================================================
 // GLB Asset Path Constants
@@ -458,12 +461,12 @@ export interface MiningEnvironment {
 export async function preloadMiningAssets(scene: Scene): Promise<void> {
   const loadPromises = ALL_GLB_PATHS.map((path) =>
     AssetManager.loadAssetByPath(path, scene).catch((err) => {
-      console.warn(`[MiningDepths] Failed to preload GLB ${path}:`, err);
+      log.warn(`Failed to preload GLB ${path}:`, err);
       return null;
     })
   );
   await Promise.all(loadPromises);
-  console.log(`[MiningDepths] Preloaded ${ALL_GLB_PATHS.length} GLB assets`);
+  log.info(`Preloaded ${ALL_GLB_PATHS.length} GLB assets`);
 }
 
 // ============================================================================

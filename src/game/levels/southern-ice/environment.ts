@@ -30,6 +30,9 @@ import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/core/Particles/particleSystemComponent';
 
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('IceEnv');
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 import {
   ICE_TERRAIN_CONFIG,
@@ -260,7 +263,7 @@ function placeGLBSync(
   const root = AssetManager.createInstanceByPath(path, name, scene, true, 'environment');
 
   if (!root) {
-    console.warn(`[IceEnv] GLB not cached for ${path}. Was preloadIceEnvironmentAssets called?`);
+    log.warn(`GLB not cached for ${path}. Was preloadIceEnvironmentAssets called?`);
     return null;
   }
 

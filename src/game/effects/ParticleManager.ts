@@ -23,11 +23,14 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { GPUParticleSystem } from '@babylonjs/core/Particles/gpuParticleSystem';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import {
   getAdjustedParticleCount,
   getParticleMultiplier,
   getPerformanceManager,
 } from '../core/PerformanceManager';
+
+const log = getLogger('ParticleManager');
 
 // Import particle system components
 import '@babylonjs/core/Particles/particleSystemComponent';
@@ -463,7 +466,7 @@ export class ParticleManager {
     // Create default particle texture (a simple white circle)
     this.defaultTexture = this.createDefaultTexture(scene);
 
-    console.log(`[ParticleManager] Initialized (GPU particles: ${this.gpuSupported})`);
+    log.info(`Initialized (GPU particles: ${this.gpuSupported})`);
   }
 
   /**
@@ -519,13 +522,13 @@ export class ParticleManager {
     }
   ): ParticleSystem | GPUParticleSystem | null {
     if (!this.scene) {
-      console.warn('[ParticleManager] Not initialized');
+      log.warn('Not initialized');
       return null;
     }
 
     const config = EFFECT_CONFIGS[effectType];
     if (!config) {
-      console.warn(`[ParticleManager] Unknown effect type: ${effectType}`);
+      log.warn(`Unknown effect type: ${effectType}`);
       return null;
     }
 
@@ -764,7 +767,7 @@ export class ParticleManager {
         unused.system.dispose();
         this.systemPool = this.systemPool.filter((p) => p !== unused);
       } else {
-        console.warn('[ParticleManager] Pool exhausted');
+        log.warn('Pool exhausted');
         return null;
       }
     }
@@ -908,7 +911,7 @@ export class ParticleManager {
     this.scene = null;
     ParticleManager.instance = null;
 
-    console.log('[ParticleManager] Disposed');
+    log.info('Disposed');
   }
 
   /**

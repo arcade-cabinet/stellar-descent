@@ -35,6 +35,9 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('SouthernIce');
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { getAudioManager } from '../../core/AudioManager';
 import { getEnvironmentalAudioManager } from '../../core/EnvironmentalAudioManager';
@@ -1400,7 +1403,7 @@ export class SouthernIceLevel extends SurfaceLevel {
       mechBody.scaling.setAll(2.5);
     } else {
       // Fallback: create simple placeholder geometry if GLB failed to load
-      console.warn('[SouthernIce] Marcus mech GLB not loaded, using placeholder');
+      log.warn('Marcus mech GLB not loaded, using placeholder');
       const placeholder = MeshBuilder.CreateBox('marcus_placeholder', { width: 3, height: 8, depth: 4 }, this.scene);
       const placeholderMat = new StandardMaterial('marcus_placeholder_mat', this.scene);
       placeholderMat.diffuseColor = new Color3(0.3, 0.35, 0.4);

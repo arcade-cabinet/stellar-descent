@@ -7,8 +7,11 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { getLogger } from '../core/Logger';
 import type { CommsMessage } from '../types';
 import type { ActionButtonGroup } from '../types/actions';
+
+const log = getLogger('MissionContext');
 
 /**
  * Objective marker for guiding player attention
@@ -154,7 +157,7 @@ export function MissionProvider({ children, onChapterChange }: MissionProviderPr
   }, []);
 
   const showComms = useCallback((message: CommsMessage) => {
-    console.log('[MissionContext] showComms called:', message.text?.substring(0, 40));
+    log.debug('showComms called:', message.text?.substring(0, 40));
     setCurrentComms(message);
   }, []);
 

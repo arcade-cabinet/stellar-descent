@@ -51,6 +51,9 @@ import '@babylonjs/core/Animations/animatable';
 import { getAchievementManager } from '../../achievements';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('FinalEscapeLevel');
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { levelActionParams } from '../../input/InputBridge';
@@ -950,7 +953,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Debug logging (can be enabled via DevMode)
     if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
-      console.log(`[FinalEscape] Section transition: ${previousSection} -> ${newSection}`);
+      log.debug(`Section transition: ${previousSection} -> ${newSection}`);
     }
 
     switch (newSection) {
@@ -1124,7 +1127,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
       // Log completion stats (can be enabled via debug flag)
       if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
-        console.log('[FinalEscape] Campaign complete! Stats:', stats);
+        log.info('Campaign complete! Stats:', stats);
       }
 
       // Mark campaign as complete in save system
@@ -1485,7 +1488,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
         });
       })
       .catch((err) => {
-        console.warn('[FinalEscape] Failed to spawn straggler:', err);
+        log.warn('Failed to spawn straggler:', err);
       });
   }
 

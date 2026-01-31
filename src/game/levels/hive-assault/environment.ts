@@ -41,6 +41,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('AssaultEnv');
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 
 import '@babylonjs/core/Layers/effectLayerSceneComponent';
@@ -289,7 +292,7 @@ export class AssaultEnvironmentBuilder {
       return Promise.resolve(null);
     });
     await Promise.all(promises);
-    console.log('[AssaultEnv] All GLB assets loaded');
+    log.info('All GLB assets loaded');
   }
 
   // ============================================================================

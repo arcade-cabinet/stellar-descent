@@ -35,6 +35,9 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('MiningDepths');
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
@@ -410,16 +413,16 @@ export class MiningDepthsLevel extends BaseLevel {
   private async preloadBurrowerModels(): Promise<void> {
     const assetName = SPECIES_TO_ASSET[BURROWER_SPECIES];
     if (!assetName) {
-      console.warn('[MiningDepths] No asset mapping for burrower species');
+      log.warn('No asset mapping for burrower species');
       return;
     }
 
     try {
       await AssetManager.loadAsset('aliens', assetName, this.scene);
       this.burrowerEnemiesPreloaded = true;
-      console.log(`[MiningDepths] Preloaded burrower GLB: ${assetName}`);
+      log.info(`Preloaded burrower GLB: ${assetName}`);
     } catch (error) {
-      console.warn('[MiningDepths] Failed to preload burrower GLB:', error);
+      log.warn('Failed to preload burrower GLB:', error);
       this.burrowerEnemiesPreloaded = false;
     }
   }
@@ -430,13 +433,13 @@ export class MiningDepthsLevel extends BaseLevel {
   private async preloadBossModels(): Promise<void> {
     const loadPromises = ALL_BOSS_GLB_PATHS.map((path) =>
       AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
-        console.warn(`[MiningDepths] Failed to preload boss GLB ${path}:`, err);
+        log.warn(`Failed to preload boss GLB ${path}:`, err);
         return null;
       })
     );
     await Promise.all(loadPromises);
     this.bossAssetsPreloaded = true;
-    console.log(`[MiningDepths] Preloaded ${ALL_BOSS_GLB_PATHS.length} boss GLB assets`);
+    log.info(`Preloaded ${ALL_BOSS_GLB_PATHS.length} boss GLB assets`);
   }
 
   private setupMiningAudio(): void {

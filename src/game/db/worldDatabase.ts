@@ -14,7 +14,10 @@
  * - Level completion records
  */
 
+import { getLogger } from '../core/Logger';
 import { capacitorDb } from './CapacitorDatabase';
+
+const log = getLogger('WorldDatabase');
 
 export interface ChunkData {
   chunkX: number;
@@ -192,7 +195,7 @@ class WorldDatabase {
     await capacitorDb.init();
     await this.createTables();
     this.initialized = true;
-    console.log('[WorldDatabase] Initialized successfully');
+    log.info('Initialized successfully');
   }
 
   /**
@@ -321,7 +324,7 @@ class WorldDatabase {
   exportDatabase(): Uint8Array | null {
     // Note: This is now async, but we maintain sync signature for compatibility
     // The actual export happens on persist
-    console.warn('[WorldDatabase] exportDatabase is deprecated, use async exportDatabaseAsync instead');
+    log.warn('exportDatabase is deprecated, use async exportDatabaseAsync instead');
     return null;
   }
 
@@ -359,7 +362,7 @@ class WorldDatabase {
 
     this.persistTimeout = setTimeout(() => {
       capacitorDb.persist().catch((err) => {
-        console.error('[WorldDatabase] Persist failed:', err);
+        log.error('Persist failed:', err);
       });
     }, this.PERSIST_DEBOUNCE_MS);
   }
@@ -584,7 +587,7 @@ class WorldDatabase {
     lastY: number;
     lastZ: number;
   } {
-    console.warn('[WorldDatabase] getPlayerStats is deprecated, use getPlayerStatsAsync');
+    log.warn('getPlayerStats is deprecated, use getPlayerStatsAsync');
     return {
       kills: 0,
       distanceTraveled: 0,
@@ -782,7 +785,7 @@ class WorldDatabase {
 
   // Sync version for backward compatibility
   getTutorialProgress(): { completed: boolean; currentStep: number; stepsCompleted: string[] } {
-    console.warn('[WorldDatabase] getTutorialProgress is deprecated, use getTutorialProgressAsync');
+    log.warn('getTutorialProgress is deprecated, use getTutorialProgressAsync');
     return { completed: false, currentStep: 0, stepsCompleted: [] };
   }
 

@@ -4,6 +4,9 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('ModularStationBuilder');
 
 // ============================================================================
 // MODULAR STATION BUILDER
@@ -635,13 +638,13 @@ async function loadModel(
   rotation: number,
   name: string
 ): Promise<AbstractMesh[]> {
-  console.log(`[loadModel] Loading ${name} from ${modelPath}`);
+  log.info(`Loading ${name} from ${modelPath}`);
   const result = await withTimeout(
     SceneLoader.ImportMeshAsync('', modelPath, '', scene),
     MODEL_LOAD_TIMEOUT_MS,
     name
   );
-  console.log(`[loadModel] Loaded ${name} - ${result.meshes.length} meshes`);
+  log.info(`Loaded ${name} - ${result.meshes.length} meshes`);
 
   // Create parent transform for positioning
   const parent = new TransformNode(name, scene);
@@ -668,7 +671,7 @@ export async function buildModularStation(
   scene: Scene,
   layout: StationLayout = ANCHOR_STATION_LAYOUT
 ): Promise<ModularStationResult> {
-  console.log('[ModularStationBuilder] Starting station build, segments:', layout.segments.length);
+  log.info('Starting station build, segments:', layout.segments.length);
   const root = new TransformNode('AnchorStation', scene);
   const allMeshes: AbstractMesh[] = [];
 
@@ -680,7 +683,7 @@ export async function buildModularStation(
     wide: MODELS.corridorWide,
   };
 
-  console.log('[ModularStationBuilder] Loading', layout.segments.length, 'segments...');
+  log.info('Loading', layout.segments.length, 'segments...');
   // Load all segments
   const loadPromises = layout.segments.map(async (segment) => {
     const modelPath = typeToModel[segment.type];
@@ -695,14 +698,14 @@ export async function buildModularStation(
       allMeshes.push(...meshes);
       return meshes;
     } catch (error) {
-      console.warn(`[ModularStationBuilder] Failed to load segment ${segment.name}:`, error);
+      log.warn(`Failed to load segment ${segment.name}:`, error);
       return [];
     }
   });
 
-  console.log('[ModularStationBuilder] Waiting for all segments to load...');
+  log.info('Waiting for all segments to load...');
   await Promise.all(loadPromises);
-  console.log('[ModularStationBuilder] All segments loaded, total meshes:', allMeshes.length);
+  log.info('All segments loaded, total meshes:', allMeshes.length);
 
   // Parent all to root
   for (const mesh of allMeshes) {

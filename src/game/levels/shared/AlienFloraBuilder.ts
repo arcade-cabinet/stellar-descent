@@ -23,6 +23,10 @@ import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 
 import '@babylonjs/loaders/glTF';
 
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('AlienFloraBuilder');
+
 // ============================================================================
 // FLORA CATALOG
 // ============================================================================
@@ -408,10 +412,7 @@ export async function buildFloraFromPlacements(
   for (let i = 0; i < loadResults.length; i++) {
     if (loadResults[i].status === 'rejected') {
       const reason = (loadResults[i] as PromiseRejectedResult).reason;
-      console.warn(
-        `[AlienFloraBuilder] Failed to load: ${uniquePaths[i]}`,
-        reason
-      );
+      log.warn(`Failed to load: ${uniquePaths[i]}`, reason);
     }
   }
 
@@ -430,7 +431,7 @@ export async function buildFloraFromPlacements(
     const clone = template.clone(nodeName, parent);
 
     if (!clone) {
-      console.warn(`[AlienFloraBuilder] Clone failed for ${placement.path}`);
+      log.warn(`Clone failed for ${placement.path}`);
       continue;
     }
 
@@ -453,8 +454,8 @@ export async function buildFloraFromPlacements(
     template.dispose(false, true);
   });
 
-  console.log(
-    `[AlienFloraBuilder] Built ${createdNodes.length}/${placements.length} flora placements ` +
+  log.info(
+    `Built ${createdNodes.length}/${placements.length} flora placements ` +
       `(${uniquePaths.length} unique assets)`
   );
 

@@ -12,6 +12,10 @@
  * @deprecated Use CapacitorDatabase.ts instead
  */
 
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('IndexedDBPersistence');
+
 const DB_NAME = 'stellar_descent_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'game_data';
@@ -35,7 +39,7 @@ function openDatabase(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
-      console.error('[IndexedDB] Failed to open database:', request.error);
+      log.error('Failed to open database:', request.error);
       reject(request.error);
     };
 
@@ -49,7 +53,7 @@ function openDatabase(): Promise<IDBDatabase> {
       // Create object store for game data
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
-        console.log('[IndexedDB] Created game_data object store');
+        log.info('Created game_data object store');
       }
     };
   });
@@ -79,22 +83,22 @@ export async function saveDatabaseToIndexedDB(data: Uint8Array): Promise<void> {
 
       transaction.oncomplete = () => {
         db.close();
-        console.log('[IndexedDB] Database saved successfully');
+        log.info('Database saved successfully');
         resolve();
       };
 
       transaction.onerror = () => {
         db.close();
-        console.error('[IndexedDB] Failed to save database:', transaction.error);
+        log.error('Failed to save database:', transaction.error);
         reject(transaction.error);
       };
 
       dataRequest.onerror = () => {
-        console.error('[IndexedDB] Failed to save data:', dataRequest.error);
+        log.error('Failed to save data:', dataRequest.error);
       };
     });
   } catch (error) {
-    console.error('[IndexedDB] Error saving database:', error);
+    log.error('Error saving database:', error);
     throw error;
   }
 }
@@ -113,17 +117,17 @@ export async function loadDatabaseFromIndexedDB(): Promise<Uint8Array | null> {
     request.onsuccess = () => {
       db.close();
       if (request.result) {
-        console.log('[IndexedDB] Database loaded successfully');
+        log.info('Database loaded successfully');
         resolve(request.result as Uint8Array);
       } else {
-        console.log('[IndexedDB] No saved database found');
+        log.info('No saved database found');
         resolve(null);
       }
     };
 
     request.onerror = () => {
       db.close();
-      console.error('[IndexedDB] Failed to load database:', request.error);
+      log.error('Failed to load database:', request.error);
       reject(request.error);
     };
   });
@@ -176,7 +180,7 @@ export async function clearSavedDatabase(): Promise<void> {
 
       transaction.oncomplete = () => {
         db.close();
-        console.log('[IndexedDB] Database cleared');
+        log.info('Database cleared');
         resolve();
       };
 
@@ -186,7 +190,7 @@ export async function clearSavedDatabase(): Promise<void> {
       };
     });
   } catch (error) {
-    console.error('[IndexedDB] Error clearing database:', error);
+    log.error('Error clearing database:', error);
     throw error;
   }
 }
@@ -250,7 +254,7 @@ export class PersistenceManager {
     try {
       await saveDatabaseToIndexedDB(dataToSave);
     } catch (error) {
-      console.error('[PersistenceManager] Save failed:', error);
+      log.error('PersistenceManager save failed:', error);
       // Re-queue the data for retry
       this.pendingData = dataToSave;
     } finally {

@@ -1,4 +1,7 @@
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { getLogger } from './Logger';
+
+const log = getLogger('EventBus');
 
 // ---------------------------------------------------------------------------
 // Game event types
@@ -121,8 +124,8 @@ export class EventBus {
 
     if (!set || set.size === 0) {
       if (import.meta.env.DEV) {
-        console.warn(
-          `[EventBus] No listeners registered for event "${event.type}"`,
+        log.warn(
+          `No listeners registered for event "${event.type}"`,
         );
       }
       return;

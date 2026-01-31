@@ -10,6 +10,9 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('TheBreachEnemies');
 import {
   type DifficultyLevel,
   loadDifficultySetting,
@@ -51,7 +54,7 @@ let currentDifficulty: DifficultyLevel = loadDifficultySetting();
  */
 export function setEnemyDifficulty(difficulty: DifficultyLevel): void {
   currentDifficulty = difficulty;
-  console.log(`[TheBreachLevel/enemies] Difficulty set to: ${difficulty}`);
+  log.info(`Difficulty set to: ${difficulty}`);
 }
 
 /**
@@ -71,7 +74,7 @@ export function getEnemyDifficulty(): DifficultyLevel {
 export async function preloadEnemyModels(scene: Scene): Promise<void> {
   if (glbAssetsPreloaded) return;
 
-  console.log('[TheBreachLevel/enemies] Preloading enemy GLB models...');
+  log.info('Preloading enemy GLB models...');
 
   const speciesIds = Object.values(ENEMY_TYPE_TO_SPECIES);
   const uniqueSpecies = [...new Set(speciesIds)];
@@ -82,14 +85,14 @@ export async function preloadEnemyModels(scene: Scene): Promise<void> {
         const assetName = SPECIES_TO_ASSET[speciesId];
         if (assetName) {
           await AssetManager.loadAsset('aliens', assetName, scene);
-          console.log(`[TheBreachLevel/enemies] Preloaded GLB for ${speciesId} -> ${assetName}`);
+          log.info(`Preloaded GLB for ${speciesId} -> ${assetName}`);
         }
       })
     );
     glbAssetsPreloaded = true;
-    console.log('[TheBreachLevel/enemies] All enemy GLB models preloaded');
+    log.info('All enemy GLB models preloaded');
   } catch (error) {
-    console.warn('[TheBreachLevel/enemies] Some GLB models failed to preload:', error);
+    log.warn('Some GLB models failed to preload:', error);
   }
 }
 
@@ -106,7 +109,7 @@ function createGLBEnemyMesh(scene: Scene, type: EnemyType, index: number): Trans
   const assetName = SPECIES_TO_ASSET[speciesId];
 
   if (!assetName) {
-    console.warn(`[TheBreachLevel/enemies] No asset mapping for ${type}/${speciesId}`);
+    log.warn(`No asset mapping for ${type}/${speciesId}`);
     return null;
   }
 
@@ -121,8 +124,8 @@ function createGLBEnemyMesh(scene: Scene, type: EnemyType, index: number): Trans
     // Apply appropriate scale for this enemy type
     const scale = ENEMY_GLB_SCALE[type];
     instance.scaling.setAll(scale);
-    console.log(
-      `[TheBreachLevel/enemies] Created GLB instance for ${type} (${assetName}), scale=${scale}`
+    log.info(
+      `Created GLB instance for ${type} (${assetName}), scale=${scale}`
     );
   }
 

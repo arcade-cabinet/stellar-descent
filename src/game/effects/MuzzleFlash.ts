@@ -18,8 +18,11 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import { getAdjustedParticleCount, getParticleMultiplier } from '../core/PerformanceManager';
 import { particleManager } from './ParticleManager';
+
+const log = getLogger('MuzzleFlash');
 
 // Import particle system components
 import '@babylonjs/core/Particles/particleSystemComponent';
@@ -163,7 +166,7 @@ export class MuzzleFlashManager {
     // Pre-warm the pool
     this.preWarmPools();
 
-    console.log('[MuzzleFlash] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -510,7 +513,7 @@ export class MuzzleFlashManager {
     this.scene = null;
     MuzzleFlashManager.instance = null;
 
-    console.log('[MuzzleFlash] Disposed');
+    log.info('Disposed');
   }
 }
 

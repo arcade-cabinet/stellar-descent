@@ -24,6 +24,9 @@ import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('SecretAreaSystem');
 import type { LevelId } from '../levels/types';
 import { addDiscoveredSecret, getDiscoveredSecretIds } from './secretPersistence';
 import type { SecretArea, SecretReward } from './secrets';
@@ -113,8 +116,8 @@ export class SecretAreaSystem {
       }
     }
 
-    console.log(
-      `[SecretAreaSystem] Initialized ${this.pickups.size} secret areas for level ${this.levelId}`
+    log.info(
+      `Initialized ${this.pickups.size} secret areas for level ${this.levelId}`
     );
   }
 
@@ -169,7 +172,7 @@ export class SecretAreaSystem {
     );
 
     if (!node) {
-      console.warn(`[SecretAreaSystem] Failed to create hint model for secret "${secret.id}"`);
+      log.warn(`Failed to create hint model for secret "${secret.id}"`);
       return null;
     }
 

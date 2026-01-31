@@ -24,6 +24,30 @@ This document defines the visual design system, UI patterns, and user experience
    - Touch targets minimum 44px
    - Thumb-reachable controls
 
+4. **Immersive Storytelling**
+   - **NO "skip tutorial" option** - The game is a linear campaign
+   - Players unlock levels by completing them
+   - Controls are learned organically IN the game world
+   - Platforming training happens in a holodeck area
+   - Story unfolds through Commander Reyes dialogue
+   - No breaking the fourth wall with meta-game elements
+   - No popups or modal tutorials that break immersion
+
+### Tutorial Integration (Anchor Station)
+
+The tutorial (Anchor Station level) teaches controls organically:
+
+| Skill | How It's Taught |
+|-------|-----------------|
+| Movement | Wake up in barracks, follow waypoints to briefing |
+| Looking | Commander directs attention to screens |
+| Jumping | Holodeck platforming course (in-universe training) |
+| Shooting | Firing range with targets |
+| Sprinting | Timed corridor to drop pod |
+| Interacting | Access panels to open doors |
+
+**Key principle:** If you can't teach it in-world, it doesn't belong in the tutorial.
+
 ## Color System
 
 ### Primary Palette (Military)

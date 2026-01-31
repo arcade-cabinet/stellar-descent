@@ -28,6 +28,9 @@ import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('CanyonEnv');
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
@@ -724,7 +727,7 @@ async function loadCanyonGLBProps(scene: Scene): Promise<AbstractMesh[]> {
   const placements = getCanyonPropPlacements();
   const allMeshes: AbstractMesh[] = [];
 
-  console.log(`[CanyonEnv] Loading ${placements.length} GLB prop placements...`);
+  log.info(`Loading ${placements.length} GLB prop placements...`);
 
   const loadPromises = placements.map(async (placement) => {
     try {
@@ -745,12 +748,12 @@ async function loadCanyonGLBProps(scene: Scene): Promise<AbstractMesh[]> {
       // Track the root node itself for disposal
       allMeshes.push(propRoot as unknown as AbstractMesh);
     } catch (error) {
-      console.warn(`[CanyonEnv] Failed to load prop ${placement.name} (${placement.model}):`, error);
+      log.warn(`Failed to load prop ${placement.name} (${placement.model}):`, error);
     }
   });
 
   await Promise.all(loadPromises);
-  console.log(`[CanyonEnv] GLB props loaded: ${allMeshes.length} meshes from ${placements.length} placements`);
+  log.info(`GLB props loaded: ${allMeshes.length} meshes from ${placements.length} placements`);
 
   return allMeshes;
 }
@@ -799,9 +802,9 @@ async function preloadEnvironmentGLBs(scene: Scene): Promise<void> {
   ];
 
   const unique = [...new Set(pathsToPreload)];
-  console.log(`[CanyonEnv] Preloading ${unique.length} environment GLBs...`);
+  log.info(`Preloading ${unique.length} environment GLBs...`);
   await Promise.all(unique.map((p) => AssetManager.loadAssetByPath(p, scene)));
-  console.log(`[CanyonEnv] Environment GLB preload complete.`);
+  log.info('Environment GLB preload complete.');
 }
 
 // ============================================================================

@@ -8,7 +8,10 @@
  * - React-compatible with subscribe/getSnapshot for useSyncExternalStore
  */
 
+import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
+
+const log = getLogger('GameTimer');
 
 // ============================================================================
 // Types
@@ -89,7 +92,7 @@ class GameTimer {
     this.snapshot.missionTimeSeconds = 0;
     this.startUpdateLoop();
     this.notify();
-    console.log(`[GameTimer] Mission started: ${levelId}`);
+    log.info(`Mission started: ${levelId}`);
   }
 
   /**
@@ -104,7 +107,7 @@ class GameTimer {
     this.snapshot.isRunning = false;
     this.stopUpdateLoop();
     this.notify();
-    console.log('[GameTimer] Mission paused');
+    log.info('Mission paused');
   }
 
   /**
@@ -118,7 +121,7 @@ class GameTimer {
     this.snapshot.isRunning = true;
     this.startUpdateLoop();
     this.notify();
-    console.log('[GameTimer] Mission resumed');
+    log.info('Mission resumed');
   }
 
   /**
@@ -137,7 +140,7 @@ class GameTimer {
     this.stopUpdateLoop();
     this.notify();
 
-    console.log(`[GameTimer] Mission stopped: ${finalTimeSeconds.toFixed(2)}s`);
+    log.info(`Mission stopped: ${finalTimeSeconds.toFixed(2)}s`);
     return finalTimeSeconds;
   }
 
@@ -209,7 +212,7 @@ class GameTimer {
         achievedAt: Date.now(),
       };
       this.saveBestTimes(bestTimes);
-      console.log(`[GameTimer] New best time for ${levelId}: ${timeSeconds.toFixed(2)}s`);
+      log.info(`New best time for ${levelId}: ${timeSeconds.toFixed(2)}s`);
       return true;
     }
 

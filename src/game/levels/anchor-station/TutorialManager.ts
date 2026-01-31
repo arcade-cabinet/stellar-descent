@@ -1,5 +1,6 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../../core/Logger';
 import {
   type HUDUnlockState,
   PHASE_HUD_STATES,
@@ -7,6 +8,8 @@ import {
   type TutorialPhase,
   type TutorialStep,
 } from './tutorialSteps';
+
+const log = getLogger('TutorialManager');
 
 export interface TutorialCallbacks {
   onStepChange?: (step: TutorialStep) => void;
@@ -47,7 +50,7 @@ export class TutorialManager {
   }
 
   start(callbacks: TutorialCallbacks): void {
-    console.log('[TutorialManager] start() called');
+    log.info('start() called');
     this.callbacks = callbacks;
     this.isActive = true;
     this.currentStepIndex = 0;
@@ -57,9 +60,9 @@ export class TutorialManager {
     this.callbacks.onPhaseChange?.(0, PHASE_HUD_STATES[0]);
 
     // Small delay before first step to let player orient
-    console.log('[TutorialManager] Setting timeout for first step (1500ms)');
+    log.debug('Setting timeout for first step (1500ms)');
     setTimeout(() => {
-      console.log('[TutorialManager] Timeout fired, isActive:', this.isActive);
+      log.debug('Timeout fired, isActive:', this.isActive);
       if (this.isActive) {
         this.activateStep(this.steps[0]);
       }
@@ -67,7 +70,7 @@ export class TutorialManager {
   }
 
   private activateStep(step: TutorialStep): void {
-    console.log('[TutorialManager] activateStep() called for step:', step.id);
+    log.debug('activateStep() called for step:', step.id);
     // Clear any pending timers
     if (this.waitTimer) {
       clearTimeout(this.waitTimer);
@@ -113,9 +116,9 @@ export class TutorialManager {
       );
       const actualDelay = Math.max(configuredDelay, minIntervalRemaining);
 
-      console.log('[TutorialManager] Setting comms timer for', actualDelay, 'ms');
+      log.debug('Setting comms timer for', actualDelay, 'ms');
       this.commsTimer = window.setTimeout(() => {
-        console.log('[TutorialManager] Comms timer fired, calling onCommsMessage');
+        log.debug('Comms timer fired, calling onCommsMessage');
         this.lastCommsTime = performance.now();
         this.callbacks.onCommsMessage?.(step.commsMessage!);
 

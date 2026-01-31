@@ -15,6 +15,10 @@ import type { ActionButtonGroup } from '../types/actions';
 import { LevelManager, type LevelManagerConfig } from './LevelManager';
 import type { ILevel, LevelCallbacks, LevelConfig, LevelFactoryRegistry, LevelId } from './types';
 
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('useLevelManager');
+
 export interface UseLevelManagerOptions {
   engine: Engine | null;
   canvas: HTMLCanvasElement | null;
@@ -155,7 +159,7 @@ export function useLevelManager(
   // Actions
   const startLevel = useCallback(async (levelId: LevelId) => {
     if (!managerRef.current) {
-      console.warn('LevelManager not initialized');
+      log.warn('LevelManager not initialized');
       return;
     }
 
@@ -172,7 +176,7 @@ export function useLevelManager(
         isTransitioning: false,
       }));
     } catch (error) {
-      console.error('Failed to start level:', error);
+      log.error('Failed to start level:', error);
       setState((prev) => ({ ...prev, isLoading: false, isTransitioning: false }));
     }
   }, []);
@@ -192,7 +196,7 @@ export function useLevelManager(
         isTransitioning: false,
       }));
     } catch (error) {
-      console.error('Failed to transition to next level:', error);
+      log.error('Failed to transition to next level:', error);
       setState((prev) => ({ ...prev, isTransitioning: false }));
     }
   }, []);
@@ -212,7 +216,7 @@ export function useLevelManager(
         isTransitioning: false,
       }));
     } catch (error) {
-      console.error('Failed to transition to level:', error);
+      log.error('Failed to transition to level:', error);
       setState((prev) => ({ ...prev, isTransitioning: false }));
     }
   }, []);

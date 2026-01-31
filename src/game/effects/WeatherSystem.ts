@@ -29,6 +29,10 @@ import type { Scene } from '@babylonjs/core/scene';
 
 import '@babylonjs/core/Particles/particleSystemComponent';
 
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('WeatherSystem');
+
 // ============================================================================
 // TYPES AND INTERFACES
 // ============================================================================
@@ -235,7 +239,7 @@ export class WeatherSystem {
     // Create particle texture
     this.createParticleTexture();
 
-    console.log('[WeatherSystem] Initialized');
+    log.info('Initialized');
   }
 
   // ============================================================================
@@ -827,7 +831,7 @@ export class WeatherSystem {
   setWeather(type: WeatherType, intensity: WeatherIntensity = 'medium', immediate = false): void {
     const preset = this.getPresetForType(type);
     if (!preset) {
-      console.warn(`[WeatherSystem] Unknown weather type: ${type}`);
+      log.warn(`Unknown weather type: ${type}`);
       return;
     }
 
@@ -850,7 +854,7 @@ export class WeatherSystem {
       this.transitionProgress = 0;
     }
 
-    console.log(`[WeatherSystem] Weather changing to ${type} (${intensity})`);
+    log.info(`Weather changing to ${type} (${intensity})`);
   }
 
   private getPresetForType(type: WeatherType): WeatherPreset | null {
@@ -1207,7 +1211,7 @@ export class WeatherSystem {
     this.particleTexture?.dispose();
     this.particleTexture = null;
 
-    console.log('[WeatherSystem] Disposed');
+    log.info('Disposed');
   }
 }
 

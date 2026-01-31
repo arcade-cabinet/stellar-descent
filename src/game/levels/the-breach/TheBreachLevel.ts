@@ -24,6 +24,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { getAchievementManager } from '../../achievements';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('TheBreachLevel');
 import { getBossMusicManager } from '../../core/BossMusicManager';
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
@@ -245,7 +248,7 @@ export class TheBreachLevel extends BaseLevel {
     }
 
     await Promise.all(loadPromises);
-    console.log('[TheBreachLevel] Queen chamber GLB assets loaded');
+    log.info('Queen chamber GLB assets loaded');
 
     // Build the hive tunnel/chamber geometry
     this.createUpperHive();
@@ -681,7 +684,7 @@ export class TheBreachLevel extends BaseLevel {
       this.arenaPillars.push(pillarRoot);
     }
 
-    console.log(`[TheBreachLevel] Created ${ARENA_PILLAR_COUNT} arena cover pillars`);
+    log.info(`Created ${ARENA_PILLAR_COUNT} arena cover pillars`);
   }
 
   /**
@@ -777,7 +780,7 @@ export class TheBreachLevel extends BaseLevel {
       }
     }
 
-    console.log('[TheBreachLevel] Queen arena floor created with GLB tiles');
+    log.info('Queen arena floor created with GLB tiles');
     return floorRoot;
   }
 
@@ -809,7 +812,7 @@ export class TheBreachLevel extends BaseLevel {
     dome.scaling.set(scaleFactor, scaleFactor * 0.6, scaleFactor);
     dome.rotation.x = Math.PI; // Invert for dome effect
 
-    console.log('[TheBreachLevel] Queen chamber dome created with GLB');
+    log.info('Queen chamber dome created with GLB');
     return dome;
   }
 
@@ -839,7 +842,7 @@ export class TheBreachLevel extends BaseLevel {
     door.scaling.set(1.5, 1.5, 1.5);
     door.setEnabled(false); // Initially hidden
 
-    console.log('[TheBreachLevel] Queen chamber door created with GLB');
+    log.info('Queen chamber door created with GLB');
     return door;
   }
 
@@ -984,7 +987,7 @@ export class TheBreachLevel extends BaseLevel {
     disposeEnemies(this.enemies);
     this.enemies = [];
     if (despawnCount > 0) {
-      console.log(`[TheBreachLevel] Despawned ${despawnCount} enemies for boss fight`);
+      log.info(`Despawned ${despawnCount} enemies for boss fight`);
     }
   }
 

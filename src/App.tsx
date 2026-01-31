@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { getLogger } from './game/core/Logger';
 import { GameFlow, isGamePhase } from './components/GameFlow';
 import { LandingFlow, isLandingPhase } from './components/LandingFlow';
 import { AchievementPopup } from './components/ui/AchievementPopup';
@@ -37,6 +38,8 @@ import { useSavePersistence } from './hooks/useSavePersistence';
 // ============================================================================
 // Constants
 // ============================================================================
+
+const log = getLogger('App');
 
 const TITLE_SHOWN_KEY = 'stellar_descent_title_shown';
 
@@ -128,7 +131,7 @@ function GameUI() {
     // Handle URL-based dev jump - takes priority
     const urlLevel = getStartLevelFromURL();
     if (urlLevel) {
-      console.log(`[Dev] Starting level from URL: ${urlLevel}`);
+      log.info(`[Dev] Starting level from URL: ${urlLevel}`);
       director.dispatch({ type: 'DEV_JUMP_TO_LEVEL', levelId: urlLevel });
       return;
     }

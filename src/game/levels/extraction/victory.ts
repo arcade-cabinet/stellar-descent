@@ -15,6 +15,9 @@ import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
 
 import { getAchievementManager } from '../../achievements';
 import { getAudioManager } from '../../core/AudioManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('Victory');
 import { particleManager } from '../../effects/ParticleManager';
 import { saveSystem } from '../../persistence/SaveSystem';
 import type { LevelCallbacks } from '../types';
@@ -79,7 +82,7 @@ export function startDropshipEngineSounds(state: VictoryState): void {
       state.dropshipEngineSound = proceduralAudio.generateDropshipEngine(0.4);
     }
   } catch (e) {
-    console.warn('[Victory] Could not start dropship engine sound:', e);
+    log.warn('Could not start dropship engine sound:', e);
   }
 }
 

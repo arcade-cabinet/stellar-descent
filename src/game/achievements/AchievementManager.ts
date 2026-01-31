@@ -13,7 +13,10 @@
  * - Levels: Specific level-based achievements
  */
 
+import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
+
+const log = getLogger('AchievementManager');
 
 // ============================================================================
 // TYPES
@@ -441,11 +444,7 @@ class AchievementManagerImpl {
 
     this.loadFromStorage();
     this.initialized = true;
-    console.log(
-      '[AchievementManager] Initialized with',
-      this.getUnlockedCount(),
-      'achievements unlocked'
-    );
+    log.info('Initialized with', this.getUnlockedCount(), 'achievements unlocked');
   }
 
   /**
@@ -499,7 +498,7 @@ class AchievementManagerImpl {
         this.progress = { ...this.createDefaultProgress(), ...loadedProgress };
       }
     } catch (error) {
-      console.error('[AchievementManager] Failed to load from storage:', error);
+      log.error('Failed to load from storage:', error);
       this.state = this.createDefaultState();
       this.progress = this.createDefaultProgress();
     }
@@ -513,7 +512,7 @@ class AchievementManagerImpl {
       localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(this.state));
       localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(this.progress));
     } catch (error) {
-      console.error('[AchievementManager] Failed to save to storage:', error);
+      log.error('Failed to save to storage:', error);
     }
   }
 
@@ -535,7 +534,7 @@ class AchievementManagerImpl {
       try {
         callback(achievement);
       } catch (error) {
-        console.error('[AchievementManager] Error in unlock callback:', error);
+        log.error('Error in unlock callback:', error);
       }
     }
   }
@@ -606,14 +605,14 @@ class AchievementManagerImpl {
 
     const achievement = ACHIEVEMENTS[id];
     if (!achievement) {
-      console.warn(`[AchievementManager] Unknown achievement: ${id}`);
+      log.warn(`Unknown achievement: ${id}`);
       return false;
     }
 
     this.state[id] = { unlockedAt: Date.now() };
     this.saveToStorage();
 
-    console.log(`[AchievementManager] Achievement unlocked: ${achievement.name}`);
+    log.info(`Achievement unlocked: ${achievement.name}`);
     this.emitUnlock(achievement);
 
     return true;
@@ -1078,7 +1077,7 @@ class AchievementManagerImpl {
     this.state = this.createDefaultState();
     this.progress = this.createDefaultProgress();
     this.saveToStorage();
-    console.log('[AchievementManager] All achievements reset');
+    log.info('All achievements reset');
   }
 
   /**
@@ -1088,7 +1087,7 @@ class AchievementManagerImpl {
     for (const id of Object.keys(ACHIEVEMENTS) as AchievementId[]) {
       if (!this.isUnlocked(id)) {
         this.state[id] = { unlockedAt: Date.now() };
-        console.log(`[AchievementManager] Unlocked: ${ACHIEVEMENTS[id].name}`);
+        log.info(`Unlocked: ${ACHIEVEMENTS[id].name}`);
       }
     }
     this.saveToStorage();

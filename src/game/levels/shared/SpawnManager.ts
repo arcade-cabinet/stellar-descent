@@ -37,6 +37,10 @@ import type {
   TriggerCondition,
 } from './SpawnConfig';
 
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('SpawnManager');
+
 // ============================================================================
 // CALLBACK INTERFACE
 // ============================================================================
@@ -564,8 +568,8 @@ export class SpawnManager {
       // Fallback: spawn at origin with random offset (should not happen with good config)
       position = new Vector3((Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 20);
       facingAngle = 0;
-      console.warn(
-        `[SpawnManager] No spawn point resolved for species "${queued.speciesId}" ` +
+      log.warn(
+        `No spawn point resolved for species "${queued.speciesId}" ` +
         `in wave ${wave.config.waveNumber}. Using fallback position.`
       );
     }

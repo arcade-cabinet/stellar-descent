@@ -66,14 +66,35 @@ export interface GameSave {
   /** Inventory items (item ID to quantity) */
   inventory: Record<string, number>;
 
-  /** Quest/objective flags (quest ID to completion status) */
+  /**
+   * @deprecated Use questState instead.
+   * Quest/objective flags (quest ID to completion status)
+   * Kept for backwards compatibility with older saves.
+   */
   objectives: Record<string, boolean>;
 
-  /** Tutorial completion status */
-  tutorialCompleted: boolean;
+  /** Completed quest IDs */
+  completedQuests: string[];
 
-  /** Current tutorial step (if in tutorial) */
-  tutorialStep: number;
+  /** Active quest states (quest ID to state) */
+  activeQuests: Record<string, {
+    questId: string;
+    status: 'available' | 'active' | 'completed' | 'failed';
+    currentObjectiveIndex: number;
+    objectiveProgress: Record<string, number>;
+    objectiveStatus: Record<string, 'pending' | 'active' | 'completed' | 'failed'>;
+    startedAt?: number;
+    completedAt?: number;
+  }>;
+
+  /** Failed quest IDs */
+  failedQuests: string[];
+
+  /**
+   * @deprecated Use levelsCompleted.includes('anchor_station') instead.
+   * Kept for backwards compatibility with older saves.
+   */
+  tutorialCompleted: boolean;
 
   /** Additional level-specific flags */
   levelFlags: Record<LevelId, Record<string, boolean>>;
@@ -111,18 +132,45 @@ export interface GameSaveMetadata {
  * v2: Added difficulty field
  * v3: Added seenIntroBriefing field
  * v4: Added levelBestTimes field
+ * v5: Added quest chain state (completedQuests, activeQuests, failedQuests)
  */
-export const SAVE_FORMAT_VERSION = 4;
+export const SAVE_FORMAT_VERSION = 5;
 
 /**
  * Create a new empty save with default values
+ * @param id - Save slot ID
+ * @param difficulty - Difficulty level
+ * @param startLevel - Starting level (defaults to 'anchor_station')
  */
-export function createNewSave(id: string, difficulty: DifficultyLevel = 'normal'): GameSave {
+/**
+ * Level ID to chapter mapping (avoids circular dependency with levels/types)
+ */
+const LEVEL_CHAPTERS: Record<LevelId, number> = {
+  anchor_station: 1,
+  landfall: 2,
+  canyon_run: 3,
+  fob_delta: 4,
+  brothers_in_arms: 5,
+  southern_ice: 6,
+  the_breach: 7,
+  hive_assault: 8,
+  extraction: 9,
+  final_escape: 10,
+};
+
+export function createNewSave(
+  id: string,
+  difficulty: DifficultyLevel = 'normal',
+  startLevel: LevelId = 'anchor_station'
+): GameSave {
+  // Get chapter from level mapping
+  const chapter = LEVEL_CHAPTERS[startLevel] ?? 1;
+
   return {
     id,
     timestamp: Date.now(),
     name: generateSaveName(),
-    currentLevel: 'anchor_station',
+    currentLevel: startLevel,
     playerHealth: 100,
     maxPlayerHealth: 100,
     levelsCompleted: [],
@@ -130,13 +178,15 @@ export function createNewSave(id: string, difficulty: DifficultyLevel = 'normal'
     totalKills: 0,
     totalDistance: 0,
     playTime: 0,
-    currentChapter: 1,
+    currentChapter: chapter,
     playerPosition: { x: 0, y: 1.7, z: 0 },
     playerRotation: Math.PI,
     inventory: {},
     objectives: {},
-    tutorialCompleted: false,
-    tutorialStep: 0,
+    completedQuests: [],
+    activeQuests: {},
+    failedQuests: [],
+    tutorialCompleted: startLevel !== 'anchor_station',
     levelFlags: {
       anchor_station: {},
       landfall: {},

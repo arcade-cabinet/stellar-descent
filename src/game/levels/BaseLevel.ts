@@ -40,7 +40,10 @@ import {
   type WeatherSystem,
   type WeatherType,
 } from '../effects/WeatherSystem';
+import { getLogger } from '../core/Logger';
 import type { ILevel, LevelCallbacks, LevelConfig, LevelId, LevelState, LevelType } from './types';
+
+const log = getLogger('BaseLevel');
 
 // Shader imports for StandardMaterial
 import '@babylonjs/core/Shaders/default.vertex';
@@ -217,9 +220,9 @@ export abstract class BaseLevel implements ILevel {
   // ============================================================================
 
   async initialize(): Promise<void> {
-    console.log(`[BaseLevel] initialize() called for ${this.id}`);
+    log.info(`initialize() called for ${this.id}`);
     if (this.isInitialized) {
-      console.warn(`Level ${this.id} already initialized`);
+      log.warn(`Level ${this.id} already initialized`);
       return;
     }
 
@@ -239,9 +242,9 @@ export abstract class BaseLevel implements ILevel {
     this.initializeAtmosphericEffects();
 
     // Create level-specific environment
-    console.log(`[BaseLevel] Calling createEnvironment() for ${this.id}`);
+    log.info(`Calling createEnvironment() for ${this.id}`);
     await this.createEnvironment();
-    console.log(`[BaseLevel] createEnvironment() completed for ${this.id}`);
+    log.info(`createEnvironment() completed for ${this.id}`);
 
     // Attach event listeners
     this.attachEventListeners();
@@ -260,7 +263,7 @@ export abstract class BaseLevel implements ILevel {
     this.state.visited = true;
     this.isInitialized = true;
 
-    console.log(`Level ${this.id} initialized`);
+    log.info(`Level ${this.id} initialized`);
   }
 
   update(deltaTime: number): void {
@@ -332,7 +335,7 @@ export abstract class BaseLevel implements ILevel {
     this.scene.dispose();
 
     this.isInitialized = false;
-    console.log(`Level ${this.id} disposed`);
+    log.info(`Level ${this.id} disposed`);
   }
 
   getScene(): Scene {
@@ -773,7 +776,7 @@ export abstract class BaseLevel implements ILevel {
   protected initializePostProcessing(): void {
     this.postProcess = new PostProcessManager(this.scene, this.camera);
     this.postProcess.setLevelType(this.type);
-    console.log(`[BaseLevel] Post-processing initialized for ${this.id} (${this.type})`);
+    log.info(`Post-processing initialized for ${this.id} (${this.type})`);
   }
 
   /**
@@ -783,7 +786,7 @@ export abstract class BaseLevel implements ILevel {
   protected initializeWeatherSystem(): void {
     const weatherConfig = this.config.weather;
     if (!weatherConfig) {
-      console.log(`[BaseLevel] No weather config for ${this.id}, skipping weather initialization`);
+      log.info(`No weather config for ${this.id}, skipping weather initialization`);
       return;
     }
 
@@ -799,11 +802,11 @@ export abstract class BaseLevel implements ILevel {
         this.weatherSystem.setQualityLevel(weatherConfig.qualityLevel);
       }
 
-      console.log(
-        `[BaseLevel] Weather initialized for ${this.id}: ${weatherConfig.environment} / ${weatherConfig.initialWeather} (${weatherConfig.initialIntensity})`
+      log.info(
+        `Weather initialized for ${this.id}: ${weatherConfig.environment} / ${weatherConfig.initialWeather} (${weatherConfig.initialIntensity})`
       );
     } catch (error) {
-      console.warn(`[BaseLevel] Failed to initialize weather system:`, error);
+      log.warn(`Failed to initialize weather system:`, error);
     }
   }
 
@@ -814,9 +817,9 @@ export abstract class BaseLevel implements ILevel {
   protected initializeAtmosphericEffects(): void {
     try {
       this.atmosphericEffects = getAtmosphericEffects(this.scene, this.camera);
-      console.log(`[BaseLevel] Atmospheric effects initialized for ${this.id}`);
+      log.info(`Atmospheric effects initialized for ${this.id}`);
     } catch (error) {
-      console.warn(`[BaseLevel] Failed to initialize atmospheric effects:`, error);
+      log.warn(`Failed to initialize atmospheric effects:`, error);
     }
   }
 

@@ -26,6 +26,10 @@ import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 
 import '@babylonjs/loaders/glTF';
 
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('CollectiblePlacer');
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -166,7 +170,7 @@ export async function buildCollectibles(
       templateRoots.set(type, templateRoot);
       templateMeshes.set(type, result.meshes);
     } catch (err) {
-      console.warn(`[CollectiblePlacer] Failed to load ${type} from ${path}:`, err);
+      log.warn(`Failed to load ${type} from ${path}:`, err);
     }
   });
 
@@ -185,8 +189,8 @@ export async function buildCollectibles(
     const template = templateRoots.get(placement.type);
 
     if (!template) {
-      console.warn(
-        `[CollectiblePlacer] No template for type "${placement.type}", skipping placement "${placement.id}"`
+      log.warn(
+        `No template for type "${placement.type}", skipping placement "${placement.id}"`
       );
       continue;
     }
@@ -195,7 +199,7 @@ export async function buildCollectibles(
     const cloneName = `collectible_${placement.id}`;
     const clone = template.clone(cloneName, parent);
     if (!clone) {
-      console.warn(`[CollectiblePlacer] Clone failed for "${placement.id}"`);
+      log.warn(`Clone failed for "${placement.id}"`);
       continue;
     }
 
@@ -235,8 +239,8 @@ export async function buildCollectibles(
     });
   }
 
-  console.log(
-    `[CollectiblePlacer] Placed ${placedCollectibles.length}/${placements.length} collectibles`
+  log.info(
+    `Placed ${placedCollectibles.length}/${placements.length} collectibles`
   );
 
   // ------------------------------------------------------------------
@@ -296,11 +300,11 @@ export async function buildCollectibles(
         item.rootNode.setEnabled(false);
         item.glowLight.setEnabled(false);
         item.glowLight.dispose();
-        console.log(`[CollectiblePlacer] Collected: ${id}`);
+        log.info(`Collected: ${id}`);
         return;
       }
     }
-    console.warn(`[CollectiblePlacer] collect() - id not found or already collected: ${id}`);
+    log.warn(`collect() - id not found or already collected: ${id}`);
   }
 
   function getRemaining(): CollectiblePlacement[] {
@@ -325,7 +329,7 @@ export async function buildCollectibles(
     }
     placedCollectibles.length = 0;
     animStates.length = 0;
-    console.log('[CollectiblePlacer] Disposed');
+    log.info('Disposed');
   }
 
   return {

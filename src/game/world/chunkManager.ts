@@ -19,9 +19,12 @@ import type { Scene } from '@babylonjs/core/scene';
 import { getEnemySoundManager } from '../core/EnemySoundManager';
 import { type Entity, removeEntity } from '../core/ecs';
 import { LODManager } from '../core/LODManager';
+import { getLogger } from '../core/Logger';
 import { getPerformanceManager } from '../core/PerformanceManager';
 import { AssetManager } from '../core/AssetManager';
 import { ALIEN_SPECIES, createAlienEntity } from '../entities/aliens';
+
+const log = getLogger('WorldChunkManager');
 
 export const CHUNK_SIZE = 100;
 
@@ -340,14 +343,14 @@ export class ChunkManager {
     const paths = getAllChunkGLBPaths();
     const loadPromises = paths.map((path) =>
       AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
-        console.warn(`[WorldChunkManager] Failed to preload GLB ${path}:`, err);
+        log.warn(`Failed to preload GLB ${path}:`, err);
         return null;
       })
     );
 
     await Promise.all(loadPromises);
     this.glbAssetsPreloaded = true;
-    console.log(`[WorldChunkManager] Preloaded ${paths.length} chunk GLB assets`);
+    log.info(`Preloaded ${paths.length} chunk GLB assets`);
   }
 
   // -----------------------------------------------------------------------
@@ -570,7 +573,7 @@ export class ChunkManager {
 
       this.loadedChunks.set(key, { entities, glbNodes, lodIds });
     } catch (error) {
-      console.error(`[WorldChunkManager] Failed to load chunk ${key}:`, error);
+      log.error(`Failed to load chunk ${key}:`, error);
     } finally {
       this.loadingChunks.delete(key);
     }

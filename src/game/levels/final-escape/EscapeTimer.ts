@@ -20,6 +20,9 @@
 
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../../core/AudioManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('EscapeTimer');
 
 // ============================================================================
 // TYPES
@@ -213,8 +216,8 @@ export class EscapeTimer {
     const maxTime = this.config.totalTime + this.config.checkpointBonus * 4;
     this.remaining = Math.min(this.remaining, maxTime);
 
-    console.log(
-      `[EscapeTimer] Checkpoint "${sectionName}" reached: +${bonus}s (${this.formatTime(this.remaining)} remaining)`
+    log.info(
+      `Checkpoint "${sectionName}" reached: +${bonus}s (${this.formatTime(this.remaining)} remaining)`
     );
 
     // Play checkpoint sound
@@ -232,8 +235,8 @@ export class EscapeTimer {
     this.deaths++;
     this.remaining -= this.config.deathPenalty;
 
-    console.log(
-      `[EscapeTimer] Death penalty: -${this.config.deathPenalty}s (${this.formatTime(this.remaining)} remaining)`
+    log.info(
+      `Death penalty: -${this.config.deathPenalty}s (${this.formatTime(this.remaining)} remaining)`
     );
 
     // Do not expire from death penalty alone - minimum 5 seconds
@@ -421,7 +424,7 @@ export class EscapeTimer {
    * Triggers audio cues and visual transitions.
    */
   private handleUrgencyTransition(newUrgency: TimerUrgency): void {
-    console.log(`[EscapeTimer] Urgency transition: ${this.previousUrgency} -> ${newUrgency}`);
+    log.info(`Urgency transition: ${this.previousUrgency} -> ${newUrgency}`);
 
     this.onUrgencyChange?.(newUrgency);
 

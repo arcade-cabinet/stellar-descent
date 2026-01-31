@@ -27,6 +27,10 @@ import type { Scene } from '@babylonjs/core/scene';
 // Required for animation
 import '@babylonjs/core/Animations/animatable';
 
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('DamageFeedback');
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -142,7 +146,7 @@ export class DamageFeedbackManager {
     // Pre-create damage number pool
     this.initDamageNumberPool();
 
-    console.log('[DamageFeedback] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -657,7 +661,7 @@ export class DamageFeedbackManager {
 
     DamageFeedbackManager.instance = null;
 
-    console.log('[DamageFeedback] Disposed');
+    log.info('Disposed');
   }
 }
 

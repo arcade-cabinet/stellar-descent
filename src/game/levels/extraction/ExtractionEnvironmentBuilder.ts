@@ -26,7 +26,10 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
+
+const log = getLogger('ExtractionEnvironmentBuilder');
 
 // ============================================================================
 // TYPES
@@ -1093,14 +1096,14 @@ export async function buildExtractionEnvironment(
         await AssetManager.loadAssetByPath(assetPath, scene);
       }
     } catch (err) {
-      console.warn(`[ExtractionEnv] Failed to load: ${assetPath}`, err);
+      log.warn(`Failed to load: ${assetPath}`, err);
     }
   });
 
   await Promise.all(loadPromises);
 
-  console.log(
-    `[ExtractionEnv] Loaded ${uniquePaths.size} unique assets, ` +
+  log.info(
+    `Loaded ${uniquePaths.size} unique assets, ` +
       `placing ${allPlacements.length} instances`
   );
 
@@ -1153,8 +1156,8 @@ export async function buildExtractionEnvironment(
     placed++;
   }
 
-  console.log(
-    `[ExtractionEnv] Placed ${placed} GLB instances, skipped ${skipped}`
+  log.info(
+    `Placed ${placed} GLB instances, skipped ${skipped}`
   );
 
   // ------------------------------------------------------------------

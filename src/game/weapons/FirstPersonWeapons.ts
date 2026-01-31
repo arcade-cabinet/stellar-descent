@@ -26,6 +26,7 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
+import { getLogger } from '../core/Logger';
 import { getWeaponActions } from '../context/useWeaponActions';
 import { MuzzleFlashManager } from '../effects/MuzzleFlash';
 import { WeaponEffects, type WeaponType } from '../effects/WeaponEffects';
@@ -36,6 +37,8 @@ import {
   type WeaponId,
 } from '../entities/weapons';
 import { WeaponAnimationController, type WeaponMovementInput } from './WeaponAnimations';
+
+const log = getLogger('FirstPersonWeapons');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -327,10 +330,7 @@ export class FirstPersonWeaponSystem {
     };
 
     this.initialized = true;
-    console.log(
-      '[FirstPersonWeapons] Initialized with weapons:',
-      [...this.inventory.owned].join(', ')
-    );
+    log.info('Initialized with weapons:', [...this.inventory.owned].join(', '));
   }
 
   // -- GLB Loading ------------------------------------------------------------
@@ -369,16 +369,14 @@ export class FirstPersonWeaponSystem {
     const weaponDef = WEAPONS[weaponId];
     const viewTransform = resolveViewTransform(weaponId);
 
-    console.log(`[FirstPersonWeapons] Loading GLB: ${glbPath}`);
+    log.info(`Loading GLB: ${glbPath}`);
     const startTime = performance.now();
 
     try {
       const result = await SceneLoader.ImportMeshAsync('', glbPath, '', this.scene);
 
       const elapsed = (performance.now() - startTime).toFixed(1);
-      console.log(
-        `[FirstPersonWeapons] Loaded ${weaponId} (${result.meshes.length} meshes) in ${elapsed}ms`
-      );
+      log.info(`Loaded ${weaponId} (${result.meshes.length} meshes) in ${elapsed}ms`);
 
       // Create a root transform for this weapon
       const root = new TransformNode(`fp_${weaponId}`, this.scene);
@@ -430,7 +428,7 @@ export class FirstPersonWeaponSystem {
       this.weapons.set(weaponId, loaded);
       return loaded;
     } catch (error) {
-      console.error(`[FirstPersonWeapons] Failed to load ${weaponId} from ${glbPath}:`, error);
+      log.error(`Failed to load ${weaponId} from ${glbPath}:`, error);
       return null;
     }
   }
@@ -454,7 +452,7 @@ export class FirstPersonWeaponSystem {
    */
   async grantWeapon(weaponId: WeaponId): Promise<boolean> {
     if (this.inventory.owned.has(weaponId)) {
-      console.log(`[FirstPersonWeapons] Already own ${weaponId}`);
+      log.info(`Already own ${weaponId}`);
       return false;
     }
 
@@ -475,7 +473,7 @@ export class FirstPersonWeaponSystem {
     // Load the GLB in the background
     await this.loadWeaponGLB(weaponId);
 
-    console.log(`[FirstPersonWeapons] Granted weapon: ${weaponDef.name} (tier ${weaponDef.tier})`);
+    log.info(`Granted weapon: ${weaponDef.name} (tier ${weaponDef.tier})`);
     return true;
   }
 
@@ -525,7 +523,7 @@ export class FirstPersonWeaponSystem {
 
     // Only equip weapons we own (or that are loaded)
     if (!this.inventory.owned.has(weaponId) && !this.weapons.has(weaponId)) {
-      console.warn(`[FirstPersonWeapons] Cannot equip ${weaponId} -- not owned or loaded`);
+      log.warn(`Cannot equip ${weaponId} -- not owned or loaded`);
       return;
     }
 
@@ -748,7 +746,7 @@ export class FirstPersonWeaponSystem {
     this.initialized = false;
 
     FirstPersonWeaponSystem.instance = null;
-    console.log('[FirstPersonWeapons] Disposed');
+    log.info('Disposed');
   }
 }
 

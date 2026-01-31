@@ -27,7 +27,10 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../../core/Logger';
 import { particleManager } from '../../effects/ParticleManager';
+
+const log = getLogger('CollapsingTerrain');
 
 // ============================================================================
 // TYPES
@@ -194,8 +197,8 @@ export class CollapsingTerrain {
     // Initialize particle manager if needed
     particleManager.init(this.scene);
 
-    console.log(
-      `[CollapsingTerrain] Initialized: ${this.config.segmentCount} segments, ` +
+    log.info(
+      `Initialized: ${this.config.segmentCount} segments, ` +
         `${this.config.terrainLength}m long, ${this.config.terrainWidth}m wide`
     );
   }
@@ -1051,6 +1054,6 @@ export class CollapsingTerrain {
     }
     this.groundCracks = [];
 
-    console.log('[CollapsingTerrain] Disposed all resources');
+    log.info('Disposed all resources');
   }
 }

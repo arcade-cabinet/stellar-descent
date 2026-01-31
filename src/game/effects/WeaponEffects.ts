@@ -17,7 +17,10 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TrailMesh } from '@babylonjs/core/Meshes/trailMesh';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import { particleManager } from './ParticleManager';
+
+const log = getLogger('WeaponEffects');
 
 // Import TrailMesh
 import '@babylonjs/core/Meshes/trailMesh';
@@ -134,7 +137,7 @@ export class WeaponEffects {
    */
   init(scene: Scene): void {
     this.scene = scene;
-    console.log('[WeaponEffects] Initialized');
+    log.info('Initialized');
   }
 
   // ============================================================================
@@ -706,7 +709,7 @@ export class WeaponEffects {
     this.disposeAllTrails();
     this.scene = null;
     WeaponEffects.instance = null;
-    console.log('[WeaponEffects] Disposed');
+    log.info('Disposed');
   }
 
   /**

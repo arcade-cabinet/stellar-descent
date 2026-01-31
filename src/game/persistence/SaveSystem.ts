@@ -15,6 +15,7 @@ import {
   migrateDifficulty,
   saveDifficultySetting,
 } from '../core/DifficultySettings';
+import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
 import type { LevelId } from '../levels/types';
 import {
@@ -24,6 +25,8 @@ import {
   type GameSaveMetadata,
   SAVE_FORMAT_VERSION,
 } from './GameSave';
+
+const log = getLogger('SaveSystem');
 
 /**
  * Events emitted by the SaveSystem
@@ -89,7 +92,7 @@ class SaveSystem {
   private async doInitialize(): Promise<void> {
     await worldDb.init();
     this.initialized = true;
-    console.log('[SaveSystem] Initialized successfully');
+    log.info('Initialized successfully');
   }
 
   /**
@@ -105,7 +108,7 @@ class SaveSystem {
       try {
         listener(event);
       } catch (e) {
-        console.error('SaveSystem listener error:', e);
+        log.error('Listener error:', e);
       }
     }
   }
@@ -128,16 +131,18 @@ class SaveSystem {
   /**
    * Create a new game (clears any existing save)
    * @param difficulty - The difficulty level for the new game (defaults to current setting)
+   * @param startLevel - The starting level (defaults to 'anchor_station')
    */
-  async newGame(difficulty?: DifficultyLevel): Promise<GameSave> {
+  async newGame(difficulty?: DifficultyLevel, startLevel?: LevelId): Promise<GameSave> {
     // Reset the world database
     await worldDb.resetDatabase();
 
     // Use provided difficulty or load from settings
     const gameDifficulty = difficulty ?? loadDifficultySetting();
+    const startingLevel = startLevel ?? 'anchor_station';
 
-    // Create a new save with the specified difficulty
-    const save = createNewSave(PRIMARY_SAVE_ID, gameDifficulty);
+    // Create a new save with the specified difficulty and start level
+    const save = createNewSave(PRIMARY_SAVE_ID, gameDifficulty, startingLevel);
     this.currentSave = save;
     this.sessionStartTime = Date.now();
 
@@ -151,7 +156,7 @@ class SaveSystem {
     await this.persistSave(save);
 
     this.emit({ type: 'save_created', save: extractSaveMetadata(save) });
-    console.log(`[SaveSystem] New game created with difficulty: ${gameDifficulty}`);
+    log.info(`New game created with difficulty: ${gameDifficulty}`);
 
     return save;
   }
@@ -162,7 +167,7 @@ class SaveSystem {
   async loadGame(): Promise<GameSave | null> {
     const saveData = await worldDb.getChunkData(`save_${PRIMARY_SAVE_ID}`);
     if (!saveData) {
-      console.log('[SaveSystem] No save found');
+      log.info('No save found');
       return null;
     }
 
@@ -170,7 +175,7 @@ class SaveSystem {
 
     // Version migration if needed
     if (save.version !== SAVE_FORMAT_VERSION) {
-      console.log(`[SaveSystem] Migrating save from v${save.version} to v${SAVE_FORMAT_VERSION}`);
+      log.info(`Migrating save from v${save.version} to v${SAVE_FORMAT_VERSION}`);
       this.migrateSave(save);
     }
 
@@ -183,7 +188,7 @@ class SaveSystem {
     }
 
     this.emit({ type: 'save_loaded', save });
-    console.log(`[SaveSystem] Game loaded: ${save.name} (difficulty: ${save.difficulty})`);
+    log.info(`Game loaded: ${save.name} (difficulty: ${save.difficulty})`);
 
     return save;
   }
@@ -201,19 +206,36 @@ class SaveSystem {
         // Default to normal for old saves
         save.difficulty = 'normal';
       }
-      console.log(`[SaveSystem] Migrated save to v2, difficulty: ${save.difficulty}`);
+      log.info(`Migrated save to v2, difficulty: ${save.difficulty}`);
     }
 
     // v2 -> v3: Add seenIntroBriefing field
     if (save.version < 3) {
       save.seenIntroBriefing = save.seenIntroBriefing ?? false;
-      console.log('[SaveSystem] Migrated save to v3, added seenIntroBriefing');
+      log.info('Migrated save to v3, added seenIntroBriefing');
     }
 
     // v3 -> v4: Add levelBestTimes field
     if (save.version < 4) {
       save.levelBestTimes = save.levelBestTimes ?? {};
-      console.log('[SaveSystem] Migrated save to v4, added levelBestTimes');
+      log.info('Migrated save to v4, added levelBestTimes');
+    }
+
+    // v4 -> v5: Add quest chain state
+    if (save.version < 5) {
+      save.completedQuests = save.completedQuests ?? [];
+      save.activeQuests = save.activeQuests ?? {};
+      save.failedQuests = save.failedQuests ?? [];
+
+      // Migrate old objectives to completedQuests
+      if (save.objectives) {
+        for (const [questId, completed] of Object.entries(save.objectives)) {
+          if (completed && !save.completedQuests.includes(questId)) {
+            save.completedQuests.push(questId);
+          }
+        }
+      }
+      log.info('Migrated save to v5, added quest chain state');
     }
 
     // Update version
@@ -225,7 +247,7 @@ class SaveSystem {
    */
   save(): void {
     if (!this.currentSave) {
-      console.warn('[SaveSystem] No active save to save');
+      log.warn('No active save to save');
       return;
     }
 
@@ -238,7 +260,7 @@ class SaveSystem {
     this.currentSave.timestamp = Date.now();
 
     this.persistSave(this.currentSave);
-    console.log('[SaveSystem] Game saved');
+    log.info('Game saved');
   }
 
   /**
@@ -251,7 +273,7 @@ class SaveSystem {
 
     this.save();
     this.emit({ type: 'auto_saved', save: extractSaveMetadata(this.currentSave) });
-    console.log('[SaveSystem] Auto-saved');
+    log.info('Auto-saved');
   }
 
   /**
@@ -348,14 +370,86 @@ class SaveSystem {
   }
 
   /**
-   * Update tutorial progress
+   * @deprecated Use quest chain system instead
+   * Update tutorial progress - kept for backwards compatibility
    */
-  setTutorialProgress(step: number, completed?: boolean): void {
+  setTutorialProgress(_step: number, completed?: boolean): void {
     if (!this.currentSave) return;
-    this.currentSave.tutorialStep = step;
     if (completed !== undefined) {
       this.currentSave.tutorialCompleted = completed;
     }
+  }
+
+  // ============================================================================
+  // QUEST CHAIN METHODS
+  // ============================================================================
+
+  /**
+   * Get completed quests
+   */
+  getCompletedQuests(): string[] {
+    return this.currentSave?.completedQuests ?? [];
+  }
+
+  /**
+   * Get active quest states
+   */
+  getActiveQuests(): Record<string, any> {
+    return this.currentSave?.activeQuests ?? {};
+  }
+
+  /**
+   * Get failed quests
+   */
+  getFailedQuests(): string[] {
+    return this.currentSave?.failedQuests ?? [];
+  }
+
+  /**
+   * Complete a quest
+   */
+  completeQuest(questId: string): void {
+    if (!this.currentSave) return;
+    if (!this.currentSave.completedQuests.includes(questId)) {
+      this.currentSave.completedQuests.push(questId);
+    }
+    // Remove from active if present
+    delete this.currentSave.activeQuests[questId];
+  }
+
+  /**
+   * Set active quest state
+   */
+  setActiveQuestState(questId: string, state: any): void {
+    if (!this.currentSave) return;
+    this.currentSave.activeQuests[questId] = state;
+  }
+
+  /**
+   * Remove active quest state
+   */
+  removeActiveQuest(questId: string): void {
+    if (!this.currentSave) return;
+    delete this.currentSave.activeQuests[questId];
+  }
+
+  /**
+   * Fail a quest
+   */
+  failQuest(questId: string): void {
+    if (!this.currentSave) return;
+    if (!this.currentSave.failedQuests.includes(questId)) {
+      this.currentSave.failedQuests.push(questId);
+    }
+    // Remove from active if present
+    delete this.currentSave.activeQuests[questId];
+  }
+
+  /**
+   * Check if a quest is completed
+   */
+  isQuestCompleted(questId: string): boolean {
+    return this.currentSave?.completedQuests?.includes(questId) ?? false;
   }
 
   /**
@@ -390,7 +484,7 @@ class SaveSystem {
     if (!this.currentSave) return;
     this.currentSave.difficulty = difficulty;
     saveDifficultySetting(difficulty);
-    console.log(`[SaveSystem] Difficulty changed to: ${difficulty}`);
+    log.info(`Difficulty changed to: ${difficulty}`);
   }
 
   /**
@@ -433,7 +527,7 @@ class SaveSystem {
     const currentBest = this.currentSave.levelBestTimes[levelId];
     if (currentBest === undefined || timeSeconds < currentBest) {
       this.currentSave.levelBestTimes[levelId] = timeSeconds;
-      console.log(`[SaveSystem] New best time for ${levelId}: ${timeSeconds.toFixed(2)}s`);
+      log.info(`New best time for ${levelId}: ${timeSeconds.toFixed(2)}s`);
       return true;
     }
     return false;
@@ -472,9 +566,9 @@ class SaveSystem {
       await worldDb.deleteChunkData(`save_${PRIMARY_SAVE_ID}`);
       this.currentSave = null;
       this.emit({ type: 'save_deleted', saveId: PRIMARY_SAVE_ID });
-      console.log('[SaveSystem] Save deleted');
+      log.info('Save deleted');
     } catch (error) {
-      console.error('[SaveSystem] Failed to delete save:', error);
+      log.error('Failed to delete save:', error);
       this.emit({ type: 'error', message: 'Failed to delete save' });
     }
   }
@@ -538,11 +632,11 @@ class SaveSystem {
       this.persistSave(save);
 
       this.emit({ type: 'save_loaded', save });
-      console.log('[SaveSystem] Save imported');
+      log.info('Save imported');
 
       return true;
     } catch (error) {
-      console.error('[SaveSystem] Failed to import save:', error);
+      log.error('Failed to import save:', error);
       this.emit({ type: 'error', message: 'Failed to import save' });
       return false;
     }
@@ -560,7 +654,7 @@ class SaveSystem {
 
       const data = await worldDb.exportDatabaseAsync();
       if (!data) {
-        console.error('[SaveSystem] No database data to export');
+        log.error('No database data to export');
         this.emit({ type: 'error', message: 'No save data to export' });
         return;
       }
@@ -578,9 +672,9 @@ class SaveSystem {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      console.log('[SaveSystem] Database exported successfully');
+      log.info('Database exported successfully');
     } catch (error) {
-      console.error('[SaveSystem] Failed to export database:', error);
+      log.error('Failed to export database:', error);
       this.emit({ type: 'error', message: 'Failed to export save' });
     }
   }
@@ -594,7 +688,7 @@ class SaveSystem {
       // Validate file size (50MB limit)
       const MAX_FILE_SIZE = 50 * 1024 * 1024;
       if (file.size > MAX_FILE_SIZE) {
-        console.error('[SaveSystem] Save file too large. Maximum size is 50MB.');
+        log.error('Save file too large. Maximum size is 50MB.');
         this.emit({ type: 'error', message: 'Save file too large (max 50MB)' });
         return false;
       }
@@ -607,14 +701,14 @@ class SaveSystem {
       // Reload the save after import
       const save = await this.loadGame();
       if (save) {
-        console.log('[SaveSystem] Database imported successfully');
+        log.info('Database imported successfully');
         return true;
       }
 
-      console.log('[SaveSystem] Database imported but no save found');
+      log.info('Database imported but no save found');
       return true;
     } catch (error) {
-      console.error('[SaveSystem] Failed to import database:', error);
+      log.error('Failed to import database:', error);
       this.emit({ type: 'error', message: `Failed to import save: ${error instanceof Error ? error.message : String(error)}` });
       return false;
     }
@@ -626,7 +720,7 @@ class SaveSystem {
       // Trigger persistence to IndexedDB for PWA offline support
       worldDb.persistToIndexedDB();
     } catch (error) {
-      console.error('[SaveSystem] Failed to persist save:', error);
+      log.error('Failed to persist save:', error);
       this.emit({ type: 'error', message: 'Failed to save game' });
     }
   }
