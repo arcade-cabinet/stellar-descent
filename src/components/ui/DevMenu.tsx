@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAchievementManager } from '../../game/achievements';
 import { useCampaign } from '../../game/campaign/useCampaign';
+import { BUILD_FLAGS } from '../../game/core/BuildConfig';
 import { devMode } from '../../game/core/DevMode';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 
@@ -218,9 +219,13 @@ const S = {
 /**
  * DevMenu - Developer tools overlay for Stellar Descent
  *
- * Only renders when VITE_DEV_MENU=true. Toggle with backtick key.
+ * Only renders when BUILD_FLAGS.DEV_MENU is true. Toggle with backtick key.
  * Provides level jumping, god mode, noclip, collider display,
  * phase inspection, and skip-phase controls.
+ *
+ * @deprecated Consider using BUILD_FLAGS from BuildConfig.ts for build-time
+ * feature flags instead of runtime dev menu toggles. This component may be
+ * simplified or removed in a future version.
  */
 export function DevMenu() {
   const [visible, setVisible] = useState(false);
@@ -233,8 +238,8 @@ export function DevMenu() {
   const [showEntityCount, setShowEntityCount] = useState(devMode.showEntityCount);
   const [showFPS, setShowFPS] = useState(devMode.showFPS);
 
-  // Gate: only active when env var is set
-  const enabled = import.meta.env.VITE_DEV_MENU === 'true';
+  // Gate: only active when build flag is set
+  const enabled = BUILD_FLAGS.DEV_MENU;
 
   // Toggle visibility with backtick key
   useEffect(() => {

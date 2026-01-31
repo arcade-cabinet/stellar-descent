@@ -1,15 +1,10 @@
+import { Capacitor } from '@capacitor/core';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/context/GameContext';
-import {
-  getKeyDisplayName,
-  getPrimaryKey,
-  useKeybindings,
-} from '../../game/context/KeybindingsContext';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { type DifficultyLevel, getDifficultyDisplayName } from '../../game/core/DifficultySettings';
 import { GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, LORE } from '../../game/core/lore';
-import { worldDb } from '../../game/db/worldDatabase';
 import type { LevelId } from '../../game/levels/types';
 import {
   formatPlayTime,
@@ -17,9 +12,9 @@ import {
   getLevelDisplayName,
   saveSystem,
 } from '../../game/persistence';
-import { getScreenInfo } from '../../game/utils/responsive';
 import { AchievementsPanel } from './AchievementsPanel';
 import { DifficultySelector } from './DifficultySelector';
+import { HelpModal } from './HelpModal';
 import { InstallPrompt, useInstallAvailable } from './InstallPrompt';
 import { LevelSelect } from './LevelSelect';
 import styles from './MainMenu.module.css';
@@ -41,31 +36,24 @@ export function MainMenu({
   onSelectLevel,
   onReplayTitle,
 }: MainMenuProps) {
-  const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const [saveMetadata, setSaveMetadata] = useState<GameSaveMetadata | null>(null);
-  const [screenInfo, setScreenInfo] = useState(() => getScreenInfo());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { keybindings } = useKeybindings();
   const { difficulty } = useGame();
 
   // PWA install availability
   const { isAvailable: canInstall, isStandalone } = useInstallAvailable();
 
-  const isMobile = screenInfo.deviceType === 'mobile' || screenInfo.deviceType === 'foldable';
-
-  useEffect(() => {
-    const handleResize = () => setScreenInfo(getScreenInfo());
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Check if running on web platform (not native iOS/Android)
+  const isWebPlatform = !Capacitor.isNativePlatform();
 
   useEffect(() => {
     const checkSave = async () => {
@@ -145,15 +133,6 @@ export function MainMenu({
     }
   }, [onContinue, onStart, playClickSound]);
 
-  const handleSkipTutorial = useCallback(async () => {
-    playClickSound();
-    // Create new game but skip tutorial
-    await saveSystem.newGame();
-    saveSystem.completeTutorial();
-    saveSystem.setCurrentLevel('landfall');
-    onSkipTutorial?.();
-  }, [onSkipTutorial, playClickSound]);
-
   const handleLoadClick = useCallback(() => {
     playClickSound();
     fileInputRef.current?.click();
@@ -164,22 +143,15 @@ export function MainMenu({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Validate file size (50MB limit)
-      const MAX_FILE_SIZE = 50 * 1024 * 1024;
-      if (file.size > MAX_FILE_SIZE) {
-        console.error('Save file too large. Maximum size is 50MB.');
-        return;
-      }
-
       try {
-        const buffer = await file.arrayBuffer();
-        const data = new Uint8Array(buffer);
-        await worldDb.importDatabase(data);
-        setHasSave(true);
-        onStart();
+        // Use SaveSystem's import method which handles validation and error reporting
+        const success = await saveSystem.importDatabaseFile(file);
+        if (success) {
+          setHasSave(true);
+          onStart();
+        }
       } catch (err) {
         console.error('Failed to load save file', err);
-        // Alert user (simple fallback)
         alert(`Failed to load save file: ${err instanceof Error ? err.message : String(err)}`);
       }
 
@@ -190,53 +162,14 @@ export function MainMenu({
     [onStart]
   );
 
-  const handleExport = useCallback(() => {
-    playClickSound();
-    const data = worldDb.exportDatabase();
-    if (!data) return;
-
-    // Create a copy in a standard ArrayBuffer for Blob compatibility
-    const arrayBuffer = new ArrayBuffer(data.byteLength);
-    new Uint8Array(arrayBuffer).set(data);
-    const blob = new Blob([arrayBuffer], { type: 'application/x-sqlite3' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `stellar_descent_save_${new Date().toISOString().slice(0, 10)}.db`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [playClickSound]);
-
-  const handleShowControls = useCallback(() => {
-    playClickSound();
-    setShowControls(true);
-  }, [playClickSound]);
-
-  const handleCloseControls = useCallback(() => {
-    playClickSound();
-    setShowControls(false);
-  }, [playClickSound]);
-
   const handleShowSettings = useCallback(() => {
     playClickSound();
     setShowSettings(true);
   }, [playClickSound]);
 
-  const handleReplayTitle = useCallback(() => {
-    playClickSound();
-    onReplayTitle?.();
-  }, [playClickSound, onReplayTitle]);
-
   const handleCloseSettings = useCallback(() => {
     playClickSound();
     setShowSettings(false);
-  }, [playClickSound]);
-
-  const handleShowLevelSelect = useCallback(() => {
-    playClickSound();
-    setShowLevelSelect(true);
   }, [playClickSound]);
 
   const handleCloseLevelSelect = useCallback(() => {
@@ -271,13 +204,23 @@ export function MainMenu({
     setShowInstallPrompt(false);
   }, []);
 
+  const handleShowHelp = useCallback(() => {
+    playClickSound();
+    setShowHelp(true);
+  }, [playClickSound]);
+
+  const handleCloseHelp = useCallback(() => {
+    playClickSound();
+    setShowHelp(false);
+  }, [playClickSound]);
+
   return (
     <div className={styles.overlay}>
       <input
         type="file"
         ref={fileInputRef}
         style={{ display: 'none' }}
-        accept=".db,.sqlite"
+        accept=".db,.sqlite,.json"
         onChange={handleFileChange}
       />
 
@@ -305,79 +248,60 @@ export function MainMenu({
           <span className={styles.dividerText}>{LORE.setting.year}</span>
         </div>
 
-        {/* Buttons */}
-        <div className={styles.buttonGroup}>
-          {/* Show CONTINUE as primary if save exists */}
-          {hasSave && (
+        {/* Two-column button layout */}
+        <div className={styles.buttonColumns}>
+          {/* Left Column - Game Actions */}
+          <div className={styles.buttonColumn}>
             <MilitaryButton
               variant="primary"
+              onClick={handleNewGame}
+              icon={<>{'\u25B6'}</>}
+            >
+              NEW GAME
+            </MilitaryButton>
+
+            <MilitaryButton
               onClick={handleContinue}
-              icon={<>&#9654;</>}
+              disabled={!hasSave}
+              icon={<>{'\u25B6'}</>}
               info={
                 saveMetadata
-                  ? `Ch.${saveMetadata.currentChapter} - ${formatPlayTime(saveMetadata.playTime)} - ${getDifficultyDisplayName(saveMetadata.difficulty)}`
+                  ? `Ch.${saveMetadata.currentChapter} - ${formatPlayTime(saveMetadata.playTime)}`
                   : undefined
               }
             >
               CONTINUE
             </MilitaryButton>
-          )}
 
-          <MilitaryButton
-            variant={!hasSave ? 'primary' : 'default'}
-            onClick={handleNewGame}
-            icon={<>{hasSave ? '\u25C6' : '\u25B6'}</>}
-          >
-            NEW CAMPAIGN
-          </MilitaryButton>
-
-          <MilitaryButton onClick={handleLoadClick} icon={<>&#9650;</>}>
-            LOAD CAMPAIGN
-          </MilitaryButton>
-
-          {hasSave && (
-            <MilitaryButton onClick={handleExport} icon={<>&#9660;</>}>
-              EXPORT SAVE
+            <MilitaryButton onClick={handleLoadClick} icon={<>{'\u2191'}</>}>
+              LOAD GAME
             </MilitaryButton>
-          )}
+          </div>
 
-          {onSkipTutorial && (
-            <MilitaryButton onClick={handleSkipTutorial} icon={<>&#11015;</>}>
-              HALO DROP
+          {/* Right Column - System */}
+          <div className={styles.buttonColumn}>
+            <MilitaryButton onClick={handleShowSettings} icon={<>{'\u2699'}</>}>
+              SETTINGS
             </MilitaryButton>
-          )}
 
-          {onSelectLevel && (
-            <MilitaryButton onClick={handleShowLevelSelect} icon={<>&#9632;</>}>
-              SELECT MISSION
+            <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2605'}</>}>
+              ACHIEVEMENTS
             </MilitaryButton>
-          )}
 
-          <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2605'}</>}>
-            ACHIEVEMENTS
-          </MilitaryButton>
-
-          <MilitaryButton onClick={handleShowControls} icon={<>&#9672;</>}>
-            CONTROLS
-          </MilitaryButton>
-
-          <MilitaryButton onClick={handleShowSettings} icon={<>&#9881;</>}>
-            SETTINGS
-          </MilitaryButton>
-
-          {onReplayTitle && (
-            <MilitaryButton onClick={handleReplayTitle} icon={<>&#9654;</>}>
-              REPLAY INTRO
+            <MilitaryButton onClick={handleShowHelp} icon={<>{'\u003F'}</>}>
+              HELP
             </MilitaryButton>
-          )}
+          </div>
+        </div>
 
-          {/* Install App button - only show when PWA install is available and not already installed */}
-          {canInstall && !isStandalone && (
-            <MilitaryButton onClick={handleShowInstall} icon={<>&#8681;</>}>
+        {/* Install App button - centered below columns */}
+        {canInstall && !isStandalone && (
+          <div className={styles.installButtonWrapper}>
+            <MilitaryButton onClick={handleShowInstall} icon={<>{'\u2193'}</>}>
               INSTALL APP
             </MilitaryButton>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Footer info */}
         <div className={styles.footer}>
@@ -387,96 +311,10 @@ export function MainMenu({
         </div>
       </div>
 
-      {/* Controls Modal */}
-      {showControls && (
-        // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
-        <div
-          className={styles.modalOverlay}
-          onClick={handleCloseControls}
-          onKeyDown={(e) => e.key === 'Escape' && handleCloseControls()}
-          role="presentation"
-        >
-          <div
-            className={styles.modal}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="controls-title"
-          >
-            <div className={styles.modalHeader}>
-              <span id="controls-title">OPERATIONS MANUAL</span>
-            </div>
-
-            <div className={styles.modalContent}>
-              {isMobile ? (
-                <div className={styles.controlsGrid}>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>LEFT STICK</span>
-                    <span className={styles.controlAction}>Move</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>RIGHT STICK</span>
-                    <span className={styles.controlAction}>Aim / Look</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>FIRE</span>
-                    <span className={styles.controlAction}>Shoot</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>RUN</span>
-                    <span className={styles.controlAction}>Sprint</span>
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.controlsGrid}>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveForward))}{' '}
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveLeft))}{' '}
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveBackward))}{' '}
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveRight))} / Arrows
-                    </span>
-                    <span className={styles.controlAction}>Move</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>MOUSE</span>
-                    <span className={styles.controlAction}>Aim / Look</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>
-                      {getKeyDisplayName(getPrimaryKey(keybindings.fire))}
-                    </span>
-                    <span className={styles.controlAction}>Fire</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>
-                      {getKeyDisplayName(getPrimaryKey(keybindings.sprint))}
-                    </span>
-                    <span className={styles.controlAction}>Sprint</span>
-                  </div>
-                </div>
-              )}
-
-              <div className={styles.controlsNote}>Click on screen to lock mouse for aiming</div>
-            </div>
-
-            <button
-              type="button"
-              className={styles.modalClose}
-              onClick={handleCloseControls}
-              aria-label="Close controls modal"
-            >
-              CLOSE
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Settings Menu */}
+      {/* Settings Menu (includes Controls tab) */}
       <SettingsMenu isOpen={showSettings} onClose={handleCloseSettings} />
 
-      {/* Level Select */}
+      {/* Level Select - used for New Game mission select */}
       <LevelSelect
         isOpen={showLevelSelect}
         onClose={handleCloseLevelSelect}
@@ -593,6 +431,9 @@ export function MainMenu({
 
       {/* PWA Install Prompt */}
       <InstallPrompt triggerShow={showInstallPrompt} onClose={handleCloseInstall} />
+
+      {/* Help Modal */}
+      <HelpModal isOpen={showHelp} onClose={handleCloseHelp} />
     </div>
   );
 }

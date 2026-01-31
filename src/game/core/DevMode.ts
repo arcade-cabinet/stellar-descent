@@ -4,7 +4,11 @@
  * Shared across the game engine and React UI. The DevMenu component
  * toggles these flags; gameplay systems read them each frame.
  *
- * Only meaningful when VITE_DEV_MENU=true (see .env.development).
+ * Only meaningful when BUILD_FLAGS.DEV_MENU is true (see BuildConfig.ts).
+ *
+ * @deprecated This module provides runtime-mutable flags for the DevMenu.
+ * For build-time feature flags, use BUILD_FLAGS from BuildConfig.ts instead.
+ * This module may be removed in a future version when DevMenu is fully replaced.
  */
 
 export const devMode = {

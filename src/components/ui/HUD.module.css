@@ -611,3 +611,80 @@
     font-size: 1rem;
   }
 }
+
+/* Save Button (web platform only) */
+.saveButton {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.saveButton:hover {
+  background: rgba(74, 93, 35, 0.9);
+  border-color: #b5a642;
+}
+
+.saveButton:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.saveButtonIcon {
+  font-size: 1rem;
+  color: #e8e8e8;
+}
+
+.saveButtonText {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.saveButtonSaving {
+  border-color: #ffbf00;
+  animation: savePulse 0.5s ease-in-out;
+}
+
+@keyframes savePulse {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(255, 191, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 191, 0, 0.8);
+  }
+}
+
+/* Position save button next to kills when mission text is hidden */
+.saveButtonRight {
+  left: auto;
+  right: max(130px, calc(env(safe-area-inset-right, 20px) + 110px));
+  transform: none;
+}
+
+/* Mobile: hide save button text, show only icon */
+@media (max-width: 768px) {
+  .saveButtonText {
+    display: none;
+  }
+
+  .saveButton {
+    padding: 0.5rem;
+  }
+
+  .saveButtonRight {
+    right: max(100px, calc(env(safe-area-inset-right, 20px) + 80px));
+  }
+}

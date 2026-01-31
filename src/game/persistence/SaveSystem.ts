@@ -548,6 +548,78 @@ class SaveSystem {
     }
   }
 
+  /**
+   * Export database as a downloadable file (for web platform backup)
+   * Uses the CapacitorDatabase export which produces a JSON-based format
+   */
+  async exportDatabaseFile(): Promise<void> {
+    try {
+      // Save current state first
+      this.save();
+      await worldDb.persistNow();
+
+      const data = await worldDb.exportDatabaseAsync();
+      if (!data) {
+        console.error('[SaveSystem] No database data to export');
+        this.emit({ type: 'error', message: 'No save data to export' });
+        return;
+      }
+
+      // Create a copy in a standard ArrayBuffer for Blob compatibility
+      const arrayBuffer = new ArrayBuffer(data.byteLength);
+      new Uint8Array(arrayBuffer).set(data);
+      const blob = new Blob([arrayBuffer], { type: 'application/x-sqlite3' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stellar_descent_save_${new Date().toISOString().slice(0, 10)}.db`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log('[SaveSystem] Database exported successfully');
+    } catch (error) {
+      console.error('[SaveSystem] Failed to export database:', error);
+      this.emit({ type: 'error', message: 'Failed to export save' });
+    }
+  }
+
+  /**
+   * Import database from an uploaded file (for web platform restore)
+   * Accepts .db or .sqlite files exported from this game
+   */
+  async importDatabaseFile(file: File): Promise<boolean> {
+    try {
+      // Validate file size (50MB limit)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        console.error('[SaveSystem] Save file too large. Maximum size is 50MB.');
+        this.emit({ type: 'error', message: 'Save file too large (max 50MB)' });
+        return false;
+      }
+
+      const buffer = await file.arrayBuffer();
+      const data = new Uint8Array(buffer);
+
+      await worldDb.importDatabase(data);
+
+      // Reload the save after import
+      const save = await this.loadGame();
+      if (save) {
+        console.log('[SaveSystem] Database imported successfully');
+        return true;
+      }
+
+      console.log('[SaveSystem] Database imported but no save found');
+      return true;
+    } catch (error) {
+      console.error('[SaveSystem] Failed to import database:', error);
+      this.emit({ type: 'error', message: `Failed to import save: ${error instanceof Error ? error.message : String(error)}` });
+      return false;
+    }
+  }
+
   private async persistSave(save: GameSave): Promise<void> {
     try {
       await worldDb.setChunkData(`save_${save.id}`, JSON.stringify(save));

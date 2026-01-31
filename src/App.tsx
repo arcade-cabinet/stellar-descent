@@ -14,6 +14,7 @@ import { LandingFlow, isLandingPhase } from './components/LandingFlow';
 import { AchievementPopup } from './components/ui/AchievementPopup';
 import { CreditsSequence } from './components/ui/CreditsSequence';
 import { DevMenu } from './components/ui/DevMenu';
+import { BUILD_FLAGS } from './game/core/BuildConfig';
 import { InstallPrompt, useInstallPrompt } from './components/ui/InstallPrompt';
 import { LandscapeEnforcer } from './components/ui/LandscapeEnforcer';
 import { OfflineIndicator } from './components/ui/OfflineIndicator';
@@ -256,8 +257,8 @@ function GameUI() {
       />
       <InstallPrompt triggerShow={shouldShowInstallPrompt} onClose={resetInstallPromptTrigger} />
 
-      {/* Dev Menu - only in development */}
-      {import.meta.env.VITE_DEV_MENU === 'true' && <DevMenu />}
+      {/* Dev Menu - only when build flag is enabled */}
+      {BUILD_FLAGS.DEV_MENU && <DevMenu />}
     </div>
   );
 }

@@ -1,7 +1,9 @@
-import React from 'react';
+import { Capacitor } from '@capacitor/core';
+import React, { useCallback, useState } from 'react';
 import { useGame } from '../../game/context/GameContext';
 import { useSettings } from '../../game/context/SettingsContext';
 import { useWeaponOptional } from '../../game/context/WeaponContext';
+import { saveSystem } from '../../game/persistence';
 import { formatTimeMMSS, useMissionTime } from '../../game/timer';
 import { ActionButtons } from './ActionButtons';
 import { Compass } from './Compass';
@@ -31,6 +33,22 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
   const { colorPalette, settings } = useSettings();
   const weaponContext = useWeaponOptional();
   const missionTimeSeconds = useMissionTime();
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Check if running on web platform (not native iOS/Android)
+  const isWebPlatform = !Capacitor.isNativePlatform();
+
+  // Handle save/download for web platform
+  const handleSaveDownload = useCallback(async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveSystem.exportDatabaseFile();
+    } finally {
+      // Brief delay to show save animation
+      setTimeout(() => setIsSaving(false), 500);
+    }
+  }, [isSaving]);
 
   const healthPercent = maxHealth > 0 ? Math.max(0, Math.min(100, (health / maxHealth) * 100)) : 0;
 
@@ -239,6 +257,25 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
       {/* Dynamic action buttons */}
       {hudVisibility.actionButtons && actionGroups.length > 0 && (
         <ActionButtons groups={actionGroups} onAction={triggerAction} />
+      )}
+
+      {/* Save/Download button - web platform only */}
+      {isWebPlatform && hudVisibility.healthBar && (
+        <button
+          type="button"
+          className={`${styles.saveButton} ${hudVisibility.missionText ? '' : styles.saveButtonRight} ${isSaving ? styles.saveButtonSaving : ''}`}
+          onClick={handleSaveDownload}
+          disabled={isSaving}
+          aria-label="Download save file"
+          title="Download save to your device"
+        >
+          <span className={styles.saveButtonIcon} aria-hidden="true">
+            {isSaving ? '\u21BB' : '\u2913'}
+          </span>
+          <span className={styles.saveButtonText}>
+            {isSaving ? 'SAVING...' : 'SAVE'}
+          </span>
+        </button>
       )}
     </div>
   );

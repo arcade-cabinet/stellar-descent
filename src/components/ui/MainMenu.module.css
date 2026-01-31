@@ -27,7 +27,7 @@
 
 .container {
   position: relative;
-  width: min(90%, 420px);
+  width: min(90%, 560px);
   padding: 2.5rem 2rem;
   background: linear-gradient(180deg, rgba(20, 20, 22, 0.98) 0%, rgba(15, 15, 17, 0.98) 100%);
   border: 1px solid #4a5d23;
@@ -139,13 +139,34 @@
   letter-spacing: 0.1em;
 }
 
-/* Buttons */
+/* Two-column button layout */
+.buttonColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.buttonColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+/* Legacy single column button group (kept for backwards compat) */
 .buttonGroup {
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
   width: 100%;
   margin-bottom: 2rem;
+}
+
+/* Install button wrapper - centered below columns */
+.installButtonWrapper {
+  width: 50%;
+  margin-bottom: 1.5rem;
 }
 
 .button {
@@ -401,10 +422,24 @@
   padding: 1rem;
 }
 
-/* Mobile */
+/* Mobile - stack columns on small screens */
 @media (max-width: 480px) {
   .container {
+    width: min(95%, 420px);
     padding: 2rem 1.5rem;
+  }
+
+  .buttonColumns {
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
+
+  .buttonColumn {
+    gap: 0.5rem;
+  }
+
+  .installButtonWrapper {
+    width: 100%;
   }
 
   .insignia {

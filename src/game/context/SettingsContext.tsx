@@ -85,6 +85,10 @@ export interface GameSettings {
   usePatternIndicators: boolean;
   autoAim: boolean;
   reducedFlashing: boolean;
+
+  // Dev/Testing settings (only visible when BUILD_FLAGS.ENABLE_AI_PLAYER is set)
+  /** Enable AI-controlled player for automated testing/demos */
+  aiPlayerEnabled: boolean;
 }
 
 /**
@@ -141,6 +145,9 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   usePatternIndicators: false,
   autoAim: false,
   reducedFlashing: false,
+
+  // Dev/Testing
+  aiPlayerEnabled: false,
 };
 
 /**

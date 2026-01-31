@@ -23,6 +23,7 @@ import {
   type ShadowQuality,
   useSettings,
 } from '../../game/context/SettingsContext';
+import { BUILD_FLAGS } from '../../game/core/BuildConfig';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { DifficultySelector } from './DifficultySelector';
 import styles from './SettingsMenu.module.css';
@@ -65,6 +66,20 @@ const MISC_ACTIONS: BindableAction[] = ['interact', 'pause'];
 export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
   const { keybindings, setKeybinding, resetToDefaults } = useKeybindings();
   const { settings, updateSetting, resetCategory, colorPalette } = useSettings();
+
+  // Detect if device has fine pointer (mouse) - indicates desktop/laptop
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(pointer: fine)').matches;
+  });
+
+  // Listen for pointer capability changes (e.g., connecting a mouse to tablet)
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(pointer: fine)');
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   // Current active tab
   const [activeTab, setActiveTab] = useState<SettingsTab>('gameplay');
@@ -418,6 +433,19 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
           Difficulty affects enemy health, damage, and aggression. Changes take effect immediately.
         </p>
       </div>
+
+      {/* AI Player Section - only visible when build flag is enabled */}
+      {BUILD_FLAGS.ENABLE_AI_PLAYER && (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Developer Options</h3>
+          {renderToggleRow(
+            'AI Player',
+            settings.aiPlayerEnabled,
+            handleToggle('aiPlayerEnabled'),
+            'Enable AI-controlled player for automated testing and demos'
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -987,8 +1015,9 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
 
           {/* Tab Navigation */}
           <div className={styles.tabNav} role="tablist" aria-label="Settings categories">
-            {(['gameplay', 'audio', 'controls', 'graphics', 'accessibility'] as SettingsTab[]).map(
-              (tab) => (
+            {(['gameplay', 'audio', 'controls', 'graphics', 'accessibility'] as SettingsTab[])
+              .filter((tab) => tab !== 'controls' || isDesktop)
+              .map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -1000,8 +1029,7 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
-              )
-            )}
+              ))}
           </div>
 
           {/* Content */}

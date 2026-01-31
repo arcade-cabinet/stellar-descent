@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BUILD_FLAGS } from '../../game/core/BuildConfig';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { worldDb } from '../../game/db/worldDatabase';
 import {
@@ -40,12 +41,20 @@ export function LevelSelect({ isOpen, onClose, onSelectLevel }: LevelSelectProps
       const completed = new Set<LevelId>(completedLevels);
 
       // Calculate unlocked levels based on completion
+      // If BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS is set, all levels are unlocked
       const unlocked = new Set<LevelId>(['anchor_station']);
 
-      // Traverse the level linked list and unlock based on completion
-      for (const level of iterateLevels()) {
-        if (completed.has(level.id) && level.nextLevelId) {
-          unlocked.add(level.nextLevelId);
+      if (BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS) {
+        // Dev mode: unlock all levels
+        for (const level of iterateLevels()) {
+          unlocked.add(level.id);
+        }
+      } else {
+        // Production: unlock based on completion
+        for (const level of iterateLevels()) {
+          if (completed.has(level.id) && level.nextLevelId) {
+            unlocked.add(level.nextLevelId);
+          }
         }
       }
 
