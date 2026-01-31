@@ -22,4 +22,6 @@ export const devMode = {
   showEntityCount: false,
   /** Show framerate counter */
   showFPS: false,
+  /** Player Governor: Unlock all levels for testing (runtime toggle) */
+  allLevelsUnlocked: false,
 };

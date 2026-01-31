@@ -237,6 +237,7 @@ export function DevMenu() {
   const [showColliders, setShowColliders] = useState(devMode.showColliders);
   const [showEntityCount, setShowEntityCount] = useState(devMode.showEntityCount);
   const [showFPS, setShowFPS] = useState(devMode.showFPS);
+  const [allLevelsUnlocked, setAllLevelsUnlocked] = useState(devMode.allLevelsUnlocked);
 
   // Gate: only active when build flag is set
   const enabled = BUILD_FLAGS.DEV_MENU;
@@ -280,6 +281,11 @@ export function DevMenu() {
   const toggleFPS = useCallback(() => {
     devMode.showFPS = !devMode.showFPS;
     setShowFPS(devMode.showFPS);
+  }, []);
+
+  const toggleAllLevelsUnlocked = useCallback(() => {
+    devMode.allLevelsUnlocked = !devMode.allLevelsUnlocked;
+    setAllLevelsUnlocked(devMode.allLevelsUnlocked);
   }, []);
 
   // Level jump handler
@@ -400,6 +406,16 @@ export function DevMenu() {
             style={S.checkbox}
           />
           <span style={S.checkboxLabel}>Show FPS</span>
+        </label>
+
+        <label style={S.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={allLevelsUnlocked}
+            onChange={toggleAllLevelsUnlocked}
+            style={S.checkbox}
+          />
+          <span style={S.checkboxLabel}>Player Governor (Unlock All)</span>
         </label>
       </div>
 

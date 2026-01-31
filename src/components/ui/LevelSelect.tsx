@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BUILD_FLAGS } from '../../game/core/BuildConfig';
+import { devMode } from '../../game/core/DevMode';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { worldDb } from '../../game/db/worldDatabase';
 import {
@@ -41,11 +42,12 @@ export function LevelSelect({ isOpen, onClose, onSelectLevel }: LevelSelectProps
       const completed = new Set<LevelId>(completedLevels);
 
       // Calculate unlocked levels based on completion
-      // If BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS is set, all levels are unlocked
+      // If BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS is set OR devMode.allLevelsUnlocked (Player Governor),
+      // all levels are unlocked
       const unlocked = new Set<LevelId>(['anchor_station']);
 
-      if (BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS) {
-        // Dev mode: unlock all levels
+      if (BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS || devMode.allLevelsUnlocked) {
+        // Dev mode or Player Governor: unlock all levels
         for (const level of iterateLevels()) {
           unlocked.add(level.id);
         }
