@@ -67,11 +67,11 @@ runs:
 
     - name: Add Android platform
       shell: bash
-      run: npx cap add android || true
+      run: pnpm exec cap add android || true
 
     - name: Sync Capacitor
       shell: bash
-      run: npx cap sync android
+      run: pnpm exec cap sync android
 
     - name: Copy fastlane configs
       shell: bash

@@ -54,11 +54,11 @@ runs:
 
     - name: Add Android platform
       shell: bash
-      run: npx cap add android || true
+      run: pnpm exec cap add android || true
 
     - name: Sync Capacitor
       shell: bash
-      run: npx cap sync android
+      run: pnpm exec cap sync android
 
     - name: Cache Gradle
       uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3

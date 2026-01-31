@@ -39,7 +39,7 @@ jobs:
 
       - name: Deploy to Netlify
         run: |
-          npm install -g netlify-cli
+          pnpm add -g netlify-cli
           netlify deploy --prod --dir=dist --site=$NETLIFY_SITE_ID
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}

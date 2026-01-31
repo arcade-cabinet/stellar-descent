@@ -40,11 +40,11 @@ runs:
 
     - name: Add Electron platform
       shell: bash
-      run: npx cap add @capacitor-community/electron || true
+      run: pnpm exec cap add @capacitor-community/electron || true
 
     - name: Sync Capacitor with Electron
       shell: bash
-      run: npx cap sync @capacitor-community/electron
+      run: pnpm exec cap sync @capacitor-community/electron
 
     - name: Install Electron dependencies
       shell: bash

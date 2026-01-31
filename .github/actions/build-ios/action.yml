@@ -64,11 +64,11 @@ runs:
 
     - name: Add iOS platform
       shell: bash
-      run: npx cap add ios || true
+      run: pnpm exec cap add ios || true
 
     - name: Sync Capacitor
       shell: bash
-      run: npx cap sync ios
+      run: pnpm exec cap sync ios
 
     - name: Copy fastlane configs
       shell: bash
