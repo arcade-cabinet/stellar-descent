@@ -136,6 +136,17 @@ export {
   subscribeToCombatState,
   useCombatStore,
 } from './useCombatStore';
+// Mission store (non-persisted UI state - replaces MissionContext)
+export {
+  type CompassData,
+  getMissionStore,
+  type MissionActions,
+  type MissionState,
+  type MissionStoreState,
+  type ObjectiveMarker,
+  type ScreenSpaceObjective,
+  useMissionStore,
+} from './useMissionStore';
 // Keybindings store
 export {
   // Constants

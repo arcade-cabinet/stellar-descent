@@ -1,32 +1,41 @@
 import { type ReactNode, useEffect } from 'react';
-import { MissionProvider, useMission } from './MissionContext';
+import { useCombatStore, playChapterMusic } from '../stores/useCombatStore';
+import {
+  useMissionStore,
+  type CompassData,
+  type ObjectiveMarker,
+  type ScreenSpaceObjective,
+} from '../stores/useMissionStore';
 import { PlayerProvider, usePlayer } from './PlayerContext';
 
-import { useCombatStore, playChapterMusic } from '../stores/useCombatStore';
+// Re-export types from mission store (was MissionContext)
+export type { CompassData, ObjectiveMarker, ScreenSpaceObjective } from '../stores/useMissionStore';
+export type { MissionStoreState as MissionContextType } from '../stores/useMissionStore';
 
-export type {
-  CompassData,
-  MissionContextType,
-  ObjectiveMarker,
-  ScreenSpaceObjective,
-} from './MissionContext';
-export { useMission } from './MissionContext';
+/**
+ * Access mission store as a hook (backward-compatible alias).
+ * For new code, import useMissionStore directly.
+ */
+export function useMission() {
+  return useMissionStore();
+}
+
 // Re-export all types and constants from sub-contexts for backward compatibility
 export type { HUDVisibility, PlayerContextType } from './PlayerContext';
 export { DEFAULT_HUD_VISIBILITY, TUTORIAL_START_HUD_VISIBILITY, usePlayer } from './PlayerContext';
 
 /**
- * Facade hook that combines PlayerContext, MissionContext, and combat store
+ * Facade hook that combines PlayerContext, mission store, and combat store
  * for backward compatibility. Components that use useGame() will continue to work.
  *
  * For new code, prefer using the focused hooks:
  * - usePlayer() for health, death, difficulty, HUD, touch, tutorial
  * - useCombatStore() for kills, damage, combat state
- * - useMission() for objectives, comms, notifications, chapters
+ * - useMissionStore() for objectives, comms, notifications, chapters
  */
 export function useGame() {
   const player = usePlayer();
-  const mission = useMission();
+  const mission = useMissionStore();
   const combatStore = useCombatStore();
 
   return {
@@ -47,26 +56,24 @@ interface GameProviderProps {
 }
 
 /**
- * Composed provider that wraps PlayerProvider and MissionProvider.
- * CombatContext has been replaced by useCombatStore (Zustand).
+ * Composed provider that wraps PlayerProvider.
+ * MissionContext and CombatContext have been replaced by Zustand stores.
  * Chapter-based music is handled by MusicBridge.
  */
 export function GameProvider({ children }: GameProviderProps) {
   return (
     <PlayerProvider>
-      <MissionProvider>
-        <MusicBridge>{children}</MusicBridge>
-      </MissionProvider>
+      <MusicBridge>{children}</MusicBridge>
     </PlayerProvider>
   );
 }
 
 /**
  * Bridge that plays chapter-based music when currentChapter changes.
- * Replaces the music logic that was in CombatContext/CombatBridge.
+ * Reads from mission store (was MissionContext).
  */
 function MusicBridge({ children }: { children: ReactNode }) {
-  const { currentChapter } = useMission();
+  const currentChapter = useMissionStore((s) => s.currentChapter);
 
   useEffect(() => {
     playChapterMusic(currentChapter);

@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCombatStore } from '../stores/useCombatStore';
+import { useMissionStore } from '../stores/useMissionStore';
 import {
   DEFAULT_HUD_VISIBILITY,
   GameProvider,
@@ -60,6 +61,7 @@ describe('GameContext', () => {
     vi.useFakeTimers();
     // Reset shared Zustand store state between tests
     useCombatStore.getState().reset();
+    useMissionStore.getState().reset();
   });
 
   afterEach(() => {
