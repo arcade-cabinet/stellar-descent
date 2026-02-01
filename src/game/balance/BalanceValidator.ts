@@ -15,7 +15,6 @@ import type { DifficultyLevel } from '../core/DifficultySettings';
 import { DIFFICULTY_ORDER, DIFFICULTY_PRESETS } from '../core/DifficultySettings';
 import type { WeaponId } from '../entities/weapons';
 import {
-  AMMO_ECONOMY,
   calculateAmmoRequiredForLevel,
   calculatePlayerSurvivableHits,
   calculateSustainedDPS,
@@ -451,7 +450,7 @@ export class BalanceValidator {
    * Validate that species mix fractions sum to approximately 1.0 for each level.
    */
   private validateSpawnMixTotals(): void {
-    for (const [levelId, config] of Object.entries(LEVEL_SPAWN_CONFIG)) {
+    for (const [_levelId, config] of Object.entries(LEVEL_SPAWN_CONFIG)) {
       const total = Object.values(config.speciesMix).reduce((sum, v) => sum + v, 0);
       const isValid = Math.abs(total - 1.0) < 0.01;
 

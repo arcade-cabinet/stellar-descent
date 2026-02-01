@@ -35,7 +35,14 @@ const log = getLogger('ImpactParticles');
 /**
  * Surface types for impact effects
  */
-export type ImpactSurfaceType = 'metal' | 'concrete' | 'organic' | 'ice' | 'energy' | 'dirt' | 'default';
+export type ImpactSurfaceType =
+  | 'metal'
+  | 'concrete'
+  | 'organic'
+  | 'ice'
+  | 'energy'
+  | 'dirt'
+  | 'default';
 
 /**
  * Configuration for a single impact particle layer
@@ -679,12 +686,7 @@ export class ImpactParticles {
    *
    * @param isAlien - If true, uses green colors; if false, uses red
    */
-  emitOrganicImpact(
-    position: Vector3,
-    normal?: Vector3,
-    scale = 1,
-    isAlien = true
-  ): string | null {
+  emitOrganicImpact(position: Vector3, normal?: Vector3, scale = 1, isAlien = true): string | null {
     // For non-alien (human) targets, use red colors
     if (!isAlien) {
       // Emit blood splatter through particle manager

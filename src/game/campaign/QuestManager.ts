@@ -13,19 +13,18 @@
 import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
 import {
-  QUEST_REGISTRY,
-  getMainQuestForLevel,
-  getBranchQuestsForLevel,
   canStartQuest,
   createQuestState,
+  getBranchQuestsForLevel,
+  getMainQuestForLevel,
+  QUEST_REGISTRY,
   type QuestDefinition,
-  type QuestState,
-  type QuestStatus,
   type QuestObjective,
+  type QuestState,
 } from './QuestChain';
 
 // Re-export types for consumers like CampaignDirector
-export type { QuestState, QuestStatus, QuestObjective } from './QuestChain';
+export type { QuestObjective, QuestState, QuestStatus } from './QuestChain';
 
 const logger = getLogger('QuestManager');
 
@@ -50,7 +49,10 @@ interface QuestManagerState {
   onObjectiveUpdate?: (title: string, instructions: string) => void;
 
   /** Callback for objective marker updates */
-  onObjectiveMarker?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+  onObjectiveMarker?: (
+    position: { x: number; y: number; z: number } | null,
+    label?: string
+  ) => void;
 
   /** Callback for dialogue triggers */
   onDialogueTrigger?: (trigger: string) => void;
@@ -78,7 +80,10 @@ const state: QuestManagerState = {
  */
 export function initializeQuestManager(callbacks: {
   onObjectiveUpdate?: (title: string, instructions: string) => void;
-  onObjectiveMarker?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+  onObjectiveMarker?: (
+    position: { x: number; y: number; z: number } | null,
+    label?: string
+  ) => void;
   onDialogueTrigger?: (trigger: string) => void;
   onNotification?: (text: string, duration?: number) => void;
   onQuestStateChange?: (questId: string, state: QuestState) => void;
@@ -107,7 +112,9 @@ export function loadQuestState(
     state.activeQuests.set(questId, questState);
   }
 
-  logger.info(`Loaded quest state: ${completedQuests.length} completed, ${Object.keys(activeQuestStates).length} active`);
+  logger.info(
+    `Loaded quest state: ${completedQuests.length} completed, ${Object.keys(activeQuestStates).length} active`
+  );
 }
 
 /**
@@ -143,7 +150,9 @@ export function onLevelEnter(
   // Get and activate main quest for this level
   const mainQuest = getMainQuestForLevel(levelId);
   if (mainQuest && !state.completedQuests.has(mainQuest.id)) {
-    if (canStartQuest(mainQuest.id, Array.from(state.completedQuests), completedLevels, inventory)) {
+    if (
+      canStartQuest(mainQuest.id, Array.from(state.completedQuests), completedLevels, inventory)
+    ) {
       activateQuest(mainQuest.id);
     }
   }
@@ -452,7 +461,10 @@ export function onObjectInteract(
     if (!quest) continue;
 
     for (const objective of quest.objectives) {
-      if (objective.type === 'interact' && state.activeQuests.get(questId)?.objectiveStatus[objective.id] === 'active') {
+      if (
+        objective.type === 'interact' &&
+        state.activeQuests.get(questId)?.objectiveStatus[objective.id] === 'active'
+      ) {
         completeObjective(questId, objective.id);
       }
     }
@@ -526,9 +538,7 @@ export function onPlayerReachLocation(position: { x: number; y: number; z: numbe
       const target = currentObjective.targetPosition;
       const radius = currentObjective.targetRadius ?? 5;
       const distance = Math.sqrt(
-        Math.pow(position.x - target.x, 2) +
-        Math.pow(position.y - target.y, 2) +
-        Math.pow(position.z - target.z, 2)
+        (position.x - target.x) ** 2 + (position.y - target.y) ** 2 + (position.z - target.z) ** 2
       );
 
       if (distance <= radius) {
@@ -541,7 +551,7 @@ export function onPlayerReachLocation(position: { x: number; y: number; z: numbe
 /**
  * Handle enemy killed
  */
-export function onEnemyKilled(enemyType?: string): void {
+export function onEnemyKilled(_enemyType?: string): void {
   for (const [questId, questState] of state.activeQuests) {
     const quest = QUEST_REGISTRY[questId];
     if (!quest) continue;
@@ -682,8 +692,7 @@ export function updateTimedObjectives(deltaTimeSeconds: number): boolean {
 
     const currentObjective = quest.objectives[questState.currentObjectiveIndex];
     if (
-      currentObjective &&
-      currentObjective.timeLimit &&
+      currentObjective?.timeLimit &&
       questState.objectiveStatus[currentObjective.id] === 'active'
     ) {
       const timerKey = `${questId}_${currentObjective.id}`;
@@ -691,7 +700,9 @@ export function updateTimedObjectives(deltaTimeSeconds: number): boolean {
       // Initialize timer if not started
       if (!timedObjectiveStarts.has(timerKey)) {
         timedObjectiveStarts.set(timerKey, currentObjective.timeLimit);
-        logger.debug(`Started timer for objective ${currentObjective.id}: ${currentObjective.timeLimit}s`);
+        logger.debug(
+          `Started timer for objective ${currentObjective.id}: ${currentObjective.timeLimit}s`
+        );
       }
 
       // Decrement timer
@@ -736,7 +747,7 @@ export function getObjectiveTimeRemaining(questId: string): number | null {
 /**
  * Clear timed objective when completed or quest changes
  */
-function clearTimedObjective(questId: string, objectiveId: string): void {
+function _clearTimedObjective(questId: string, objectiveId: string): void {
   const timerKey = `${questId}_${objectiveId}`;
   timedObjectiveStarts.delete(timerKey);
 }
@@ -745,7 +756,7 @@ function clearTimedObjective(questId: string, objectiveId: string): void {
 // QUEST TRACKER DATA FOR HUD
 // ============================================================================
 
-import type { QuestTrackerData, OptionalObjectiveData } from './QuestTrackerTypes';
+import type { OptionalObjectiveData, QuestTrackerData } from './QuestTrackerTypes';
 
 /**
  * Get data for the QuestTracker HUD component
@@ -800,7 +811,10 @@ export function getQuestTrackerData(levelId: LevelId): QuestTrackerData | null {
 /**
  * Get objective progress for a specific quest/objective
  */
-export function getObjectiveProgress(questId: string, objectiveId?: string): { current: number; required: number } | null {
+export function getObjectiveProgress(
+  questId: string,
+  objectiveId?: string
+): { current: number; required: number } | null {
   const questState = state.activeQuests.get(questId);
   const quest = QUEST_REGISTRY[questId];
   if (!questState || !quest) return null;

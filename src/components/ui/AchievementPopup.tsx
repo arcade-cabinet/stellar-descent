@@ -10,11 +10,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  type Achievement,
-  getAchievementManager,
-} from '../../game/achievements/AchievementManager';
+import type { Achievement } from '../../game/achievements/types';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getEventBus } from '../../game/core/EventBus';
 import styles from './AchievementPopup.module.css';
 
 interface PopupItem {
@@ -64,10 +62,12 @@ export function AchievementPopup() {
     [nextId, dismissPopup]
   );
 
-  // Subscribe to achievement unlocks
+  // Subscribe to achievement unlocks via EventBus
   useEffect(() => {
-    const manager = getAchievementManager();
-    const unsubscribe = manager.onUnlock(addPopup);
+    const bus = getEventBus();
+    const unsubscribe = bus.on('ACHIEVEMENT_UNLOCKED', (event) => {
+      addPopup(event.achievement);
+    });
     return unsubscribe;
   }, [addPopup]);
 

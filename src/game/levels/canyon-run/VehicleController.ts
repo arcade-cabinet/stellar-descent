@@ -26,7 +26,6 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
-import { isVehicleKeyPressed } from '../../input/InputBridge';
 import type { VehicleYokeInput } from '../../weapons/VehicleYoke';
 
 // ---------------------------------------------------------------------------
@@ -704,7 +703,8 @@ export class VehicleController {
     this.state.boostCooldown = Math.max(0, this.boostCooldownRemaining);
 
     // -- Boost fuel management --
-    const canBoost = this.boostCooldownRemaining <= 0 && this.state.boostFuel > 0 && input.throttle > 0;
+    const canBoost =
+      this.boostCooldownRemaining <= 0 && this.state.boostFuel > 0 && input.throttle > 0;
     if (input.boost && canBoost) {
       this.state.isBoosting = true;
       this.state.boostFuel = Math.max(0, this.state.boostFuel - this.config.boostBurnRate * dt);
@@ -907,7 +907,10 @@ export class VehicleController {
       this.turretHeat = Math.max(0, this.turretHeat - (this.config.turretCoolRate ?? 0.15) * dt);
     } else {
       // Faster cooling when overheated
-      this.turretHeat = Math.max(0, this.turretHeat - (this.config.turretCoolRate ?? 0.15) * 2 * dt);
+      this.turretHeat = Math.max(
+        0,
+        this.turretHeat - (this.config.turretCoolRate ?? 0.15) * 2 * dt
+      );
       if (this.turretHeat <= 0) {
         this.turretOverheated = false;
       }
@@ -1329,11 +1332,7 @@ export class VehicleController {
    * Get the exit position for the player (side of vehicle).
    */
   getExitPosition(): Vector3 {
-    const right = new Vector3(
-      Math.cos(this.state.rotation),
-      0,
-      -Math.sin(this.state.rotation)
-    );
+    const right = new Vector3(Math.cos(this.state.rotation), 0, -Math.sin(this.state.rotation));
     return this.state.position.add(right.scale(3)).add(new Vector3(0, 0.5, 0));
   }
 }

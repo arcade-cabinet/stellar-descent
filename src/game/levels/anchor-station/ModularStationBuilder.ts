@@ -16,9 +16,9 @@ const log = getLogger('ModularStationBuilder');
 // ============================================================================
 
 // Corridor module size (from asset analysis)
-const MODULE_LENGTH = 4.0; // Y-axis length per corridor segment
-const MODULE_WIDTH = 5.55; // X-axis width
-const MODULE_HEIGHT = 3.09; // Z-axis height (becomes Y in Babylon)
+const _MODULE_LENGTH = 4.0; // Y-axis length per corridor segment
+const _MODULE_WIDTH = 5.55; // X-axis width
+const _MODULE_HEIGHT = 3.09; // Z-axis height (becomes Y in Babylon)
 
 // Model paths (reorganized asset structure)
 const MODELS = {

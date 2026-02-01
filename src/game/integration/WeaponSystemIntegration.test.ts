@@ -9,22 +9,21 @@
  * - WEAPON_FIRED event emission
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { createEntity, type Entity, world, queries, removeEntity } from '../core/ecs';
-import { EventBus, getEventBus, disposeEventBus } from '../core/EventBus';
-import { disposeInputManager, getInputManager } from '../input/InputManager';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { disposeEventBus, type EventBus, getEventBus } from '../core/EventBus';
+import { createEntity, type Entity, world } from '../core/ecs';
 import {
   ALL_WEAPON_IDS,
-  WEAPONS,
-  WEAPON_SLOTS,
+  categoryToEffectType,
   getWeapon,
   getWeaponBySlot,
   getWeaponSlot,
-  categoryToEffectType,
+  WEAPON_SLOTS,
+  WEAPONS,
   type WeaponId,
-  type WeaponDefinition,
 } from '../entities/weapons';
+import { disposeInputManager, getInputManager } from '../input/InputManager';
 
 // Mock Babylon.js rendering
 vi.mock('@babylonjs/core/scene', () => ({
@@ -374,7 +373,8 @@ describe('Weapon System Integration', () => {
       const rifleStats = getWeapon('assault_rifle');
       weaponState.currentAmmo = rifleStats.magazineSize;
 
-      const canReload = weaponState.currentAmmo < rifleStats.magazineSize && weaponState.reserveAmmo > 0;
+      const canReload =
+        weaponState.currentAmmo < rifleStats.magazineSize && weaponState.reserveAmmo > 0;
       expect(canReload).toBe(false);
     });
 

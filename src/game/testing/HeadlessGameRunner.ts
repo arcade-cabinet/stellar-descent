@@ -13,8 +13,8 @@
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { DifficultyLevel } from '../core/DifficultySettings';
-import type { LevelId, LevelStats, ILevel, LevelState, LevelConfig, CAMPAIGN_LEVELS } from '../levels/types';
-import { iterateLevels, CAMPAIGN_LEVELS as CampaignLevels } from '../levels/types';
+import type { LevelId, LevelStats } from '../levels/types';
+import { CAMPAIGN_LEVELS as CampaignLevels } from '../levels/types';
 
 // ============================================================================
 // TYPES
@@ -180,7 +180,6 @@ export class HeadlessGameRunner {
 
   // Simulated projectiles
   private projectiles: Map<string, ProjectileState> = new Map();
-  private nextProjectileId = 1;
 
   // Level state
   private currentLevelId: LevelId;
@@ -800,10 +799,34 @@ export class HeadlessGameRunner {
     switch (levelId) {
       case 'anchor_station':
         this.objectives = [
-          { id: 'tutorial_look', title: 'Look Around', description: 'Use mouse to look around', isCompleted: false, isOptional: false },
-          { id: 'tutorial_move', title: 'Movement', description: 'Use WASD to move', isCompleted: false, isOptional: false },
-          { id: 'tutorial_sprint', title: 'Sprint', description: 'Hold Shift to sprint', isCompleted: false, isOptional: false },
-          { id: 'tutorial_complete', title: 'Enter Drop Pod', description: 'Approach the drop pod', isCompleted: false, isOptional: false },
+          {
+            id: 'tutorial_look',
+            title: 'Look Around',
+            description: 'Use mouse to look around',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'tutorial_move',
+            title: 'Movement',
+            description: 'Use WASD to move',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'tutorial_sprint',
+            title: 'Sprint',
+            description: 'Hold Shift to sprint',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'tutorial_complete',
+            title: 'Enter Drop Pod',
+            description: 'Approach the drop pod',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
@@ -812,17 +835,53 @@ export class HeadlessGameRunner {
         this.spawnEnemy('skitterer', { x: -15, y: 0, z: 40 }, 80);
         this.spawnEnemy('spitter', { x: 0, y: 0, z: 50 }, 120);
         this.objectives = [
-          { id: 'survive_drop', title: 'Survive Drop', description: 'Complete HALO drop', isCompleted: false, isOptional: false },
-          { id: 'clear_area', title: 'Clear Landing Zone', description: 'Eliminate hostiles', isCompleted: false, isOptional: false },
-          { id: 'activate_beacon', title: 'Activate Beacon', description: 'Signal for extraction', isCompleted: false, isOptional: false },
+          {
+            id: 'survive_drop',
+            title: 'Survive Drop',
+            description: 'Complete HALO drop',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'clear_area',
+            title: 'Clear Landing Zone',
+            description: 'Eliminate hostiles',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'activate_beacon',
+            title: 'Activate Beacon',
+            description: 'Signal for extraction',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
       case 'canyon_run':
         this.objectives = [
-          { id: 'board_vehicle', title: 'Board Vehicle', description: 'Get in the Wraith', isCompleted: false, isOptional: false },
-          { id: 'escape_canyon', title: 'Escape Canyon', description: 'Drive through the canyon', isCompleted: false, isOptional: false },
-          { id: 'reach_fob', title: 'Reach FOB Delta', description: 'Arrive at destination', isCompleted: false, isOptional: false },
+          {
+            id: 'board_vehicle',
+            title: 'Board Vehicle',
+            description: 'Get in the Wraith',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'escape_canyon',
+            title: 'Escape Canyon',
+            description: 'Drive through the canyon',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'reach_fob',
+            title: 'Reach FOB Delta',
+            description: 'Arrive at destination',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
@@ -830,9 +889,27 @@ export class HeadlessGameRunner {
         this.spawnEnemy('stalker', { x: 10, y: 0, z: 20 }, 150);
         this.spawnEnemy('warrior', { x: -5, y: 0, z: 35 }, 200);
         this.objectives = [
-          { id: 'investigate_fob', title: 'Investigate FOB', description: 'Search the base', isCompleted: false, isOptional: false },
-          { id: 'find_survivors', title: 'Find Survivors', description: 'Locate Marcus', isCompleted: false, isOptional: false },
-          { id: 'restore_power', title: 'Restore Power', description: 'Activate generators', isCompleted: false, isOptional: false },
+          {
+            id: 'investigate_fob',
+            title: 'Investigate FOB',
+            description: 'Search the base',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'find_survivors',
+            title: 'Find Survivors',
+            description: 'Locate Marcus',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'restore_power',
+            title: 'Restore Power',
+            description: 'Activate generators',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
@@ -841,9 +918,27 @@ export class HeadlessGameRunner {
         this.spawnEnemy('warrior', { x: 20, y: 0, z: 60 }, 200);
         this.spawnEnemy('warrior', { x: 40, y: 0, z: 55 }, 200);
         this.objectives = [
-          { id: 'rendezvous_marcus', title: 'Find Marcus', description: 'Locate Marcus Cole', isCompleted: false, isOptional: false },
-          { id: 'escort_mech', title: 'Support Mech', description: 'Cover Marcus in his mech', isCompleted: false, isOptional: false },
-          { id: 'clear_outpost', title: 'Clear Outpost', description: 'Eliminate enemy presence', isCompleted: false, isOptional: false },
+          {
+            id: 'rendezvous_marcus',
+            title: 'Find Marcus',
+            description: 'Locate Marcus Cole',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'escort_mech',
+            title: 'Support Mech',
+            description: 'Cover Marcus in his mech',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'clear_outpost',
+            title: 'Clear Outpost',
+            description: 'Eliminate enemy presence',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
@@ -852,18 +947,54 @@ export class HeadlessGameRunner {
         this.spawnEnemy('skitterer', { x: -10, y: 0, z: 30 }, 80);
         this.spawnEnemy('spitter', { x: 5, y: 0, z: 45 }, 120);
         this.objectives = [
-          { id: 'survive_cold', title: 'Survive Cold', description: 'Find heat sources', isCompleted: false, isOptional: false },
-          { id: 'locate_entrance', title: 'Find Hive Entrance', description: 'Locate the breach', isCompleted: false, isOptional: false },
-          { id: 'defeat_icechitin', title: 'Defeat Ice Chitin', description: 'Clear the guardians', isCompleted: false, isOptional: false },
+          {
+            id: 'survive_cold',
+            title: 'Survive Cold',
+            description: 'Find heat sources',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'locate_entrance',
+            title: 'Find Hive Entrance',
+            description: 'Locate the breach',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'defeat_icechitin',
+            title: 'Defeat Ice Chitin',
+            description: 'Clear the guardians',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
       case 'the_breach':
         // Boss level - enemies spawn during fight
         this.objectives = [
-          { id: 'descend_hive', title: 'Descend into Hive', description: 'Navigate the tunnels', isCompleted: false, isOptional: false },
-          { id: 'reach_queen', title: 'Find the Queen', description: 'Locate the Queen chamber', isCompleted: false, isOptional: false },
-          { id: 'defeat_queen', title: 'Defeat the Queen', description: 'Destroy the Hive Queen', isCompleted: false, isOptional: false },
+          {
+            id: 'descend_hive',
+            title: 'Descend into Hive',
+            description: 'Navigate the tunnels',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'reach_queen',
+            title: 'Find the Queen',
+            description: 'Locate the Queen chamber',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'defeat_queen',
+            title: 'Defeat the Queen',
+            description: 'Destroy the Hive Queen',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
@@ -872,9 +1003,27 @@ export class HeadlessGameRunner {
         this.spawnEnemy('spitter', { x: 15, y: 0, z: 50 }, 120);
         this.spawnEnemy('heavy', { x: 35, y: 0, z: 60 }, 400);
         this.objectives = [
-          { id: 'assault_hive', title: 'Assault the Hive', description: 'Push into enemy territory', isCompleted: false, isOptional: false },
-          { id: 'plant_charges', title: 'Plant Explosives', description: 'Set demolition charges', isCompleted: false, isOptional: false },
-          { id: 'extract_squad', title: 'Extract Squad', description: 'Get to extraction point', isCompleted: false, isOptional: false },
+          {
+            id: 'assault_hive',
+            title: 'Assault the Hive',
+            description: 'Push into enemy territory',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'plant_charges',
+            title: 'Plant Explosives',
+            description: 'Set demolition charges',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'extract_squad',
+            title: 'Extract Squad',
+            description: 'Get to extraction point',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
@@ -882,17 +1031,53 @@ export class HeadlessGameRunner {
         this.spawnEnemy('skitterer', { x: 10, y: 0, z: 20 }, 80);
         this.spawnEnemy('skitterer', { x: -10, y: 0, z: 25 }, 80);
         this.objectives = [
-          { id: 'reach_lz', title: 'Reach LZ Omega', description: 'Get to extraction point', isCompleted: false, isOptional: false },
-          { id: 'hold_position', title: 'Hold Position', description: 'Defend until dropship arrives', isCompleted: false, isOptional: false },
-          { id: 'board_dropship', title: 'Board Dropship', description: 'Escape the planet', isCompleted: false, isOptional: false },
+          {
+            id: 'reach_lz',
+            title: 'Reach LZ Omega',
+            description: 'Get to extraction point',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'hold_position',
+            title: 'Hold Position',
+            description: 'Defend until dropship arrives',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'board_dropship',
+            title: 'Board Dropship',
+            description: 'Escape the planet',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
 
       case 'final_escape':
         this.objectives = [
-          { id: 'board_vehicle', title: 'Board Vehicle', description: 'Get in the escape vehicle', isCompleted: false, isOptional: false },
-          { id: 'outrun_collapse', title: 'Outrun Collapse', description: 'Escape the collapsing hive', isCompleted: false, isOptional: false },
-          { id: 'reach_extraction', title: 'Reach Extraction', description: 'Get to the Phantom', isCompleted: false, isOptional: false },
+          {
+            id: 'board_vehicle',
+            title: 'Board Vehicle',
+            description: 'Get in the escape vehicle',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'outrun_collapse',
+            title: 'Outrun Collapse',
+            description: 'Escape the collapsing hive',
+            isCompleted: false,
+            isOptional: false,
+          },
+          {
+            id: 'reach_extraction',
+            title: 'Reach Extraction',
+            description: 'Get to the Phantom',
+            isCompleted: false,
+            isOptional: false,
+          },
         ];
         break;
     }
@@ -1032,10 +1217,11 @@ export class HeadlessGameRunner {
     for (const enemy of enemies) {
       if (!enemy.isAlive) continue;
 
-      const distance = this.calculateDistance(
-        enemy.position,
-        { x: this.playerPosition.x, y: this.playerPosition.y, z: this.playerPosition.z }
-      );
+      const distance = this.calculateDistance(enemy.position, {
+        x: this.playerPosition.x,
+        y: this.playerPosition.y,
+        z: this.playerPosition.z,
+      });
 
       if (distance < meleeRange) {
         this.damageEnemy(enemy.id, meleeDamage);
@@ -1049,21 +1235,18 @@ export class HeadlessGameRunner {
     const grenadeDamage = 150;
     const grenadeRadius = 5;
     const grenadePos = this.playerPosition.add(
-      new Vector3(
-        Math.sin(this.playerRotation.y) * 10,
-        0,
-        Math.cos(this.playerRotation.y) * 10
-      )
+      new Vector3(Math.sin(this.playerRotation.y) * 10, 0, Math.cos(this.playerRotation.y) * 10)
     );
 
     const enemies = Array.from(this.enemies.values());
     for (const enemy of enemies) {
       if (!enemy.isAlive) continue;
 
-      const distance = this.calculateDistance(
-        enemy.position,
-        { x: grenadePos.x, y: grenadePos.y, z: grenadePos.z }
-      );
+      const distance = this.calculateDistance(enemy.position, {
+        x: grenadePos.x,
+        y: grenadePos.y,
+        z: grenadePos.z,
+      });
 
       if (distance < grenadeRadius) {
         const damage = grenadeDamage * (1 - distance / grenadeRadius);
@@ -1155,9 +1338,7 @@ export class HeadlessGameRunner {
 
       // Remove if out of range
       const distance = Math.sqrt(
-        projectile.position.x ** 2 +
-        projectile.position.y ** 2 +
-        projectile.position.z ** 2
+        projectile.position.x ** 2 + projectile.position.y ** 2 + projectile.position.z ** 2
       );
 
       if (distance > 500) {
@@ -1255,10 +1436,6 @@ export class HeadlessGameRunner {
     a: { x: number; y: number; z: number },
     b: { x: number; y: number; z: number }
   ): number {
-    return Math.sqrt(
-      (a.x - b.x) ** 2 +
-      (a.y - b.y) ** 2 +
-      (a.z - b.z) ** 2
-    );
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
   }
 }

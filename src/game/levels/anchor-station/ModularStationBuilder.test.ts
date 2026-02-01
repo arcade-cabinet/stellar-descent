@@ -174,9 +174,24 @@ describe('ModularStationBuilder - ANCHOR_STATION_LAYOUT', () => {
   describe('Engine Room Segments', () => {
     it('should define engine room northeast of briefing', () => {
       const segments = [
-        { type: 'corner', position: new Vector3(4, 0, 4), rotation: Math.PI, name: 'engine_corner' },
-        { type: 'main', position: new Vector3(8, 0, 4), rotation: Math.PI / 2, name: 'engine_hall' },
-        { type: 'wide', position: new Vector3(12, 0, 4), rotation: Math.PI / 2, name: 'engine_room' },
+        {
+          type: 'corner',
+          position: new Vector3(4, 0, 4),
+          rotation: Math.PI,
+          name: 'engine_corner',
+        },
+        {
+          type: 'main',
+          position: new Vector3(8, 0, 4),
+          rotation: Math.PI / 2,
+          name: 'engine_hall',
+        },
+        {
+          type: 'wide',
+          position: new Vector3(12, 0, 4),
+          rotation: Math.PI / 2,
+          name: 'engine_room',
+        },
       ];
 
       expect(segments[0].position.x).toBe(4);
@@ -204,7 +219,12 @@ describe('ModularStationBuilder - ANCHOR_STATION_LAYOUT', () => {
   describe('Crew Quarters Segments', () => {
     it('should define crew quarters west of first junction', () => {
       const segments = [
-        { type: 'corner', position: new Vector3(-4, 0, -8), rotation: Math.PI / 2, name: 'crew_corner' },
+        {
+          type: 'corner',
+          position: new Vector3(-4, 0, -8),
+          rotation: Math.PI / 2,
+          name: 'crew_corner',
+        },
         { type: 'main', position: new Vector3(-8, 0, -8), name: 'crew_hall' },
         { type: 'wide', position: new Vector3(-12, 0, -8), name: 'crew_quarters' },
       ];
@@ -517,9 +537,7 @@ describe('ModularStationBuilder - Position Helpers', () => {
     });
 
     it('should return null when not in any room', () => {
-      const rooms = [
-        { name: 'briefing', center: new Vector3(0, 0, 2), radius: 5 },
-      ];
+      const rooms = [{ name: 'briefing', center: new Vector3(0, 0, 2), radius: 5 }];
 
       const getCurrentRoom = (pos: Vector3) => {
         for (const room of rooms) {

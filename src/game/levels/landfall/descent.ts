@@ -3,18 +3,12 @@
  * Handles freefall, powered descent, asteroid avoidance, and landing
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-
+import { LZ_RADIUS, MAX_DRIFT, NEAR_MISS_COOLDOWN, NEAR_MISS_RADIUS } from './constants';
 import type { Asteroid, LandingOutcome } from './types';
-import {
-  LZ_RADIUS,
-  NEAR_MISS_RADIUS,
-  MAX_DRIFT,
-  NEAR_MISS_COOLDOWN,
-} from './constants';
 
 // ============================================================================
 // ASTEROID MANAGEMENT
@@ -174,8 +168,8 @@ export function determineLandingOutcome(
   }
 
   // Calculate a landing score based on multiple factors
-  const velocityScore = Math.max(0, 1 - (velocity / 40)); // 0-1, higher is better
-  const distanceScore = Math.max(0, 1 - (distToLZ / NEAR_MISS_RADIUS)); // 0-1, higher is better
+  const velocityScore = Math.max(0, 1 - velocity / 40); // 0-1, higher is better
+  const distanceScore = Math.max(0, 1 - distToLZ / NEAR_MISS_RADIUS); // 0-1, higher is better
   const combinedScore = velocityScore * 0.6 + distanceScore * 0.4;
 
   // Perfect landing: on pad, low velocity

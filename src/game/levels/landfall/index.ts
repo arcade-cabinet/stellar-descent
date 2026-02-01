@@ -6,39 +6,35 @@
  * This barrel file exports all public APIs from the landfall level.
  */
 
-// Main orchestrator class
-export { LandfallLevel } from './orchestrator';
-
-// Types
-export type {
-  DropPhase,
-  LandingOutcome,
-  Asteroid,
-  AsteroidType,
-  DistantThreat,
-  DistantThreatType,
-  DistantSpaceship,
-  DistantSpaceshipType,
-  DistantSpaceshipDefinition,
-  SurfaceEnemy,
-  EnemyState,
-  SurfaceEnemySpecies,
-  DistantThreatDefinition,
-} from './types';
-
+// Additional exports for testing and reuse
+export * from './comms';
 // Constants (for external configuration/testing)
 export * from './constants';
-
+export { calculateLandingDamage } from './descent';
+export type { LandfallEnvironmentNodes } from './LandfallEnvironment';
 // Environment components (for potential reuse)
 export {
   buildLandfallEnvironment,
-  setEnvironmentVisible,
   disposeEnvironment,
+  setEnvironmentVisible,
   updateEnvironmentLOD,
   updateOrbitalStation,
 } from './LandfallEnvironment';
-export type { LandfallEnvironmentNodes } from './LandfallEnvironment';
-
-// Additional exports for testing and reuse
-export * from './comms';
-export { calculateLandingDamage } from './descent';
+// Main orchestrator class
+export { LandfallLevel } from './orchestrator';
+// Types
+export type {
+  Asteroid,
+  AsteroidType,
+  DistantSpaceship,
+  DistantSpaceshipDefinition,
+  DistantSpaceshipType,
+  DistantThreat,
+  DistantThreatDefinition,
+  DistantThreatType,
+  DropPhase,
+  EnemyState,
+  LandingOutcome,
+  SurfaceEnemy,
+  SurfaceEnemySpecies,
+} from './types';

@@ -20,9 +20,14 @@ export type {
 export { VehicleBase } from './VehicleBase';
 // HUD
 export { VehicleHUD } from './VehicleHUD';
-export type { WraithAIState } from './WraithTank';
-// Wraith Tank
-export { WraithTank } from './WraithTank';
+export type {
+  SpawnedVehicle,
+  TransitionConfig,
+  TransitionState,
+  VehicleDamageResult,
+  VehicleSpawnConfig,
+  VehicleType,
+} from './VehicleUtils';
 // Vehicle utilities for shared functionality
 export {
   applyVehicleDamage,
@@ -37,11 +42,6 @@ export {
   spawnVehicle,
   updateVehicleDamageVisuals,
 } from './VehicleUtils';
-export type {
-  SpawnedVehicle,
-  TransitionConfig,
-  TransitionState,
-  VehicleDamageResult,
-  VehicleSpawnConfig,
-  VehicleType,
-} from './VehicleUtils';
+export type { WraithAIState } from './WraithTank';
+// Wraith Tank
+export { WraithTank } from './WraithTank';

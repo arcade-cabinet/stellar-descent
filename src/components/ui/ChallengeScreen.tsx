@@ -117,11 +117,14 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
   }, [challenges, activeTab]);
 
   // Count unclaimed challenges per tab
-  const unclaimedCounts = useMemo(() => ({
-    daily: challenges.daily.filter((c) => c.completed && !c.claimed).length,
-    weekly: challenges.weekly.filter((c) => c.completed && !c.claimed).length,
-    permanent: challenges.permanent.filter((c) => c.completed && !c.claimed).length,
-  }), [challenges]);
+  const unclaimedCounts = useMemo(
+    () => ({
+      daily: challenges.daily.filter((c) => c.completed && !c.claimed).length,
+      weekly: challenges.weekly.filter((c) => c.completed && !c.claimed).length,
+      permanent: challenges.permanent.filter((c) => c.completed && !c.claimed).length,
+    }),
+    [challenges]
+  );
 
   const handleTabChange = useCallback((tab: TabFilter) => {
     setActiveTab(tab);
@@ -232,9 +235,7 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
             {unclaimedCounts.daily > 0 && (
               <span className={styles.tabBadge}>{unclaimedCounts.daily}</span>
             )}
-            <span className={styles.tabTimer}>
-              {formatTimeRemaining(dailyTimeRemaining)}
-            </span>
+            <span className={styles.tabTimer}>{formatTimeRemaining(dailyTimeRemaining)}</span>
           </button>
           <button
             type="button"
@@ -247,9 +248,7 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
             {unclaimedCounts.weekly > 0 && (
               <span className={styles.tabBadge}>{unclaimedCounts.weekly}</span>
             )}
-            <span className={styles.tabTimer}>
-              {formatTimeRemaining(weeklyTimeRemaining)}
-            </span>
+            <span className={styles.tabTimer}>{formatTimeRemaining(weeklyTimeRemaining)}</span>
           </button>
           <button
             type="button"
@@ -289,9 +288,7 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
             {activeTab === 'daily' && (
               <>
                 <span className={styles.timerLabel}>Resets in:</span>
-                <span className={styles.timerValue}>
-                  {formatTimeRemaining(dailyTimeRemaining)}
-                </span>
+                <span className={styles.timerValue}>{formatTimeRemaining(dailyTimeRemaining)}</span>
               </>
             )}
             {activeTab === 'weekly' && (
@@ -302,9 +299,7 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
                 </span>
               </>
             )}
-            {activeTab === 'permanent' && (
-              <span className={styles.timerLabel}>No time limit</span>
-            )}
+            {activeTab === 'permanent' && <span className={styles.timerLabel}>No time limit</span>}
           </div>
           <button type="button" className={styles.closeButton} onClick={handleClose}>
             Close
@@ -326,9 +321,7 @@ interface ChallengeCardProps {
 }
 
 function ChallengeCard({ challenge, onClaim, justCompleted }: ChallengeCardProps) {
-  const allObjectivesComplete = challenge.objectives.every(
-    (obj) => obj.current >= obj.target
-  );
+  const _allObjectivesComplete = challenge.objectives.every((obj) => obj.current >= obj.target);
 
   const cardClasses = [
     styles.challengeCard,
@@ -346,11 +339,7 @@ function ChallengeCard({ challenge, onClaim, justCompleted }: ChallengeCardProps
           <h3 className={styles.challengeName}>
             {challenge.name}
             {challenge.minDifficulty && (
-              <span
-                className={`${styles.difficultyIndicator} ${
-                  styles[challenge.minDifficulty]
-                }`}
-              >
+              <span className={`${styles.difficultyIndicator} ${styles[challenge.minDifficulty]}`}>
                 {challenge.minDifficulty}+
               </span>
             )}
@@ -385,10 +374,7 @@ function ChallengeCard({ challenge, onClaim, justCompleted }: ChallengeCardProps
                 </span>
               </div>
               <div className={styles.progressBarContainer}>
-                <div
-                  className={styles.progressBar}
-                  style={{ width: `${progress}%` }}
-                />
+                <div className={styles.progressBar} style={{ width: `${progress}%` }} />
               </div>
             </div>
           );
@@ -403,9 +389,7 @@ function ChallengeCard({ challenge, onClaim, justCompleted }: ChallengeCardProps
             className={`${styles.reward} ${styles[reward.type]}`}
             title={reward.description}
           >
-            <span className={styles.rewardIcon}>
-              {REWARD_ICONS[reward.type] || '\u2726'}
-            </span>
+            <span className={styles.rewardIcon}>{REWARD_ICONS[reward.type] || '\u2726'}</span>
             <span className={styles.rewardText}>{reward.name}</span>
           </div>
         ))}
@@ -413,11 +397,7 @@ function ChallengeCard({ challenge, onClaim, justCompleted }: ChallengeCardProps
 
       {/* Claim Button */}
       {challenge.completed && !challenge.claimed && (
-        <button
-          type="button"
-          className={styles.claimButton}
-          onClick={() => onClaim(challenge.id)}
-        >
+        <button type="button" className={styles.claimButton} onClick={() => onClaim(challenge.id)}>
           Claim Rewards
         </button>
       )}

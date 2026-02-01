@@ -241,7 +241,13 @@ export interface PersonalBestRow {
  */
 export type LeaderboardEvent =
   | { type: 'entry_added'; entry: LeaderboardEntry }
-  | { type: 'personal_best'; levelId: LevelId | 'campaign'; leaderboardType: LeaderboardType; entry: LeaderboardEntry; previousBest?: number }
+  | {
+      type: 'personal_best';
+      levelId: LevelId | 'campaign';
+      leaderboardType: LeaderboardType;
+      entry: LeaderboardEntry;
+      previousBest?: number;
+    }
   | { type: 'rank_changed'; entry: LeaderboardEntry; oldRank: number; newRank: number }
   | { type: 'error'; message: string };
 

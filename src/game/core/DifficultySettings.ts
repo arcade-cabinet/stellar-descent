@@ -15,59 +15,59 @@
 
 // Import from the new difficulty system
 import {
+  DEFAULT_DIFFICULTY,
+  DIFFICULTY_ORDER,
+  DIFFICULTY_PRESETS,
+  // Constants
+  DIFFICULTY_REGISTRY,
+  type DifficultyEntry,
+  type DifficultyInfo,
   // Types
   type DifficultyLevel,
   type DifficultyModifiers,
-  type DifficultyEntry,
-  type DifficultyInfo,
-  // Constants
-  DIFFICULTY_REGISTRY,
-  DIFFICULTY_PRESETS,
-  DIFFICULTY_ORDER,
-  DEFAULT_DIFFICULTY,
-  PERMADEATH_XP_BONUS,
+  getCurrentModifiers,
   // Accessors
   getDifficulty,
-  getModifiers,
-  getDifficultyModifiers,
-  getDifficultyInfo,
   getDifficultyDisplayName,
-  isValidDifficulty,
-  isPermadeathActive,
-  getEffectiveXPMultiplier,
-  migrateDifficulty,
-  iterateDifficulties,
-  // Zustand store
-  useDifficultyStore,
-  selectDifficulty,
-  selectPermadeath,
-  selectInitialized,
+  getDifficultyInfo,
   // Non-React access
   getDifficultyLevel,
-  getCurrentModifiers,
+  getDifficultyModifiers,
+  getEffectiveXPMultiplier,
+  getModifiers,
+  isPermadeathActive,
+  isValidDifficulty,
+  iterateDifficulties,
   // Backward compatibility functions
   loadDifficultySetting,
-  saveDifficultySetting,
   loadPermadeathSetting,
+  migrateDifficulty,
+  PERMADEATH_XP_BONUS,
+  saveDifficultySetting,
   savePermadeathSetting,
+  scaleDetectionRangeByDifficulty,
+  scaleDetectionRange as scaleDetectionRangeFromStore,
+  scaleEnemyDamageByDifficulty,
+  scaleEnemyDamage as scaleEnemyDamageFromStore,
+  scaleEnemyFireRateByDifficulty,
+  scaleEnemyFireRate as scaleEnemyFireRateFromStore,
   // Static scaling with difficulty parameter
   scaleEnemyHealthByDifficulty,
-  scaleEnemyDamageByDifficulty,
-  scalePlayerDamageReceivedByDifficulty,
-  scaleEnemyFireRateByDifficulty,
-  scaleDetectionRangeByDifficulty,
-  scaleXPRewardByDifficulty,
-  scaleSpawnCountByDifficulty,
-  scaleResourceDropChanceByDifficulty,
   // Non-reactive scaling (uses current store state)
   scaleEnemyHealth as scaleEnemyHealthFromStore,
-  scaleEnemyDamage as scaleEnemyDamageFromStore,
   scalePlayerDamage as scalePlayerDamageFromStore,
-  scaleXP as scaleXPFromStore,
-  scaleEnemyFireRate as scaleEnemyFireRateFromStore,
-  scaleDetectionRange as scaleDetectionRangeFromStore,
-  scaleSpawnCount as scaleSpawnCountFromStore,
+  scalePlayerDamageReceivedByDifficulty,
+  scaleResourceDropChanceByDifficulty,
   scaleResourceDropChance as scaleResourceDropChanceFromStore,
+  scaleSpawnCountByDifficulty,
+  scaleSpawnCount as scaleSpawnCountFromStore,
+  scaleXP as scaleXPFromStore,
+  scaleXPRewardByDifficulty,
+  selectDifficulty,
+  selectInitialized,
+  selectPermadeath,
+  // Zustand store
+  useDifficultyStore,
 } from '../difficulty';
 
 // Re-export types
@@ -184,7 +184,10 @@ export function scaleResourceDropChance(baseChance: number, difficulty: Difficul
 /**
  * @deprecated Use useDifficultyStore() hook or non-reactive functions instead
  */
-export type DifficultyChangeListener = (newDifficulty: DifficultyLevel, oldDifficulty: DifficultyLevel) => void;
+export type DifficultyChangeListener = (
+  newDifficulty: DifficultyLevel,
+  oldDifficulty: DifficultyLevel
+) => void;
 
 /**
  * @deprecated Use useDifficultyStore() hook instead

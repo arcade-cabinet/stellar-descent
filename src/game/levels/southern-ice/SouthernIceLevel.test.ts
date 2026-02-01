@@ -12,7 +12,7 @@
  * - Checkpoint and victory conditions
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock BabylonJS dependencies
 vi.mock('@babylonjs/core/Engines/engine', () => ({
@@ -244,8 +244,20 @@ vi.mock('./environment', () => ({
     frozenWaterfalls: [],
     iceFormations: [],
     temperatureZones: [
-      { id: 'heat_0', position: { x: 0, y: 0, z: 0 }, radius: 10, temperatureOffset: 30, isHeatSource: true },
-      { id: 'cold_0', position: { x: 0, y: 0, z: -160 }, radius: 25, temperatureOffset: -15, isHeatSource: false },
+      {
+        id: 'heat_0',
+        position: { x: 0, y: 0, z: 0 },
+        radius: 10,
+        temperatureOffset: 30,
+        isHeatSource: true,
+      },
+      {
+        id: 'cold_0',
+        position: { x: 0, y: 0, z: -160 },
+        radius: 25,
+        temperatureOffset: -15,
+        isHeatSource: false,
+      },
     ],
     auroraNodes: [],
     blizzardSystem: { emitRate: 500, dispose: vi.fn() },
@@ -435,7 +447,13 @@ describe('SouthernIceLevel', () => {
     it('should calculate temperature from heat source zone', () => {
       // Using local getTemperatureAtPosition function
       const zones = [
-        { id: 'heat_0', position: { x: 0, y: 0, z: 0 }, radius: 10, temperatureOffset: 30, isHeatSource: true },
+        {
+          id: 'heat_0',
+          position: { x: 0, y: 0, z: 0 },
+          radius: 10,
+          temperatureOffset: 30,
+          isHeatSource: true,
+        },
       ];
       const tempAtCenter = getTemperatureAtPosition({ x: 0, y: 0, z: 0 }, zones);
       expect(tempAtCenter).toBeGreaterThan(0);
@@ -444,7 +462,13 @@ describe('SouthernIceLevel', () => {
     it('should calculate temperature from cold zone', () => {
       // Using local getTemperatureAtPosition function
       const zones = [
-        { id: 'cold_0', position: { x: 0, y: 0, z: -160 }, radius: 25, temperatureOffset: -15, isHeatSource: false },
+        {
+          id: 'cold_0',
+          position: { x: 0, y: 0, z: -160 },
+          radius: 25,
+          temperatureOffset: -15,
+          isHeatSource: false,
+        },
       ];
       const tempAtLake = getTemperatureAtPosition({ x: 0, y: 0, z: -160 }, zones);
       expect(tempAtLake).toBeLessThan(0);
@@ -453,7 +477,13 @@ describe('SouthernIceLevel', () => {
     it('should return neutral temperature outside all zones', () => {
       // Using local getTemperatureAtPosition function
       const zones = [
-        { id: 'heat_0', position: { x: 0, y: 0, z: 0 }, radius: 10, temperatureOffset: 30, isHeatSource: true },
+        {
+          id: 'heat_0',
+          position: { x: 0, y: 0, z: 0 },
+          radius: 10,
+          temperatureOffset: 30,
+          isHeatSource: true,
+        },
       ];
       const tempFarAway = getTemperatureAtPosition({ x: 500, y: 0, z: 500 }, zones);
       expect(tempFarAway).toBe(0);
@@ -471,7 +501,10 @@ describe('SouthernIceLevel', () => {
       const EXPOSURE_RECOVERY_RATE = 25;
       const deltaTime = 1;
       const exposureBefore = 50;
-      const exposureAfter = Math.min(EXPOSURE_MAX, exposureBefore + EXPOSURE_RECOVERY_RATE * deltaTime);
+      const exposureAfter = Math.min(
+        EXPOSURE_MAX,
+        exposureBefore + EXPOSURE_RECOVERY_RATE * deltaTime
+      );
       expect(exposureAfter).toBe(75);
     });
 
@@ -513,7 +546,7 @@ describe('SouthernIceLevel', () => {
     });
 
     it('should not transition backwards in phases', () => {
-      const playerZ = -50; // Back in ice_fields zone
+      const _playerZ = -50; // Back in ice_fields zone
       const currentPhase = 'frozen_lake';
       // Phase should NOT transition back even if player moves north
       const shouldStayInPhase = currentPhase === 'frozen_lake';
@@ -790,7 +823,8 @@ describe('SouthernIceLevel', () => {
       const OBJECTIVES = {
         iceFields: {
           title: 'TRAVERSE ICE FIELDS',
-          instructions: 'Move south through the blizzard. Stay near heat sources to avoid hypothermia.',
+          instructions:
+            'Move south through the blizzard. Stay near heat sources to avoid hypothermia.',
         },
       };
       expect(OBJECTIVES.iceFields.title).toBe('TRAVERSE ICE FIELDS');
@@ -800,7 +834,8 @@ describe('SouthernIceLevel', () => {
       const OBJECTIVES = {
         frozenLake: {
           title: 'CROSS FROZEN LAKE',
-          instructions: 'Navigate across the thin ice. Avoid dark patches -- the ice is weakest there.',
+          instructions:
+            'Navigate across the thin ice. Avoid dark patches -- the ice is weakest there.',
         },
       };
       expect(OBJECTIVES.frozenLake.title).toBe('CROSS FROZEN LAKE');
@@ -1011,9 +1046,9 @@ describe('SouthernIceLevel', () => {
     });
 
     it('should track kills across phase transitions', () => {
-      let totalKills = 5;
+      const totalKills = 5;
       // Simulate phase transition - kills should persist
-      const phase = 'frozen_lake';
+      const _phase = 'frozen_lake';
       expect(totalKills).toBe(5);
     });
   });

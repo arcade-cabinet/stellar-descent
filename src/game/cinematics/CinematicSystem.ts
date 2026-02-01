@@ -14,10 +14,10 @@ import { Animation } from '@babylonjs/core/Animations/animation';
 import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
 import type { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 
 import '@babylonjs/core/Animations/animatable';
@@ -142,7 +142,7 @@ const SKIP_HOLD_DURATION = 1000; // Hold Escape for 1 second to skip
 const SKIP_TAP_COUNT = 3; // Tap screen 3 times to skip (mobile)
 const SKIP_TAP_WINDOW = 1500; // Tap window in ms
 const SKIP_PROMPT_DELAY = 2000; // Show skip prompt after 2 seconds
-const LETTERBOX_HEIGHT = 0.08; // Letterbox bar height as fraction of screen
+const _LETTERBOX_HEIGHT = 0.08; // Letterbox bar height as fraction of screen
 const LETTERBOX_ANIMATION_DURATION = 400; // ms for letterbox animation
 
 // ============================================================================
@@ -877,7 +877,7 @@ export class CinematicSystem {
       }
     };
 
-    this.touchHandler = (e: TouchEvent) => {
+    this.touchHandler = (_e: TouchEvent) => {
       if (!this.state.isPlaying || !this.state.canSkip) return;
 
       const now = performance.now();
@@ -1272,7 +1272,7 @@ export function createFinalEscapeIntroCinematic(
           sender: 'Corporal Marcus Cole',
           callsign: 'HAMMER',
           portrait: 'marcus',
-          text: "James! The hive is collapsing! Extraction shuttle inbound - GET TO THE SURFACE NOW!",
+          text: 'James! The hive is collapsing! Extraction shuttle inbound - GET TO THE SURFACE NOW!',
         },
         cameraShake: 5,
       },

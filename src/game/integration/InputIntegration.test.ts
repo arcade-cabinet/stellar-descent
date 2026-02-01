@@ -12,20 +12,16 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  InputManager,
-  getInputManager,
   disposeInputManager,
-  type InputState,
-  type AnalogState,
+  getInputManager,
+  type InputManager,
   type TouchInputState,
-  type InputSource,
 } from '../input/InputManager';
 import {
-  DEFAULT_KEYBINDINGS,
   DEFAULT_GAMEPAD_BINDINGS,
-  type BindableAction,
-  type Keybindings,
-} from '../context/KeybindingsContext';
+  DEFAULT_KEYBINDINGS,
+  useKeybindingsStore,
+} from '../stores/useKeybindingsStore';
 
 // Mutable gamepad type for testing - allows modifying buttons and axes
 // Defined here before use in mockGamepads type
@@ -121,6 +117,9 @@ describe('Input Integration', () => {
     Object.keys(windowEventListeners).forEach((key) => windowEventListeners[key].clear());
     mockGamepads = [null, null, null, null];
 
+    // Reset keybindings store to defaults
+    useKeybindingsStore.getState().resetToDefaults();
+
     // Initialize
     disposeInputManager();
     inputManager = getInputManager();
@@ -196,7 +195,7 @@ describe('Input Integration', () => {
       expect(inputManager.isKeyPressed('KeyA')).toBe(true);
 
       // Trigger blur
-      const blurHandlers = windowEventListeners['blur'];
+      const blurHandlers = windowEventListeners.blur;
       if (blurHandlers) {
         blurHandlers.forEach((h) => h());
       }
@@ -275,7 +274,7 @@ describe('Input Integration', () => {
       mockGamepads[0] = gamepad;
 
       // Trigger gamepad connected event
-      const handlers = windowEventListeners['gamepadconnected'];
+      const handlers = windowEventListeners.gamepadconnected;
       if (handlers) {
         handlers.forEach((h) => h({ gamepad } as any));
       }
@@ -289,14 +288,14 @@ describe('Input Integration', () => {
       mockGamepads[0] = gamepad;
 
       // Connect
-      const connectHandlers = windowEventListeners['gamepadconnected'];
+      const connectHandlers = windowEventListeners.gamepadconnected;
       if (connectHandlers) {
         connectHandlers.forEach((h) => h({ gamepad } as any));
       }
 
       // Disconnect
       mockGamepads[0] = null;
-      const disconnectHandlers = windowEventListeners['gamepaddisconnected'];
+      const disconnectHandlers = windowEventListeners.gamepaddisconnected;
       if (disconnectHandlers) {
         disconnectHandlers.forEach((h) => h({ gamepad } as any));
       }
@@ -309,7 +308,7 @@ describe('Input Integration', () => {
       mockGamepads[0] = gamepad;
 
       // Connect
-      const handlers = windowEventListeners['gamepadconnected'];
+      const handlers = windowEventListeners.gamepadconnected;
       if (handlers) {
         handlers.forEach((h) => h({ gamepad } as any));
       }
@@ -326,7 +325,7 @@ describe('Input Integration', () => {
       mockGamepads[0] = gamepad;
 
       // Connect
-      const handlers = windowEventListeners['gamepadconnected'];
+      const handlers = windowEventListeners.gamepadconnected;
       if (handlers) {
         handlers.forEach((h) => h({ gamepad } as any));
       }
@@ -345,7 +344,7 @@ describe('Input Integration', () => {
       mockGamepads[0] = gamepad;
 
       // Connect
-      const handlers = windowEventListeners['gamepadconnected'];
+      const handlers = windowEventListeners.gamepadconnected;
       if (handlers) {
         handlers.forEach((h) => h({ gamepad } as any));
       }
@@ -550,15 +549,12 @@ describe('Input Integration', () => {
   });
 
   describe('Custom Keybindings', () => {
-    it('should load custom keybindings from localStorage', () => {
-      // Set custom keybindings
-      const customBindings: Partial<Keybindings> = {
-        jump: 'KeyZ', // Changed from Space
-        fire: 'KeyX', // Changed from Mouse0
-      };
-      mockStorage['stellar-descent-keybindings'] = JSON.stringify(customBindings);
+    it('should use custom keybindings from store', () => {
+      // Set custom keybindings via the store
+      useKeybindingsStore.getState().setKeybinding('jump', 'KeyZ');
+      useKeybindingsStore.getState().setKeybinding('fire', 'KeyX');
 
-      // Reinitialize to load new bindings
+      // Reinitialize to pick up new bindings
       disposeInputManager();
       const newManager = getInputManager();
 
@@ -567,19 +563,21 @@ describe('Input Integration', () => {
       expect(newManager.isActionPressed('jump')).toBe(true);
     });
 
-    it('should refresh keybindings', () => {
-      // Change bindings after initialization
-      const customBindings: Partial<Keybindings> = {
-        sprint: 'KeyQ', // Changed from ShiftLeft
-      };
-      mockStorage['stellar-descent-keybindings'] = JSON.stringify(customBindings);
+    it('should refresh keybindings from store', () => {
+      // Change bindings via the store after InputManager initialization
+      useKeybindingsStore.getState().setKeybinding('sprint', 'KeyQ');
 
-      // Refresh
+      // Refresh the input manager
       inputManager.refreshKeybindings();
 
-      // Old binding should still work (merged with defaults)
+      // New binding should work
+      dispatchKeyEvent('keydown', 'KeyQ');
+      expect(inputManager.isActionPressed('sprint')).toBe(true);
+
+      // Old default binding should no longer work (replaced, not merged)
+      dispatchKeyEvent('keyup', 'KeyQ');
       dispatchKeyEvent('keydown', 'ShiftLeft');
-      // Note: Actual behavior depends on how refresh merges bindings
+      expect(inputManager.isActionPressed('sprint')).toBe(false);
     });
   });
 
@@ -589,7 +587,7 @@ describe('Input Integration', () => {
       mockGamepads[0] = gamepad;
 
       // Connect
-      const handlers = windowEventListeners['gamepadconnected'];
+      const handlers = windowEventListeners.gamepadconnected;
       if (handlers) {
         handlers.forEach((h) => h({ gamepad } as any));
       }

@@ -5,18 +5,18 @@
  * This creates the AAA shooter feel by ensuring consistent audio feedback.
  */
 
-import { getEventBus, type GameEvent, type GameEventListener } from '../EventBus';
+import type { WeaponId } from '../../entities/weapons';
 import { getAudioManager } from '../AudioManager';
-import { weaponSoundManager } from '../WeaponSoundManager';
+import { type GameEvent, type GameEventListener, getEventBus } from '../EventBus';
 import {
   hitAudioManager,
-  playPlayerHitSound,
+  playCriticalHealthWarning,
   playHeartbeat,
   playHeavyBreathing,
+  playPlayerHitSound,
   playShieldBreak,
-  playCriticalHealthWarning,
 } from '../HitAudioManager';
-import type { WeaponId } from '../../entities/weapons';
+import { weaponSoundManager } from '../WeaponSoundManager';
 
 /**
  * Enemy type to sound mapping for death sounds
@@ -61,10 +61,6 @@ export class AudioEventHandler {
   private lastDamageTime = 0;
   private readonly DAMAGE_SOUND_COOLDOWN_MS = 100;
 
-  // Combat state tracking
-  private enemiesInCombat = 0;
-  private lastCombatSoundTime = 0;
-
   private constructor() {}
 
   static getInstance(): AudioEventHandler {
@@ -78,7 +74,7 @@ export class AudioEventHandler {
    * Initialize event subscriptions
    */
   initialize(): void {
-    const bus = getEventBus();
+    const _bus = getEventBus();
 
     // Enemy killed - play appropriate death sound
     this.subscribe('ENEMY_KILLED', (event) => {
@@ -181,7 +177,7 @@ export class AudioEventHandler {
     });
 
     // Wave started
-    this.subscribe('WAVE_STARTED', (event) => {
+    this.subscribe('WAVE_STARTED', (_event) => {
       const audioManager = getAudioManager();
       audioManager.play('notification');
       // Enter combat mode when wave starts
@@ -210,10 +206,7 @@ export class AudioEventHandler {
   /**
    * Subscribe to an event type with automatic cleanup tracking
    */
-  private subscribe<T extends GameEvent['type']>(
-    type: T,
-    handler: GameEventListener<T>
-  ): void {
+  private subscribe<T extends GameEvent['type']>(type: T, handler: GameEventListener<T>): void {
     const bus = getEventBus();
     const unsub = bus.on(type, handler);
     this.unsubscribers.push(unsub);
@@ -224,7 +217,7 @@ export class AudioEventHandler {
    */
   private handleEnemyKilled(
     enemyType: string,
-    position: { x: number; y: number; z: number }
+    _position: { x: number; y: number; z: number }
   ): void {
     const audioManager = getAudioManager();
 
@@ -283,8 +276,7 @@ export class AudioEventHandler {
     );
 
     // Check for low health state
-    const healthPercent =
-      this.playerHealthState.currentHealth / this.playerHealthState.maxHealth;
+    const healthPercent = this.playerHealthState.currentHealth / this.playerHealthState.maxHealth;
 
     if (healthPercent <= 0.25 && !this.playerHealthState.isLowHealth) {
       this.enterLowHealthState();
@@ -308,8 +300,7 @@ export class AudioEventHandler {
       this.playerHealthState.currentHealth + amount
     );
 
-    const healthPercent =
-      this.playerHealthState.currentHealth / this.playerHealthState.maxHealth;
+    const healthPercent = this.playerHealthState.currentHealth / this.playerHealthState.maxHealth;
 
     // Exit low health state if healed enough
     if (healthPercent > 0.35 && this.playerHealthState.isLowHealth) {
@@ -361,8 +352,8 @@ export class AudioEventHandler {
    * Handle weapon fired event
    */
   private handleWeaponFired(
-    weaponId: WeaponId,
-    position: { x: number; y: number; z: number }
+    _weaponId: WeaponId,
+    _position: { x: number; y: number; z: number }
   ): void {
     // The weapon fire sound is typically played by the weapon system itself
     // This handler can add additional contextual sounds
@@ -463,8 +454,7 @@ export class AudioEventHandler {
     }
     this.playerHealthState.currentHealth = currentHealth;
 
-    const healthPercent =
-      this.playerHealthState.currentHealth / this.playerHealthState.maxHealth;
+    const healthPercent = this.playerHealthState.currentHealth / this.playerHealthState.maxHealth;
 
     if (healthPercent <= 0.25 && !this.playerHealthState.isLowHealth) {
       this.enterLowHealthState();

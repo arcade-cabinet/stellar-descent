@@ -5,10 +5,7 @@ import './css/main.css';
 import './css/colorblind.css';
 
 // Platform detection - initialize physical keyboard and gamepad detection early
-import {
-  initPhysicalKeyboardDetection,
-  initGamepadDetection,
-} from './game/utils/PlatformDetector';
+import { initGamepadDetection, initPhysicalKeyboardDetection } from './game/utils/PlatformDetector';
 
 // Initialize the application
 function initApp() {

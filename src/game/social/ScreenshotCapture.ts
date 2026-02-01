@@ -73,9 +73,6 @@ const FONT_FAMILY = '"Share Tech Mono", "Courier New", monospace';
  * ScreenshotCapture - Singleton for capturing and processing game screenshots
  */
 class ScreenshotCaptureImpl {
-  private cachedLogo: HTMLImageElement | null = null;
-  private logoLoadPromise: Promise<HTMLImageElement> | null = null;
-
   /**
    * Capture the game canvas and optionally add overlays
    */
@@ -225,11 +222,7 @@ class ScreenshotCaptureImpl {
   /**
    * Draw vignette effect around edges
    */
-  private drawVignette(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ): void {
+  private drawVignette(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     const gradient = ctx.createRadialGradient(
       width / 2,
       height / 2,
@@ -304,7 +297,7 @@ class ScreenshotCaptureImpl {
     ctx.stroke();
 
     const contentY = panelY + panelHeight * 0.4;
-    const lineHeight = Math.max(14, Math.round(panelHeight * 0.15));
+    const _lineHeight = Math.max(14, Math.round(panelHeight * 0.15));
 
     // Mission complete text
     ctx.save();
@@ -405,7 +398,11 @@ class ScreenshotCaptureImpl {
     if (data.isPersonalBest) {
       ctx.fillStyle = '#ffd700';
       ctx.font = `bold ${ratingLabelSize}px ${FONT_FAMILY}`;
-      ctx.fillText('NEW BEST!', width - OVERLAY_PADDING, contentY + ratingSize + ratingLabelSize + 6);
+      ctx.fillText(
+        'NEW BEST!',
+        width - OVERLAY_PADDING,
+        contentY + ratingSize + ratingLabelSize + 6
+      );
     }
 
     ctx.restore();
@@ -414,11 +411,7 @@ class ScreenshotCaptureImpl {
   /**
    * Draw subtle scan lines for retro effect
    */
-  private drawScanLines(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ): void {
+  private drawScanLines(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     ctx.save();
     ctx.globalAlpha = 0.08;
 

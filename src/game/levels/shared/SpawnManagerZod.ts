@@ -30,15 +30,14 @@ import type { World } from 'miniplex';
 
 import { getEventBus } from '../../core/EventBus';
 import { getLogger } from '../../core/Logger';
-import { createAlienEntityAsync, ALIEN_SPECIES, type AlienSpecies } from '../../entities/aliens';
+import { ALIEN_SPECIES, createAlienEntityAsync } from '../../entities/aliens';
 
 import {
-  type LevelSpawnConfig,
-  type SpawnWave,
-  type SpawnUnit,
-  type TriggerType,
   degreesToRadians,
+  type LevelSpawnConfig,
   parseTriggerValue,
+  type SpawnUnit,
+  type SpawnWave,
 } from './SpawnConfigZod';
 
 const log = getLogger('SpawnManagerZod');
@@ -95,7 +94,6 @@ export interface SpawnManagerZodCallbacks {
 export class SpawnManagerZod {
   private readonly config: LevelSpawnConfig;
   private readonly scene: Scene;
-  private readonly world: World;
   private readonly callbacks: SpawnManagerZodCallbacks;
 
   // Wave runtime state
@@ -108,7 +106,6 @@ export class SpawnManagerZod {
   // Global state
   private elapsedTime = 0;
   private totalKills = 0;
-  private totalSpawned = 0;
   private active = true;
 
   // Objective flags for trigger evaluation
@@ -209,7 +206,7 @@ export class SpawnManagerZod {
           }
           break;
 
-        case 'active':
+        case 'active': {
           state.elapsedTime += deltaTime;
           this.processSpawning(waveId, state, deltaTime);
 
@@ -226,6 +223,7 @@ export class SpawnManagerZod {
             log.debug(`Wave ${waveId}: all enemies spawned, awaiting kills`);
           }
           break;
+        }
 
         case 'spawning_complete':
           // Wait for all enemies to be killed
@@ -359,11 +357,7 @@ export class SpawnManagerZod {
    * Evaluates whether a wave's trigger condition is met.
    */
   private evaluateTrigger(wave: SpawnWave, playerPosition: Vector3): boolean {
-    const triggerData = parseTriggerValue(
-      wave.trigger,
-      wave.triggerValue,
-      wave.triggerPosition
-    );
+    const triggerData = parseTriggerValue(wave.trigger, wave.triggerValue, wave.triggerPosition);
 
     switch (wave.trigger) {
       case 'immediate':
@@ -375,7 +369,7 @@ export class SpawnManagerZod {
       case 'objective':
         return this.flags.get(triggerData.objectiveFlag ?? '') === true;
 
-      case 'proximity':
+      case 'proximity': {
         if (!triggerData.proximityCenter) return false;
         const center = new Vector3(
           triggerData.proximityCenter.x,
@@ -384,6 +378,7 @@ export class SpawnManagerZod {
         );
         const dist = Vector3.Distance(playerPosition, center);
         return dist <= (triggerData.proximityRadius ?? 30);
+      }
 
       case 'manual':
         return false;
@@ -401,15 +396,14 @@ export class SpawnManagerZod {
    * Processes spawning for an active wave.
    */
   private processSpawning(waveId: string, state: WaveState, deltaTime: number): void {
-    const interval =
-      state.config.spawnInterval ?? this.config.defaultSpawnInterval;
+    const interval = state.config.spawnInterval ?? this.config.defaultSpawnInterval;
     const maxConcurrent = state.config.maxConcurrent ?? Infinity;
     const globalMax = this.config.maxGlobalEnemies;
 
     state.spawnTimer += deltaTime;
 
     // Process each unit queue
-    for (const [key, queue] of state.unitQueues) {
+    for (const [_key, queue] of state.unitQueues) {
       if (queue.remaining <= 0) continue;
 
       // Check delay
@@ -439,11 +433,7 @@ export class SpawnManagerZod {
   /**
    * Spawns a single enemy unit.
    */
-  private async spawnUnit(
-    waveId: string,
-    state: WaveState,
-    unit: SpawnUnit
-  ): Promise<void> {
+  private async spawnUnit(waveId: string, state: WaveState, unit: SpawnUnit): Promise<void> {
     const spawnPoint = this.config.spawnPoints[unit.spawnPoint];
     if (!spawnPoint) {
       log.warn(`Unknown spawn point: ${unit.spawnPoint}`);
@@ -473,12 +463,7 @@ export class SpawnManagerZod {
 
     try {
       // Create the entity
-      const entity = await createAlienEntityAsync(
-        this.scene,
-        species,
-        position,
-        Date.now()
-      );
+      const entity = await createAlienEntityAsync(this.scene, species, position, Date.now());
 
       // Apply overrides if present
       if (unit.overrides) {
@@ -524,9 +509,7 @@ export class SpawnManagerZod {
 
       this.callbacks.onSpawnEnemy?.(unit.species, entityId, position);
 
-      log.debug(
-        `Spawned ${unit.species} at ${unit.spawnPoint} (${entityId})`
-      );
+      log.debug(`Spawned ${unit.species} at ${unit.spawnPoint} (${entityId})`);
     } catch (error) {
       log.error(`Failed to spawn ${unit.species}: ${error}`);
     }
@@ -696,7 +679,7 @@ export class SpawnManagerZod {
     this.active = true;
 
     // Reset wave states
-    for (const [waveId, state] of this.waveStates) {
+    for (const [_waveId, state] of this.waveStates) {
       state.status = 'pending';
       state.spawnedCount = 0;
       state.aliveCount = 0;

@@ -26,14 +26,14 @@ export type {
   GodRayConfig,
   SporeCloudConfig,
 } from './AtmosphericEffects';
-// Bullet trails and tracers
-export type { BulletTrailConfig, WeaponTrailConfig } from './BulletTrails';
-export { BulletTrailManager, bulletTrails } from './BulletTrails';
 export {
   AtmosphericEffects,
   disposeAtmosphericEffects,
   getAtmosphericEffects,
 } from './AtmosphericEffects';
+// Bullet trails and tracers
+export type { BulletTrailConfig, WeaponTrailConfig } from './BulletTrails';
+export { BulletTrailManager, bulletTrails } from './BulletTrails';
 export type { DamageFeedbackConfig } from './DamageFeedback';
 export { DamageFeedbackManager, damageFeedback } from './DamageFeedback';
 export type { DeathEffectConfig, DeathEffectType } from './DeathEffects';
@@ -43,16 +43,16 @@ export { EnvironmentalParticles, environmentalParticles } from './EnvironmentalP
 // Frost / Ice effects (Southern Ice level)
 export type { FrostEffectConfig } from './FrostEffect';
 export { FrostEffectManager, frostEffect } from './FrostEffect';
-// Low health feedback effects (vignette, heartbeat, breathing)
-export type { LowHealthFeedbackConfig } from './LowHealthFeedback';
-export {
-  LowHealthFeedbackManager,
-  lowHealthFeedback,
-  getLowHealthFeedback,
-  disposeLowHealthFeedback,
-} from './LowHealthFeedback';
 export type { IceShardConfig } from './IceShardProjectile';
 export { destroyIceShardInAir, fireIceShard } from './IceShardProjectile';
+// Impact decals - bullet hole and damage marks
+export type { DecalConfig, DecalSurfaceType } from './ImpactDecals';
+export {
+  createImpactDecal,
+  detectMeshSurfaceType,
+  ImpactDecalSystem,
+  impactDecals,
+} from './ImpactDecals';
 // Impact particles - surface-specific impact VFX
 export type {
   ImpactParticleLayerConfig,
@@ -60,10 +60,21 @@ export type {
   ImpactSurfaceType,
 } from './ImpactParticles';
 export { ImpactParticles, impactParticles } from './ImpactParticles';
+// Low health feedback effects (vignette, heartbeat, breathing)
+export type { LowHealthFeedbackConfig } from './LowHealthFeedback';
+export {
+  disposeLowHealthFeedback,
+  getLowHealthFeedback,
+  LowHealthFeedbackManager,
+  lowHealthFeedback,
+} from './LowHealthFeedback';
 export type { MuzzleFlashConfig } from './MuzzleFlash';
 export { MuzzleFlashManager, muzzleFlash, WEAPON_FLASH_CONFIGS } from './MuzzleFlash';
 export type { ParticleEffectConfig } from './ParticleManager';
 export { ParticleManager, particleManager } from './ParticleManager';
+// Shell casing ejection system
+export type { CasingConfig, CasingWeaponType } from './ShellCasings';
+export { categoryToCasingType, ShellCasingSystem, shellCasings } from './ShellCasings';
 export type { SurfaceMaterial, WeaponType } from './WeaponEffects';
 export { WeaponEffects, weaponEffects } from './WeaponEffects';
 export type {
@@ -77,14 +88,3 @@ export type {
   WeatherType,
 } from './WeatherSystem';
 export { disposeWeatherSystem, getWeatherSystem, WeatherSystem } from './WeatherSystem';
-// Shell casing ejection system
-export type { CasingConfig, CasingWeaponType } from './ShellCasings';
-export { ShellCasingSystem, shellCasings, categoryToCasingType } from './ShellCasings';
-// Impact decals - bullet hole and damage marks
-export type { DecalConfig, DecalSurfaceType } from './ImpactDecals';
-export {
-  ImpactDecalSystem,
-  impactDecals,
-  createImpactDecal,
-  detectMeshSurfaceType,
-} from './ImpactDecals';

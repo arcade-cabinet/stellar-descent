@@ -4,7 +4,7 @@
  * Contains all constant values for the underground hive level.
  */
 
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color4 } from '@babylonjs/core/Maths/math.color';
 import type { EnemyStats, EnemyType } from './types';
 
 // ============================================================================

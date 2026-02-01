@@ -6,23 +6,23 @@
 
 // Core i18n functions
 export {
-  t,
+  getAllTranslations,
+  getCurrentLanguageInfo,
   getLanguage,
-  setLanguage,
-  onLanguageChange,
+  getLanguageInfo,
   initI18n,
   isValidLanguage,
-  getAllTranslations,
-  getLanguageInfo,
-  getCurrentLanguageInfo,
+  type LanguageInfo,
+  onLanguageChange,
   SUPPORTED_LANGUAGES,
   type SupportedLanguage,
-  type LanguageInfo,
+  setLanguage,
+  t,
 } from './i18n';
 
 // React hooks
 export {
-  useTranslation,
-  useT,
   type UseTranslationResult,
+  useT,
+  useTranslation,
 } from './useTranslation';

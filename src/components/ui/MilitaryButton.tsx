@@ -47,11 +47,17 @@ export function MilitaryButton({
       aria-describedby={ariaDescribedBy}
       aria-disabled={disabled}
     >
-      {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
+      {icon && (
+        <span className={styles.icon} aria-hidden="true">
+          {icon}
+        </span>
+      )}
       {info ? (
         <span className={styles.content}>
           <span>{children}</span>
-          <span className={styles.info} aria-hidden="true">{info}</span>
+          <span className={styles.info} aria-hidden="true">
+            {info}
+          </span>
         </span>
       ) : (
         children

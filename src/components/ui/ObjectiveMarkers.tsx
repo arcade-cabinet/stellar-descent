@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { type ScreenSpaceObjective, useGame } from '../../game/context/GameContext';
 import styles from './ObjectiveMarkers.module.css';
 

@@ -7,8 +7,6 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import type { Scene } from '@babylonjs/core/scene';
-import type { CommsMessage } from '../types';
-import type { ActionButtonGroup } from '../types/actions';
 
 // ============================================================================
 // CORE TYPES FROM LEVEL REGISTRY
@@ -16,13 +14,12 @@ import type { ActionButtonGroup } from '../types/actions';
 
 // Import core types that other interfaces depend on
 import type {
-  LevelType as RegistryLevelType,
-  LevelId as RegistryLevelId,
-  WeatherConfig as RegistryWeatherConfig,
-  MissionObjective as RegistryMissionObjective,
-  LevelEntry,
   BonusLevelEntry,
+  LevelEntry,
+  LevelId as RegistryLevelId,
+  LevelType as RegistryLevelType,
   MissionDefinition as RegistryMissionDefinition,
+  MissionObjective as RegistryMissionObjective,
 } from './LevelRegistry';
 
 // Re-export core types
@@ -37,27 +34,25 @@ export type MissionDefinition = RegistryMissionDefinition;
 // ============================================================================
 
 export {
-  // Campaign data
-  LEVEL_REGISTRY,
-  LEVEL_REGISTRY as CAMPAIGN_LEVELS,
   BONUS_LEVELS,
-
+  getFirstLevel,
   // Accessor functions
   getLevel,
-  getLevelIds,
-  getFirstLevel,
-  getNextLevel,
-  getPreviousLevel,
   getLevelCount,
   getLevelCount as getTotalLevels,
+  getLevelIds,
   getLevelIndex,
-  iterateLevels,
+  // Backward compatibility
+  getMissionDefinition,
+  getNextLevel,
+  getPreviousLevel,
   getTotalAudioLogCount,
   getTotalSecretCount,
   getTotalSkullCount,
-
-  // Backward compatibility
-  getMissionDefinition,
+  iterateLevels,
+  // Campaign data
+  LEVEL_REGISTRY,
+  LEVEL_REGISTRY as CAMPAIGN_LEVELS,
   MISSION_DEFINITIONS,
 } from './LevelRegistry';
 
@@ -91,33 +86,6 @@ export interface LevelConfig {
   weather?: WeatherConfig;
   totalSecrets?: number;
   totalAudioLogs?: number;
-}
-
-// Callbacks from level to game system
-export interface LevelCallbacks {
-  onCommsMessage: (message: CommsMessage) => void;
-  onObjectiveUpdate: (title: string, instructions: string) => void;
-  onChapterChange: (chapter: number) => void;
-  onHealthChange: (health: number) => void;
-  onKill: () => void;
-  onDamage: () => void;
-  onNotification: (text: string, duration?: number) => void;
-  onLevelComplete: (nextLevelId: LevelId | null) => void;
-  onCombatStateChange: (inCombat: boolean) => void;
-  onCinematicStart?: () => void;
-  onCinematicEnd?: () => void;
-  onActionGroupsChange: (groups: ActionButtonGroup[]) => void;
-  onActionHandlerRegister: (handler: ((actionId: string) => void) | null) => void;
-  onHitMarker?: (damage: number, isCritical: boolean, isKill?: boolean) => void;
-  onDirectionalDamage?: (angle: number, damage: number) => void;
-  onAudioLogFound?: (logId: string) => void;
-  onSecretFound?: (secretId: string) => void;
-  onSkullFound?: (skullId: string) => void;
-  onDialogueTrigger?: (trigger: string) => void;
-  onObjectiveMarker?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
-  onExposureChange?: (exposure: number) => void;
-  onFrostDamage?: (damage: number) => void;
-  onSquadCommandWheelChange?: (isOpen: boolean, selectedCommand: string | null) => void;
 }
 
 // State that can be persisted for a level
@@ -212,8 +180,7 @@ export interface ILevel {
 export type LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ) => ILevel;
 
 // Registry of level factories by type

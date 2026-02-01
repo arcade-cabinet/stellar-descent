@@ -4,49 +4,47 @@
  * Re-exports commonly used shared modules for convenient importing.
  */
 
-// Spawn system (interface-based) - primary types
-export {
-  type AlienSpeciesId,
-  type SpawnGroupConfig,
-  type EnemyStatOverrides,
-  type SpawnPointConfig,
-  type TriggerType,
-  type TriggerCondition,
-  type SpawnWaveConfig,
-  type LevelSpawnConfig,
-} from './SpawnConfig';
-export * from './SpawnManager';
-export * from './SpawnManagerIntegration';
-export * from './LevelSpawnConfigs';
-
-// Spawn system (Zod-validated) - explicit exports to avoid type name conflicts
-export {
-  AlienSpeciesEnum,
-  type AlienSpecies,
-  SpawnUnitSchema,
-  type SpawnUnit,
-  TriggerTypeEnum,
-  SpawnWaveSchema,
-  type SpawnWave,
-  PositionTupleSchema,
-  type PositionTuple,
-  SpawnPointSchema,
-  type SpawnPoint,
-  LevelSpawnConfigSchema,
-  validateSpawnConfig,
-  safeValidateSpawnConfig,
-  validateSpawnPointReferences,
-  validateWaveChain,
-  validateSpawnConfigFull,
-  degreesToRadians,
-  parsePositionString,
-  parseTriggerValue,
-} from './SpawnConfigZod';
-export * from './SpawnManagerZod';
-
-// Environment builders
-export * from './SurfaceTerrainFactory';
-export * from './ModularBaseBuilder';
-export * from './HiveEnvironmentBuilder';
 export * from './AlienFloraBuilder';
 export * from './CollectiblePlacer';
+export * from './HiveEnvironmentBuilder';
+export * from './LevelSpawnConfigs';
+export * from './ModularBaseBuilder';
+// Spawn system (interface-based) - primary types
+export type {
+  AlienSpeciesId,
+  EnemyStatOverrides,
+  LevelSpawnConfig,
+  SpawnGroupConfig,
+  SpawnPointConfig,
+  SpawnWaveConfig,
+  TriggerCondition,
+  TriggerType,
+} from './SpawnConfig';
+// Spawn system (Zod-validated) - explicit exports to avoid type name conflicts
+export {
+  type AlienSpecies,
+  AlienSpeciesEnum,
+  degreesToRadians,
+  LevelSpawnConfigSchema,
+  type PositionTuple,
+  PositionTupleSchema,
+  parsePositionString,
+  parseTriggerValue,
+  type SpawnPoint,
+  SpawnPointSchema,
+  type SpawnUnit,
+  SpawnUnitSchema,
+  type SpawnWave,
+  SpawnWaveSchema,
+  safeValidateSpawnConfig,
+  TriggerTypeEnum,
+  validateSpawnConfig,
+  validateSpawnConfigFull,
+  validateSpawnPointReferences,
+  validateWaveChain,
+} from './SpawnConfigZod';
+export * from './SpawnManager';
+export * from './SpawnManagerIntegration';
+export * from './SpawnManagerZod';
+// Environment builders
+export * from './SurfaceTerrainFactory';

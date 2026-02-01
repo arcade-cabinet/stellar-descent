@@ -16,22 +16,18 @@
 
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { TouchInput } from '../../game/types';
 import {
   DYNAMIC_ACTION_LABELS,
   type DynamicAction,
   useKeybindings,
-} from '../../game/context/KeybindingsContext';
-import { getScreenInfo } from '../../game/utils/responsive';
+} from '../../game/stores/useKeybindingsStore';
+import type { TouchInput } from '../../game/types';
 import {
   applyAccelerationCurve,
-  applyDeadZone,
-  DEFAULT_TOUCH_SETTINGS,
   GestureDetector,
   getScaledControlSizes,
   LookSmoother,
   loadTouchSettings,
-  MIN_TOUCH_TARGET_SIZE,
   saveTouchSettings,
   type TouchControlSettings,
   triggerHaptic,
@@ -179,9 +175,7 @@ const DYNAMIC_ACTION_CONFIG: Record<DynamicAction, DynamicActionConfig> = {
 /**
  * Groups dynamic actions by category for organized display
  */
-function groupDynamicActionsByCategory(
-  actions: DynamicAction[]
-): Map<string, DynamicAction[]> {
+function groupDynamicActionsByCategory(actions: DynamicAction[]): Map<string, DynamicAction[]> {
   const grouped = new Map<string, DynamicAction[]>();
 
   for (const action of actions) {
@@ -231,9 +225,7 @@ export function TouchControls({
   );
 
   // Track which dynamic action buttons are currently pressed
-  const [activeDynamicButtons, setActiveDynamicButtons] = useState<Set<DynamicAction>>(
-    new Set()
-  );
+  const [activeDynamicButtons, setActiveDynamicButtons] = useState<Set<DynamicAction>>(new Set());
 
   // Settings
   const [settings, setSettings] = useState<TouchControlSettings>(() => loadTouchSettings());
@@ -533,7 +525,12 @@ export function TouchControls({
         pointerId: e.pointerId,
       });
     },
-    [lookTouch.pointerId, settings.doubleTapSprint, settings.hapticFeedback]
+    [
+      lookTouch.pointerId,
+      settings.doubleTapSprint,
+      settings.hapticFeedback,
+      settings.hapticIntensity,
+    ]
   );
 
   const handleScreenTouchMove = useCallback(
@@ -583,7 +580,13 @@ export function TouchControls({
       });
       lookSmootherRef.current.reset();
     },
-    [lookTouch.pointerId, settings.swipeWeaponSwitch, settings.hapticFeedback, activeWeapon]
+    [
+      lookTouch.pointerId,
+      settings.swipeWeaponSwitch,
+      settings.hapticFeedback,
+      activeWeapon,
+      settings.hapticIntensity,
+    ]
   );
 
   // Calculate thumb position
@@ -887,7 +890,12 @@ export function TouchControls({
       </div>
 
       {/* Right Side Action Buttons */}
-      <div className={styles.actionButtonColumn} style={buttonsStyle} role="group" aria-label="Action buttons">
+      <div
+        className={styles.actionButtonColumn}
+        style={buttonsStyle}
+        role="group"
+        aria-label="Action buttons"
+      >
         {/* Fire Button - Large, prominent */}
         <button
           type="button"
@@ -903,8 +911,12 @@ export function TouchControls({
           aria-label="Fire weapon"
           aria-pressed={isFiring}
         >
-          <span className={styles.buttonIcon} aria-hidden="true">+</span>
-          <span className={styles.buttonLabel} aria-hidden="true">FIRE</span>
+          <span className={styles.buttonIcon} aria-hidden="true">
+            +
+          </span>
+          <span className={styles.buttonLabel} aria-hidden="true">
+            FIRE
+          </span>
         </button>
 
         {/* Reload Button with progress indicator */}
@@ -916,7 +928,11 @@ export function TouchControls({
             height: `${controlSizes.smallButtonSize}px`,
           }}
           onPointerDown={handleReload}
-          aria-label={reloadProgress !== undefined ? `Reloading: ${Math.round(reloadProgress * 100)}%` : 'Reload weapon'}
+          aria-label={
+            reloadProgress !== undefined
+              ? `Reloading: ${Math.round(reloadProgress * 100)}%`
+              : 'Reload weapon'
+          }
         >
           {reloadProgress !== undefined && (
             <div
@@ -928,7 +944,9 @@ export function TouchControls({
               aria-valuenow={Math.round(reloadProgress * 100)}
             />
           )}
-          <span className={styles.buttonLabel} aria-hidden="true">R</span>
+          <span className={styles.buttonLabel} aria-hidden="true">
+            R
+          </span>
         </button>
 
         {/* Secondary buttons row */}
@@ -952,8 +970,12 @@ export function TouchControls({
             aria-label="Jump"
             aria-pressed={isJumping}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">^</span>
-            <span className={styles.buttonLabel} aria-hidden="true">JUMP</span>
+            <span className={styles.buttonIcon} aria-hidden="true">
+              ^
+            </span>
+            <span className={styles.buttonLabel} aria-hidden="true">
+              JUMP
+            </span>
           </button>
 
           {/* Crouch Button - Double tap for slide */}
@@ -971,8 +993,12 @@ export function TouchControls({
             aria-label="Crouch (double-tap to slide)"
             aria-pressed={isCrouching || isSlideActive}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">{isSlideActive ? '_' : 'v'}</span>
-            <span className={styles.buttonLabel} aria-hidden="true">{isSlideActive ? 'SLIDE' : 'DUCK'}</span>
+            <span className={styles.buttonIcon} aria-hidden="true">
+              {isSlideActive ? '_' : 'v'}
+            </span>
+            <span className={styles.buttonLabel} aria-hidden="true">
+              {isSlideActive ? 'SLIDE' : 'DUCK'}
+            </span>
           </button>
         </div>
 
@@ -995,8 +1021,12 @@ export function TouchControls({
           aria-label="Sprint"
           aria-pressed={isSprinting}
         >
-          <span className={styles.buttonIcon} aria-hidden="true">&gt;&gt;</span>
-          <span className={styles.buttonLabel} aria-hidden="true">RUN</span>
+          <span className={styles.buttonIcon} aria-hidden="true">
+            &gt;&gt;
+          </span>
+          <span className={styles.buttonLabel} aria-hidden="true">
+            RUN
+          </span>
         </button>
 
         {/* Combat buttons row - Melee and Grenade */}
@@ -1010,7 +1040,11 @@ export function TouchControls({
               height: `${controlSizes.smallButtonSize}px`,
             }}
             onPointerDown={handleMelee}
-            aria-label={meleeCooldown < 100 ? `Melee (cooldown: ${Math.round(100 - meleeCooldown)}%)` : 'Melee attack'}
+            aria-label={
+              meleeCooldown < 100
+                ? `Melee (cooldown: ${Math.round(100 - meleeCooldown)}%)`
+                : 'Melee attack'
+            }
             disabled={meleeCooldown < 100 && meleeCooldown > 0}
           >
             {meleeCooldown > 0 && meleeCooldown < 100 && (
@@ -1020,8 +1054,12 @@ export function TouchControls({
                 aria-hidden="true"
               />
             )}
-            <span className={styles.buttonIcon} aria-hidden="true">M</span>
-            <span className={styles.buttonLabel} aria-hidden="true">MELEE</span>
+            <span className={styles.buttonIcon} aria-hidden="true">
+              M
+            </span>
+            <span className={styles.buttonLabel} aria-hidden="true">
+              MELEE
+            </span>
           </button>
 
           {/* Grenade Button with count - Long press to aim */}
@@ -1038,11 +1076,13 @@ export function TouchControls({
             onPointerLeave={handleGrenadeEnd}
             aria-label={`Throw grenade (${grenadeCount} remaining). Hold to aim.`}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">G</span>
-            <span className={styles.buttonLabel} aria-hidden="true">{grenadeCount}</span>
-            {isAimingGrenade && (
-              <div className={styles.aimIndicator} aria-hidden="true" />
-            )}
+            <span className={styles.buttonIcon} aria-hidden="true">
+              G
+            </span>
+            <span className={styles.buttonLabel} aria-hidden="true">
+              {grenadeCount}
+            </span>
+            {isAimingGrenade && <div className={styles.aimIndicator} aria-hidden="true" />}
           </button>
         </div>
 
@@ -1058,8 +1098,12 @@ export function TouchControls({
             onPointerDown={handleInteract}
             aria-label={`Interact: ${interactionLabel}`}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">E</span>
-            <span className={styles.buttonLabel} aria-hidden="true">{interactionLabel}</span>
+            <span className={styles.buttonIcon} aria-hidden="true">
+              E
+            </span>
+            <span className={styles.buttonLabel} aria-hidden="true">
+              {interactionLabel}
+            </span>
           </button>
         )}
 
@@ -1092,8 +1136,12 @@ export function TouchControls({
                         aria-label={DYNAMIC_ACTION_LABELS[action]}
                         aria-pressed={isActive}
                       >
-                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
-                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                        <span className={styles.buttonIcon} aria-hidden="true">
+                          {config.icon}
+                        </span>
+                        <span className={styles.buttonLabel} aria-hidden="true">
+                          {config.shortLabel}
+                        </span>
                       </button>
                     );
                   })}
@@ -1127,8 +1175,12 @@ export function TouchControls({
                         aria-label={DYNAMIC_ACTION_LABELS[action]}
                         aria-pressed={isActive}
                       >
-                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
-                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                        <span className={styles.buttonIcon} aria-hidden="true">
+                          {config.icon}
+                        </span>
+                        <span className={styles.buttonLabel} aria-hidden="true">
+                          {config.shortLabel}
+                        </span>
                       </button>
                     );
                   })}
@@ -1162,8 +1214,12 @@ export function TouchControls({
                         aria-label={DYNAMIC_ACTION_LABELS[action]}
                         aria-pressed={isActive}
                       >
-                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
-                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                        <span className={styles.buttonIcon} aria-hidden="true">
+                          {config.icon}
+                        </span>
+                        <span className={styles.buttonLabel} aria-hidden="true">
+                          {config.shortLabel}
+                        </span>
                       </button>
                     );
                   })}
@@ -1197,8 +1253,12 @@ export function TouchControls({
                         aria-label={DYNAMIC_ACTION_LABELS[action]}
                         aria-pressed={isActive}
                       >
-                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
-                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                        <span className={styles.buttonIcon} aria-hidden="true">
+                          {config.icon}
+                        </span>
+                        <span className={styles.buttonLabel} aria-hidden="true">
+                          {config.shortLabel}
+                        </span>
                       </button>
                     );
                   })}
@@ -1208,7 +1268,11 @@ export function TouchControls({
 
             {/* Movement Abilities Group */}
             {groupedDynamicActions.has('movement') && (
-              <div className={styles.dynamicActionGroup} role="group" aria-label="Movement abilities">
+              <div
+                className={styles.dynamicActionGroup}
+                role="group"
+                aria-label="Movement abilities"
+              >
                 <span className={styles.dynamicGroupLabel}>MOVE</span>
                 <div className={styles.dynamicActionRow}>
                   {groupedDynamicActions.get('movement')!.map((action) => {
@@ -1232,8 +1296,12 @@ export function TouchControls({
                         aria-label={DYNAMIC_ACTION_LABELS[action]}
                         aria-pressed={isActive}
                       >
-                        <span className={styles.buttonIcon} aria-hidden="true">{config.icon}</span>
-                        <span className={styles.buttonLabel} aria-hidden="true">{config.shortLabel}</span>
+                        <span className={styles.buttonIcon} aria-hidden="true">
+                          {config.icon}
+                        </span>
+                        <span className={styles.buttonLabel} aria-hidden="true">
+                          {config.shortLabel}
+                        </span>
                       </button>
                     );
                   })}
@@ -1267,11 +1335,17 @@ export function TouchControls({
               }
             }}
           >
-            <span className={styles.weaponIcon} aria-hidden="true">{weapon.icon}</span>
-            <span className={styles.weaponName} aria-hidden="true">{weapon.name}</span>
+            <span className={styles.weaponIcon} aria-hidden="true">
+              {weapon.icon}
+            </span>
+            <span className={styles.weaponName} aria-hidden="true">
+              {weapon.name}
+            </span>
           </button>
         ))}
-        <span className={styles.swipeHint} aria-hidden="true">SWIPE TO SWITCH</span>
+        <span className={styles.swipeHint} aria-hidden="true">
+          SWIPE TO SWITCH
+        </span>
       </div>
 
       {/* Top Right Buttons: Pause and Settings */}
@@ -1311,7 +1385,9 @@ export function TouchControls({
           aria-modal="true"
           aria-labelledby="touch-settings-title"
         >
-          <h3 id="touch-settings-title" className={styles.settingsTitle}>Touch Controls</h3>
+          <h3 id="touch-settings-title" className={styles.settingsTitle}>
+            Touch Controls
+          </h3>
 
           {/* Aiming Section */}
           <div className={styles.settingSection}>

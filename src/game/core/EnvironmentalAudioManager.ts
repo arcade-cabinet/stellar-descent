@@ -15,7 +15,6 @@
  * - Event layer: Triggered sounds (e.g., PA announcements, alien shrieks)
  */
 
-import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { LevelId } from '../levels/types';
 import { getLogger } from './Logger';
 
@@ -193,7 +192,6 @@ export class EnvironmentalAudioManager {
   private intervalIds: ReturnType<typeof setInterval>[] = [];
   private timeoutIds: ReturnType<typeof setTimeout>[] = [];
   private animationFrameId: number | null = null;
-  private time = 0;
 
   // ============================================================================
   // INITIALIZATION
@@ -2182,7 +2180,7 @@ export class EnvironmentalAudioManager {
   // LAYER MANAGEMENT
   // ============================================================================
 
-  private createLayer(id: string): AudioLayer {
+  private createLayer(_id: string): AudioLayer {
     const ctx = this.getContext();
     return {
       nodes: [],

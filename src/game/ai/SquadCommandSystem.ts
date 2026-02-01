@@ -121,7 +121,7 @@ export const COMMAND_ACKNOWLEDGMENTS: Record<SquadCommand, string[]> = {
     'Scouting ahead!',
     "I'll check it out!",
     'Recon mission active!',
-    "Let me take a look!",
+    'Let me take a look!',
   ],
   FLANK_TARGET: [
     "Going around - I'll hit them from the side!",
@@ -133,7 +133,10 @@ export const COMMAND_ACKNOWLEDGMENTS: Record<SquadCommand, string[]> = {
 };
 
 // Command UI labels and icons
-export const COMMAND_INFO: Record<SquadCommand, { label: string; icon: string; description: string }> = {
+export const COMMAND_INFO: Record<
+  SquadCommand,
+  { label: string; icon: string; description: string }
+> = {
   FOLLOW_ME: {
     label: 'FOLLOW ME',
     icon: '\u2B9D', // Up arrow
@@ -182,12 +185,10 @@ export class SquadCommandSystem {
 
   // Current command state
   private activeCommand: SquadCommandData | null = null;
-  private previousCommand: SquadCommand | null = null;
 
   // Command wheel state
   private isCommandWheelOpen: boolean = false;
   private selectedCommand: SquadCommand | null = null;
-  private commandWheelOpenTime: number = 0;
 
   // Visual markers
   private holdPositionMarker: Mesh | null = null;
@@ -272,11 +273,11 @@ export class SquadCommandSystem {
     const segmentIndex = Math.floor(((offsetAngle + Math.PI / 2) % (Math.PI * 2)) / segmentAngle);
 
     const commands: SquadCommand[] = [
-      'FOLLOW_ME',       // Top
-      'ATTACK_TARGET',   // Top-right
+      'FOLLOW_ME', // Top
+      'ATTACK_TARGET', // Top-right
       'SUPPRESSING_FIRE', // Bottom-right
-      'REGROUP',         // Bottom-left
-      'HOLD_POSITION',   // Top-left
+      'REGROUP', // Bottom-left
+      'HOLD_POSITION', // Top-left
     ];
 
     this.selectedCommand = commands[segmentIndex % 5];
@@ -401,13 +402,14 @@ export class SquadCommandSystem {
     if (!this.activeCommand) return null;
 
     switch (this.activeCommand.command) {
-      case 'FOLLOW_ME':
+      case 'FOLLOW_ME': {
         // Stay behind player at configured distance
         const behindPlayer = this.playerPosition.subtract(
           this.playerForward.scale(this.config.followDistance)
         );
         behindPlayer.y = 0;
         return behindPlayer;
+      }
 
       case 'HOLD_POSITION':
         // Return to hold position if drifted too far
@@ -435,7 +437,7 @@ export class SquadCommandSystem {
         // Hold position while suppressing
         return marcusPosition;
 
-      case 'REGROUP':
+      case 'REGROUP': {
         // Move directly to player with urgency
         const toPlayer = this.playerPosition.subtract(marcusPosition);
         toPlayer.y = 0;
@@ -445,6 +447,7 @@ export class SquadCommandSystem {
         // Close enough, switch to follow mode
         this.issueCommand('FOLLOW_ME');
         return null;
+      }
 
       default:
         return null;
@@ -637,7 +640,8 @@ export class SquadCommandSystem {
     // Animate attack target marker
     if (this.attackTargetMarker && !this.attackTargetMarker.isDisposed()) {
       this.attackTargetMarker.rotation.y += 0.02;
-      this.attackTargetMarker.position.y = (this.activeCommand?.targetPosition?.y ?? 0) + 3 + Math.sin(time) * 0.3;
+      this.attackTargetMarker.position.y =
+        (this.activeCommand?.targetPosition?.y ?? 0) + 3 + Math.sin(time) * 0.3;
     }
 
     // Animate suppression marker

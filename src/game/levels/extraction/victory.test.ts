@@ -126,21 +126,31 @@ vi.mock('./enemies', () => ({
   clearAllEnemies: vi.fn().mockReturnValue(5),
 }));
 
+// Mock EventBus for testing event emissions
+const mockEventBusEmit = vi.fn();
+vi.mock('../../core/EventBus', () => ({
+  getEventBus: () => ({
+    emit: mockEventBusEmit,
+    subscribe: vi.fn(() => vi.fn()),
+  }),
+  disposeEventBus: vi.fn(),
+}));
+
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import {
-  createVictoryState,
-  startDropshipEngineSounds,
-  stopDropshipEngineSounds,
-  startEngineThrustEffects,
-  stopEngineThrustEffects,
   animateDropshipApproach,
   animateDropshipLanding,
   animateRampOpening,
-  startDropshipArrival,
-  showEpilogue,
+  createVictoryState,
   disposeVictoryState,
-  type VictoryState,
+  showEpilogue,
+  startDropshipArrival,
+  startDropshipEngineSounds,
+  startEngineThrustEffects,
+  stopDropshipEngineSounds,
+  stopEngineThrustEffects,
   type VictoryContext,
+  type VictoryState,
 } from './victory';
 
 // Helper to create mock victory context
@@ -151,14 +161,6 @@ function createMockContext(): VictoryContext {
       clearColor: { r: 0, g: 0, b: 0, a: 1 },
     } as any,
     state: createVictoryState(),
-    callbacks: {
-      onNotification: vi.fn(),
-      onObjectiveUpdate: vi.fn(),
-      onCommsMessage: vi.fn(),
-      onCinematicStart: vi.fn(),
-      onCinematicEnd: vi.fn(),
-      onCombatStateChange: vi.fn(),
-    } as any,
     dropship: {
       setEnabled: vi.fn(),
       position: { x: 0, y: 0, z: 0, set: vi.fn() },
@@ -358,11 +360,9 @@ describe('Victory Sequence', () => {
           ...createVictoryState(),
           cinematic_active: true,
         };
-        const callbacks = {
-          onNotification: vi.fn(),
-        } as any;
         const triggerShake = vi.fn();
         const onComplete = vi.fn();
+        mockEventBusEmit.mockClear();
 
         animateDropshipLanding(
           scene,
@@ -371,13 +371,16 @@ describe('Victory Sequence', () => {
           new Vector3(0, 6, -500),
           6000,
           state,
-          callbacks,
           triggerShake,
           onComplete
         );
 
         expect(state.cinematic_beat).toBe(2);
-        expect(callbacks.onNotification).toHaveBeenCalledWith('TOUCHDOWN IMMINENT', 2000);
+        expect(mockEventBusEmit).toHaveBeenCalledWith({
+          type: 'NOTIFICATION',
+          text: 'TOUCHDOWN IMMINENT',
+          duration: 2000,
+        });
         expect(scene.beginAnimation).toHaveBeenCalled();
 
         // Advance to trigger dust effects
@@ -412,25 +415,37 @@ describe('Victory Sequence', () => {
 
     it('should activate cinematic and show notifications', () => {
       const ctx = createMockContext();
+      mockEventBusEmit.mockClear();
 
       startDropshipArrival(ctx);
 
       expect(ctx.state.cinematic_active).toBe(true);
-      expect(ctx.callbacks.onCinematicStart).toHaveBeenCalled();
+      expect(mockEventBusEmit).toHaveBeenCalledWith({ type: 'CINEMATIC_START' });
       expect(ctx.disposeCollapseResources).toHaveBeenCalled();
-      expect(ctx.callbacks.onNotification).toHaveBeenCalledWith('CONTACT - INCOMING FRIENDLY', 2000);
+      expect(mockEventBusEmit).toHaveBeenCalledWith({
+        type: 'NOTIFICATION',
+        text: 'CONTACT - INCOMING FRIENDLY',
+        duration: 2000,
+      });
     });
 
     it('should schedule comms messages', () => {
       const ctx = createMockContext();
+      mockEventBusEmit.mockClear();
 
       startDropshipArrival(ctx);
 
       vi.advanceTimersByTime(300);
-      expect(ctx.callbacks.onCommsMessage).toHaveBeenCalled();
+      expect(mockEventBusEmit).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'COMMS_MESSAGE' })
+      );
 
       vi.advanceTimersByTime(1500);
-      expect(ctx.callbacks.onCommsMessage).toHaveBeenCalledTimes(2);
+      // Check that COMMS_MESSAGE events were emitted multiple times
+      const commsEvents = mockEventBusEmit.mock.calls.filter(
+        (call) => call[0]?.type === 'COMMS_MESSAGE'
+      );
+      expect(commsEvents.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should enable dropship and start approach after delay', () => {
@@ -459,12 +474,16 @@ describe('Victory Sequence', () => {
     it('should transition to epilogue state', () => {
       const ctx = createMockContext();
       ctx.state.cinematic_active = true;
+      mockEventBusEmit.mockClear();
 
       showEpilogue(ctx, 'extraction');
 
       expect(ctx.state.cinematic_beat).toBe(5);
-      expect(ctx.callbacks.onCombatStateChange).toHaveBeenCalledWith(false);
-      expect(ctx.callbacks.onCinematicEnd).toHaveBeenCalled();
+      expect(mockEventBusEmit).toHaveBeenCalledWith({
+        type: 'COMBAT_STATE_CHANGED',
+        inCombat: false,
+      });
+      expect(mockEventBusEmit).toHaveBeenCalledWith({ type: 'CINEMATIC_END' });
     });
 
     it('should play victory music and trigger achievements', async () => {
@@ -480,43 +499,66 @@ describe('Victory Sequence', () => {
       expect(AudioManagerModule.getAudioManager().playMusic).toHaveBeenCalledWith('victory', 2);
       expect(AchievementModule.getAchievementManager().onGameComplete).toHaveBeenCalled();
       expect(SaveSystemModule.saveSystem.completeLevel).toHaveBeenCalledWith('extraction');
-      expect(SaveSystemModule.saveSystem.setObjective).toHaveBeenCalledWith('campaign_complete', true);
+      expect(SaveSystemModule.saveSystem.setObjective).toHaveBeenCalledWith(
+        'campaign_complete',
+        true
+      );
     });
 
     it('should show mission complete notification', () => {
       const ctx = createMockContext();
       ctx.state.cinematic_active = true;
+      mockEventBusEmit.mockClear();
 
       showEpilogue(ctx, 'extraction');
 
-      expect(ctx.callbacks.onNotification).toHaveBeenCalledWith('MISSION COMPLETE', 5000);
-      expect(ctx.callbacks.onObjectiveUpdate).toHaveBeenCalledWith('STELLAR DESCENT', 'Mission Complete');
+      expect(mockEventBusEmit).toHaveBeenCalledWith({
+        type: 'NOTIFICATION',
+        text: 'MISSION COMPLETE',
+        duration: 5000,
+      });
+      expect(mockEventBusEmit).toHaveBeenCalledWith({
+        type: 'OBJECTIVE_UPDATED',
+        title: 'STELLAR DESCENT',
+        instructions: 'Mission Complete',
+      });
     });
 
     it('should schedule debrief comms', () => {
       const ctx = createMockContext();
       ctx.state.cinematic_active = true;
+      mockEventBusEmit.mockClear();
 
       showEpilogue(ctx, 'extraction');
 
       // Airborne comms at 2s
       vi.advanceTimersByTime(2100);
-      expect(ctx.callbacks.onCommsMessage).toHaveBeenCalled();
+      expect(mockEventBusEmit).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'COMMS_MESSAGE' })
+      );
 
       // Commander debrief at 4s
       vi.advanceTimersByTime(2000);
-      expect(ctx.callbacks.onCommsMessage).toHaveBeenCalled();
+      const commsEvents = mockEventBusEmit.mock.calls.filter(
+        (call) => call[0]?.type === 'COMMS_MESSAGE'
+      );
+      expect(commsEvents.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should complete level after final dialogue', () => {
       const ctx = createMockContext();
       ctx.state.cinematic_active = true;
+      mockEventBusEmit.mockClear();
 
       showEpilogue(ctx, 'extraction');
 
       vi.advanceTimersByTime(20100);
 
-      expect(ctx.callbacks.onObjectiveUpdate).toHaveBeenCalledWith('STELLAR DESCENT', 'CAMPAIGN COMPLETE');
+      expect(mockEventBusEmit).toHaveBeenCalledWith({
+        type: 'OBJECTIVE_UPDATED',
+        title: 'STELLAR DESCENT',
+        instructions: 'CAMPAIGN COMPLETE',
+      });
       expect(ctx.completeLevel).toHaveBeenCalled();
     });
 

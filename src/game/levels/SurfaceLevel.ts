@@ -13,7 +13,7 @@
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -21,7 +21,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { SkyboxManager, type SkyboxResult, type SkyboxType } from '../core/SkyboxManager';
 import { BaseLevel } from './BaseLevel';
-import type { LevelCallbacks, LevelConfig } from './types';
+import type { LevelConfig } from './types';
 
 // Surface-specific configuration
 export interface SurfaceConfig {
@@ -71,10 +71,9 @@ export abstract class SurfaceLevel extends BaseLevel {
     engine: Engine,
     canvas: HTMLCanvasElement,
     config: LevelConfig,
-    callbacks: LevelCallbacks,
     surfaceConfig: SurfaceConfig = {}
   ) {
-    super(engine, canvas, config, callbacks);
+    super(engine, canvas, config);
     this.surfaceConfig = {
       terrainSize: 500,
       heightScale: 50,
@@ -266,7 +265,7 @@ export abstract class SurfaceLevel extends BaseLevel {
   protected setCombatState(inCombat: boolean): void {
     if (this.inCombat !== inCombat) {
       this.inCombat = inCombat;
-      this.callbacks.onCombatStateChange(inCombat);
+      this.emitCombatStateChanged(inCombat);
     }
   }
 

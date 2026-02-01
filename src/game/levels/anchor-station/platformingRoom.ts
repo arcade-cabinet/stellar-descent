@@ -156,7 +156,9 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1.5, 1, 1.5)
   );
   if (!platform1Visual) {
-    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformSmall}`);
+    throw new Error(
+      `[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformSmall}`
+    );
   }
 
   // Handrail visual
@@ -193,7 +195,9 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1.5, 1, 1.5)
   );
   if (!platform2Visual) {
-    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformBx1}`);
+    throw new Error(
+      `[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformBx1}`
+    );
   }
 
   // Caution stripes (keep as simple boxes for visual clarity)
@@ -232,7 +236,9 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1.5, 1, 1.5)
   );
   if (!platform3Visual) {
-    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformBx2}`);
+    throw new Error(
+      `[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformBx2}`
+    );
   }
 
   // Handrail on platform 3
@@ -350,7 +356,9 @@ export function createPlatformingRoom(params: CreatePlatformingRoomParams): Plat
     new Vector3(1, 1, 1)
   );
   if (!platform4Visual) {
-    throw new Error(`[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformLarge}`);
+    throw new Error(
+      `[PlatformingRoom] Failed to load platform GLB: ${PLATFORM_ASSETS.platformLarge}`
+    );
   }
 
   // Completion marker (keep as MeshBuilder for animation)

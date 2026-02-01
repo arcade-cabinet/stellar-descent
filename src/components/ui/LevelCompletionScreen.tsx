@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Achievement, getAchievementManager } from '../../game/achievements';
-import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
-import type { LevelId, LevelStats as LevelStatsFromTypes } from '../../game/levels/types';
-import { leaderboardSystem, getPlayerName } from '../../game/social';
+import { useDifficultyStore } from '../../game/difficulty';
+import type { LevelId } from '../../game/levels/types';
+import { getPlayerName, leaderboardSystem } from '../../game/social';
 import type { LeaderboardSubmission } from '../../game/social/LeaderboardTypes';
+import { useCombatStore } from '../../game/stores/useCombatStore';
 import { LeaderboardScreen } from './LeaderboardScreen';
-import { ShareDialog } from './ShareDialog';
 import styles from './LevelCompletionScreen.module.css';
 import { MilitaryButton } from './MilitaryButton';
+import { ShareDialog } from './ShareDialog';
 
 /**
  * Stats collected during level gameplay
@@ -343,7 +344,8 @@ export function LevelCompletionScreen({
   stats,
   isFinalLevel = false,
 }: LevelCompletionScreenProps) {
-  const { kills, difficulty } = useGame();
+  const kills = useCombatStore((state) => state.kills);
+  const difficulty = useDifficultyStore((state) => state.difficulty);
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
@@ -687,7 +689,9 @@ export function LevelCompletionScreen({
         </h1>
 
         {/* Mission name */}
-        <p id="completion-mission" className={styles.missionName}>{missionName}</p>
+        <p id="completion-mission" className={styles.missionName}>
+          {missionName}
+        </p>
 
         {/* Divider */}
         <div className={styles.divider} aria-hidden="true">
@@ -927,10 +931,18 @@ export function LevelCompletionScreen({
         >
           <span className={styles.ratingLabel}>PERFORMANCE RATING</span>
           <div className={styles.ratingDisplay}>
-            <span className={`${styles.ratingValue} ${ratingClass}`} aria-hidden="true">{rating}</span>
-            {newRecords.rating && <span className={styles.ratingNewRecord} aria-hidden="true">NEW BEST!</span>}
+            <span className={`${styles.ratingValue} ${ratingClass}`} aria-hidden="true">
+              {rating}
+            </span>
+            {newRecords.rating && (
+              <span className={styles.ratingNewRecord} aria-hidden="true">
+                NEW BEST!
+              </span>
+            )}
           </div>
-          <span className={styles.ratingDescription} aria-hidden="true">{ratingDescription}</span>
+          <span className={styles.ratingDescription} aria-hidden="true">
+            {ratingDescription}
+          </span>
         </div>
 
         {/* Achievements earned */}
@@ -958,27 +970,27 @@ export function LevelCompletionScreen({
           <MilitaryButton
             variant="primary"
             onClick={handleContinue}
-            icon={<>{isFinalLevel ? '\u2605' : '\u25B6'}</>}
+            icon={isFinalLevel ? '\u2605' : '\u25B6'}
             buttonRef={continueButtonRef}
           >
             {isFinalLevel ? 'VIEW CREDITS' : 'CONTINUE'}
           </MilitaryButton>
 
-          <MilitaryButton onClick={handleShowShare} icon={<>{'\u2197'}</>}>
+          <MilitaryButton onClick={handleShowShare} icon={'\u2197'}>
             SHARE
           </MilitaryButton>
 
-          <MilitaryButton onClick={handleShowLeaderboard} icon={<>{'\u2605'}</>}>
+          <MilitaryButton onClick={handleShowLeaderboard} icon={'\u2605'}>
             LEADERBOARDS
           </MilitaryButton>
 
           {onRetry && (
-            <MilitaryButton onClick={handleRetry} icon={<>{'\u21BB'}</>}>
+            <MilitaryButton onClick={handleRetry} icon={'\u21BB'}>
               RETRY MISSION
             </MilitaryButton>
           )}
 
-          <MilitaryButton onClick={handleMainMenu} icon={<>{'\u25C0'}</>}>
+          <MilitaryButton onClick={handleMainMenu} icon={'\u25C0'}>
             MAIN MENU
           </MilitaryButton>
         </div>

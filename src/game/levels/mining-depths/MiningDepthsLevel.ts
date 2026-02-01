@@ -22,7 +22,6 @@
  * - Comms dialogue with Reyes providing guidance
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { SpotLight } from '@babylonjs/core/Lights/spotLight';
@@ -38,12 +37,13 @@ import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('MiningDepths');
+
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { BaseLevel } from '../BaseLevel';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import type { LevelId } from '../types';
 
 // ---------------------------------------------------------------------------
 // GLB Asset Paths for boss & level-specific models
@@ -58,17 +58,15 @@ const BOSS_GLB_PATHS = {
   eyeGlow: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
 } as const;
 
-const ALL_BOSS_GLB_PATHS: readonly string[] = [
-  ...new Set(Object.values(BOSS_GLB_PATHS)),
-];
+const ALL_BOSS_GLB_PATHS: readonly string[] = [...new Set(Object.values(BOSS_GLB_PATHS))];
 
 /** Unique counter for boss instance naming */
 let _bossInstanceCounter = 0;
+
 import {
   AUDIO_LOGS,
   type AudioLogPickup,
   createMiningEnvironment,
-  type FlickerLightDef,
   HAZARD_ZONES,
   type HazardZone,
   MINE_POSITIONS,
@@ -137,7 +135,6 @@ const BURROWER_SCALE = 0.8;
 export class MiningDepthsLevel extends BaseLevel {
   // Phase management
   private phase: MiningPhase = 'arrival';
-  private phaseTime = 0;
 
   // Environment
   private environment: MiningEnvironment | null = null;
@@ -158,7 +155,6 @@ export class MiningDepthsLevel extends BaseLevel {
 
   // Objectives
   private objectiveMarker: Mesh | null = null;
-  private currentObjective: Vector3 | null = null;
 
   // Keycard
   private hasKeycard = false;
@@ -166,7 +162,6 @@ export class MiningDepthsLevel extends BaseLevel {
 
   // Audio logs
   private audioLogs: AudioLogPickup[] = [];
-  private audioLogsCollected = 0;
 
   // Hazards
   private hazardZones: HazardZone[] = [];
@@ -205,18 +200,6 @@ export class MiningDepthsLevel extends BaseLevel {
 
   // Comms message flags
   private messageFlags: Set<string> = new Set();
-
-  // Player health (local tracking for hazard damage)
-  private playerHealth = 100;
-
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks);
-  }
 
   protected getBackgroundColor(): Color4 {
     // Very dark underground - near black with slight blue tint
@@ -625,12 +608,12 @@ export class MiningDepthsLevel extends BaseLevel {
 
     // Register action handler
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
 
     // Set initial UI
     this.updateActionButtons();
-    this.callbacks.onNotification('THE MINING DEPTHS - LV-847', 3000);
-    this.callbacks.onObjectiveUpdate(
+    this.emitNotification('THE MINING DEPTHS - LV-847', 3000);
+    this.emitObjectiveUpdate(
       'INVESTIGATE THE MINES',
       'Explore the abandoned mining facility. Find a way deeper.'
     );
@@ -663,7 +646,7 @@ export class MiningDepthsLevel extends BaseLevel {
 
     switch (newPhase) {
       case 'hub_explore':
-        this.callbacks.onObjectiveUpdate(
+        this.emitObjectiveUpdate(
           'EXPLORE THE MINING HUB',
           'Search for a keycard to access the deep shaft. Check audio logs.'
         );
@@ -676,7 +659,7 @@ export class MiningDepthsLevel extends BaseLevel {
         break;
 
       case 'tunnels':
-        this.callbacks.onObjectiveUpdate(
+        this.emitObjectiveUpdate(
           'NAVIGATE COLLAPSED TUNNELS',
           'Find a path through the cave-ins. Watch for hazards.'
         );
@@ -697,7 +680,7 @@ export class MiningDepthsLevel extends BaseLevel {
         break;
 
       case 'shaft_descent':
-        this.callbacks.onObjectiveUpdate(
+        this.emitObjectiveUpdate(
           'DESCEND THE DEEP SHAFT',
           'Use the ledges to reach the bottom. Something is down there.'
         );
@@ -726,7 +709,7 @@ export class MiningDepthsLevel extends BaseLevel {
         break;
 
       case 'exit':
-        this.callbacks.onObjectiveUpdate('LEVEL COMPLETE', 'The mining facility has been cleared.');
+        this.emitObjectiveUpdate('LEVEL COMPLETE', 'The mining facility has been cleared.');
         this.clearObjective();
         break;
     }
@@ -1047,7 +1030,7 @@ export class MiningDepthsLevel extends BaseLevel {
 
       case 'shaft_gate':
         if (this.hasKeycard && !this.shaftGateOpen) {
-          this.callbacks.onNotification('PRESS E TO USE KEYCARD', 2000);
+          this.emitNotification('PRESS E TO USE KEYCARD', 2000);
         }
         break;
 
@@ -1090,11 +1073,11 @@ export class MiningDepthsLevel extends BaseLevel {
 
             if (accum >= 1.0) {
               this.hazardDamageAccumulator.set(hazard.id, 0);
-              this.callbacks.onHealthChange(-hazard.damage);
+              this.emitHealthChanged(-hazard.damage);
               this.playerHealth -= hazard.damage;
               this.trackPlayerDamage(hazard.damage);
               this.triggerDamageFlash(0.3);
-              this.callbacks.onNotification('TOXIC GAS!', 500);
+              this.emitNotification('TOXIC GAS!', 500);
             }
             break;
           }
@@ -1103,12 +1086,12 @@ export class MiningDepthsLevel extends BaseLevel {
             const accum = this.hazardDamageAccumulator.get(hazard.id) ?? 0;
             if (accum === 0) {
               this.hazardDamageAccumulator.set(hazard.id, 1);
-              this.callbacks.onHealthChange(-hazard.damage);
+              this.emitHealthChanged(-hazard.damage);
               this.playerHealth -= hazard.damage;
               this.trackPlayerDamage(hazard.damage);
               this.triggerDamageFlash(0.5);
               this.triggerShake(5);
-              this.callbacks.onNotification('ROCKFALL!', 1000);
+              this.emitNotification('ROCKFALL!', 1000);
               this.playSound('explosion');
               // Disable after triggering
               hazard.active = false;
@@ -1121,7 +1104,7 @@ export class MiningDepthsLevel extends BaseLevel {
             const accum = this.hazardDamageAccumulator.get(hazard.id) ?? 0;
             if (accum === 0) {
               this.hazardDamageAccumulator.set(hazard.id, 1);
-              this.callbacks.onNotification('FLOODED SECTION - LIMITED VISIBILITY', 2000);
+              this.emitNotification('FLOODED SECTION - LIMITED VISIBILITY', 2000);
             }
             break;
           }
@@ -1163,7 +1146,7 @@ export class MiningDepthsLevel extends BaseLevel {
     }
 
     this.playSound('notification');
-    this.callbacks.onNotification(`AUDIO LOG: ${log.title}`, 3000);
+    this.emitNotification(`AUDIO LOG: ${log.title}`, 3000);
 
     // Play the log as a comms message
     setTimeout(() => {
@@ -1203,7 +1186,7 @@ export class MiningDepthsLevel extends BaseLevel {
     }
 
     this.playSound('notification');
-    this.callbacks.onNotification('DEEP SHAFT ACCESS KEYCARD ACQUIRED', 2000);
+    this.emitNotification('DEEP SHAFT ACCESS KEYCARD ACQUIRED', 2000);
 
     setTimeout(() => {
       this.sendCommsMessage('keycard_found', {
@@ -1213,7 +1196,7 @@ export class MiningDepthsLevel extends BaseLevel {
         text: 'Good, you have the access card. Head south through the tunnels to reach the deep shaft. That is where the strongest bio-signatures are coming from.',
       });
 
-      this.callbacks.onObjectiveUpdate(
+      this.emitObjectiveUpdate(
         'REACH THE DEEP SHAFT',
         'Navigate the collapsed tunnels to the deep shaft gate.'
       );
@@ -1232,7 +1215,7 @@ export class MiningDepthsLevel extends BaseLevel {
     }
 
     this.playSound('door_open');
-    this.callbacks.onNotification('SHAFT GATE UNLOCKED', 1500);
+    this.emitNotification('SHAFT GATE UNLOCKED', 1500);
 
     setTimeout(() => {
       this.sendCommsMessage('gate_open', {
@@ -1310,8 +1293,8 @@ export class MiningDepthsLevel extends BaseLevel {
 
     // Notification
     this.triggerShake(2);
-    this.callbacks.onNotification('MOVEMENT DETECTED!', 1000);
-    this.callbacks.onCombatStateChange(true);
+    this.emitNotification('MOVEMENT DETECTED!', 1000);
+    this.emitCombatStateChanged(true);
     this.setCombatState(true);
   }
 
@@ -1465,10 +1448,10 @@ export class MiningDepthsLevel extends BaseLevel {
       }
     }, 150);
 
-    this.callbacks.onHealthChange(-damage);
+    this.emitHealthChanged(-damage);
     this.playerHealth -= damage;
     damageFeedback.applyPlayerDamageFeedback(damage);
-    this.callbacks.onNotification('BURROWER ATTACK!', 500);
+    this.emitNotification('BURROWER ATTACK!', 500);
   }
 
   private onBurrowerKilled(burrower: BurrowerEnemy, index: number): void {
@@ -1476,7 +1459,7 @@ export class MiningDepthsLevel extends BaseLevel {
     this.activeEnemyCount--;
 
     particleManager.emitAlienDeath(burrower.mesh.position.clone(), 1.0);
-    this.callbacks.onKill();
+    this.recordKill();
     this.updateKillStreak(this.killCount);
 
     // Death animation
@@ -1500,7 +1483,7 @@ export class MiningDepthsLevel extends BaseLevel {
 
     // Check if all active enemies defeated
     if (this.activeEnemyCount <= 0 && this.burrowerSpawnQueue.length === 0 && !this.boss) {
-      this.callbacks.onCombatStateChange(false);
+      this.emitCombatStateChanged(false);
       this.setCombatState(false);
     }
   }
@@ -1510,8 +1493,8 @@ export class MiningDepthsLevel extends BaseLevel {
   // ==========================================================================
 
   private startBossFight(): void {
-    this.callbacks.onNotification('WARNING: HOSTILE ALPHA DETECTED', 3000);
-    this.callbacks.onCombatStateChange(true);
+    this.emitNotification('WARNING: HOSTILE ALPHA DETECTED', 3000);
+    this.emitCombatStateChanged(true);
     this.setCombatState(true);
 
     // Close arena door
@@ -1531,7 +1514,7 @@ export class MiningDepthsLevel extends BaseLevel {
       text: 'Massive bio-signature! That thing has drill-like appendages, probably mutated from exposure to the mining equipment. Its chitin armor is thick. Target the joints and exposed areas!',
     });
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'DEFEAT THE MINING DRILL CHITIN',
       'Destroy the armored alien. Target weak points between armor plates.'
     );
@@ -1542,7 +1525,9 @@ export class MiningDepthsLevel extends BaseLevel {
     const instanceId = _bossInstanceCounter++;
 
     if (!this.bossAssetsPreloaded) {
-      throw new Error('[MiningDepthsLevel] Boss assets not preloaded - call preloadBossModels() first');
+      throw new Error(
+        '[MiningDepthsLevel] Boss assets not preloaded - call preloadBossModels() first'
+      );
     }
 
     const bossRoot = AssetManager.createInstanceByPath(
@@ -1554,7 +1539,9 @@ export class MiningDepthsLevel extends BaseLevel {
     );
 
     if (!bossRoot) {
-      throw new Error(`[MiningDepthsLevel] Failed to create boss instance from: ${BOSS_GLB_PATHS.chitinBody}`);
+      throw new Error(
+        `[MiningDepthsLevel] Failed to create boss instance from: ${BOSS_GLB_PATHS.chitinBody}`
+      );
     }
 
     this.bossGlbInstances.push(bossRoot);
@@ -1617,7 +1604,7 @@ export class MiningDepthsLevel extends BaseLevel {
     // Enrage at 30% health
     if (!boss.isEnraged && boss.health < boss.maxHealth * 0.3) {
       boss.isEnraged = true;
-      this.callbacks.onNotification('THE CHITIN IS ENRAGED!', 2000);
+      this.emitNotification('THE CHITIN IS ENRAGED!', 2000);
       this.triggerShake(4);
     }
 
@@ -1675,7 +1662,7 @@ export class MiningDepthsLevel extends BaseLevel {
             // Impact!
             if (Vector3.Distance(playerPos, boss.mesh.position) < 3) {
               const chargeDamage = boss.isEnraged ? 30 : 20;
-              this.callbacks.onHealthChange(-chargeDamage);
+              this.emitHealthChanged(-chargeDamage);
               this.playerHealth -= chargeDamage;
               damageFeedback.applyPlayerDamageFeedback(chargeDamage);
               this.triggerShake(6);
@@ -1702,11 +1689,11 @@ export class MiningDepthsLevel extends BaseLevel {
         if (boss.stateTimer > 0.5) {
           if (dist < attackRange + 1) {
             const drillDamage = boss.isEnraged ? 25 : 15;
-            this.callbacks.onHealthChange(-drillDamage);
+            this.emitHealthChanged(-drillDamage);
             this.playerHealth -= drillDamage;
             damageFeedback.applyPlayerDamageFeedback(drillDamage);
             this.triggerShake(4);
-            this.callbacks.onNotification('DRILL ATTACK!', 500);
+            this.emitNotification('DRILL ATTACK!', 500);
           }
           boss.state = 'idle';
           boss.attackCooldown = boss.isEnraged ? 1.5 : 2.5;
@@ -1776,7 +1763,7 @@ export class MiningDepthsLevel extends BaseLevel {
     this.triggerShake(8);
     this.playSound('explosion');
     particleManager.emitAlienDeath(this.boss.mesh.position.clone(), 3.0);
-    this.callbacks.onNotification('MINING DRILL CHITIN DESTROYED!', 3000);
+    this.emitNotification('MINING DRILL CHITIN DESTROYED!', 3000);
 
     // Death animation
     const deathStart = performance.now();
@@ -1796,7 +1783,7 @@ export class MiningDepthsLevel extends BaseLevel {
     };
     requestAnimationFrame(animateDeath);
 
-    this.callbacks.onCombatStateChange(false);
+    this.emitCombatStateChanged(false);
     this.setCombatState(false);
 
     // Open arena door
@@ -1812,7 +1799,7 @@ export class MiningDepthsLevel extends BaseLevel {
         text: 'Incredible, Sergeant! That thing is down. Bio-scans show the area is clear. The mining complex is secure. Return to the surface for extraction.',
       });
 
-      this.callbacks.onKill();
+      this.recordKill();
       this.killCount++;
       this.updateKillStreak(this.killCount);
     }, 2000);
@@ -1833,7 +1820,7 @@ export class MiningDepthsLevel extends BaseLevel {
 
     // Check ammo
     if (!fireWeapon()) {
-      this.callbacks.onNotification('NO AMMO - RELOADING', 800);
+      this.emitNotification('NO AMMO - RELOADING', 800);
       startReload();
       return;
     }
@@ -1859,7 +1846,7 @@ export class MiningDepthsLevel extends BaseLevel {
         burrower.health -= this.PRIMARY_FIRE_DAMAGE;
         damageFeedback.applyDamageFeedback(burrower.mesh, this.PRIMARY_FIRE_DAMAGE, forward);
         particleManager.emitAlienSplatter(burrower.mesh.position, 0.6);
-        this.callbacks.onNotification('HIT!', 200);
+        this.emitNotification('HIT!', 200);
         hitEnemy = true;
         break;
       }
@@ -1883,7 +1870,7 @@ export class MiningDepthsLevel extends BaseLevel {
           particleManager.emitAlienSplatter(this.boss.mesh.position, 0.8);
 
           const healthPct = Math.round((this.boss.health / this.boss.maxHealth) * 100);
-          this.callbacks.onNotification(`BOSS: ${healthPct}%`, 300);
+          this.emitNotification(`BOSS: ${healthPct}%`, 300);
         }
       }
     }
@@ -1901,7 +1888,7 @@ export class MiningDepthsLevel extends BaseLevel {
     if (!hasTargets) return;
 
     this.meleeCooldown = this.MELEE_COOLDOWN;
-    this.callbacks.onNotification('MELEE!', 500);
+    this.emitNotification('MELEE!', 500);
 
     const playerPos = this.camera.position;
     const forward = new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
@@ -1936,8 +1923,8 @@ export class MiningDepthsLevel extends BaseLevel {
     }
 
     if (hitAny) {
-      this.callbacks.onNotification('HIT!', 300);
-      this.callbacks.onKill();
+      this.emitNotification('HIT!', 300);
+      this.recordKill();
     }
   }
 
@@ -1949,17 +1936,17 @@ export class MiningDepthsLevel extends BaseLevel {
     if (state.isReloading) return;
 
     if (state.currentAmmo >= state.maxMagazineSize) {
-      this.callbacks.onNotification('MAGAZINE FULL', 800);
+      this.emitNotification('MAGAZINE FULL', 800);
       return;
     }
 
     if (state.reserveAmmo <= 0) {
-      this.callbacks.onNotification('NO RESERVE AMMO', 800);
+      this.emitNotification('NO RESERVE AMMO', 800);
       return;
     }
 
     startReload();
-    this.callbacks.onNotification('RELOADING...', 1500);
+    this.emitNotification('RELOADING...', 1500);
   }
 
   private createMuzzleFlash(): void {
@@ -2021,11 +2008,11 @@ export class MiningDepthsLevel extends BaseLevel {
       this.flashlightFill.intensity = this.flashlightOn ? 0.4 : 0;
     }
     this.playSound(this.flashlightOn ? 'notification' : 'notification');
-    this.callbacks.onNotification(this.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF', 800);
+    this.emitNotification(this.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF', 800);
   }
 
   private activateScanner(): void {
-    this.callbacks.onNotification('SCANNING...', 1500);
+    this.emitNotification('SCANNING...', 1500);
     const playerPos = this.camera.position;
 
     // Scan for nearby objectives
@@ -2033,7 +2020,7 @@ export class MiningDepthsLevel extends BaseLevel {
       const keycardDist = Vector3.Distance(playerPos, MINE_POSITIONS.hubKeycard);
       if (keycardDist < 25) {
         setTimeout(() => {
-          this.callbacks.onNotification(`KEYCARD DETECTED - ${Math.round(keycardDist)}M`, 2000);
+          this.emitNotification(`KEYCARD DETECTED - ${Math.round(keycardDist)}M`, 2000);
           this.setObjective(MINE_POSITIONS.hubKeycard);
         }, 1500);
         return;
@@ -2046,7 +2033,7 @@ export class MiningDepthsLevel extends BaseLevel {
       const dist = Vector3.Distance(playerPos, log.position);
       if (dist < 20) {
         setTimeout(() => {
-          this.callbacks.onNotification(`AUDIO LOG DETECTED - ${Math.round(dist)}M`, 2000);
+          this.emitNotification(`AUDIO LOG DETECTED - ${Math.round(dist)}M`, 2000);
         }, 1500);
         return;
       }
@@ -2057,14 +2044,14 @@ export class MiningDepthsLevel extends BaseLevel {
       const gateDist = Vector3.Distance(playerPos, new Vector3(-10, -13, -110));
       if (gateDist < 25) {
         setTimeout(() => {
-          this.callbacks.onNotification(`SHAFT GATE - ${Math.round(gateDist)}M`, 2000);
+          this.emitNotification(`SHAFT GATE - ${Math.round(gateDist)}M`, 2000);
         }, 1500);
         return;
       }
     }
 
     setTimeout(() => {
-      this.callbacks.onNotification('NO TARGETS IN RANGE', 1500);
+      this.emitNotification('NO TARGETS IN RANGE', 1500);
     }, 1500);
   }
 
@@ -2154,7 +2141,7 @@ export class MiningDepthsLevel extends BaseLevel {
       });
     }
 
-    this.callbacks.onActionGroupsChange(groups);
+    this.emitActionGroupsChanged(groups);
   }
 
   private checkNearInteractable(): string | null {
@@ -2203,7 +2190,7 @@ export class MiningDepthsLevel extends BaseLevel {
   ): void {
     if (this.messageFlags.has(flag)) return;
     this.messageFlags.add(flag);
-    this.callbacks.onCommsMessage(message);
+    this.emitCommsMessage(message);
   }
 
   // ==========================================================================
@@ -2264,7 +2251,7 @@ export class MiningDepthsLevel extends BaseLevel {
   // TRANSITION
   // ==========================================================================
 
-  override canTransitionTo(levelId: LevelId): boolean {
+  override canTransitionTo(_levelId: LevelId): boolean {
     return this.bossDefeated && this.phase === 'exit';
   }
 
@@ -2274,8 +2261,8 @@ export class MiningDepthsLevel extends BaseLevel {
 
   protected disposeLevel(): void {
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
 
     // Dispose enemies
     for (const burrower of this.burrowers) {

@@ -52,16 +52,11 @@ export class ProceduralSFX {
   private metalPool: Tone.MetalSynth[] = [];
   private membranePool: Tone.MembraneSynth[] = [];
   private synthPool: Tone.Synth[] = [];
-  private poolIndex = { noise: 0, metal: 0, membrane: 0, synth: 0 };
   private readonly POOL_SIZE = 4;
 
   // Low health heartbeat state
   private heartbeatLoop: Tone.Loop | null = null;
   private heartbeatGain: Tone.Gain | null = null;
-
-  constructor() {
-    // Deferred initialization
-  }
 
   // ============================================================================
   // INITIALIZATION
@@ -120,34 +115,6 @@ export class ProceduralSFX {
     }
 
     this.isInitialized = true;
-  }
-
-  // ============================================================================
-  // POOL MANAGEMENT
-  // ============================================================================
-
-  private getNoise(): Tone.NoiseSynth {
-    const synth = this.noisePool[this.poolIndex.noise];
-    this.poolIndex.noise = (this.poolIndex.noise + 1) % this.POOL_SIZE;
-    return synth;
-  }
-
-  private getMetal(): Tone.MetalSynth {
-    const synth = this.metalPool[this.poolIndex.metal];
-    this.poolIndex.metal = (this.poolIndex.metal + 1) % this.POOL_SIZE;
-    return synth;
-  }
-
-  private getMembrane(): Tone.MembraneSynth {
-    const synth = this.membranePool[this.poolIndex.membrane];
-    this.poolIndex.membrane = (this.poolIndex.membrane + 1) % this.POOL_SIZE;
-    return synth;
-  }
-
-  private getSynth(): Tone.Synth {
-    const synth = this.synthPool[this.poolIndex.synth];
-    this.poolIndex.synth = (this.poolIndex.synth + 1) % this.POOL_SIZE;
-    return synth;
   }
 
   // ============================================================================

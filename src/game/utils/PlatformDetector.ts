@@ -100,7 +100,6 @@ function getFormFactor(): FormFactor {
       return 'tablet';
     case 'foldable':
       return 'foldable';
-    case 'desktop':
     default:
       return 'desktop';
   }
@@ -416,13 +415,14 @@ function getControllerDisplayName(gamepad: Gamepad, type: ControllerType): strin
       if (id.includes('joy-con')) return 'Joy-Con';
       return 'Nintendo Controller';
 
-    default:
+    default: {
       // Try to extract a cleaner name from the ID
       const match = gamepad.id.match(/^([^(]+)/);
       if (match) {
         return match[1].trim();
       }
       return 'Generic Controller';
+    }
   }
 }
 
@@ -473,7 +473,7 @@ function updateGamepadState(): void {
   const newConnected = new Map<number, GamepadInfo>();
 
   for (const gamepad of gamepads) {
-    if (gamepad && gamepad.connected) {
+    if (gamepad?.connected) {
       // Check if this is a new connection
       if (!connectedGamepads.has(gamepad.index)) {
         const type = detectControllerType(gamepad);

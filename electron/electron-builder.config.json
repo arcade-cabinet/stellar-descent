@@ -5,12 +5,7 @@
     "buildResources": "resources",
     "output": "dist"
   },
-  "files": [
-    "assets/**/*",
-    "build/**/*",
-    "capacitor.config.*",
-    "app/**/*"
-  ],
+  "files": ["assets/**/*", "build/**/*", "capacitor.config.*", "app/**/*"],
   "publish": {
     "provider": "github",
     "owner": "jbogaty",

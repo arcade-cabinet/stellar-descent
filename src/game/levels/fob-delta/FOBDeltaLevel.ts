@@ -22,7 +22,6 @@
  * - Increasing dread
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -31,26 +30,23 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { getAchievementManager } from '../../achievements';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('FOBDelta');
+
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { BaseLevel } from '../BaseLevel';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import type { BaseSegment, ModularBaseResult } from '../shared/ModularBaseBuilder';
 import {
   buildModularBase,
   updateFlickerLights as updateModularFlickerLights,
 } from '../shared/ModularBaseBuilder';
-import type {
-  BaseSegment,
-  ModularBaseResult,
-} from '../shared/ModularBaseBuilder';
+import type { LevelId } from '../types';
 
 // Map for ambush enemy types to GLB assets
 const AMBUSH_ENEMY_SPECIES = 'lurker'; // Maps to scout.glb - tall stalker type
@@ -83,7 +79,8 @@ const GLB_BARRIERS = {
 /** Courtyard clutter -- vehicles, crates, barrels */
 const GLB_COURTYARD = {
   shipping_container: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
-  shipping_container_hollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  shipping_container_hollow:
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
   tire_1: '/assets/models/props/containers/tire_1.glb',
   tire_2: '/assets/models/props/containers/tire_2.glb',
   wooden_crate_1: '/assets/models/props/containers/wooden_crate_1.glb',
@@ -264,7 +261,6 @@ interface FlickerLight {
 export class FOBDeltaLevel extends BaseLevel {
   // Phase management
   private phase: FOBPhase = 'approach';
-  private phaseTime = 0;
 
   // Environment containers
   private fobRoot: TransformNode | null = null;
@@ -293,7 +289,6 @@ export class FOBDeltaLevel extends BaseLevel {
 
   // Objective marker
   private objectiveMarker: Mesh | null = null;
-  private currentObjective: Vector3 | null = null;
 
   // Flashlight system
   private flashlight: PointLight | null = null;
@@ -301,7 +296,6 @@ export class FOBDeltaLevel extends BaseLevel {
 
   // Enemy spawns for ambush
   private ambushTriggered = false;
-  private enemyCount = 0;
   private readonly maxEnemies = 5;
   private enemies: Array<{
     mesh: Mesh | TransformNode;
@@ -311,9 +305,6 @@ export class FOBDeltaLevel extends BaseLevel {
     attackCooldown: number;
   }> = [];
   private ambushEnemiesPreloaded = false;
-
-  // Stats tracking
-  private killCount = 0;
 
   // Action button callback
   private actionCallback: ((actionId: string) => void) | null = null;
@@ -355,13 +346,6 @@ export class FOBDeltaLevel extends BaseLevel {
     light: PointLight | null;
   }> = [];
 
-  // Radio chatter audio sources
-  private radioSources: Array<{
-    id: string;
-    position: Vector3;
-    active: boolean;
-  }> = [];
-
   // Spotlight system for perimeter
   private spotlights: Array<{
     light: PointLight;
@@ -379,15 +363,6 @@ export class FOBDeltaLevel extends BaseLevel {
   private readonly PRIMARY_FIRE_DAMAGE = 25;
   private readonly PRIMARY_FIRE_RANGE = 50;
   private readonly PRIMARY_FIRE_COOLDOWN = 150; // ms
-
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks);
-  }
 
   protected getBackgroundColor(): Color4 {
     // Very dark, almost black - horror atmosphere
@@ -860,7 +835,14 @@ export class FOBDeltaLevel extends BaseLevel {
       skipTo?: number;
     }> = [
       // Front wall (with breach from -10 to +10)
-      { dir: 'x', fixed: -perimeterSize / 2, start: -perimeterSize / 2, end: perimeterSize / 2, skipFrom: -10, skipTo: 10 },
+      {
+        dir: 'x',
+        fixed: -perimeterSize / 2,
+        start: -perimeterSize / 2,
+        end: perimeterSize / 2,
+        skipFrom: -10,
+        skipTo: 10,
+      },
       // Left wall
       { dir: 'z', fixed: -perimeterSize / 2, start: -perimeterSize / 2, end: perimeterSize / 2 },
       // Right wall
@@ -878,19 +860,24 @@ export class FOBDeltaLevel extends BaseLevel {
         }
 
         // Alternate wall GLBs, use hole variant near breach
-        const nearBreach = run.skipFrom !== undefined && (Math.abs(pos - run.skipFrom) < wallSegmentLength || Math.abs(pos - run.skipTo!) < wallSegmentLength);
-        const wallPath = nearBreach ? GLB_PERIMETER.wall_hr_1_hole_2 : (wallIdx % 2 === 0 ? GLB_PERIMETER.wall_hr_1 : GLB_PERIMETER.wall_hr_15);
+        const nearBreach =
+          run.skipFrom !== undefined &&
+          (Math.abs(pos - run.skipFrom) < wallSegmentLength ||
+            Math.abs(pos - run.skipTo!) < wallSegmentLength);
+        const wallPath = nearBreach
+          ? GLB_PERIMETER.wall_hr_1_hole_2
+          : wallIdx % 2 === 0
+            ? GLB_PERIMETER.wall_hr_1
+            : GLB_PERIMETER.wall_hr_15;
 
         const x = run.dir === 'x' ? pos + wallSegmentLength / 2 : run.fixed;
         const z = run.dir === 'z' ? pos + wallSegmentLength / 2 : run.fixed;
         const rotY = run.dir === 'z' ? Math.PI / 2 : 0;
 
-        this.placeGLB(
-          wallPath,
-          `perimeterWall_${wallIdx}`,
-          new Vector3(x, 0, z),
-          { rotationY: rotY, scale: 1.5 }
-        );
+        this.placeGLB(wallPath, `perimeterWall_${wallIdx}`, new Vector3(x, 0, z), {
+          rotationY: rotY,
+          scale: 1.5,
+        });
         wallIdx++;
       }
     }
@@ -903,11 +890,7 @@ export class FOBDeltaLevel extends BaseLevel {
       this.placeGLB(
         path,
         `debris_${i}`,
-        new Vector3(
-          -8 + Math.random() * 16,
-          0,
-          -perimeterSize / 2 + Math.random() * 8
-        ),
+        new Vector3(-8 + Math.random() * 16, 0, -perimeterSize / 2 + Math.random() * 8),
         { rotationY: Math.random() * Math.PI, scale }
       );
     }
@@ -920,11 +903,7 @@ export class FOBDeltaLevel extends BaseLevel {
       this.placeGLB(
         path,
         `sandbag_${i}`,
-        new Vector3(
-          Math.sin(angle) * 12,
-          0,
-          -perimeterSize / 2 + 10 + Math.cos(angle) * 5
-        ),
+        new Vector3(Math.sin(angle) * 12, 0, -perimeterSize / 2 + 10 + Math.cos(angle) * 5),
         { rotationY: angle + Math.random() * 0.5, scale: 1.5 }
       );
     }
@@ -943,12 +922,10 @@ export class FOBDeltaLevel extends BaseLevel {
     // Central open area with overturned vehicles and crates
 
     // Overturned vehicle -- GLB shipping container tipped on its side
-    this.placeGLB(
-      GLB_COURTYARD.shipping_container,
-      'overturnedVehicle',
-      new Vector3(-8, 0.3, 0),
-      { rotation: new Vector3(0, 0.3, Math.PI / 3), scale: 1.8 }
-    );
+    this.placeGLB(GLB_COURTYARD.shipping_container, 'overturnedVehicle', new Vector3(-8, 0.3, 0), {
+      rotation: new Vector3(0, 0.3, Math.PI / 3),
+      scale: 1.8,
+    });
 
     // Wheels scattered around overturned vehicle -- GLB tire models
     const tireModels = [GLB_COURTYARD.tire_1, GLB_COURTYARD.tire_2];
@@ -956,12 +933,10 @@ export class FOBDeltaLevel extends BaseLevel {
       const path = tireModels[i % tireModels.length];
       const xOff = i < 2 ? -1.2 : 1.2;
       const zOff = i % 2 === 0 ? -2 : 2;
-      this.placeGLB(
-        path,
-        `wheel_${i}`,
-        new Vector3(-8 + xOff, 0, zOff),
-        { rotationY: Math.random() * Math.PI, scale: 0.8 }
-      );
+      this.placeGLB(path, `wheel_${i}`, new Vector3(-8 + xOff, 0, zOff), {
+        rotationY: Math.random() * Math.PI,
+        scale: 0.8,
+      });
     }
 
     // Scattered crates -- GLB wooden crate variants
@@ -986,12 +961,10 @@ export class FOBDeltaLevel extends BaseLevel {
 
     for (let i = 0; i < cratePositions.length; i++) {
       const path = crateModels[i % crateModels.length];
-      this.placeGLB(
-        path,
-        `crate_${i}`,
-        cratePositions[i].clone(),
-        { rotationY: Math.random() * Math.PI, scale: 0.8 + Math.random() * 0.4 }
-      );
+      this.placeGLB(path, `crate_${i}`, cratePositions[i].clone(), {
+        rotationY: Math.random() * Math.PI,
+        scale: 0.8 + Math.random() * 0.4,
+      });
     }
 
     // Barrels -- GLB metal barrel variants
@@ -1024,12 +997,9 @@ export class FOBDeltaLevel extends BaseLevel {
     const barracksZ = 0;
 
     // Main structure -- GLB warehouse model
-    this.placeGLB(
-      GLB_BUILDINGS.warehouse_1,
-      'barracks',
-      new Vector3(barracksX, 0, barracksZ),
-      { scale: 3.0 }
-    );
+    this.placeGLB(GLB_BUILDINGS.warehouse_1, 'barracks', new Vector3(barracksX, 0, barracksZ), {
+      scale: 3.0,
+    });
 
     // Door opening -- GLB door model
     this.placeGLB(
@@ -1040,15 +1010,18 @@ export class FOBDeltaLevel extends BaseLevel {
     );
 
     // Interior bunks (visible through door) -- GLB bench models
-    const bunkModels = [GLB_BARRACKS.bench_1, GLB_BARRACKS.bench_2, GLB_BARRACKS.bench_3, GLB_BARRACKS.bench_1];
+    const bunkModels = [
+      GLB_BARRACKS.bench_1,
+      GLB_BARRACKS.bench_2,
+      GLB_BARRACKS.bench_3,
+      GLB_BARRACKS.bench_1,
+    ];
     for (let i = 0; i < 4; i++) {
       const path = bunkModels[i % bunkModels.length];
-      this.placeGLB(
-        path,
-        `bunk_${i}`,
-        new Vector3(barracksX - 3, 0, barracksZ - 6 + i * 4),
-        { rotationY: Math.PI / 2, scale: 1.0 }
-      );
+      this.placeGLB(path, `bunk_${i}`, new Vector3(barracksX - 3, 0, barracksZ - 6 + i * 4), {
+        rotationY: Math.PI / 2,
+        scale: 1.0,
+      });
     }
 
     // Barracks interior light (dim, flickering)
@@ -1067,12 +1040,10 @@ export class FOBDeltaLevel extends BaseLevel {
     ];
 
     for (let i = 0; i < bodyPositions.length; i++) {
-      this.placeGLB(
-        GLB_BARRACKS.marine_body,
-        `body_${i}`,
-        bodyPositions[i].clone(),
-        { rotation: new Vector3(Math.PI / 2, Math.random() * Math.PI, 0), scale: 0.5 }
-      );
+      this.placeGLB(GLB_BARRACKS.marine_body, `body_${i}`, bodyPositions[i].clone(), {
+        rotation: new Vector3(Math.PI / 2, Math.random() * Math.PI, 0),
+        scale: 0.5,
+      });
     }
 
     // Mining Outpost Gamma-7 terminal (bonus level access) -- GLB computer model
@@ -1112,27 +1083,17 @@ export class FOBDeltaLevel extends BaseLevel {
     const cmdZ = 25;
 
     // Main structure -- GLB warehouse model
-    this.placeGLB(
-      GLB_BUILDINGS.warehouse_2,
-      'commandCenter',
-      new Vector3(cmdX, 0, cmdZ),
-      { scale: 3.5 }
-    );
+    this.placeGLB(GLB_BUILDINGS.warehouse_2, 'commandCenter', new Vector3(cmdX, 0, cmdZ), {
+      scale: 3.5,
+    });
 
     // Door -- GLB door model
-    this.placeGLB(
-      GLB_COMMAND.door_hr_8,
-      'cmdDoor',
-      new Vector3(cmdX, 0, cmdZ - 5.3),
-      { scale: 1.2 }
-    );
+    this.placeGLB(GLB_COMMAND.door_hr_8, 'cmdDoor', new Vector3(cmdX, 0, cmdZ - 5.3), {
+      scale: 1.2,
+    });
 
     // Terminal base -- GLB computer model
-    this.placeGLB(
-      GLB_COMMAND.computer,
-      'terminalBase',
-      new Vector3(cmdX, 0, cmdZ + 2),
-    );
+    this.placeGLB(GLB_COMMAND.computer, 'terminalBase', new Vector3(cmdX, 0, cmdZ + 2));
 
     // Terminal screen (kept as MeshBuilder -- interactive UI surface with emissive material)
     this.terminal = MeshBuilder.CreatePlane(
@@ -1160,12 +1121,9 @@ export class FOBDeltaLevel extends BaseLevel {
     this.addFlickerLight(new Vector3(cmdX, 4, cmdZ), new Color3(0.8, 0.9, 1), 0.4, 0.3, 5);
 
     // Comm tower outside -- GLB chimney model (tall vertical structure)
-    this.placeGLB(
-      GLB_COMMAND.chimney,
-      'commTower',
-      new Vector3(cmdX + 10, 0, cmdZ),
-      { scale: 3.0 }
-    );
+    this.placeGLB(GLB_COMMAND.chimney, 'commTower', new Vector3(cmdX + 10, 0, cmdZ), {
+      scale: 3.0,
+    });
 
     // Antenna platform (GLB) - acts as dish mount / radar platform
     this.placeGLB(
@@ -1182,12 +1140,9 @@ export class FOBDeltaLevel extends BaseLevel {
     const bayZ = 0;
 
     // Hangar-style structure -- GLB garages block model
-    this.placeGLB(
-      GLB_BUILDINGS.garages_block,
-      'vehicleBay',
-      new Vector3(bayX, 0, bayZ),
-      { scale: 4.0 }
-    );
+    this.placeGLB(GLB_BUILDINGS.garages_block, 'vehicleBay', new Vector3(bayX, 0, bayZ), {
+      scale: 4.0,
+    });
 
     // Large rolling door frame -- GLB garage door frame
     this.placeGLB(
@@ -1201,12 +1156,9 @@ export class FOBDeltaLevel extends BaseLevel {
     const cautionModels = [GLB_DETAILS.arrow, GLB_DETAILS.arrow_2, GLB_DETAILS.caution_plate];
     for (let i = 0; i < 3; i++) {
       const path = cautionModels[i % cautionModels.length];
-      this.placeGLB(
-        path,
-        `bayStripe_${i}`,
-        new Vector3(bayX - 10.3, 1 + i * 2.5, bayZ),
-        { scale: 2.0 }
-      );
+      this.placeGLB(path, `bayStripe_${i}`, new Vector3(bayX - 10.3, 1 + i * 2.5, bayZ), {
+        scale: 2.0,
+      });
     }
 
     // Marcus's damaged mech (TITAN)
@@ -1221,12 +1173,7 @@ export class FOBDeltaLevel extends BaseLevel {
     // Marcus's TITAN mech - GLB model with eerie eye glow
 
     // Place the mech GLB model
-    this.placeGLB(
-      GLB_MECH.marcus_mech,
-      'marcusMech',
-      position,
-      { scale: 2.0 }
-    );
+    this.placeGLB(GLB_MECH.marcus_mech, 'marcusMech', position, { scale: 2.0 });
 
     // Invisible collision box for interaction distance checks (mechMesh reference)
     this.mechMesh = MeshBuilder.CreateBox(
@@ -1277,28 +1224,20 @@ export class FOBDeltaLevel extends BaseLevel {
     const hatchZ = 10;
 
     // Floor plate around hatch (GLB) - decorative visual
-    this.placeGLB(
-      GLB_HATCH.floor_plate,
-      'hatchFloorPlate',
-      new Vector3(hatchX, 0.02, hatchZ),
-      { scale: 1.5 }
-    );
+    this.placeGLB(GLB_HATCH.floor_plate, 'hatchFloorPlate', new Vector3(hatchX, 0.02, hatchZ), {
+      scale: 1.5,
+    });
 
     // Hatch door (GLB) - visual representation
-    this.placeGLB(
-      GLB_HATCH.hatch_door,
-      'hatchDoorGLB',
-      new Vector3(hatchX, 0.1, hatchZ),
-      { scale: 1.2 }
-    );
+    this.placeGLB(GLB_HATCH.hatch_door, 'hatchDoorGLB', new Vector3(hatchX, 0.1, hatchZ), {
+      scale: 1.2,
+    });
 
     // Hatch handle (GLB pipe)
-    this.placeGLB(
-      GLB_HATCH.hatch_handle,
-      'hatchHandleGLB',
-      new Vector3(hatchX, 0.3, hatchZ),
-      { rotation: new Vector3(Math.PI / 2, 0, 0), scale: 0.8 }
-    );
+    this.placeGLB(GLB_HATCH.hatch_handle, 'hatchHandleGLB', new Vector3(hatchX, 0.3, hatchZ), {
+      rotation: new Vector3(Math.PI / 2, 0, 0),
+      scale: 0.8,
+    });
 
     // Invisible collision mesh for interaction (kept procedural - collision volume)
     this.undergroundHatch = MeshBuilder.CreateCylinder(
@@ -1348,100 +1287,100 @@ export class FOBDeltaLevel extends BaseLevel {
 
     const modularGLBs: Record<string, string> = {
       // Floors
-      floor_empty:       `${modularBasePath}FloorTile_Empty.glb`,
-      floor_hallway:     `${modularBasePath}FloorTile_Double_Hallway.glb`,
-      floor_basic:       `${modularBasePath}FloorTile_Basic.glb`,
-      floor_basic2:      `${modularBasePath}FloorTile_Basic2.glb`,
-      floor_side:        `${modularBasePath}FloorTile_Side.glb`,
-      floor_corner:      `${modularBasePath}FloorTile_Corner.glb`,
-      floor_inner_corner:`${modularBasePath}FloorTile_InnerCorner.glb`,
+      floor_empty: `${modularBasePath}FloorTile_Empty.glb`,
+      floor_hallway: `${modularBasePath}FloorTile_Double_Hallway.glb`,
+      floor_basic: `${modularBasePath}FloorTile_Basic.glb`,
+      floor_basic2: `${modularBasePath}FloorTile_Basic2.glb`,
+      floor_side: `${modularBasePath}FloorTile_Side.glb`,
+      floor_corner: `${modularBasePath}FloorTile_Corner.glb`,
+      floor_inner_corner: `${modularBasePath}FloorTile_InnerCorner.glb`,
       // Walls
-      wall_3:            `${modularBasePath}Wall_3.glb`,
-      wall_4:            `${modularBasePath}Wall_4.glb`,
-      wall_5:            `${modularBasePath}Wall_5.glb`,
-      wall_empty:        `${modularBasePath}Wall_Empty.glb`,
-      wall_1:            `${modularBasePath}Wall_1.glb`,
-      wall_2:            `${modularBasePath}Wall_2.glb`,
+      wall_3: `${modularBasePath}Wall_3.glb`,
+      wall_4: `${modularBasePath}Wall_4.glb`,
+      wall_5: `${modularBasePath}Wall_5.glb`,
+      wall_empty: `${modularBasePath}Wall_Empty.glb`,
+      wall_1: `${modularBasePath}Wall_1.glb`,
+      wall_2: `${modularBasePath}Wall_2.glb`,
       // Windows (walls with window cutouts)
-      window_wall_a:     `${modularBasePath}Window_Wall_SideA.glb`,
-      window_wall_b:     `${modularBasePath}Window_Wall_SideB.glb`,
-      long_window_a:     `${modularBasePath}LongWindow_Wall_SideA.glb`,
-      small_windows_a:   `${modularBasePath}SmallWindows_Wall_SideA.glb`,
+      window_wall_a: `${modularBasePath}Window_Wall_SideA.glb`,
+      window_wall_b: `${modularBasePath}Window_Wall_SideB.glb`,
+      long_window_a: `${modularBasePath}LongWindow_Wall_SideA.glb`,
+      small_windows_a: `${modularBasePath}SmallWindows_Wall_SideA.glb`,
       // Doors
-      door_double:       `${modularBasePath}Door_Double.glb`,
-      door_single:       `${modularBasePath}Door_Single.glb`,
-      door_dbl_wall_a:   `${modularBasePath}DoorDouble_Wall_SideA.glb`,
-      door_dbl_wall_b:   `${modularBasePath}DoorDouble_Wall_SideB.glb`,
-      door_sgl_wall_a:   `${modularBasePath}DoorSingle_Wall_SideA.glb`,
-      door_sgl_wall_b:   `${modularBasePath}DoorSingle_Wall_SideB.glb`,
+      door_double: `${modularBasePath}Door_Double.glb`,
+      door_single: `${modularBasePath}Door_Single.glb`,
+      door_dbl_wall_a: `${modularBasePath}DoorDouble_Wall_SideA.glb`,
+      door_dbl_wall_b: `${modularBasePath}DoorDouble_Wall_SideB.glb`,
+      door_sgl_wall_a: `${modularBasePath}DoorSingle_Wall_SideA.glb`,
+      door_sgl_wall_b: `${modularBasePath}DoorSingle_Wall_SideB.glb`,
       // Columns
-      column_1:          `${modularBasePath}Column_1.glb`,
-      column_2:          `${modularBasePath}Column_2.glb`,
-      column_3:          `${modularBasePath}Column_3.glb`,
-      column_slim:       `${modularBasePath}Column_Slim.glb`,
+      column_1: `${modularBasePath}Column_1.glb`,
+      column_2: `${modularBasePath}Column_2.glb`,
+      column_3: `${modularBasePath}Column_3.glb`,
+      column_slim: `${modularBasePath}Column_Slim.glb`,
       // Roof / ceiling tiles
-      roof_details:      `${modularBasePath}RoofTile_Details.glb`,
-      roof_pipes1:       `${modularBasePath}RoofTile_Pipes1.glb`,
-      roof_pipes2:       `${modularBasePath}RoofTile_Pipes2.glb`,
-      roof_plate:        `${modularBasePath}RoofTile_Plate.glb`,
-      roof_plate2:       `${modularBasePath}RoofTile_Plate2.glb`,
-      roof_empty:        `${modularBasePath}RoofTile_Empty.glb`,
-      roof_vents:        `${modularBasePath}RoofTile_Vents.glb`,
-      roof_small_vents:  `${modularBasePath}RoofTile_SmallVents.glb`,
-      roof_orange_vent:  `${modularBasePath}RoofTile_OrangeVent.glb`,
-      roof_sides_pipes:  `${modularBasePath}RoofTile_Sides_Pipes.glb`,
+      roof_details: `${modularBasePath}RoofTile_Details.glb`,
+      roof_pipes1: `${modularBasePath}RoofTile_Pipes1.glb`,
+      roof_pipes2: `${modularBasePath}RoofTile_Pipes2.glb`,
+      roof_plate: `${modularBasePath}RoofTile_Plate.glb`,
+      roof_plate2: `${modularBasePath}RoofTile_Plate2.glb`,
+      roof_empty: `${modularBasePath}RoofTile_Empty.glb`,
+      roof_vents: `${modularBasePath}RoofTile_Vents.glb`,
+      roof_small_vents: `${modularBasePath}RoofTile_SmallVents.glb`,
+      roof_orange_vent: `${modularBasePath}RoofTile_OrangeVent.glb`,
+      roof_sides_pipes: `${modularBasePath}RoofTile_Sides_Pipes.glb`,
       roof_corner_pipes: `${modularBasePath}RoofTile_Corner_Pipes.glb`,
       // Wall / ceiling detail panels
       detail_pipes_long: `${modularBasePath}Details_Pipes_Long.glb`,
-      detail_pipes_med:  `${modularBasePath}Details_Pipes_Medium.glb`,
-      detail_pipes_sm:   `${modularBasePath}Details_Pipes_Small.glb`,
-      detail_vent3:      `${modularBasePath}Details_Vent_3.glb`,
-      detail_vent4:      `${modularBasePath}Details_Vent_4.glb`,
-      detail_vent5:      `${modularBasePath}Details_Vent_5.glb`,
-      detail_basic1:     `${modularBasePath}Details_Basic_1.glb`,
-      detail_basic2:     `${modularBasePath}Details_Basic_2.glb`,
-      detail_basic3:     `${modularBasePath}Details_Basic_3.glb`,
-      detail_basic4:     `${modularBasePath}Details_Basic_4.glb`,
-      detail_plate_sm:   `${modularBasePath}Details_Plate_Small.glb`,
-      detail_plate_lg:   `${modularBasePath}Details_Plate_Large.glb`,
+      detail_pipes_med: `${modularBasePath}Details_Pipes_Medium.glb`,
+      detail_pipes_sm: `${modularBasePath}Details_Pipes_Small.glb`,
+      detail_vent3: `${modularBasePath}Details_Vent_3.glb`,
+      detail_vent4: `${modularBasePath}Details_Vent_4.glb`,
+      detail_vent5: `${modularBasePath}Details_Vent_5.glb`,
+      detail_basic1: `${modularBasePath}Details_Basic_1.glb`,
+      detail_basic2: `${modularBasePath}Details_Basic_2.glb`,
+      detail_basic3: `${modularBasePath}Details_Basic_3.glb`,
+      detail_basic4: `${modularBasePath}Details_Basic_4.glb`,
+      detail_plate_sm: `${modularBasePath}Details_Plate_Small.glb`,
+      detail_plate_lg: `${modularBasePath}Details_Plate_Large.glb`,
       detail_plate_long: `${modularBasePath}Details_Plate_Long.glb`,
-      detail_x:          `${modularBasePath}Details_X.glb`,
-      detail_hexagon:    `${modularBasePath}Details_Hexagon.glb`,
-      detail_dots:       `${modularBasePath}Details_Dots.glb`,
-      detail_triangles:  `${modularBasePath}Details_Triangles.glb`,
-      detail_cylinder:   `${modularBasePath}Details_Cylinder.glb`,
-      detail_cyl_long:   `${modularBasePath}Details_Cylinder_Long.glb`,
-      detail_arrow:      `${modularBasePath}Details_Arrow.glb`,
-      detail_arrow2:     `${modularBasePath}Details_Arrow_2.glb`,
-      detail_output:     `${modularBasePath}Details_Output.glb`,
-      detail_output_sm:  `${modularBasePath}Details_Output_Small.glb`,
-      detail_plate_det:  `${modularBasePath}Details_Plate_Details.glb`,
+      detail_x: `${modularBasePath}Details_X.glb`,
+      detail_hexagon: `${modularBasePath}Details_Hexagon.glb`,
+      detail_dots: `${modularBasePath}Details_Dots.glb`,
+      detail_triangles: `${modularBasePath}Details_Triangles.glb`,
+      detail_cylinder: `${modularBasePath}Details_Cylinder.glb`,
+      detail_cyl_long: `${modularBasePath}Details_Cylinder_Long.glb`,
+      detail_arrow: `${modularBasePath}Details_Arrow.glb`,
+      detail_arrow2: `${modularBasePath}Details_Arrow_2.glb`,
+      detail_output: `${modularBasePath}Details_Output.glb`,
+      detail_output_sm: `${modularBasePath}Details_Output_Small.glb`,
+      detail_plate_det: `${modularBasePath}Details_Plate_Details.glb`,
       // Props (crates, containers, furniture)
-      crate:             `${modularBasePath}Props_Crate.glb`,
-      crate_long:        `${modularBasePath}Props_CrateLong.glb`,
-      container_full:    `${modularBasePath}Props_ContainerFull.glb`,
-      shelf_short:       `${modularBasePath}Props_Shelf.glb`,
-      shelf_tall:        `${modularBasePath}Props_Shelf_Tall.glb`,
-      computer:          `${modularBasePath}Props_Computer.glb`,
-      computer_sm:       `${modularBasePath}Props_ComputerSmall.glb`,
-      base_prop:         `${modularBasePath}Props_Base.glb`,
-      capsule:           `${modularBasePath}Props_Capsule.glb`,
-      laser:             `${modularBasePath}Props_Laser.glb`,
+      crate: `${modularBasePath}Props_Crate.glb`,
+      crate_long: `${modularBasePath}Props_CrateLong.glb`,
+      container_full: `${modularBasePath}Props_ContainerFull.glb`,
+      shelf_short: `${modularBasePath}Props_Shelf.glb`,
+      shelf_tall: `${modularBasePath}Props_Shelf_Tall.glb`,
+      computer: `${modularBasePath}Props_Computer.glb`,
+      computer_sm: `${modularBasePath}Props_ComputerSmall.glb`,
+      base_prop: `${modularBasePath}Props_Base.glb`,
+      capsule: `${modularBasePath}Props_Capsule.glb`,
+      laser: `${modularBasePath}Props_Laser.glb`,
       // Pipes
-      pipes:             `${modularBasePath}Pipes.glb`,
+      pipes: `${modularBasePath}Pipes.glb`,
       // Staircase
-      staircase:         `${modularBasePath}Staircase.glb`,
+      staircase: `${modularBasePath}Staircase.glb`,
     };
 
     const decalGLBs: Record<string, string> = {
-      graffiti_1:  `${decalBasePath}graffiti_mx_1.glb`,
-      graffiti_2:  `${decalBasePath}graffiti_mx_2.glb`,
-      graffiti_4:  `${decalBasePath}graffiti_mx_4.glb`,
-      graffiti_5:  `${decalBasePath}graffiti_mx_5.glb`,
-      poster_4:    `${decalBasePath}poster_cx_4.glb`,
-      poster_5:    `${decalBasePath}poster_cx_5.glb`,
-      poster_9:    `${decalBasePath}poster_cx_9.glb`,
-      poster_11:   `${decalBasePath}poster_cx_11.glb`,
+      graffiti_1: `${decalBasePath}graffiti_mx_1.glb`,
+      graffiti_2: `${decalBasePath}graffiti_mx_2.glb`,
+      graffiti_4: `${decalBasePath}graffiti_mx_4.glb`,
+      graffiti_5: `${decalBasePath}graffiti_mx_5.glb`,
+      poster_4: `${decalBasePath}poster_cx_4.glb`,
+      poster_5: `${decalBasePath}poster_cx_5.glb`,
+      poster_9: `${decalBasePath}poster_cx_9.glb`,
+      poster_11: `${decalBasePath}poster_cx_11.glb`,
     };
 
     const stationExtGLBs: Record<string, string> = {
@@ -1505,8 +1444,8 @@ export class FOBDeltaLevel extends BaseLevel {
       // --- East-west corridor linking barracks junction to courtyard ---
       { type: 'corridor', position: new Vector3(-14, 0, 10), rotation: Math.PI / 2 },
       { type: 'corridor', position: new Vector3(-10, 0, 10), rotation: Math.PI / 2, damaged: true },
-      { type: 'wide',     position: new Vector3(-6, 0, 10),  rotation: Math.PI / 2 },
-      { type: 'corridor', position: new Vector3(-2, 0, 10),  rotation: Math.PI / 2 },
+      { type: 'wide', position: new Vector3(-6, 0, 10), rotation: Math.PI / 2 },
+      { type: 'corridor', position: new Vector3(-2, 0, 10), rotation: Math.PI / 2 },
 
       // --- Central courtyard junction ---
       { type: 'junction', position: new Vector3(2, 0, 10), rotation: 0 },
@@ -1514,12 +1453,12 @@ export class FOBDeltaLevel extends BaseLevel {
       // --- North corridor from courtyard to command center ---
       { type: 'corridor', position: new Vector3(2, 0, 14), rotation: 0, damaged: true },
       { type: 'corridor', position: new Vector3(2, 0, 18), rotation: 0 },
-      { type: 'corner',   position: new Vector3(2, 0, 22), rotation: 0 },
+      { type: 'corner', position: new Vector3(2, 0, 22), rotation: 0 },
 
       // --- East corridor from courtyard junction toward vehicle bay ---
-      { type: 'corridor', position: new Vector3(6, 0, 10),  rotation: Math.PI / 2 },
+      { type: 'corridor', position: new Vector3(6, 0, 10), rotation: Math.PI / 2 },
       { type: 'corridor', position: new Vector3(10, 0, 10), rotation: Math.PI / 2, damaged: true },
-      { type: 'wide',     position: new Vector3(14, 0, 10), rotation: Math.PI / 2 },
+      { type: 'wide', position: new Vector3(14, 0, 10), rotation: Math.PI / 2 },
       { type: 'corridor', position: new Vector3(18, 0, 10), rotation: Math.PI / 2 },
 
       // --- Additional south wing (approach corridor from perimeter) ---
@@ -1533,13 +1472,13 @@ export class FOBDeltaLevel extends BaseLevel {
 
       // --- Vehicle bay internal corridors ---
       { type: 'corridor', position: new Vector3(22, 0, 10), rotation: Math.PI / 2 },
-      { type: 'wide',     position: new Vector3(22, 0, 6), rotation: 0 },
+      { type: 'wide', position: new Vector3(22, 0, 6), rotation: 0 },
       { type: 'corridor', position: new Vector3(22, 0, 2), rotation: 0, damaged: true },
       { type: 'corridor', position: new Vector3(22, 0, -2), rotation: 0 },
 
       // --- North-west wing (barracks deep interior) ---
       { type: 'corridor', position: new Vector3(-22, 0, 10), rotation: Math.PI / 2 },
-      { type: 'wide',     position: new Vector3(-22, 0, 14), rotation: 0, damaged: true },
+      { type: 'wide', position: new Vector3(-22, 0, 14), rotation: 0, damaged: true },
       { type: 'corridor', position: new Vector3(-22, 0, 18), rotation: 0 },
     ];
 
@@ -1626,7 +1565,11 @@ export class FOBDeltaLevel extends BaseLevel {
       const x = -14 + i * TILE;
       const wt = wallTypes[(i + 1) % wallTypes.length];
       place(wt, { x, y: WALL_Y, z: 10 - WALL_OFFSET }, Math.PI / 2);
-      place(wallTypes[(i + 3) % wallTypes.length], { x, y: WALL_Y, z: 10 + WALL_OFFSET }, -Math.PI / 2);
+      place(
+        wallTypes[(i + 3) % wallTypes.length],
+        { x, y: WALL_Y, z: 10 + WALL_OFFSET },
+        -Math.PI / 2
+      );
     }
     // North corridor walls
     for (let i = 0; i < 3; i++) {
@@ -1638,7 +1581,11 @@ export class FOBDeltaLevel extends BaseLevel {
     for (let i = 0; i < 4; i++) {
       const x = 6 + i * TILE;
       place(wallTypes[i % wallTypes.length], { x, y: WALL_Y, z: 10 - WALL_OFFSET }, Math.PI / 2);
-      place(wallTypes[(i + 1) % wallTypes.length], { x, y: WALL_Y, z: 10 + WALL_OFFSET }, -Math.PI / 2);
+      place(
+        wallTypes[(i + 1) % wallTypes.length],
+        { x, y: WALL_Y, z: 10 + WALL_OFFSET },
+        -Math.PI / 2
+      );
     }
     // South approach walls
     for (let i = 0; i < 7; i++) {
@@ -1888,7 +1835,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
     // Stacked crates (double-height for visual density)
     place('crate', { x: -1.5, y: 1.0, z: -18 }, 0.8); // on top of first crate
-    place('crate', { x: 7, y: 1.0, z: 9 }, 0.3);  // on top of east corridor crate
+    place('crate', { x: 7, y: 1.0, z: 9 }, 0.3); // on top of east corridor crate
     place('crate', { x: 23, y: 1.0, z: -1 }, 2.0); // vehicle bay stack
 
     // ================================================================
@@ -2049,12 +1996,10 @@ export class FOBDeltaLevel extends BaseLevel {
     for (let i = 0; i < sandbagPositions.length; i++) {
       const sp = sandbagPositions[i];
       const barrierPath = i % 2 === 0 ? GLB_BARRIERS.cement_pallet_1 : GLB_BARRIERS.cement_pallet_2;
-      const node = this.placeGLB(
-        barrierPath,
-        `fortification_sandbag_${i}`,
-        sp.pos,
-        { rotationY: sp.rot, scale: sp.scale }
-      );
+      const node = this.placeGLB(barrierPath, `fortification_sandbag_${i}`, sp.pos, {
+        rotationY: sp.rot,
+        scale: sp.scale,
+      });
       if (node) this.fortificationMeshes.push(node);
     }
 
@@ -2069,12 +2014,10 @@ export class FOBDeltaLevel extends BaseLevel {
     for (let i = 0; i < bunkerPositions.length; i++) {
       const bp = bunkerPositions[i];
       const bunkerPath = bp.type === 'large' ? GLB_BUILDINGS.shed_2 : GLB_BUILDINGS.shed_1;
-      const node = this.placeGLB(
-        bunkerPath,
-        `fortification_bunker_${i}`,
-        bp.pos,
-        { rotationY: bp.rot, scale: bp.type === 'large' ? 2.5 : 1.8 }
-      );
+      const node = this.placeGLB(bunkerPath, `fortification_bunker_${i}`, bp.pos, {
+        rotationY: bp.rot,
+        scale: bp.type === 'large' ? 2.5 : 1.8,
+      });
       if (node) this.fortificationMeshes.push(node);
     }
 
@@ -2082,8 +2025,14 @@ export class FOBDeltaLevel extends BaseLevel {
     const watchtowerPositions = [
       { pos: new Vector3(-perimeterSize / 2 + 5, 0, -perimeterSize / 2 + 5), rot: Math.PI / 4 },
       { pos: new Vector3(perimeterSize / 2 - 5, 0, -perimeterSize / 2 + 5), rot: -Math.PI / 4 },
-      { pos: new Vector3(-perimeterSize / 2 + 5, 0, perimeterSize / 2 - 5), rot: 3 * Math.PI / 4 },
-      { pos: new Vector3(perimeterSize / 2 - 5, 0, perimeterSize / 2 - 5), rot: -3 * Math.PI / 4 },
+      {
+        pos: new Vector3(-perimeterSize / 2 + 5, 0, perimeterSize / 2 - 5),
+        rot: (3 * Math.PI) / 4,
+      },
+      {
+        pos: new Vector3(perimeterSize / 2 - 5, 0, perimeterSize / 2 - 5),
+        rot: (-3 * Math.PI) / 4,
+      },
     ];
 
     for (let i = 0; i < watchtowerPositions.length; i++) {
@@ -2097,7 +2046,8 @@ export class FOBDeltaLevel extends BaseLevel {
       if (node) this.fortificationMeshes.push(node);
 
       // Add dim light on top of each watchtower (some destroyed)
-      if (i !== 1) { // Tower at index 1 is destroyed (no light)
+      if (i !== 1) {
+        // Tower at index 1 is destroyed (no light)
         const towerLight = new PointLight(
           `watchtower_light_${i}`,
           wtp.pos.add(new Vector3(0, 4, 0)),
@@ -2120,7 +2070,9 @@ export class FOBDeltaLevel extends BaseLevel {
       }
     }
 
-    log.info(`Created ${sandbagPositions.length + bunkerPositions.length + watchtowerPositions.length} fortification elements`);
+    log.info(
+      `Created ${sandbagPositions.length + bunkerPositions.length + watchtowerPositions.length} fortification elements`
+    );
   }
 
   /**
@@ -2161,9 +2113,9 @@ export class FOBDeltaLevel extends BaseLevel {
 
     // Color mapping for supply types
     const supplyColors: Record<string, Color3> = {
-      ammo: new Color3(1.0, 0.8, 0.2),    // Yellow/amber
-      health: new Color3(0.2, 1.0, 0.3),   // Green
-      armor: new Color3(0.3, 0.5, 1.0),    // Blue
+      ammo: new Color3(1.0, 0.8, 0.2), // Yellow/amber
+      health: new Color3(0.2, 1.0, 0.3), // Green
+      armor: new Color3(0.3, 0.5, 1.0), // Blue
     };
 
     // GLB path mapping for supply types
@@ -2247,19 +2199,14 @@ export class FOBDeltaLevel extends BaseLevel {
       const tp = turretPositionDefs[i];
 
       // Place the radar dish as a destroyed turret base (tilted/damaged)
-      const node = this.placeGLB(
-        GLB_ANTENNA.platform_ax_1,
-        `destroyed_turret_${i}`,
-        tp.pos,
-        {
-          rotation: new Vector3(
-            tp.destroyed ? Math.random() * 0.4 - 0.2 : 0, // Random tilt if destroyed
-            tp.rot,
-            tp.destroyed ? Math.random() * 0.3 - 0.15 : 0
-          ),
-          scale: 1.5
-        }
-      );
+      const _node = this.placeGLB(GLB_ANTENNA.platform_ax_1, `destroyed_turret_${i}`, tp.pos, {
+        rotation: new Vector3(
+          tp.destroyed ? Math.random() * 0.4 - 0.2 : 0, // Random tilt if destroyed
+          tp.rot,
+          tp.destroyed ? Math.random() * 0.3 - 0.15 : 0
+        ),
+        scale: 1.5,
+      });
 
       // Add sparking/damage light for destroyed turrets
       let damageLight: PointLight | null = null;
@@ -2319,11 +2266,7 @@ export class FOBDeltaLevel extends BaseLevel {
     for (let i = 0; i < spotlightDefs.length; i++) {
       const sd = spotlightDefs[i];
 
-      const spotlight = new PointLight(
-        `perimeter_spotlight_${i}`,
-        sd.pos,
-        this.scene
-      );
+      const spotlight = new PointLight(`perimeter_spotlight_${i}`, sd.pos, this.scene);
       spotlight.diffuse = new Color3(0.95, 0.9, 0.8);
       spotlight.intensity = sd.active ? 0.6 : 0;
       spotlight.range = 25;
@@ -2350,7 +2293,9 @@ export class FOBDeltaLevel extends BaseLevel {
       });
     }
 
-    log.info(`Created ${spotlightDefs.length} perimeter spotlights (${spotlightDefs.filter(s => s.active).length} active)`);
+    log.info(
+      `Created ${spotlightDefs.length} perimeter spotlights (${spotlightDefs.filter((s) => s.active).length} active)`
+    );
   }
 
   /**
@@ -2433,7 +2378,9 @@ export class FOBDeltaLevel extends BaseLevel {
   private async preloadAmbushEnemyModels(): Promise<void> {
     const assetName = SPECIES_TO_ASSET[AMBUSH_ENEMY_SPECIES];
     if (!assetName) {
-      throw new Error(`[FOBDelta] No asset mapping for ambush enemy species: ${AMBUSH_ENEMY_SPECIES}`);
+      throw new Error(
+        `[FOBDelta] No asset mapping for ambush enemy species: ${AMBUSH_ENEMY_SPECIES}`
+      );
     }
 
     await AssetManager.loadAsset('aliens', assetName, this.scene);
@@ -2518,17 +2465,14 @@ export class FOBDeltaLevel extends BaseLevel {
 
     // Set up action handler
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
 
     // Set exploration action buttons
     this.updateActionButtons();
 
     // Initial comms
-    this.callbacks.onNotification('FOB DELTA - FORWARD OPERATING BASE', 3000);
-    this.callbacks.onObjectiveUpdate(
-      'INVESTIGATE FOB DELTA',
-      'Search the base for survivors and intel.'
-    );
+    this.emitNotification('FOB DELTA - FORWARD OPERATING BASE', 3000);
+    this.emitObjectiveUpdate('INVESTIGATE FOB DELTA', 'Search the base for survivors and intel.');
 
     setTimeout(() => {
       this.sendCommsMessage('approach_entry', {
@@ -2574,19 +2518,19 @@ export class FOBDeltaLevel extends BaseLevel {
       this.flashlight.intensity = this.flashlightOn ? 1.5 : 0;
     }
 
-    this.callbacks.onNotification(this.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF', 800);
+    this.emitNotification(this.flashlightOn ? 'FLASHLIGHT ON' : 'FLASHLIGHT OFF', 800);
   }
 
   private activateScanner(): void {
     // Simple scanner pulse - shows nearby points of interest
-    this.callbacks.onNotification('SCANNING...', 1500);
+    this.emitNotification('SCANNING...', 1500);
 
     // Check if near terminal
     if (this.terminal) {
       const dist = Vector3.Distance(this.camera.position, this.terminal.position);
       if (dist < 15 && !this.logsAccessed) {
         setTimeout(() => {
-          this.callbacks.onNotification('TERMINAL DETECTED - 12M', 2000);
+          this.emitNotification('TERMINAL DETECTED - 12M', 2000);
           this.setObjective(this.terminal!.position);
         }, 1500);
       }
@@ -2597,7 +2541,7 @@ export class FOBDeltaLevel extends BaseLevel {
       const dist = Vector3.Distance(this.camera.position, this.mechMesh.position);
       if (dist < 20) {
         setTimeout(() => {
-          this.callbacks.onNotification('MECH SIGNATURE DETECTED', 2000);
+          this.emitNotification('MECH SIGNATURE DETECTED', 2000);
         }, 1500);
       }
     }
@@ -2607,7 +2551,7 @@ export class FOBDeltaLevel extends BaseLevel {
       const dist = Vector3.Distance(this.camera.position, this.undergroundHatch.position);
       if (dist < 15 && !this.hatchOpen) {
         setTimeout(() => {
-          this.callbacks.onNotification('UNDERGROUND ACCESS DETECTED', 2000);
+          this.emitNotification('UNDERGROUND ACCESS DETECTED', 2000);
           this.setObjective(this.undergroundHatch!.position);
         }, 1500);
       }
@@ -2653,7 +2597,7 @@ export class FOBDeltaLevel extends BaseLevel {
   /**
    * Get a nearby supply pickup if within interaction range.
    */
-  private getNearbySupply(): typeof this.supplyPickups[0] | null {
+  private getNearbySupply(): (typeof this.supplyPickups)[0] | null {
     const PICKUP_RANGE = 3;
     for (const supply of this.supplyPickups) {
       if (supply.collected) continue;
@@ -2668,7 +2612,7 @@ export class FOBDeltaLevel extends BaseLevel {
   /**
    * Collect a supply pickup and apply its effects.
    */
-  private collectSupply(supply: typeof this.supplyPickups[0]): void {
+  private collectSupply(supply: (typeof this.supplyPickups)[0]): void {
     if (supply.collected) return;
 
     supply.collected = true;
@@ -2676,21 +2620,22 @@ export class FOBDeltaLevel extends BaseLevel {
     // Apply effect based on type
     switch (supply.type) {
       case 'health':
-        this.callbacks.onHealthChange(supply.amount);
-        this.callbacks.onNotification(`+${supply.amount} HEALTH`, 1500);
+        this.emitHealthChanged(supply.amount);
+        this.emitNotification(`+${supply.amount} HEALTH`, 1500);
         break;
-      case 'ammo':
+      case 'ammo': {
         // Add reserve ammo via weapon system
         const weaponActions = getWeaponActions();
         if (weaponActions) {
           weaponActions.addAmmo(supply.amount);
         }
-        this.callbacks.onNotification(`+${supply.amount} AMMO`, 1500);
+        this.emitNotification(`+${supply.amount} AMMO`, 1500);
         break;
+      }
       case 'armor':
         // Armor reduces incoming damage - implement via health for now
-        this.callbacks.onHealthChange(Math.floor(supply.amount / 2));
-        this.callbacks.onNotification(`+${supply.amount} ARMOR`, 1500);
+        this.emitHealthChanged(Math.floor(supply.amount / 2));
+        this.emitNotification(`+${supply.amount} ARMOR`, 1500);
         break;
     }
 
@@ -2709,7 +2654,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
   private accessMiningOutpost(): void {
     this.miningTerminalAccessed = true;
-    this.callbacks.onNotification('MINING OUTPOST GAMMA-7 ACCESS GRANTED', 2000);
+    this.emitNotification('MINING OUTPOST GAMMA-7 ACCESS GRANTED', 2000);
 
     this.sendCommsMessage('mining_access', {
       sender: 'PROMETHEUS A.I.',
@@ -2720,15 +2665,15 @@ export class FOBDeltaLevel extends BaseLevel {
 
     // Dispatch bonus level entry after a short delay
     setTimeout(() => {
-      this.callbacks.onNotification('ENTERING MINING DEPTHS...', 2000);
-      // The callback dispatches ENTER_BONUS_LEVEL via the campaign system
-      this.callbacks.onLevelComplete(null);
+      this.emitNotification('ENTERING MINING DEPTHS...', 2000);
+      // Complete the level and transition to next (mining_depths bonus level)
+      this.completeLevel();
     }, 4000);
   }
 
   private accessLogs(): void {
     this.logsAccessed = true;
-    this.callbacks.onNotification('ACCESSING MISSION LOGS...', 2000);
+    this.emitNotification('ACCESSING MISSION LOGS...', 2000);
 
     // Series of comms messages revealing what happened
     setTimeout(() => {
@@ -2759,7 +2704,7 @@ export class FOBDeltaLevel extends BaseLevel {
     }, 14000);
 
     setTimeout(() => {
-      this.callbacks.onObjectiveUpdate(
+      this.emitObjectiveUpdate(
         'LOCATE UNDERGROUND ACCESS',
         'Find the tunnel entrance in the Vehicle Bay.'
       );
@@ -2770,7 +2715,7 @@ export class FOBDeltaLevel extends BaseLevel {
 
   private openHatch(): void {
     this.hatchOpen = true;
-    this.callbacks.onNotification('HATCH OPENED', 1500);
+    this.emitNotification('HATCH OPENED', 1500);
 
     // Animate hatch opening (simple position change)
     if (this.undergroundHatch) {
@@ -2787,7 +2732,7 @@ export class FOBDeltaLevel extends BaseLevel {
     }, 1500);
 
     setTimeout(() => {
-      this.callbacks.onObjectiveUpdate(
+      this.emitObjectiveUpdate(
         'DESCEND INTO THE BREACH',
         'Enter the underground tunnels to find Marcus.'
       );
@@ -2795,7 +2740,7 @@ export class FOBDeltaLevel extends BaseLevel {
     }, 6000);
 
     setTimeout(() => {
-      this.callbacks.onNotification('PROCEED TO UNDERGROUND ACCESS', 3000);
+      this.emitNotification('PROCEED TO UNDERGROUND ACCESS', 3000);
     }, 8000);
   }
 
@@ -2865,7 +2810,7 @@ export class FOBDeltaLevel extends BaseLevel {
       });
     }
 
-    this.callbacks.onActionGroupsChange(groups);
+    this.emitActionGroupsChanged(groups);
   }
 
   private checkNearInteractable(): string | null {
@@ -2933,7 +2878,7 @@ export class FOBDeltaLevel extends BaseLevel {
   ): void {
     if (this.messageFlags.has(flag)) return;
     this.messageFlags.add(flag);
-    this.callbacks.onCommsMessage(message);
+    this.emitCommsMessage(message);
   }
 
   private transitionToPhase(newPhase: FOBPhase): void {
@@ -2952,10 +2897,7 @@ export class FOBDeltaLevel extends BaseLevel {
         break;
 
       case 'investigation':
-        this.callbacks.onObjectiveUpdate(
-          'ACCESS COMMAND LOGS',
-          'Find the terminal in the Command Center.'
-        );
+        this.emitObjectiveUpdate('ACCESS COMMAND LOGS', 'Find the terminal in the Command Center.');
         break;
 
       case 'ambush':
@@ -2976,8 +2918,8 @@ export class FOBDeltaLevel extends BaseLevel {
     if (this.ambushTriggered) return;
     this.ambushTriggered = true;
 
-    this.callbacks.onNotification('HOSTILES DETECTED!', 2000);
-    this.callbacks.onCombatStateChange(true);
+    this.emitNotification('HOSTILES DETECTED!', 2000);
+    this.emitCombatStateChanged(true);
 
     this.sendCommsMessage('ambush', {
       sender: 'PROMETHEUS A.I.',
@@ -2997,7 +2939,9 @@ export class FOBDeltaLevel extends BaseLevel {
 
     const assetName = SPECIES_TO_ASSET[AMBUSH_ENEMY_SPECIES];
     if (!assetName) {
-      throw new Error(`[FOBDelta] No asset mapping for ambush enemy species: ${AMBUSH_ENEMY_SPECIES}`);
+      throw new Error(
+        `[FOBDelta] No asset mapping for ambush enemy species: ${AMBUSH_ENEMY_SPECIES}`
+      );
     }
 
     if (!this.ambushEnemiesPreloaded) {
@@ -3113,7 +3057,7 @@ export class FOBDeltaLevel extends BaseLevel {
         if (this.phase === 'discovery' || this.phase === 'exit') {
           // Near the exit
           if (this.hatchOpen) {
-            this.callbacks.onNotification('PRESS E TO ENTER TUNNELS', 2000);
+            this.emitNotification('PRESS E TO ENTER TUNNELS', 2000);
           }
         }
         break;
@@ -3320,12 +3264,12 @@ export class FOBDeltaLevel extends BaseLevel {
     }, 150);
 
     // Apply damage to player
-    this.callbacks.onHealthChange(-damage);
+    this.emitHealthChanged(-damage);
 
     // Apply player damage feedback (screen shake scaled to damage)
     damageFeedback.applyPlayerDamageFeedback(damage);
 
-    this.callbacks.onNotification('TAKING DAMAGE!', 500);
+    this.emitNotification('TAKING DAMAGE!', 500);
   }
 
   private onEnemyKilled(enemy: (typeof this.enemies)[0], index: number): void {
@@ -3364,8 +3308,8 @@ export class FOBDeltaLevel extends BaseLevel {
   }
 
   private onAmbushCleared(): void {
-    this.callbacks.onCombatStateChange(false);
-    this.callbacks.onNotification('AREA CLEAR', 2000);
+    this.emitCombatStateChanged(false);
+    this.emitNotification('AREA CLEAR', 2000);
 
     setTimeout(() => {
       this.sendCommsMessage('ambush_clear', {
@@ -3391,17 +3335,17 @@ export class FOBDeltaLevel extends BaseLevel {
     }
 
     if (state.currentAmmo >= state.maxMagazineSize) {
-      this.callbacks.onNotification('MAGAZINE FULL', 800);
+      this.emitNotification('MAGAZINE FULL', 800);
       return;
     }
 
     if (state.reserveAmmo <= 0) {
-      this.callbacks.onNotification('NO RESERVE AMMO', 800);
+      this.emitNotification('NO RESERVE AMMO', 800);
       return;
     }
 
     startReload();
-    this.callbacks.onNotification('RELOADING...', 1500);
+    this.emitNotification('RELOADING...', 1500);
   }
 
   /**
@@ -3412,7 +3356,7 @@ export class FOBDeltaLevel extends BaseLevel {
     if (this.phase !== 'ambush' || this.enemies.length === 0) return;
 
     this.meleeCooldown = this.MELEE_COOLDOWN;
-    this.callbacks.onNotification('MELEE!', 500);
+    this.emitNotification('MELEE!', 500);
 
     const playerPos = this.camera.position;
     const forward = new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
@@ -3424,8 +3368,8 @@ export class FOBDeltaLevel extends BaseLevel {
     const hitAny = this.damageEnemyAtPosition(attackPos, this.MELEE_DAMAGE, this.MELEE_RANGE);
 
     if (hitAny) {
-      this.callbacks.onNotification('HIT!', 300);
-      this.callbacks.onKill(); // Trigger hit feedback
+      this.emitNotification('HIT!', 300);
+      this.recordKill(); // Trigger hit feedback
     }
   }
 
@@ -3442,7 +3386,7 @@ export class FOBDeltaLevel extends BaseLevel {
     // Check ammo - use weapon system if available
     if (!fireWeapon()) {
       // No ammo - show notification and auto-start reload
-      this.callbacks.onNotification('NO AMMO - RELOADING', 800);
+      this.emitNotification('NO AMMO - RELOADING', 800);
       startReload();
       return;
     }
@@ -3485,7 +3429,7 @@ export class FOBDeltaLevel extends BaseLevel {
       // Emit alien splatter particle effect
       particleManager.emitAlienSplatter(closestEnemy.mesh.position, 0.6);
 
-      this.callbacks.onNotification('HIT!', 200);
+      this.emitNotification('HIT!', 200);
     }
 
     // Create muzzle flash effect
@@ -3551,43 +3495,6 @@ export class FOBDeltaLevel extends BaseLevel {
     return hitAny;
   }
 
-  /**
-   * Flash an enemy mesh red when hit (works with both Mesh and TransformNode)
-   */
-  private flashEnemyRed(mesh: Mesh | TransformNode): void {
-    // For a direct Mesh with material
-    if ('material' in mesh && mesh.material instanceof StandardMaterial) {
-      const mat = mesh.material;
-      const origColor = mat.diffuseColor.clone();
-      mat.diffuseColor = new Color3(1, 0.2, 0.2);
-      setTimeout(() => {
-        try {
-          mat.diffuseColor = origColor;
-        } catch {
-          // Material already disposed
-        }
-      }, 100);
-      return;
-    }
-
-    // For TransformNode (GLB instance), find child meshes
-    const children = mesh.getChildMeshes();
-    for (const child of children) {
-      if (child.material instanceof StandardMaterial) {
-        const mat = child.material;
-        const origColor = mat.diffuseColor.clone();
-        mat.diffuseColor = new Color3(1, 0.2, 0.2);
-        setTimeout(() => {
-          try {
-            mat.diffuseColor = origColor;
-          } catch {
-            // Material already disposed
-          }
-        }, 100);
-      }
-    }
-  }
-
   private updateFlickerLights(deltaTime: number): void {
     for (const fl of this.flickerLights) {
       fl.timer += deltaTime * fl.flickerSpeed;
@@ -3638,7 +3545,7 @@ export class FOBDeltaLevel extends BaseLevel {
   /**
    * Update perimeter spotlight sweep animation.
    */
-  private updateSpotlights(deltaTime: number): void {
+  private updateSpotlights(_deltaTime: number): void {
     const time = performance.now() * 0.001;
     for (const spotlight of this.spotlights) {
       if (!spotlight.active) continue;
@@ -3655,8 +3562,8 @@ export class FOBDeltaLevel extends BaseLevel {
 
   protected disposeLevel(): void {
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
 
     // Dispose modular base (corridors, lights, props)
     if (this.modularBaseResult) {

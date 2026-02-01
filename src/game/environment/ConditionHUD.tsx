@@ -12,7 +12,8 @@
  * Styling follows the existing military/industrial aesthetic of the game.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { HazardType } from './HazardSystem';
 
 // ============================================================================
@@ -358,8 +359,8 @@ export const ConditionHUD: React.FC<ConditionHUDProps> = ({
 
   // Render critical warnings
   const criticalWarnings = useMemo(() => {
-    return warnings.filter((w) =>
-      w.toLowerCase().includes('critical') || w.toLowerCase().includes('emergency')
+    return warnings.filter(
+      (w) => w.toLowerCase().includes('critical') || w.toLowerCase().includes('emergency')
     );
   }, [warnings]);
 
@@ -410,17 +411,17 @@ export const ConditionHUD: React.FC<ConditionHUDProps> = ({
  * Hook to get condition HUD data from the EnvironmentalConditionsManager
  */
 export function useConditionHUDData(): ConditionHUDProps {
-  const [meters, setMeters] = useState<ConditionMeterData[]>([]);
-  const [overlayColor, setOverlayColor] = useState<{
+  const [meters, _setMeters] = useState<ConditionMeterData[]>([]);
+  const [overlayColor, _setOverlayColor] = useState<{
     r: number;
     g: number;
     b: number;
     a: number;
   } | null>(null);
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [isWeaponJammed, setIsWeaponJammed] = useState(false);
-  const [weatherText, setWeatherText] = useState<string | undefined>();
-  const [visibility, setVisibility] = useState(1);
+  const [warnings, _setWarnings] = useState<string[]>([]);
+  const [isWeaponJammed, _setIsWeaponJammed] = useState(false);
+  const [weatherText, _setWeatherText] = useState<string | undefined>();
+  const [visibility, _setVisibility] = useState(1);
 
   useEffect(() => {
     // This would be connected to the EnvironmentalConditionsManager

@@ -18,7 +18,7 @@
  * - Level completion and disposal
  */
 
-import { beforeEach, afterEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 // ============================================================================
 // MOCKS - Must be defined before imports
@@ -51,7 +51,7 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => {
     intensity: number;
     range: number;
     dispose: () => void;
-    constructor(name: string, position?: any, scene?: any) {
+    constructor(name: string, position?: any, _scene?: any) {
       this.name = name;
       this.position = position || { x: 0, y: 0, z: 0 };
       this.diffuse = { r: 1, g: 1, b: 1 };
@@ -180,7 +180,14 @@ vi.mock('@babylonjs/core/Meshes/meshBuilder', () => {
   const createMockMesh = (name: string) => ({
     name,
     material: null,
-    position: { x: 0, y: 0, z: 0, set: vi.fn(), clone: vi.fn().mockReturnThis(), copyFrom: vi.fn() },
+    position: {
+      x: 0,
+      y: 0,
+      z: 0,
+      set: vi.fn(),
+      clone: vi.fn().mockReturnThis(),
+      copyFrom: vi.fn(),
+    },
     rotation: { x: 0, y: 0, z: 0, set: vi.fn() },
     scaling: { x: 1, y: 1, z: 1, setAll: vi.fn(), clone: vi.fn().mockReturnThis() },
     isVisible: true,
@@ -248,8 +255,8 @@ vi.mock('../../core/AssetManager', () => {
       init: vi.fn(),
       loadAssetByPath: vi.fn().mockResolvedValue({}),
       loadAsset: vi.fn().mockResolvedValue({}),
-      createInstanceByPath: vi.fn().mockImplementation((path, name) => createMockNode(name)),
-      createInstance: vi.fn().mockImplementation((category, type, name) => createMockNode(name)),
+      createInstanceByPath: vi.fn().mockImplementation((_path, name) => createMockNode(name)),
+      createInstance: vi.fn().mockImplementation((_category, _type, name) => createMockNode(name)),
       isPathCached: vi.fn().mockReturnValue(true),
     },
     SPECIES_TO_ASSET: {
@@ -354,13 +361,11 @@ vi.mock('../BaseLevel', () => {
       this: any,
       engine: any,
       canvas: any,
-      config: any,
-      callbacks: any
+      config: any
     ) {
       this.engine = engine;
       this.canvas = canvas;
       this.config = config;
-      this.callbacks = callbacks;
       this.scene = {
         clearColor: null,
         onBeforeRenderObservable: { add: vi.fn(), remove: vi.fn() },
@@ -368,7 +373,13 @@ vi.mock('../BaseLevel', () => {
       };
       this.camera = {
         position: { x: 0, y: 1.7, z: 0, copyFrom: vi.fn(), clone: vi.fn().mockReturnThis() },
-        getDirection: vi.fn().mockReturnValue({ x: 0, y: 0, z: 1, normalize: vi.fn().mockReturnThis(), scale: vi.fn().mockReturnThis() }),
+        getDirection: vi.fn().mockReturnValue({
+          x: 0,
+          y: 0,
+          z: 1,
+          normalize: vi.fn().mockReturnThis(),
+          scale: vi.fn().mockReturnThis(),
+        }),
       };
       this.sunLight = { intensity: 1 };
       this.ambientLight = { intensity: 1 };
@@ -383,6 +394,15 @@ vi.mock('../BaseLevel', () => {
       this.completeLevel = vi.fn();
       this.handleKeyDown = vi.fn();
       this.handleClick = vi.fn();
+      // EventBus emit helper mocks
+      this.emitNotification = vi.fn();
+      this.emitObjectiveUpdate = vi.fn();
+      this.emitCommsMessage = vi.fn();
+      this.emitHealthChanged = vi.fn();
+      this.emitCombatStateChanged = vi.fn();
+      this.emitActionHandlerRegistered = vi.fn();
+      this.emitActionGroupsChanged = vi.fn();
+      this.recordKill = vi.fn();
     }),
   };
 });
@@ -391,11 +411,11 @@ vi.mock('../BaseLevel', () => {
 // IMPORTS - After mocks
 // ============================================================================
 
-import { FOBDeltaLevel } from './FOBDeltaLevel';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { fireWeapon, startReload, getWeaponActions } from '../../context/useWeaponActions';
-import { particleManager } from '../../effects/ParticleManager';
+import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { damageFeedback } from '../../effects/DamageFeedback';
+import { particleManager } from '../../effects/ParticleManager';
+import { FOBDeltaLevel } from './FOBDeltaLevel';
 
 // ============================================================================
 // TEST HELPERS
@@ -437,22 +457,6 @@ function createMockConfig() {
   };
 }
 
-function createMockCallbacks() {
-  return {
-    onNotification: vi.fn(),
-    onObjectiveUpdate: vi.fn(),
-    onCommsMessage: vi.fn(),
-    onChapterChange: vi.fn(),
-    onHealthChange: vi.fn(),
-    onDamage: vi.fn(),
-    onActionHandlerRegister: vi.fn(),
-    onActionGroupsChange: vi.fn(),
-    onCombatStateChange: vi.fn(),
-    onKill: vi.fn(),
-    onLevelComplete: vi.fn(),
-  };
-}
-
 // ============================================================================
 // TESTS
 // ============================================================================
@@ -462,7 +466,6 @@ describe('FOBDeltaLevel', () => {
   let mockEngine: any;
   let mockCanvas: any;
   let mockConfig: any;
-  let mockCallbacks: ReturnType<typeof createMockCallbacks>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -471,9 +474,8 @@ describe('FOBDeltaLevel', () => {
     mockEngine = createMockEngine();
     mockCanvas = createMockCanvas();
     mockConfig = createMockConfig();
-    mockCallbacks = createMockCallbacks();
 
-    level = new FOBDeltaLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
+    level = new FOBDeltaLevel(mockEngine, mockCanvas, mockConfig);
   });
 
   afterEach(() => {
@@ -496,11 +498,6 @@ describe('FOBDeltaLevel', () => {
 
       // The level initializes with 'approach' phase
       expect(privateLevel.phase).toBe('approach');
-    });
-
-    it('should store callbacks', () => {
-      const privateLevel = level as any;
-      expect(privateLevel.callbacks).toBe(mockCallbacks);
     });
   });
 
@@ -543,7 +540,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.transitionToPhase('investigation');
 
       expect(privateLevel.phase).toBe('investigation');
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'ACCESS COMMAND LOGS',
         'Find the terminal in the Command Center.'
       );
@@ -583,12 +580,48 @@ describe('FOBDeltaLevel', () => {
       const privateLevel = level as any;
       privateLevel.phase = 'approach';
       privateLevel.areaZones = [
-        { id: 'perimeter', name: 'Perimeter', center: new Vector3(0, 0, -35), radius: 15, triggered: false },
-        { id: 'courtyard', name: 'Courtyard', center: new Vector3(0, 0, 0), radius: 20, triggered: false },
-        { id: 'barracks', name: 'Barracks', center: new Vector3(-25, 0, 0), radius: 12, triggered: false },
-        { id: 'command', name: 'Command Center', center: new Vector3(0, 0, 25), radius: 12, triggered: false },
-        { id: 'vehiclebay', name: 'Vehicle Bay', center: new Vector3(25, 0, 0), radius: 15, triggered: false },
-        { id: 'hatch', name: 'Underground Access', center: new Vector3(30, 0, 10), radius: 5, triggered: false },
+        {
+          id: 'perimeter',
+          name: 'Perimeter',
+          center: new Vector3(0, 0, -35),
+          radius: 15,
+          triggered: false,
+        },
+        {
+          id: 'courtyard',
+          name: 'Courtyard',
+          center: new Vector3(0, 0, 0),
+          radius: 20,
+          triggered: false,
+        },
+        {
+          id: 'barracks',
+          name: 'Barracks',
+          center: new Vector3(-25, 0, 0),
+          radius: 12,
+          triggered: false,
+        },
+        {
+          id: 'command',
+          name: 'Command Center',
+          center: new Vector3(0, 0, 25),
+          radius: 12,
+          triggered: false,
+        },
+        {
+          id: 'vehiclebay',
+          name: 'Vehicle Bay',
+          center: new Vector3(25, 0, 0),
+          radius: 15,
+          triggered: false,
+        },
+        {
+          id: 'hatch',
+          name: 'Underground Access',
+          center: new Vector3(30, 0, 10),
+          radius: 5,
+          triggered: false,
+        },
       ];
       privateLevel.messageFlags = new Set();
       privateLevel.logsAccessed = false;
@@ -637,7 +670,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.onEnterArea('vehiclebay');
 
       // Message should be sent
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalled();
+      expect((level as any).emitCommsMessage).toHaveBeenCalled();
     });
 
     it('should show notification when near open hatch', () => {
@@ -647,7 +680,10 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.onEnterArea('hatch');
 
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('PRESS E TO ENTER TUNNELS', 2000);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
+        'PRESS E TO ENTER TUNNELS',
+        2000
+      );
     });
   });
 
@@ -664,7 +700,7 @@ describe('FOBDeltaLevel', () => {
 
       expect(privateLevel.flashlightOn).toBe(true);
       expect(privateLevel.flashlight.intensity).toBe(1.5);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('FLASHLIGHT ON', 800);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('FLASHLIGHT ON', 800);
     });
 
     it('should toggle flashlight off', () => {
@@ -676,7 +712,7 @@ describe('FOBDeltaLevel', () => {
 
       expect(privateLevel.flashlightOn).toBe(false);
       expect(privateLevel.flashlight.intensity).toBe(0);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('FLASHLIGHT OFF', 800);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('FLASHLIGHT OFF', 800);
     });
   });
 
@@ -695,7 +731,7 @@ describe('FOBDeltaLevel', () => {
       const privateLevel = level as any;
       privateLevel.activateScanner();
 
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('SCANNING...', 1500);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('SCANNING...', 1500);
     });
 
     it('should detect nearby terminal', () => {
@@ -706,7 +742,7 @@ describe('FOBDeltaLevel', () => {
 
       // After timeout, should detect terminal
       vi.advanceTimersByTime(1500);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('TERMINAL DETECTED - 12M', 2000);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('TERMINAL DETECTED - 12M', 2000);
     });
 
     it('should detect mech signature when near', () => {
@@ -716,7 +752,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.activateScanner();
 
       vi.advanceTimersByTime(1500);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('MECH SIGNATURE DETECTED', 2000);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('MECH SIGNATURE DETECTED', 2000);
     });
 
     it('should detect underground access when logs accessed', () => {
@@ -727,7 +763,10 @@ describe('FOBDeltaLevel', () => {
       privateLevel.activateScanner();
 
       vi.advanceTimersByTime(1500);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('UNDERGROUND ACCESS DETECTED', 2000);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
+        'UNDERGROUND ACCESS DETECTED',
+        2000
+      );
     });
   });
 
@@ -784,7 +823,7 @@ describe('FOBDeltaLevel', () => {
       expect(supply.mesh.isVisible).toBe(false);
       expect(supply.glowLight.intensity).toBe(0);
       expect(getWeaponActions()?.addAmmo).toHaveBeenCalledWith(30);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('+30 AMMO', 1500);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('+30 AMMO', 1500);
     });
 
     it('should collect health and update player health', () => {
@@ -795,8 +834,8 @@ describe('FOBDeltaLevel', () => {
       privateLevel.collectSupply(supply);
 
       expect(supply.collected).toBe(true);
-      expect(mockCallbacks.onHealthChange).toHaveBeenCalledWith(25);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('+25 HEALTH', 1500);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(25);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('+25 HEALTH', 1500);
     });
 
     it('should collect armor and apply to player', () => {
@@ -807,8 +846,8 @@ describe('FOBDeltaLevel', () => {
       privateLevel.collectSupply(supply);
 
       expect(supply.collected).toBe(true);
-      expect(mockCallbacks.onHealthChange).toHaveBeenCalledWith(20); // armor / 2
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('+40 ARMOR', 1500);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(20); // armor / 2
+      expect((level as any).emitNotification).toHaveBeenCalledWith('+40 ARMOR', 1500);
     });
 
     it('should not return already collected supplies', () => {
@@ -851,7 +890,10 @@ describe('FOBDeltaLevel', () => {
       privateLevel.accessLogs();
 
       expect(privateLevel.logsAccessed).toBe(true);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('ACCESSING MISSION LOGS...', 2000);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
+        'ACCESSING MISSION LOGS...',
+        2000
+      );
     });
 
     it('should send multiple log messages over time', () => {
@@ -860,19 +902,19 @@ describe('FOBDeltaLevel', () => {
 
       // First log message
       vi.advanceTimersByTime(2500);
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalled();
+      expect((level as any).emitCommsMessage).toHaveBeenCalled();
 
       // Second log message
       vi.advanceTimersByTime(5500);
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledTimes(2);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(2);
 
       // Third log message
       vi.advanceTimersByTime(6000);
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledTimes(3);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(3);
 
       // Transition to discovery phase
       vi.advanceTimersByTime(6000);
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'LOCATE UNDERGROUND ACCESS',
         'Find the tunnel entrance in the Vehicle Bay.'
       );
@@ -895,7 +937,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.accessMiningOutpost();
 
       expect(privateLevel.miningTerminalAccessed).toBe(true);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith(
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         'MINING OUTPOST GAMMA-7 ACCESS GRANTED',
         2000
       );
@@ -906,8 +948,11 @@ describe('FOBDeltaLevel', () => {
       privateLevel.accessMiningOutpost();
 
       vi.advanceTimersByTime(4000);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('ENTERING MINING DEPTHS...', 2000);
-      expect(mockCallbacks.onLevelComplete).toHaveBeenCalledWith(null);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
+        'ENTERING MINING DEPTHS...',
+        2000
+      );
+      expect((level as any).completeLevel).toHaveBeenCalled();
     });
   });
 
@@ -926,7 +971,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.openHatch();
 
       expect(privateLevel.hatchOpen).toBe(true);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('HATCH OPENED', 1500);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('HATCH OPENED', 1500);
       expect(privateLevel.undergroundHatch.position.y).toBe(-0.5);
     });
 
@@ -935,7 +980,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.openHatch();
 
       vi.advanceTimersByTime(1500);
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalled();
+      expect((level as any).emitCommsMessage).toHaveBeenCalled();
     });
 
     it('should update objective to descend into breach', () => {
@@ -943,7 +988,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.openHatch();
 
       vi.advanceTimersByTime(6000);
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'DESCEND INTO THE BREACH',
         'Enter the underground tunnels to find Marcus.'
       );
@@ -967,19 +1012,19 @@ describe('FOBDeltaLevel', () => {
       privateLevel.triggerAmbush();
 
       expect(privateLevel.ambushTriggered).toBe(true);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('HOSTILES DETECTED!', 2000);
-      expect(mockCallbacks.onCombatStateChange).toHaveBeenCalledWith(true);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('HOSTILES DETECTED!', 2000);
+      expect((level as any).emitCombatStateChanged).toHaveBeenCalledWith(true);
     });
 
     it('should not trigger ambush twice', () => {
       const privateLevel = level as any;
       privateLevel.triggerAmbush();
-      const initialCallCount = mockCallbacks.onNotification.mock.calls.length;
+      const initialCallCount = (level as any).emitNotification.mock.calls.length;
 
       privateLevel.triggerAmbush();
 
       // No additional notification
-      expect(mockCallbacks.onNotification.mock.calls.length).toBe(initialCallCount);
+      expect((level as any).emitNotification.mock.calls.length).toBe(initialCallCount);
     });
 
     it('should create enemies with correct initial state', () => {
@@ -1002,7 +1047,9 @@ describe('FOBDeltaLevel', () => {
         {
           mesh: {
             position: {
-              x: 10, y: 1, z: 10,
+              x: 10,
+              y: 1,
+              z: 10,
               clone: vi.fn().mockReturnValue(new Vector3(10, 1, 10)),
             },
             rotation: { y: 0 },
@@ -1047,8 +1094,8 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.onEnemyAttack(privateLevel.enemies[0], 8);
 
-      expect(mockCallbacks.onHealthChange).toHaveBeenCalledWith(-8);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('TAKING DAMAGE!', 500);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(-8);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('TAKING DAMAGE!', 500);
     });
 
     it('should remove enemy on death', () => {
@@ -1068,8 +1115,8 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.onAmbushCleared();
 
-      expect(mockCallbacks.onCombatStateChange).toHaveBeenCalledWith(false);
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('AREA CLEAR', 2000);
+      expect((level as any).emitCombatStateChanged).toHaveBeenCalledWith(false);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('AREA CLEAR', 2000);
     });
   });
 
@@ -1101,7 +1148,9 @@ describe('FOBDeltaLevel', () => {
       const privateLevel = level as any;
       privateLevel.camera = {
         position: {
-          x: 0, y: 1.7, z: 0,
+          x: 0,
+          y: 1.7,
+          z: 0,
           add: vi.fn().mockReturnValue(new Vector3(0, 1.7, 0)),
           clone: vi.fn().mockReturnValue(new Vector3(0, 1.7, 0)),
         },
@@ -1109,7 +1158,7 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.meleeAttack();
 
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('MELEE!', 500);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('MELEE!', 500);
       expect(privateLevel.meleeCooldown).toBe(800);
     });
 
@@ -1119,7 +1168,7 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.meleeAttack();
 
-      expect(mockCallbacks.onNotification).not.toHaveBeenCalled();
+      expect((level as any).emitNotification).not.toHaveBeenCalled();
     });
 
     it('should not melee outside ambush phase', () => {
@@ -1128,7 +1177,7 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.meleeAttack();
 
-      expect(mockCallbacks.onNotification).not.toHaveBeenCalled();
+      expect((level as any).emitNotification).not.toHaveBeenCalled();
     });
   });
 
@@ -1139,7 +1188,9 @@ describe('FOBDeltaLevel', () => {
       privateLevel.phase = 'ambush';
       privateLevel.camera = {
         position: {
-          x: 0, y: 1.7, z: 0,
+          x: 0,
+          y: 1.7,
+          z: 0,
           add: vi.fn().mockReturnValue(new Vector3(0, 1.7, 0)),
           clone: vi.fn().mockReturnValue(new Vector3(0, 1.7, 0)),
         },
@@ -1197,7 +1248,7 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.firePrimaryWeapon();
 
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('NO AMMO - RELOADING', 800);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('NO AMMO - RELOADING', 800);
       expect(startReload).toHaveBeenCalled();
     });
   });
@@ -1219,7 +1270,7 @@ describe('FOBDeltaLevel', () => {
       privateLevel.handleReload();
 
       expect(startReload).toHaveBeenCalled();
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('RELOADING...', 1500);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('RELOADING...', 1500);
     });
 
     it('should not reload when magazine is full', () => {
@@ -1237,7 +1288,7 @@ describe('FOBDeltaLevel', () => {
       const privateLevel = level as any;
       privateLevel.handleReload();
 
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('MAGAZINE FULL', 800);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('MAGAZINE FULL', 800);
       expect(startReload).not.toHaveBeenCalled();
     });
 
@@ -1256,7 +1307,7 @@ describe('FOBDeltaLevel', () => {
       const privateLevel = level as any;
       privateLevel.handleReload();
 
-      expect(mockCallbacks.onNotification).toHaveBeenCalledWith('NO RESERVE AMMO', 800);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('NO RESERVE AMMO', 800);
       expect(startReload).not.toHaveBeenCalled();
     });
 
@@ -1460,7 +1511,7 @@ describe('FOBDeltaLevel', () => {
 
       privateLevel.updateActionButtons();
 
-      const actionGroupsCall = mockCallbacks.onActionGroupsChange.mock.calls[0][0];
+      const actionGroupsCall = (level as any).emitActionGroupsChanged.mock.calls[0][0];
       const combatGroup = actionGroupsCall.find((g: any) => g.id === 'combat');
       expect(combatGroup).toBeDefined();
     });
@@ -1584,12 +1635,8 @@ describe('FOBDeltaLevel', () => {
         { light: { dispose: vi.fn() } },
         { light: { dispose: vi.fn() } },
       ];
-      privateLevel.enemies = [
-        { mesh: { dispose: vi.fn() } },
-      ];
-      privateLevel.alienVehicles = [
-        { dispose: vi.fn() },
-      ];
+      privateLevel.enemies = [{ mesh: { dispose: vi.fn() } }];
+      privateLevel.alienVehicles = [{ dispose: vi.fn() }];
       privateLevel.terminalLight = { dispose: vi.fn() };
       privateLevel.mechEyeLight = { dispose: vi.fn() };
       privateLevel.flashlight = { dispose: vi.fn() };
@@ -1598,23 +1645,14 @@ describe('FOBDeltaLevel', () => {
       privateLevel.supplyPickups = [
         { mesh: { dispose: vi.fn() }, glowLight: { dispose: vi.fn() } },
       ];
-      privateLevel.fortificationMeshes = [
-        { dispose: vi.fn() },
-      ];
-      privateLevel.turretPositions = [
-        { light: { dispose: vi.fn() } },
-      ];
-      privateLevel.spotlights = [
-        { light: { dispose: vi.fn() } },
-      ];
+      privateLevel.fortificationMeshes = [{ dispose: vi.fn() }];
+      privateLevel.turretPositions = [{ light: { dispose: vi.fn() } }];
+      privateLevel.spotlights = [{ light: { dispose: vi.fn() } }];
       privateLevel.materials = new Map([
         ['concrete', { dispose: vi.fn() }],
         ['metal', { dispose: vi.fn() }],
       ]);
-      privateLevel.allMeshes = [
-        { dispose: vi.fn() },
-        { dispose: vi.fn() },
-      ];
+      privateLevel.allMeshes = [{ dispose: vi.fn() }, { dispose: vi.fn() }];
       privateLevel.fobRoot = { dispose: vi.fn() };
       privateLevel.terminal = {};
       privateLevel.mechMesh = {};
@@ -1707,8 +1745,8 @@ describe('FOBDeltaLevel', () => {
       const privateLevel = level as any;
       privateLevel.disposeLevel();
 
-      expect(mockCallbacks.onActionHandlerRegister).toHaveBeenCalledWith(null);
-      expect(mockCallbacks.onActionGroupsChange).toHaveBeenCalledWith([]);
+      expect((level as any).emitActionHandlerRegistered).toHaveBeenCalledWith(null);
+      expect((level as any).emitActionGroupsChanged).toHaveBeenCalledWith([]);
     });
 
     it('should dispose damage feedback system', () => {
@@ -1735,7 +1773,7 @@ describe('FOBDeltaLevel', () => {
         text: 'Test message',
       });
 
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledTimes(1);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(1);
 
       // Try to send same message again
       privateLevel.sendCommsMessage('test_flag', {
@@ -1746,7 +1784,7 @@ describe('FOBDeltaLevel', () => {
       });
 
       // Should not have been called again
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledTimes(1);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(1);
     });
 
     it('should send different messages for different flags', () => {
@@ -1766,7 +1804,7 @@ describe('FOBDeltaLevel', () => {
         text: 'Message 2',
       });
 
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledTimes(2);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -1884,9 +1922,8 @@ describe('FOBDeltaLevel Integration', () => {
       const mockEngine = createMockEngine();
       const mockCanvas = createMockCanvas();
       const mockConfig = createMockConfig();
-      const mockCallbacks = createMockCallbacks();
 
-      const level = new FOBDeltaLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
+      const level = new FOBDeltaLevel(mockEngine, mockCanvas, mockConfig);
       const privateLevel = level as any;
 
       // Initialize level state
@@ -1932,9 +1969,8 @@ describe('FOBDeltaLevel Integration', () => {
       const mockEngine = createMockEngine();
       const mockCanvas = createMockCanvas();
       const mockConfig = createMockConfig();
-      const mockCallbacks = createMockCallbacks();
 
-      const level = new FOBDeltaLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
+      const level = new FOBDeltaLevel(mockEngine, mockCanvas, mockConfig);
       const privateLevel = level as any;
 
       // Setup combat
@@ -1953,7 +1989,9 @@ describe('FOBDeltaLevel Integration', () => {
         privateLevel.enemies.push({
           mesh: {
             position: {
-              x: 10 + i * 5, y: 1, z: 10,
+              x: 10 + i * 5,
+              y: 1,
+              z: 10,
               clone: vi.fn().mockReturnValue(new Vector3(10 + i * 5, 1, 10)),
             },
             rotation: { y: 0 },
@@ -1963,7 +2001,9 @@ describe('FOBDeltaLevel Integration', () => {
           },
           health: 60,
           position: {
-            x: 10 + i * 5, y: 1, z: 10,
+            x: 10 + i * 5,
+            y: 1,
+            z: 10,
             clone: vi.fn().mockReturnValue(new Vector3(10 + i * 5, 1, 10)),
           },
           state: 'chase',
@@ -1981,7 +2021,7 @@ describe('FOBDeltaLevel Integration', () => {
 
       expect(privateLevel.killCount).toBe(3);
       expect(privateLevel.enemyCount).toBe(0);
-      expect(mockCallbacks.onCombatStateChange).toHaveBeenCalledWith(false);
+      expect((level as any).emitCombatStateChanged).toHaveBeenCalledWith(false);
     });
   });
 });

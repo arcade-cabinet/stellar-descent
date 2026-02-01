@@ -74,77 +74,75 @@
  * ```
  */
 
-// HazardSystem - Environmental hazards (zone-based and instant)
-export {
-  HazardSystem,
-  getHazardSystem,
-  disposeHazardSystem,
-  HAZARD_PRESETS,
-  INSTANT_HAZARD_PRESETS,
-  type HazardType,
-  type InstantHazardType,
-  type AnyHazardType,
-  type HazardZoneConfig,
-  type HazardZone,
-  type InstantHazardConfig,
-  type InstantHazard,
-  type HazardState,
-  type HazardPreset,
-  type InstantHazardPreset,
-  type HazardCallbacks,
-  type HazardFeedback,
-} from './HazardSystem';
-
 // AdvancedWeatherSystem - Dynamic weather effects
 export {
   AdvancedWeatherSystem,
-  getAdvancedWeatherSystem,
   disposeAdvancedWeatherSystem,
+  getAdvancedWeatherSystem,
+  type LightningStrike,
+  type MeteorImpact,
   WEATHER_PRESETS,
-  type WeatherEventType,
+  type WeatherEventCallbacks,
   type WeatherEventConfig,
   type WeatherEventPreset,
   type WeatherEventState,
-  type WeatherEventCallbacks,
-  type LightningStrike,
-  type MeteorImpact,
+  type WeatherEventType,
 } from './AdvancedWeatherSystem';
+// ConditionHUD - React component
+export {
+  ConditionHUD,
+  type ConditionHUDProps,
+  type ConditionMeterData,
+  useConditionHUDData,
+} from './ConditionHUD';
 
 // EnvironmentalConditions - Central manager
 export {
-  EnvironmentalConditionsManager,
+  type ConditionCallbacks,
   createEnvironmentalConditions,
-  getEnvironmentalConditions,
   disposeEnvironmentalConditions,
   ENVIRONMENT_PRESETS,
-  type EnvironmentType,
+  EnvironmentalConditionsManager,
   type EnvironmentConfig,
+  type EnvironmentType,
+  getEnvironmentalConditions,
   type PlayerConditionStatus,
-  type ConditionCallbacks,
 } from './EnvironmentalConditions';
 
 // EnvironmentalStorytelling - Ambient world-building
 export {
-  EnvironmentalStorytellingManager,
-  getEnvironmentalStorytelling,
-  disposeEnvironmentalStorytelling,
-  type StorytellingElementType,
-  type StorytellingElementConfig,
-  type BodyConfig,
-  type GraffitiConfig,
-  type SignConfig,
-  type EmergencyLightConfig,
   type AlarmConfig,
-  type AudioPointConfig,
-  type DebrisZoneConfig,
   type AnyStorytellingConfig,
+  type AudioPointConfig,
+  type BodyConfig,
+  type DebrisZoneConfig,
+  disposeEnvironmentalStorytelling,
+  type EmergencyLightConfig,
+  EnvironmentalStorytellingManager,
+  type GraffitiConfig,
+  getEnvironmentalStorytelling,
+  type SignConfig,
   type StorytellingCallbacks,
+  type StorytellingElementConfig,
+  type StorytellingElementType,
 } from './EnvironmentalStorytelling';
-
-// ConditionHUD - React component
+// HazardSystem - Environmental hazards (zone-based and instant)
 export {
-  ConditionHUD,
-  useConditionHUDData,
-  type ConditionMeterData,
-  type ConditionHUDProps,
-} from './ConditionHUD';
+  type AnyHazardType,
+  disposeHazardSystem,
+  getHazardSystem,
+  HAZARD_PRESETS,
+  type HazardCallbacks,
+  type HazardFeedback,
+  type HazardPreset,
+  type HazardState,
+  HazardSystem,
+  type HazardType,
+  type HazardZone,
+  type HazardZoneConfig,
+  INSTANT_HAZARD_PRESETS,
+  type InstantHazard,
+  type InstantHazardConfig,
+  type InstantHazardPreset,
+  type InstantHazardType,
+} from './HazardSystem';

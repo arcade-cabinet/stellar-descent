@@ -560,13 +560,13 @@ export class EnvironmentalParticles {
    * Update LOD for all emitters based on camera distance
    * Call this periodically (not every frame)
    */
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     this.lodCheckInterval++;
 
     if (this.lodCheckInterval < this.LOD_CHECK_FRAMES) return;
     this.lodCheckInterval = 0;
 
-    for (const [id, emitter] of this.activeEmitters) {
+    for (const [_id, emitter] of this.activeEmitters) {
       const lodDistance = emitter.config.lodDistance ?? 50;
       const distance = Vector3.Distance(this.cameraPosition, emitter.config.position);
 

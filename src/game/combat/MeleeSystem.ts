@@ -29,22 +29,21 @@
  * - CombatBalanceConfig for damage values
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
-import type { Scene } from '@babylonjs/core/scene';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-
-import { getLogger } from '../core/Logger';
+import type { Scene } from '@babylonjs/core/scene';
+import { getAchievementManager } from '../achievements';
+import { calculateMeleeDamage, MELEE_BALANCE } from '../balance/CombatBalanceConfig';
 import { getAudioManager } from '../core/AudioManager';
+import { getEnemySoundManager } from '../core/EnemySoundManager';
 import { type Entity, getEntitiesInRadius } from '../core/ecs';
+import { hitAudioManager } from '../core/HitAudioManager';
+import { getLogger } from '../core/Logger';
 import { damageFeedback } from '../effects/DamageFeedback';
 import { hitReactionSystem } from '../systems/HitReactionSystem';
-import { hitAudioManager } from '../core/HitAudioManager';
-import { getEnemySoundManager } from '../core/EnemySoundManager';
-import { getAchievementManager } from '../achievements';
 import { firstPersonWeapons } from '../weapons/FirstPersonWeapons';
-import { MELEE_BALANCE, calculateMeleeDamage } from '../balance/CombatBalanceConfig';
 
 const log = getLogger('MeleeSystem');
 
@@ -114,9 +113,6 @@ export class MeleeSystem {
   // Cooldown tracking
   private lastAttackTime = 0;
   private isAttacking = false;
-
-  // Animation state
-  private attackProgress = 0;
   private cameraPunchOffset = 0;
 
   // Callbacks
@@ -391,7 +387,7 @@ export class MeleeSystem {
     const intensity = this.config.cameraPunchIntensity;
 
     // Store original camera rotation
-    const originalRotX = this.camera.rotation?.x ?? 0;
+    const _originalRotX = this.camera.rotation?.x ?? 0;
 
     const animatePunch = () => {
       if (!this.camera) return;
@@ -417,7 +413,7 @@ export class MeleeSystem {
       this.cameraPunchOffset = -punchAmount * intensity;
 
       // Also move camera slightly forward
-      const forward = this.camera.getForwardRay(1).direction;
+      const _forward = this.camera.getForwardRay(1).direction;
       // Note: We don't actually move camera position, just store the offset
       // The player class can query this for applying
 

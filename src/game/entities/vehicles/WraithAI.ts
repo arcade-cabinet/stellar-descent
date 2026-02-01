@@ -31,14 +31,12 @@ import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
-import { getLogger } from '../../core/Logger';
 import {
   type DifficultyLevel,
   loadDifficultySetting,
@@ -47,6 +45,7 @@ import {
   scaleEnemyHealth,
 } from '../../core/DifficultySettings';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
+import { getLogger } from '../../core/Logger';
 import {
   launchMortar,
   MORTAR_CHARGE_TIME,
@@ -160,7 +159,6 @@ export class WraithAI {
 
   // State machine
   private _state: WraithState = 'patrol';
-  private stateTimer: number = 0;
 
   // Patrol
   private waypoints: WraithWaypoint[] = [];
@@ -194,9 +192,6 @@ export class WraithAI {
 
   // Destruction callback
   public onDestroyed: ((wraith: WraithAI) => void) | null = null;
-
-  // Flag indicating whether the GLB model has been loaded
-  private _modelLoaded = false;
 
   /**
    * Private constructor. Use the static `create()` factory to instantiate.
@@ -285,7 +280,9 @@ export class WraithAI {
         this._modelLoaded = true;
         log.info(`GLB model loaded for ${this.id}`);
       } else {
-        throw new Error(`[WraithAI] GLB instance creation failed for ${this.id} - asset not preloaded or path invalid`);
+        throw new Error(
+          `[WraithAI] GLB instance creation failed for ${this.id} - asset not preloaded or path invalid`
+        );
       }
     } catch (err) {
       throw new Error(`[WraithAI] Failed to load GLB model for ${this.id}: ${err}`);
@@ -862,7 +859,7 @@ export class WraithAI {
 
       for (const child of children) {
         const mat = child.material as StandardMaterial | null;
-        if (mat && mat.emissiveColor) {
+        if (mat?.emissiveColor) {
           originalColors.set(child.uniqueId.toString(), mat.emissiveColor.clone());
           mat.emissiveColor = Color3.FromHexString('#FF2222');
         }

@@ -12,7 +12,7 @@
  * - Shield regeneration
  */
 
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock BabylonJS dependencies
 vi.mock('@babylonjs/core/Materials/standardMaterial', () => {
@@ -170,7 +170,13 @@ vi.mock('../../utils/designTokens', () => ({
 vi.mock('../../ai/MarcusSteeringAI', () => {
   class MockMarcusSteeringAI {
     update = vi.fn().mockReturnValue({
-      velocity: { x: 0, y: 0, z: 0, scale: vi.fn().mockReturnThis(), length: vi.fn().mockReturnValue(0) },
+      velocity: {
+        x: 0,
+        y: 0,
+        z: 0,
+        scale: vi.fn().mockReturnThis(),
+        length: vi.fn().mockReturnValue(0),
+      },
       facingDirection: { x: 0, y: 0, z: 1, length: vi.fn().mockReturnValue(1) },
       isMoving: false,
     });
@@ -179,7 +185,6 @@ vi.mock('../../ai/MarcusSteeringAI', () => {
     updateTargetSelection = vi.fn();
     setTargetCalloutCallback = vi.fn();
     setMode = vi.fn();
-    constructor(_position: any, _config?: any) {}
   }
   return { MarcusSteeringAI: MockMarcusSteeringAI };
 });
@@ -195,17 +200,16 @@ vi.mock('./MarcusCombatCoordinator', () => {
     requestFocusFire = vi.fn().mockReturnValue({ id: 'focus_fire' });
     requestFlank = vi.fn().mockReturnValue({ id: 'flank' });
     requestCoverFire = vi.fn().mockReturnValue({ id: 'cover_fire' });
-    constructor(_scene: any, _callbacks: any) {}
   }
   return { MarcusCombatCoordinator: MockMarcusCombatCoordinator };
 });
 
 // Import after mocks
 import {
+  COMBAT_CALLOUTS,
   MarcusCombatAI,
   type MarcusCombatCallbacks,
   type MarcusCombatConfig,
-  COMBAT_CALLOUTS,
 } from './MarcusCombatAI';
 
 // Helper to create proper Vector3-like mocks
@@ -215,12 +219,16 @@ const createVector3Mock = (x: number, y: number, z: number): any => {
     y,
     z,
     clone: vi.fn().mockImplementation(() => createVector3Mock(vec.x, vec.y, vec.z)),
-    subtract: vi.fn().mockImplementation((other: any) =>
-      createVector3Mock(vec.x - (other?.x ?? 0), vec.y - (other?.y ?? 0), vec.z - (other?.z ?? 0))
-    ),
-    add: vi.fn().mockImplementation((other: any) =>
-      createVector3Mock(vec.x + (other?.x ?? 0), vec.y + (other?.y ?? 0), vec.z + (other?.z ?? 0))
-    ),
+    subtract: vi
+      .fn()
+      .mockImplementation((other: any) =>
+        createVector3Mock(vec.x - (other?.x ?? 0), vec.y - (other?.y ?? 0), vec.z - (other?.z ?? 0))
+      ),
+    add: vi
+      .fn()
+      .mockImplementation((other: any) =>
+        createVector3Mock(vec.x + (other?.x ?? 0), vec.y + (other?.y ?? 0), vec.z + (other?.z ?? 0))
+      ),
     addInPlace: vi.fn().mockImplementation((other: any) => {
       vec.x += other?.x ?? 0;
       vec.y += other?.y ?? 0;
@@ -231,7 +239,9 @@ const createVector3Mock = (x: number, y: number, z: number): any => {
       const len = Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z) || 1;
       return createVector3Mock(vec.x / len, vec.y / len, vec.z / len);
     }),
-    scale: vi.fn().mockImplementation((f: number) => createVector3Mock(vec.x * f, vec.y * f, vec.z * f)),
+    scale: vi
+      .fn()
+      .mockImplementation((f: number) => createVector3Mock(vec.x * f, vec.y * f, vec.z * f)),
     scaleInPlace: vi.fn().mockImplementation((f: number) => {
       vec.x *= f;
       vec.y *= f;
@@ -375,7 +385,15 @@ describe('MarcusCombatAI', () => {
     });
 
     it('should transition through all combat states', () => {
-      const states = ['idle', 'support', 'assault', 'defensive', 'suppression', 'damaged', 'repairing'] as const;
+      const states = [
+        'idle',
+        'support',
+        'assault',
+        'defensive',
+        'suppression',
+        'damaged',
+        'repairing',
+      ] as const;
 
       for (const state of states) {
         marcusAI.setState(state);
@@ -680,7 +698,7 @@ describe('MarcusCombatAI', () => {
       marcusAI.takeDamage(600); // Down Marcus
 
       const playerPosition = { x: 0, y: 0, z: 50, clone: vi.fn().mockReturnThis() } as any;
-      const initialPosition = marcusAI.getPosition();
+      const _initialPosition = marcusAI.getPosition();
 
       marcusAI.update(0.016, playerPosition, [], undefined);
 
@@ -727,12 +745,16 @@ describe('MarcusCombatAI - State Machine Logic', () => {
       y,
       z,
       clone: vi.fn().mockImplementation(() => createVector3Mock(x, y, z)),
-      subtract: vi.fn().mockImplementation((other: any) =>
-        createVector3Mock(x - (other?.x ?? 0), y - (other?.y ?? 0), z - (other?.z ?? 0))
-      ),
-      add: vi.fn().mockImplementation((other: any) =>
-        createVector3Mock(x + (other?.x ?? 0), y + (other?.y ?? 0), z + (other?.z ?? 0))
-      ),
+      subtract: vi
+        .fn()
+        .mockImplementation((other: any) =>
+          createVector3Mock(x - (other?.x ?? 0), y - (other?.y ?? 0), z - (other?.z ?? 0))
+        ),
+      add: vi
+        .fn()
+        .mockImplementation((other: any) =>
+          createVector3Mock(x + (other?.x ?? 0), y + (other?.y ?? 0), z + (other?.z ?? 0))
+        ),
       addInPlace: vi.fn().mockImplementation((other: any) => {
         vec.x += other?.x ?? 0;
         vec.y += other?.y ?? 0;

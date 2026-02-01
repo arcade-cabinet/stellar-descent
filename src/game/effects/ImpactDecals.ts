@@ -256,8 +256,14 @@ export class ImpactDecalSystem {
 
     // Outer scorch/rim
     const gradient = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
-    gradient.addColorStop(0, `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 1)`);
-    gradient.addColorStop(0.5, `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.8)`);
+    gradient.addColorStop(
+      0,
+      `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 1)`
+    );
+    gradient.addColorStop(
+      0.5,
+      `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.8)`
+    );
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     ctx.fillStyle = gradient;
@@ -299,9 +305,18 @@ export class ImpactDecalSystem {
 
     // Dust/debris ring
     const gradient = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
-    gradient.addColorStop(0, `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.9)`);
-    gradient.addColorStop(0.4, `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.7)`);
-    gradient.addColorStop(0.8, `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.3)`);
+    gradient.addColorStop(
+      0,
+      `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.9)`
+    );
+    gradient.addColorStop(
+      0.4,
+      `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.7)`
+    );
+    gradient.addColorStop(
+      0.8,
+      `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.3)`
+    );
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     ctx.fillStyle = gradient;
@@ -343,8 +358,14 @@ export class ImpactDecalSystem {
       const blobR = radius * (0.15 + Math.random() * 0.25);
 
       const gradient = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, blobR);
-      gradient.addColorStop(0, `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.95)`);
-      gradient.addColorStop(0.6, `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.7)`);
+      gradient.addColorStop(
+        0,
+        `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.95)`
+      );
+      gradient.addColorStop(
+        0.6,
+        `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.7)`
+      );
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
       ctx.fillStyle = gradient;
@@ -355,7 +376,10 @@ export class ImpactDecalSystem {
 
     // Central darker spot
     const coreGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.2);
-    coreGradient.addColorStop(0, `rgba(${style.color.r * 100}, ${style.color.g * 200}, ${style.color.b * 100}, 0.9)`);
+    coreGradient.addColorStop(
+      0,
+      `rgba(${style.color.r * 100}, ${style.color.g * 200}, ${style.color.b * 100}, 0.9)`
+    );
     coreGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = coreGradient;
     ctx.beginPath();
@@ -377,7 +401,10 @@ export class ImpactDecalSystem {
 
     // Central impact point
     const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.25);
-    gradient.addColorStop(0, `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.9)`);
+    gradient.addColorStop(
+      0,
+      `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.9)`
+    );
     gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = gradient;
     ctx.beginPath();
@@ -436,8 +463,14 @@ export class ImpactDecalSystem {
     const radius = size * 0.35;
 
     const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-    gradient.addColorStop(0, `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.95)`);
-    gradient.addColorStop(0.5, `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.6)`);
+    gradient.addColorStop(
+      0,
+      `rgba(${style.color.r * 255}, ${style.color.g * 255}, ${style.color.b * 255}, 0.95)`
+    );
+    gradient.addColorStop(
+      0.5,
+      `rgba(${style.rimColor.r * 255}, ${style.rimColor.g * 255}, ${style.rimColor.b * 255}, 0.6)`
+    );
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     ctx.fillStyle = gradient;
@@ -475,7 +508,12 @@ export class ImpactDecalSystem {
       if (name.includes('concrete') || name.includes('stone') || name.includes('rock')) {
         return 'concrete';
       }
-      if (name.includes('organic') || name.includes('flesh') || name.includes('alien') || name.includes('chitin')) {
+      if (
+        name.includes('organic') ||
+        name.includes('flesh') ||
+        name.includes('alien') ||
+        name.includes('chitin')
+      ) {
         return 'organic';
       }
       if (name.includes('ice') || name.includes('snow') || name.includes('frost')) {
@@ -530,7 +568,7 @@ export class ImpactDecalSystem {
 
     // Calculate size based on damage (higher damage = larger decal)
     const baseDamage = options?.damage ?? 25;
-    const damageScale = Math.min(1.5, 0.7 + (baseDamage / 100));
+    const damageScale = Math.min(1.5, 0.7 + baseDamage / 100);
     const baseSize = options?.size ?? 0.12;
     const size = baseSize * damageScale * (0.9 + Math.random() * 0.2);
 
@@ -702,7 +740,7 @@ export class ImpactDecalSystem {
       }
 
       // Check if parent mesh was disposed (dynamic object destroyed)
-      if (decal.parentMesh && decal.parentMesh.isDisposed()) {
+      if (decal.parentMesh?.isDisposed()) {
         if (decal.mesh && !decal.mesh.isDisposed()) {
           decal.mesh.dispose();
         }

@@ -141,9 +141,9 @@ vi.mock('tone', () => {
   };
 });
 
-// Import after mocks
-import { MusicComposer, getMusicComposer, disposeMusicComposer } from './MusicComposer';
 import * as Tone from 'tone';
+// Import after mocks
+import { disposeMusicComposer, getMusicComposer, MusicComposer } from './MusicComposer';
 
 describe('MusicComposer', () => {
   let composer: MusicComposer;

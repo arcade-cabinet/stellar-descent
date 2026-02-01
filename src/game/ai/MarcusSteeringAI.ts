@@ -35,17 +35,17 @@ import {
   ArriveBehavior,
   EntityManager,
   FollowPathBehavior,
-  NavMesh,
+  type NavMesh,
   OffsetPursuitBehavior,
   Path,
   SeekBehavior,
   SeparationBehavior,
   Vehicle,
-  Vector3 as YukaVector3,
   WanderBehavior,
+  Vector3 as YukaVector3,
 } from 'yuka';
 import type { Entity } from '../core/ecs';
-import type { SquadCommand, SquadCommandData } from './SquadCommandSystem';
+import type { SquadCommandData } from './SquadCommandSystem';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -163,10 +163,6 @@ export class MarcusSteeringAI {
   private playerPosition: BabylonVector3 = BabylonVector3.Zero();
   private playerForward: BabylonVector3 = BabylonVector3.Forward();
   private playerVelocity: BabylonVector3 = BabylonVector3.Zero();
-
-  // Behaviors (cached for performance)
-  private arriveBehavior: ArriveBehavior | null = null;
-  private seekBehavior: SeekBehavior | null = null;
   private wanderBehavior: WanderBehavior | null = null;
   private offsetPursuitBehavior: OffsetPursuitBehavior | null = null;
   private separationBehavior: SeparationBehavior | null = null;
@@ -184,9 +180,6 @@ export class MarcusSteeringAI {
   private playerMarkedTarget: Entity | null = null;
   private lastTargetCallout: TargetCallout | null = null;
   private targetCalloutCallback: ((callout: TargetCallout) => void) | null = null;
-
-  // Command integration
-  private activeCommand: SquadCommandData | null = null;
   private holdPosition: BabylonVector3 | null = null;
 
   // NavMesh pathfinding
@@ -200,15 +193,11 @@ export class MarcusSteeringAI {
     pathType: 'direct',
   };
   private followPathBehavior: FollowPathBehavior | null = null;
-  private pathRecalculationInterval: number = 3000; // Recalculate path every 3s
 
   // Scout/flank callback for state changes
   private onScoutStateChange: ((state: SteeringMode) => void) | null = null;
 
-  constructor(
-    initialPosition: BabylonVector3,
-    config?: Partial<MarcusSteeringConfig>
-  ) {
+  constructor(initialPosition: BabylonVector3, config?: Partial<MarcusSteeringConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.position = initialPosition.clone();
 
@@ -250,10 +239,7 @@ export class MarcusSteeringAI {
 
     // Offset pursuit for following player in formation
     const followOffset = new YukaVector3(0, 0, -this.config.followDistance);
-    this.offsetPursuitBehavior = new OffsetPursuitBehavior(
-      this.playerVehicle,
-      followOffset
-    );
+    this.offsetPursuitBehavior = new OffsetPursuitBehavior(this.playerVehicle, followOffset);
     this.offsetPursuitBehavior.weight = 1.0;
 
     // Follow path behavior for NavMesh pathfinding
@@ -360,9 +346,7 @@ export class MarcusSteeringAI {
 
     // Priority 1: Player marked target
     if (this.playerMarkedTarget) {
-      const markedStillValid = enemies.find(
-        (e) => e.id === this.playerMarkedTarget?.id
-      );
+      const markedStillValid = enemies.find((e) => e.id === this.playerMarkedTarget?.id);
       if (markedStillValid) {
         this.currentTarget = this.playerMarkedTarget;
         this.updateFlankingPosition(this.currentTarget);
@@ -599,10 +583,7 @@ export class MarcusSteeringAI {
     // Check if drifted from hold position
     const distFromHold = BabylonVector3.Distance(this.position, this.holdPosition);
     if (distFromHold > this.config.arrivalTolerance) {
-      const arrive = new ArriveBehavior(
-        toYuka(this.holdPosition),
-        this.config.arrivalTolerance
-      );
+      const arrive = new ArriveBehavior(toYuka(this.holdPosition), this.config.arrivalTolerance);
       arrive.weight = 1.0;
       this.marcusVehicle.steering.add(arrive);
     }
@@ -634,10 +615,7 @@ export class MarcusSteeringAI {
 
   private applyRegroupBehaviors(): void {
     // Fast arrive to player position
-    const arrive = new ArriveBehavior(
-      toYuka(this.playerPosition),
-      this.config.arrivalTolerance
-    );
+    const arrive = new ArriveBehavior(toYuka(this.playerPosition), this.config.arrivalTolerance);
     arrive.weight = 1.5;
     this.marcusVehicle.steering.add(arrive);
   }
@@ -698,8 +676,7 @@ export class MarcusSteeringAI {
         const isBoss = enemy.tags?.boss ? 2 : 1;
 
         // Higher score = higher priority
-        const score =
-          (100 - distToPlayer) * isBoss + (1 - healthPercent) * 30;
+        const score = (100 - distToPlayer) * isBoss + (1 - healthPercent) * 30;
 
         return { enemy, score, distToPlayer };
       })
@@ -828,10 +805,7 @@ export class MarcusSteeringAI {
     const now = performance.now();
 
     // Check cooldown
-    if (
-      this.lastTargetCallout &&
-      now - this.lastTargetCallout.calledAt < TARGET_CALLOUT_COOLDOWN
-    ) {
+    if (this.lastTargetCallout && now - this.lastTargetCallout.calledAt < TARGET_CALLOUT_COOLDOWN) {
       return;
     }
 
@@ -908,10 +882,7 @@ export class MarcusSteeringAI {
    * Start flanking maneuver - find alternate path around enemies.
    * Calculates path that avoids direct line to target.
    */
-  startFlankPath(
-    targetPosition: BabylonVector3,
-    avoidPositions: BabylonVector3[]
-  ): boolean {
+  startFlankPath(targetPosition: BabylonVector3, _avoidPositions: BabylonVector3[]): boolean {
     // Calculate flanking position (perpendicular to player-target line)
     const toTarget = targetPosition.subtract(this.playerPosition);
     toTarget.y = 0;

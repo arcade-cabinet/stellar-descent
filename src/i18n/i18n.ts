@@ -9,10 +9,10 @@
  * - Lazy loading of locale files
  */
 
+import de from './locales/de.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import fr from './locales/fr.json';
-import de from './locales/de.json';
 import ja from './locales/ja.json';
 
 // Supported languages
@@ -135,7 +135,10 @@ function getNestedValue(obj: Translations, path: string): string | undefined {
 /**
  * Pluralization rules for each language
  */
-function getPluralForm(count: number, language: SupportedLanguage): 'zero' | 'one' | 'few' | 'many' | 'other' {
+function getPluralForm(
+  count: number,
+  language: SupportedLanguage
+): 'zero' | 'one' | 'few' | 'many' | 'other' {
   // Handle zero case first (some languages have special zero form)
   if (count === 0) {
     return 'zero';

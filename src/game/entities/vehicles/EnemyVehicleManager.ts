@@ -18,14 +18,12 @@
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../../core/AudioManager';
 import type { DifficultyLevel } from '../../core/DifficultySettings';
-import { removeEntity } from '../../core/ecs';
 import { getLogger } from '../../core/Logger';
 import { deathEffects } from '../../effects/DeathEffects';
 import { particleManager } from '../../effects/ParticleManager';
@@ -110,7 +108,13 @@ export class EnemyVehicleManager {
   async spawnWraith(options: SpawnWraithOptions): Promise<WraithAI> {
     const { position, waypoints, config, difficulty } = options;
 
-    const wraith = await WraithAI.create(this.scene, position, waypoints ?? [], config ?? {}, difficulty);
+    const wraith = await WraithAI.create(
+      this.scene,
+      position,
+      waypoints ?? [],
+      config ?? {},
+      difficulty
+    );
 
     // Wire callbacks
     wraith.onScreenShake = this.onScreenShake;

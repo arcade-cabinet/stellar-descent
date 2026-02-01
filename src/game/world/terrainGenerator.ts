@@ -13,28 +13,26 @@
  * - Hand-crafted rock placement positions (no procedural generation)
  */
 
-import { PhysicsShapeType } from '@babylonjs/core/Physics/';
-import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { PhysicsShapeType } from '@babylonjs/core/Physics/';
+import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
 import type { Scene } from '@babylonjs/core/scene';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { AssetManager } from '../core/AssetManager';
 import { getLogger } from '../core/Logger';
 import { tokens } from '../utils/designTokens';
 
 const log = getLogger('TerrainGenerator');
+
 import {
-  type TerrainBiomeConfig,
-  LANDFALL_TERRAIN_CONFIG,
-  CANYON_TERRAIN_CONFIG,
-  ICE_TERRAIN_CONFIG,
   createPBRTerrainMaterial,
+  LANDFALL_TERRAIN_CONFIG,
+  type TerrainBiomeConfig,
 } from '../levels/shared/PBRTerrainMaterials';
 
 // ---------------------------------------------------------------------------
@@ -156,9 +154,24 @@ const DEFAULT_GROUND_TILES: GroundTilePlacement[] = [
   { position: new Vector3(0, 0, 200), scale: new Vector3(18, 1, 18), rotationY: 0.2, variant: 3 },
   { position: new Vector3(0, 0, -200), scale: new Vector3(18, 1, 18), rotationY: -0.2, variant: 4 },
   { position: new Vector3(141, 0, 141), scale: new Vector3(16, 1, 16), rotationY: 0.3, variant: 5 },
-  { position: new Vector3(-141, 0, 141), scale: new Vector3(16, 1, 16), rotationY: -0.3, variant: 6 },
-  { position: new Vector3(-141, 0, -141), scale: new Vector3(16, 1, 16), rotationY: 0.4, variant: 0 },
-  { position: new Vector3(141, 0, -141), scale: new Vector3(16, 1, 16), rotationY: -0.4, variant: 1 },
+  {
+    position: new Vector3(-141, 0, 141),
+    scale: new Vector3(16, 1, 16),
+    rotationY: -0.3,
+    variant: 6,
+  },
+  {
+    position: new Vector3(-141, 0, -141),
+    scale: new Vector3(16, 1, 16),
+    rotationY: 0.4,
+    variant: 0,
+  },
+  {
+    position: new Vector3(141, 0, -141),
+    scale: new Vector3(16, 1, 16),
+    rotationY: -0.4,
+    variant: 1,
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -336,7 +349,6 @@ export class TerrainGenerator {
         case 'medium':
           glbPath = MEDIUM_ROCK_GLBS[placement.variant % MEDIUM_ROCK_GLBS.length];
           break;
-        case 'boulder':
         default:
           glbPath = BOULDER_GLBS[placement.variant % BOULDER_GLBS.length];
           break;
@@ -362,8 +374,8 @@ export class TerrainGenerator {
 
       // Add slight tilt for natural look on tall rocks
       if (placement.type === 'tall') {
-        node.rotation.x = (placement.variant * 0.1) - 0.15;
-        node.rotation.z = (placement.variant * 0.08) - 0.12;
+        node.rotation.x = placement.variant * 0.1 - 0.15;
+        node.rotation.z = placement.variant * 0.08 - 0.12;
       }
 
       rocks.push(node);

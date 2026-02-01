@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { getScreenInfo } from '../../game/utils/responsive';
-import { MilitaryButton } from './MilitaryButton';
 import styles from './HelpModal.module.css';
+import { MilitaryButton } from './MilitaryButton';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -108,8 +108,8 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           <span className={styles.briefingLabel}>MISSION BRIEFING</span>
         </div>
         <p className={styles.briefingText}>
-          You are a Drop Trooper in the 7th Marines. Your mission: survive the Proxima Breach
-          and eliminate the alien threat.
+          You are a Drop Trooper in the 7th Marines. Your mission: survive the Proxima Breach and
+          eliminate the alien threat.
         </p>
         <div className={styles.briefingDetails}>
           <div className={styles.detailRow}>
@@ -212,28 +212,36 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           <span className={styles.gameplayIcon}>{'\u25B6'}</span>
           <div className={styles.gameplayContent}>
             <span className={styles.gameplayTitle}>Complete Objectives</span>
-            <span className={styles.gameplayDesc}>Follow mission markers to progress through the campaign</span>
+            <span className={styles.gameplayDesc}>
+              Follow mission markers to progress through the campaign
+            </span>
           </div>
         </div>
         <div className={styles.gameplayItem}>
           <span className={styles.gameplayIcon}>{'\u266A'}</span>
           <div className={styles.gameplayContent}>
             <span className={styles.gameplayTitle}>Find Audio Logs</span>
-            <span className={styles.gameplayDesc}>Discover hidden recordings to uncover the story</span>
+            <span className={styles.gameplayDesc}>
+              Discover hidden recordings to uncover the story
+            </span>
           </div>
         </div>
         <div className={styles.gameplayItem}>
           <span className={styles.gameplayIcon}>{'\u2605'}</span>
           <div className={styles.gameplayContent}>
             <span className={styles.gameplayTitle}>Discover Secrets</span>
-            <span className={styles.gameplayDesc}>Explore off-path areas for bonus upgrades and collectibles</span>
+            <span className={styles.gameplayDesc}>
+              Explore off-path areas for bonus upgrades and collectibles
+            </span>
           </div>
         </div>
         <div className={styles.gameplayItem}>
           <span className={styles.gameplayIcon}>{'\u2620'}</span>
           <div className={styles.gameplayContent}>
             <span className={styles.gameplayTitle}>Defeat the Queen</span>
-            <span className={styles.gameplayDesc}>Your ultimate goal: eliminate the alien threat to save humanity</span>
+            <span className={styles.gameplayDesc}>
+              Your ultimate goal: eliminate the alien threat to save humanity
+            </span>
           </div>
         </div>
       </div>
@@ -253,19 +261,27 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
         </div>
         <div className={styles.tipItem}>
           <span className={styles.tipMarker}>{'\u25AA'}</span>
-          <span className={styles.tipText}>Aim for weak points on large enemies for critical damage</span>
+          <span className={styles.tipText}>
+            Aim for weak points on large enemies for critical damage
+          </span>
         </div>
         <div className={styles.tipItem}>
           <span className={styles.tipMarker}>{'\u25AA'}</span>
-          <span className={styles.tipText}>Marcus has your back in co-op levels - coordinate with him</span>
+          <span className={styles.tipText}>
+            Marcus has your back in co-op levels - coordinate with him
+          </span>
         </div>
         <div className={styles.tipItem}>
           <span className={styles.tipMarker}>{'\u25AA'}</span>
-          <span className={styles.tipText}>Different weapons are effective against different enemy types</span>
+          <span className={styles.tipText}>
+            Different weapons are effective against different enemy types
+          </span>
         </div>
         <div className={styles.tipItem}>
           <span className={styles.tipMarker}>{'\u25AA'}</span>
-          <span className={styles.tipText}>Listen for audio cues to detect enemies before they appear</span>
+          <span className={styles.tipText}>
+            Listen for audio cues to detect enemies before they appear
+          </span>
         </div>
       </div>
       <div className={styles.tipsNote}>

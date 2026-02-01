@@ -35,59 +35,56 @@ import type { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
-import { getLogger } from '../../core/Logger';
 import { getEventBus } from '../../core/EventBus';
+import { getLogger } from '../../core/Logger';
 
 const log = getLogger('Queen');
 
+import { type DifficultyLevel, loadDifficultySetting } from '../../core/DifficultySettings';
 import {
+  ACID_SPRAY_PROJECTILE_COUNT,
+  ACID_SPRAY_SPREAD_ANGLE,
   COLORS,
+  QUEEN_ATTACK_DAMAGE,
+  QUEEN_CHARGE_RADIUS,
+  QUEEN_CHARGE_RETURN_TIME,
+  QUEEN_CHARGE_SPEED,
+  QUEEN_COOLDOWN_SCALING,
+  QUEEN_DAMAGE_SCALING,
+  QUEEN_DEATH_SLOWMO_DURATION,
+  QUEEN_DEATH_SLOWMO_SCALE,
+  QUEEN_DEATH_THROES_THRESHOLD,
+  QUEEN_EGG_BURST_SPAWN_COUNT,
+  QUEEN_FRENZY_ATTACK_COUNT,
+  QUEEN_FRENZY_ATTACK_DELAY,
+  QUEEN_HEALTH_SCALING,
   QUEEN_MAX_HEALTH,
   QUEEN_PHASE_2_THRESHOLD,
   QUEEN_PHASE_3_THRESHOLD,
-  WEAK_POINT_DAMAGE_MULTIPLIER,
-  QUEEN_HEALTH_SCALING,
-  QUEEN_DAMAGE_SCALING,
-  QUEEN_COOLDOWN_SCALING,
-  WEAK_POINT_PULSE_SPEED,
-  WEAK_POINT_MIN_ALPHA,
-  WEAK_POINT_MAX_ALPHA,
-  QUEEN_ATTACK_DAMAGE,
   QUEEN_PHASE_COOLDOWNS,
-  QUEEN_STAGGER_DURATION,
   QUEEN_PHASE_TRANSITION_DURATION,
-  QUEEN_DEATH_THROES_THRESHOLD,
+  QUEEN_POISON_CLOUD_RADIUS,
+  QUEEN_SCREECH_STUN_DURATION,
+  QUEEN_STAGGER_DURATION,
+  QUEEN_WEAK_POINT_GLOW,
   QUEEN_WEAK_POINT_HEALTH,
   QUEEN_WEAK_POINT_MULTIPLIERS,
-  QUEEN_WEAK_POINT_GLOW,
-  ACID_SPRAY_PROJECTILE_COUNT,
-  ACID_SPRAY_SPREAD_ANGLE,
-  QUEEN_CHARGE_SPEED,
-  QUEEN_CHARGE_RADIUS,
-  QUEEN_CHARGE_RETURN_TIME,
-  QUEEN_SCREECH_STUN_DURATION,
-  QUEEN_SCREECH_SPAWN_COUNT,
-  QUEEN_POISON_CLOUD_RADIUS,
-  QUEEN_POISON_CLOUD_DURATION,
-  QUEEN_FRENZY_ATTACK_COUNT,
-  QUEEN_FRENZY_ATTACK_DELAY,
-  QUEEN_EGG_BURST_SPAWN_COUNT,
-  QUEEN_DEATH_SLOWMO_DURATION,
-  QUEEN_DEATH_SLOWMO_SCALE,
+  WEAK_POINT_DAMAGE_MULTIPLIER,
+  WEAK_POINT_MAX_ALPHA,
+  WEAK_POINT_MIN_ALPHA,
+  WEAK_POINT_PULSE_SPEED,
 } from './constants';
-import { loadDifficultySetting, type DifficultyLevel } from '../../core/DifficultySettings';
 import type {
   Queen,
+  QueenAIState,
   QueenAttackType,
   QueenPhase,
   QueenWeakPoint,
   QueenWeakPointId,
-  QueenAIState,
 } from './types';
 
 export type { Queen, QueenAttackType, QueenPhase, QueenWeakPoint, QueenWeakPointId, QueenAIState };
@@ -186,11 +183,7 @@ function createWeakPoint(
   diameter: number,
   glowLayer: GlowLayer | null
 ): QueenWeakPoint {
-  const mesh = MeshBuilder.CreateSphere(
-    `queenWeakPoint_${id}`,
-    { diameter, segments: 12 },
-    scene
-  );
+  const mesh = MeshBuilder.CreateSphere(`queenWeakPoint_${id}`, { diameter, segments: 12 }, scene);
 
   const mat = new StandardMaterial(`weakPointMat_${id}`, scene);
   mat.emissiveColor = Color3.FromHexString(COLORS.weakPoint);
@@ -226,32 +219,11 @@ function createWeakPoints(
 ): QueenWeakPoint[] {
   return [
     // Head weak point - at the front/top
-    createWeakPoint(
-      scene,
-      'head',
-      bodyNode,
-      new Vector3(0, 1.2, -0.8),
-      0.6,
-      glowLayer
-    ),
+    createWeakPoint(scene, 'head', bodyNode, new Vector3(0, 1.2, -0.8), 0.6, glowLayer),
     // Thorax weak point - center mass
-    createWeakPoint(
-      scene,
-      'thorax',
-      bodyNode,
-      new Vector3(0, 0.5, 0.3),
-      0.8,
-      glowLayer
-    ),
+    createWeakPoint(scene, 'thorax', bodyNode, new Vector3(0, 0.5, 0.3), 0.8, glowLayer),
     // Egg sac weak point - rear/lower
-    createWeakPoint(
-      scene,
-      'egg_sac',
-      bodyNode,
-      new Vector3(0, -0.2, 1.5),
-      1.0,
-      glowLayer
-    ),
+    createWeakPoint(scene, 'egg_sac', bodyNode, new Vector3(0, -0.2, 1.5), 1.0, glowLayer),
   ];
 }
 
@@ -468,7 +440,12 @@ export function getAvailableAttacks(phase: QueenPhase): QueenAttackType[] {
   }
 
   // Phase 2: Add aggressive attacks
-  const phase2Attacks: QueenAttackType[] = [...phase1Attacks, 'egg_burst', 'charge', 'poison_cloud'];
+  const phase2Attacks: QueenAttackType[] = [
+    ...phase1Attacks,
+    'egg_burst',
+    'charge',
+    'poison_cloud',
+  ];
 
   if (phase === 2) {
     return phase2Attacks;
@@ -531,7 +508,7 @@ export function getSpawnType(phase: QueenPhase): 'drone' | 'grunt' {
 export function selectNextAttack(
   queen: Queen,
   playerPosition: Vector3,
-  deltaTime: number
+  _deltaTime: number
 ): QueenAttackType {
   // Can't attack while staggered
   if (queen.aiState.isStaggered) {
@@ -606,10 +583,7 @@ export function selectNextAttack(
  * Check if a position hits any weak point
  * Returns the weak point if hit, null otherwise
  */
-export function checkWeakPointHit(
-  queen: Queen,
-  hitPosition: Vector3
-): QueenWeakPoint | null {
+export function checkWeakPointHit(queen: Queen, hitPosition: Vector3): QueenWeakPoint | null {
   if (!queen.weakPointVisible) {
     return null;
   }
@@ -633,11 +607,7 @@ export function checkWeakPointHit(
  * Damage a weak point and check for destruction
  * Returns true if the weak point was destroyed
  */
-export function damageWeakPoint(
-  queen: Queen,
-  weakPoint: QueenWeakPoint,
-  damage: number
-): boolean {
+export function damageWeakPoint(queen: Queen, weakPoint: QueenWeakPoint, damage: number): boolean {
   const actualDamage = damage * weakPoint.damageMultiplier;
   weakPoint.health -= actualDamage;
 
@@ -681,11 +651,7 @@ export function calculateQueenDamage(baseDamage: number, isWeakPoint: boolean): 
 /**
  * Update queen AI state each frame
  */
-export function updateQueenAI(
-  queen: Queen,
-  playerPosition: Vector3,
-  deltaTime: number
-): void {
+export function updateQueenAI(queen: Queen, _playerPosition: Vector3, deltaTime: number): void {
   const deltaMs = deltaTime * 1000;
 
   // Update stagger
@@ -755,14 +721,14 @@ function endCharge(queen: Queen): void {
   queen.aiState.chargeVelocity = null;
 
   // Animate return to home position
-  const returnDir = queen.homePosition.subtract(queen.mesh.position).normalize();
+  const _returnDir = queen.homePosition.subtract(queen.mesh.position).normalize();
   const startPos = queen.mesh.position.clone();
   const startTime = performance.now();
 
   function returnAnimation(): void {
     const elapsed = performance.now() - startTime;
     const progress = Math.min(1, elapsed / QUEEN_CHARGE_RETURN_TIME);
-    const eased = 1 - Math.pow(1 - progress, 2); // Ease out
+    const eased = 1 - (1 - progress) ** 2; // Ease out
 
     queen.mesh.position = Vector3.Lerp(startPos, queen.homePosition, eased);
 
@@ -1094,7 +1060,7 @@ export function animateQueenAwakening(queen: Queen): void {
   function animationStep(): void {
     const elapsed = performance.now() - startTime;
     const progress = Math.min(1, elapsed / duration);
-    const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+    const eased = 1 - (1 - progress) ** 3; // Ease out cubic
 
     queen.mesh.position.y = originalY - 3 + eased * 3;
     queen.mesh.scaling.setAll(0.5 + eased * 2);
@@ -1117,7 +1083,7 @@ export function animateQueenAwakening(queen: Queen): void {
 /**
  * Play queen phase transition animation
  */
-export function animatePhaseTransition(queen: Queen, newPhase: QueenPhase): void {
+export function animatePhaseTransition(queen: Queen, _newPhase: QueenPhase): void {
   queen.aiState.isStaggered = true;
   queen.aiState.staggerTimer = QUEEN_PHASE_TRANSITION_DURATION;
 
@@ -1243,10 +1209,7 @@ export function disposeQueen(queen: Queen): void {
 /**
  * Get acid spray projectile positions (cone pattern)
  */
-export function getAcidSprayPositions(
-  queenPosition: Vector3,
-  playerPosition: Vector3
-): Vector3[] {
+export function getAcidSprayPositions(queenPosition: Vector3, playerPosition: Vector3): Vector3[] {
   const direction = playerPosition.subtract(queenPosition).normalize();
   const baseAngle = Math.atan2(direction.x, direction.z);
   const positions: Vector3[] = [];
@@ -1266,10 +1229,7 @@ export function getAcidSprayPositions(
 /**
  * Check if player is in charge collision radius
  */
-export function checkChargeCollision(
-  queenPosition: Vector3,
-  playerPosition: Vector3
-): boolean {
+export function checkChargeCollision(queenPosition: Vector3, playerPosition: Vector3): boolean {
   const dist = Vector3.Distance(queenPosition, playerPosition);
   return dist < QUEEN_CHARGE_RADIUS;
 }
@@ -1288,10 +1248,7 @@ export function checkPoisonCloudCollision(
 /**
  * Get spawn positions for egg burst (around arena edges)
  */
-export function getEggBurstSpawnPositions(
-  arenaCenter: Vector3,
-  arenaRadius: number
-): Vector3[] {
+export function getEggBurstSpawnPositions(arenaCenter: Vector3, arenaRadius: number): Vector3[] {
   const positions: Vector3[] = [];
   for (let i = 0; i < QUEEN_EGG_BURST_SPAWN_COUNT; i++) {
     const angle = (i / QUEEN_EGG_BURST_SPAWN_COUNT) * Math.PI * 2;

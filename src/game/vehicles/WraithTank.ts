@@ -21,7 +21,7 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
-import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../core/ecs';
+import { createEntity, getEntitiesInRadius, removeEntity } from '../core/ecs';
 import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import type { Player } from '../entities/player';
@@ -97,9 +97,6 @@ export class WraithTank extends VehicleBase {
   // GLB model node
   private glbNode: TransformNode | null = null;
 
-  // Flag indicating whether the GLB model has been loaded
-  private _modelLoaded = false;
-
   constructor(scene: Scene, position: Vector3, patrolPoints?: Vector3[]) {
     super(scene, `wraith_${Date.now()}`, 'Wraith Tank', position, WRAITH_STATS, 0);
     this.weapons = this.initWeapons();
@@ -162,7 +159,9 @@ export class WraithTank extends VehicleBase {
         this._modelLoaded = true;
         log.info(`GLB model loaded for ${this.vehicleId}`);
       } else {
-        throw new Error(`[WraithTank] GLB instance creation failed for ${this.vehicleId} - asset not preloaded or path invalid`);
+        throw new Error(
+          `[WraithTank] GLB instance creation failed for ${this.vehicleId} - asset not preloaded or path invalid`
+        );
       }
     } catch (err) {
       throw new Error(`[WraithTank] Failed to load GLB model for ${this.vehicleId}: ${err}`);

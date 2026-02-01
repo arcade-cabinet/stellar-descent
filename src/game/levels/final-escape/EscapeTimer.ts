@@ -107,7 +107,6 @@ const PULSE_SPEEDS: Record<TimerUrgency, number> = {
 
 export class EscapeTimer {
   private config: EscapeTimerConfig;
-  private scene: Scene;
 
   // Timer state
   private remaining: number;
@@ -127,7 +126,6 @@ export class EscapeTimer {
   private warningAudioPlayed = false;
   private criticalAudioPlayed = false;
   private finalAudioPlayed = false;
-  private heartbeatActive = false;
 
   // Callbacks
   private onExpired: (() => void) | null = null;

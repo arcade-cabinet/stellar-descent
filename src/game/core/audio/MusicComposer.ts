@@ -36,31 +36,86 @@ interface MusicLayerConfig {
 
 // D minor scale frequencies (D-E-F-G-A-Bb-C)
 const D_MINOR_SCALE = {
-  D2: 73.42, E2: 82.41, F2: 87.31, G2: 98.0, A2: 110.0, Bb2: 116.54, C3: 130.81,
-  D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.0, A3: 220.0, Bb3: 233.08, C4: 261.63,
-  D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, Bb4: 466.16, C5: 523.25,
-  D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0,
+  D2: 73.42,
+  E2: 82.41,
+  F2: 87.31,
+  G2: 98.0,
+  A2: 110.0,
+  Bb2: 116.54,
+  C3: 130.81,
+  D3: 146.83,
+  E3: 164.81,
+  F3: 174.61,
+  G3: 196.0,
+  A3: 220.0,
+  Bb3: 233.08,
+  C4: 261.63,
+  D4: 293.66,
+  E4: 329.63,
+  F4: 349.23,
+  G4: 392.0,
+  A4: 440.0,
+  Bb4: 466.16,
+  C5: 523.25,
+  D5: 587.33,
+  E5: 659.25,
+  F5: 698.46,
+  G5: 783.99,
+  A5: 880.0,
 };
 
 // Menu chord progression (i - VI - III - VII in D minor)
 const MENU_CHORDS = [
-  [D_MINOR_SCALE.D3, D_MINOR_SCALE.F3, D_MINOR_SCALE.A3],      // Dm
-  [D_MINOR_SCALE.Bb2, D_MINOR_SCALE.D3, D_MINOR_SCALE.F3],     // Bb
-  [D_MINOR_SCALE.F3, D_MINOR_SCALE.A3, D_MINOR_SCALE.C4],      // F
-  [D_MINOR_SCALE.C3, D_MINOR_SCALE.E3, D_MINOR_SCALE.G3],      // C
+  [D_MINOR_SCALE.D3, D_MINOR_SCALE.F3, D_MINOR_SCALE.A3], // Dm
+  [D_MINOR_SCALE.Bb2, D_MINOR_SCALE.D3, D_MINOR_SCALE.F3], // Bb
+  [D_MINOR_SCALE.F3, D_MINOR_SCALE.A3, D_MINOR_SCALE.C4], // F
+  [D_MINOR_SCALE.C3, D_MINOR_SCALE.E3, D_MINOR_SCALE.G3], // C
 ];
 
 // Menu arpeggio pattern (notes to cycle through)
 const MENU_ARPEGGIO = [
-  D_MINOR_SCALE.D4, D_MINOR_SCALE.F4, D_MINOR_SCALE.A4, D_MINOR_SCALE.D5,
-  D_MINOR_SCALE.A4, D_MINOR_SCALE.F4, D_MINOR_SCALE.D4, D_MINOR_SCALE.A3,
+  D_MINOR_SCALE.D4,
+  D_MINOR_SCALE.F4,
+  D_MINOR_SCALE.A4,
+  D_MINOR_SCALE.D5,
+  D_MINOR_SCALE.A4,
+  D_MINOR_SCALE.F4,
+  D_MINOR_SCALE.D4,
+  D_MINOR_SCALE.A3,
 ];
 
 // Combat bass patterns
 const COMBAT_BASS_PATTERN = {
-  low: [D_MINOR_SCALE.D2, null, D_MINOR_SCALE.D2, null, D_MINOR_SCALE.A2, null, D_MINOR_SCALE.G2, null],
-  medium: [D_MINOR_SCALE.D2, D_MINOR_SCALE.D2, null, D_MINOR_SCALE.D2, D_MINOR_SCALE.A2, null, D_MINOR_SCALE.Bb2, D_MINOR_SCALE.A2],
-  high: [D_MINOR_SCALE.D2, D_MINOR_SCALE.D2, D_MINOR_SCALE.D2, null, D_MINOR_SCALE.A2, D_MINOR_SCALE.Bb2, D_MINOR_SCALE.A2, D_MINOR_SCALE.G2],
+  low: [
+    D_MINOR_SCALE.D2,
+    null,
+    D_MINOR_SCALE.D2,
+    null,
+    D_MINOR_SCALE.A2,
+    null,
+    D_MINOR_SCALE.G2,
+    null,
+  ],
+  medium: [
+    D_MINOR_SCALE.D2,
+    D_MINOR_SCALE.D2,
+    null,
+    D_MINOR_SCALE.D2,
+    D_MINOR_SCALE.A2,
+    null,
+    D_MINOR_SCALE.Bb2,
+    D_MINOR_SCALE.A2,
+  ],
+  high: [
+    D_MINOR_SCALE.D2,
+    D_MINOR_SCALE.D2,
+    D_MINOR_SCALE.D2,
+    null,
+    D_MINOR_SCALE.A2,
+    D_MINOR_SCALE.Bb2,
+    D_MINOR_SCALE.A2,
+    D_MINOR_SCALE.G2,
+  ],
 };
 
 // Combat synth stab chords
@@ -73,9 +128,36 @@ const COMBAT_STAB_CHORDS = [
 
 // Combat lead melody fragments
 const COMBAT_LEAD_MELODIES = [
-  [D_MINOR_SCALE.D5, D_MINOR_SCALE.E5, D_MINOR_SCALE.F5, D_MINOR_SCALE.A5, D_MINOR_SCALE.G5, D_MINOR_SCALE.F5, D_MINOR_SCALE.E5, D_MINOR_SCALE.D5],
-  [D_MINOR_SCALE.A4, D_MINOR_SCALE.D5, D_MINOR_SCALE.F5, D_MINOR_SCALE.E5, D_MINOR_SCALE.D5, D_MINOR_SCALE.C5, D_MINOR_SCALE.Bb4, D_MINOR_SCALE.A4],
-  [D_MINOR_SCALE.F5, D_MINOR_SCALE.E5, D_MINOR_SCALE.D5, D_MINOR_SCALE.C5, D_MINOR_SCALE.D5, D_MINOR_SCALE.E5, D_MINOR_SCALE.F5, D_MINOR_SCALE.G5],
+  [
+    D_MINOR_SCALE.D5,
+    D_MINOR_SCALE.E5,
+    D_MINOR_SCALE.F5,
+    D_MINOR_SCALE.A5,
+    D_MINOR_SCALE.G5,
+    D_MINOR_SCALE.F5,
+    D_MINOR_SCALE.E5,
+    D_MINOR_SCALE.D5,
+  ],
+  [
+    D_MINOR_SCALE.A4,
+    D_MINOR_SCALE.D5,
+    D_MINOR_SCALE.F5,
+    D_MINOR_SCALE.E5,
+    D_MINOR_SCALE.D5,
+    D_MINOR_SCALE.C5,
+    D_MINOR_SCALE.Bb4,
+    D_MINOR_SCALE.A4,
+  ],
+  [
+    D_MINOR_SCALE.F5,
+    D_MINOR_SCALE.E5,
+    D_MINOR_SCALE.D5,
+    D_MINOR_SCALE.C5,
+    D_MINOR_SCALE.D5,
+    D_MINOR_SCALE.E5,
+    D_MINOR_SCALE.F5,
+    D_MINOR_SCALE.G5,
+  ],
 ];
 
 // ============================================================================
@@ -129,14 +211,7 @@ export class MusicComposer {
     stabs: null,
     lead: null,
   };
-  private combatBassIndex = 0;
   private combatStabIndex = 0;
-  private combatLeadIndex = 0;
-  private combatLeadNoteIndex = 0;
-
-  constructor() {
-    // Deferred initialization
-  }
 
   // ============================================================================
   // INITIALIZATION
@@ -473,7 +548,7 @@ export class MusicComposer {
     this.combatLayerGains.percussion = new Tone.Gain(0.25);
     this.combatLayerGains.bass = new Tone.Gain(0.25);
     this.combatLayerGains.stabs = new Tone.Gain(0); // Starts muted
-    this.combatLayerGains.lead = new Tone.Gain(0);  // Starts muted
+    this.combatLayerGains.lead = new Tone.Gain(0); // Starts muted
 
     for (const key of Object.keys(this.combatLayerGains) as CombatLayer[]) {
       this.combatLayerGains[key]?.connect(this.combatGain);

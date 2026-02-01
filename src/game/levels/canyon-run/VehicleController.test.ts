@@ -79,7 +79,6 @@ vi.mock('@babylonjs/core/Cameras/universalCamera', () => ({
     position = { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }), copyFrom: () => {} };
     rotation = { x: 0, y: 0, z: 0 };
     fov = Math.PI / 4;
-    constructor() {}
   },
 }));
 
@@ -90,7 +89,6 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
     range = 8;
     parent: any = null;
     dispose = () => {};
-    constructor() {}
   },
 }));
 
@@ -102,7 +100,6 @@ vi.mock('@babylonjs/core/Materials/standardMaterial', () => ({
     alpha = 1;
     disableLighting = false;
     dispose = () => {};
-    constructor() {}
   },
 }));
 
@@ -252,7 +249,7 @@ vi.mock('../../input/InputBridge', () => ({
 }));
 
 // Import after mocks
-import { VehicleController, type VehicleInput, type VehicleTouchInput } from './VehicleController';
+import { VehicleController, type VehicleTouchInput } from './VehicleController';
 
 describe('VehicleController', () => {
   let mockScene: any;
@@ -521,41 +518,111 @@ describe('VehicleController', () => {
     it('should not update when dead', () => {
       (vehicle as any).state.isDead = true;
       const initialPos = vehicle.getPosition().clone();
-      vehicle.setInput({ steer: 0, throttle: 1, brake: 0, boost: false, handbrake: false, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 1,
+        brake: 0,
+        boost: false,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.016, getTerrainHeight);
       expect(vehicle.getPosition().x).toBe(initialPos.x);
     });
 
     it('should accelerate when throttle is applied', () => {
-      vehicle.setInput({ steer: 0, throttle: 1, brake: 0, boost: false, handbrake: false, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 1,
+        brake: 0,
+        boost: false,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.016, getTerrainHeight);
       expect(vehicle.getSpeed()).toBeGreaterThan(0);
     });
 
     it('should decelerate when brake is applied', () => {
-      vehicle.setInput({ steer: 0, throttle: 1, brake: 0, boost: false, handbrake: false, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 1,
+        brake: 0,
+        boost: false,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.5, getTerrainHeight);
       const speedBeforeBrake = vehicle.getSpeed();
-      vehicle.setInput({ steer: 0, throttle: 0, brake: 1, boost: false, handbrake: false, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 0,
+        brake: 1,
+        boost: false,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.1, getTerrainHeight);
       expect(vehicle.getSpeed()).toBeLessThan(speedBeforeBrake);
     });
 
     it('should allow boosting when has fuel', () => {
-      vehicle.setInput({ steer: 0, throttle: 1, brake: 0, boost: true, handbrake: false, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 1,
+        brake: 0,
+        boost: true,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.016, getTerrainHeight);
       expect(vehicle.isBoosting()).toBe(true);
     });
 
     it('should consume boost fuel when boosting', () => {
       const initialFuel = vehicle.getBoostFuelNormalized();
-      vehicle.setInput({ steer: 0, throttle: 1, brake: 0, boost: true, handbrake: false, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 1,
+        brake: 0,
+        boost: true,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(1.0, getTerrainHeight);
       expect(vehicle.getBoostFuelNormalized()).toBeLessThan(initialFuel);
     });
 
     it('should track handbraking state', () => {
-      vehicle.setInput({ steer: 0, throttle: 0, brake: 0, boost: false, handbrake: true, turretAimX: 0, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 0,
+        brake: 0,
+        boost: false,
+        handbrake: true,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.016, getTerrainHeight);
       expect(vehicle.getState().isHandbraking).toBe(true);
     });
@@ -574,14 +641,34 @@ describe('VehicleController', () => {
     });
 
     it('should rotate turret with aim input', () => {
-      vehicle.setInput({ steer: 0, throttle: 0, brake: 0, boost: false, handbrake: false, turretAimX: 0.5, turretAimY: 0, fire: false, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 0,
+        brake: 0,
+        boost: false,
+        handbrake: false,
+        turretAimX: 0.5,
+        turretAimY: 0,
+        fire: false,
+        exitRequest: false,
+      });
       vehicle.update(0.016, getTerrainHeight);
       const state = vehicle.getState();
       expect(state.turretYaw).not.toBe(0);
     });
 
     it('should fire turret when fire input and not overheated', () => {
-      vehicle.setInput({ steer: 0, throttle: 0, brake: 0, boost: false, handbrake: false, turretAimX: 0, turretAimY: 0, fire: true, exitRequest: false });
+      vehicle.setInput({
+        steer: 0,
+        throttle: 0,
+        brake: 0,
+        boost: false,
+        handbrake: false,
+        turretAimX: 0,
+        turretAimY: 0,
+        fire: true,
+        exitRequest: false,
+      });
       vehicle.update(0.016, getTerrainHeight);
       const state = vehicle.getState();
       expect(state.turretHeat).toBeGreaterThan(0);

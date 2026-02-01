@@ -3,10 +3,10 @@
  * TypeScript interfaces and type definitions for the Landfall level.
  */
 
-import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 
 // ---------------------------------------------------------------------------
 // Drop Phase Types
@@ -16,23 +16,23 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
  * The current phase of the HALO drop sequence.
  */
 export type DropPhase =
-  | 'freefall_start'    // Initial orientation
-  | 'freefall_belt'     // Asteroid dodging
-  | 'freefall_clear'    // Past asteroids, waiting for jets
-  | 'powered_descent'   // Jets active, targeting LZ
-  | 'landing'           // Final approach
-  | 'vehicle_transit'   // Brief ATV section to first objective
-  | 'surface';          // On ground (foot combat)
+  | 'freefall_start' // Initial orientation
+  | 'freefall_belt' // Asteroid dodging
+  | 'freefall_clear' // Past asteroids, waiting for jets
+  | 'powered_descent' // Jets active, targeting LZ
+  | 'landing' // Final approach
+  | 'vehicle_transit' // Brief ATV section to first objective
+  | 'surface'; // On ground (foot combat)
 
 /**
  * The outcome of the landing based on velocity and position.
  */
 export type LandingOutcome =
-  | 'perfect'     // On pad with low velocity
-  | 'near_miss'   // Close to pad
-  | 'rough'       // High velocity landing
-  | 'crash'       // Very high velocity
-  | 'slingshot';  // Too far off course
+  | 'perfect' // On pad with low velocity
+  | 'near_miss' // Close to pad
+  | 'rough' // High velocity landing
+  | 'crash' // Very high velocity
+  | 'slingshot'; // Too far off course
 
 // ---------------------------------------------------------------------------
 // Asteroid Types

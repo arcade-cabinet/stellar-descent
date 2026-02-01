@@ -18,7 +18,6 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
@@ -478,7 +477,7 @@ export class EnvironmentalStorytellingManager {
     }
   }
 
-  private updateElementVisuals(element: ActiveElement, deltaTime: number): void {
+  private updateElementVisuals(element: ActiveElement, _deltaTime: number): void {
     const config = element.config;
 
     // Update emergency lights
@@ -498,7 +497,7 @@ export class EnvironmentalStorytellingManager {
           break;
         case 'dying':
           element.light.intensity =
-            baseIntensity * (Math.random() > 0.3 ? (0.3 + Math.random() * 0.4) : 0);
+            baseIntensity * (Math.random() > 0.3 ? 0.3 + Math.random() * 0.4 : 0);
           break;
       }
 
@@ -631,13 +630,13 @@ export class EnvironmentalStorytellingManager {
     }
   }
 
-  private stopAlarm(element: ActiveElement, config: AlarmConfig): void {
+  private stopAlarm(_element: ActiveElement, config: AlarmConfig): void {
     config.isActive = false;
     this.callbacks.onAlarmStopped?.(config.alarmType);
     log.debug(`Alarm stopped: ${config.id}`);
   }
 
-  private triggerAudioPoint(element: ActiveElement, config: AudioPointConfig): void {
+  private triggerAudioPoint(_element: ActiveElement, config: AudioPointConfig): void {
     const volume = config.volume ?? 1;
     const maxDistance = config.maxDistance ?? 30;
     const distance = Vector3.Distance(this.playerPosition, config.position);

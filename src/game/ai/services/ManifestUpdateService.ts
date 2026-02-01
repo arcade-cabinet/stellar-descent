@@ -5,23 +5,22 @@
  * asset manifests when new assets are generated.
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'fs';
-import * as path from 'path';
 import { getLogger } from '../../core/Logger';
 import {
-  type LevelAssetManifest,
-  type SharedAssetManifest,
-  type VideoAssetMetadata,
-  type ImageAssetMetadata,
-  type AudioAssetMetadata,
-  type ManifestUpdateResponse,
-  LevelAssetManifestSchema,
-  SharedAssetManifestSchema,
-  ManifestUpdateResponseSchema,
   ASSET_DESTINATIONS,
   type AssetDestinationType,
-  type LevelIdEnum,
+  type AudioAssetMetadata,
+  type ImageAssetMetadata,
+  type LevelAssetManifest,
+  LevelAssetManifestSchema,
+  type ManifestUpdateResponse,
+  ManifestUpdateResponseSchema,
+  type SharedAssetManifest,
+  SharedAssetManifestSchema,
+  type VideoAssetMetadata,
 } from '../schemas/AssetManifestSchemas';
 
 const log = getLogger('ManifestUpdateService');

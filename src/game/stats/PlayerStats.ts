@@ -285,9 +285,7 @@ export function calculateDerivedStats(stats: PlayerStats): DerivedStats {
   const kdRatio = stats.deaths > 0 ? stats.totalKills / stats.deaths : stats.totalKills;
 
   // Average accuracy
-  const averageAccuracy = stats.shotsFired > 0
-    ? (stats.shotsHit / stats.shotsFired) * 100
-    : 0;
+  const averageAccuracy = stats.shotsFired > 0 ? (stats.shotsHit / stats.shotsFired) * 100 : 0;
 
   // Favorite weapon (most kills)
   let favoriteWeapon: WeaponId | null = null;
@@ -318,9 +316,8 @@ export function calculateDerivedStats(stats: PlayerStats): DerivedStats {
   const averageKillsPerSession = stats.totalKills / estimatedSessions;
 
   // Damage efficiency
-  const damageEfficiency = stats.damageTaken > 0
-    ? stats.damageDealt / stats.damageTaken
-    : stats.damageDealt;
+  const damageEfficiency =
+    stats.damageTaken > 0 ? stats.damageDealt / stats.damageTaken : stats.damageDealt;
 
   // Collectible completion (assuming 30 total collectibles across campaign)
   const totalCollectibles = 30;

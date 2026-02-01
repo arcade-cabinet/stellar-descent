@@ -165,9 +165,10 @@ export class WebSQLiteDatabase {
       const changes = this.db.getRowsModified();
       // sql.js doesn't provide lastInsertRowid directly in run(), query it
       const lastIdResult = this.db.exec('SELECT last_insert_rowid() as id');
-      const lastId = lastIdResult.length > 0 && lastIdResult[0].values.length > 0
-        ? (lastIdResult[0].values[0][0] as number)
-        : 0;
+      const lastId =
+        lastIdResult.length > 0 && lastIdResult[0].values.length > 0
+          ? (lastIdResult[0].values[0][0] as number)
+          : 0;
 
       return { changes, lastId };
     } catch (error) {

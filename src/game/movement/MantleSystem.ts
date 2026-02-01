@@ -84,7 +84,13 @@ export interface LedgeInfo {
 /**
  * Mantle state tracking
  */
-export type MantleState = 'idle' | 'detecting' | 'mantling' | 'cooldown' | 'ledge_grabbing' | 'pulling_up';
+export type MantleState =
+  | 'idle'
+  | 'detecting'
+  | 'mantling'
+  | 'cooldown'
+  | 'ledge_grabbing'
+  | 'pulling_up';
 
 /**
  * Mantle animation phase
@@ -108,7 +114,6 @@ export class MantleSystem {
 
   // Cooldown tracking
   private cooldownRemaining = 0;
-  private airborneTime = 0;
 
   // Ledge grab state
   private ledgeGrabProgress = 0;
@@ -238,11 +243,7 @@ export class MantleSystem {
    * Detect if there's a valid ledge in front of the player
    * Returns ledge info with isLedgeGrab flag indicating if it's a grab or mantle
    */
-  detectLedge(
-    playerPosition: Vector3,
-    playerForward: Vector3,
-    isGrounded: boolean
-  ): LedgeInfo {
+  detectLedge(playerPosition: Vector3, playerForward: Vector3, _isGrounded: boolean): LedgeInfo {
     const noLedge: LedgeInfo = {
       found: false,
       position: Vector3.Zero(),
@@ -295,10 +296,16 @@ export class MantleSystem {
     // Determine if this is a mantle or ledge grab based on height
     let isLedgeGrab = false;
 
-    if (ledgeHeight >= this.config.ledgeGrabMinHeight && ledgeHeight <= this.config.ledgeGrabMaxHeight) {
+    if (
+      ledgeHeight >= this.config.ledgeGrabMinHeight &&
+      ledgeHeight <= this.config.ledgeGrabMaxHeight
+    ) {
       // Higher ledge - this is a ledge grab
       isLedgeGrab = true;
-    } else if (ledgeHeight >= this.config.minMantleHeight && ledgeHeight <= this.config.maxMantleHeight) {
+    } else if (
+      ledgeHeight >= this.config.minMantleHeight &&
+      ledgeHeight <= this.config.maxMantleHeight
+    ) {
       // Lower ledge - this is a mantle
       isLedgeGrab = false;
     } else {
@@ -335,11 +342,7 @@ export class MantleSystem {
   /**
    * Attempt to start mantling
    */
-  tryMantle(
-    playerPosition: Vector3,
-    playerForward: Vector3,
-    isGrounded: boolean
-  ): boolean {
+  tryMantle(playerPosition: Vector3, playerForward: Vector3, isGrounded: boolean): boolean {
     // Check if mantling is possible
     if (this.state !== 'idle' && this.state !== 'detecting') {
       return false;
@@ -386,11 +389,7 @@ export class MantleSystem {
   /**
    * Attempt to grab a high ledge
    */
-  tryLedgeGrab(
-    playerPosition: Vector3,
-    playerForward: Vector3,
-    isGrounded: boolean
-  ): boolean {
+  tryLedgeGrab(playerPosition: Vector3, playerForward: Vector3, isGrounded: boolean): boolean {
     // Check if ledge grab is possible
     if (this.state !== 'idle' && this.state !== 'detecting') {
       return false;
@@ -530,7 +529,7 @@ export class MantleSystem {
 
       // Smooth interpolation for pull-up
       const t = this.ledgeGrabProgress;
-      const eased = 1 - Math.pow(1 - t, 2); // Ease out
+      const eased = 1 - (1 - t) ** 2; // Ease out
 
       return Vector3.Lerp(this.hangPosition, this.mantleTargetPos, eased);
     }
@@ -578,9 +577,7 @@ export class MantleSystem {
     // Calculate interpolated position with easing
     // Use a smooth step curve for natural movement
     const t = this.mantleProgress;
-    const eased = t < 0.5
-      ? 4 * t * t * t
-      : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const _eased = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 
     // Three-phase movement:
     // 1. Reach phase (0-30%): Move forward and slightly up
@@ -639,7 +636,11 @@ export class MantleSystem {
    * Cancel an in-progress mantle or ledge grab (e.g., if player takes damage)
    */
   cancelMantle(): void {
-    if (this.state === 'mantling' || this.state === 'ledge_grabbing' || this.state === 'pulling_up') {
+    if (
+      this.state === 'mantling' ||
+      this.state === 'ledge_grabbing' ||
+      this.state === 'pulling_up'
+    ) {
       this.state = 'cooldown';
       this.cooldownRemaining = this.config.mantleCooldown * 0.5;
       this.mantleProgress = 0;

@@ -9,32 +9,31 @@
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as Descent from './descent';
 import * as Combat from './combat';
 import * as comms from './comms';
 import {
+  ACID_DAMAGE,
+  ACID_DAMAGE_INTERVAL,
+  FIRST_ENCOUNTER_ENEMY_COUNT,
   FREEFALL_FOV,
-  POWERED_DESCENT_FOV,
-  SURFACE_FOV,
-  MAX_FUEL,
   FUEL_BURN_RATE,
   FUEL_REGEN_RATE,
   LZ_RADIUS,
-  NEAR_MISS_RADIUS,
   MAX_DRIFT,
-  FIRST_ENCOUNTER_ENEMY_COUNT,
-  TUTORIAL_SLOWDOWN_DURATION,
+  MAX_FUEL,
   MELEE_DAMAGE,
   MELEE_RANGE,
-  PRIMARY_FIRE_DAMAGE,
-  ACID_DAMAGE,
-  ACID_DAMAGE_INTERVAL,
-  TERRAIN_BOUNDS,
   MIN_PLAYER_HEIGHT,
   NEAR_MISS_COOLDOWN,
+  NEAR_MISS_RADIUS,
+  POWERED_DESCENT_FOV,
+  PRIMARY_FIRE_DAMAGE,
+  SURFACE_FOV,
+  TERRAIN_BOUNDS,
+  TUTORIAL_SLOWDOWN_DURATION,
 } from './constants';
-import type { DropPhase, LandingOutcome, Asteroid, SurfaceEnemy, EnemyState } from './types';
+import * as Descent from './descent';
+import type { Asteroid, DropPhase, EnemyState, LandingOutcome, SurfaceEnemy } from './types';
 
 // ---------------------------------------------------------------------------
 // Mock Setup
@@ -276,7 +275,15 @@ describe('Descent Module', () => {
         reload: false,
       };
 
-      const result = Descent.processPoweredDescentMovement(input, 0, 0, 50, 100, FUEL_BURN_RATE, 0.016);
+      const result = Descent.processPoweredDescentMovement(
+        input,
+        0,
+        0,
+        50,
+        100,
+        FUEL_BURN_RATE,
+        0.016
+      );
       expect(result.velocity).toBeLessThan(50);
       expect(result.fuel).toBeLessThan(100);
       expect(result.thrusterGlowIntensity).toBeGreaterThan(0.5);
@@ -292,7 +299,15 @@ describe('Descent Module', () => {
         reload: true,
       };
 
-      const result = Descent.processPoweredDescentMovement(input, 10, 10, 50, 100, FUEL_BURN_RATE, 0.016);
+      const result = Descent.processPoweredDescentMovement(
+        input,
+        10,
+        10,
+        50,
+        100,
+        FUEL_BURN_RATE,
+        0.016
+      );
       expect(result.lateralVelocityX).toBeLessThan(10);
       expect(result.lateralVelocityZ).toBeLessThan(10);
     });
@@ -307,7 +322,15 @@ describe('Descent Module', () => {
         reload: false,
       };
 
-      const result = Descent.processPoweredDescentMovement(input, 0, 0, 50, 0, FUEL_BURN_RATE, 0.016);
+      const result = Descent.processPoweredDescentMovement(
+        input,
+        0,
+        0,
+        50,
+        0,
+        FUEL_BURN_RATE,
+        0.016
+      );
       expect(result.fuel).toBe(0);
       expect(result.velocity).toBe(50); // No change when out of fuel
     });
@@ -323,7 +346,15 @@ describe('Descent Module', () => {
       };
 
       // Simulate very high braking with lots of fuel
-      const result = Descent.processPoweredDescentMovement(input, 0, 0, 10, 100, FUEL_BURN_RATE, 1.0);
+      const result = Descent.processPoweredDescentMovement(
+        input,
+        0,
+        0,
+        10,
+        100,
+        FUEL_BURN_RATE,
+        1.0
+      );
       expect(result.velocity).toBeGreaterThanOrEqual(5);
     });
   });
@@ -583,13 +614,7 @@ describe('Combat Module', () => {
         },
       ];
 
-      const result = Combat.updateSurfaceEnemies(
-        enemies,
-        new Vector3(0, 0, 0),
-        0.016,
-        false,
-        1.0
-      );
+      const result = Combat.updateSurfaceEnemies(enemies, new Vector3(0, 0, 0), 0.016, false, 1.0);
 
       expect(result.playerDamage).toBeGreaterThan(0);
     });
@@ -656,13 +681,7 @@ describe('Combat Module', () => {
         },
       ];
 
-      const result = Combat.updateSurfaceEnemies(
-        enemies,
-        new Vector3(0, 0, 0),
-        0.016,
-        false,
-        1.0
-      );
+      const result = Combat.updateSurfaceEnemies(enemies, new Vector3(0, 0, 0), 0.016, false, 1.0);
 
       expect(result.playerDamage).toBe(0);
     });
@@ -773,11 +792,7 @@ describe('Combat Module', () => {
         },
       ];
 
-      const result = Combat.throwGrenade(
-        enemies,
-        new Vector3(0, 0, 0),
-        new Vector3(0, 0, 1)
-      );
+      const result = Combat.throwGrenade(enemies, new Vector3(0, 0, 0), new Vector3(0, 0, 1));
 
       expect(result.damaged).toBe(1);
       expect(enemies[0].health).toBeLessThan(100);
@@ -807,11 +822,7 @@ describe('Combat Module', () => {
         },
       ];
 
-      const result = Combat.throwGrenade(
-        enemies,
-        new Vector3(0, 0, 0),
-        new Vector3(0, 0, 1)
-      );
+      const result = Combat.throwGrenade(enemies, new Vector3(0, 0, 0), new Vector3(0, 0, 1));
 
       expect(result.kills).toBe(1);
       expect(result.killedEnemies.length).toBe(1);
@@ -837,11 +848,7 @@ describe('Combat Module', () => {
         },
       ];
 
-      const result = Combat.throwGrenade(
-        enemies,
-        new Vector3(0, 0, 0),
-        new Vector3(0, 0, 1)
-      );
+      const result = Combat.throwGrenade(enemies, new Vector3(0, 0, 0), new Vector3(0, 0, 1));
 
       expect(result.damaged).toBe(0);
     });
@@ -852,15 +859,7 @@ describe('Combat Module', () => {
       // Position inside first acid pool
       const playerPos = new Vector3(25, 0, 18);
 
-      const result = Combat.updateEnvironmentHazards(
-        playerPos,
-        [],
-        [],
-        0,
-        0,
-        false,
-        0.016
-      );
+      const result = Combat.updateEnvironmentHazards(playerPos, [], [], 0, 0, false, 0.016);
 
       expect(result.result.enteredAcid).toBe(true);
     });
@@ -928,220 +927,291 @@ describe('Combat Module', () => {
 // Communications Module Tests
 // ---------------------------------------------------------------------------
 
+import { disposeEventBus, type GameEvent, getEventBus } from '../../core/EventBus';
+
 describe('Communications Module', () => {
-  let mockCallbacks: any;
+  let eventBusSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    mockCallbacks = {
-      onCommsMessage: vi.fn(),
-      onNotification: vi.fn(),
-      onObjectiveUpdate: vi.fn(),
-    };
+    // Spy on EventBus.emit
+    eventBusSpy = vi.fn();
+    vi.spyOn(getEventBus(), 'emit').mockImplementation(eventBusSpy as (event: GameEvent) => void);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    disposeEventBus();
   });
 
   it('should send enemy air traffic warning', () => {
-    comms.sendEnemyAirTrafficWarning(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendEnemyAirTrafficWarning();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sender: 'PROMETHEUS A.I.',
-        callsign: 'ATHENA',
-        portrait: 'ai',
-        text: expect.stringContaining('Enemy air traffic'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          sender: 'PROMETHEUS A.I.',
+          callsign: 'ATHENA',
+          portrait: 'ai',
+          text: expect.stringContaining('Enemy air traffic'),
+        }),
       })
     );
   });
 
   it('should send clear of station message', () => {
-    comms.sendClearOfStationMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendClearOfStationMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Clear of station'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('Clear of station'),
+        }),
       })
     );
   });
 
   it('should send debris cleared message', () => {
-    comms.sendDebrisClearedMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendDebrisClearedMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Debris cleared'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('Debris cleared'),
+        }),
       })
     );
   });
 
   it('should send jets ignited message', () => {
-    comms.sendJetsIgnitedMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendJetsIgnitedMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Retros online'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('Retros online'),
+        }),
       })
     );
   });
 
   it('should send perfect landing message with asteroid count', () => {
-    comms.sendPerfectLandingMessage(mockCallbacks, 15);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendPerfectLandingMessage(15);
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('15'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('15'),
+        }),
       })
     );
   });
 
   it('should send near miss landing message', () => {
-    comms.sendNearMissLandingMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendNearMissLandingMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('outside LZ perimeter'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('outside LZ perimeter'),
+        }),
       })
     );
   });
 
   it('should send rough landing message', () => {
-    comms.sendRoughLandingMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendRoughLandingMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Hard touchdown'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('Hard touchdown'),
+        }),
       })
     );
   });
 
   it('should send crash landing message', () => {
-    comms.sendCrashLandingMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendCrashLandingMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('Critical impact'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('Critical impact'),
+        }),
       })
     );
   });
 
   it('should send slingshot message from commander', () => {
-    comms.sendSlingshotMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendSlingshotMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sender: 'Commander Vasquez',
-        portrait: 'commander',
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          sender: 'Commander Vasquez',
+          portrait: 'commander',
+        }),
       })
     );
   });
 
   it('should send seismic warning message', () => {
-    comms.sendSeismicWarningMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendSeismicWarningMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('seismic activity'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('seismic activity'),
+        }),
       })
     );
   });
 
   it('should send combat begins message', () => {
-    comms.sendCombatBeginsMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendCombatBeginsMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('CONTACTS EMERGING'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('CONTACTS EMERGING'),
+        }),
       })
     );
   });
 
   it('should send combat tutorial message', () => {
-    comms.sendCombatTutorialMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendCombatTutorialMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('tactical guidance'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('tactical guidance'),
+        }),
       })
     );
   });
 
   it('should send combat cleared message with kill count', () => {
-    comms.sendCombatClearedMessage(mockCallbacks, 4);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendCombatClearedMessage(4);
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('4'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('4'),
+        }),
       })
     );
   });
 
   it('should send LZ secured message', () => {
-    comms.sendLZSecuredMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendLZSecuredMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('LZ secured'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('LZ secured'),
+        }),
       })
     );
   });
 
   it('should send FOB Delta waypoint message', () => {
-    comms.sendFOBDeltaWaypointMessage(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendFOBDeltaWaypointMessage();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('FOB Delta'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('FOB Delta'),
+        }),
       })
     );
   });
 
   it('should send low fuel warning with percentage', () => {
-    comms.sendLowFuelWarning(mockCallbacks, 25);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendLowFuelWarning(25);
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('25%'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('25%'),
+        }),
       })
     );
   });
 
   it('should send flanking warning', () => {
-    comms.sendFlankingWarning(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendFlankingWarning();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('flanking'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('flanking'),
+        }),
       })
     );
   });
 
   it('should send health low warning', () => {
-    comms.sendHealthLowWarning(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendHealthLowWarning();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('critical'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('critical'),
+        }),
       })
     );
   });
 
   it('should send reload reminder', () => {
-    comms.sendReloadReminder(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendReloadReminder();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('reload'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('reload'),
+        }),
       })
     );
   });
 
   it('should send enemy down confirmation with remaining count', () => {
-    comms.sendEnemyDownConfirmation(mockCallbacks, 3);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendEnemyDownConfirmation(3);
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('3'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('3'),
+        }),
       })
     );
   });
 
   it('should not send enemy down confirmation when none remaining', () => {
-    comms.sendEnemyDownConfirmation(mockCallbacks, 0);
-    expect(mockCallbacks.onCommsMessage).not.toHaveBeenCalled();
+    comms.sendEnemyDownConfirmation(0);
+    expect(eventBusSpy).not.toHaveBeenCalled();
   });
 
   it('should send acid pool warning', () => {
-    comms.sendAcidPoolWarning(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendAcidPoolWarning();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('corrosive'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('corrosive'),
+        }),
       })
     );
   });
 
   it('should send first kill encouragement', () => {
-    comms.sendFirstKillEncouragement(mockCallbacks);
-    expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(
+    comms.sendFirstKillEncouragement();
+    expect(eventBusSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining('First kill'),
+        type: 'COMMS_MESSAGE',
+        message: expect.objectContaining({
+          text: expect.stringContaining('First kill'),
+        }),
       })
     );
   });

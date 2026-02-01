@@ -21,7 +21,6 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
@@ -216,9 +215,6 @@ export class WeatherSystem {
 
   // Camera reference for positioned effects
   private cameraPosition: Vector3 = Vector3.Zero();
-
-  // Performance settings
-  private readonly baseParticleCount = 100;
   private qualityLevel: 'low' | 'medium' | 'high' = 'medium';
 
   constructor(scene: Scene) {
@@ -1098,7 +1094,7 @@ export class WeatherSystem {
     }
   }
 
-  private updateHiveEffects(deltaTime: number): void {
+  private updateHiveEffects(_deltaTime: number): void {
     // Update bioluminescent pulsing
     const time = Date.now() * 0.001;
 

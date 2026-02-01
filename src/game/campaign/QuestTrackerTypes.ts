@@ -18,7 +18,16 @@ export interface QuestTrackerData {
   /** Current objective description */
   objectiveDescription: string;
   /** Objective type for icon */
-  objectiveType: 'reach_location' | 'kill_enemies' | 'collect' | 'interact' | 'survive' | 'escort' | 'defend' | 'vehicle' | 'custom';
+  objectiveType:
+    | 'reach_location'
+    | 'kill_enemies'
+    | 'collect'
+    | 'interact'
+    | 'survive'
+    | 'escort'
+    | 'defend'
+    | 'vehicle'
+    | 'custom';
   /** Progress tracking - current count */
   current?: number;
   /** Progress tracking - required for completion */

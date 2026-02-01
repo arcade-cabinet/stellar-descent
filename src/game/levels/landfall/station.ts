@@ -3,12 +3,12 @@
  * Building logic for the Anchor Station Prometheus visible during HALO drop.
  */
 
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
@@ -69,7 +69,9 @@ export function createAnchorStation(scene: Scene): AnchorStationNodes {
   ): void => {
     const node = AssetManager.createInstanceByPath(path, name, scene, true, 'environment');
     if (!node) {
-      throw new Error(`[Landfall] Station GLB instance failed: ${name} (${path}) - asset not loaded`);
+      throw new Error(
+        `[Landfall] Station GLB instance failed: ${name} (${path}) - asset not loaded`
+      );
     }
     node.position = pos;
     node.rotation = rot;
@@ -134,11 +136,7 @@ export function createAnchorStation(scene: Scene): AnchorStationNodes {
   );
 
   // === DROP BAY OPENING (VFX, kept as MeshBuilder) ===
-  const bayOpening = MeshBuilder.CreatePlane(
-    'bayOpening',
-    { width: 4, height: 4 },
-    scene
-  );
+  const bayOpening = MeshBuilder.CreatePlane('bayOpening', { width: 4, height: 4 }, scene);
   const bayOpeningMat = new StandardMaterial('bayOpeningMat', scene);
   bayOpeningMat.emissiveColor = new Color3(1.0, 0.6, 0.2);
   bayOpeningMat.alpha = 0.6;
@@ -188,11 +186,7 @@ export function updateAnchorStation(
   if (!station) return;
 
   // Station is only visible during freefall phases
-  if (
-    phase !== 'freefall_start' &&
-    phase !== 'freefall_belt' &&
-    phase !== 'freefall_clear'
-  ) {
+  if (phase !== 'freefall_start' && phase !== 'freefall_belt' && phase !== 'freefall_clear') {
     station.root.setEnabled(false);
     return;
   }

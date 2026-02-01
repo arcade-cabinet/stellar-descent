@@ -18,14 +18,14 @@
  *   log.error('Something went wrong', error);
  */
 
-import log, { type Logger as LogLevel, type LogLevelNames } from 'loglevel';
+import log, { type LogLevelNames } from 'loglevel';
 
 // Set default log level based on build mode
-const DEFAULT_LEVEL: LogLevelNames =
-  import.meta.env.MODE === 'production' ? 'warn' : 'debug';
+const DEFAULT_LEVEL: LogLevelNames = import.meta.env.MODE === 'production' ? 'warn' : 'debug';
 
 // Check localStorage for override (allows runtime adjustment)
-const storedLevel = typeof localStorage !== 'undefined' ? localStorage.getItem('stellar_log_level') : null;
+const storedLevel =
+  typeof localStorage !== 'undefined' ? localStorage.getItem('stellar_log_level') : null;
 if (storedLevel) {
   log.setLevel(storedLevel as LogLevelNames, false);
 } else {

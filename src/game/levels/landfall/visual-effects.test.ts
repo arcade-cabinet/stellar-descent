@@ -7,17 +7,16 @@
  */
 
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { describe, expect, it, vi } from 'vitest';
+import type { DropPhase } from './types';
 import {
-  updateVisualEffects,
-  stopAllDescentEffects,
-  disposeDescentEffects,
   type DescentEffects,
   type DescentState,
+  disposeDescentEffects,
   type EffectUpdateContext,
+  stopAllDescentEffects,
+  updateVisualEffects,
 } from './visual-effects';
-import type { DropPhase } from './types';
 
 // ---------------------------------------------------------------------------
 // Mock Setup

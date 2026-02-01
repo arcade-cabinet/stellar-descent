@@ -4,15 +4,15 @@
  * Tests for mantle, jetpack, and unified vertical movement mechanics.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getMantleSystem,
-  getJetpackSystem,
-  getVerticalMovement,
-  disposeMantleSystem,
   disposeJetpackSystem,
+  disposeMantleSystem,
   disposeVerticalMovement,
+  getJetpackSystem,
+  getMantleSystem,
+  getVerticalMovement,
 } from './index';
 
 // Mock the audio manager
@@ -342,7 +342,7 @@ describe('Integration: Mantle + Jetpack', () => {
 
   it('should not allow jetpack while mantling', () => {
     const vertical = getVerticalMovement();
-    const mantle = getMantleSystem();
+    const _mantle = getMantleSystem();
 
     // Note: Without a scene, we can't actually trigger mantling
     // but we can verify the logic exists
@@ -357,10 +357,7 @@ describe('Integration: Mantle + Jetpack', () => {
     expect(vertical.getState().isJetpacking).toBe(true);
 
     // Attempt mantle should fail (would need scene for full test)
-    const result = vertical.tryMantle(
-      new Vector3(0, 5, 0),
-      new Vector3(0, 0, 1)
-    );
+    const result = vertical.tryMantle(new Vector3(0, 5, 0), new Vector3(0, 0, 1));
     expect(result).toBe(false);
   });
 });

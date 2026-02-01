@@ -393,7 +393,8 @@ class StatisticsTrackerClass {
     this.sessionStats.levelsCompleted.push(levelId);
 
     // Track completion count
-    this.stats.levelCompletionCounts[levelId] = (this.stats.levelCompletionCounts[levelId] || 0) + 1;
+    this.stats.levelCompletionCounts[levelId] =
+      (this.stats.levelCompletionCounts[levelId] || 0) + 1;
 
     // Track best time
     const currentBest = this.stats.levelBestTimes[levelId];
@@ -530,7 +531,7 @@ class StatisticsTrackerClass {
    */
   updatePlayTime(): void {
     const currentSessionTime = Date.now() - this.stats.currentSessionStart;
-    const totalTime = this.stats.totalPlayTime + currentSessionTime;
+    const _totalTime = this.stats.totalPlayTime + currentSessionTime;
 
     // Only schedule persist if significant time has passed
     if (currentSessionTime % 60000 < 1000) {

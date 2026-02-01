@@ -21,7 +21,7 @@ import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../core/AssetManager';
@@ -168,7 +168,7 @@ function createIceShardMesh(
  * Attach a continuous ice particle trail to the shard mesh.
  * Returns a dispose callback to stop the trail.
  */
-function attachIceTrail(scene: Scene, shardMesh: Mesh, scale: number): () => void {
+function attachIceTrail(_scene: Scene, shardMesh: Mesh, scale: number): () => void {
   // Use the energy_trail config from ParticleManager as a starting point
   // but override colours to icy blue/white
   const trailSystem = particleManager.emit('energy_trail', Vector3.Zero(), {
@@ -273,11 +273,7 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
         const fragScale = (0.02 + Math.random() * 0.04 * scale) * 0.5;
         fragNode.scaling.setAll(fragScale);
         fragNode.position = position.add(
-          new Vector3(
-            (Math.random() - 0.5) * 0.3,
-            Math.random() * 0.3,
-            (Math.random() - 0.5) * 0.3
-          )
+          new Vector3((Math.random() - 0.5) * 0.3, Math.random() * 0.3, (Math.random() - 0.5) * 0.3)
         );
 
         // Apply ice material tint to child meshes
@@ -294,11 +290,7 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
           2 + Math.random() * 4,
           (Math.random() - 0.5) * 7
         );
-        const angularVel = new Vector3(
-          Math.random() * 10,
-          Math.random() * 10,
-          Math.random() * 10
-        );
+        const angularVel = new Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10);
         animateGlbFragment(fragNode, velocity, angularVel);
         continue; // Skip procedural fallback
       }
@@ -362,11 +354,7 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
 /**
  * Animate a GLB fragment with physics-like motion
  */
-function animateGlbFragment(
-  node: TransformNode,
-  velocity: Vector3,
-  angularVel: Vector3
-): void {
+function animateGlbFragment(node: TransformNode, velocity: Vector3, angularVel: Vector3): void {
   const startTime = performance.now();
   const gravity = -14;
 

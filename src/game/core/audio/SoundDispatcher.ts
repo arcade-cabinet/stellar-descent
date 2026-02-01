@@ -8,13 +8,13 @@
  * - Environment-based reverb
  */
 
-import type { SoundEffect, AudioLoopHandle } from './types';
-import { UISoundGenerator } from './sounds/ui';
-import { WeaponSoundGenerator } from './sounds/weapons';
+import { hitAudioManager } from '../HitAudioManager';
+import { weaponSoundManager } from '../WeaponSoundManager';
 import { EnemySoundGenerator } from './sounds/enemies';
 import { EnvironmentSoundGenerator, ProceduralAmbientGenerator } from './sounds/environment';
-import { weaponSoundManager } from '../WeaponSoundManager';
-import { hitAudioManager } from '../HitAudioManager';
+import { UISoundGenerator } from './sounds/ui';
+import { WeaponSoundGenerator } from './sounds/weapons';
+import type { AudioLoopHandle, SoundEffect } from './types';
 
 /**
  * 3D Position for spatial audio
@@ -59,10 +59,6 @@ export class SoundDispatcher {
   // Spatial audio components
   private audioContext: AudioContext | null = null;
   private listenerPosition: AudioPosition = { x: 0, y: 0, z: 0 };
-  private listenerOrientation: { forward: AudioPosition; up: AudioPosition } = {
-    forward: { x: 0, y: 0, z: -1 },
-    up: { x: 0, y: 1, z: 0 },
-  };
   private currentEnvironment: SpatialEnvironment = 'default';
   private reverbNode: ConvolverNode | null = null;
   private dryGain: GainNode | null = null;
@@ -215,7 +211,7 @@ export class SoundDispatcher {
     if (distance <= 1) return 1;
     if (distance >= maxDistance) return 0;
 
-    return Math.pow(1 / Math.max(1, distance), rolloffFactor);
+    return (1 / Math.max(1, distance)) ** rolloffFactor;
   }
 
   /**
@@ -451,8 +447,8 @@ export class SoundDispatcher {
     grenade_throw: (v) => this.weapons.generateFootstep(v * 0.6), // Placeholder: swoosh
 
     // Hit feedback sounds
-    hit_confirm: (v) => hitAudioManager.playHitSound(25, false),
-    critical_hit: (v) => hitAudioManager.playHitSound(50, true),
+    hit_confirm: (_v) => hitAudioManager.playHitSound(25, false),
+    critical_hit: (_v) => hitAudioManager.playHitSound(50, true),
     armor_break: () => hitAudioManager.playArmorBreakSound(),
     low_ammo_warning: () => hitAudioManager.playLowAmmoWarning(),
     multi_kill: () => hitAudioManager.playMultiKillSound(3),

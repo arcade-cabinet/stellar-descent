@@ -8,7 +8,6 @@
  * - Highlighted to draw attention
  */
 
-import React from 'react';
 import type { ActionButton, ActionButtonGroup } from '../../game/types/actions';
 import styles from './ActionButtons.module.css';
 

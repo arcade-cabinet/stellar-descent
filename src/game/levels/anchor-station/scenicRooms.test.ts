@@ -7,7 +7,7 @@
  */
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@babylonjs/core/Loading/sceneLoader', () => ({
@@ -67,7 +67,7 @@ vi.mock('@babylonjs/core/Materials/standardMaterial', () => ({
 vi.mock('../../core/AssetManager', () => ({
   AssetManager: {
     loadAssetByPath: vi.fn().mockResolvedValue(undefined),
-    createInstanceByPath: vi.fn((path, name) => ({
+    createInstanceByPath: vi.fn((_path, name) => ({
       name,
       position: new Vector3(0, 0, 0),
       rotation: new Vector3(0, 0, 0),
@@ -98,7 +98,7 @@ function createMockMesh(name: string) {
 }
 
 // Helper to create mock scene
-function createMockScene() {
+function _createMockScene() {
   return {
     clearColor: { r: 0, g: 0, b: 0, a: 1 },
     onBeforeRenderObservable: { add: vi.fn(), remove: vi.fn() },
@@ -531,11 +531,7 @@ describe('Scenic Rooms - Observation Deck', () => {
       const OC = new Vector3(-5, 0, -2.5);
       const DEPTH = 10;
 
-      const planetPosition = new Vector3(
-        OC.x + 5,
-        -8,
-        OC.z + DEPTH / 2 + 40
-      );
+      const planetPosition = new Vector3(OC.x + 5, -8, OC.z + DEPTH / 2 + 40);
 
       expect(planetPosition.y).toBe(-8);
       expect(planetPosition.z).toBeGreaterThan(OC.z + DEPTH / 2);
@@ -545,11 +541,7 @@ describe('Scenic Rooms - Observation Deck', () => {
       const OC = new Vector3(-5, 0, -2.5);
       const DEPTH = 10;
 
-      const starsPosition = new Vector3(
-        OC.x,
-        10,
-        OC.z + DEPTH / 2 + 80
-      );
+      const starsPosition = new Vector3(OC.x, 10, OC.z + DEPTH / 2 + 80);
 
       expect(starsPosition.y).toBe(10);
       expect(starsPosition.z).toBeGreaterThan(OC.z + 50);
@@ -615,10 +607,12 @@ describe('Scenic Rooms - Recreation Room', () => {
       const MESS_HALL = { width: 14, depth: 12, height: 3.5 };
       const OBSERVATION_DECK = { width: 16, depth: 10, height: 4 };
 
-      expect(RECREATION_ROOM.width * RECREATION_ROOM.depth)
-        .toBeLessThan(MESS_HALL.width * MESS_HALL.depth);
-      expect(RECREATION_ROOM.width * RECREATION_ROOM.depth)
-        .toBeLessThan(OBSERVATION_DECK.width * OBSERVATION_DECK.depth);
+      expect(RECREATION_ROOM.width * RECREATION_ROOM.depth).toBeLessThan(
+        MESS_HALL.width * MESS_HALL.depth
+      );
+      expect(RECREATION_ROOM.width * RECREATION_ROOM.depth).toBeLessThan(
+        OBSERVATION_DECK.width * OBSERVATION_DECK.depth
+      );
     });
   });
 });
@@ -639,12 +633,7 @@ describe('Scenic Rooms - Lighting', () => {
         range,
       });
 
-      const light = addCeilingLight(
-        new Vector3(-5, 4, -2.5),
-        new Color3(0.9, 0.9, 1.0),
-        0.6,
-        15
-      );
+      const light = addCeilingLight(new Vector3(-5, 4, -2.5), new Color3(0.9, 0.9, 1.0), 0.6, 15);
 
       expect(light.intensity).toBe(0.6);
       expect(light.range).toBe(15);
@@ -665,9 +654,7 @@ describe('Scenic Rooms - Lighting', () => {
 
   describe('Mess Hall Lighting', () => {
     it('should have warmer lighting for dining area', () => {
-      const messHallLights = [
-        { intensity: 0.7, color: new Color3(1.0, 0.95, 0.85) },
-      ];
+      const messHallLights = [{ intensity: 0.7, color: new Color3(1.0, 0.95, 0.85) }];
 
       expect(messHallLights[0].color.r).toBeGreaterThan(messHallLights[0].color.b);
     });
@@ -741,7 +728,7 @@ describe('Scenic Rooms - GLB Instance Placement', () => {
   describe('placeGLBInstance', () => {
     it('should create instance with correct transform', () => {
       const createInstance = (
-        path: string,
+        _path: string,
         name: string,
         position: Vector3,
         rotation: Vector3,
@@ -770,13 +757,7 @@ describe('Scenic Rooms - GLB Instance Placement', () => {
 
   describe('placeModel', () => {
     it('should place model with collisions enabled', () => {
-      const placeModel = (
-        x: number,
-        y: number,
-        z: number,
-        rotY: number,
-        scaleUniform: number
-      ) => ({
+      const placeModel = (x: number, y: number, z: number, rotY: number, scaleUniform: number) => ({
         position: new Vector3(x, y, z),
         rotation: new Vector3(0, rotY, 0),
         scaling: new Vector3(scaleUniform, scaleUniform, scaleUniform),
@@ -791,13 +772,7 @@ describe('Scenic Rooms - GLB Instance Placement', () => {
 
   describe('placeProp', () => {
     it('should place prop with collisions disabled', () => {
-      const placeProp = (
-        x: number,
-        y: number,
-        z: number,
-        rotY: number,
-        scaleUniform: number
-      ) => ({
+      const placeProp = (x: number, y: number, z: number, rotY: number, scaleUniform: number) => ({
         position: new Vector3(x, y, z),
         rotation: new Vector3(0, rotY, 0),
         scaling: new Vector3(scaleUniform, scaleUniform, scaleUniform),
@@ -829,11 +804,7 @@ describe('Scenic Rooms - Disposal', () => {
   });
 
   it('should dispose all lights', () => {
-    const lights = [
-      { dispose: vi.fn() },
-      { dispose: vi.fn() },
-      { dispose: vi.fn() },
-    ];
+    const lights = [{ dispose: vi.fn() }, { dispose: vi.fn() }, { dispose: vi.fn() }];
 
     lights.forEach((light) => light.dispose());
 

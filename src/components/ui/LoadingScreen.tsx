@@ -612,7 +612,9 @@ export function LoadingScreen({
           </div>
 
           <div className={`${styles.tipContainer} ${tipFading ? styles.tipFading : ''}`}>
-            <span className={styles.tipCategory} aria-hidden="true">[{currentTip.category}]</span>
+            <span className={styles.tipCategory} aria-hidden="true">
+              [{currentTip.category}]
+            </span>
             <p className={styles.tipText} aria-label={`Tip: ${currentTip.tip}`}>
               {typedTipText}
               <span className={styles.cursor} aria-hidden="true">

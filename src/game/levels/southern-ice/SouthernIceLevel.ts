@@ -38,29 +38,11 @@ import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('SouthernIce');
+
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
-import { getAudioManager } from '../../core/AudioManager';
 import { getEnvironmentalAudioManager } from '../../core/EnvironmentalAudioManager';
-import { createEntity, type Entity, removeEntity } from '../../core/ecs';
 import { damageFeedback } from '../../effects/DamageFeedback';
 import { particleManager } from '../../effects/ParticleManager';
-import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
-import { type ActionButtonGroup, createAction } from '../../types/actions';
-import { type SurfaceConfig, SurfaceLevel } from '../SurfaceLevel';
-import { buildFloraFromPlacements, getSouthernIceFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getSouthernIceCollectibles } from '../shared/CollectiblePlacer';
-import { createDynamicTerrain, ICE_TERRAIN } from '../shared/SurfaceTerrainFactory';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
-import {
-  createIceEnvironment,
-  disposeIceEnvironment,
-  getTemperatureAtPosition,
-  type IceEnvironment,
-  type TemperatureZone,
-  preloadIceEnvironmentAssets,
-  updateAuroraBorealis,
-  updateBlizzardEmitter,
-} from './environment';
 import {
   BURROW_CONFIG,
   createDormantCocoonMesh,
@@ -76,6 +58,26 @@ import {
   type IceChitinVariant,
   preloadIceChitinAssets,
 } from '../../entities/IceChitin';
+import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
+import { type ActionButtonGroup, createAction } from '../../types/actions';
+import { type SurfaceConfig, SurfaceLevel } from '../SurfaceLevel';
+import { buildFloraFromPlacements, getSouthernIceFlora } from '../shared/AlienFloraBuilder';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getSouthernIceCollectibles,
+} from '../shared/CollectiblePlacer';
+import { createDynamicTerrain, ICE_TERRAIN } from '../shared/SurfaceTerrainFactory';
+import type { LevelConfig } from '../types';
+import {
+  createIceEnvironment,
+  disposeIceEnvironment,
+  getTemperatureAtPosition,
+  type IceEnvironment,
+  preloadIceEnvironmentAssets,
+  updateAuroraBorealis,
+  updateBlizzardEmitter,
+} from './environment';
 
 // ============================================================================
 // TYPES
@@ -266,7 +268,6 @@ export class SouthernIceLevel extends SurfaceLevel {
 
   // Phase management
   private phase: LevelPhase = 'ice_fields';
-  private phaseTime = 0;
   private levelTime = 0;
 
   // Environment
@@ -274,7 +275,6 @@ export class SouthernIceLevel extends SurfaceLevel {
 
   // Temperature / exposure system
   private exposureMeter = EXPOSURE_MAX;
-  private lastExposureDamageTick = 0;
   private hasShownExposureWarning = false;
   private hasShownExposureCritical = false;
   private isInWarmZone = false;
@@ -315,12 +315,7 @@ export class SouthernIceLevel extends SurfaceLevel {
   // Comms tracking (avoid duplicate messages)
   private sentComms = new Set<string>();
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
     const surfaceConfig: SurfaceConfig = {
       terrainSize: 600,
       heightScale: 10,
@@ -330,7 +325,7 @@ export class SouthernIceLevel extends SurfaceLevel {
       enemyDensity: 0.4,
       maxEnemies: 30,
     };
-    super(engine, canvas, config, callbacks, surfaceConfig);
+    super(engine, canvas, config, surfaceConfig);
   }
 
   // ============================================================================
@@ -416,7 +411,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
     // Set up action handlers
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
 
     // Configure fog for blizzard
     this.scene.fogMode = 2; // Exponential fog
@@ -430,9 +425,9 @@ export class SouthernIceLevel extends SurfaceLevel {
     this.sendComms('levelStart', COMMS.levelStart);
 
     // Set initial objective
-    this.callbacks.onObjectiveUpdate(OBJECTIVES.iceFields.title, OBJECTIVES.iceFields.instructions);
-    this.callbacks.onChapterChange(6);
-    this.callbacks.onNotification(NOTIFICATIONS.phaseIceFields, 4000);
+    this.emitObjectiveUpdate(OBJECTIVES.iceFields.title, OBJECTIVES.iceFields.instructions);
+    this.emitChapterChanged(6);
+    this.emitNotification(NOTIFICATIONS.phaseIceFields, 4000);
 
     // Marcus comms after brief delay
     setTimeout(() => {
@@ -448,7 +443,11 @@ export class SouthernIceLevel extends SurfaceLevel {
 
     // Build collectibles
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getSouthernIceCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getSouthernIceCollectibles(),
+      collectibleRoot
+    );
 
     // Spawn initial enemies for ice fields phase
     this.spawnPhaseEnemies('ice_fields');
@@ -505,17 +504,17 @@ export class SouthernIceLevel extends SurfaceLevel {
     this.updateEnvironmentalAudioIntensity();
 
     // Update HUD
-    this.callbacks.onHealthChange(this.playerHealth);
+    this.emitHealthChanged(this.playerHealth);
 
     // Update exposure meter UI
-    this.callbacks.onExposureChange?.(this.exposureMeter / EXPOSURE_MAX);
+    this.emitExposureChanged(this.exposureMeter / EXPOSURE_MAX);
   }
 
   // ============================================================================
   // ENVIRONMENT UPDATES
   // ============================================================================
 
-  private updateEnvironment(deltaTime: number): void {
+  private updateEnvironment(_deltaTime: number): void {
     if (!this.iceEnvironment) return;
 
     // Update aurora borealis animation
@@ -540,7 +539,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
   private updateBlizzardIntensity(deltaTime: number): void {
     // Determine target intensity based on location
-    const playerZ = this.camera.position.z;
+    const _playerZ = this.camera.position.z;
 
     if (this.phase === 'ice_caverns') {
       // Indoor: minimal blizzard
@@ -596,7 +595,7 @@ export class SouthernIceLevel extends SurfaceLevel {
   /**
    * Update thin ice detection and play cracking sounds when on frozen lake.
    */
-  private updateThinIceAudio(deltaTime: number): void {
+  private updateThinIceAudio(_deltaTime: number): void {
     const playerZ = this.camera.position.z;
     const playerX = this.camera.position.x;
     const lakeCenter = new Vector3(0, -0.5, -160);
@@ -622,7 +621,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
       // Show thin ice warning if just entered
       if (!wasOnThinIce) {
-        this.callbacks.onNotification(NOTIFICATIONS.thinIce, 2000);
+        this.emitNotification(NOTIFICATIONS.thinIce, 2000);
         this.sendComms('iceCreaking', COMMS.iceCreaking);
       }
     }
@@ -655,7 +654,7 @@ export class SouthernIceLevel extends SurfaceLevel {
         this.hasShownExposureWarning = false;
         this.hasShownExposureCritical = false;
         this.sendComms('tempRecovered', COMMS.temperatureRecovered);
-        this.callbacks.onNotification(NOTIFICATIONS.temperatureRecovered, 2000);
+        this.emitNotification(NOTIFICATIONS.temperatureRecovered, 2000);
       }
     } else {
       // Drain exposure based on zone coldness
@@ -675,12 +674,12 @@ export class SouthernIceLevel extends SurfaceLevel {
     // Exposure warnings
     if (this.exposureMeter <= EXPOSURE_WARNING_THRESHOLD && !this.hasShownExposureWarning) {
       this.hasShownExposureWarning = true;
-      this.callbacks.onNotification(NOTIFICATIONS.temperatureLow, 3000);
+      this.emitNotification(NOTIFICATIONS.temperatureLow, 3000);
     }
     if (this.exposureMeter <= EXPOSURE_CRITICAL_THRESHOLD && !this.hasShownExposureCritical) {
       this.hasShownExposureCritical = true;
       this.sendComms('tempWarning', COMMS.temperatureWarning);
-      this.callbacks.onNotification(NOTIFICATIONS.temperatureCritical, 4000);
+      this.emitNotification(NOTIFICATIONS.temperatureCritical, 4000);
     }
 
     // Hypothermia damage when meter is empty
@@ -713,7 +712,7 @@ export class SouthernIceLevel extends SurfaceLevel {
    */
   private triggerFrostDamageEffect(): void {
     // Apply blue frost damage tint via post-processing
-    this.callbacks.onFrostDamage?.(EXPOSURE_DAMAGE_RATE);
+    this.emitFrostDamage(EXPOSURE_DAMAGE_RATE);
     // Additional shake for hypothermia
     this.triggerShake(1.5);
   }
@@ -745,28 +744,22 @@ export class SouthernIceLevel extends SurfaceLevel {
   }
 
   private transitionToPhase(newPhase: LevelPhase): void {
-    const oldPhase = this.phase;
+    const _oldPhase = this.phase;
     this.phase = newPhase;
     this.phaseTime = 0;
 
     switch (newPhase) {
       case 'frozen_lake':
         this.sendComms('frozenLake', COMMS.frozenLakeEnter);
-        this.callbacks.onObjectiveUpdate(
-          OBJECTIVES.frozenLake.title,
-          OBJECTIVES.frozenLake.instructions
-        );
-        this.callbacks.onNotification(NOTIFICATIONS.phaseFrozenLake, 3000);
+        this.emitObjectiveUpdate(OBJECTIVES.frozenLake.title, OBJECTIVES.frozenLake.instructions);
+        this.emitNotification(NOTIFICATIONS.phaseFrozenLake, 3000);
         this.spawnPhaseEnemies('frozen_lake');
         break;
 
       case 'ice_caverns':
         this.sendComms('cavernEnter', COMMS.cavernEnter);
-        this.callbacks.onObjectiveUpdate(
-          OBJECTIVES.iceCaverns.title,
-          OBJECTIVES.iceCaverns.instructions
-        );
-        this.callbacks.onNotification(NOTIFICATIONS.phaseIceCaverns, 3000);
+        this.emitObjectiveUpdate(OBJECTIVES.iceCaverns.title, OBJECTIVES.iceCaverns.instructions);
+        this.emitNotification(NOTIFICATIONS.phaseIceCaverns, 3000);
         this.spawnPhaseEnemies('ice_caverns');
 
         // Transition to indoor color grading
@@ -775,10 +768,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
       case 'complete':
         this.sendComms('hiveEntrance', COMMS.hiveEntrance);
-        this.callbacks.onObjectiveUpdate(
-          OBJECTIVES.reachBreach.title,
-          OBJECTIVES.reachBreach.instructions
-        );
+        this.emitObjectiveUpdate(OBJECTIVES.reachBreach.title, OBJECTIVES.reachBreach.instructions);
 
         // Delay completion to let the final comms play
         setTimeout(() => {
@@ -886,7 +876,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
       // Visual feedback
       this.triggerHitConfirmation();
-      this.callbacks.onHitMarker?.(finalDamage, finalDamage > 20);
+      this.emitHitMarker(finalDamage, finalDamage > 20);
 
       // Particle impact at hit point
       const hitPoint = origin.add(direction.scale(closestHit.distance));
@@ -924,7 +914,7 @@ export class SouthernIceLevel extends SurfaceLevel {
     }, 500);
 
     this.totalKills++;
-    this.callbacks.onKill();
+    this.recordKill();
     this.updateKillStreak(this.totalKills);
     this.playSound('enemy_death');
   }
@@ -937,8 +927,8 @@ export class SouthernIceLevel extends SurfaceLevel {
     this.lastDamageTime = now;
 
     this.playerHealth = Math.max(0, this.playerHealth - amount);
-    this.callbacks.onHealthChange(this.playerHealth);
-    this.callbacks.onDamage();
+    this.emitHealthChanged(this.playerHealth);
+    this.emitDamageRegistered();
     this.trackPlayerDamage(amount);
 
     // Visual damage feedback
@@ -953,7 +943,7 @@ export class SouthernIceLevel extends SurfaceLevel {
 
   private handlePlayerDeath(): void {
     this.onPlayerDeath();
-    this.callbacks.onNotification('KIA - MISSION FAILED', 5000);
+    this.emitNotification('KIA - MISSION FAILED', 5000);
   }
 
   private handleGrenade(): void {
@@ -1048,7 +1038,11 @@ export class SouthernIceLevel extends SurfaceLevel {
     });
   }
 
-  private spawnIceChitin(position: Vector3, initialState: IceChitinState, variant: IceChitinVariant = 'warrior'): IceChitinInstance {
+  private spawnIceChitin(
+    position: Vector3,
+    initialState: IceChitinState,
+    variant: IceChitinVariant = 'warrior'
+  ): IceChitinInstance {
     const seed = this.nextChitinSeed++;
     const species = ICE_CHITIN_VARIANTS[variant];
     const mesh = createIceChitinMesh(this.scene, seed, variant);
@@ -1090,7 +1084,7 @@ export class SouthernIceLevel extends SurfaceLevel {
         chitin.awakenTimer = 2.0; // 2 seconds to awaken
 
         // Dispose cocoon with cracking effect
-        this.callbacks.onNotification(NOTIFICATIONS.iceChitinAwake, 2000);
+        this.emitNotification(NOTIFICATIONS.iceChitinAwake, 2000);
         this.playSound('alien_screech');
         this.triggerShake(2);
 
@@ -1268,7 +1262,7 @@ export class SouthernIceLevel extends SurfaceLevel {
   private updateChitinRangedAttack(
     chitin: IceChitinInstance,
     playerPos: Vector3,
-    deltaTime: number
+    _deltaTime: number
   ): void {
     if (chitin.stateTimer > 0.5 && chitin.attackCooldown <= 0) {
       // Fire ice shard burst
@@ -1288,7 +1282,7 @@ export class SouthernIceLevel extends SurfaceLevel {
   private updateChitinMeleeAttack(
     chitin: IceChitinInstance,
     playerPos: Vector3,
-    deltaTime: number
+    _deltaTime: number
   ): void {
     if (chitin.stateTimer > 0.6) {
       // Deal melee damage
@@ -1408,7 +1402,11 @@ export class SouthernIceLevel extends SurfaceLevel {
     } else {
       // Fallback: create simple placeholder geometry if GLB failed to load
       log.warn('Marcus mech GLB not loaded, using placeholder');
-      const placeholder = MeshBuilder.CreateBox('marcus_placeholder', { width: 3, height: 8, depth: 4 }, this.scene);
+      const placeholder = MeshBuilder.CreateBox(
+        'marcus_placeholder',
+        { width: 3, height: 8, depth: 4 },
+        this.scene
+      );
       const placeholderMat = new StandardMaterial('marcus_placeholder_mat', this.scene);
       placeholderMat.diffuseColor = new Color3(0.3, 0.35, 0.4);
       placeholderMat.emissiveColor = new Color3(0.05, 0.08, 0.1);
@@ -1508,7 +1506,7 @@ export class SouthernIceLevel extends SurfaceLevel {
       ],
     };
 
-    this.callbacks.onActionGroupsChange([combatGroup]);
+    this.emitActionGroupsChanged([combatGroup]);
   }
 
   // ============================================================================
@@ -1545,7 +1543,7 @@ export class SouthernIceLevel extends SurfaceLevel {
   ): void {
     if (this.sentComms.has(id)) return;
     this.sentComms.add(id);
-    this.callbacks.onCommsMessage(message);
+    this.emitCommsMessage(message);
   }
 
   // ============================================================================
@@ -1554,7 +1552,9 @@ export class SouthernIceLevel extends SurfaceLevel {
 
   protected override disposeLevel(): void {
     // Dispose flora
-    for (const node of this.floraNodes) { node.dispose(false, true); }
+    for (const node of this.floraNodes) {
+      node.dispose(false, true);
+    }
     this.floraNodes = [];
     // Dispose collectibles
     this.collectibleSystem?.dispose();
@@ -1607,7 +1607,7 @@ export class SouthernIceLevel extends SurfaceLevel {
     this.terrainMaterial = null;
 
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
+    this.emitActionHandlerRegistered(null);
     this.actionCallback = null;
 
     // Call parent dispose

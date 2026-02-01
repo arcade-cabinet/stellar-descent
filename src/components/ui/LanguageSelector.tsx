@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
-import { useTranslation, type SupportedLanguage, type LanguageInfo } from '../../i18n/useTranslation';
+import { type SupportedLanguage, useTranslation } from '../../i18n/useTranslation';
 import styles from './LanguageSelector.module.css';
 
 interface LanguageSelectorProps {
@@ -127,9 +127,7 @@ export function LanguageSelector({
         <span className={styles.flag} aria-hidden="true">
           {languageInfo.flag}
         </span>
-        {!compact && (
-          <span className={styles.languageName}>{languageInfo.nativeName}</span>
-        )}
+        {!compact && <span className={styles.languageName}>{languageInfo.nativeName}</span>}
         <span className={`${styles.arrow} ${isOpen ? styles.arrowUp : ''}`} aria-hidden="true">
           {'\u25BC'}
         </span>

@@ -233,19 +233,19 @@
    ============================================ */
 
 .reducedMotion {
-  animation: none !important;
+  animation: none;
   opacity: 0.9;
 }
 
 .reducedMotion .line1,
 .reducedMotion .line2 {
-  animation: none !important;
+  animation: none;
 }
 
 .reducedMotion .criticalFlash,
 .reducedMotion .killIndicator,
 .reducedMotion .killIcon {
-  animation: none !important;
+  animation: none;
   opacity: 0.9;
 }
 
@@ -299,11 +299,11 @@
   .criticalFlash,
   .killIndicator,
   .killIcon {
-    animation: none !important;
+    animation: none;
   }
 
   .hitmarker {
     opacity: 0.9;
-    animation: simpleFade 0.15s ease-out forwards !important;
+    animation: simpleFade 0.15s ease-out forwards;
   }
 }

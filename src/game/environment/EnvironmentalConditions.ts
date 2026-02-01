@@ -13,23 +13,23 @@
  * Each level can configure which conditions are active and their parameters.
  */
 
-import { Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { Color4 } from '@babylonjs/core/Maths/math.color';
+import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
 import { getLogger } from '../core/Logger';
 import type { CommsMessage } from '../types';
 import {
+  type AdvancedWeatherSystem,
   disposeAdvancedWeatherSystem,
   getAdvancedWeatherSystem,
   type WeatherEventType,
-  type AdvancedWeatherSystem,
 } from './AdvancedWeatherSystem';
 import {
+  type AnyHazardType,
   disposeHazardSystem,
   getHazardSystem,
-  type AnyHazardType,
-  type HazardType,
   type HazardSystem,
+  type HazardType,
   type HazardZoneConfig,
 } from './HazardSystem';
 
@@ -46,7 +46,7 @@ export type EnvironmentType =
   | 'surface_ice' // Outdoor frozen
   | 'surface_desert' // Outdoor desert/canyon
   | 'hive' // Underground alien hive
-  | 'mine' // Underground mining facility;
+  | 'mine'; // Underground mining facility;
 
 /** Configuration for environmental conditions */
 export interface EnvironmentConfig {
@@ -121,11 +121,7 @@ const MARCUS_COMMENTS: EnvironmentalComment[] = [
   },
   {
     condition: 'cold_critical',
-    comments: [
-      "Can't... feel my fingers...",
-      'Hypothermia setting in...',
-      'Find heat... now...',
-    ],
+    comments: ["Can't... feel my fingers...", 'Hypothermia setting in...', 'Find heat... now...'],
     cooldown: 15,
   },
   {
@@ -139,11 +135,7 @@ const MARCUS_COMMENTS: EnvironmentalComment[] = [
   },
   {
     condition: 'oxygen_critical',
-    comments: [
-      "Can't... breathe...",
-      'Need air... NOW...',
-      'Suffocating...',
-    ],
+    comments: ["Can't... breathe...", 'Need air... NOW...', 'Suffocating...'],
     cooldown: 10,
   },
   {
@@ -157,11 +149,7 @@ const MARCUS_COMMENTS: EnvironmentalComment[] = [
   },
   {
     condition: 'toxic_critical',
-    comments: [
-      'Filters overloaded...',
-      'Poison... everywhere...',
-      "Can't... take much more...",
-    ],
+    comments: ['Filters overloaded...', 'Poison... everywhere...', "Can't... take much more..."],
     cooldown: 10,
   },
   {
@@ -193,20 +181,12 @@ const MARCUS_COMMENTS: EnvironmentalComment[] = [
   },
   {
     condition: 'weapon_jam',
-    comments: [
-      "Weapon's jammed! Too cold!",
-      'Mechanism froze up!',
-      'Damn this cold!',
-    ],
+    comments: ["Weapon's jammed! Too cold!", 'Mechanism froze up!', 'Damn this cold!'],
     cooldown: 20,
   },
   {
     condition: 'warmth_found',
-    comments: [
-      'Ah... warmth. Finally.',
-      'Temperature stabilizing.',
-      'That heat source saved us.',
-    ],
+    comments: ['Ah... warmth. Finally.', 'Temperature stabilizing.', 'That heat source saved us.'],
     cooldown: 60,
   },
   {
@@ -283,7 +263,6 @@ export const ENVIRONMENT_PRESETS: Record<EnvironmentType, Partial<EnvironmentCon
 // ============================================================================
 
 export class EnvironmentalConditionsManager {
-  private scene: Scene;
   private hazardSystem: HazardSystem;
   private weatherSystem: AdvancedWeatherSystem;
   private config: EnvironmentConfig;
@@ -366,13 +345,13 @@ export class EnvironmentalConditionsManager {
 
   private setupWeatherCallbacks(): void {
     this.weatherSystem.setCallbacks({
-      onLightningNearPlayer: (distance) => {
+      onLightningNearPlayer: (_distance) => {
         this.callbacks?.onNotification('LIGHTNING STRIKE NEARBY!', 2000);
       },
-      onMeteorWarning: (position, timeToImpact) => {
+      onMeteorWarning: (_position, _timeToImpact) => {
         this.callbacks?.onNotification('INCOMING METEOR - TAKE COVER!', 2000);
       },
-      onMeteorImpact: (position, damage, distance) => {
+      onMeteorImpact: (_position, damage, _distance) => {
         if (damage > 0) {
           this.callbacks?.onDamage(damage, 'meteor_impact');
         }
@@ -680,7 +659,8 @@ export class EnvironmentalConditionsManager {
     this.lastCommentTime.set(condition, now);
 
     // Pick random comment
-    const comment = commentConfig.comments[Math.floor(Math.random() * commentConfig.comments.length)];
+    const comment =
+      commentConfig.comments[Math.floor(Math.random() * commentConfig.comments.length)];
 
     // Send as comms message
     this.callbacks?.onCommsMessage({
@@ -737,7 +717,7 @@ export class EnvironmentalConditionsManager {
     const hazardEffects = this.hazardSystem.getScreenEffects();
     const weatherTint = this.weatherSystem.getScreenTint();
 
-    let combinedColor = weatherTint.clone();
+    const combinedColor = weatherTint.clone();
     for (const effect of hazardEffects) {
       // Additive blend
       combinedColor.r = Math.min(1, combinedColor.r + effect.color.r * effect.color.a);

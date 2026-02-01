@@ -16,49 +16,42 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
     path: '/assets/models/environment/hive/building_birther.glb',
     category: 'model',
     sizeKB: 520,
-
   },
   {
     id: 'structure/brain',
     path: '/assets/models/environment/hive/building_brain.glb',
     category: 'model',
     sizeKB: 480,
-
   },
   {
     id: 'structure/claw',
     path: '/assets/models/environment/hive/building_claw.glb',
     category: 'model',
     sizeKB: 440,
-
   },
   {
     id: 'structure/crystals',
     path: '/assets/models/environment/hive/building_crystals.glb',
     category: 'model',
     sizeKB: 500,
-
   },
   {
     id: 'structure/stomach',
     path: '/assets/models/environment/hive/building_stomach.glb',
     category: 'model',
     sizeKB: 460,
-
   },
   {
     id: 'structure/terraformer',
     path: '/assets/models/environment/hive/building_terraformer.glb',
     category: 'model',
     sizeKB: 530,
-
   },
   {
     id: 'structure/undercrystal',
     path: '/assets/models/environment/hive/building_undercrystal.glb',
     category: 'model',
     sizeKB: 490,
-
   },
 
   // QUATERNIUS DETAILS - Technology absorbed by hive growth
@@ -125,84 +118,72 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
     path: '/assets/textures/levels/the-breach/Lava002_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/lava-normal',
     path: '/assets/textures/levels/the-breach/Lava002_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/lava-rough',
     path: '/assets/textures/levels/the-breach/Lava002_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/moss',
     path: '/assets/textures/levels/the-breach/Moss002_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/moss-normal',
     path: '/assets/textures/levels/the-breach/Moss002_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/moss-rough',
     path: '/assets/textures/levels/the-breach/Moss002_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/rock',
     path: '/assets/textures/levels/the-breach/Rock007_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/rock-normal',
     path: '/assets/textures/levels/the-breach/Rock007_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/rock-rough',
     path: '/assets/textures/levels/the-breach/Rock007_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/ground',
     path: '/assets/textures/levels/the-breach/Ground017_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/ground-normal',
     path: '/assets/textures/levels/the-breach/Ground017_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/breach/ground-rough',
     path: '/assets/textures/levels/the-breach/Ground017_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
 ];
 

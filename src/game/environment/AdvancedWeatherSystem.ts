@@ -23,7 +23,7 @@ import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
+import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { getLogger } from '../core/Logger';
 
@@ -292,7 +292,6 @@ export class AdvancedWeatherSystem {
   // Constants
   private readonly LIGHTNING_NEAR_DISTANCE = 30;
   private readonly METEOR_DAMAGE_RADIUS = 15;
-  private readonly EMP_DURATION = 2; // seconds
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -639,11 +638,7 @@ export class AdvancedWeatherSystem {
     // Apply fog
     this.scene.fogMode = 2; // Exponential
     this.scene.fogDensity = 0.005 * preset.fogMultiplier * this.state.intensity;
-    this.scene.fogColor = Color3.Lerp(
-      this.currentPreset.fogColor,
-      this.targetPreset.fogColor,
-      t
-    );
+    this.scene.fogColor = Color3.Lerp(this.currentPreset.fogColor, this.targetPreset.fogColor, t);
 
     // Notify visibility change
     const visibility = this.lerp(
@@ -738,7 +733,9 @@ export class AdvancedWeatherSystem {
    */
   getMoveSpeedMultiplier(): number {
     const preset = this.getCurrentPreset();
-    return preset.moveSpeedMultiplier * (1 - this.state.intensity * 0.3) + this.state.intensity * 0.3;
+    return (
+      preset.moveSpeedMultiplier * (1 - this.state.intensity * 0.3) + this.state.intensity * 0.3
+    );
   }
 
   /**
@@ -754,7 +751,9 @@ export class AdvancedWeatherSystem {
    */
   getVisibilityMultiplier(): number {
     const preset = this.getCurrentPreset();
-    return preset.visibilityMultiplier * (1 - this.state.intensity * 0.5) + this.state.intensity * 0.5;
+    return (
+      preset.visibilityMultiplier * (1 - this.state.intensity * 0.5) + this.state.intensity * 0.5
+    );
   }
 
   /**

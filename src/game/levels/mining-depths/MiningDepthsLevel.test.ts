@@ -8,10 +8,10 @@
  * Target: 95% line coverage, 90% branch coverage
  */
 
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import type { LevelCallbacks, LevelConfig } from '../types';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import type { LevelConfig } from '../types';
 import { MiningDepthsLevel } from './MiningDepthsLevel';
 
 // ============================================================================
@@ -52,9 +52,6 @@ vi.mock('@babylonjs/core/Cameras/universalCamera', () => ({
     fov = Math.PI / 2;
     inputs = { clear: vi.fn() };
     getDirection = vi.fn(() => new Vector3(0, 0, 1));
-    constructor(_name: string, _position: Vector3) {
-      // Accept constructor args
-    }
   },
 }));
 
@@ -65,9 +62,6 @@ vi.mock('@babylonjs/core/Lights/hemisphericLight', () => ({
     groundColor = new Color3(0.5, 0.5, 0.5);
     setEnabled = vi.fn();
     dispose = vi.fn();
-    constructor(_name: string, _direction: Vector3) {
-      // Accept constructor args
-    }
   },
 }));
 
@@ -78,9 +72,6 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
     intensity = 1;
     range = 10;
     dispose = vi.fn();
-    constructor(_name: string, _position: Vector3) {
-      // Accept constructor args
-    }
   },
 }));
 
@@ -93,9 +84,6 @@ vi.mock('@babylonjs/core/Lights/spotLight', () => ({
     intensity = 0;
     range = 35;
     dispose = vi.fn();
-    constructor(_name: string, _position: Vector3, _direction: Vector3, _angle: number, _exponent: number) {
-      // Accept constructor args
-    }
   },
 }));
 
@@ -105,9 +93,6 @@ vi.mock('@babylonjs/core/Lights/directionalLight', () => ({
     diffuse = new Color3(1, 1, 1);
     setEnabled = vi.fn();
     dispose = vi.fn();
-    constructor(_name: string, _direction: Vector3) {
-      // Accept constructor args
-    }
   },
 }));
 
@@ -163,9 +148,6 @@ vi.mock('@babylonjs/core/Meshes/transformNode', () => ({
     dispose = vi.fn();
     isDisposed = () => false;
     setEnabled = vi.fn();
-    constructor(_name: string) {
-      // Accept constructor args
-    }
   },
 }));
 
@@ -315,16 +297,69 @@ vi.mock('./environment', () => ({
     burrowerSpawn5: new Vector3(-2, -28, -115),
   },
   HAZARD_ZONES: [
-    { id: 'gas_vent_1', type: 'gas_vent', center: new Vector3(-5, -1, -55), radius: 4, damage: 5, active: true },
-    { id: 'gas_vent_2', type: 'gas_vent', center: new Vector3(-18, -6, -78), radius: 3, damage: 8, active: true },
-    { id: 'rockfall_1', type: 'unstable_ground', center: new Vector3(-3, -2, -58), radius: 5, damage: 15, active: true },
-    { id: 'rockfall_2', type: 'unstable_ground', center: new Vector3(-12, -8, -88), radius: 4, damage: 12, active: true },
-    { id: 'flooded_section', type: 'flooded', center: new Vector3(-10, -12, -103), radius: 8, damage: 0, active: true },
+    {
+      id: 'gas_vent_1',
+      type: 'gas_vent',
+      center: new Vector3(-5, -1, -55),
+      radius: 4,
+      damage: 5,
+      active: true,
+    },
+    {
+      id: 'gas_vent_2',
+      type: 'gas_vent',
+      center: new Vector3(-18, -6, -78),
+      radius: 3,
+      damage: 8,
+      active: true,
+    },
+    {
+      id: 'rockfall_1',
+      type: 'unstable_ground',
+      center: new Vector3(-3, -2, -58),
+      radius: 5,
+      damage: 15,
+      active: true,
+    },
+    {
+      id: 'rockfall_2',
+      type: 'unstable_ground',
+      center: new Vector3(-12, -8, -88),
+      radius: 4,
+      damage: 12,
+      active: true,
+    },
+    {
+      id: 'flooded_section',
+      type: 'flooded',
+      center: new Vector3(-10, -12, -103),
+      radius: 8,
+      damage: 0,
+      active: true,
+    },
   ],
   AUDIO_LOGS: [
-    { id: 'log_foreman', position: new Vector3(8, 0, -18), title: 'FOREMAN VASQUEZ - DAY 12', text: 'Test log 1', collected: false },
-    { id: 'log_geologist', position: new Vector3(-15, -5, -75), title: 'DR. CHEN - DAY 15', text: 'Test log 2', collected: false },
-    { id: 'log_survivor', position: new Vector3(-10, -28, -115), title: 'UNKNOWN MINER - DAY 18', text: 'Test log 3', collected: false },
+    {
+      id: 'log_foreman',
+      position: new Vector3(8, 0, -18),
+      title: 'FOREMAN VASQUEZ - DAY 12',
+      text: 'Test log 1',
+      collected: false,
+    },
+    {
+      id: 'log_geologist',
+      position: new Vector3(-15, -5, -75),
+      title: 'DR. CHEN - DAY 15',
+      text: 'Test log 2',
+      collected: false,
+    },
+    {
+      id: 'log_survivor',
+      position: new Vector3(-10, -28, -115),
+      title: 'UNKNOWN MINER - DAY 18',
+      text: 'Test log 3',
+      collected: false,
+    },
   ],
 }));
 
@@ -458,33 +493,6 @@ function createMockCanvas(): HTMLCanvasElement {
   } as unknown as HTMLCanvasElement;
 }
 
-function createMockCallbacks(): LevelCallbacks {
-  return {
-    onCommsMessage: vi.fn(),
-    onObjectiveUpdate: vi.fn(),
-    onChapterChange: vi.fn(),
-    onHealthChange: vi.fn(),
-    onKill: vi.fn(),
-    onDamage: vi.fn(),
-    onNotification: vi.fn(),
-    onLevelComplete: vi.fn(),
-    onCombatStateChange: vi.fn(),
-    onActionGroupsChange: vi.fn(),
-    onActionHandlerRegister: vi.fn(),
-    onHitMarker: vi.fn(),
-    onDirectionalDamage: vi.fn(),
-    onAudioLogFound: vi.fn(),
-    onSecretFound: vi.fn(),
-    onSkullFound: vi.fn(),
-    onDialogueTrigger: vi.fn(),
-    onObjectiveMarker: vi.fn(),
-    onExposureChange: vi.fn(),
-    onFrostDamage: vi.fn(),
-    onCinematicStart: vi.fn(),
-    onCinematicEnd: vi.fn(),
-  };
-}
-
 function createMockConfig(): LevelConfig {
   return {
     id: 'the_breach', // Using a valid LevelId as mining_depths isn't defined
@@ -513,15 +521,22 @@ describe('MiningDepthsLevel', () => {
   let engine: ReturnType<typeof createMockEngine>;
   let canvas: HTMLCanvasElement;
   let config: LevelConfig;
-  let callbacks: LevelCallbacks;
 
   beforeEach(() => {
     vi.useFakeTimers();
     engine = createMockEngine();
     canvas = createMockCanvas();
     config = createMockConfig();
-    callbacks = createMockCallbacks();
-    level = new MiningDepthsLevel(engine as any, canvas, config, callbacks);
+    level = new MiningDepthsLevel(engine as any, canvas, config);
+    // Mock emit helper methods on the level instance
+    (level as any).emitNotification = vi.fn();
+    (level as any).emitObjectiveUpdate = vi.fn();
+    (level as any).emitCommsMessage = vi.fn();
+    (level as any).emitHealthChanged = vi.fn();
+    (level as any).emitCombatStateChanged = vi.fn();
+    (level as any).emitActionHandlerRegistered = vi.fn();
+    (level as any).emitActionGroupsChanged = vi.fn();
+    (level as any).recordKill = vi.fn();
   });
 
   afterEach(() => {
@@ -547,17 +562,17 @@ describe('MiningDepthsLevel', () => {
 
     it('should initialize level successfully', async () => {
       await level.initialize();
-      expect(level['isInitialized']).toBe(true);
+      expect(level.isInitialized).toBe(true);
     });
 
     it('should set initial phase to arrival', async () => {
       await level.initialize();
-      expect(level['phase']).toBe('arrival');
+      expect(level.phase).toBe('arrival');
     });
 
     it('should display level title notification on start', async () => {
       await level.initialize();
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         'THE MINING DEPTHS - LV-847',
         3000
       );
@@ -565,7 +580,7 @@ describe('MiningDepthsLevel', () => {
 
     it('should set initial objective on start', async () => {
       await level.initialize();
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'INVESTIGATE THE MINES',
         'Explore the abandoned mining facility. Find a way deeper.'
       );
@@ -573,7 +588,7 @@ describe('MiningDepthsLevel', () => {
 
     it('should register action handler on start', async () => {
       await level.initialize();
-      expect(callbacks.onActionHandlerRegister).toHaveBeenCalled();
+      expect((level as any).emitActionHandlerRegistered).toHaveBeenCalled();
     });
 
     it('should preload burrower enemy models', async () => {
@@ -595,14 +610,14 @@ describe('MiningDepthsLevel', () => {
 
   describe('visual settings', () => {
     it('should return dark underground background color', () => {
-      const bgColor = level['getBackgroundColor']();
+      const bgColor = level.getBackgroundColor();
       expect(bgColor.r).toBeLessThan(0.01);
       expect(bgColor.g).toBeLessThan(0.01);
       expect(bgColor.b).toBeLessThan(0.02);
     });
 
     it('should return narrower FOV for claustrophobic feel', () => {
-      const fov = level['getDefaultFOV']();
+      const fov = level.getDefaultFOV();
       // 65 degrees in radians = ~1.134
       expect(fov).toBeCloseTo((65 * Math.PI) / 180, 2);
     });
@@ -618,27 +633,27 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should start with flashlight off', () => {
-      expect(level['flashlightOn']).toBe(false);
+      expect(level.flashlightOn).toBe(false);
     });
 
     it('should toggle flashlight on action', () => {
-      level['toggleFlashlight']();
-      expect(level['flashlightOn']).toBe(true);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('FLASHLIGHT ON', 800);
+      level.toggleFlashlight();
+      expect(level.flashlightOn).toBe(true);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('FLASHLIGHT ON', 800);
     });
 
     it('should toggle flashlight off on second action', () => {
-      level['toggleFlashlight']();
-      level['toggleFlashlight']();
-      expect(level['flashlightOn']).toBe(false);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('FLASHLIGHT OFF', 800);
+      level.toggleFlashlight();
+      level.toggleFlashlight();
+      expect(level.flashlightOn).toBe(false);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('FLASHLIGHT OFF', 800);
     });
 
     it('should update flashlight position with camera', () => {
-      level['flashlightOn'] = true;
-      level['updateFlashlightTransform']();
+      level.flashlightOn = true;
+      level.updateFlashlightTransform();
       // Flashlight should follow camera
-      expect(level['flashlight']).toBeDefined();
+      expect(level.flashlight).toBeDefined();
     });
   });
 
@@ -652,35 +667,35 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should transition from arrival to hub_explore when entering hub', () => {
-      level['phase'] = 'arrival';
-      level['onEnterArea']('hub');
-      expect(level['phase']).toBe('hub_explore');
+      level.phase = 'arrival';
+      level.onEnterArea('hub');
+      expect(level.phase).toBe('hub_explore');
     });
 
     it('should transition to tunnels phase when keycard acquired', () => {
-      level['phase'] = 'hub_explore';
-      level['hasKeycard'] = true;
-      level['onEnterArea']('tunnel_start');
-      expect(level['phase']).toBe('tunnels');
+      level.phase = 'hub_explore';
+      level.hasKeycard = true;
+      level.onEnterArea('tunnel_start');
+      expect(level.phase).toBe('tunnels');
     });
 
     it('should transition to shaft_descent when gate opened', () => {
-      level['phase'] = 'tunnels';
-      level['shaftGateOpen'] = true;
-      level['onEnterArea']('shaft');
-      expect(level['phase']).toBe('shaft_descent');
+      level.phase = 'tunnels';
+      level.shaftGateOpen = true;
+      level.onEnterArea('shaft');
+      expect(level.phase).toBe('shaft_descent');
     });
 
     it('should transition to boss_fight when reaching shaft floor', () => {
-      level['phase'] = 'shaft_descent';
-      level['bossDefeated'] = false;
-      level['transitionToPhase']('boss_fight');
-      expect(level['phase']).toBe('boss_fight');
+      level.phase = 'shaft_descent';
+      level.bossDefeated = false;
+      level.transitionToPhase('boss_fight');
+      expect(level.phase).toBe('boss_fight');
     });
 
     it('should transition to exit after boss defeated', () => {
-      level['transitionToPhase']('exit');
-      expect(level['phase']).toBe('exit');
+      level.transitionToPhase('exit');
+      expect(level.phase).toBe('exit');
     });
   });
 
@@ -695,37 +710,37 @@ describe('MiningDepthsLevel', () => {
 
     it('should apply gas vent damage over time', () => {
       // Simulate player in gas vent area
-      level['camera'].position = new Vector3(-5, -1, -55);
-      level['checkHazards'](1.0); // 1 second
-      expect(callbacks.onHealthChange).toHaveBeenCalledWith(-5);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('TOXIC GAS!', 500);
+      level.camera.position = new Vector3(-5, -1, -55);
+      level.checkHazards(1.0); // 1 second
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(-5);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('TOXIC GAS!', 500);
     });
 
     it('should trigger rockfall on unstable ground', () => {
-      level['camera'].position = new Vector3(-3, -2, -58);
-      level['checkHazards'](0.1);
-      expect(callbacks.onHealthChange).toHaveBeenCalledWith(-15);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('ROCKFALL!', 1000);
+      level.camera.position = new Vector3(-3, -2, -58);
+      level.checkHazards(0.1);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(-15);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('ROCKFALL!', 1000);
     });
 
     it('should only trigger rockfall once', () => {
-      level['camera'].position = new Vector3(-3, -2, -58);
-      level['checkHazards'](0.1);
-      level['checkHazards'](0.1);
+      level.camera.position = new Vector3(-3, -2, -58);
+      level.checkHazards(0.1);
+      level.checkHazards(0.1);
       // Should only be called once
-      expect(callbacks.onHealthChange).toHaveBeenCalledTimes(1);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledTimes(1);
     });
 
     it('should set playerInFlood when in flooded area', () => {
-      level['camera'].position = new Vector3(-10, -12, -103);
-      level['checkHazards'](0.1);
-      expect(level['playerInFlood']).toBe(true);
+      level.camera.position = new Vector3(-10, -12, -103);
+      level.checkHazards(0.1);
+      expect(level.playerInFlood).toBe(true);
     });
 
     it('should show flooded section notification once', () => {
-      level['camera'].position = new Vector3(-10, -12, -103);
-      level['checkHazards'](0.1);
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      level.camera.position = new Vector3(-10, -12, -103);
+      level.checkHazards(0.1);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         'FLOODED SECTION - LIMITED VISIBILITY',
         2000
       );
@@ -742,35 +757,35 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should pickup keycard when close', () => {
-      level['camera'].position = new Vector3(14, 0, -30);
-      level['checkKeycardPickup']();
-      expect(level['hasKeycard']).toBe(true);
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      level.camera.position = new Vector3(14, 0, -30);
+      level.checkKeycardPickup();
+      expect(level.hasKeycard).toBe(true);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         'DEEP SHAFT ACCESS KEYCARD ACQUIRED',
         2000
       );
     });
 
     it('should not pickup keycard if already has one', () => {
-      level['hasKeycard'] = true;
-      level['camera'].position = new Vector3(14, 0, -30);
-      const callCount = (callbacks.onNotification as Mock).mock.calls.length;
-      level['checkKeycardPickup']();
+      level.hasKeycard = true;
+      level.camera.position = new Vector3(14, 0, -30);
+      const callCount = ((level as any).emitNotification as Mock).mock.calls.length;
+      level.checkKeycardPickup();
       // Should not add new notification
-      expect((callbacks.onNotification as Mock).mock.calls.length).toBe(callCount);
+      expect(((level as any).emitNotification as Mock).mock.calls.length).toBe(callCount);
     });
 
     it('should open shaft gate with keycard', () => {
-      level['hasKeycard'] = true;
-      level['openShaftGate']();
-      expect(level['shaftGateOpen']).toBe(true);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('SHAFT GATE UNLOCKED', 1500);
+      level.hasKeycard = true;
+      level.openShaftGate();
+      expect(level.shaftGateOpen).toBe(true);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('SHAFT GATE UNLOCKED', 1500);
     });
 
     it('should not open gate without keycard', () => {
-      level['hasKeycard'] = false;
-      level['openShaftGate']();
-      expect(level['shaftGateOpen']).toBe(false);
+      level.hasKeycard = false;
+      level.openShaftGate();
+      expect(level.shaftGateOpen).toBe(false);
     });
   });
 
@@ -784,23 +799,23 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should collect audio log when close', () => {
-      level['camera'].position = new Vector3(8, 0, -18);
-      level['checkAudioLogPickups']();
-      expect(level['audioLogsCollected']).toBe(1);
+      level.camera.position = new Vector3(8, 0, -18);
+      level.checkAudioLogPickups();
+      expect(level.audioLogsCollected).toBe(1);
     });
 
     it('should not collect already collected log', () => {
-      level['audioLogs'][0].collected = true;
-      level['camera'].position = new Vector3(8, 0, -18);
-      const prevCount = level['audioLogsCollected'];
-      level['checkAudioLogPickups']();
-      expect(level['audioLogsCollected']).toBe(prevCount);
+      level.audioLogs[0].collected = true;
+      level.camera.position = new Vector3(8, 0, -18);
+      const prevCount = level.audioLogsCollected;
+      level.checkAudioLogPickups();
+      expect(level.audioLogsCollected).toBe(prevCount);
     });
 
     it('should display log title on collection', () => {
-      level['camera'].position = new Vector3(8, 0, -18);
-      level['checkAudioLogPickups']();
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      level.camera.position = new Vector3(8, 0, -18);
+      level.checkAudioLogPickups();
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         expect.stringContaining('AUDIO LOG:'),
         3000
       );
@@ -818,47 +833,47 @@ describe('MiningDepthsLevel', () => {
 
     it('should spawn burrower at position', () => {
       const spawnPos = new Vector3(10, 0, -35);
-      level['spawnBurrower'](spawnPos);
-      expect(level['burrowers'].length).toBe(1);
-      expect(level['burrowers'][0].health).toBe(80);
+      level.spawnBurrower(spawnPos);
+      expect(level.burrowers.length).toBe(1);
+      expect(level.burrowers[0].health).toBe(80);
     });
 
     it('should not exceed max burrowers', () => {
       for (let i = 0; i < 10; i++) {
-        level['spawnBurrower'](new Vector3(i, 0, -35));
+        level.spawnBurrower(new Vector3(i, 0, -35));
       }
-      expect(level['burrowers'].length).toBeLessThanOrEqual(8);
+      expect(level.burrowers.length).toBeLessThanOrEqual(8);
     });
 
     it('should update burrower from buried to emerging state', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      const burrower = level['burrowers'][0];
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      const burrower = level.burrowers[0];
       burrower.emergeTimer = 0; // Force immediate emergence
-      level['updateBurrowers'](0.1);
+      level.updateBurrowers(0.1);
       expect(burrower.state).toBe('emerging');
     });
 
     it('should transition burrower to chase after emerging', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      const burrower = level['burrowers'][0];
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      const burrower = level.burrowers[0];
       burrower.state = 'emerging';
       burrower.stateTimer = 1.0; // Complete emergence
-      level['updateBurrowers'](0.1);
+      level.updateBurrowers(0.1);
       expect(burrower.state).toBe('chase');
     });
 
     it('should remove dead burrower', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      level['burrowers'][0].health = 0;
-      level['updateBurrowers'](0.1);
-      expect(level['burrowers'].length).toBe(0);
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      level.burrowers[0].health = 0;
+      level.updateBurrowers(0.1);
+      expect(level.burrowers.length).toBe(0);
     });
 
     it('should increment kill count on burrower death', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      level['burrowers'][0].health = 0;
-      level['updateBurrowers'](0.1);
-      expect(level['killCount']).toBe(1);
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      level.burrowers[0].health = 0;
+      level.updateBurrowers(0.1);
+      expect(level.killCount).toBe(1);
     });
   });
 
@@ -872,71 +887,71 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should start boss fight when entering shaft floor', () => {
-      level['startBossFight']();
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      level.startBossFight();
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         'WARNING: HOSTILE ALPHA DETECTED',
         3000
       );
-      expect(callbacks.onCombatStateChange).toHaveBeenCalledWith(true);
+      expect((level as any).emitCombatStateChanged).toHaveBeenCalledWith(true);
     });
 
     it('should spawn boss with correct health', async () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      expect(level['boss']).not.toBeNull();
-      expect(level['boss']?.health).toBe(500);
-      expect(level['boss']?.maxHealth).toBe(500);
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      expect(level.boss).not.toBeNull();
+      expect(level.boss?.health).toBe(500);
+      expect(level.boss?.maxHealth).toBe(500);
     });
 
     it('should enrage boss at 30% health', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['boss']!.health = 140; // Below 30%
-      level['updateBoss'](0.1);
-      expect(level['boss']?.isEnraged).toBe(true);
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.boss!.health = 140; // Below 30%
+      level.updateBoss(0.1);
+      expect(level.boss?.isEnraged).toBe(true);
     });
 
     it('should transition to boss_defeated when health reaches 0', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['boss']!.health = 0;
-      level['updateBoss'](0.1);
-      expect(level['bossDefeated']).toBe(true);
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.boss!.health = 0;
+      level.updateBoss(0.1);
+      expect(level.bossDefeated).toBe(true);
     });
 
     it('should complete level after boss defeated', () => {
       // Set up the boss - required for onBossDefeated to work
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['phase'] = 'boss_fight';
-      level['bossDefeated'] = false;
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.phase = 'boss_fight';
+      level.bossDefeated = false;
 
       // Defeat the boss
-      level['onBossDefeated']();
+      level.onBossDefeated();
 
       // Should now be marked as defeated
-      expect(level['bossDefeated']).toBe(true);
+      expect(level.bossDefeated).toBe(true);
     });
 
     it('should update boss state during charge', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['boss']!.state = 'charge';
-      level['boss']!.chargeTarget = new Vector3(0, 0, 0);
-      level['boss']!.stateTimer = 0;
-      level['updateBoss'](0.1);
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.boss!.state = 'charge';
+      level.boss!.chargeTarget = new Vector3(0, 0, 0);
+      level.boss!.stateTimer = 0;
+      level.updateBoss(0.1);
       // Boss should still be charging or transitioned
-      expect(['charge', 'idle']).toContain(level['boss']!.state);
+      expect(['charge', 'idle']).toContain(level.boss!.state);
     });
 
     it('should execute drill attack when in range', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['boss']!.state = 'drill_attack';
-      level['boss']!.stateTimer = 0.6;
-      level['camera'].position = level['boss']!.mesh.position.clone();
-      level['updateBoss'](0.1);
-      expect(callbacks.onHealthChange).toHaveBeenCalled();
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.boss!.state = 'drill_attack';
+      level.boss!.stateTimer = 0.6;
+      level.camera.position = level.boss!.mesh.position.clone();
+      level.updateBoss(0.1);
+      expect((level as any).emitHealthChanged).toHaveBeenCalled();
     });
   });
 
@@ -950,38 +965,38 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should fire primary weapon', () => {
-      level['primaryFireCooldown'] = 0;
+      level.primaryFireCooldown = 0;
       // Mock pointer locked
       vi.spyOn(level, 'isPointerLocked' as any).mockReturnValue(true);
-      level['firePrimaryWeapon']();
-      expect(level['primaryFireCooldown']).toBeGreaterThan(0);
+      level.firePrimaryWeapon();
+      expect(level.primaryFireCooldown).toBeGreaterThan(0);
     });
 
     it('should not fire when on cooldown', () => {
-      level['primaryFireCooldown'] = 100;
-      const initialCooldown = level['primaryFireCooldown'];
-      level['firePrimaryWeapon']();
-      expect(level['primaryFireCooldown']).toBe(initialCooldown);
+      level.primaryFireCooldown = 100;
+      const initialCooldown = level.primaryFireCooldown;
+      level.firePrimaryWeapon();
+      expect(level.primaryFireCooldown).toBe(initialCooldown);
     });
 
     it('should perform melee attack', () => {
-      level['meleeCooldown'] = 0;
-      level['spawnBurrower'](new Vector3(2, 0, 0));
-      level['burrowers'][0].state = 'chase';
-      level['meleeAttack']();
-      expect(level['meleeCooldown']).toBeGreaterThan(0);
+      level.meleeCooldown = 0;
+      level.spawnBurrower(new Vector3(2, 0, 0));
+      level.burrowers[0].state = 'chase';
+      level.meleeAttack();
+      expect(level.meleeCooldown).toBeGreaterThan(0);
     });
 
     it('should not melee when no targets', () => {
-      level['meleeCooldown'] = 0;
-      level['meleeAttack']();
+      level.meleeCooldown = 0;
+      level.meleeAttack();
       // Cooldown should remain 0 since no targets
-      expect(level['meleeCooldown']).toBe(0);
+      expect(level.meleeCooldown).toBe(0);
     });
 
     it('should handle reload action', () => {
-      level['handleReload']();
-      expect(callbacks.onNotification).toHaveBeenCalled();
+      level.handleReload();
+      expect((level as any).emitNotification).toHaveBeenCalled();
     });
   });
 
@@ -995,27 +1010,27 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should activate scanner', () => {
-      level['activateScanner']();
-      expect(callbacks.onNotification).toHaveBeenCalledWith('SCANNING...', 1500);
+      level.activateScanner();
+      expect((level as any).emitNotification).toHaveBeenCalledWith('SCANNING...', 1500);
     });
 
     it('should detect keycard when nearby', () => {
-      level['hasKeycard'] = false;
-      level['camera'].position = new Vector3(10, 0, -30);
-      level['activateScanner']();
+      level.hasKeycard = false;
+      level.camera.position = new Vector3(10, 0, -30);
+      level.activateScanner();
       vi.advanceTimersByTime(1600);
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         expect.stringContaining('KEYCARD DETECTED'),
         2000
       );
     });
 
     it('should detect audio logs when nearby', () => {
-      level['hasKeycard'] = true; // Skip keycard detection
-      level['camera'].position = new Vector3(8, 0, -20);
-      level['activateScanner']();
+      level.hasKeycard = true; // Skip keycard detection
+      level.camera.position = new Vector3(8, 0, -20);
+      level.activateScanner();
       vi.advanceTimersByTime(1600);
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         expect.stringContaining('AUDIO LOG DETECTED'),
         2000
       );
@@ -1032,24 +1047,24 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should interact with gate when keycard available', () => {
-      level['hasKeycard'] = true;
-      level['shaftGateOpen'] = false;
-      level['camera'].position = new Vector3(-10, -13, -110);
-      level['tryInteract']();
-      expect(level['shaftGateOpen']).toBe(true);
+      level.hasKeycard = true;
+      level.shaftGateOpen = false;
+      level.camera.position = new Vector3(-10, -13, -110);
+      level.tryInteract();
+      expect(level.shaftGateOpen).toBe(true);
     });
 
     it('should check for near interactables', () => {
-      level['hasKeycard'] = true;
-      level['shaftGateOpen'] = false;
-      level['camera'].position = new Vector3(-10, -13, -110);
-      const interactable = level['checkNearInteractable']();
+      level.hasKeycard = true;
+      level.shaftGateOpen = false;
+      level.camera.position = new Vector3(-10, -13, -110);
+      const interactable = level.checkNearInteractable();
       expect(interactable).toBe('USE KEYCARD');
     });
 
     it('should return null when no interactables nearby', () => {
-      level['camera'].position = new Vector3(0, 0, 0);
-      const interactable = level['checkNearInteractable']();
+      level.camera.position = new Vector3(0, 0, 0);
+      const interactable = level.checkNearInteractable();
       expect(interactable).toBeNull();
     });
   });
@@ -1064,32 +1079,32 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should handle flashlight action', () => {
-      level['handleAction']('flashlight');
-      expect(level['flashlightOn']).toBe(true);
+      level.handleAction('flashlight');
+      expect(level.flashlightOn).toBe(true);
     });
 
     it('should handle scanner action', () => {
-      level['handleAction']('scanner');
-      expect(callbacks.onNotification).toHaveBeenCalledWith('SCANNING...', 1500);
+      level.handleAction('scanner');
+      expect((level as any).emitNotification).toHaveBeenCalledWith('SCANNING...', 1500);
     });
 
     it('should handle interact action', () => {
-      level['hasKeycard'] = true;
-      level['camera'].position = new Vector3(-10, -13, -110);
-      level['handleAction']('interact');
-      expect(level['shaftGateOpen']).toBe(true);
+      level.hasKeycard = true;
+      level.camera.position = new Vector3(-10, -13, -110);
+      level.handleAction('interact');
+      expect(level.shaftGateOpen).toBe(true);
     });
 
     it('should handle melee action', () => {
-      level['spawnBurrower'](new Vector3(2, 0, 0));
-      level['burrowers'][0].state = 'chase';
-      level['handleAction']('melee');
-      expect(level['meleeCooldown']).toBeGreaterThan(0);
+      level.spawnBurrower(new Vector3(2, 0, 0));
+      level.burrowers[0].state = 'chase';
+      level.handleAction('melee');
+      expect(level.meleeCooldown).toBeGreaterThan(0);
     });
 
     it('should handle reload action', () => {
-      level['handleAction']('reload');
-      expect(callbacks.onNotification).toHaveBeenCalled();
+      level.handleAction('reload');
+      expect((level as any).emitNotification).toHaveBeenCalled();
     });
   });
 
@@ -1103,28 +1118,28 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should update action buttons with tools group', () => {
-      level['updateActionButtons']();
-      expect(callbacks.onActionGroupsChange).toHaveBeenCalled();
-      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls[0][0];
+      level.updateActionButtons();
+      expect((level as any).emitActionGroupsChanged).toHaveBeenCalled();
+      const groups = ((level as any).emitActionGroupsChanged as Mock).mock.calls[0][0];
       const toolsGroup = groups.find((g: any) => g.id === 'tools');
       expect(toolsGroup).toBeDefined();
     });
 
     it('should include combat buttons when enemies active', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      level['burrowers'][0].state = 'chase';
-      level['updateActionButtons']();
-      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls.at(-1)![0];
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      level.burrowers[0].state = 'chase';
+      level.updateActionButtons();
+      const groups = ((level as any).emitActionGroupsChanged as Mock).mock.calls.at(-1)![0];
       const combatGroup = groups.find((g: any) => g.id === 'combat');
       expect(combatGroup).toBeDefined();
     });
 
     it('should include interact button when near interactable', () => {
-      level['hasKeycard'] = true;
-      level['shaftGateOpen'] = false;
-      level['camera'].position = new Vector3(-10, -13, -110);
-      level['updateActionButtons']();
-      const groups = (callbacks.onActionGroupsChange as Mock).mock.calls.at(-1)![0];
+      level.hasKeycard = true;
+      level.shaftGateOpen = false;
+      level.camera.position = new Vector3(-10, -13, -110);
+      level.updateActionButtons();
+      const groups = ((level as any).emitActionGroupsChanged as Mock).mock.calls.at(-1)![0];
       const interactGroup = groups.find((g: any) => g.id === 'interact');
       expect(interactGroup).toBeDefined();
     });
@@ -1140,13 +1155,13 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should return normal move speed', () => {
-      level['playerInFlood'] = false;
-      expect(level['getMoveSpeed']()).toBe(4);
+      level.playerInFlood = false;
+      expect(level.getMoveSpeed()).toBe(4);
     });
 
     it('should return slower speed in flooded area', () => {
-      level['playerInFlood'] = true;
-      expect(level['getMoveSpeed']()).toBe(2.5);
+      level.playerInFlood = true;
+      expect(level.getMoveSpeed()).toBe(2.5);
     });
   });
 
@@ -1160,30 +1175,30 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should increase fog density in deeper areas', () => {
-      level['camera'].position.z = -110;
-      level['updateFogDensity']();
-      expect(level['fogDensity']).toBeGreaterThan(0.012);
+      level.camera.position.z = -110;
+      level.updateFogDensity();
+      expect(level.fogDensity).toBeGreaterThan(0.012);
     });
 
     it('should have thickest fog in deep shaft', () => {
-      level['camera'].position.y = -20;
-      level['camera'].position.z = -120;
+      level.camera.position.y = -20;
+      level.camera.position.z = -120;
       // Run multiple times to allow smooth transition to complete
       for (let i = 0; i < 100; i++) {
-        level['updateFogDensity']();
+        level.updateFogDensity();
       }
       // Deep shaft (y < -15) has base density of 0.028
-      expect(level['fogDensity']).toBeGreaterThan(0.02);
+      expect(level.fogDensity).toBeGreaterThan(0.02);
     });
 
     it('should increase fog in flooded area', () => {
-      level['playerInFlood'] = true;
-      level['updateFogDensity']();
+      level.playerInFlood = true;
+      level.updateFogDensity();
       // After smooth transition
       for (let i = 0; i < 100; i++) {
-        level['updateFogDensity']();
+        level.updateFogDensity();
       }
-      expect(level['fogDensity']).toBeGreaterThan(0.03);
+      expect(level.fogDensity).toBeGreaterThan(0.03);
     });
   });
 
@@ -1197,25 +1212,25 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should trigger entry area', () => {
-      level['camera'].position = new Vector3(0, 0, 0);
-      level['checkAreaTriggers']();
-      const entryZone = level['areaZones'].find(z => z.id === 'entry');
+      level.camera.position = new Vector3(0, 0, 0);
+      level.checkAreaTriggers();
+      const entryZone = level.areaZones.find((z) => z.id === 'entry');
       expect(entryZone?.triggered).toBe(true);
     });
 
     it('should trigger hub area', () => {
-      level['camera'].position = new Vector3(0, 0, -25);
-      level['checkAreaTriggers']();
-      const hubZone = level['areaZones'].find(z => z.id === 'hub');
+      level.camera.position = new Vector3(0, 0, -25);
+      level.checkAreaTriggers();
+      const hubZone = level.areaZones.find((z) => z.id === 'hub');
       expect(hubZone?.triggered).toBe(true);
     });
 
     it('should not re-trigger already triggered zones', () => {
-      const zone = level['areaZones'].find(z => z.id === 'entry');
+      const zone = level.areaZones.find((z) => z.id === 'entry');
       zone!.triggered = true;
-      level['camera'].position = new Vector3(0, 0, 0);
+      level.camera.position = new Vector3(0, 0, 0);
       const spy = vi.spyOn(level as any, 'onEnterArea');
-      level['checkAreaTriggers']();
+      level.checkAreaTriggers();
       expect(spy).not.toHaveBeenCalledWith('entry');
     });
   });
@@ -1230,28 +1245,28 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should spawn dust particles periodically', () => {
-      level['lastDustSpawn'] = 0;
+      level.lastDustSpawn = 0;
       // Manually call spawn to verify it adds to array
-      level['spawnDustParticle']();
-      expect(level['dustParticles'].length).toBe(1);
+      level.spawnDustParticle();
+      expect(level.dustParticles.length).toBe(1);
     });
 
     it('should not spawn dust when at max particles', () => {
       // Fill the array to max
       for (let i = 0; i < 30; i++) {
-        level['dustParticles'].push(createMockMesh(`dust_${i}`) as any);
+        level.dustParticles.push(createMockMesh(`dust_${i}`) as any);
       }
       // Try to update - should not add more
-      level['lastDustSpawn'] = 0;
-      level['updateDustParticles'](0.3);
-      expect(level['dustParticles'].length).toBe(30);
+      level.lastDustSpawn = 0;
+      level.updateDustParticles(0.3);
+      expect(level.dustParticles.length).toBe(30);
     });
 
     it('should update and fade existing particles', () => {
-      level['spawnDustParticle']();
-      const initialY = level['dustParticles'][0].position.y;
-      level['updateDustParticles'](0.1);
-      expect(level['dustParticles'][0].position.y).toBeLessThan(initialY);
+      level.spawnDustParticle();
+      const initialY = level.dustParticles[0].position.y;
+      level.updateDustParticles(0.1);
+      expect(level.dustParticles[0].position.y).toBeLessThan(initialY);
     });
   });
 
@@ -1265,20 +1280,20 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should update flicker light timers', () => {
-      if (level['environment']?.flickerLights?.length) {
-        const initialTimer = level['environment'].flickerLights[0].timer;
-        level['updateFlickerLights'](0.1);
-        expect(level['environment'].flickerLights[0].timer).toBeGreaterThan(initialTimer);
+      if (level.environment?.flickerLights?.length) {
+        const initialTimer = level.environment.flickerLights[0].timer;
+        level.updateFlickerLights(0.1);
+        expect(level.environment.flickerLights[0].timer).toBeGreaterThan(initialTimer);
       }
     });
 
     it('should turn off lights randomly', () => {
-      if (level['environment']?.flickerLights?.length) {
-        const fl = level['environment'].flickerLights[0];
+      if (level.environment?.flickerLights?.length) {
+        const fl = level.environment.flickerLights[0];
         fl.isOff = true;
         fl.offTimer = 0;
         fl.offDuration = 0.1;
-        level['updateFlickerLights'](0.2);
+        level.updateFlickerLights(0.2);
         expect(fl.isOff).toBe(false);
       }
     });
@@ -1295,23 +1310,23 @@ describe('MiningDepthsLevel', () => {
 
     it('should handle F key for flashlight', () => {
       const event = { code: 'KeyF' } as KeyboardEvent;
-      level['handleKeyDown'](event);
+      level.handleKeyDown(event);
       // Flashlight should toggle (checked via internal state)
-      expect(level['flashlightOn']).toBe(true);
+      expect(level.flashlightOn).toBe(true);
     });
 
     it('should handle T key for scanner', () => {
       const event = { code: 'KeyT' } as KeyboardEvent;
-      level['handleKeyDown'](event);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('SCANNING...', 1500);
+      level.handleKeyDown(event);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('SCANNING...', 1500);
     });
 
     it('should handle V key for melee', () => {
       const event = { code: 'KeyV' } as KeyboardEvent;
-      level['spawnBurrower'](new Vector3(2, 0, 0));
-      level['burrowers'][0].state = 'chase';
-      level['handleKeyDown'](event);
-      expect(level['meleeCooldown']).toBeGreaterThan(0);
+      level.spawnBurrower(new Vector3(2, 0, 0));
+      level.burrowers[0].state = 'chase';
+      level.handleKeyDown(event);
+      expect(level.meleeCooldown).toBeGreaterThan(0);
     });
   });
 
@@ -1325,13 +1340,13 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should not allow transition before boss defeated', () => {
-      level['bossDefeated'] = false;
+      level.bossDefeated = false;
       expect(level.canTransitionTo('hive_assault')).toBe(false);
     });
 
     it('should allow transition after boss defeated in exit phase', () => {
-      level['bossDefeated'] = true;
-      level['phase'] = 'exit';
+      level.bossDefeated = true;
+      level.phase = 'exit';
       expect(level.canTransitionTo('hive_assault')).toBe(true);
     });
   });
@@ -1346,27 +1361,27 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should clean up all resources on dispose', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
 
       level.dispose();
 
-      expect(level['burrowers'].length).toBe(0);
-      expect(level['boss']).toBeNull();
-      expect(level['flashlight']).toBeNull();
-      expect(level['flashlightFill']).toBeNull();
-      expect(level['environment']).toBeNull();
+      expect(level.burrowers.length).toBe(0);
+      expect(level.boss).toBeNull();
+      expect(level.flashlight).toBeNull();
+      expect(level.flashlightFill).toBeNull();
+      expect(level.environment).toBeNull();
     });
 
     it('should unregister action handler on dispose', () => {
       level.dispose();
-      expect(callbacks.onActionHandlerRegister).toHaveBeenCalledWith(null);
+      expect((level as any).emitActionHandlerRegistered).toHaveBeenCalledWith(null);
     });
 
     it('should clear action groups on dispose', () => {
       level.dispose();
-      expect(callbacks.onActionGroupsChange).toHaveBeenCalledWith([]);
+      expect((level as any).emitActionGroupsChanged).toHaveBeenCalledWith([]);
     });
   });
 
@@ -1380,26 +1395,26 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should send comms message only once per flag', () => {
-      level['sendCommsMessage']('test_message', {
+      level.sendCommsMessage('test_message', {
         sender: 'Lt. Reyes',
         callsign: 'REYES',
         portrait: 'commander',
         text: 'Test message',
       });
 
-      level['sendCommsMessage']('test_message', {
+      level.sendCommsMessage('test_message', {
         sender: 'Lt. Reyes',
         callsign: 'REYES',
         portrait: 'commander',
         text: 'Duplicate message',
       });
 
-      expect(callbacks.onCommsMessage).toHaveBeenCalledTimes(1);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(1);
     });
 
     it('should send arrival messages on start', () => {
       vi.advanceTimersByTime(3000);
-      expect(callbacks.onCommsMessage).toHaveBeenCalled();
+      expect((level as any).emitCommsMessage).toHaveBeenCalled();
     });
   });
 
@@ -1414,16 +1429,16 @@ describe('MiningDepthsLevel', () => {
 
     it('should set objective marker position', () => {
       const position = new Vector3(10, 0, -30);
-      level['setObjective'](position);
-      expect(level['currentObjective']).toEqual(position);
-      expect(level['objectiveMarker']?.isVisible).toBe(true);
+      level.setObjective(position);
+      expect(level.currentObjective).toEqual(position);
+      expect(level.objectiveMarker?.isVisible).toBe(true);
     });
 
     it('should clear objective marker', () => {
-      level['setObjective'](new Vector3(10, 0, -30));
-      level['clearObjective']();
-      expect(level['currentObjective']).toBeNull();
-      expect(level['objectiveMarker']?.isVisible).toBe(false);
+      level.setObjective(new Vector3(10, 0, -30));
+      level.clearObjective();
+      expect(level.currentObjective).toBeNull();
+      expect(level.objectiveMarker?.isVisible).toBe(false);
     });
   });
 
@@ -1437,23 +1452,23 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should constrain player height in hub area', () => {
-      level['camera'].position = new Vector3(0, 5, -25);
-      level['constrainPlayerPosition']();
-      expect(level['camera'].position.y).toBeCloseTo(1.7, 1);
+      level.camera.position = new Vector3(0, 5, -25);
+      level.constrainPlayerPosition();
+      expect(level.camera.position.y).toBeCloseTo(1.7, 1);
     });
 
     it('should constrain player height in tunnels', () => {
-      level['camera'].position = new Vector3(-10, 5, -70);
-      level['constrainPlayerPosition']();
+      level.camera.position = new Vector3(-10, 5, -70);
+      level.constrainPlayerPosition();
       // Should be at tunnel height
-      expect(level['camera'].position.y).toBeLessThan(2);
+      expect(level.camera.position.y).toBeLessThan(2);
     });
 
     it('should constrain player height in deep shaft', () => {
-      level['camera'].position = new Vector3(-10, 0, -125);
-      level['constrainPlayerPosition']();
+      level.camera.position = new Vector3(-10, 0, -125);
+      level.constrainPlayerPosition();
       // Should be at shaft floor height
-      expect(level['camera'].position.y).toBeLessThan(-10);
+      expect(level.camera.position.y).toBeLessThan(-10);
     });
   });
 
@@ -1468,9 +1483,9 @@ describe('MiningDepthsLevel', () => {
 
     it('should fire weapon on click when pointer locked', () => {
       vi.spyOn(level, 'isPointerLocked' as any).mockReturnValue(true);
-      level['primaryFireCooldown'] = 0;
-      level['handleClick']();
-      expect(level['primaryFireCooldown']).toBeGreaterThan(0);
+      level.primaryFireCooldown = 0;
+      level.handleClick();
+      expect(level.primaryFireCooldown).toBeGreaterThan(0);
     });
   });
 
@@ -1484,45 +1499,45 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should increment phase time', () => {
-      const initialTime = level['phaseTime'];
-      level['updateLevel'](0.016);
-      expect(level['phaseTime']).toBeGreaterThan(initialTime);
+      const initialTime = level.phaseTime;
+      level.updateLevel(0.016);
+      expect(level.phaseTime).toBeGreaterThan(initialTime);
     });
 
     it('should update all subsystems', () => {
-      level['updateLevel'](0.016);
+      level.updateLevel(0.016);
       // Should not throw
     });
 
     it('should reduce cooldowns over time', () => {
-      level['meleeCooldown'] = 1000;
-      level['primaryFireCooldown'] = 100;
-      level['updateLevel'](0.1);
-      expect(level['meleeCooldown']).toBeLessThan(1000);
-      expect(level['primaryFireCooldown']).toBeLessThan(100);
+      level.meleeCooldown = 1000;
+      level.primaryFireCooldown = 100;
+      level.updateLevel(0.1);
+      expect(level.meleeCooldown).toBeLessThan(1000);
+      expect(level.primaryFireCooldown).toBeLessThan(100);
     });
 
     it('should animate objective marker', () => {
-      level['setObjective'](new Vector3(10, 0, -30));
-      const initialRotation = level['objectiveMarker']!.rotation.y;
-      level['updateLevel'](0.1);
-      expect(level['objectiveMarker']!.rotation.y).not.toBe(initialRotation);
+      level.setObjective(new Vector3(10, 0, -30));
+      const initialRotation = level.objectiveMarker!.rotation.y;
+      level.updateLevel(0.1);
+      expect(level.objectiveMarker!.rotation.y).not.toBe(initialRotation);
     });
 
     it('should update boss when present', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['updateLevel'](0.1);
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.updateLevel(0.1);
       // Boss should exist and be updated
-      expect(level['boss']).not.toBeNull();
+      expect(level.boss).not.toBeNull();
     });
 
     it('should update burrowers when present', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      level['burrowers'][0].state = 'chase';
-      level['updateLevel'](0.1);
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      level.burrowers[0].state = 'chase';
+      level.updateLevel(0.1);
       // Burrower state timer should have been updated
-      expect(level['burrowers'][0].stateTimer).toBeGreaterThan(0);
+      expect(level.burrowers[0].stateTimer).toBeGreaterThan(0);
     });
   });
 
@@ -1536,15 +1551,15 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should have cave ambient lighting configured', () => {
-      expect(level['caveAmbient']).not.toBeNull();
+      expect(level.caveAmbient).not.toBeNull();
     });
 
     it('should have flashlight created', () => {
-      expect(level['flashlight']).not.toBeNull();
+      expect(level.flashlight).not.toBeNull();
     });
 
     it('should have flashlight fill light created', () => {
-      expect(level['flashlightFill']).not.toBeNull();
+      expect(level.flashlightFill).not.toBeNull();
     });
   });
 
@@ -1554,31 +1569,31 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should have area zones configured', () => {
-      expect(level['areaZones'].length).toBeGreaterThan(0);
+      expect(level.areaZones.length).toBeGreaterThan(0);
     });
 
     it('should have entry zone', () => {
-      const entryZone = level['areaZones'].find(z => z.id === 'entry');
+      const entryZone = level.areaZones.find((z) => z.id === 'entry');
       expect(entryZone).toBeDefined();
     });
 
     it('should have hub zone', () => {
-      const hubZone = level['areaZones'].find(z => z.id === 'hub');
+      const hubZone = level.areaZones.find((z) => z.id === 'hub');
       expect(hubZone).toBeDefined();
     });
 
     it('should have tunnel_start zone', () => {
-      const tunnelZone = level['areaZones'].find(z => z.id === 'tunnel_start');
+      const tunnelZone = level.areaZones.find((z) => z.id === 'tunnel_start');
       expect(tunnelZone).toBeDefined();
     });
 
     it('should have shaft zone', () => {
-      const shaftZone = level['areaZones'].find(z => z.id === 'shaft');
+      const shaftZone = level.areaZones.find((z) => z.id === 'shaft');
       expect(shaftZone).toBeDefined();
     });
 
     it('should have shaft_floor zone', () => {
-      const shaftFloorZone = level['areaZones'].find(z => z.id === 'shaft_floor');
+      const shaftFloorZone = level.areaZones.find((z) => z.id === 'shaft_floor');
       expect(shaftFloorZone).toBeDefined();
     });
   });
@@ -1590,17 +1605,17 @@ describe('MiningDepthsLevel', () => {
 
     it('should spawn burrower from queue when conditions met', () => {
       // This tests that spawning works correctly from the queue mechanism
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      expect(level['burrowers'].length).toBe(1);
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      expect(level.burrowers.length).toBe(1);
     });
 
     it('should not exceed max burrowers', () => {
       // Fill up burrowers to max
       for (let i = 0; i < 10; i++) {
-        level['spawnBurrower'](new Vector3(i, 0, -35));
+        level.spawnBurrower(new Vector3(i, 0, -35));
       }
       // Max is 8
-      expect(level['burrowers'].length).toBeLessThanOrEqual(8);
+      expect(level.burrowers.length).toBeLessThanOrEqual(8);
     });
   });
 
@@ -1610,19 +1625,19 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should apply damage to player when burrower attacks', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      const burrower = level['burrowers'][0];
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      const burrower = level.burrowers[0];
       burrower.state = 'attack';
-      level['onBurrowerAttack'](burrower, 10);
-      expect(callbacks.onHealthChange).toHaveBeenCalledWith(-10);
+      level.onBurrowerAttack(burrower, 10);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(-10);
     });
 
     it('should trigger screen shake on attack', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      const burrower = level['burrowers'][0];
-      level['onBurrowerAttack'](burrower, 10);
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      const burrower = level.burrowers[0];
+      level.onBurrowerAttack(burrower, 10);
       // Screen shake is internal but we can verify health change was called
-      expect(callbacks.onHealthChange).toHaveBeenCalled();
+      expect((level as any).emitHealthChanged).toHaveBeenCalled();
     });
   });
 
@@ -1633,7 +1648,7 @@ describe('MiningDepthsLevel', () => {
 
     it('should create muzzle flash without error', () => {
       // This just verifies the method doesn't throw
-      level['createMuzzleFlash']();
+      level.createMuzzleFlash();
       // No error means success
     });
   });
@@ -1644,7 +1659,7 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should create a procedural burrower mesh', () => {
-      const mesh = level['createProceduralBurrower']();
+      const mesh = level.createProceduralBurrower();
       expect(mesh).toBeDefined();
       // The mock returns 'capsule' as name
       expect(mesh).not.toBeNull();
@@ -1654,38 +1669,38 @@ describe('MiningDepthsLevel', () => {
   describe('boss states', () => {
     beforeEach(async () => {
       await level.initialize();
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
     });
 
     it('should update boss in idle state', () => {
-      level['boss']!.state = 'idle';
-      level['boss']!.stateTimer = 0;
-      level['boss']!.attackCooldown = 0;
-      level['camera'].position = new Vector3(-10, -27, -120); // Close to boss
-      level['updateBoss'](0.1);
+      level.boss!.state = 'idle';
+      level.boss!.stateTimer = 0;
+      level.boss!.attackCooldown = 0;
+      level.camera.position = new Vector3(-10, -27, -120); // Close to boss
+      level.updateBoss(0.1);
       // Boss should remain in idle or transition to attack
-      expect(['idle', 'charge', 'drill_attack']).toContain(level['boss']!.state);
+      expect(['idle', 'charge', 'drill_attack']).toContain(level.boss!.state);
     });
 
     it('should handle boss burrow state', () => {
-      level['boss']!.state = 'burrow';
-      level['boss']!.stateTimer = 0;
-      level['updateBoss'](1.5);
-      expect(level['boss']!.state).toBe('emerge');
+      level.boss!.state = 'burrow';
+      level.boss!.stateTimer = 0;
+      level.updateBoss(1.5);
+      expect(level.boss!.state).toBe('emerge');
     });
 
     it('should handle boss emerge state', () => {
-      level['boss']!.state = 'emerge';
-      level['boss']!.stateTimer = 0;
-      level['updateBoss'](1.0);
-      expect(level['boss']!.state).toBe('idle');
+      level.boss!.state = 'emerge';
+      level.boss!.stateTimer = 0;
+      level.updateBoss(1.0);
+      expect(level.boss!.state).toBe('idle');
     });
 
     it('should transition from enraged state', () => {
-      level['boss']!.state = 'enraged';
-      level['updateBoss'](0.1);
-      expect(level['boss']!.state).toBe('idle');
+      level.boss!.state = 'enraged';
+      level.updateBoss(0.1);
+      expect(level.boss!.state).toBe('idle');
     });
   });
 
@@ -1696,29 +1711,29 @@ describe('MiningDepthsLevel', () => {
 
     it('should hit boss when aimed at it', () => {
       vi.spyOn(level, 'isPointerLocked' as any).mockReturnValue(true);
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
       // Position camera to look at boss
-      level['camera'].position = new Vector3(-10, -27, -110);
-      level['boss']!.mesh.position = new Vector3(-10, -25, -120);
-      level['camera'].getDirection = vi.fn(() => new Vector3(0, 0, -1));
-      level['primaryFireCooldown'] = 0;
-      const initialHealth = level['boss']!.health;
-      level['firePrimaryWeapon']();
+      level.camera.position = new Vector3(-10, -27, -110);
+      level.boss!.mesh.position = new Vector3(-10, -25, -120);
+      level.camera.getDirection = vi.fn(() => new Vector3(0, 0, -1));
+      level.primaryFireCooldown = 0;
+      const initialHealth = level.boss!.health;
+      level.firePrimaryWeapon();
       // Health should decrease if hit
-      expect(level['boss']!.health).toBeLessThanOrEqual(initialHealth);
+      expect(level.boss!.health).toBeLessThanOrEqual(initialHealth);
     });
 
     it('should hit burrower when aimed at it', () => {
       vi.spyOn(level, 'isPointerLocked' as any).mockReturnValue(true);
-      level['spawnBurrower'](new Vector3(0, 1.7, 10));
-      level['burrowers'][0].state = 'chase';
-      level['camera'].position = new Vector3(0, 1.7, 0);
-      level['camera'].getDirection = vi.fn(() => new Vector3(0, 0, 1));
-      level['primaryFireCooldown'] = 0;
-      const initialHealth = level['burrowers'][0].health;
-      level['firePrimaryWeapon']();
-      expect(level['burrowers'][0].health).toBeLessThanOrEqual(initialHealth);
+      level.spawnBurrower(new Vector3(0, 1.7, 10));
+      level.burrowers[0].state = 'chase';
+      level.camera.position = new Vector3(0, 1.7, 0);
+      level.camera.getDirection = vi.fn(() => new Vector3(0, 0, 1));
+      level.primaryFireCooldown = 0;
+      const initialHealth = level.burrowers[0].health;
+      level.firePrimaryWeapon();
+      expect(level.burrowers[0].health).toBeLessThanOrEqual(initialHealth);
     });
   });
 
@@ -1728,15 +1743,15 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should hit boss with melee', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
-      level['boss']!.mesh.position = new Vector3(0, 1.7, 2);
-      level['camera'].position = new Vector3(0, 1.7, 0);
-      level['camera'].getDirection = vi.fn(() => new Vector3(0, 0, 1));
-      level['meleeCooldown'] = 0;
-      const initialHealth = level['boss']!.health;
-      level['meleeAttack']();
-      expect(level['meleeCooldown']).toBeGreaterThan(0);
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
+      level.boss!.mesh.position = new Vector3(0, 1.7, 2);
+      level.camera.position = new Vector3(0, 1.7, 0);
+      level.camera.getDirection = vi.fn(() => new Vector3(0, 0, 1));
+      level.meleeCooldown = 0;
+      const _initialHealth = level.boss!.health;
+      level.meleeAttack();
+      expect(level.meleeCooldown).toBeGreaterThan(0);
     });
   });
 
@@ -1746,25 +1761,25 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should notify when audio log collected', () => {
-      const log = level['audioLogs'][0];
-      level['collectAudioLog'](log, 0);
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      const log = level.audioLogs[0];
+      level.collectAudioLog(log, 0);
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         expect.stringContaining('AUDIO LOG:'),
         3000
       );
     });
 
     it('should mark log as collected', () => {
-      const log = level['audioLogs'][0];
-      level['collectAudioLog'](log, 0);
+      const log = level.audioLogs[0];
+      level.collectAudioLog(log, 0);
       expect(log.collected).toBe(true);
     });
 
     it('should increment audio logs collected counter', () => {
-      const initialCount = level['audioLogsCollected'];
-      const log = level['audioLogs'][0];
-      level['collectAudioLog'](log, 0);
-      expect(level['audioLogsCollected']).toBe(initialCount + 1);
+      const initialCount = level.audioLogsCollected;
+      const log = level.audioLogs[0];
+      level.collectAudioLog(log, 0);
+      expect(level.audioLogsCollected).toBe(initialCount + 1);
     });
   });
 
@@ -1774,16 +1789,16 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should call pickupKeycard when near keycard location', () => {
-      level['hasKeycard'] = false;
-      level['camera'].position = new Vector3(14, 0, -30);
-      level['pickupKeycard']();
-      expect(level['hasKeycard']).toBe(true);
+      level.hasKeycard = false;
+      level.camera.position = new Vector3(14, 0, -30);
+      level.pickupKeycard();
+      expect(level.hasKeycard).toBe(true);
     });
 
     it('should update objective after picking up keycard', () => {
-      level['hasKeycard'] = false;
-      level['pickupKeycard']();
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalled();
+      level.hasKeycard = false;
+      level.pickupKeycard();
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalled();
     });
   });
 
@@ -1793,28 +1808,28 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should not open gate without keycard', () => {
-      level['hasKeycard'] = false;
-      level['openShaftGate']();
-      expect(level['shaftGateOpen']).toBe(false);
+      level.hasKeycard = false;
+      level.openShaftGate();
+      expect(level.shaftGateOpen).toBe(false);
     });
 
     it('should play sound when opening gate', () => {
-      level['hasKeycard'] = true;
-      level['openShaftGate']();
-      expect(level['shaftGateOpen']).toBe(true);
+      level.hasKeycard = true;
+      level.openShaftGate();
+      expect(level.shaftGateOpen).toBe(true);
     });
 
     it('should update objective after opening gate', () => {
-      level['hasKeycard'] = true;
-      level['openShaftGate']();
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalled();
+      level.hasKeycard = true;
+      level.openShaftGate();
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalled();
     });
   });
 
   describe('start level', () => {
     it('should set initial objective', async () => {
       await level.initialize();
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'INVESTIGATE THE MINES',
         expect.any(String)
       );
@@ -1822,7 +1837,7 @@ describe('MiningDepthsLevel', () => {
 
     it('should display level title', async () => {
       await level.initialize();
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         expect.stringContaining('MINING DEPTHS'),
         3000
       );
@@ -1835,31 +1850,31 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should trigger area-specific logic on hub enter', () => {
-      level['phase'] = 'arrival';
-      level['onEnterArea']('hub');
-      expect(level['phase']).toBe('hub_explore');
+      level.phase = 'arrival';
+      level.onEnterArea('hub');
+      expect(level.phase).toBe('hub_explore');
     });
 
     it('should show notification when entering hub', () => {
-      level['phase'] = 'arrival';
-      level['onEnterArea']('hub');
-      expect(callbacks.onNotification).toHaveBeenCalled();
+      level.phase = 'arrival';
+      level.onEnterArea('hub');
+      expect((level as any).emitNotification).toHaveBeenCalled();
     });
 
     it('should spawn burrowers on tunnel entry', () => {
-      level['phase'] = 'hub_explore';
-      level['hasKeycard'] = true;
-      level['onEnterArea']('tunnel_start');
-      expect(level['phase']).toBe('tunnels');
+      level.phase = 'hub_explore';
+      level.hasKeycard = true;
+      level.onEnterArea('tunnel_start');
+      expect(level.phase).toBe('tunnels');
     });
 
     it('should trigger boss fight on shaft floor entry', () => {
-      level['phase'] = 'shaft_descent';
-      level['bossDefeated'] = false;
-      level['bossAssetsPreloaded'] = true;
-      level['onEnterArea']('shaft_floor');
+      level.phase = 'shaft_descent';
+      level.bossDefeated = false;
+      level.bossAssetsPreloaded = true;
+      level.onEnterArea('shaft_floor');
       // Should notify about boss area
-      expect(callbacks.onNotification).toHaveBeenCalled();
+      expect((level as any).emitNotification).toHaveBeenCalled();
     });
   });
 
@@ -1869,27 +1884,27 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should apply damage from gas vent hazard', () => {
-      level['camera'].position = new Vector3(-5, -1, -55);
-      level['checkHazards'](1.0);
-      expect(callbacks.onHealthChange).toHaveBeenCalledWith(-5);
+      level.camera.position = new Vector3(-5, -1, -55);
+      level.checkHazards(1.0);
+      expect((level as any).emitHealthChanged).toHaveBeenCalledWith(-5);
     });
 
     it('should show gas warning notification', () => {
-      level['camera'].position = new Vector3(-5, -1, -55);
-      level['checkHazards'](1.0);
-      expect(callbacks.onNotification).toHaveBeenCalledWith('TOXIC GAS!', 500);
+      level.camera.position = new Vector3(-5, -1, -55);
+      level.checkHazards(1.0);
+      expect((level as any).emitNotification).toHaveBeenCalledWith('TOXIC GAS!', 500);
     });
 
     it('should detect flooded area', () => {
-      level['camera'].position = new Vector3(-10, -12, -103);
-      level['checkHazards'](0.1);
-      expect(level['playerInFlood']).toBe(true);
+      level.camera.position = new Vector3(-10, -12, -103);
+      level.checkHazards(0.1);
+      expect(level.playerInFlood).toBe(true);
     });
   });
 
   describe('getDefaultFOV', () => {
     it('should return narrower FOV for claustrophobic tunnels', () => {
-      const fov = level['getDefaultFOV']();
+      const fov = level.getDefaultFOV();
       const expectedFov = (65 * Math.PI) / 180;
       expect(fov).toBeCloseTo(expectedFov, 2);
     });
@@ -1901,14 +1916,14 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should return normal speed by default', () => {
-      level['playerInFlood'] = false;
-      const speed = level['getMoveSpeed']();
+      level.playerInFlood = false;
+      const speed = level.getMoveSpeed();
       expect(speed).toBe(4);
     });
 
     it('should return reduced speed in flood', () => {
-      level['playerInFlood'] = true;
-      const speed = level['getMoveSpeed']();
+      level.playerInFlood = true;
+      const speed = level.getMoveSpeed();
       expect(speed).toBe(2.5);
     });
   });
@@ -1919,13 +1934,13 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should return true for next level when boss defeated', () => {
-      level['bossDefeated'] = true;
-      level['phase'] = 'exit';
+      level.bossDefeated = true;
+      level.phase = 'exit';
       expect(level.canTransitionTo('hive_assault')).toBe(true);
     });
 
     it('should return false when boss not defeated', () => {
-      level['bossDefeated'] = false;
+      level.bossDefeated = false;
       expect(level.canTransitionTo('hive_assault')).toBe(false);
     });
   });
@@ -1936,11 +1951,11 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should have audio logs loaded', () => {
-      expect(level['audioLogs'].length).toBe(3);
+      expect(level.audioLogs.length).toBe(3);
     });
 
     it('should have environment created', () => {
-      expect(level['environment']).not.toBeNull();
+      expect(level.environment).not.toBeNull();
     });
   });
 
@@ -1955,24 +1970,24 @@ describe('MiningDepthsLevel', () => {
 
     it('should dispose dust particles', () => {
       // Create some dust particles
-      level['spawnDustParticle']();
-      level['spawnDustParticle']();
-      expect(level['dustParticles'].length).toBe(2);
+      level.spawnDustParticle();
+      level.spawnDustParticle();
+      expect(level.dustParticles.length).toBe(2);
 
       level.dispose();
-      expect(level['dustParticles'].length).toBe(0);
+      expect(level.dustParticles.length).toBe(0);
     });
 
     it('should dispose boss GLB instances', () => {
-      level['bossAssetsPreloaded'] = true;
-      level['spawnBoss']();
+      level.bossAssetsPreloaded = true;
+      level.spawnBoss();
       level.dispose();
-      expect(level['bossGlbInstances'].length).toBe(0);
+      expect(level.bossGlbInstances.length).toBe(0);
     });
 
     it('should reset fog mode', () => {
       level.dispose();
-      expect(level['scene'].fogMode).toBe(0);
+      expect(level.scene.fogMode).toBe(0);
     });
   });
 
@@ -1986,18 +2001,18 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should handle E key for interact', () => {
-      level['hasKeycard'] = true;
-      level['shaftGateOpen'] = false;
-      level['camera'].position = new Vector3(-10, -13, -110);
+      level.hasKeycard = true;
+      level.shaftGateOpen = false;
+      level.camera.position = new Vector3(-10, -13, -110);
       const event = { code: 'KeyE' } as KeyboardEvent;
-      level['handleKeyDown'](event);
-      expect(level['shaftGateOpen']).toBe(true);
+      level.handleKeyDown(event);
+      expect(level.shaftGateOpen).toBe(true);
     });
 
     it('should handle R key for reload', () => {
       const event = { code: 'KeyR' } as KeyboardEvent;
-      level['handleKeyDown'](event);
-      expect(callbacks.onNotification).toHaveBeenCalled();
+      level.handleKeyDown(event);
+      expect((level as any).emitNotification).toHaveBeenCalled();
     });
   });
 
@@ -2011,21 +2026,21 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should handle burrower attack state', () => {
-      level['spawnBurrower'](new Vector3(0, 1.7, 2));
-      const burrower = level['burrowers'][0];
+      level.spawnBurrower(new Vector3(0, 1.7, 2));
+      const burrower = level.burrowers[0];
       burrower.state = 'attack';
       burrower.stateTimer = 0.5;
-      level['updateBurrowers'](0.1);
+      level.updateBurrowers(0.1);
       // Should transition after attack
       expect(['attack', 'chase', 'idle']).toContain(burrower.state);
     });
 
     it('should handle burrower burrow state', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      const burrower = level['burrowers'][0];
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      const burrower = level.burrowers[0];
       burrower.state = 'burrow';
       burrower.stateTimer = 0;
-      level['updateBurrowers'](1.5);
+      level.updateBurrowers(1.5);
       // Should either still be in burrow, transitioned, or back to buried
       expect(['burrow', 'chase', 'emerging', 'buried']).toContain(burrower.state);
     });
@@ -2041,23 +2056,23 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should handle hub_explore phase correctly', () => {
-      level['transitionToPhase']('hub_explore');
-      expect(level['phase']).toBe('hub_explore');
+      level.transitionToPhase('hub_explore');
+      expect(level.phase).toBe('hub_explore');
     });
 
     it('should handle tunnels phase correctly', () => {
-      level['transitionToPhase']('tunnels');
-      expect(level['phase']).toBe('tunnels');
+      level.transitionToPhase('tunnels');
+      expect(level.phase).toBe('tunnels');
     });
 
     it('should handle shaft_descent phase correctly', () => {
-      level['transitionToPhase']('shaft_descent');
-      expect(level['phase']).toBe('shaft_descent');
+      level.transitionToPhase('shaft_descent');
+      expect(level.phase).toBe('shaft_descent');
     });
 
     it('should handle boss_defeated phase correctly', () => {
-      level['transitionToPhase']('boss_defeated');
-      expect(level['phase']).toBe('boss_defeated');
+      level.transitionToPhase('boss_defeated');
+      expect(level.phase).toBe('boss_defeated');
     });
   });
 
@@ -2071,11 +2086,11 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should update combat state when enemies active', () => {
-      level['spawnBurrower'](new Vector3(10, 0, -35));
-      level['burrowers'][0].state = 'chase';
-      level['setCombatState'](true);
+      level.spawnBurrower(new Vector3(10, 0, -35));
+      level.burrowers[0].state = 'chase';
+      level.setCombatState(true);
       // Combat state should be active
-      expect(callbacks.onCombatStateChange).toHaveBeenCalledWith(true);
+      expect((level as any).emitCombatStateChanged).toHaveBeenCalledWith(true);
     });
   });
 
@@ -2089,25 +2104,22 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should detect no targets when all collected', () => {
-      level['hasKeycard'] = true;
-      level['shaftGateOpen'] = true; // Gate already open
-      level['audioLogs'].forEach(log => log.collected = true);
-      level['activateScanner']();
+      level.hasKeycard = true;
+      level.shaftGateOpen = true; // Gate already open
+      level.audioLogs.forEach((log) => (log.collected = true));
+      level.activateScanner();
       vi.advanceTimersByTime(1600);
       // No audio log or keycard should be detected
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
-        'NO TARGETS IN RANGE',
-        1500
-      );
+      expect((level as any).emitNotification).toHaveBeenCalledWith('NO TARGETS IN RANGE', 1500);
     });
 
     it('should detect shaft gate when nearby', () => {
-      level['hasKeycard'] = true;
-      level['shaftGateOpen'] = false;
-      level['camera'].position = new Vector3(-10, -13, -100);
-      level['activateScanner']();
+      level.hasKeycard = true;
+      level.shaftGateOpen = false;
+      level.camera.position = new Vector3(-10, -13, -100);
+      level.activateScanner();
       vi.advanceTimersByTime(1600);
-      expect(callbacks.onNotification).toHaveBeenCalledWith(
+      expect((level as any).emitNotification).toHaveBeenCalledWith(
         expect.stringContaining('SHAFT GATE'),
         2000
       );
@@ -2124,19 +2136,19 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should handle shaft entry', () => {
-      level['phase'] = 'tunnels';
-      level['shaftGateOpen'] = true;
-      level['onEnterArea']('shaft');
-      expect(level['phase']).toBe('shaft_descent');
+      level.phase = 'tunnels';
+      level.shaftGateOpen = true;
+      level.onEnterArea('shaft');
+      expect(level.phase).toBe('shaft_descent');
     });
 
     it('should handle shaft_floor entry during shaft_descent', () => {
-      level['phase'] = 'shaft_descent';
-      level['bossDefeated'] = false;
-      level['bossAssetsPreloaded'] = true;
-      level['onEnterArea']('shaft_floor');
+      level.phase = 'shaft_descent';
+      level.bossDefeated = false;
+      level.bossAssetsPreloaded = true;
+      level.onEnterArea('shaft_floor');
       // Should trigger boss fight
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalled();
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalled();
     });
   });
 
@@ -2150,16 +2162,16 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should handle position at tunnel bend', () => {
-      level['camera'].position = new Vector3(-8, 0, -60);
-      level['constrainPlayerPosition']();
+      level.camera.position = new Vector3(-8, 0, -60);
+      level.constrainPlayerPosition();
       // Should be constrained to tunnel height
-      expect(level['camera'].position.y).toBeLessThan(1);
+      expect(level.camera.position.y).toBeLessThan(1);
     });
 
     it('should handle position in entry area', () => {
-      level['camera'].position = new Vector3(0, 10, 0);
-      level['constrainPlayerPosition']();
-      expect(level['camera'].position.y).toBeCloseTo(1.7, 1);
+      level.camera.position = new Vector3(0, 10, 0);
+      level.constrainPlayerPosition();
+      expect(level.camera.position.y).toBeCloseTo(1.7, 1);
     });
   });
 
@@ -2173,14 +2185,14 @@ describe('MiningDepthsLevel', () => {
     });
 
     it('should set objective for keycard when in hub phase', () => {
-      level['transitionToPhase']('hub_explore');
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalled();
+      level.transitionToPhase('hub_explore');
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalled();
     });
 
     it('should set objective for shaft after getting keycard', () => {
-      level['hasKeycard'] = true;
-      level['transitionToPhase']('tunnels');
-      expect(callbacks.onObjectiveUpdate).toHaveBeenCalled();
+      level.hasKeycard = true;
+      level.transitionToPhase('tunnels');
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalled();
     });
   });
 });

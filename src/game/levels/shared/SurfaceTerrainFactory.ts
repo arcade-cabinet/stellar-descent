@@ -15,22 +15,22 @@
  *   const { mesh, material } = createDynamicTerrain(scene, ROCK_TERRAIN);
  */
 
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 
 import {
-  type TerrainBiomeConfig,
+  BREACH_TERRAIN_CONFIG,
   CANYON_TERRAIN_CONFIG,
+  createPBRTerrainMaterial,
+  FINAL_ESCAPE_TERRAIN_CONFIG,
   ICE_TERRAIN_CONFIG,
   LANDFALL_TERRAIN_CONFIG,
-  BREACH_TERRAIN_CONFIG,
-  FINAL_ESCAPE_TERRAIN_CONFIG,
-  createPBRTerrainMaterial,
+  type TerrainBiomeConfig,
 } from './PBRTerrainMaterials';
 
 // ============================================================================
@@ -161,7 +161,16 @@ function seededNoise2D(seed: number): (x: number, z: number) => number {
  * @returns The created mesh and its material for external lifecycle management.
  */
 export function createDynamicTerrain(scene: Scene, config: TerrainConfig): TerrainResult {
-  const { size, subdivisions, heightScale, materialName, tintColor, seed, biomeConfig, textureUVScale } = config;
+  const {
+    size,
+    subdivisions,
+    heightScale,
+    materialName,
+    tintColor,
+    seed,
+    biomeConfig,
+    textureUVScale,
+  } = config;
 
   // -- Mesh ------------------------------------------------------------------
   const mesh = MeshBuilder.CreateGround(
@@ -187,10 +196,10 @@ export function createDynamicTerrain(scene: Scene, config: TerrainConfig): Terra
 
       // Multi-octave noise for varied terrain at different scales.
       let height = 0;
-      height += noise(x * 0.008, z * 0.008) * 1.0;   // large rolling hills
-      height += noise(x * 0.02, z * 0.02) * 0.5;      // medium ridges
-      height += noise(x * 0.06, z * 0.06) * 0.2;      // small bumps
-      height += noise(x * 0.15, z * 0.15) * 0.08;     // micro detail
+      height += noise(x * 0.008, z * 0.008) * 1.0; // large rolling hills
+      height += noise(x * 0.02, z * 0.02) * 0.5; // medium ridges
+      height += noise(x * 0.06, z * 0.06) * 0.2; // small bumps
+      height += noise(x * 0.15, z * 0.15) * 0.08; // micro detail
 
       // Normalise combined amplitude then scale to desired height.
       // The raw sum ranges roughly in [-1.78, 1.78]; we multiply by

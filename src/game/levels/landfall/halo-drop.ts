@@ -10,28 +10,28 @@
  * - Wind streak speed indicators
  */
 
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
+import { ASTEROID_GLB_PATHS, SPACESHIP_GLB_PATHS } from './constants';
 import type {
   Asteroid,
   AsteroidType,
-  DistantThreat,
-  DistantThreatDefinition,
   DistantSpaceship,
   DistantSpaceshipDefinition,
   DistantSpaceshipType,
+  DistantThreat,
+  DistantThreatDefinition,
 } from './types';
-import { ASTEROID_GLB_PATHS, SPACESHIP_GLB_PATHS } from './constants';
 
 // ---------------------------------------------------------------------------
 // Particle Texture Creation
@@ -48,14 +48,7 @@ export function createParticleTexture(scene: Scene): Texture {
   const ctx = canvas.getContext('2d');
 
   if (ctx) {
-    const gradient = ctx.createRadialGradient(
-      size / 2,
-      size / 2,
-      0,
-      size / 2,
-      size / 2,
-      size / 2
-    );
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
     gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.6)');
     gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -287,7 +280,9 @@ export function spawnDistantThreat(
   );
 
   if (!instance) {
-    throw new Error(`[Landfall] Failed to create distant threat GLB instance for ${def.type} - asset not loaded`);
+    throw new Error(
+      `[Landfall] Failed to create distant threat GLB instance for ${def.type} - asset not loaded`
+    );
   }
 
   instance.position = def.position.clone();
@@ -418,7 +413,9 @@ export function spawnDistantSpaceship(
   );
 
   if (!instance) {
-    throw new Error(`[Landfall] Failed to create distant spaceship GLB instance for ${def.type} at ${glbPath}`);
+    throw new Error(
+      `[Landfall] Failed to create distant spaceship GLB instance for ${def.type} at ${glbPath}`
+    );
   }
 
   instance.position = def.position.clone();
@@ -444,7 +441,11 @@ export function updateDistantSpaceship(spaceship: DistantSpaceship, deltaTime: n
   spaceship.node.rotation.y += spaceship.rotationSpeed * deltaTime;
 
   // Add subtle banking for fighters
-  if (spaceship.type === 'striker' || spaceship.type === 'challenger' || spaceship.type === 'executioner') {
+  if (
+    spaceship.type === 'striker' ||
+    spaceship.type === 'challenger' ||
+    spaceship.type === 'executioner'
+  ) {
     spaceship.node.rotation.z = Math.sin(performance.now() * 0.0015) * 0.15;
   }
 
@@ -461,10 +462,7 @@ export function updateDistantSpaceship(spaceship: DistantSpaceship, deltaTime: n
 /**
  * Creates the fiery re-entry particle effect.
  */
-export function createReentryParticles(
-  scene: Scene,
-  particleTexture: Texture
-): ParticleSystem {
+export function createReentryParticles(scene: Scene, particleTexture: Texture): ParticleSystem {
   const particles = new ParticleSystem('reentryParticles', 200, scene);
   particles.particleTexture = particleTexture;
 
@@ -498,10 +496,7 @@ export function createReentryParticles(
 /**
  * Creates the smoke trail behind the player during descent.
  */
-export function createPlayerSmokeTrail(
-  scene: Scene,
-  particleTexture: Texture
-): ParticleSystem {
+export function createPlayerSmokeTrail(scene: Scene, particleTexture: Texture): ParticleSystem {
   const trail = new ParticleSystem('smokeTrail', 150, scene);
   trail.particleTexture = particleTexture;
 
@@ -535,10 +530,7 @@ export function createPlayerSmokeTrail(
 /**
  * Creates atmosphere streaks (speed lines).
  */
-export function createAtmosphereStreaks(
-  scene: Scene,
-  particleTexture: Texture
-): ParticleSystem {
+export function createAtmosphereStreaks(scene: Scene, particleTexture: Texture): ParticleSystem {
   const streaks = new ParticleSystem('atmosphereStreaks', 100, scene);
   streaks.particleTexture = particleTexture;
 
@@ -572,10 +564,7 @@ export function createAtmosphereStreaks(
 /**
  * Creates thruster exhaust particles for powered descent.
  */
-export function createThrusterExhaust(
-  scene: Scene,
-  particleTexture: Texture
-): ParticleSystem {
+export function createThrusterExhaust(scene: Scene, particleTexture: Texture): ParticleSystem {
   const exhaust = new ParticleSystem('thrusterExhaust', 300, scene);
   exhaust.particleTexture = particleTexture;
 

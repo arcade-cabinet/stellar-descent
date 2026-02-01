@@ -70,7 +70,7 @@ export const NOTIFICATIONS = {
   ZONE_UPPER: 'ENTERING UPPER HIVE',
   ZONE_MID: 'DESCENDING INTO MID HIVE',
   ZONE_LOWER: 'ENTERING LOWER HIVE',
-  ZONE_QUEEN: 'QUEEN\'S CHAMBER AHEAD',
+  ZONE_QUEEN: "QUEEN'S CHAMBER AHEAD",
 
   // Boss phases
   BOSS_PHASE_2: 'QUEEN ENRAGED - PHASE 2',
@@ -188,5 +188,5 @@ function getHealthBar(percent: number): string {
   const totalBars = 20;
   const filledBars = Math.ceil((percent / 100) * totalBars);
   const emptyBars = totalBars - filledBars;
-  return '[' + '|'.repeat(filledBars) + '-'.repeat(emptyBars) + ']';
+  return `[${'|'.repeat(filledBars)}${'-'.repeat(emptyBars)}]`;
 }

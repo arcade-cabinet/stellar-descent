@@ -9,8 +9,8 @@
  * - Seamless crossfade transition to main menu music
  */
 
-import * as Tone from 'tone';
 import { Capacitor } from '@capacitor/core';
+import * as Tone from 'tone';
 import { getLogger } from '../Logger';
 
 const log = getLogger('SplashAudioManager');
@@ -139,7 +139,7 @@ export class SplashAudioManager {
       const stored = localStorage.getItem(key);
       if (stored !== null) {
         const parsed = parseFloat(stored);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
           return parsed;
         }
       }
@@ -324,9 +324,12 @@ export class SplashAudioManager {
     this.masterGain.gain.rampTo(0, fadeDuration);
 
     // Dispose after fade completes
-    setTimeout(() => {
-      this.stop();
-    }, fadeDuration * 1000 + 100);
+    setTimeout(
+      () => {
+        this.stop();
+      },
+      fadeDuration * 1000 + 100
+    );
 
     return currentPosition;
   }

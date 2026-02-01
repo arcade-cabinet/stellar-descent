@@ -8,10 +8,9 @@
  * - Volume and settings
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { EventBus, getEventBus, disposeEventBus } from '../core/EventBus';
-import type { GameEvent } from '../core/EventBus';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { disposeEventBus, type EventBus, getEventBus } from '../core/EventBus';
 
 // Mock Web Audio API
 const mockAudioContext = {
@@ -48,8 +47,14 @@ const mockAudioContext = {
   suspend: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.stubGlobal('AudioContext', vi.fn(() => mockAudioContext));
-vi.stubGlobal('webkitAudioContext', vi.fn(() => mockAudioContext));
+vi.stubGlobal(
+  'AudioContext',
+  vi.fn(() => mockAudioContext)
+);
+vi.stubGlobal(
+  'webkitAudioContext',
+  vi.fn(() => mockAudioContext)
+);
 
 // Mock localStorage
 const mockStorage: Record<string, string> = {};
@@ -126,7 +131,7 @@ class MockAudioManager {
 
   playSfx(soundId: string, volume: number = 1.0): string {
     const instanceId = `${soundId}_${Date.now()}`;
-    const effectiveVolume = this.settings.masterVolume * this.settings.sfxVolume * volume;
+    const _effectiveVolume = this.settings.masterVolume * this.settings.sfxVolume * volume;
     this.playingSounds.set(instanceId, { soundId, startTime: Date.now() });
     return instanceId;
   }
@@ -381,12 +386,14 @@ describe('Audio Integration', () => {
       eventBus.emit({
         type: 'LEVEL_COMPLETE',
         levelId: 'anchor_station',
+        nextLevelId: 'landfall',
         stats: {
-          time: 300,
+          timeSpent: 300,
           kills: 50,
           accuracy: 0.75,
           secretsFound: 2,
           damageTaken: 100,
+          deaths: 0,
         },
       });
 
@@ -470,9 +477,9 @@ describe('Audio Integration', () => {
 
     it('should persist settings to localStorage', () => {
       const settings = audioManager.getSettings();
-      mockStorage['audio_settings'] = JSON.stringify(settings);
+      mockStorage.audio_settings = JSON.stringify(settings);
 
-      const loaded = JSON.parse(mockStorage['audio_settings']);
+      const loaded = JSON.parse(mockStorage.audio_settings);
       expect(loaded.masterVolume).toBe(1.0);
       expect(loaded.musicVolume).toBe(0.5);
     });
@@ -620,14 +627,14 @@ describe('Audio Integration', () => {
     };
 
     it('should have fire sounds for each weapon category', () => {
-      for (const [category, sounds] of Object.entries(weaponSoundsByCategory)) {
+      for (const [_category, sounds] of Object.entries(weaponSoundsByCategory)) {
         const hasFireSound = sounds.some((s) => s.includes('fire'));
         expect(hasFireSound).toBe(true);
       }
     });
 
     it('should have reload sounds for each weapon category', () => {
-      for (const [category, sounds] of Object.entries(weaponSoundsByCategory)) {
+      for (const [_category, sounds] of Object.entries(weaponSoundsByCategory)) {
         const hasReloadSound = sounds.some((s) => s.includes('reload'));
         expect(hasReloadSound).toBe(true);
       }

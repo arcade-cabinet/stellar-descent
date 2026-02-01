@@ -9,17 +9,17 @@
  * - Boss-specific behaviors
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { createEntity, type Entity, world, queries } from '../core/ecs';
-import { EventBus, getEventBus, disposeEventBus } from '../core/EventBus';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { disposeEventBus, type EventBus, getEventBus } from '../core/EventBus';
+import { createEntity, type Entity, world } from '../core/ecs';
 import {
   ALIEN_SPECIES,
+  type AlienSpecies,
   calculateKnockbackForce,
   getHitReactionConfig,
-  getRandomPainSound,
   getRandomDeathAnimation,
-  type AlienSpecies,
+  getRandomPainSound,
 } from '../entities/aliens';
 
 // Mock Babylon.js rendering
@@ -176,7 +176,15 @@ describe('Enemy AI Integration', () => {
 
   describe('Species Registry', () => {
     it('should have all 10 alien species defined', () => {
-      const coreSpecies = ['skitterer', 'spitter', 'warrior', 'heavy', 'stalker', 'broodmother', 'queen'];
+      const coreSpecies = [
+        'skitterer',
+        'spitter',
+        'warrior',
+        'heavy',
+        'stalker',
+        'broodmother',
+        'queen',
+      ];
       const legacySpecies = ['lurker', 'spewer', 'husk'];
 
       for (const id of coreSpecies) {
@@ -214,7 +222,12 @@ describe('Enemy AI Integration', () => {
         targetPosition: null,
         lastAttackTime: 0,
         alertLevel: 0,
-        patrolPoints: [new Vector3(40, 0, 40), new Vector3(60, 0, 40), new Vector3(60, 0, 60), new Vector3(40, 0, 60)],
+        patrolPoints: [
+          new Vector3(40, 0, 40),
+          new Vector3(60, 0, 40),
+          new Vector3(60, 0, 60),
+          new Vector3(40, 0, 60),
+        ],
         currentPatrolIndex: 0,
         isStaggered: false,
         staggerEndTime: 0,
@@ -228,7 +241,10 @@ describe('Enemy AI Integration', () => {
     it('should transition to alert when player detected', () => {
       // Move player into alert radius
       playerEntity.transform!.position = new Vector3(30, 1.8, 50);
-      const distance = Vector3.Distance(enemy.transform!.position, playerEntity.transform!.position);
+      const distance = Vector3.Distance(
+        enemy.transform!.position,
+        playerEntity.transform!.position
+      );
 
       if (distance < enemy.ai!.alertRadius) {
         aiState.state = 'alert';
@@ -254,7 +270,10 @@ describe('Enemy AI Integration', () => {
     it('should transition to attack when in attack range', () => {
       // Move player into attack range
       playerEntity.transform!.position = new Vector3(45, 1.8, 50);
-      const distance = Vector3.Distance(enemy.transform!.position, playerEntity.transform!.position);
+      const distance = Vector3.Distance(
+        enemy.transform!.position,
+        playerEntity.transform!.position
+      );
 
       if (distance < enemy.ai!.attackRadius) {
         aiState.state = 'attack';
@@ -279,7 +298,10 @@ describe('Enemy AI Integration', () => {
 
       // Move player far away
       playerEntity.transform!.position = new Vector3(200, 1.8, 200);
-      const distance = Vector3.Distance(enemy.transform!.position, playerEntity.transform!.position);
+      const distance = Vector3.Distance(
+        enemy.transform!.position,
+        playerEntity.transform!.position
+      );
 
       // Decrease alert over time
       if (distance > enemy.ai!.alertRadius) {
@@ -358,7 +380,7 @@ describe('Enemy AI Integration', () => {
 
   describe('Attack Patterns', () => {
     it('should respect attack cooldown', () => {
-      const enemy = createEnemy(ALIEN_SPECIES.warrior, new Vector3(5, 0, 5));
+      const _enemy = createEnemy(ALIEN_SPECIES.warrior, new Vector3(5, 0, 5));
       const species = ALIEN_SPECIES.warrior;
       const attackCooldown = 1000 / species.fireRate;
       let lastAttackTime = 0;
@@ -382,7 +404,7 @@ describe('Enemy AI Integration', () => {
 
     it('should deal correct damage on attack', () => {
       const warrior = ALIEN_SPECIES.warrior;
-      const enemy = createEnemy(warrior, new Vector3(5, 0, 5));
+      const _enemy = createEnemy(warrior, new Vector3(5, 0, 5));
 
       const initialHealth = playerEntity.health!.current;
       playerEntity.health!.current -= warrior.baseDamage;

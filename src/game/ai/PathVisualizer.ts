@@ -139,11 +139,7 @@ export class PathVisualizer {
     const highIndex = Math.min(lowIndex + 1, totalWaypoints - 1);
     const t = exactIndex - lowIndex;
 
-    const pos = Vector3.Lerp(
-      this.currentWaypoints[lowIndex],
-      this.currentWaypoints[highIndex],
-      t
-    );
+    const pos = Vector3.Lerp(this.currentWaypoints[lowIndex], this.currentWaypoints[highIndex], t);
 
     pos.y += 0.5; // Float above ground
     this.progressMarker.position = pos;
@@ -167,7 +163,9 @@ export class PathVisualizer {
     if (this.destinationMarker) {
       this.destinationMarker.rotation.y += deltaTime * 2;
       this.destinationMarker.position.y =
-        this.currentWaypoints[this.currentWaypoints.length - 1]?.y + 1 + Math.sin(this.animationTime * 2) * 0.3;
+        this.currentWaypoints[this.currentWaypoints.length - 1]?.y +
+        1 +
+        Math.sin(this.animationTime * 2) * 0.3;
     }
 
     // Pulse progress marker
@@ -326,11 +324,7 @@ export class PathVisualizer {
     const pos = this.currentWaypoints[0].clone();
     pos.y += 0.5;
 
-    this.progressMarker = MeshBuilder.CreateSphere(
-      'progressMarker',
-      { diameter: 0.8 },
-      this.scene
-    );
+    this.progressMarker = MeshBuilder.CreateSphere('progressMarker', { diameter: 0.8 }, this.scene);
 
     this.progressMarker.position = pos;
     this.progressMarker.material = this.progressMaterial;

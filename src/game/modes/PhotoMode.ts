@@ -10,13 +10,13 @@
  * - Game pause/resume integration
  */
 
-import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
 import type { Camera } from '@babylonjs/core/Cameras/camera';
+import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
 import { ImageProcessingConfiguration } from '@babylonjs/core/Materials/imageProcessingConfiguration';
 import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Scene } from '@babylonjs/core/scene';
 import { ScreenshotTools } from '@babylonjs/core/Misc/screenshotTools';
+import type { Scene } from '@babylonjs/core/scene';
 import { getLogger } from '../core/Logger';
 
 const log = getLogger('PhotoMode');
@@ -28,13 +28,7 @@ const log = getLogger('PhotoMode');
 /**
  * Filter preset names for photo mode
  */
-export type PhotoFilter =
-  | 'normal'
-  | 'cinematic'
-  | 'noir'
-  | 'vintage'
-  | 'neon'
-  | 'horror';
+export type PhotoFilter = 'normal' | 'cinematic' | 'noir' | 'vintage' | 'neon' | 'horror';
 
 /**
  * Photo mode settings state
@@ -197,7 +191,6 @@ export class PhotoMode {
 
   // Camera control state
   private moveSpeed = 5;
-  private baseMoveSpeed = 5;
   private rotationSpeed = 0.002;
   private keysPressed: Set<string> = new Set();
   private maxRangeFromPlayer = 100; // Maximum distance from player position
@@ -576,7 +569,7 @@ export class PhotoMode {
           title: 'Stellar Descent Photo',
         });
         return true;
-      } catch (error) {
+      } catch (_error) {
         // User cancelled or error - fall through to download
         log.debug('Share cancelled or failed, falling back to download');
       }
@@ -602,8 +595,7 @@ export class PhotoMode {
     const startPosition = this.originalCamera?.position.clone() || Vector3.Zero();
     const startTarget = this.originalCamera
       ? startPosition.add(
-          (this.originalCamera as FreeCamera).getDirection?.(Vector3.Forward()) ||
-            Vector3.Forward()
+          (this.originalCamera as FreeCamera).getDirection?.(Vector3.Forward()) || Vector3.Forward()
         )
       : Vector3.Forward();
 
@@ -693,11 +685,7 @@ export class PhotoMode {
       () => window.removeEventListener('keyup', handleKeyUp),
       () => document.removeEventListener('mousemove', handleMouseMove),
       () => document.removeEventListener('wheel', handleWheel),
-      () =>
-        this.scene
-          .getEngine()
-          .getRenderingCanvas()
-          ?.removeEventListener('click', handleClick),
+      () => this.scene.getEngine().getRenderingCanvas()?.removeEventListener('click', handleClick),
     ];
   }
 
@@ -748,8 +736,7 @@ export class PhotoMode {
     if (imageProcessing.vignetteEnabled) {
       imageProcessing.vignetteWeight = this.settings.vignette;
       imageProcessing.vignetteStretch = 0.5;
-      imageProcessing.vignetteBlendMode =
-        ImageProcessingConfiguration.VIGNETTEMODE_MULTIPLY;
+      imageProcessing.vignetteBlendMode = ImageProcessingConfiguration.VIGNETTEMODE_MULTIPLY;
 
       // Apply color based on filter
       if (this.settings.filter === 'vintage') {

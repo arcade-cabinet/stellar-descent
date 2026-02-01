@@ -13,15 +13,14 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../core/AssetManager';
 import { getEnemySoundManager } from '../core/EnemySoundManager';
 import { type Entity, removeEntity } from '../core/ecs';
 import { LODManager } from '../core/LODManager';
 import { getLogger } from '../core/Logger';
 import { getPerformanceManager } from '../core/PerformanceManager';
-import { AssetManager } from '../core/AssetManager';
 import { ALIEN_SPECIES, createAlienEntity } from '../entities/aliens';
 
 const log = getLogger('WorldChunkManager');
@@ -157,138 +156,155 @@ export interface ChunkLayout {
  */
 const LEVEL_LAYOUTS: Map<string, ChunkLayout> = new Map([
   // Spawn area - clear zone with minimal obstacles
-  ['0,0', {
-    chunkX: 0,
-    chunkZ: 0,
-    buildings: [],
-    obstacles: [
-      { x: 30, z: 40, type: 'rock', scale: 1.5, variant: 0 },
-      { x: -35, z: 30, type: 'rock', scale: 1.2, variant: 1 },
-      { x: 40, z: -35, type: 'tallRock', scale: 2.0, variant: 0 },
-    ],
-    enemies: [],
-  }],
+  [
+    '0,0',
+    {
+      chunkX: 0,
+      chunkZ: 0,
+      buildings: [],
+      obstacles: [
+        { x: 30, z: 40, type: 'rock', scale: 1.5, variant: 0 },
+        { x: -35, z: 30, type: 'rock', scale: 1.2, variant: 1 },
+        { x: 40, z: -35, type: 'tallRock', scale: 2.0, variant: 0 },
+      ],
+      enemies: [],
+    },
+  ],
 
   // North chunk
-  ['0,1', {
-    chunkX: 0,
-    chunkZ: 1,
-    buildings: [
-      { x: 20, z: 30, width: 8, height: 6, depth: 8, type: 'bunker', rotationY: 0.3 },
-    ],
-    obstacles: [
-      { x: -30, z: 20, type: 'pillar', scale: 1.8, rotationY: 0 },
-      { x: -25, z: 40, type: 'debris', scale: 1.2, variant: 0 },
-      { x: 35, z: -10, type: 'rock', scale: 1.5, variant: 2 },
-      { x: 10, z: 45, type: 'tallRock', scale: 1.8, variant: 1 },
-    ],
-    enemies: [
-      { x: 15, z: 25, type: 'skitterer' },
-      { x: -20, z: 35, type: 'skitterer' },
-    ],
-  }],
+  [
+    '0,1',
+    {
+      chunkX: 0,
+      chunkZ: 1,
+      buildings: [{ x: 20, z: 30, width: 8, height: 6, depth: 8, type: 'bunker', rotationY: 0.3 }],
+      obstacles: [
+        { x: -30, z: 20, type: 'pillar', scale: 1.8, rotationY: 0 },
+        { x: -25, z: 40, type: 'debris', scale: 1.2, variant: 0 },
+        { x: 35, z: -10, type: 'rock', scale: 1.5, variant: 2 },
+        { x: 10, z: 45, type: 'tallRock', scale: 1.8, variant: 1 },
+      ],
+      enemies: [
+        { x: 15, z: 25, type: 'skitterer' },
+        { x: -20, z: 35, type: 'skitterer' },
+      ],
+    },
+  ],
 
   // South chunk
-  ['0,-1', {
-    chunkX: 0,
-    chunkZ: -1,
-    buildings: [
-      { x: -15, z: -25, width: 10, height: 8, depth: 6, type: 'tower', rotationY: -0.2 },
-    ],
-    obstacles: [
-      { x: 25, z: -30, type: 'rock', scale: 2.0, variant: 0 },
-      { x: 30, z: -20, type: 'debris', scale: 1.0, variant: 1 },
-      { x: -35, z: -40, type: 'pillar', scale: 1.5 },
-      { x: 40, z: -45, type: 'tallRock', scale: 2.2, variant: 2 },
-    ],
-    enemies: [
-      { x: 10, z: -30, type: 'lurker' },
-      { x: -25, z: -15, type: 'skitterer' },
-    ],
-  }],
+  [
+    '0,-1',
+    {
+      chunkX: 0,
+      chunkZ: -1,
+      buildings: [
+        { x: -15, z: -25, width: 10, height: 8, depth: 6, type: 'tower', rotationY: -0.2 },
+      ],
+      obstacles: [
+        { x: 25, z: -30, type: 'rock', scale: 2.0, variant: 0 },
+        { x: 30, z: -20, type: 'debris', scale: 1.0, variant: 1 },
+        { x: -35, z: -40, type: 'pillar', scale: 1.5 },
+        { x: 40, z: -45, type: 'tallRock', scale: 2.2, variant: 2 },
+      ],
+      enemies: [
+        { x: 10, z: -30, type: 'lurker' },
+        { x: -25, z: -15, type: 'skitterer' },
+      ],
+    },
+  ],
 
   // East chunk
-  ['1,0', {
-    chunkX: 1,
-    chunkZ: 0,
-    buildings: [
-      { x: 25, z: 10, width: 12, height: 5, depth: 10, type: 'depot', rotationY: 0.5 },
-      { x: -10, z: -30, width: 6, height: 4, depth: 6, type: 'ruin', rotationY: -0.3 },
-    ],
-    obstacles: [
-      { x: 40, z: 35, type: 'rock', scale: 1.8, variant: 1 },
-      { x: -25, z: 20, type: 'debris', scale: 1.3, variant: 2 },
-      { x: 15, z: -40, type: 'pillar', scale: 2.0 },
-    ],
-    enemies: [
-      { x: 30, z: 15, type: 'husk' },
-      { x: 20, z: -25, type: 'skitterer' },
-      { x: -15, z: 10, type: 'skitterer' },
-    ],
-  }],
+  [
+    '1,0',
+    {
+      chunkX: 1,
+      chunkZ: 0,
+      buildings: [
+        { x: 25, z: 10, width: 12, height: 5, depth: 10, type: 'depot', rotationY: 0.5 },
+        { x: -10, z: -30, width: 6, height: 4, depth: 6, type: 'ruin', rotationY: -0.3 },
+      ],
+      obstacles: [
+        { x: 40, z: 35, type: 'rock', scale: 1.8, variant: 1 },
+        { x: -25, z: 20, type: 'debris', scale: 1.3, variant: 2 },
+        { x: 15, z: -40, type: 'pillar', scale: 2.0 },
+      ],
+      enemies: [
+        { x: 30, z: 15, type: 'husk' },
+        { x: 20, z: -25, type: 'skitterer' },
+        { x: -15, z: 10, type: 'skitterer' },
+      ],
+    },
+  ],
 
   // West chunk
-  ['-1,0', {
-    chunkX: -1,
-    chunkZ: 0,
-    buildings: [
-      { x: -30, z: 20, width: 8, height: 10, depth: 8, type: 'tower', rotationY: 0.8 },
-    ],
-    obstacles: [
-      { x: -40, z: -25, type: 'tallRock', scale: 2.5, variant: 0 },
-      { x: -10, z: 35, type: 'rock', scale: 1.4, variant: 2 },
-      { x: 30, z: 15, type: 'debris', scale: 1.1, variant: 0 },
-      { x: 20, z: -30, type: 'pillar', scale: 1.6 },
-    ],
-    enemies: [
-      { x: -25, z: 25, type: 'spewer' },
-      { x: 15, z: -20, type: 'lurker' },
-    ],
-  }],
+  [
+    '-1,0',
+    {
+      chunkX: -1,
+      chunkZ: 0,
+      buildings: [{ x: -30, z: 20, width: 8, height: 10, depth: 8, type: 'tower', rotationY: 0.8 }],
+      obstacles: [
+        { x: -40, z: -25, type: 'tallRock', scale: 2.5, variant: 0 },
+        { x: -10, z: 35, type: 'rock', scale: 1.4, variant: 2 },
+        { x: 30, z: 15, type: 'debris', scale: 1.1, variant: 0 },
+        { x: 20, z: -30, type: 'pillar', scale: 1.6 },
+      ],
+      enemies: [
+        { x: -25, z: 25, type: 'spewer' },
+        { x: 15, z: -20, type: 'lurker' },
+      ],
+    },
+  ],
 
   // Northeast chunk - boss area approach
-  ['1,1', {
-    chunkX: 1,
-    chunkZ: 1,
-    buildings: [
-      { x: 0, z: 0, width: 15, height: 12, depth: 15, type: 'depot', rotationY: 0 },
-      { x: -35, z: 35, width: 8, height: 6, depth: 8, type: 'bunker', rotationY: 0.4 },
-    ],
-    obstacles: [
-      { x: 35, z: 40, type: 'tallRock', scale: 3.0, variant: 1 },
-      { x: -40, z: -10, type: 'rock', scale: 2.2, variant: 0 },
-      { x: 25, z: -35, type: 'debris', scale: 1.5, variant: 1 },
-      { x: -20, z: 20, type: 'pillar', scale: 2.0 },
-    ],
-    enemies: [
-      { x: 20, z: 30, type: 'husk' },
-      { x: -30, z: 15, type: 'lurker' },
-      { x: 10, z: -20, type: 'skitterer' },
-      { x: -15, z: -35, type: 'skitterer' },
-    ],
-  }],
+  [
+    '1,1',
+    {
+      chunkX: 1,
+      chunkZ: 1,
+      buildings: [
+        { x: 0, z: 0, width: 15, height: 12, depth: 15, type: 'depot', rotationY: 0 },
+        { x: -35, z: 35, width: 8, height: 6, depth: 8, type: 'bunker', rotationY: 0.4 },
+      ],
+      obstacles: [
+        { x: 35, z: 40, type: 'tallRock', scale: 3.0, variant: 1 },
+        { x: -40, z: -10, type: 'rock', scale: 2.2, variant: 0 },
+        { x: 25, z: -35, type: 'debris', scale: 1.5, variant: 1 },
+        { x: -20, z: 20, type: 'pillar', scale: 2.0 },
+      ],
+      enemies: [
+        { x: 20, z: 30, type: 'husk' },
+        { x: -30, z: 15, type: 'lurker' },
+        { x: 10, z: -20, type: 'skitterer' },
+        { x: -15, z: -35, type: 'skitterer' },
+      ],
+    },
+  ],
 
   // Far north - broodmother territory
-  ['0,2', {
-    chunkX: 0,
-    chunkZ: 2,
-    buildings: [
-      { x: -20, z: 15, width: 10, height: 8, depth: 12, type: 'ruin', rotationY: 0.2 },
-      { x: 25, z: -20, width: 8, height: 15, depth: 8, type: 'tower', rotationY: -0.5 },
-    ],
-    obstacles: [
-      { x: 40, z: 40, type: 'tallRock', scale: 3.5, variant: 2 },
-      { x: -40, z: 35, type: 'tallRock', scale: 2.8, variant: 0 },
-      { x: 0, z: -40, type: 'rock', scale: 2.5, variant: 1 },
-      { x: -30, z: -25, type: 'debris', scale: 1.8, variant: 2 },
-    ],
-    enemies: [
-      { x: 0, z: 20, type: 'broodmother' },
-      { x: -25, z: 0, type: 'husk' },
-      { x: 25, z: 5, type: 'husk' },
-      { x: 15, z: -30, type: 'spewer' },
-    ],
-  }],
+  [
+    '0,2',
+    {
+      chunkX: 0,
+      chunkZ: 2,
+      buildings: [
+        { x: -20, z: 15, width: 10, height: 8, depth: 12, type: 'ruin', rotationY: 0.2 },
+        { x: 25, z: -20, width: 8, height: 15, depth: 8, type: 'tower', rotationY: -0.5 },
+      ],
+      obstacles: [
+        { x: 40, z: 40, type: 'tallRock', scale: 3.5, variant: 2 },
+        { x: -40, z: 35, type: 'tallRock', scale: 2.8, variant: 0 },
+        { x: 0, z: -40, type: 'rock', scale: 2.5, variant: 1 },
+        { x: -30, z: -25, type: 'debris', scale: 1.8, variant: 2 },
+      ],
+      enemies: [
+        { x: 0, z: 20, type: 'broodmother' },
+        { x: -25, z: 0, type: 'husk' },
+        { x: 25, z: 5, type: 'husk' },
+        { x: 15, z: -30, type: 'spewer' },
+      ],
+    },
+  ],
 ]);
 
 // ---------------------------------------------------------------------------
@@ -464,13 +480,7 @@ export class ChunkManager {
     const glbPath = this.pickVariant(variants, variantIndex);
 
     const instanceName = `chunk_${chunkX}_${chunkZ}_${obstacle.type}_${instanceIndex}`;
-    const node = AssetManager.createInstanceByPath(
-      glbPath,
-      instanceName,
-      this.scene,
-      true,
-      'prop'
-    );
+    const node = AssetManager.createInstanceByPath(glbPath, instanceName, this.scene, true, 'prop');
 
     if (!node) return null;
 

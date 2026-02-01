@@ -210,9 +210,7 @@ export class MarcusCombatCoordinator {
   private marcusHealth: number = 500;
   private marcusMaxHealth: number = 500;
   private marcusShields: number = 100;
-  private marcusMaxShields: number = 100;
   private isReloading: boolean = false;
-  private currentMarcusTarget: Entity | null = null;
 
   // Callout management
   private lastCalloutTime: Map<TacticalCalloutType, number> = new Map();

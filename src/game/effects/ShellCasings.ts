@@ -12,13 +12,13 @@
  * Uses SPS for efficient rendering - all casings share a single draw call.
  */
 
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { SolidParticle } from '@babylonjs/core/Particles/solidParticle';
+import type { SolidParticle } from '@babylonjs/core/Particles/solidParticle';
 import { SolidParticleSystem } from '@babylonjs/core/Particles/solidParticleSystem';
 import type { Scene } from '@babylonjs/core/scene';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 
 import { getLogger } from '../core/Logger';
 import type { WeaponCategory } from '../entities/weapons';
@@ -123,7 +123,7 @@ const CASING_CONFIGS: Record<CasingWeaponType, CasingConfig> = {
   // Pistols: Small brass casings, weak ejection
   pistol: {
     height: 0.019, // 19mm (9mm Luger case length)
-    diameter: 0.010, // 10mm diameter
+    diameter: 0.01, // 10mm diameter
     color: new Color3(0.78, 0.57, 0.11), // Brass
     specularColor: new Color3(1, 0.9, 0.5),
     ejectionSpeed: 3.0,
@@ -136,7 +136,7 @@ const CASING_CONFIGS: Record<CasingWeaponType, CasingConfig> = {
   // SMGs: Small casings, rapid ejection
   smg: {
     height: 0.019, // Same as pistol (9mm typically)
-    diameter: 0.010,
+    diameter: 0.01,
     color: new Color3(0.78, 0.57, 0.11), // Brass
     specularColor: new Color3(1, 0.9, 0.5),
     ejectionSpeed: 4.0, // Slightly faster than pistol
@@ -149,7 +149,7 @@ const CASING_CONFIGS: Record<CasingWeaponType, CasingConfig> = {
   // Rifles: Medium brass casings, strong side ejection
   rifle: {
     height: 0.045, // 45mm (5.56 NATO case length)
-    diameter: 0.010, // 10mm base diameter
+    diameter: 0.01, // 10mm base diameter
     color: new Color3(0.78, 0.57, 0.11), // Brass
     specularColor: new Color3(1, 0.9, 0.5),
     ejectionSpeed: 5.0, // Strong ejection
@@ -161,8 +161,8 @@ const CASING_CONFIGS: Record<CasingWeaponType, CasingConfig> = {
 
   // Shotguns: Large red shell casings, dramatic arc
   shotgun: {
-    height: 0.070, // 70mm (12 gauge 2.75" shell)
-    diameter: 0.020, // 20mm diameter
+    height: 0.07, // 70mm (12 gauge 2.75" shell)
+    diameter: 0.02, // 20mm diameter
     color: new Color3(0.7, 0.15, 0.1), // Red shell
     specularColor: new Color3(0.9, 0.4, 0.3),
     ejectionSpeed: 4.5,
@@ -174,7 +174,7 @@ const CASING_CONFIGS: Record<CasingWeaponType, CasingConfig> = {
 
   // Heavy: Large casings with smoke trail
   heavy: {
-    height: 0.080, // 80mm (large caliber)
+    height: 0.08, // 80mm (large caliber)
     diameter: 0.015, // 15mm diameter
     color: new Color3(0.72, 0.52, 0.08), // Darker brass
     specularColor: new Color3(0.9, 0.8, 0.4),
@@ -280,7 +280,7 @@ export class ShellCasingSystem {
       'casingBase',
       {
         height: 0.045, // Base height (rifle-sized)
-        diameter: 0.010, // Base diameter
+        diameter: 0.01, // Base diameter
         tessellation: 8, // 8-sided for performance
       },
       scene

@@ -52,11 +52,12 @@ import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('IceEnv');
+
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 import {
-  ICE_TERRAIN_CONFIG,
-  ICE_ROCK_CONFIG,
   createPBRTerrainMaterial,
+  ICE_ROCK_CONFIG,
+  ICE_TERRAIN_CONFIG,
 } from '../shared/PBRTerrainMaterials';
 
 // ============================================================================
@@ -169,20 +170,16 @@ export interface IceEnvironment {
 const DEFAULT_CONFIG: IceEnvironmentConfig = {
   terrainSize: 600,
   terrainSubdivisions: 64,
-  cavePositions: [
-    new Vector3(-80, 0, -120),
-    new Vector3(60, 0, -200),
-    new Vector3(-30, 0, -280),
-  ],
+  cavePositions: [new Vector3(-80, 0, -120), new Vector3(60, 0, -200), new Vector3(-30, 0, -280)],
   outpostPosition: new Vector3(40, 0, -50),
   frozenLakeCenter: new Vector3(0, -0.5, -160),
   frozenLakeRadius: 60,
   heatSourcePositions: [
-    new Vector3(40, 0, -50),   // Outpost heater
+    new Vector3(40, 0, -50), // Outpost heater
     new Vector3(-80, 0, -120), // Cave 1 entrance
-    new Vector3(60, 0, -200),  // Cave 2 interior
+    new Vector3(60, 0, -200), // Cave 2 interior
     new Vector3(-30, 0, -280), // Cave 3 interior
-    new Vector3(0, 0, -80),    // Mid-field barrel fire
+    new Vector3(0, 0, -80), // Mid-field barrel fire
   ],
 };
 
@@ -378,7 +375,7 @@ function createSnowMaterial(scene: Scene, terrainSize: number = 600): PBRMateria
 /**
  * Fallback simple snow material (for compatibility).
  */
-function createSnowMaterialSimple(scene: Scene): StandardMaterial {
+function _createSnowMaterialSimple(scene: Scene): StandardMaterial {
   const mat = new StandardMaterial('snowTerrainSimple', scene);
   mat.diffuseColor = new Color3(0.9, 0.92, 0.96);
   mat.specularColor = new Color3(0.3, 0.35, 0.4);
@@ -389,7 +386,7 @@ function createSnowMaterialSimple(scene: Scene): StandardMaterial {
 /**
  * Create PBR frozen rock material with AmbientCG textures.
  */
-function createFrozenRockMaterial(scene: Scene): PBRMaterial {
+function _createFrozenRockMaterial(scene: Scene): PBRMaterial {
   const mat = createPBRTerrainMaterial(scene, ICE_ROCK_CONFIG, 'frozenRock');
   return mat;
 }
@@ -397,7 +394,7 @@ function createFrozenRockMaterial(scene: Scene): PBRMaterial {
 /**
  * Fallback simple frozen rock material (for compatibility).
  */
-function createFrozenRockMaterialSimple(scene: Scene): StandardMaterial {
+function _createFrozenRockMaterialSimple(scene: Scene): StandardMaterial {
   const mat = new StandardMaterial('frozenRockSimple', scene);
   mat.diffuseColor = new Color3(0.35, 0.38, 0.45);
   mat.specularColor = new Color3(0.4, 0.45, 0.5);
@@ -765,7 +762,11 @@ function createFrozenLake(scene: Scene, center: Vector3, radius: number): Mesh {
     const angle = Math.random() * Math.PI * 2;
     const dist = radius * (0.4 + Math.random() * 0.4);
     const patchSize = 4 + Math.random() * 6;
-    const patch = MeshBuilder.CreateDisc(`thinIce_${i}`, { radius: patchSize, tessellation: 16 }, scene);
+    const patch = MeshBuilder.CreateDisc(
+      `thinIce_${i}`,
+      { radius: patchSize, tessellation: 16 },
+      scene
+    );
     patch.material = darkIceMat;
     patch.rotation.x = Math.PI / 2;
     patch.position.set(
@@ -806,7 +807,7 @@ function createIceCaveBase(scene: Scene, position: Vector3, index: number): Tran
   const root = new TransformNode(`iceCave_${index}`, scene);
   root.position.copyFrom(position);
 
-  const iceMat = createIceSheetMaterial(scene, `caveIce_${index}`);
+  const _iceMat = createIceSheetMaterial(scene, `caveIce_${index}`);
 
   // Cave entrance arch -- left rock pillar (GLB)
   const rockVariants = [GLB.tallRock1, GLB.tallRock2, GLB.tallRock3];
@@ -1145,7 +1146,11 @@ function createOutpost(
   // ---- Frost overlay on main structures (VFX -- kept as MeshBuilder) ----
   // Expand frost overlay to cover all buildings including annex
   const frostMat = createFrostOverlayMaterial(scene, 'outpostFrost');
-  const frostBox = MeshBuilder.CreateBox('outpostFrostOverlay', { width: 30, height: 5, depth: 16 }, scene);
+  const frostBox = MeshBuilder.CreateBox(
+    'outpostFrostOverlay',
+    { width: 30, height: 5, depth: 16 },
+    scene
+  );
   frostBox.material = frostMat;
   frostBox.parent = root;
   frostBox.position.set(2, 2.5, 0);
@@ -1317,14 +1322,14 @@ function createPerimeterFencing(
       path: GLB.metalFenceTall,
       name: `cave_fence_L_${ci}`,
       position: new Vector3(cp.x - 6, 0, cp.z + 3),
-      rotationY: Math.PI / 2 + (ci * 0.2),
+      rotationY: Math.PI / 2 + ci * 0.2,
       scale: caveFenceScale,
     });
     placements.push({
       path: GLB.metalFenceTall,
       name: `cave_fence_R_${ci}`,
       position: new Vector3(cp.x + 6, 0, cp.z + 3),
-      rotationY: -Math.PI / 2 + (ci * 0.2),
+      rotationY: -Math.PI / 2 + ci * 0.2,
       scale: caveFenceScale,
     });
     // Pillar at each fence end
@@ -1364,10 +1369,7 @@ function createCrashedStation(scene: Scene): TransformNode | null {
 // FROZEN LAKE SURROUNDINGS (GLB debris near lake)
 // ============================================================================
 
-function createLakeSurroundings(
-  scene: Scene,
-  lakeCenter: Vector3
-): TransformNode[] {
+function createLakeSurroundings(scene: Scene, lakeCenter: Vector3): TransformNode[] {
   const placements: GLBPlacement[] = [
     // Abandoned research equipment near the lake shore
     {
@@ -1561,7 +1563,7 @@ function buildIceFormationPlacements(): GLBPlacement[] {
       : tallRockVariants[i % tallRockVariants.length];
 
     // Scale varies to approximate original height range (4-12 units)
-    const scale = isRock ? 1.5 + (i * 0.17 % 1) * 1.5 : 2.0 + (i * 0.23 % 1) * 2.0;
+    const scale = isRock ? 1.5 + ((i * 0.17) % 1) * 1.5 : 2.0 + ((i * 0.23) % 1) * 2.0;
 
     placements.push({
       path,
@@ -1601,11 +1603,7 @@ function createFrozenWaterfalls(scene: Scene, positions: Vector3[]): Mesh[] {
         scene
       );
       col.material = iceMat;
-      col.position.set(
-        pos.x + (j - columnCount / 2) * 0.6,
-        pos.y + height / 2 + 2.5,
-        pos.z
-      );
+      col.position.set(pos.x + (j - columnCount / 2) * 0.6, pos.y + height / 2 + 2.5, pos.z);
       col.rotation.z = (Math.random() - 0.5) * 0.12;
       waterfalls.push(col);
     }
@@ -1661,10 +1659,10 @@ export function createTemperatureZones(
 
   // Cold zones in exposed areas - reference DEFAULT_CONFIG frozen lake position
   const coldPositions = [
-    DEFAULT_CONFIG.frozenLakeCenter.clone(),    // Frozen lake center
+    DEFAULT_CONFIG.frozenLakeCenter.clone(), // Frozen lake center
     new Vector3(-120, 0, -100), // Open tundra west
-    new Vector3(120, 0, -200),  // Wind-exposed ridge east
-    new Vector3(0, 0, -280),    // Near cave entrances (exposed)
+    new Vector3(120, 0, -200), // Wind-exposed ridge east
+    new Vector3(0, 0, -280), // Near cave entrances (exposed)
   ];
   for (let i = 0; i < coldPositions.length; i++) {
     zones.push({
@@ -1802,7 +1800,7 @@ export function createIceEnvironment(
  *
  * Supports both StandardMaterial and PBRMaterial for GLB assets.
  */
-function applyFrostTint(scene: Scene, nodes: TransformNode[]): void {
+function applyFrostTint(_scene: Scene, nodes: TransformNode[]): void {
   const frostBlend = 0.25; // How much to blend toward frost colour
   const frostColor = new Color3(0.8, 0.85, 0.92);
   const emissiveBoost = new Color3(0.02, 0.03, 0.05);
@@ -1817,11 +1815,7 @@ function applyFrostTint(scene: Scene, nodes: TransformNode[]): void {
         // Add subtle emissive for icy sheen
         mat.emissiveColor = Color3.Lerp(mat.emissiveColor, emissiveBoost, 0.5);
         // Increase specular for frozen-over look
-        mat.specularColor = Color3.Lerp(
-          mat.specularColor,
-          new Color3(0.5, 0.55, 0.6),
-          frostBlend
-        );
+        mat.specularColor = Color3.Lerp(mat.specularColor, new Color3(0.5, 0.55, 0.6), frostBlend);
         mat.specularPower = Math.min(mat.specularPower + 16, 128);
       } else if (mesh.material instanceof PBRMaterial) {
         const mat = mesh.material;
@@ -1846,7 +1840,11 @@ function applyFrostTint(scene: Scene, nodes: TransformNode[]): void {
  * @param nodes - Transform nodes containing meshes to convert
  * @param materialName - Base name for the ice material
  */
-function applyIceMaterialOverride(scene: Scene, nodes: TransformNode[], materialName = 'iceOverride'): void {
+function applyIceMaterialOverride(
+  scene: Scene,
+  nodes: TransformNode[],
+  materialName = 'iceOverride'
+): void {
   // Create shared ice material for performance
   const iceMat = createIcePBRMaterial(scene, materialName);
 
@@ -1854,8 +1852,9 @@ function applyIceMaterialOverride(scene: Scene, nodes: TransformNode[], material
     const meshes = node.getChildMeshes(false);
     for (const mesh of meshes) {
       // Store original material reference for potential restoration
-      (mesh as AbstractMesh & { _originalMaterial?: PBRMaterial | StandardMaterial | null })._originalMaterial =
-        mesh.material as PBRMaterial | StandardMaterial | null;
+      (
+        mesh as AbstractMesh & { _originalMaterial?: PBRMaterial | StandardMaterial | null }
+      )._originalMaterial = mesh.material as PBRMaterial | StandardMaterial | null;
 
       // Apply ice material
       mesh.material = iceMat;

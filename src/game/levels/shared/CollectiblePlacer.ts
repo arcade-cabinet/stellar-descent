@@ -16,13 +16,13 @@
  *   result.dispose();
  */
 
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import type { Scene } from '@babylonjs/core/scene';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 
 import '@babylonjs/loaders/glTF';
 
@@ -91,11 +91,11 @@ const COLLECTIBLE_PATHS: Record<CollectibleType, string> = {
 
 /** Glow colors per type */
 const GLOW_COLORS: Record<CollectibleType, Color3> = {
-  data_pad: new Color3(0.3, 0.5, 1.0),       // blue
-  audio_log: new Color3(0.2, 0.9, 0.3),       // green
-  weapon_cache: new Color3(1.0, 0.75, 0.2),   // amber
-  alien_artifact: new Color3(0.7, 0.2, 1.0),  // purple
-  supply_drop: new Color3(1.0, 0.5, 0.1),     // orange
+  data_pad: new Color3(0.3, 0.5, 1.0), // blue
+  audio_log: new Color3(0.2, 0.9, 0.3), // green
+  weapon_cache: new Color3(1.0, 0.75, 0.2), // amber
+  alien_artifact: new Color3(0.7, 0.2, 1.0), // purple
+  supply_drop: new Color3(1.0, 0.5, 0.1), // orange
 };
 
 /** Default pickup radius in meters */
@@ -189,9 +189,7 @@ export async function buildCollectibles(
     const template = templateRoots.get(placement.type);
 
     if (!template) {
-      log.warn(
-        `No template for type "${placement.type}", skipping placement "${placement.id}"`
-      );
+      log.warn(`No template for type "${placement.type}", skipping placement "${placement.id}"`);
       continue;
     }
 
@@ -239,9 +237,7 @@ export async function buildCollectibles(
     });
   }
 
-  log.info(
-    `Placed ${placedCollectibles.length}/${placements.length} collectibles`
-  );
+  log.info(`Placed ${placedCollectibles.length}/${placements.length} collectibles`);
 
   // ------------------------------------------------------------------
   // 4. Dispose templates (they are no longer needed)

@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import {
-  getEventBus,
-  type GameEvent,
-  type GameEventListener,
-} from '../game/core/EventBus';
+import { type GameEvent, type GameEventListener, getEventBus } from '../game/core/EventBus';
 
 // ---------------------------------------------------------------------------
 // Helper types
@@ -22,10 +18,7 @@ export type GameEventType = GameEvent['type'];
  * // { type: 'ENEMY_KILLED'; position: Vector3; enemyType: string }
  * ```
  */
-export type GameEventPayload<T extends GameEventType> = Extract<
-  GameEvent,
-  { type: T }
->;
+export type GameEventPayload<T extends GameEventType> = Extract<GameEvent, { type: T }>;
 
 // ---------------------------------------------------------------------------
 // useGameEvent
@@ -72,7 +65,7 @@ export type GameEventPayload<T extends GameEventType> = Extract<
  */
 export function useGameEvent<T extends GameEventType>(
   eventTypes: T | T[],
-  handler: GameEventListener<T>,
+  handler: GameEventListener<T>
 ): void {
   // Store the latest handler in a ref so the subscription callback never
   // goes stale, even if the consumer passes an inline arrow function that
@@ -86,7 +79,7 @@ export function useGameEvent<T extends GameEventType>(
 
   // Normalize to array and create stable key for dependency tracking
   const typesArray = Array.isArray(eventTypes) ? eventTypes : [eventTypes];
-  const typesKey = typesArray.join(',');
+  const _typesKey = typesArray.join(',');
 
   useEffect(() => {
     const bus = getEventBus();
@@ -99,16 +92,14 @@ export function useGameEvent<T extends GameEventType>(
     };
 
     // Subscribe to all event types and collect unsubscribe functions
-    const unsubscribers = typesArray.map((eventType) =>
-      bus.on(eventType, stableListener),
-    );
+    const unsubscribers = typesArray.map((eventType) => bus.on(eventType, stableListener));
 
     return () => {
       // Unsubscribe from all event types on cleanup
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typesKey]);
+  }, [typesArray.map]);
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +123,7 @@ export function useGameEvent<T extends GameEventType>(
  */
 export function useGameEventOnce<T extends GameEventType>(
   eventName: T,
-  handler: GameEventListener<T>,
+  handler: GameEventListener<T>
 ): void {
   const handlerRef = useRef<GameEventListener<T>>(handler);
 

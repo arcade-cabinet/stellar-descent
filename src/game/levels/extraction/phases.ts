@@ -4,18 +4,18 @@
  * Contains phase transition logic and wave management.
  */
 
-import type { WaveConfig, WavePhase, ExtractionPhase } from './types';
+import { type DifficultyLevel, loadDifficultySetting } from '../../core/DifficultySettings';
 import {
-  WAVE_CONFIGS,
+  DROPSHIP_ETA_INITIAL,
+  ESCAPE_TIMER_INITIAL,
+  HIVE_COLLAPSE_TIMER,
   TOTAL_WAVES,
   WAVE_ANNOUNCEMENT_DURATION,
+  WAVE_CONFIGS,
   WAVE_INTERMISSION_DURATION,
-  ESCAPE_TIMER_INITIAL,
-  DROPSHIP_ETA_INITIAL,
-  HIVE_COLLAPSE_TIMER,
 } from './constants';
 import { prepareWaveSpawnQueue } from './enemies';
-import { loadDifficultySetting, type DifficultyLevel } from '../../core/DifficultySettings';
+import type { ExtractionPhase, WaveConfig, WavePhase } from './types';
 
 // ============================================================================
 // PHASE STATE
@@ -212,7 +212,10 @@ export function areAllWavesComplete(state: WaveState): boolean {
  * Update wave intermission countdown
  * Returns true if should transition to announcement
  */
-export function updateWaveIntermission(state: WaveState, deltaTime: number): {
+export function updateWaveIntermission(
+  state: WaveState,
+  deltaTime: number
+): {
   newState: WaveState;
   shouldTransition: boolean;
 } {
@@ -238,7 +241,10 @@ export function updateWaveIntermission(state: WaveState, deltaTime: number): {
  * Update wave announcement timer
  * Returns true if should transition to active wave
  */
-export function updateWaveAnnouncement(state: WaveState, deltaTime: number): {
+export function updateWaveAnnouncement(
+  state: WaveState,
+  deltaTime: number
+): {
   newState: WaveState;
   shouldTransition: boolean;
 } {
@@ -442,8 +448,6 @@ export function getWaveHUDDisplay(
         description: `HOSTILES: ${activeEnemyCount} | ETA: ${timerStr} | MECH: ${Math.floor(Math.max(0, mechIntegrity))}%`,
       };
     }
-
-    case 'waiting':
     default: {
       return {
         title: `LZ OMEGA - HOLDOUT ${waveProgress}`,

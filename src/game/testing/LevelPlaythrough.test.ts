@@ -12,14 +12,10 @@
  * - Save/load mechanics
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  HeadlessGameRunner,
-  type LevelCompletionResult,
-  type GameState,
-} from './HeadlessGameRunner';
-import { SimulatedPlayer } from './SimulatedPlayer';
+import { describe, expect, it } from 'vitest';
 import type { LevelId } from '../levels/types';
+import { HeadlessGameRunner } from './HeadlessGameRunner';
+import { SimulatedPlayer } from './SimulatedPlayer';
 
 // Test timeout for longer playthroughs
 const LEVEL_TIMEOUT = 60000; // 1 minute per level test
@@ -32,7 +28,7 @@ const BOSS_TIMEOUT = 120000; // 2 minutes for boss fights
 /**
  * Run a level with the simulated player until completion or timeout
  */
-async function runLevelToCompletion(
+async function _runLevelToCompletion(
   levelId: LevelId,
   maxSeconds: number = 120,
   playStyle: 'aggressive' | 'defensive' | 'speedrun' = 'aggressive'
@@ -85,12 +81,12 @@ async function runLevelToCompletion(
 /**
  * Simulate a full campaign playthrough
  */
-async function runCampaign(
+async function _runCampaign(
   maxSecondsPerLevel: number = 60
 ): Promise<{ completed: boolean; levelsCompleted: LevelId[]; totalTime: number }> {
   const levelsCompleted: LevelId[] = [];
   let totalTime = 0;
-  let currentLevel: LevelId = 'anchor_station';
+  const currentLevel: LevelId = 'anchor_station';
 
   const runner = new HeadlessGameRunner({
     startLevel: currentLevel,
@@ -155,32 +151,36 @@ async function runCampaign(
 
 describe('Level Playthroughs', () => {
   describe('Level 1: Anchor Station (Tutorial)', () => {
-    it('should complete tutorial objectives', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'anchor_station' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should complete tutorial objectives',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'anchor_station' });
+        const player = new SimulatedPlayer(runner);
 
-      // Simulate looking around
-      player.aimAt({ x: 10, y: 0, z: 10 });
-      await runner.runForFrames(60);
-      runner.completeObjective('tutorial_look');
+        // Simulate looking around
+        player.aimAt({ x: 10, y: 0, z: 10 });
+        await runner.runForFrames(60);
+        runner.completeObjective('tutorial_look');
 
-      // Simulate movement
-      player.moveToward({ x: 5, y: 0, z: 5 });
-      await runner.runForFrames(120);
-      runner.completeObjective('tutorial_move');
+        // Simulate movement
+        player.moveToward({ x: 5, y: 0, z: 5 });
+        await runner.runForFrames(120);
+        runner.completeObjective('tutorial_move');
 
-      // Simulate sprinting
-      runner.injectInput({ movement: { x: 0, y: 1 }, look: { x: 0, y: 0 }, isSprinting: true });
-      await runner.runForFrames(60);
-      runner.completeObjective('tutorial_sprint');
+        // Simulate sprinting
+        runner.injectInput({ movement: { x: 0, y: 1 }, look: { x: 0, y: 0 }, isSprinting: true });
+        await runner.runForFrames(60);
+        runner.completeObjective('tutorial_sprint');
 
-      // Complete tutorial
-      runner.completeObjective('tutorial_complete');
-      runner.markLevelComplete();
+        // Complete tutorial
+        runner.completeObjective('tutorial_complete');
+        runner.markLevelComplete();
 
-      expect(runner.isLevelComplete()).toBe(true);
-      expect(runner.getLevelStats().deaths).toBe(0);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+        expect(runner.getLevelStats().deaths).toBe(0);
+      },
+      LEVEL_TIMEOUT
+    );
 
     it('should track tutorial progress', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'anchor_station' });
@@ -193,35 +193,39 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 2: Landfall', () => {
-    it('should clear surface combat and activate beacon', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'landfall' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should clear surface combat and activate beacon',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'landfall' });
+        const player = new SimulatedPlayer(runner);
 
-      player.playAggressively();
+        player.playAggressively();
 
-      // Run for up to 2 minutes
-      const maxFrames = 7200;
-      let frames = 0;
+        // Run for up to 2 minutes
+        const maxFrames = 7200;
+        let frames = 0;
 
-      while (frames < maxFrames && runner.getEnemyCount() > 0) {
-        player.updateAutonomous();
-        runner.tick();
-        frames++;
+        while (frames < maxFrames && runner.getEnemyCount() > 0) {
+          player.updateAutonomous();
+          runner.tick();
+          frames++;
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      // Complete objectives
-      runner.completeObjective('survive_drop');
-      runner.completeObjective('clear_area');
-      runner.completeObjective('activate_beacon');
-      runner.markLevelComplete();
+        // Complete objectives
+        runner.completeObjective('survive_drop');
+        runner.completeObjective('clear_area');
+        runner.completeObjective('activate_beacon');
+        runner.markLevelComplete();
 
-      expect(runner.isLevelComplete()).toBe(true);
-      expect(runner.getLevelStats().kills).toBeGreaterThan(0);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+        expect(runner.getLevelStats().kills).toBeGreaterThan(0);
+      },
+      LEVEL_TIMEOUT
+    );
 
     it('should handle player death and respawn', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'landfall' });
@@ -247,30 +251,34 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 3: Canyon Run', () => {
-    it('should complete vehicle chase sequence', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'canyon_run' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should complete vehicle chase sequence',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'canyon_run' });
+        const player = new SimulatedPlayer(runner);
 
-      // Board vehicle
-      runner.completeObjective('board_vehicle');
+        // Board vehicle
+        runner.completeObjective('board_vehicle');
 
-      // Drive through canyon
-      let frames = 0;
-      const maxFrames = 3600; // 1 minute
+        // Drive through canyon
+        let frames = 0;
+        const maxFrames = 3600; // 1 minute
 
-      while (frames < maxFrames && !runner.isLevelComplete()) {
-        player.driveVehicle();
-        runner.tick();
-        frames++;
-      }
+        while (frames < maxFrames && !runner.isLevelComplete()) {
+          player.driveVehicle();
+          runner.tick();
+          frames++;
+        }
 
-      // Complete objectives
-      runner.completeObjective('escape_canyon');
-      runner.completeObjective('reach_fob');
-      runner.markLevelComplete();
+        // Complete objectives
+        runner.completeObjective('escape_canyon');
+        runner.completeObjective('reach_fob');
+        runner.markLevelComplete();
 
-      expect(runner.isLevelComplete()).toBe(true);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+      },
+      LEVEL_TIMEOUT
+    );
 
     it('should track vehicle progress', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'canyon_run' });
@@ -281,37 +289,41 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 4: FOB Delta', () => {
-    it('should investigate abandoned base', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'fob_delta' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should investigate abandoned base',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'fob_delta' });
+        const player = new SimulatedPlayer(runner);
 
-      player.explore();
+        player.explore();
 
-      // Run exploration
-      let frames = 0;
-      const maxFrames = 3600;
+        // Run exploration
+        let frames = 0;
+        const maxFrames = 3600;
 
-      while (frames < maxFrames) {
-        player.updateAutonomous();
-        runner.tick();
-        frames++;
+        while (frames < maxFrames) {
+          player.updateAutonomous();
+          runner.tick();
+          frames++;
 
-        // Complete objectives based on progress
-        if (frames === 600) runner.completeObjective('investigate_fob');
-        if (frames === 1200) runner.completeObjective('find_survivors');
-        if (frames === 1800) runner.completeObjective('restore_power');
+          // Complete objectives based on progress
+          if (frames === 600) runner.completeObjective('investigate_fob');
+          if (frames === 1200) runner.completeObjective('find_survivors');
+          if (frames === 1800) runner.completeObjective('restore_power');
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      runner.markLevelComplete();
+        runner.markLevelComplete();
 
-      const stats = runner.getLevelStats();
-      expect(runner.isLevelComplete()).toBe(true);
-      expect(stats.kills).toBeGreaterThanOrEqual(0);
-    }, LEVEL_TIMEOUT);
+        const stats = runner.getLevelStats();
+        expect(runner.isLevelComplete()).toBe(true);
+        expect(stats.kills).toBeGreaterThanOrEqual(0);
+      },
+      LEVEL_TIMEOUT
+    );
 
     it('should find audio logs in abandoned base', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'fob_delta' });
@@ -326,42 +338,46 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 5: Brothers in Arms', () => {
-    it('should complete mech ally combat', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'brothers_in_arms' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should complete mech ally combat',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'brothers_in_arms' });
+        const player = new SimulatedPlayer(runner);
 
-      player.playAggressively();
+        player.playAggressively();
 
-      // Run combat with ally support
-      let frames = 0;
-      const maxFrames = 5400;
+        // Run combat with ally support
+        let frames = 0;
+        const maxFrames = 5400;
 
-      while (frames < maxFrames && runner.getEnemyCount() > 0) {
-        player.updateAutonomous();
+        while (frames < maxFrames && runner.getEnemyCount() > 0) {
+          player.updateAutonomous();
 
-        // Simulate Marcus dealing damage
-        const enemies = runner.getState().enemies;
-        if (enemies.length > 0 && frames % 60 === 0) {
-          player.commandAttack(enemies[0]);
+          // Simulate Marcus dealing damage
+          const enemies = runner.getState().enemies;
+          if (enemies.length > 0 && frames % 60 === 0) {
+            player.commandAttack(enemies[0]);
+          }
+
+          runner.tick();
+          frames++;
+
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
 
-        runner.tick();
-        frames++;
+        // Complete objectives
+        runner.completeObjective('rendezvous_marcus');
+        runner.completeObjective('escort_mech');
+        runner.completeObjective('clear_outpost');
+        runner.markLevelComplete();
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      }
-
-      // Complete objectives
-      runner.completeObjective('rendezvous_marcus');
-      runner.completeObjective('escort_mech');
-      runner.completeObjective('clear_outpost');
-      runner.markLevelComplete();
-
-      expect(runner.isLevelComplete()).toBe(true);
-      expect(runner.getLevelStats().kills).toBeGreaterThan(0);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+        expect(runner.getLevelStats().kills).toBeGreaterThan(0);
+      },
+      LEVEL_TIMEOUT
+    );
 
     it('should test squad commands', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'brothers_in_arms' });
@@ -376,33 +392,37 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 6: Southern Ice', () => {
-    it('should survive cold and find hive entrance', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'southern_ice' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should survive cold and find hive entrance',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'southern_ice' });
+        const player = new SimulatedPlayer(runner);
 
-      player.playDefensively();
+        player.playDefensively();
 
-      let frames = 0;
-      const maxFrames = 5400;
+        let frames = 0;
+        const maxFrames = 5400;
 
-      while (frames < maxFrames) {
-        player.updateAutonomous();
-        runner.tick();
-        frames++;
+        while (frames < maxFrames) {
+          player.updateAutonomous();
+          runner.tick();
+          frames++;
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      // Complete objectives
-      runner.completeObjective('survive_cold');
-      runner.completeObjective('locate_entrance');
-      runner.completeObjective('defeat_icechitin');
-      runner.markLevelComplete();
+        // Complete objectives
+        runner.completeObjective('survive_cold');
+        runner.completeObjective('locate_entrance');
+        runner.completeObjective('defeat_icechitin');
+        runner.markLevelComplete();
 
-      expect(runner.isLevelComplete()).toBe(true);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+      },
+      LEVEL_TIMEOUT
+    );
 
     it('should handle environmental hazards', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'southern_ice' });
@@ -416,61 +436,65 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 7: The Breach (Boss Fight)', () => {
-    it('should defeat Queen through all 3 phases', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'the_breach' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should defeat Queen through all 3 phases',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'the_breach' });
+        const player = new SimulatedPlayer(runner);
 
-      // Complete initial objectives
-      runner.completeObjective('descend_hive');
-      runner.completeObjective('reach_queen');
+        // Complete initial objectives
+        runner.completeObjective('descend_hive');
+        runner.completeObjective('reach_queen');
 
-      // Start boss fight
-      runner.startBossFight();
+        // Start boss fight
+        runner.startBossFight();
 
-      // Phase 1
-      let frames = 0;
-      while (frames < 3600 && runner.getState().bossPhase === 1) {
-        player.fightBoss();
-        runner.tick();
-        frames++;
+        // Phase 1
+        let frames = 0;
+        while (frames < 3600 && runner.getState().bossPhase === 1) {
+          player.fightBoss();
+          runner.tick();
+          frames++;
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      expect(runner.getState().bossPhase).toBeGreaterThanOrEqual(1);
+        expect(runner.getState().bossPhase).toBeGreaterThanOrEqual(1);
 
-      // Continue until boss phase 2
-      while (frames < 7200 && runner.getState().bossPhase === 2) {
-        player.fightBoss();
-        runner.damageBoss(50, true); // Accelerate for testing
-        runner.tick();
-        frames++;
+        // Continue until boss phase 2
+        while (frames < 7200 && runner.getState().bossPhase === 2) {
+          player.fightBoss();
+          runner.damageBoss(50, true); // Accelerate for testing
+          runner.tick();
+          frames++;
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      // Phase 3
-      while (frames < 10800 && runner.getState().bossState?.isActive) {
-        player.fightBoss();
-        runner.damageBoss(100, true); // Finish boss
-        runner.tick();
-        frames++;
+        // Phase 3
+        while (frames < 10800 && runner.getState().bossState?.isActive) {
+          player.fightBoss();
+          runner.damageBoss(100, true); // Finish boss
+          runner.tick();
+          frames++;
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      runner.completeObjective('defeat_queen');
-      runner.markLevelComplete();
+        runner.completeObjective('defeat_queen');
+        runner.markLevelComplete();
 
-      const stats = runner.getLevelStats();
-      expect(runner.isLevelComplete()).toBe(true);
-    }, BOSS_TIMEOUT);
+        const _stats = runner.getLevelStats();
+        expect(runner.isLevelComplete()).toBe(true);
+      },
+      BOSS_TIMEOUT
+    );
 
     it('should track boss phase transitions', async () => {
       const runner = new HeadlessGameRunner({ startLevel: 'the_breach' });
@@ -505,96 +529,108 @@ describe('Level Playthroughs', () => {
   });
 
   describe('Level 8: Hive Assault', () => {
-    it('should complete combined arms assault', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'hive_assault' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should complete combined arms assault',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'hive_assault' });
+        const player = new SimulatedPlayer(runner);
 
-      player.playAggressively();
+        player.playAggressively();
 
-      let frames = 0;
-      const maxFrames = 5400;
+        let frames = 0;
+        const maxFrames = 5400;
 
-      while (frames < maxFrames && runner.getEnemyCount() > 0) {
-        player.updateAutonomous();
-        runner.tick();
-        frames++;
+        while (frames < maxFrames && runner.getEnemyCount() > 0) {
+          player.updateAutonomous();
+          runner.tick();
+          frames++;
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
-      }
 
-      // Complete objectives
-      runner.completeObjective('assault_hive');
-      runner.completeObjective('plant_charges');
-      runner.completeObjective('extract_squad');
-      runner.markLevelComplete();
+        // Complete objectives
+        runner.completeObjective('assault_hive');
+        runner.completeObjective('plant_charges');
+        runner.completeObjective('extract_squad');
+        runner.markLevelComplete();
 
-      expect(runner.isLevelComplete()).toBe(true);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+      },
+      LEVEL_TIMEOUT
+    );
   });
 
   describe('Level 9: Extraction', () => {
-    it('should hold position until evac', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'extraction' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should hold position until evac',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'extraction' });
+        const player = new SimulatedPlayer(runner);
 
-      // Reach LZ
-      runner.completeObjective('reach_lz');
+        // Reach LZ
+        runner.completeObjective('reach_lz');
 
-      // Defense phase
-      player.playDefensively();
+        // Defense phase
+        player.playDefensively();
 
-      let frames = 0;
-      const maxFrames = 5400;
+        let frames = 0;
+        const maxFrames = 5400;
 
-      while (frames < maxFrames) {
-        player.updateAutonomous();
+        while (frames < maxFrames) {
+          player.updateAutonomous();
 
-        // Spawn waves of enemies
-        if (frames % 300 === 0) {
-          runner.spawnEnemy('skitterer', { x: Math.random() * 20 - 10, y: 0, z: 30 });
+          // Spawn waves of enemies
+          if (frames % 300 === 0) {
+            runner.spawnEnemy('skitterer', { x: Math.random() * 20 - 10, y: 0, z: 30 });
+          }
+
+          runner.tick();
+          frames++;
+
+          if (frames % 1000 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
         }
 
-        runner.tick();
-        frames++;
+        runner.completeObjective('hold_position');
+        runner.completeObjective('board_dropship');
+        runner.markLevelComplete();
 
-        if (frames % 1000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      }
-
-      runner.completeObjective('hold_position');
-      runner.completeObjective('board_dropship');
-      runner.markLevelComplete();
-
-      expect(runner.isLevelComplete()).toBe(true);
-      expect(runner.getLevelStats().kills).toBeGreaterThan(0);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+        expect(runner.getLevelStats().kills).toBeGreaterThan(0);
+      },
+      LEVEL_TIMEOUT
+    );
   });
 
   describe('Level 10: Final Escape', () => {
-    it('should complete timed vehicle escape', async () => {
-      const runner = new HeadlessGameRunner({ startLevel: 'final_escape' });
-      const player = new SimulatedPlayer(runner);
+    it(
+      'should complete timed vehicle escape',
+      async () => {
+        const runner = new HeadlessGameRunner({ startLevel: 'final_escape' });
+        const player = new SimulatedPlayer(runner);
 
-      runner.completeObjective('board_vehicle');
+        runner.completeObjective('board_vehicle');
 
-      let frames = 0;
-      const maxFrames = 3600;
+        let frames = 0;
+        const maxFrames = 3600;
 
-      while (frames < maxFrames && !runner.isLevelComplete()) {
-        player.driveVehicle();
-        runner.tick();
-        frames++;
-      }
+        while (frames < maxFrames && !runner.isLevelComplete()) {
+          player.driveVehicle();
+          runner.tick();
+          frames++;
+        }
 
-      runner.completeObjective('outrun_collapse');
-      runner.completeObjective('reach_extraction');
-      runner.markLevelComplete();
+        runner.completeObjective('outrun_collapse');
+        runner.completeObjective('reach_extraction');
+        runner.markLevelComplete();
 
-      expect(runner.isLevelComplete()).toBe(true);
-    }, LEVEL_TIMEOUT);
+        expect(runner.isLevelComplete()).toBe(true);
+      },
+      LEVEL_TIMEOUT
+    );
   });
 });
 

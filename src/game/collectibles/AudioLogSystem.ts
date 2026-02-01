@@ -19,12 +19,12 @@ import { getAchievementManager } from '../achievements';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import { getLogger } from '../core/Logger';
-
-const logger = getLogger('AudioLogSystem');
 import type { LevelId } from '../levels/types';
-import { addDiscoveredAudioLog, getDiscoveredAudioLogIds } from './audioLogPersistence';
+import { getDiscoveredAudioLogIds, useCollectiblesStore } from '../stores/useCollectiblesStore';
 import type { AudioLog } from './audioLogs';
 import { getAudioLogsByLevel } from './audioLogs';
+
+const logger = getLogger('AudioLogSystem');
 
 // ============================================================================
 // Constants
@@ -97,7 +97,7 @@ export class AudioLogSystem {
 
     // Get audio logs for this level
     const logs = getAudioLogsByLevel(this.levelId);
-    const discoveredIds = getDiscoveredAudioLogIds();
+    const discoveredIds = await getDiscoveredAudioLogIds();
 
     // Create pickups for undiscovered logs
     for (const log of logs) {
@@ -106,9 +106,7 @@ export class AudioLogSystem {
       }
     }
 
-    logger.info(
-      `Initialized ${this.pickups.size} audio log pickups for level ${this.levelId}`
-    );
+    logger.info(`Initialized ${this.pickups.size} audio log pickups for level ${this.levelId}`);
   }
 
   private createPickup(log: AudioLog): void {
@@ -241,8 +239,8 @@ export class AudioLogSystem {
     pickup.glowNode.setEnabled(false);
     pickup.light.setEnabled(false);
 
-    // Save to persistence
-    addDiscoveredAudioLog(pickup.log.id, this.levelId);
+    // Save to persistence via store
+    useCollectiblesStore.getState().addAudioLog(pickup.log.id, this.levelId);
 
     // Track achievement progress
     getAchievementManager().onAudioLogFound();
@@ -309,8 +307,8 @@ export class AudioLogSystem {
   /**
    * Reset all pickups (for level restart)
    */
-  reset(): void {
-    const discoveredIds = getDiscoveredAudioLogIds();
+  async reset(): Promise<void> {
+    const discoveredIds = await getDiscoveredAudioLogIds();
 
     for (const pickup of this.pickups.values()) {
       // Only reset if not already discovered in save

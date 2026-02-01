@@ -8,29 +8,29 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  ESCAPE_START_COMMS,
-  SURFACE_REACHED_COMMS,
-  HOLDOUT_START_COMMS,
-  WAVE_COMPLETE_COMMS,
-  SUPPLY_DROP_COMMS,
-  SIGNAL_FLARE_COMMS,
-  COLLAPSE_START_SEQUENCE,
-  COLLAPSE_PROGRESSION_SEQUENCE,
-  CLOSE_CALL_COMMS,
-  DISTANCE_COMMS,
-  COLLAPSE_FAILURE_COMMS,
-  DROPSHIP_DETECTION_COMMS,
-  COMMANDER_VICTORY_COMMS,
-  DROPSHIP_APPROACH_COMMS,
-  MARCUS_SEES_DROPSHIP_COMMS,
-  DROPSHIP_HOVER_COMMS,
-  MECH_COLLAPSE_COMMS,
+  AIRBORNE_COMMS,
   BOARD_NOW_COMMS,
   BOARDING_SEQUENCE_COMMS,
-  AIRBORNE_COMMS,
+  CLOSE_CALL_COMMS,
+  COLLAPSE_FAILURE_COMMS,
+  COLLAPSE_PROGRESSION_SEQUENCE,
+  COLLAPSE_START_SEQUENCE,
   COMMANDER_DEBRIEF_COMMS,
+  COMMANDER_VICTORY_COMMS,
+  DISTANCE_COMMS,
+  DROPSHIP_APPROACH_COMMS,
+  DROPSHIP_DETECTION_COMMS,
+  DROPSHIP_HOVER_COMMS,
+  ESCAPE_START_COMMS,
   getAthenaDebrief,
+  HOLDOUT_START_COMMS,
   MARCUS_FINAL_COMMS,
+  MARCUS_SEES_DROPSHIP_COMMS,
+  MECH_COLLAPSE_COMMS,
+  SIGNAL_FLARE_COMMS,
+  SUPPLY_DROP_COMMS,
+  SURFACE_REACHED_COMMS,
+  WAVE_COMPLETE_COMMS,
 } from './comms';
 
 describe('Communications Module', () => {
@@ -132,7 +132,7 @@ describe('Communications Module', () => {
       });
 
       it('should have increasing delays', () => {
-        const delays = COLLAPSE_START_SEQUENCE.map(s => s.delay);
+        const delays = COLLAPSE_START_SEQUENCE.map((s) => s.delay);
         expect(delays[0]).toBeLessThan(delays[1]);
         expect(delays[1]).toBeLessThan(delays[2]);
       });
@@ -171,7 +171,7 @@ describe('Communications Module', () => {
 
       it('should include pilot message', () => {
         const pilotMsg = COLLAPSE_PROGRESSION_SEQUENCE.find(
-          s => s.message.callsign === 'SALVATION'
+          (s) => s.message.callsign === 'SALVATION'
         );
         expect(pilotMsg).toBeDefined();
         expect(pilotMsg?.message.text).toContain("can't hold");
@@ -372,9 +372,9 @@ describe('Communications Module', () => {
       ...Object.values(WAVE_COMPLETE_COMMS),
       ...Object.values(CLOSE_CALL_COMMS),
       ...Object.values(DISTANCE_COMMS),
-      ...COLLAPSE_START_SEQUENCE.map(s => s.message),
-      ...COLLAPSE_PROGRESSION_SEQUENCE.map(s => s.message),
-      ...BOARDING_SEQUENCE_COMMS.map(s => s.message),
+      ...COLLAPSE_START_SEQUENCE.map((s) => s.message),
+      ...COLLAPSE_PROGRESSION_SEQUENCE.map((s) => s.message),
+      ...BOARDING_SEQUENCE_COMMS.map((s) => s.message),
     ];
 
     it('should have valid sender for all messages', () => {

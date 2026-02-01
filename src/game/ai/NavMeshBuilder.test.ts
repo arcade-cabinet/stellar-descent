@@ -3,8 +3,8 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { NavMeshBuilder, NAV_FLAGS } from './NavMeshBuilder';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { NAV_FLAGS, NavMeshBuilder } from './NavMeshBuilder';
 
 // Mock Scene
 const mockScene = {

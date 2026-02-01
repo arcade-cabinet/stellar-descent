@@ -180,7 +180,7 @@ class MockProceduralSFX {
     }
   }
 
-  playEnemySound(soundType: string, speciesId?: string): void {
+  playEnemySound(soundType: string, _speciesId?: string): void {
     if (!this.initialized) return;
 
     switch (soundType) {
@@ -206,12 +206,12 @@ class MockProceduralSFX {
     }
   }
 
-  playExplosion(size: 'small' | 'medium' | 'large' = 'medium'): void {
+  playExplosion(_size: 'small' | 'medium' | 'large' = 'medium'): void {
     if (!this.initialized) return;
     // Membrane synth + noise for explosion
   }
 
-  playImpact(surface: string): void {
+  playImpact(_surface: string): void {
     if (!this.initialized) return;
     // Different envelopes for metal, concrete, organic, etc.
   }

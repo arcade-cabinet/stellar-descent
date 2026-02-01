@@ -12,16 +12,15 @@
  * Integrates with EventBus for decoupled event handling.
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import type { Scene } from '@babylonjs/core/scene';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Camera } from '@babylonjs/core/Cameras/camera';
-import type { Ray } from '@babylonjs/core/Culling/ray';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { Scene } from '@babylonjs/core/scene';
+import { type GameEvent, getEventBus } from '../core/EventBus';
 import { getLogger } from '../core/Logger';
-import { getEventBus, type GameEvent } from '../core/EventBus';
 
 const log = getLogger('TriggerSystem');
 
@@ -298,7 +297,9 @@ export class TriggerSystem {
   private playerHealthGetter: (() => number) | null = null;
   private playerInventoryChecker: ((itemId: string) => boolean) | null = null;
   private flagChecker: ((flagId: string) => boolean) | null = null;
-  private enemyPositionGetter: (() => Array<{ id: string; position: Vector3; alive: boolean }>) | null = null;
+  private enemyPositionGetter:
+    | (() => Array<{ id: string; position: Vector3; alive: boolean }>)
+    | null = null;
   private interactKeyChecker: (() => boolean) | null = null;
 
   // Debug materials
@@ -353,7 +354,9 @@ export class TriggerSystem {
   /**
    * Set the function to get enemy positions.
    */
-  setEnemyPositionGetter(getter: () => Array<{ id: string; position: Vector3; alive: boolean }>): void {
+  setEnemyPositionGetter(
+    getter: () => Array<{ id: string; position: Vector3; alive: boolean }>
+  ): void {
     this.enemyPositionGetter = getter;
   }
 
@@ -370,7 +373,7 @@ export class TriggerSystem {
   setDebugMode(enabled: boolean): void {
     this.debugMode = enabled;
     // Update existing trigger visualizations
-    for (const [id, instance] of this.triggers) {
+    for (const [_id, instance] of this.triggers) {
       if (instance.debugMesh) {
         instance.debugMesh.setEnabled(enabled);
       } else if (enabled && instance.config.debugVisualize !== false) {
@@ -471,7 +474,7 @@ export class TriggerSystem {
    * Remove all triggers.
    */
   clearTriggers(): void {
-    for (const [id, instance] of this.triggers) {
+    for (const [_id, instance] of this.triggers) {
       if (instance.debugMesh) {
         instance.debugMesh.dispose();
       }
@@ -655,7 +658,7 @@ export class TriggerSystem {
 
     const now = performance.now();
 
-    for (const [id, instance] of this.triggers) {
+    for (const [_id, instance] of this.triggers) {
       // Skip disabled or completed triggers
       if (instance.state === 'disabled' || instance.state === 'completed') {
         continue;
@@ -772,11 +775,7 @@ export class TriggerSystem {
     }
   }
 
-  private updateProximityTrigger(
-    instance: TriggerInstance,
-    playerPos: Vector3,
-    now: number
-  ): void {
+  private updateProximityTrigger(instance: TriggerInstance, playerPos: Vector3, now: number): void {
     const config = instance.config as ProximityTriggerConfig;
     const distance = Vector3.Distance(playerPos, config.position);
     const wasInside = instance.playerInside;
@@ -1039,7 +1038,9 @@ export class TriggerSystem {
     if (instance.collectedItems.size >= requiredCount) {
       config.onAllCollected?.();
 
-      log.info(`Collectible trigger "${config.id}" complete: ${instance.collectedItems.size} items collected`);
+      log.info(
+        `Collectible trigger "${config.id}" complete: ${instance.collectedItems.size} items collected`
+      );
       this.completeTrigger(instance, now);
     }
   }
@@ -1118,13 +1119,15 @@ export class TriggerSystem {
 
     switch (volumeConfig.shape) {
       case 'sphere': {
-        const radius = typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
+        const radius =
+          typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
         return Vector3.Distance(point, pos) <= radius;
       }
       case 'box': {
-        const size = typeof volumeConfig.size === 'number'
-          ? new Vector3(volumeConfig.size, volumeConfig.size, volumeConfig.size)
-          : volumeConfig.size;
+        const size =
+          typeof volumeConfig.size === 'number'
+            ? new Vector3(volumeConfig.size, volumeConfig.size, volumeConfig.size)
+            : volumeConfig.size;
         const halfSize = size.scale(0.5);
         return (
           point.x >= pos.x - halfSize.x &&
@@ -1136,13 +1139,16 @@ export class TriggerSystem {
         );
       }
       case 'cylinder': {
-        const radius = typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
-        const height = (volumeConfig as VolumeTriggerConfig).height ?? (typeof volumeConfig.size === 'number' ? volumeConfig.size * 2 : volumeConfig.size.y);
+        const radius =
+          typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
+        const height =
+          (volumeConfig as VolumeTriggerConfig).height ??
+          (typeof volumeConfig.size === 'number' ? volumeConfig.size * 2 : volumeConfig.size.y);
         const halfHeight = height / 2;
-        const horizontalDist = Math.sqrt(
-          Math.pow(point.x - pos.x, 2) + Math.pow(point.z - pos.z, 2)
+        const horizontalDist = Math.sqrt((point.x - pos.x) ** 2 + (point.z - pos.z) ** 2);
+        return (
+          horizontalDist <= radius && point.y >= pos.y - halfHeight && point.y <= pos.y + halfHeight
         );
-        return horizontalDist <= radius && point.y >= pos.y - halfHeight && point.y <= pos.y + halfHeight;
       }
       default:
         return false;
@@ -1155,9 +1161,8 @@ export class TriggerSystem {
 
       const triggerStates = group.triggerIds.map((id) => this.completedTriggers.has(id));
 
-      const isComplete = group.mode === 'all'
-        ? triggerStates.every((s) => s)
-        : triggerStates.some((s) => s);
+      const isComplete =
+        group.mode === 'all' ? triggerStates.every((s) => s) : triggerStates.some((s) => s);
 
       if (isComplete) {
         group.completed = true;
@@ -1187,7 +1192,8 @@ export class TriggerSystem {
 
       switch (volumeConfig.shape) {
         case 'sphere': {
-          const radius = typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
+          const radius =
+            typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
           mesh = MeshBuilder.CreateSphere(
             `trigger_debug_${config.id}`,
             { diameter: radius * 2, segments: 12 },
@@ -1196,9 +1202,10 @@ export class TriggerSystem {
           break;
         }
         case 'box': {
-          const size = typeof volumeConfig.size === 'number'
-            ? new Vector3(volumeConfig.size, volumeConfig.size, volumeConfig.size)
-            : volumeConfig.size;
+          const size =
+            typeof volumeConfig.size === 'number'
+              ? new Vector3(volumeConfig.size, volumeConfig.size, volumeConfig.size)
+              : volumeConfig.size;
           mesh = MeshBuilder.CreateBox(
             `trigger_debug_${config.id}`,
             { width: size.x, height: size.y, depth: size.z },
@@ -1207,8 +1214,11 @@ export class TriggerSystem {
           break;
         }
         case 'cylinder': {
-          const radius = typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
-          const height = (volumeConfig as VolumeTriggerConfig).height ?? (typeof volumeConfig.size === 'number' ? volumeConfig.size * 2 : volumeConfig.size.y);
+          const radius =
+            typeof volumeConfig.size === 'number' ? volumeConfig.size : volumeConfig.size.x;
+          const height =
+            (volumeConfig as VolumeTriggerConfig).height ??
+            (typeof volumeConfig.size === 'number' ? volumeConfig.size * 2 : volumeConfig.size.y);
           mesh = MeshBuilder.CreateCylinder(
             `trigger_debug_${config.id}`,
             { diameter: radius * 2, height, tessellation: 12 },
@@ -1226,7 +1236,7 @@ export class TriggerSystem {
       );
     } else if (config.type === 'line_of_sight') {
       // Create a line from camera to target
-      const losConfig = config as LineOfSightTriggerConfig;
+      const _losConfig = config as LineOfSightTriggerConfig;
       mesh = MeshBuilder.CreateSphere(
         `trigger_debug_${config.id}`,
         { diameter: 1, segments: 8 },

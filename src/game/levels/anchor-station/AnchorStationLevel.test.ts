@@ -244,15 +244,15 @@ function createMockCallbacks() {
 }
 
 describe('AnchorStationLevel', () => {
-  let mockEngine: ReturnType<typeof createMockEngine>;
-  let mockCanvas: HTMLCanvasElement;
-  let mockCallbacks: ReturnType<typeof createMockCallbacks>;
+  let _mockEngine: ReturnType<typeof createMockEngine>;
+  let _mockCanvas: HTMLCanvasElement;
+  let _mockCallbacks: ReturnType<typeof createMockCallbacks>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    mockEngine = createMockEngine();
-    mockCanvas = createMockCanvas();
-    mockCallbacks = createMockCallbacks();
+    _mockEngine = createMockEngine();
+    _mockCanvas = createMockCanvas();
+    _mockCallbacks = createMockCallbacks();
 
     // Mock document.body for interaction prompt
     document.body.innerHTML = '';
@@ -898,11 +898,17 @@ describe('AnchorStationLevel', () => {
         let moved = false;
         let looked = false;
 
-        if (hud.movementEnabled && (Math.abs(input.movement.x) > 0.1 || Math.abs(input.movement.y) > 0.1)) {
+        if (
+          hud.movementEnabled &&
+          (Math.abs(input.movement.x) > 0.1 || Math.abs(input.movement.y) > 0.1)
+        ) {
           moved = true;
         }
 
-        if (hud.lookEnabled && (Math.abs(input.look.x) > 0.0001 || Math.abs(input.look.y) > 0.0001)) {
+        if (
+          hud.lookEnabled &&
+          (Math.abs(input.look.x) > 0.0001 || Math.abs(input.look.y) > 0.0001)
+        ) {
           looked = true;
         }
 
@@ -925,11 +931,17 @@ describe('AnchorStationLevel', () => {
         let moved = false;
         let looked = false;
 
-        if (hud.movementEnabled && (Math.abs(input.movement.x) > 0.1 || Math.abs(input.movement.y) > 0.1)) {
+        if (
+          hud.movementEnabled &&
+          (Math.abs(input.movement.x) > 0.1 || Math.abs(input.movement.y) > 0.1)
+        ) {
           moved = true;
         }
 
-        if (hud.lookEnabled && (Math.abs(input.look.x) > 0.0001 || Math.abs(input.look.y) > 0.0001)) {
+        if (
+          hud.lookEnabled &&
+          (Math.abs(input.look.x) > 0.0001 || Math.abs(input.look.y) > 0.0001)
+        ) {
           looked = true;
         }
 

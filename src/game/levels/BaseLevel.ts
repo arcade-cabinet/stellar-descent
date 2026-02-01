@@ -10,7 +10,6 @@
  * - Post-processing effects (film grain, vignette, color grading, combat feedback)
  */
 
-import type { Camera } from '@babylonjs/core/Cameras/camera';
 import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
@@ -19,19 +18,19 @@ import { Color3, type Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
+import { getMeleeSystem } from '../combat';
 import { getInputTracker, type InputTracker } from '../context/useInputActions';
 import { getAudioManager } from '../core/AudioManager';
-import { createEntity, type Entity, world as ecsWorld, removeEntity } from '../core/ecs';
-import {
-  type PostProcessConfig,
-  PostProcessManager,
-  type PostProcessQuality,
-} from '../core/PostProcessManager';
+import { getEventBus } from '../core/EventBus';
+import { createEntity, type Entity, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
+import { PostProcessManager, type PostProcessQuality } from '../core/PostProcessManager';
 import {
   type AtmosphericEffects,
   disposeAtmosphericEffects,
   getAtmosphericEffects,
 } from '../effects/AtmosphericEffects';
+import { getLowHealthFeedback, type LowHealthFeedbackManager } from '../effects/LowHealthFeedback';
 import {
   disposeWeatherSystem,
   getWeatherSystem,
@@ -40,15 +39,15 @@ import {
   type WeatherSystem,
   type WeatherType,
 } from '../effects/WeatherSystem';
-import {
-  getLowHealthFeedback,
-  disposeLowHealthFeedback,
-  type LowHealthFeedbackManager,
-} from '../effects/LowHealthFeedback';
-import { getLogger } from '../core/Logger';
-import { getMeleeSystem } from '../combat';
-import type { ILevel, LevelCallbacks, LevelConfig, LevelId, LevelState, LevelStats, LevelType, VictoryResult } from './types';
-import { getEventBus } from '../core/EventBus';
+import type {
+  ILevel,
+  LevelConfig,
+  LevelId,
+  LevelState,
+  LevelStats,
+  LevelType,
+  VictoryResult,
+} from './types';
 
 const log = getLogger('BaseLevel');
 
@@ -103,7 +102,6 @@ export abstract class BaseLevel implements ILevel {
   // Core references
   protected engine: Engine;
   protected canvas: HTMLCanvasElement;
-  protected callbacks: LevelCallbacks;
 
   // Scene management
   protected scene: Scene;
@@ -192,16 +190,10 @@ export abstract class BaseLevel implements ILevel {
   private boundMouseMove: (e: MouseEvent) => void;
   private boundClick: () => void;
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
     this.engine = engine;
     this.canvas = canvas;
     this.config = config;
-    this.callbacks = callbacks;
 
     this.id = config.id;
     this.type = config.type;
@@ -552,7 +544,14 @@ export abstract class BaseLevel implements ILevel {
     getAudioManager().playVictory();
     // Track level completion for achievements
     getAchievementManager().onLevelComplete(this.id, this.playerDiedInLevel);
-    this.callbacks.onLevelComplete(this.config.nextLevelId);
+
+    // Emit level complete event via EventBus
+    getEventBus().emit({
+      type: 'LEVEL_COMPLETE',
+      levelId: this.id,
+      nextLevelId: this.config.nextLevelId,
+      stats: { ...this.levelStats },
+    });
   }
 
   /**
@@ -570,12 +569,14 @@ export abstract class BaseLevel implements ILevel {
     // Determine bonuses
     const bonuses = {
       noDeaths: this.levelStats.deaths === 0,
-      speedrun: (this.levelStats.parTime ?? 0) > 0 &&
-                this.levelStats.timeSpent <= (this.levelStats.parTime ?? Infinity),
-      allSecrets: this.levelStats.secretsFound >= (this.levelStats.totalSecrets ?? 0) &&
-                  (this.levelStats.totalSecrets ?? 0) > 0,
-      perfectAccuracy: (this.levelStats.accuracy ?? 0) === 100 &&
-                       (this.levelStats.totalShots ?? 0) > 10,
+      speedrun:
+        (this.levelStats.parTime ?? 0) > 0 &&
+        this.levelStats.timeSpent <= (this.levelStats.parTime ?? Infinity),
+      allSecrets:
+        this.levelStats.secretsFound >= (this.levelStats.totalSecrets ?? 0) &&
+        (this.levelStats.totalSecrets ?? 0) > 0,
+      perfectAccuracy:
+        (this.levelStats.accuracy ?? 0) === 100 && (this.levelStats.totalShots ?? 0) > 10,
     };
 
     const result: VictoryResult = {
@@ -591,7 +592,14 @@ export abstract class BaseLevel implements ILevel {
 
     getAudioManager().playVictory();
     getAchievementManager().onLevelComplete(this.id, this.playerDiedInLevel);
-    this.callbacks.onLevelComplete(this.config.nextLevelId);
+
+    // Emit level complete event via EventBus
+    getEventBus().emit({
+      type: 'LEVEL_COMPLETE',
+      levelId: this.id,
+      nextLevelId: this.config.nextLevelId,
+      stats: { ...this.levelStats },
+    });
 
     return result;
   }
@@ -636,10 +644,16 @@ export abstract class BaseLevel implements ILevel {
       objectiveId,
     });
 
-    // Also notify via callback for legacy compatibility
-    this.callbacks.onNotification(`Objective Complete: ${objectiveId}`, 3000);
+    // Also emit notification via EventBus
+    getEventBus().emit({
+      type: 'NOTIFICATION',
+      text: `Objective Complete: ${objectiveId}`,
+      duration: 3000,
+    });
 
-    log.info(`Objective completed: ${objectiveId} (${this.objectivesCompleted.size}/${this.objectivesRequired.size})`);
+    log.info(
+      `Objective completed: ${objectiveId} (${this.objectivesCompleted.size}/${this.objectivesRequired.size})`
+    );
   }
 
   /**
@@ -687,8 +701,9 @@ export abstract class BaseLevel implements ILevel {
     if (options?.isGrenade) {
       this.levelStats.grenadeKills = (this.levelStats.grenadeKills ?? 0) + 1;
     }
-    // Notify game context (legacy callback)
-    this.callbacks.onKill();
+
+    // Emit kill registered event via EventBus (for HUD feedback)
+    getEventBus().emit({ type: 'KILL_REGISTERED' });
   }
 
   /**
@@ -799,7 +814,13 @@ export abstract class BaseLevel implements ILevel {
     });
 
     log.info(`Checkpoint saved at phase: ${phase ?? 'default'}`);
-    this.callbacks.onNotification('Checkpoint Saved', 2000);
+
+    // Emit notification via EventBus
+    getEventBus().emit({
+      type: 'NOTIFICATION',
+      text: 'Checkpoint Saved',
+      duration: 2000,
+    });
   }
 
   /**
@@ -838,7 +859,20 @@ export abstract class BaseLevel implements ILevel {
   protected onMissionFailed(reason: string): void {
     log.warn(`Mission failed: ${reason}`);
     getAudioManager().playDefeat();
-    this.callbacks.onNotification(`Mission Failed: ${reason}`, 5000);
+
+    // Emit level failed event via EventBus
+    getEventBus().emit({
+      type: 'LEVEL_FAILED',
+      levelId: this.id,
+      reason,
+    });
+
+    // Emit notification via EventBus
+    getEventBus().emit({
+      type: 'NOTIFICATION',
+      text: `Mission Failed: ${reason}`,
+      duration: 5000,
+    });
     // Subclasses can override to show failure screen or restart
   }
 
@@ -1069,8 +1103,8 @@ export abstract class BaseLevel implements ILevel {
 
     if (totalIntensity > this.shakeConfig.minIntensity) {
       // Calculate random offsets
-      const offsetX = (Math.random() - 0.5) * totalIntensity * this.shakeConfig.translationScale;
-      const offsetY = (Math.random() - 0.5) * totalIntensity * this.shakeConfig.translationScale;
+      const _offsetX = (Math.random() - 0.5) * totalIntensity * this.shakeConfig.translationScale;
+      const _offsetY = (Math.random() - 0.5) * totalIntensity * this.shakeConfig.translationScale;
       const rotOffsetX = (Math.random() - 0.5) * totalIntensity * this.shakeConfig.rotationScale;
       const rotOffsetZ = (Math.random() - 0.5) * totalIntensity * this.shakeConfig.rotationScale;
 
@@ -1384,11 +1418,7 @@ export abstract class BaseLevel implements ILevel {
    * Emit an enemy killed event via EventBus.
    * Use this when an enemy is killed to notify HUD, audio, and other systems.
    */
-  protected emitEnemyKilled(
-    enemyType: string,
-    position: Vector3,
-    enemyId?: string
-  ): void {
+  protected emitEnemyKilled(enemyType: string, position: Vector3, enemyId?: string): void {
     getEventBus().emit({
       type: 'ENEMY_KILLED',
       enemyType,
@@ -1453,7 +1483,6 @@ export abstract class BaseLevel implements ILevel {
 
   /**
    * Emit an objective updated event via EventBus.
-   * Also notifies via callback for legacy compatibility.
    */
   protected emitObjectiveUpdate(title: string, instructions: string): void {
     getEventBus().emit({
@@ -1461,8 +1490,6 @@ export abstract class BaseLevel implements ILevel {
       title,
       instructions,
     });
-    // Also notify via callback for legacy compatibility
-    this.callbacks.onObjectiveUpdate(title, instructions);
   }
 
   /**
@@ -1503,18 +1530,12 @@ export abstract class BaseLevel implements ILevel {
       text,
       duration,
     });
-    // Also notify via callback for legacy compatibility
-    this.callbacks.onNotification(text, duration);
   }
 
   /**
    * Emit a pickup collected event via EventBus.
    */
-  protected emitPickupCollected(
-    pickupId: string,
-    pickupType: string,
-    value?: number
-  ): void {
+  protected emitPickupCollected(pickupId: string, pickupType: string, value?: number): void {
     getEventBus().emit({
       type: 'PICKUP_COLLECTED',
       pickupId,
@@ -1531,9 +1552,188 @@ export abstract class BaseLevel implements ILevel {
       type: 'COMBAT_STATE_CHANGED',
       inCombat,
     });
-    // Also notify via callback and audio
-    this.callbacks.onCombatStateChange(inCombat);
+    // Update audio state
     this.setCombatState(inCombat);
+  }
+
+  /**
+   * Emit a comms message event via EventBus.
+   */
+  protected emitCommsMessage(message: import('../types').CommsMessage): void {
+    getEventBus().emit({
+      type: 'COMMS_MESSAGE',
+      message,
+    });
+  }
+
+  /**
+   * Emit a chapter changed event via EventBus.
+   */
+  protected emitChapterChanged(chapter: number): void {
+    getEventBus().emit({
+      type: 'CHAPTER_CHANGED',
+      chapter,
+    });
+  }
+
+  /**
+   * Emit a health changed event via EventBus.
+   */
+  protected emitHealthChanged(health: number, delta?: number): void {
+    getEventBus().emit({
+      type: 'HEALTH_CHANGED',
+      health,
+      delta,
+    });
+  }
+
+  /**
+   * Emit a damage registered event via EventBus.
+   */
+  protected emitDamageRegistered(): void {
+    getEventBus().emit({ type: 'DAMAGE_REGISTERED' });
+  }
+
+  /**
+   * Emit a hit marker event via EventBus.
+   */
+  protected emitHitMarker(damage: number, isCritical: boolean, isKill?: boolean): void {
+    getEventBus().emit({
+      type: 'HIT_MARKER',
+      damage,
+      isCritical,
+      isKill,
+    });
+  }
+
+  /**
+   * Emit a directional damage event via EventBus.
+   */
+  protected emitDirectionalDamage(angle: number, damage: number): void {
+    getEventBus().emit({
+      type: 'DIRECTIONAL_DAMAGE',
+      angle,
+      damage,
+    });
+  }
+
+  /**
+   * Emit an audio log found event via EventBus.
+   */
+  protected emitAudioLogFound(logId: string): void {
+    getEventBus().emit({
+      type: 'AUDIO_LOG_FOUND',
+      logId,
+    });
+  }
+
+  /**
+   * Emit a secret found event via EventBus.
+   */
+  protected emitSecretFound(secretId: string): void {
+    getEventBus().emit({
+      type: 'SECRET_FOUND',
+      secretId,
+    });
+  }
+
+  /**
+   * Emit a skull found event via EventBus.
+   */
+  protected emitSkullFound(skullId: string): void {
+    getEventBus().emit({
+      type: 'SKULL_FOUND',
+      skullId,
+    });
+  }
+
+  /**
+   * Emit a dialogue trigger event via EventBus.
+   */
+  protected emitDialogueTrigger(triggerId: string): void {
+    getEventBus().emit({
+      type: 'DIALOGUE_TRIGGER',
+      triggerId,
+    });
+  }
+
+  /**
+   * Emit an objective marker update event via EventBus.
+   */
+  protected emitObjectiveMarkerUpdate(
+    position: { x: number; y: number; z: number } | null,
+    label?: string
+  ): void {
+    getEventBus().emit({
+      type: 'OBJECTIVE_MARKER_UPDATED',
+      position,
+      label,
+    });
+  }
+
+  /**
+   * Emit an exposure changed event via EventBus.
+   */
+  protected emitExposureChanged(exposure: number): void {
+    getEventBus().emit({
+      type: 'EXPOSURE_CHANGED',
+      exposure,
+    });
+  }
+
+  /**
+   * Emit a frost damage event via EventBus.
+   */
+  protected emitFrostDamage(damage: number): void {
+    getEventBus().emit({
+      type: 'FROST_DAMAGE',
+      damage,
+    });
+  }
+
+  /**
+   * Emit a cinematic start event via EventBus.
+   */
+  protected emitCinematicStart(): void {
+    getEventBus().emit({ type: 'CINEMATIC_START' });
+  }
+
+  /**
+   * Emit a cinematic end event via EventBus.
+   */
+  protected emitCinematicEnd(): void {
+    getEventBus().emit({ type: 'CINEMATIC_END' });
+  }
+
+  /**
+   * Emit an action groups changed event via EventBus.
+   */
+  protected emitActionGroupsChanged(groups: import('../types/actions').ActionButtonGroup[]): void {
+    getEventBus().emit({
+      type: 'ACTION_GROUPS_CHANGED',
+      groups,
+    });
+  }
+
+  /**
+   * Emit an action handler registered event via EventBus.
+   */
+  protected emitActionHandlerRegistered(handler: ((actionId: string) => void) | null): void {
+    getEventBus().emit({
+      type: 'ACTION_HANDLER_REGISTERED',
+      handler,
+    });
+  }
+
+  /**
+   * Emit a squad command wheel changed event via EventBus.
+   */
+  protected emitSquadCommandWheelChanged(isOpen: boolean, selectedCommand: string | null): void {
+    getEventBus().emit({
+      type: 'SQUAD_COMMAND_WHEEL_CHANGED',
+      isOpen,
+      selectedCommand,
+    });
   }
 
   // ============================================================================

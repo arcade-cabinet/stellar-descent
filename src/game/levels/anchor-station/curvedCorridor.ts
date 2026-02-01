@@ -6,8 +6,8 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Mesh as BabylonMesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
@@ -340,7 +340,7 @@ function createCurvedWalls(
     // Create wall segments between windows
     const windowArcSpacing = config.arcAngle / (config.windowCount + 1);
     const windowArcWidth = windowArcSpacing * 0.4; // Window takes 40% of spacing
-    const wallArcWidth = windowArcSpacing * 0.6; // Wall takes 60%
+    const _wallArcWidth = windowArcSpacing * 0.6; // Wall takes 60%
 
     for (let w = 0; w <= config.windowCount; w++) {
       // Wall segment before/between/after windows

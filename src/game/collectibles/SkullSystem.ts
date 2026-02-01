@@ -22,14 +22,20 @@ import type { DifficultyModifiers } from '../core/DifficultySettings';
 import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
 import {
-  getActiveSkullIds,
-  getFoundSkullIds,
-  loadSkullCollection,
-  type SkullCollectionState,
-  saveSkullCollection,
-} from './skullPersistence';
+  getActiveSkullIds as getActiveSkullIdsFromStore,
+  getFoundSkullIds as getFoundSkullIdsFromStore,
+  useCollectiblesStore,
+} from '../stores/useCollectiblesStore';
 
 const log = getLogger('SkullSystem');
+
+/** Internal state representation for the SkullSystem class */
+interface SkullCollectionState {
+  saveId: string;
+  foundSkulls: SkullId[];
+  activeSkulls: SkullId[];
+  lastUpdated: number;
+}
 
 // ============================================================================
 // TYPES
@@ -268,17 +274,16 @@ export const SKULL_ORDER: SkullId[] = [
 // ============================================================================
 
 class SkullSystemImpl {
-  private state: SkullCollectionState;
   private initialized = false;
   private changeCallbacks: Set<() => void> = new Set();
 
   constructor() {
-    this.state = {
-      saveId: 'default',
-      foundSkulls: [],
-      activeSkulls: [],
-      lastUpdated: Date.now(),
-    };
+    // Subscribe to store changes to emit change callbacks
+    this.unsubscribeStore = useCollectiblesStore.subscribe(
+      (state) => ({ skulls: state.skulls, activations: state.skullActivations }),
+      () => this.emitChange(),
+      { equalityFn: (a, b) => a.skulls === b.skulls && a.activations === b.activations }
+    );
   }
 
   // --------------------------------------------------------------------------
@@ -286,21 +291,13 @@ class SkullSystemImpl {
   // --------------------------------------------------------------------------
 
   /** Load persisted skull data. Call once at app startup. */
-  init(): void {
+  async init(): Promise<void> {
     if (this.initialized) return;
-    this.state = loadSkullCollection();
+    await useCollectiblesStore.getState().initialize();
     this.initialized = true;
-    log.info(
-      `Initialized with ${this.state.foundSkulls.length} found, ` +
-        `${this.state.activeSkulls.length} active`
-    );
-  }
-
-  /** Persist current state to storage */
-  private persist(): void {
-    this.state.lastUpdated = Date.now();
-    saveSkullCollection(this.state);
-    this.emitChange();
+    const foundCount = useCollectiblesStore.getState().skulls.size;
+    const activeCount = useCollectiblesStore.getState().getActiveSkullIds().length;
+    log.info(`Initialized with ${foundCount} found, ${activeCount} active`);
   }
 
   // --------------------------------------------------------------------------
@@ -331,28 +328,26 @@ class SkullSystemImpl {
 
   /** Mark a skull as found by the player. Returns true if newly discovered. */
   discoverSkull(skullId: SkullId): boolean {
-    if (this.state.foundSkulls.includes(skullId)) {
-      return false; // already found
+    const result = useCollectiblesStore.getState().addSkull(skullId);
+    if (result) {
+      log.info(`Skull discovered: ${SKULLS[skullId].name}`);
     }
-    this.state.foundSkulls.push(skullId);
-    this.persist();
-    log.info(`Skull discovered: ${SKULLS[skullId].name}`);
-    return true;
+    return result;
   }
 
   /** Check if a skull has been found */
   isFound(skullId: SkullId): boolean {
-    return this.state.foundSkulls.includes(skullId);
+    return useCollectiblesStore.getState().hasSkull(skullId);
   }
 
   /** Get all found skull IDs */
   getFoundSkullIds(): SkullId[] {
-    return [...this.state.foundSkulls];
+    return getFoundSkullIdsFromStore() as SkullId[];
   }
 
   /** Get count of found skulls */
   getFoundCount(): number {
-    return this.state.foundSkulls.length;
+    return useCollectiblesStore.getState().skulls.size;
   }
 
   /** Get total skull count */
@@ -366,58 +361,50 @@ class SkullSystemImpl {
 
   /** Activate a skull (must be found first). Returns true on success. */
   activateSkull(skullId: SkullId): boolean {
-    if (!this.state.foundSkulls.includes(skullId)) {
-      log.warn(`Cannot activate unfound skull: ${skullId}`);
-      return false;
+    const result = useCollectiblesStore.getState().activateSkull(skullId);
+    if (result) {
+      log.info(`Skull activated: ${SKULLS[skullId].name}`);
     }
-    if (this.state.activeSkulls.includes(skullId)) {
-      return false; // already active
-    }
-    this.state.activeSkulls.push(skullId);
-    this.persist();
-    log.info(`Skull activated: ${SKULLS[skullId].name}`);
-    return true;
+    return result;
   }
 
   /** Deactivate a skull. Returns true if it was active. */
   deactivateSkull(skullId: SkullId): boolean {
-    const idx = this.state.activeSkulls.indexOf(skullId);
-    if (idx === -1) return false;
-    this.state.activeSkulls.splice(idx, 1);
-    this.persist();
-    log.info(`Skull deactivated: ${SKULLS[skullId].name}`);
-    return true;
+    const result = useCollectiblesStore.getState().deactivateSkull(skullId);
+    if (result) {
+      log.info(`Skull deactivated: ${SKULLS[skullId].name}`);
+    }
+    return result;
   }
 
   /** Toggle a skull between active/inactive. Returns the new active state. */
   toggleSkull(skullId: SkullId): boolean {
-    if (this.isActive(skullId)) {
-      this.deactivateSkull(skullId);
-      return false;
-    }
-    return this.activateSkull(skullId);
+    return useCollectiblesStore.getState().toggleSkull(skullId);
   }
 
   /** Check if a skull is currently active */
   isActive(skullId: SkullId): boolean {
-    return this.state.activeSkulls.includes(skullId);
+    return useCollectiblesStore.getState().isSkullActive(skullId);
   }
 
   /** Get all currently active skull IDs */
   getActiveSkullIds(): SkullId[] {
-    return [...this.state.activeSkulls];
+    return getActiveSkullIdsFromStore() as SkullId[];
   }
 
   /** Get count of active skulls */
   getActiveCount(): number {
-    return this.state.activeSkulls.length;
+    return useCollectiblesStore.getState().getActiveSkullIds().length;
   }
 
   /** Deactivate all skulls */
   deactivateAll(): void {
-    if (this.state.activeSkulls.length === 0) return;
-    this.state.activeSkulls = [];
-    this.persist();
+    const store = useCollectiblesStore.getState();
+    const activeIds = store.getActiveSkullIds();
+    if (activeIds.length === 0) return;
+    for (const id of activeIds) {
+      store.deactivateSkull(id);
+    }
     log.info('All skulls deactivated');
   }
 
@@ -427,10 +414,11 @@ class SkullSystemImpl {
 
   /** Get full skull state list (for UI rendering) */
   getAllSkullStates(): SkullState[] {
+    const store = useCollectiblesStore.getState();
     return SKULL_ORDER.map((id) => ({
       definition: SKULLS[id],
-      found: this.state.foundSkulls.includes(id),
-      active: this.state.activeSkulls.includes(id),
+      found: store.hasSkull(id),
+      active: store.isSkullActive(id),
     }));
   }
 
@@ -485,7 +473,8 @@ class SkullSystemImpl {
       scoreMultiplier: 1.0,
     };
 
-    for (const skullId of this.state.activeSkulls) {
+    const activeSkullIds = this.getActiveSkullIds();
+    for (const skullId of activeSkullIds) {
       const skull = SKULLS[skullId];
       if (!skull) continue;
 
@@ -564,8 +553,9 @@ class SkullSystemImpl {
 
   /** True when at least one active skull increases difficulty */
   hasActiveDifficultySkulls(): boolean {
-    return this.state.activeSkulls.some((id) => {
-      const skull = SKULLS[id];
+    const activeIds = this.getActiveSkullIds();
+    return activeIds.some((id) => {
+      const skull = SKULLS[id as SkullId];
       return skull && skull.category !== 'fun';
     });
   }
@@ -576,16 +566,16 @@ class SkullSystemImpl {
 
   /** Reset all progress (found + active). */
   resetAll(): void {
-    this.state.foundSkulls = [];
-    this.state.activeSkulls = [];
-    this.persist();
+    useCollectiblesStore.getState().resetSkulls();
     log.info('All skull progress reset');
   }
 
   /** Discover all skulls at once (debug/testing). */
   discoverAll(): void {
-    this.state.foundSkulls = [...SKULL_ORDER];
-    this.persist();
+    const store = useCollectiblesStore.getState();
+    for (const id of SKULL_ORDER) {
+      store.addSkull(id);
+    }
     log.info('All skulls discovered');
   }
 }
@@ -612,5 +602,8 @@ export function initSkulls(): void {
 // Re-export class type for external typing
 export type SkullSystem = SkullSystemImpl;
 
-// Re-export persistence helpers that consumers might need
-export { getActiveSkullIds, getFoundSkullIds } from './skullPersistence';
+// Re-export from store for backward compatibility
+export {
+  getActiveSkullIds,
+  getFoundSkullIds,
+} from '../stores/useCollectiblesStore';

@@ -11,18 +11,18 @@
  */
 
 import 'dotenv/config';
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createVCRContext, stopVCR, type VCRContext } from '../../test/vcr/VCRSetup';
 import { GeminiAssetGenerator } from './GeminiAssetGenerator';
-import { getManifestService, ManifestUpdateService } from './services/ManifestUpdateService';
 import {
-  VideoAssetMetadataSchema,
   ImageAssetMetadataSchema,
   LevelAssetManifestSchema,
   SharedAssetManifestSchema,
+  VideoAssetMetadataSchema,
 } from './schemas/AssetManifestSchemas';
+import { getManifestService, type ManifestUpdateService } from './services/ManifestUpdateService';
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -32,15 +32,17 @@ const TEST_OUTPUT_DIR = path.join(process.cwd(), 'public', 'assets');
 const TEST_MANIFEST_DIR = path.join(process.cwd(), 'public', 'assets', 'manifests');
 
 // Skip integration tests if no API key and not in replay mode
-const SKIP_REASON = !process.env.GEMINI_API_KEY && process.env.VCR_MODE !== 'replay'
-  ? 'GEMINI_API_KEY not set and not in VCR replay mode'
-  : undefined;
+const SKIP_REASON =
+  !process.env.GEMINI_API_KEY && process.env.VCR_MODE !== 'replay'
+    ? 'GEMINI_API_KEY not set and not in VCR replay mode'
+    : undefined;
 
 // Video generation uses async polling which doesn't replay well in VCR
 // Skip video tests in replay mode - they'll run in record/passthrough mode
-const SKIP_VIDEO_REASON = process.env.VCR_MODE === 'replay'
-  ? 'Video async polling does not replay correctly in VCR mode'
-  : SKIP_REASON;
+const _SKIP_VIDEO_REASON =
+  process.env.VCR_MODE === 'replay'
+    ? 'Video async polling does not replay correctly in VCR mode'
+    : SKIP_REASON;
 
 // ============================================================================
 // TEST FIXTURES
@@ -69,7 +71,7 @@ function hashPrompt(prompt: string): string {
   let hash = 0;
   for (let i = 0; i < prompt.length; i++) {
     const char = prompt.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return hash.toString(16);
@@ -115,64 +117,74 @@ describe('GenAI Integration Tests', () => {
   // ==========================================================================
 
   describe('Image Generation', () => {
-    it.skipIf(SKIP_REASON)('should generate a character portrait', async () => {
-      const result = await generator.generateImage({
-        id: 'test_portrait_cole_neutral',
-        type: 'image',
-        prompt: TEST_PORTRAIT_PROMPT,
-        style: 'portrait_realistic',
-        aspectRatio: '1:1',
-        resolution: '2K',
-        characterId: 'cole_james',
-        emotion: 'neutral',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.imageData).toBeDefined();
-      expect(result.mimeType).toMatch(/^image\/(png|jpeg|webp)$/);
-
-      if (result.success && result.imageData) {
-        // Save the generated image
-        const ext = result.mimeType?.includes('jpeg') ? 'jpg' : 'png';
-        const outputPath = path.join(TEST_OUTPUT_DIR, 'images', 'portraits', 'cole_james', `neutral.${ext}`);
-        ensureDir(path.dirname(outputPath));
-
-        const buffer = Buffer.from(result.imageData, 'base64');
-        fs.writeFileSync(outputPath, buffer);
-
-        // Verify file was written
-        expect(fs.existsSync(outputPath)).toBe(true);
-        expect(fs.statSync(outputPath).size).toBeGreaterThan(10000); // At least 10KB
-
-        // Register in manifest
-        const metadata = ImageAssetMetadataSchema.parse({
-          id: 'portrait_cole_neutral',
+    it.skipIf(SKIP_REASON)(
+      'should generate a character portrait',
+      async () => {
+        const result = await generator.generateImage({
+          id: 'test_portrait_cole_neutral',
           type: 'image',
-          path: 'images/portraits/cole_james/neutral.' + ext,
-          model: 'gemini-3-pro-image-preview',
-          promptHash: hashPrompt(TEST_PORTRAIT_PROMPT),
           prompt: TEST_PORTRAIT_PROMPT,
-          generatedAt: new Date().toISOString(),
-          generationTimeMs: result.generationTimeMs ?? 0,
-          fileSizeBytes: buffer.length,
-          width: 2048,
-          height: 2048,
-          format: ext as 'png' | 'jpg',
-          aspectRatio: '1:1',
           style: 'portrait_realistic',
+          aspectRatio: '1:1',
+          resolution: '2K',
           characterId: 'cole_james',
           emotion: 'neutral',
-          tags: ['portrait', 'cole', 'protagonist'],
         });
 
-        await manifestService.registerImageAsset(metadata, { isPortrait: true });
+        expect(result.success).toBe(true);
+        expect(result.imageData).toBeDefined();
+        expect(result.mimeType).toMatch(/^image\/(png|jpeg|webp)$/);
 
-        // Verify manifest was updated
-        const manifest = await manifestService.loadSharedManifest();
-        expect(manifest.portraits.cole_james).toBeDefined();
-        expect(manifest.portraits.cole_james.length).toBeGreaterThan(0);
-      }
-    }, 60000); // 60s timeout for image generation
+        if (result.success && result.imageData) {
+          // Save the generated image
+          const ext = result.mimeType?.includes('jpeg') ? 'jpg' : 'png';
+          const outputPath = path.join(
+            TEST_OUTPUT_DIR,
+            'images',
+            'portraits',
+            'cole_james',
+            `neutral.${ext}`
+          );
+          ensureDir(path.dirname(outputPath));
+
+          const buffer = Buffer.from(result.imageData, 'base64');
+          fs.writeFileSync(outputPath, buffer);
+
+          // Verify file was written
+          expect(fs.existsSync(outputPath)).toBe(true);
+          expect(fs.statSync(outputPath).size).toBeGreaterThan(10000); // At least 10KB
+
+          // Register in manifest
+          const metadata = ImageAssetMetadataSchema.parse({
+            id: 'portrait_cole_neutral',
+            type: 'image',
+            path: `images/portraits/cole_james/neutral.${ext}`,
+            model: 'gemini-3-pro-image-preview',
+            promptHash: hashPrompt(TEST_PORTRAIT_PROMPT),
+            prompt: TEST_PORTRAIT_PROMPT,
+            generatedAt: new Date().toISOString(),
+            generationTimeMs: result.generationTimeMs ?? 0,
+            fileSizeBytes: buffer.length,
+            width: 2048,
+            height: 2048,
+            format: ext as 'png' | 'jpg',
+            aspectRatio: '1:1',
+            style: 'portrait_realistic',
+            characterId: 'cole_james',
+            emotion: 'neutral',
+            tags: ['portrait', 'cole', 'protagonist'],
+          });
+
+          await manifestService.registerImageAsset(metadata, { isPortrait: true });
+
+          // Verify manifest was updated
+          const manifest = await manifestService.loadSharedManifest();
+          expect(manifest.portraits.cole_james).toBeDefined();
+          expect(manifest.portraits.cole_james.length).toBeGreaterThan(0);
+        }
+      },
+      60000
+    ); // 60s timeout for image generation
 
     it.skipIf(SKIP_REASON)('should validate image metadata with Zod schema', () => {
       const validMetadata = {
@@ -225,7 +237,13 @@ describe('GenAI Integration Tests', () => {
 
       if (result.success && result.videoData) {
         // Save the generated video
-        const outputPath = path.join(TEST_OUTPUT_DIR, 'videos', 'cinematics', 'anchor_station', 'intro.mp4');
+        const outputPath = path.join(
+          TEST_OUTPUT_DIR,
+          'videos',
+          'cinematics',
+          'anchor_station',
+          'intro.mp4'
+        );
         ensureDir(path.dirname(outputPath));
 
         const buffer = Buffer.from(result.videoData, 'base64');
@@ -338,69 +356,73 @@ describe('GenAI Integration Tests', () => {
   // ==========================================================================
 
   describe('Full Pipeline Integration', () => {
-    it.skipIf(SKIP_REASON)('should exercise the complete generation pipeline', async () => {
-      // 1. Generate image (use 2K resolution to get high-quality model)
-      const imageResult = await generator.generateImage({
-        id: 'pipeline_test_portrait',
-        type: 'image',
-        prompt: 'Sci-fi military commander portrait, dramatic lighting',
-        style: 'portrait_realistic',
-        aspectRatio: '1:1',
-        resolution: '2K',
-        characterId: 'reyes_commander',
-        emotion: 'commanding',
-      });
-
-      expect(imageResult.success).toBe(true);
-
-      // 2. Save to organized location
-      if (imageResult.success && imageResult.imageData) {
-        const relativePath = manifestService.resolveAssetPath('portrait', {
-          characterId: 'reyes_commander',
-          emotion: 'commanding',
-        });
-        const absolutePath = manifestService.getAbsoluteAssetPath(relativePath);
-        manifestService.ensureAssetDirectory(relativePath);
-
-        const buffer = Buffer.from(imageResult.imageData, 'base64');
-        fs.writeFileSync(absolutePath, buffer);
-
-        expect(fs.existsSync(absolutePath)).toBe(true);
-
-        // 3. Register in manifest with metadata
-        const metadata = ImageAssetMetadataSchema.parse({
-          id: 'portrait_reyes_commanding',
+    it.skipIf(SKIP_REASON)(
+      'should exercise the complete generation pipeline',
+      async () => {
+        // 1. Generate image (use 2K resolution to get high-quality model)
+        const imageResult = await generator.generateImage({
+          id: 'pipeline_test_portrait',
           type: 'image',
-          path: relativePath,
-          model: 'gemini-3-pro-image-preview',
-          promptHash: hashPrompt('Sci-fi military commander portrait'),
           prompt: 'Sci-fi military commander portrait, dramatic lighting',
-          generatedAt: new Date().toISOString(),
-          generationTimeMs: imageResult.generationTimeMs ?? 0,
-          fileSizeBytes: buffer.length,
-          width: 1024,
-          height: 1024,
-          format: 'png',
-          aspectRatio: '1:1',
           style: 'portrait_realistic',
+          aspectRatio: '1:1',
+          resolution: '2K',
           characterId: 'reyes_commander',
           emotion: 'commanding',
-          tags: ['portrait', 'reyes', 'commander', 'npc'],
         });
 
-        await manifestService.registerImageAsset(metadata, { isPortrait: true });
+        expect(imageResult.success).toBe(true);
 
-        // 4. Verify manifest
-        const manifest = await manifestService.loadSharedManifest();
-        expect(manifest.portraits.reyes_commander).toBeDefined();
+        // 2. Save to organized location
+        if (imageResult.success && imageResult.imageData) {
+          const relativePath = manifestService.resolveAssetPath('portrait', {
+            characterId: 'reyes_commander',
+            emotion: 'commanding',
+          });
+          const absolutePath = manifestService.getAbsoluteAssetPath(relativePath);
+          manifestService.ensureAssetDirectory(relativePath);
 
-        // 5. Verify manifest persisted to disk
-        const manifestPath = path.join(TEST_MANIFEST_DIR, 'shared.manifest.json');
-        expect(fs.existsSync(manifestPath)).toBe(true);
+          const buffer = Buffer.from(imageResult.imageData, 'base64');
+          fs.writeFileSync(absolutePath, buffer);
 
-        const savedManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-        expect(savedManifest.portraits.reyes_commander).toBeDefined();
-      }
-    }, 120000);
+          expect(fs.existsSync(absolutePath)).toBe(true);
+
+          // 3. Register in manifest with metadata
+          const metadata = ImageAssetMetadataSchema.parse({
+            id: 'portrait_reyes_commanding',
+            type: 'image',
+            path: relativePath,
+            model: 'gemini-3-pro-image-preview',
+            promptHash: hashPrompt('Sci-fi military commander portrait'),
+            prompt: 'Sci-fi military commander portrait, dramatic lighting',
+            generatedAt: new Date().toISOString(),
+            generationTimeMs: imageResult.generationTimeMs ?? 0,
+            fileSizeBytes: buffer.length,
+            width: 1024,
+            height: 1024,
+            format: 'png',
+            aspectRatio: '1:1',
+            style: 'portrait_realistic',
+            characterId: 'reyes_commander',
+            emotion: 'commanding',
+            tags: ['portrait', 'reyes', 'commander', 'npc'],
+          });
+
+          await manifestService.registerImageAsset(metadata, { isPortrait: true });
+
+          // 4. Verify manifest
+          const manifest = await manifestService.loadSharedManifest();
+          expect(manifest.portraits.reyes_commander).toBeDefined();
+
+          // 5. Verify manifest persisted to disk
+          const manifestPath = path.join(TEST_MANIFEST_DIR, 'shared.manifest.json');
+          expect(fs.existsSync(manifestPath)).toBe(true);
+
+          const savedManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+          expect(savedManifest.portraits.reyes_commander).toBeDefined();
+        }
+      },
+      120000
+    );
   });
 });

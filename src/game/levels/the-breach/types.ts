@@ -5,7 +5,7 @@
  */
 
 import type { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Entity } from '../../core/ecs';

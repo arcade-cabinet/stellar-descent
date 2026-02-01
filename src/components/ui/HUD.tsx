@@ -1,11 +1,11 @@
 import { Capacitor } from '@capacitor/core';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { grenadeSystem, type GrenadeType, MAX_GRENADES } from '../../game/combat';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type GrenadeType, grenadeSystem, MAX_GRENADES } from '../../game/combat';
 import { useGame } from '../../game/context/GameContext';
-import { useSettings } from '../../game/context/SettingsContext';
 import { useWeaponOptional } from '../../game/context/WeaponContext';
 import { WEAPONS, type WeaponId } from '../../game/entities/weapons';
 import { saveSystem } from '../../game/persistence';
+import { useSettings } from '../../game/stores/useSettingsStore';
 import { formatTimeMMSS, useMissionTime } from '../../game/timer';
 import { useGameEvent } from '../../hooks/useGameEvent';
 import { ActionButtons } from './ActionButtons';
@@ -106,6 +106,9 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
   // Kill feed state
   const [killFeed, setKillFeed] = useState<KillFeedEntry[]>([]);
   const killFeedIdRef = useRef(0);
+
+  // Health state from EventBus (supplements props for self-contained operation)
+  const [eventBusHealth, setEventBusHealth] = useState<number | null>(null);
 
   // Score/combo state
   const [scorePopups, setScorePopups] = useState<ScorePopup[]>([]);
@@ -272,13 +275,41 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
     // Checkpoint notification is handled by the level, but HUD could show an icon
   });
 
+  // Subscribe to PLAYER_DAMAGED events for health tracking
+  useGameEvent('PLAYER_DAMAGED', (event) => {
+    // Update local health state based on damage taken
+    // This supplements the health prop for self-contained EventBus operation
+    setEventBusHealth((prev) => {
+      const currentHealth = prev ?? health;
+      return Math.max(0, currentHealth - event.amount);
+    });
+  });
+
+  // Subscribe to PLAYER_HEALED events for health tracking
+  useGameEvent('PLAYER_HEALED', (event) => {
+    // Update local health state based on healing
+    setEventBusHealth((prev) => {
+      const currentHealth = prev ?? health;
+      return Math.min(maxHealth, currentHealth + event.amount);
+    });
+  });
+
+  // Subscribe to LOW_HEALTH_WARNING events for visual feedback
+  useGameEvent('LOW_HEALTH_WARNING', () => {
+    // Could trigger additional low health visual effects here
+  });
+
+  // Subscribe to NOTIFICATION events
+  useGameEvent('NOTIFICATION', () => {
+    // Notifications are handled by the notification system in GameContext
+    // This subscription enables future self-contained notification handling
+  });
+
   // Clean up kill feed entries
   useEffect(() => {
     const interval = setInterval(() => {
       const now = performance.now();
-      setKillFeed((prev) =>
-        prev.filter((entry) => now - entry.timestamp < KILL_FEED_DURATION)
-      );
+      setKillFeed((prev) => prev.filter((entry) => now - entry.timestamp < KILL_FEED_DURATION));
     }, 100);
     return () => clearInterval(interval);
   }, []);
@@ -315,7 +346,12 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
     } else {
       setShowAutoReloadPrompt(false);
     }
-  }, [weaponContext?.weapon.currentAmmo, weaponContext?.weapon.reserveAmmo, weaponContext?.weapon.isReloading]);
+  }, [
+    weaponContext?.weapon.currentAmmo,
+    weaponContext?.weapon.reserveAmmo,
+    weaponContext?.weapon.isReloading,
+    weaponContext,
+  ]);
 
   // Check if running on web platform (not native iOS/Android)
   const isWebPlatform = !Capacitor.isNativePlatform();
@@ -375,7 +411,10 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
     }
   }, [isSaving]);
 
-  const healthPercent = maxHealth > 0 ? Math.max(0, Math.min(100, (health / maxHealth) * 100)) : 0;
+  // Use EventBus health if available, otherwise fall back to props
+  const effectiveHealth = eventBusHealth ?? health;
+  const healthPercent =
+    maxHealth > 0 ? Math.max(0, Math.min(100, (effectiveHealth / maxHealth) * 100)) : 0;
 
   // Determine health status for both color and shape indicators
   const healthStatus: 'high' | 'medium' | 'low' =
@@ -441,15 +480,17 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
         aria-hidden={!hudVisibility.healthBar}
         role="status"
         aria-live="polite"
-        aria-label={`Health: ${Math.floor(health)} of ${maxHealth}`}
+        aria-label={`Health: ${Math.floor(effectiveHealth)} of ${maxHealth}`}
       >
-        <span className={styles.healthLabel} aria-hidden="true">HEALTH</span>
+        <span className={styles.healthLabel} aria-hidden="true">
+          HEALTH
+        </span>
         <div
           className={`${styles.healthBar} ${settings.usePatternIndicators ? styles.withPatterns : ''} ${healthStatus === 'low' && !prefersReducedMotion ? styles.healthBarPulsing : ''}`}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={maxHealth}
-          aria-valuenow={Math.floor(health)}
+          aria-valuenow={Math.floor(effectiveHealth)}
           aria-label="Health"
         >
           <div
@@ -467,7 +508,7 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
           )}
         </div>
         <span className={styles.healthText}>
-          {Math.floor(health)}/{maxHealth}
+          {Math.floor(effectiveHealth)}/{maxHealth}
         </span>
       </div>
 
@@ -478,14 +519,15 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
           role="status"
           aria-label={`Armor: ${armor} of ${maxArmor}`}
         >
-          <span className={styles.armorLabel} aria-hidden="true">ARMOR</span>
+          <span className={styles.armorLabel} aria-hidden="true">
+            ARMOR
+          </span>
           <div className={styles.armorBar}>
-            <div
-              className={styles.armorFill}
-              style={{ width: `${(armor / maxArmor) * 100}%` }}
-            />
+            <div className={styles.armorFill} style={{ width: `${(armor / maxArmor) * 100}%` }} />
           </div>
-          <span className={styles.armorText}>{armor}/{maxArmor}</span>
+          <span className={styles.armorText}>
+            {armor}/{maxArmor}
+          </span>
         </div>
       )}
 
@@ -524,8 +566,12 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
         role="status"
         aria-label={`Kills: ${kills}`}
       >
-        <span className={styles.killsLabel} aria-hidden="true">KILLS</span>
-        <span className={styles.killsCount} aria-hidden="true">{kills}</span>
+        <span className={styles.killsLabel} aria-hidden="true">
+          KILLS
+        </span>
+        <span className={styles.killsCount} aria-hidden="true">
+          {kills}
+        </span>
       </div>
 
       {/* Mission Timer - top left */}
@@ -567,7 +613,9 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
         >
           {/* Current weapon name */}
           <div className={styles.weaponName} aria-hidden="true">
-            <span className={`${styles.weaponIcon} ${getWeaponIconClass(weaponContext.weapon.currentWeaponId)}`} />
+            <span
+              className={`${styles.weaponIcon} ${getWeaponIconClass(weaponContext.weapon.currentWeaponId)}`}
+            />
             <span>{WEAPONS[weaponContext.weapon.currentWeaponId].shortName}</span>
           </div>
 
@@ -623,7 +671,9 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
                   style={{ width: `${weaponContext.reloadProgress * 100}%` }}
                 />
               </div>
-              <span className={styles.reloadText} aria-hidden="true">RELOADING...</span>
+              <span className={styles.reloadText} aria-hidden="true">
+                RELOADING...
+              </span>
             </div>
           )}
           {/* Auto-reload prompt */}
@@ -650,7 +700,9 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
               >
                 <span className={styles.weaponSlotKey}>{index + 1}</span>
                 {slotWeaponId && (
-                  <span className={`${styles.weaponSlotIcon} ${getWeaponIconClass(slotWeaponId)}`} />
+                  <span
+                    className={`${styles.weaponSlotIcon} ${getWeaponIconClass(slotWeaponId)}`}
+                  />
                 )}
               </div>
             );
@@ -726,11 +778,15 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
       </div>
 
       {/* Kill feed - top right below kills counter */}
-      <div className={`${styles.killFeed} ${hudVisibility.killCounter ? styles.visible : styles.hidden}`}>
+      <div
+        className={`${styles.killFeed} ${hudVisibility.killCounter ? styles.visible : styles.hidden}`}
+      >
         {killFeed.map((entry) => {
           const age = performance.now() - entry.timestamp;
           const opacity = Math.max(0, 1 - age / KILL_FEED_DURATION);
-          const weaponName = entry.weaponId ? WEAPONS[entry.weaponId as WeaponId]?.shortName : 'UNKNOWN';
+          const weaponName = entry.weaponId
+            ? WEAPONS[entry.weaponId as WeaponId]?.shortName
+            : 'UNKNOWN';
 
           return (
             <div
@@ -790,9 +846,7 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
             <span className={styles.objectiveIcon}>!</span>
             <span className={styles.objectiveLabel}>OBJECTIVE</span>
           </div>
-          {objectiveTitle && (
-            <div className={styles.objectiveTitle}>{objectiveTitle}</div>
-          )}
+          {objectiveTitle && <div className={styles.objectiveTitle}>{objectiveTitle}</div>}
           {objectiveInstructions && (
             <div className={styles.objectiveInstructions}>{objectiveInstructions}</div>
           )}
@@ -853,9 +907,7 @@ export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
           <span className={styles.saveButtonIcon} aria-hidden="true">
             {isSaving ? '\u21BB' : '\u2913'}
           </span>
-          <span className={styles.saveButtonText}>
-            {isSaving ? 'SAVING...' : 'SAVE'}
-          </span>
+          <span className={styles.saveButtonText}>{isSaving ? 'SAVING...' : 'SAVE'}</span>
         </button>
       )}
     </div>

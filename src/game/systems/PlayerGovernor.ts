@@ -95,7 +95,6 @@ export class PlayerGovernor {
 
   // State tracking
   private lastDialogueAdvance = 0;
-  private lastShot = 0;
   private lastScreenshot = 0;
   private inputState: {
     moveForward: boolean;
@@ -117,7 +116,6 @@ export class PlayerGovernor {
 
   // Tutorial step tracking
   private tutorialStepsCompleted: string[] = [];
-  private currentObjective: string = '';
 
   constructor(config: Partial<GovernorConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };

@@ -30,6 +30,7 @@ import { getAudioManager } from '../core/AudioManager';
 import { getLogger } from '../core/Logger';
 
 const log = getLogger('SkullPickup');
+
 import type { LevelId } from '../levels/types';
 import { getSkullSystem, SKULLS, type SkullDefinition, type SkullId } from './SkullSystem';
 
@@ -115,9 +116,7 @@ export class SkullPickupManager {
     }
 
     this.pickup = await this.createPickup(skull, position);
-    log.info(
-      `Placed "${skull.name}" skull at (${position.x}, ${position.y}, ${position.z})`
-    );
+    log.info(`Placed "${skull.name}" skull at (${position.x}, ${position.y}, ${position.z})`);
   }
 
   /**

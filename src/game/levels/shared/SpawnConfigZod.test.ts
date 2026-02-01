@@ -5,18 +5,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  validateSpawnConfig,
+  degreesToRadians,
+  type LevelSpawnConfig,
+  parsePositionString,
+  parseTriggerValue,
+  SpawnUnitSchema,
+  SpawnWaveSchema,
   safeValidateSpawnConfig,
+  validateSpawnConfig,
   validateSpawnConfigFull,
   validateSpawnPointReferences,
   validateWaveChain,
-  degreesToRadians,
-  parsePositionString,
-  parseTriggerValue,
-  type LevelSpawnConfig,
-  LevelSpawnConfigSchema,
-  SpawnUnitSchema,
-  SpawnWaveSchema,
 } from './SpawnConfigZod';
 
 describe('SpawnConfigZod', () => {
@@ -32,9 +31,7 @@ describe('SpawnConfigZod', () => {
         id: 'wave_1',
         label: 'First Wave',
         trigger: 'immediate',
-        units: [
-          { species: 'drone', count: 3, spawnPoint: 'spawn_north', delay: 0, spread: 5 },
-        ],
+        units: [{ species: 'drone', count: 3, spawnPoint: 'spawn_north', delay: 0, spread: 5 }],
         onComplete: 'wave_2',
         spawnInterval: 1.0,
       },
@@ -42,9 +39,7 @@ describe('SpawnConfigZod', () => {
         id: 'wave_2',
         label: 'Second Wave',
         trigger: 'manual',
-        units: [
-          { species: 'soldier', count: 2, spawnPoint: 'spawn_south', delay: 0, spread: 3 },
-        ],
+        units: [{ species: 'soldier', count: 2, spawnPoint: 'spawn_south', delay: 0, spread: 3 }],
         onComplete: 'victory',
         spawnInterval: 1.5,
       },
@@ -136,8 +131,20 @@ describe('SpawnConfigZod', () => {
   describe('SpawnUnit Schema', () => {
     it('should validate all valid species', () => {
       const species = [
-        'drone', 'soldier', 'warrior', 'spitter', 'ice_drone', 'ice_warrior',
-        'skitterer', 'lurker', 'spewer', 'husk', 'heavy', 'stalker', 'broodmother', 'queen',
+        'drone',
+        'soldier',
+        'warrior',
+        'spitter',
+        'ice_drone',
+        'ice_warrior',
+        'skitterer',
+        'lurker',
+        'spewer',
+        'husk',
+        'heavy',
+        'stalker',
+        'broodmother',
+        'queen',
       ];
 
       for (const sp of species) {

@@ -60,79 +60,79 @@ export interface LandfallEnvironmentNodes {
 
 const P = {
   // Industrial
-  container:         '/assets/models/environment/industrial/shipping_container_mx_1.glb',
-  containerHollow:   '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
-  container2:        '/assets/models/environment/industrial/shipping_container_mx_2.glb',
-  waterTower:        '/assets/models/environment/industrial/water_tower_hm_1.glb',
-  storageTank:       '/assets/models/environment/industrial/storage_tank_mx_1.glb',
-  platform:          '/assets/models/environment/industrial/platform_mx_1.glb',
-  chimney1:          '/assets/models/environment/industrial/chimney_a_1.glb',
-  chimney2:          '/assets/models/environment/industrial/chimney_a_2.glb',
-  pipes:             '/assets/models/environment/industrial/pipes_hr_1.glb',
-  pipesElbow:        '/assets/models/environment/industrial/pipes_hr_1_elbow_1.glb',
-  warehouse:         '/assets/models/environment/industrial/warehouse_hl_1.glb',
-  electrical:        '/assets/models/environment/industrial/electrical_equipment_1.glb',
-  machinery:         '/assets/models/environment/industrial/machinery_mx_1.glb',
-  cage:              '/assets/models/environment/industrial/cage_mx_1.glb',
-  boiler:            '/assets/models/environment/industrial/boiler_hx_4.glb',
+  container: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+  containerHollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  container2: '/assets/models/environment/industrial/shipping_container_mx_2.glb',
+  waterTower: '/assets/models/environment/industrial/water_tower_hm_1.glb',
+  storageTank: '/assets/models/environment/industrial/storage_tank_mx_1.glb',
+  platform: '/assets/models/environment/industrial/platform_mx_1.glb',
+  chimney1: '/assets/models/environment/industrial/chimney_a_1.glb',
+  chimney2: '/assets/models/environment/industrial/chimney_a_2.glb',
+  pipes: '/assets/models/environment/industrial/pipes_hr_1.glb',
+  pipesElbow: '/assets/models/environment/industrial/pipes_hr_1_elbow_1.glb',
+  warehouse: '/assets/models/environment/industrial/warehouse_hl_1.glb',
+  electrical: '/assets/models/environment/industrial/electrical_equipment_1.glb',
+  machinery: '/assets/models/environment/industrial/machinery_mx_1.glb',
+  cage: '/assets/models/environment/industrial/cage_mx_1.glb',
+  boiler: '/assets/models/environment/industrial/boiler_hx_4.glb',
 
   // Station surfaces
-  asphalt1:          '/assets/models/environment/station/asphalt_hr_1.glb',
-  asphalt1Large:     '/assets/models/environment/station/asphalt_hr_1_large.glb',
-  asphalt2:          '/assets/models/environment/station/asphalt_hr_2.glb',
-  asphalt3:          '/assets/models/environment/station/asphalt_hr_3.glb',
-  platformLarge:     '/assets/models/environment/station/platform_large_mx_1.glb',
-  platformSmall:     '/assets/models/environment/station/platform_small_mx_1.glb',
-  beamH1:            '/assets/models/environment/station/beam_hc_horizontal_1.glb',
-  beamH2:            '/assets/models/environment/station/beam_hc_horizontal_2.glb',
-  beamV1:            '/assets/models/environment/station/beam_hc_vertical_1.glb',
-  beamRtx:           '/assets/models/environment/station/beam_rtx_1.glb',
-  concretePipeEnd:   '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
-  concretePipeMid:   '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
-  doorway1:          '/assets/models/environment/station/doorway_hr_1.glb',
-  warehouse1:        '/assets/models/environment/station/warehouse_mx_1.glb',
-  warehouse2:        '/assets/models/environment/station/warehouse_mx_2.glb',
+  asphalt1: '/assets/models/environment/station/asphalt_hr_1.glb',
+  asphalt1Large: '/assets/models/environment/station/asphalt_hr_1_large.glb',
+  asphalt2: '/assets/models/environment/station/asphalt_hr_2.glb',
+  asphalt3: '/assets/models/environment/station/asphalt_hr_3.glb',
+  platformLarge: '/assets/models/environment/station/platform_large_mx_1.glb',
+  platformSmall: '/assets/models/environment/station/platform_small_mx_1.glb',
+  beamH1: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
+  beamH2: '/assets/models/environment/station/beam_hc_horizontal_2.glb',
+  beamV1: '/assets/models/environment/station/beam_hc_vertical_1.glb',
+  beamRtx: '/assets/models/environment/station/beam_rtx_1.glb',
+  concretePipeEnd: '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
+  concretePipeMid: '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
+  doorway1: '/assets/models/environment/station/doorway_hr_1.glb',
+  warehouse1: '/assets/models/environment/station/warehouse_mx_1.glb',
+  warehouse2: '/assets/models/environment/station/warehouse_mx_2.glb',
 
   // Station external (orbital)
-  stationExt02:      '/assets/models/environment/station-external/station02.glb',
-  stationExt04:      '/assets/models/environment/station-external/station04.glb',
+  stationExt02: '/assets/models/environment/station-external/station02.glb',
+  stationExt04: '/assets/models/environment/station-external/station04.glb',
 
   // Barricades & fences
-  barricadeA1:       '/assets/models/props/modular/barricade_a_1.glb',
-  barricadeA2:       '/assets/models/props/modular/barricade_a_2.glb',
-  barricadeA3:       '/assets/models/props/modular/barricade_a_3.glb',
-  barricadeB1:       '/assets/models/props/modular/barricade_b_1.glb',
-  barricadeB2:       '/assets/models/props/modular/barricade_b_2.glb',
-  fenceA1:           '/assets/models/props/modular/fence_a_1.glb',
-  concreteFence:     '/assets/models/props/modular/concrete_fence_hr_1.glb',
-  concretePillar:    '/assets/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
+  barricadeA1: '/assets/models/props/modular/barricade_a_1.glb',
+  barricadeA2: '/assets/models/props/modular/barricade_a_2.glb',
+  barricadeA3: '/assets/models/props/modular/barricade_a_3.glb',
+  barricadeB1: '/assets/models/props/modular/barricade_b_1.glb',
+  barricadeB2: '/assets/models/props/modular/barricade_b_2.glb',
+  fenceA1: '/assets/models/props/modular/fence_a_1.glb',
+  concreteFence: '/assets/models/props/modular/concrete_fence_hr_1.glb',
+  concretePillar: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
 
   // Props
-  gasCylinder:       '/assets/models/props/containers/gas_cylinder_mx_1.glb',
-  jerrycan:          '/assets/models/props/containers/jerrycan_mx_1.glb',
-  cementPallet:      '/assets/models/props/containers/cement_bags_mp_1_pallet_1.glb',
-  barrel1:           '/assets/models/props/containers/metal_barrel_hr_1.glb',
-  barrel2:           '/assets/models/props/containers/metal_barrel_hr_2.glb',
-  barrel3:           '/assets/models/props/containers/metal_barrel_hr_3.glb',
-  woodenCrate1:      '/assets/models/props/containers/wooden_crate_1.glb',
-  woodenCrate2:      '/assets/models/props/containers/wooden_crate_2_a.glb',
-  scrapMetal1:       '/assets/models/props/containers/scrap_metal_mx_1.glb',
-  scrapMetal2:       '/assets/models/props/containers/scrap_metal_mx_1_1.glb',
-  tire1:             '/assets/models/props/containers/tire_1.glb',
-  plank1:            '/assets/models/props/containers/wooden_plank_1.glb',
-  plank2:            '/assets/models/props/containers/wooden_plank_2.glb',
-  toolbox:           '/assets/models/props/containers/toolbox_mx_1.glb',
+  gasCylinder: '/assets/models/props/containers/gas_cylinder_mx_1.glb',
+  jerrycan: '/assets/models/props/containers/jerrycan_mx_1.glb',
+  cementPallet: '/assets/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+  barrel1: '/assets/models/props/containers/metal_barrel_hr_1.glb',
+  barrel2: '/assets/models/props/containers/metal_barrel_hr_2.glb',
+  barrel3: '/assets/models/props/containers/metal_barrel_hr_3.glb',
+  woodenCrate1: '/assets/models/props/containers/wooden_crate_1.glb',
+  woodenCrate2: '/assets/models/props/containers/wooden_crate_2_a.glb',
+  scrapMetal1: '/assets/models/props/containers/scrap_metal_mx_1.glb',
+  scrapMetal2: '/assets/models/props/containers/scrap_metal_mx_1_1.glb',
+  tire1: '/assets/models/props/containers/tire_1.glb',
+  plank1: '/assets/models/props/containers/wooden_plank_1.glb',
+  plank2: '/assets/models/props/containers/wooden_plank_2.glb',
+  toolbox: '/assets/models/props/containers/toolbox_mx_1.glb',
 
   // Modular sci-fi
-  column1:           '/assets/models/environment/modular/Column_1.glb',
-  column2:           '/assets/models/environment/modular/Column_2.glb',
-  propsCrate:        '/assets/models/environment/modular/Props_Crate.glb',
-  propsCrateLong:    '/assets/models/environment/modular/Props_CrateLong.glb',
-  propsContainer:    '/assets/models/environment/modular/Props_ContainerFull.glb',
-  propsPod:          '/assets/models/environment/modular/Props_Pod.glb',
-  modPipes:          '/assets/models/environment/modular/Pipes.glb',
-  detailPipesLong:   '/assets/models/environment/modular/Details_Pipes_Long.glb',
-  detailPlateLarge:  '/assets/models/environment/modular/Details_Plate_Large.glb',
+  column1: '/assets/models/environment/modular/Column_1.glb',
+  column2: '/assets/models/environment/modular/Column_2.glb',
+  propsCrate: '/assets/models/environment/modular/Props_Crate.glb',
+  propsCrateLong: '/assets/models/environment/modular/Props_CrateLong.glb',
+  propsContainer: '/assets/models/environment/modular/Props_ContainerFull.glb',
+  propsPod: '/assets/models/environment/modular/Props_Pod.glb',
+  modPipes: '/assets/models/environment/modular/Pipes.glb',
+  detailPipesLong: '/assets/models/environment/modular/Details_Pipes_Long.glb',
+  detailPlateLarge: '/assets/models/environment/modular/Details_Plate_Large.glb',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -829,9 +829,7 @@ function collectUniquePaths(groups: PlacedAsset[][]): string[] {
  * Returns a handle that the level can use to toggle visibility and
  * dispose the entire environment on cleanup.
  */
-export async function buildLandfallEnvironment(
-  scene: Scene
-): Promise<LandfallEnvironmentNodes> {
+export async function buildLandfallEnvironment(scene: Scene): Promise<LandfallEnvironmentNodes> {
   const root = new TransformNode('landfallEnvRoot', scene);
   const allNodes: TransformNode[] = [];
   let orbitalStation: TransformNode | null = null;
@@ -995,11 +993,7 @@ function addWreckageLights(scene: Scene, parent: TransformNode): void {
 
   for (let i = 0; i < fireLights.length; i++) {
     const def = fireLights[i];
-    const light = new PointLight(
-      `wreckLight_${i}`,
-      def.position,
-      scene
-    );
+    const light = new PointLight(`wreckLight_${i}`, def.position, scene);
     light.diffuse = def.color;
     light.specular = def.color.scale(0.3);
     light.intensity = def.intensity;
@@ -1012,10 +1006,7 @@ function addWreckageLights(scene: Scene, parent: TransformNode): void {
  * Toggle visibility of all environment nodes at once.
  * Called by the level when transitioning to surface phase.
  */
-export function setEnvironmentVisible(
-  env: LandfallEnvironmentNodes,
-  visible: boolean
-): void {
+export function setEnvironmentVisible(env: LandfallEnvironmentNodes, visible: boolean): void {
   for (const node of env.allNodes) {
     node.setEnabled(visible);
   }
@@ -1053,7 +1044,7 @@ export function updateEnvironmentLOD(
       });
     } else if (distance > lodFadeStart) {
       // Fade out distant objects
-      const fadeRatio = 1 - (distance - lodFadeStart) / (lodCullDistance - lodFadeStart);
+      const _fadeRatio = 1 - (distance - lodFadeStart) / (lodCullDistance - lodFadeStart);
       node.getChildMeshes().forEach((mesh) => {
         mesh.isVisible = true;
         if (mesh.material && 'alpha' in mesh.material) {
@@ -1074,10 +1065,7 @@ export function updateEnvironmentLOD(
  * Animate the orbital station wreck in the sky.
  * Creates a slow tumbling effect as it burns in orbit.
  */
-export function updateOrbitalStation(
-  env: LandfallEnvironmentNodes,
-  deltaTime: number
-): void {
+export function updateOrbitalStation(env: LandfallEnvironmentNodes, deltaTime: number): void {
   if (!env.orbitalStation || !env.orbitalStation.isEnabled()) return;
 
   // Slow tumble rotation

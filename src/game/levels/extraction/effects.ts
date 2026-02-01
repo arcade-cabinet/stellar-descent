@@ -4,32 +4,35 @@
  * Contains visual effects for collapse, explosions, debris, and dropship arrival.
  */
 
-import type { Scene } from '@babylonjs/core/scene';
+import { Animation } from '@babylonjs/core/Animations/animation';
+import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { Animation } from '@babylonjs/core/Animations/animation';
-import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
-
+import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
-import { AssetManager } from '../../core/AssetManager';
-
-import type { DebrisChunk, FallingStalactite, HealthPickup, CrumblingWall, SupplyDrop } from './types';
 import {
-  GLB_SUPPLY_DROP,
+  COLLAPSE_HEALTH_PICKUP_AMOUNTS,
+  COLLAPSE_HEALTH_PICKUP_POSITIONS,
+  CRUMBLING_WALL_CONFIGS,
   GLB_AMMO_BOX,
   GLB_CRUMBLING_WALL,
+  GLB_SUPPLY_DROP,
   LZ_POSITION,
-  COLLAPSE_HEALTH_PICKUP_POSITIONS,
-  COLLAPSE_HEALTH_PICKUP_AMOUNTS,
-  CRUMBLING_WALL_CONFIGS,
   SUPPLY_DROP_RADIUS,
 } from './constants';
+import type {
+  CrumblingWall,
+  DebrisChunk,
+  FallingStalactite,
+  HealthPickup,
+  SupplyDrop,
+} from './types';
 
 // ============================================================================
 // DEBRIS EFFECTS
@@ -248,7 +251,11 @@ export function updateFallingStalactites(
   playerPosition: Vector3,
   deltaTime: number,
   triggerShake: (intensity: number) => void
-): { updatedStalactites: FallingStalactite[]; playerDamage: number; notificationMsg: string | null } {
+): {
+  updatedStalactites: FallingStalactite[];
+  playerDamage: number;
+  notificationMsg: string | null;
+} {
   const gravity = 15;
   let playerDamage = 0;
   let notificationMsg: string | null = null;
@@ -559,9 +566,10 @@ export function updateCrumblingWalls(
 
       // FIX #24: Apply easing curve for smoother animation
       // Ease-in-out for more natural fall
-      const easedProgress = wall.progress < 0.5
-        ? 2 * wall.progress * wall.progress
-        : 1 - Math.pow(-2 * wall.progress + 2, 2) / 2;
+      const easedProgress =
+        wall.progress < 0.5
+          ? 2 * wall.progress * wall.progress
+          : 1 - (-2 * wall.progress + 2) ** 2 / 2;
 
       // Rotate wall forward as it falls (with easing)
       wall.mesh.rotation.x = easedProgress * (Math.PI / 2);
@@ -594,16 +602,15 @@ export function updateCrumblingWalls(
  * Create objective marker at dropship location
  * FIX #28: Reduced marker height to not obscure view
  */
-export function createObjectiveMarker(scene: Scene, position: Vector3): {
+export function createObjectiveMarker(
+  scene: Scene,
+  position: Vector3
+): {
   marker: Mesh;
   beacon: PointLight;
 } {
   // FIX #28: Reduced height from 100 to 40 for better visibility
-  const marker = MeshBuilder.CreateCylinder(
-    'objectiveMarker',
-    { height: 40, diameter: 4 },
-    scene
-  );
+  const marker = MeshBuilder.CreateCylinder('objectiveMarker', { height: 40, diameter: 4 }, scene);
   const markerMat = new StandardMaterial('objectiveMarkerMat', scene);
   markerMat.emissiveColor = new Color3(0.2, 0.8, 1);
   markerMat.alpha = 0.25;
@@ -671,10 +678,7 @@ export function updateCollapseAudio(
 
   // Occasional alien death screams
   const now = performance.now();
-  if (
-    now - lastAlienScreamTime > 8000 &&
-    Math.random() < 0.02 + collapseIntensity * 0.03
-  ) {
+  if (now - lastAlienScreamTime > 8000 && Math.random() < 0.02 + collapseIntensity * 0.03) {
     newScreamTime = now;
     getAudioManager().play('alien_death_scream', { volume: 0.4 + Math.random() * 0.2 });
   }
@@ -735,14 +739,11 @@ export async function spawnSupplyDrop(
   dropNode.scaling.setAll(type === 'health' ? 1.2 : 1.5);
 
   // Add glow light
-  const glowLight = new PointLight(
-    `supplyDropLight_${Date.now()}`,
-    position.clone(),
-    scene
-  );
-  glowLight.diffuse = type === 'health'
-    ? new Color3(0.2, 1, 0.3)  // Green for health
-    : new Color3(1, 0.8, 0.2); // Yellow for ammo
+  const glowLight = new PointLight(`supplyDropLight_${Date.now()}`, position.clone(), scene);
+  glowLight.diffuse =
+    type === 'health'
+      ? new Color3(0.2, 1, 0.3) // Green for health
+      : new Color3(1, 0.8, 0.2); // Yellow for ammo
   glowLight.intensity = 20;
   glowLight.range = 12;
   glowLight.parent = dropNode;

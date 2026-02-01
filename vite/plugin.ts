@@ -1,4 +1,4 @@
-import type { PluginOption, Plugin } from 'vite';
+import type { Plugin, PluginOption } from 'vite';
 import viteCompression from 'vite-plugin-compression';
 import glsl from 'vite-plugin-glsl';
 import { createHtmlPlugin } from 'vite-plugin-html';

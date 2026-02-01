@@ -94,7 +94,8 @@ const PATHS = {
   boiler: '/assets/models/environment/industrial/boiler_hx_4.glb',
   storage_tank: '/assets/models/environment/industrial/storage_tank_mx_1.glb',
   shipping_container: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
-  shipping_container_hollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  shipping_container_hollow:
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
 
   // Station external (burning wreckage on horizon)
   station_wreck: '/assets/models/environment/station-external/station03.glb',
@@ -138,7 +139,7 @@ function getBattlefieldPlacements(): GLBPlacement[] {
   const placements: GLBPlacement[] = [];
 
   // Validate we have reasonable spacing - placements should not overlap
-  const validatePlacement = (pos: Vector3, existingPlacements: GLBPlacement[]): boolean => {
+  const _validatePlacement = (pos: Vector3, existingPlacements: GLBPlacement[]): boolean => {
     const MIN_SPACING = 5; // Minimum 5m between placements
     for (const p of existingPlacements) {
       if (Vector3.Distance(pos, p.position) < MIN_SPACING) {
@@ -705,9 +706,7 @@ const SUPPLY_CRATE_POSITIONS: Vector3[] = [
  * @param scene - Active BabylonJS scene
  * @returns Promise resolving to BattlefieldResult
  */
-export async function buildBattlefieldEnvironment(
-  scene: Scene
-): Promise<BattlefieldResult> {
+export async function buildBattlefieldEnvironment(scene: Scene): Promise<BattlefieldResult> {
   const root = new TransformNode('BattlefieldEnvironment', scene);
   const allMeshes: Mesh[] = [];
   const allLights: PointLight[] = [];
@@ -737,10 +736,7 @@ export async function buildBattlefieldEnvironment(
 
   await Promise.all(loadPromises);
 
-  log.info(
-    `Loaded ${uniquePaths.size} unique assets, ` +
-      `placing ${placements.length} instances`
-  );
+  log.info(`Loaded ${uniquePaths.size} unique assets, ` + `placing ${placements.length} instances`);
 
   // ------------------------------------------------------------------
   // 3. Create instances for each placement
@@ -779,18 +775,12 @@ export async function buildBattlefieldEnvironment(
     placed++;
   }
 
-  log.info(
-    `Placed ${placed} instances, skipped ${skipped}`
-  );
+  log.info(`Placed ${placed} instances, skipped ${skipped}`);
 
   // ------------------------------------------------------------------
   // 4. Fire effects on station wreckage
   // ------------------------------------------------------------------
-  const wreckFireLight = new PointLight(
-    'wreckFire',
-    new Vector3(-80, 14, -70),
-    scene
-  );
+  const wreckFireLight = new PointLight('wreckFire', new Vector3(-80, 14, -70), scene);
   wreckFireLight.diffuse = Color3.FromHexString('#FF6A20');
   wreckFireLight.specular = Color3.FromHexString('#FF4400');
   wreckFireLight.intensity = 2.0;
@@ -799,11 +789,7 @@ export async function buildBattlefieldEnvironment(
   allLights.push(wreckFireLight);
 
   // Secondary smaller fire
-  const wreckFireLight2 = new PointLight(
-    'wreckFire2',
-    new Vector3(-75, 10, -65),
-    scene
-  );
+  const wreckFireLight2 = new PointLight('wreckFire2', new Vector3(-75, 10, -65), scene);
   wreckFireLight2.diffuse = Color3.FromHexString('#FF8800');
   wreckFireLight2.intensity = 1.0;
   wreckFireLight2.range = 20;
@@ -844,10 +830,7 @@ export async function buildBattlefieldEnvironment(
 /**
  * Update fire light flickering. Call once per frame.
  */
-export function updateBattlefieldLights(
-  lights: PointLight[],
-  _deltaTime: number
-): void {
+export function updateBattlefieldLights(lights: PointLight[], _deltaTime: number): void {
   const time = performance.now() * 0.001;
   for (let i = 0; i < lights.length; i++) {
     const light = lights[i];
@@ -878,4 +861,3 @@ function collectMeshes(node: TransformNode, out: Mesh[]): void {
     }
   }
 }
-

@@ -37,7 +37,7 @@ vi.mock('../../core/Logger', () => ({
 }));
 
 // Import after mocks
-import { EscapeTimer, type EscapeTimerConfig, type TimerState, type TimerUrgency } from './EscapeTimer';
+import { EscapeTimer, type EscapeTimerConfig } from './EscapeTimer';
 
 describe('EscapeTimer', () => {
   let mockScene: any;

@@ -12,12 +12,12 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { capacitorDb } from '../db/database';
 import {
-  type DifficultyLevel,
-  type DifficultyModifiers,
   DEFAULT_DIFFICULTY,
   DIFFICULTY_REGISTRY,
-  PERMADEATH_XP_BONUS,
+  type DifficultyLevel,
+  type DifficultyModifiers,
   isPermadeathActive,
+  PERMADEATH_XP_BONUS,
 } from './DifficultyRegistry';
 
 // ============================================================================
@@ -96,10 +96,10 @@ async function loadFromDb(): Promise<Partial<DifficultyState>> {
 async function saveToDb(key: string, value: string): Promise<void> {
   try {
     await ensureTable();
-    await capacitorDb.run(
-      `INSERT OR REPLACE INTO ${SETTINGS_TABLE} (key, value) VALUES (?, ?)`,
-      [key, value]
-    );
+    await capacitorDb.run(`INSERT OR REPLACE INTO ${SETTINGS_TABLE} (key, value) VALUES (?, ?)`, [
+      key,
+      value,
+    ]);
   } catch (err) {
     console.error('[DifficultyStore] Failed to save:', err);
   }

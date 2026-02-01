@@ -1,4 +1,8 @@
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { Achievement, AchievementId } from '../achievements/types';
+import type { LevelId, LevelStats } from '../levels/types';
+import type { CommsMessage } from '../types';
+import type { ActionButtonGroup } from '../types/actions';
 import { getLogger } from './Logger';
 
 const log = getLogger('EventBus');
@@ -25,12 +29,26 @@ export type GameEvent =
   | { type: 'PLAYER_DEATH'; cause: string; position: Vector3 }
   | { type: 'PLAYER_HEALED'; amount: number }
   | { type: 'LOW_HEALTH_WARNING'; currentHealth: number; maxHealth: number }
+  | { type: 'HEALTH_CHANGED'; health: number; delta?: number }
+  | { type: 'KILL_REGISTERED' } // Simple kill count increment (legacy callback support)
+  | { type: 'DAMAGE_REGISTERED' } // Simple damage feedback (legacy callback support)
   | { type: 'OBJECTIVE_UPDATED'; title: string; instructions: string }
   | { type: 'OBJECTIVE_STARTED'; objectiveId: string; title: string }
   | { type: 'OBJECTIVE_COMPLETED'; objectiveId: string }
   | { type: 'OBJECTIVE_FAILED'; objectiveId: string; reason?: string }
+  | {
+      type: 'OBJECTIVE_MARKER_UPDATED';
+      position: { x: number; y: number; z: number } | null;
+      label?: string;
+    }
   | { type: 'COMBAT_STATE_CHANGED'; inCombat: boolean }
-  | { type: 'WEAPON_SWITCHED'; weaponId: string; fromWeapon?: string; toWeapon?: string; slot?: number }
+  | {
+      type: 'WEAPON_SWITCHED';
+      weaponId: string;
+      fromWeapon?: string;
+      toWeapon?: string;
+      slot?: number;
+    }
   | { type: 'WEAPON_FIRED'; weaponId: string; position: Vector3; direction?: Vector3 }
   | { type: 'RELOAD_STARTED'; weaponId: string; reloadTime: number }
   | { type: 'RELOAD_COMPLETE'; weaponId: string; ammoLoaded: number }
@@ -41,23 +59,67 @@ export type GameEvent =
   | { type: 'PICKUP_COLLECTED'; pickupId: string; pickupType: string; value?: number }
   | { type: 'AUDIO_LOG_FOUND'; logId: string }
   | { type: 'SECRET_FOUND'; secretId: string }
+  | { type: 'SKULL_FOUND'; skullId: string }
   | { type: 'VEHICLE_ENTERED'; vehicleType: string }
   | { type: 'VEHICLE_EXITED'; vehicleType: string }
   | { type: 'CHECKPOINT_REACHED'; checkpointId: string; phase?: string }
-  | { type: 'DIALOGUE_STARTED'; triggerId: string; speakerId?: string; dialogueId?: string; text?: string; duration?: number }
+  | {
+      type: 'DIALOGUE_STARTED';
+      triggerId: string;
+      speakerId?: string;
+      dialogueId?: string;
+      text?: string;
+      duration?: number;
+    }
   | { type: 'DIALOGUE_ENDED'; triggerId: string }
+  | { type: 'DIALOGUE_TRIGGER'; triggerId: string }
   | { type: 'NOTIFICATION'; text: string; duration?: number }
   | { type: 'FOOTSTEP'; position: Vector3; surface: string }
+  | { type: 'HIT_MARKER'; damage: number; isCritical: boolean; isKill?: boolean }
+  | { type: 'DIRECTIONAL_DAMAGE'; angle: number; damage: number }
+  // Communication events
+  | { type: 'COMMS_MESSAGE'; message: CommsMessage }
+  // Chapter events
+  | { type: 'CHAPTER_CHANGED'; chapter: number }
+  // Environmental hazard events
+  | { type: 'EXPOSURE_CHANGED'; exposure: number }
+  | { type: 'FROST_DAMAGE'; damage: number }
+  // Cinematic events
+  | { type: 'CINEMATIC_START' }
+  | { type: 'CINEMATIC_END' }
+  // Action system events
+  | { type: 'ACTION_GROUPS_CHANGED'; groups: ActionButtonGroup[] }
+  | { type: 'ACTION_HANDLER_REGISTERED'; handler: ((actionId: string) => void) | null }
+  // Squad command events
+  | { type: 'SQUAD_COMMAND_WHEEL_CHANGED'; isOpen: boolean; selectedCommand: string | null }
   // Level lifecycle events
   | { type: 'LEVEL_LOADED'; levelId: string }
   | { type: 'LEVEL_STARTED'; levelId: string; chapter: number }
-  | { type: 'LEVEL_COMPLETE'; levelId: string; stats: { time: number; kills: number; accuracy: number; secretsFound: number; damageTaken: number } }
+  | {
+      type: 'LEVEL_COMPLETE';
+      levelId: LevelId | null;
+      nextLevelId: LevelId | null;
+      stats?: LevelStats;
+    }
   | { type: 'LEVEL_FAILED'; levelId: string; reason: string }
   // Wave events
-  | { type: 'WAVE_STARTED'; levelId: string; waveNumber: number; waveId?: string; totalEnemies?: number; label?: string }
+  | {
+      type: 'WAVE_STARTED';
+      levelId: string;
+      waveNumber: number;
+      waveId?: string;
+      totalEnemies?: number;
+      label?: string;
+    }
   | { type: 'WAVE_COMPLETED'; levelId: string; waveNumber: number; waveId?: string }
   // Boss events
-  | { type: 'BOSS_DAMAGED'; bossId: string; damage: number; currentHealth: number; maxHealth: number }
+  | {
+      type: 'BOSS_DAMAGED';
+      bossId: string;
+      damage: number;
+      currentHealth: number;
+      maxHealth: number;
+    }
   | { type: 'BOSS_DEFEATED'; bossId: string; bossType: string; position: Vector3 }
   // Trigger system events
   | { type: 'TRIGGER_ENTER'; triggerId: string; triggerType: TriggerType }
@@ -69,17 +131,36 @@ export type GameEvent =
   | { type: 'TRIGGER_COLLECTIBLE'; triggerId: string; collectibleId: string }
   | { type: 'TRIGGER_GROUP_COMPLETE'; groupId: string; mode: 'all' | 'any' }
   // SpawnManager events (wave-based enemy spawning)
-  | { type: 'ENEMY_SPAWNED'; levelId: string; speciesId: string; entityId: string; position: { x: number; y: number; z: number }; facingAngle: number; waveId?: string }
+  | {
+      type: 'ENEMY_SPAWNED';
+      levelId: string;
+      speciesId: string;
+      entityId: string;
+      position: { x: number; y: number; z: number };
+      facingAngle: number;
+      waveId?: string;
+    }
   | { type: 'WAVE_START'; levelId: string; waveNumber: number; label?: string }
   | { type: 'WAVE_COMPLETE'; levelId: string; waveNumber: number }
-  | { type: 'ALL_WAVES_COMPLETE'; levelId: string };
+  | { type: 'ALL_WAVES_COMPLETE'; levelId: string }
+  // Settings events
+  | { type: 'SETTINGS_CHANGED'; key: string; value: unknown }
+  // Keybinding events
+  | {
+      type: 'KEYBINDING_CHANGED';
+      action: string;
+      binding: string;
+      bindingType: 'keyboard' | 'gamepad';
+    }
+  // Achievement events
+  | { type: 'ACHIEVEMENT_UNLOCKED'; achievementId: AchievementId; achievement: Achievement };
 
 // ---------------------------------------------------------------------------
 // Type-safe listener signature
 // ---------------------------------------------------------------------------
 
 export type GameEventListener<T extends GameEvent['type']> = (
-  event: Extract<GameEvent, { type: T }>,
+  event: Extract<GameEvent, { type: T }>
 ) => void;
 
 // ---------------------------------------------------------------------------
@@ -110,10 +191,7 @@ export class EventBus {
    *
    * @returns An unsubscribe function. Calling it removes the listener.
    */
-  on<T extends GameEvent['type']>(
-    type: T,
-    listener: GameEventListener<T>,
-  ): () => void {
+  on<T extends GameEvent['type']>(type: T, listener: GameEventListener<T>): () => void {
     let set = this.listeners.get(type);
     if (!set) {
       set = new Set();
@@ -133,10 +211,7 @@ export class EventBus {
    * @returns An unsubscribe function (in case you need to cancel before
    *          the event fires).
    */
-  once<T extends GameEvent['type']>(
-    type: T,
-    listener: GameEventListener<T>,
-  ): () => void {
+  once<T extends GameEvent['type']>(type: T, listener: GameEventListener<T>): () => void {
     const wrapper: GameEventListener<T> = (event) => {
       this.off(type, wrapper);
       listener(event);
@@ -148,10 +223,7 @@ export class EventBus {
   /**
    * Manually remove a previously registered listener.
    */
-  off<T extends GameEvent['type']>(
-    type: T,
-    listener: GameEventListener<T>,
-  ): void {
+  off<T extends GameEvent['type']>(type: T, listener: GameEventListener<T>): void {
     const set = this.listeners.get(type);
     if (!set) return;
 
@@ -171,9 +243,7 @@ export class EventBus {
 
     if (!set || set.size === 0) {
       if (import.meta.env.DEV) {
-        log.warn(
-          `No listeners registered for event "${event.type}"`,
-        );
+        log.warn(`No listeners registered for event "${event.type}"`);
       }
       return;
     }

@@ -27,6 +27,7 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../../core/Logger';
 import {
   type CurvedCorridorConfig,
   type CurvedCorridorResult,
@@ -35,12 +36,10 @@ import {
 import { createStationMaterials, disposeMaterials } from './materials';
 import {
   createPlatformingRoom,
-  preloadPlatformingRoomAssets,
   type PlatformingCallbacks as PlatformingRoomCallbacks,
-  type PlatformingRoomState,
+  preloadPlatformingRoomAssets,
 } from './platformingRoom';
 import { createScenicRooms, SCENIC_ROOM_POSITIONS, type ScenicRoomsResult } from './scenicRooms';
-import { getLogger } from '../../core/Logger';
 
 const log = getLogger('Environment');
 
@@ -633,7 +632,7 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
     lights,
     addCeilingLight: (
       sc: Scene,
-      par: TransformNode,
+      _par: TransformNode,
       pos: Vector3,
       col: Color3,
       int: number,
@@ -752,7 +751,11 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   for (let gx = -4; gx <= 4; gx += 2) {
     for (let gz = -3; gz <= 3; gz += 2) {
       const isEdge = Math.abs(gx) === 4 || Math.abs(gz) === 3;
-      const tilePath = isEdge ? P.modFloorSide : (gx + gz) % 4 === 0 ? P.modFloorBasic2 : P.modFloorBasic;
+      const tilePath = isEdge
+        ? P.modFloorSide
+        : (gx + gz) % 4 === 0
+          ? P.modFloorBasic2
+          : P.modFloorBasic;
       pm(tilePath, `br_floor_${gx}_${gz}`, briefingRoom, BC.x + gx, 0, BC.z + gz, 0, 1);
     }
   }
@@ -766,33 +769,97 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // PSX Floor/ceiling panels for bulk coverage
   for (let fx = -8; fx <= 8; fx += 4) {
     for (let fz = -6; fz <= 6; fz += 4) {
-      pm(P.floorCeiling1, `br_psx_floor_${fx}_${fz}`, briefingRoom, BC.x + fx, -0.05, BC.z + fz, 0, 1);
+      pm(
+        P.floorCeiling1,
+        `br_psx_floor_${fx}_${fz}`,
+        briefingRoom,
+        BC.x + fx,
+        -0.05,
+        BC.z + fz,
+        0,
+        1
+      );
     }
   }
 
   // --- Walls (station wall panels) ---
   // Back wall (north)
   for (let wx = -8; wx <= 8; wx += 4) {
-    pm(P.wallDouble, `br_wall_n_${wx}`, briefingRoom, BC.x + wx, 0, BC.z + BRIEFING_ROOM.depth / 2, 0, 1);
+    pm(
+      P.wallDouble,
+      `br_wall_n_${wx}`,
+      briefingRoom,
+      BC.x + wx,
+      0,
+      BC.z + BRIEFING_ROOM.depth / 2,
+      0,
+      1
+    );
   }
   // Left wall (west)
   for (let wz = -6; wz <= 6; wz += 4) {
-    pm(P.wallSingle, `br_wall_w_${wz}`, briefingRoom, BC.x - BRIEFING_ROOM.width / 2, 0, BC.z + wz, Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `br_wall_w_${wz}`,
+      briefingRoom,
+      BC.x - BRIEFING_ROOM.width / 2,
+      0,
+      BC.z + wz,
+      Math.PI / 2,
+      1
+    );
   }
   // Right wall (east)
   for (let wz = -6; wz <= 6; wz += 4) {
-    pm(P.wallSingle, `br_wall_e_${wz}`, briefingRoom, BC.x + BRIEFING_ROOM.width / 2, 0, BC.z + wz, -Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `br_wall_e_${wz}`,
+      briefingRoom,
+      BC.x + BRIEFING_ROOM.width / 2,
+      0,
+      BC.z + wz,
+      -Math.PI / 2,
+      1
+    );
   }
   // Front wall (south, with door gap in the center)
-  pm(P.wallDouble, 'br_wall_s_left', briefingRoom, BC.x - 6, 0, BC.z - BRIEFING_ROOM.depth / 2, Math.PI, 1);
-  pm(P.wallDouble, 'br_wall_s_right', briefingRoom, BC.x + 6, 0, BC.z - BRIEFING_ROOM.depth / 2, Math.PI, 1);
+  pm(
+    P.wallDouble,
+    'br_wall_s_left',
+    briefingRoom,
+    BC.x - 6,
+    0,
+    BC.z - BRIEFING_ROOM.depth / 2,
+    Math.PI,
+    1
+  );
+  pm(
+    P.wallDouble,
+    'br_wall_s_right',
+    briefingRoom,
+    BC.x + 6,
+    0,
+    BC.z - BRIEFING_ROOM.depth / 2,
+    Math.PI,
+    1
+  );
   // Doorway frame at south exit
-  pm(P.doorway2, 'br_door_south', briefingRoom, BC.x, 0, BC.z - BRIEFING_ROOM.depth / 2, Math.PI, 1);
+  pm(
+    P.doorway2,
+    'br_door_south',
+    briefingRoom,
+    BC.x,
+    0,
+    BC.z - BRIEFING_ROOM.depth / 2,
+    Math.PI,
+    1
+  );
 
   // --- Ceiling (roof plates with vents) ---
   for (let cx = -8; cx <= 8; cx += 4) {
     for (let cz = -6; cz <= 6; cz += 4) {
-      const isVentTile = (cx === 0 && cz === 0) || (cx === -4 && cz === 4) || (cx === 4 && cz === -4);
+      const isVentTile =
+        (cx === 0 && cz === 0) || (cx === -4 && cz === 4) || (cx === 4 && cz === -4);
       pm(
         isVentTile ? P.modRoofVents : P.modRoofPlate,
         `br_ceil_${cx}_${cz}`,
@@ -807,13 +874,76 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   }
 
   // --- Windows (station window models on north and side walls) ---
-  pm(P.window1, 'br_win_n_left', briefingRoom, BC.x - 6, 0.5, BC.z + BRIEFING_ROOM.depth / 2 - 0.2, 0, 1);
-  pm(P.window2, 'br_win_n_center', briefingRoom, BC.x, 0.5, BC.z + BRIEFING_ROOM.depth / 2 - 0.2, 0, 1);
-  pm(P.window1, 'br_win_n_right', briefingRoom, BC.x + 6, 0.5, BC.z + BRIEFING_ROOM.depth / 2 - 0.2, 0, 1);
-  pm(P.window1, 'br_win_w_1', briefingRoom, BC.x - BRIEFING_ROOM.width / 2 + 0.2, 0.5, BC.z + 3, Math.PI / 2, 1);
-  pm(P.window1, 'br_win_w_2', briefingRoom, BC.x - BRIEFING_ROOM.width / 2 + 0.2, 0.5, BC.z - 3, Math.PI / 2, 1);
-  pm(P.window1, 'br_win_e_1', briefingRoom, BC.x + BRIEFING_ROOM.width / 2 - 0.2, 0.5, BC.z + 3, -Math.PI / 2, 1);
-  pm(P.window1, 'br_win_e_2', briefingRoom, BC.x + BRIEFING_ROOM.width / 2 - 0.2, 0.5, BC.z - 3, -Math.PI / 2, 1);
+  pm(
+    P.window1,
+    'br_win_n_left',
+    briefingRoom,
+    BC.x - 6,
+    0.5,
+    BC.z + BRIEFING_ROOM.depth / 2 - 0.2,
+    0,
+    1
+  );
+  pm(
+    P.window2,
+    'br_win_n_center',
+    briefingRoom,
+    BC.x,
+    0.5,
+    BC.z + BRIEFING_ROOM.depth / 2 - 0.2,
+    0,
+    1
+  );
+  pm(
+    P.window1,
+    'br_win_n_right',
+    briefingRoom,
+    BC.x + 6,
+    0.5,
+    BC.z + BRIEFING_ROOM.depth / 2 - 0.2,
+    0,
+    1
+  );
+  pm(
+    P.window1,
+    'br_win_w_1',
+    briefingRoom,
+    BC.x - BRIEFING_ROOM.width / 2 + 0.2,
+    0.5,
+    BC.z + 3,
+    Math.PI / 2,
+    1
+  );
+  pm(
+    P.window1,
+    'br_win_w_2',
+    briefingRoom,
+    BC.x - BRIEFING_ROOM.width / 2 + 0.2,
+    0.5,
+    BC.z - 3,
+    Math.PI / 2,
+    1
+  );
+  pm(
+    P.window1,
+    'br_win_e_1',
+    briefingRoom,
+    BC.x + BRIEFING_ROOM.width / 2 - 0.2,
+    0.5,
+    BC.z + 3,
+    -Math.PI / 2,
+    1
+  );
+  pm(
+    P.window1,
+    'br_win_e_2',
+    briefingRoom,
+    BC.x + BRIEFING_ROOM.width / 2 - 0.2,
+    0.5,
+    BC.z - 3,
+    -Math.PI / 2,
+    1
+  );
 
   // --- Station external hull visible through windows ---
   pp(P.stationExternal, 'br_station_ext', briefingRoom, BC.x, -20, BC.z + 80, 0, 3);
@@ -825,8 +955,26 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.pillar4, 'br_pillar_se', briefingRoom, BC.x + 8, 0, BC.z - 6, 0, 1);
 
   // --- Columns flanking exit ---
-  pp(P.modColumn2, 'br_col_exit_l', briefingRoom, BC.x - 2, 0, BC.z - BRIEFING_ROOM.depth / 2 + 0.5, 0, 1);
-  pp(P.modColumn2, 'br_col_exit_r', briefingRoom, BC.x + 2, 0, BC.z - BRIEFING_ROOM.depth / 2 + 0.5, 0, 1);
+  pp(
+    P.modColumn2,
+    'br_col_exit_l',
+    briefingRoom,
+    BC.x - 2,
+    0,
+    BC.z - BRIEFING_ROOM.depth / 2 + 0.5,
+    0,
+    1
+  );
+  pp(
+    P.modColumn2,
+    'br_col_exit_r',
+    briefingRoom,
+    BC.x + 2,
+    0,
+    BC.z - BRIEFING_ROOM.depth / 2 + 0.5,
+    0,
+    1
+  );
 
   // --- Computers around the briefing table area ---
   pp(P.modComputer, 'br_computer_1', briefingRoom, BC.x - 3, 0.8, BC.z + 2, 0, 0.8);
@@ -855,17 +1003,71 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.poster12, 'br_poster_2', briefingRoom, BC.x - 9.4, 1.5, BC.z - 4, Math.PI / 2, 0.8);
 
   // --- Detail plates on ceiling ---
-  pp(P.modPlateLarge, 'br_plate_1', briefingRoom, BC.x - 2, BRIEFING_ROOM.height - 0.1, BC.z + 4, 0, 1);
-  pp(P.modPlateLarge, 'br_plate_2', briefingRoom, BC.x + 2, BRIEFING_ROOM.height - 0.1, BC.z - 4, Math.PI, 1);
+  pp(
+    P.modPlateLarge,
+    'br_plate_1',
+    briefingRoom,
+    BC.x - 2,
+    BRIEFING_ROOM.height - 0.1,
+    BC.z + 4,
+    0,
+    1
+  );
+  pp(
+    P.modPlateLarge,
+    'br_plate_2',
+    briefingRoom,
+    BC.x + 2,
+    BRIEFING_ROOM.height - 0.1,
+    BC.z - 4,
+    Math.PI,
+    1
+  );
 
   // --- Beams across ceiling ---
-  pp(P.beamHorizontal1, 'br_beam_1', briefingRoom, BC.x, BRIEFING_ROOM.height - 0.3, BC.z + 3, 0, 1);
-  pp(P.beamHorizontal1, 'br_beam_2', briefingRoom, BC.x, BRIEFING_ROOM.height - 0.3, BC.z - 3, 0, 1);
+  pp(
+    P.beamHorizontal1,
+    'br_beam_1',
+    briefingRoom,
+    BC.x,
+    BRIEFING_ROOM.height - 0.3,
+    BC.z + 3,
+    0,
+    1
+  );
+  pp(
+    P.beamHorizontal1,
+    'br_beam_2',
+    briefingRoom,
+    BC.x,
+    BRIEFING_ROOM.height - 0.3,
+    BC.z - 3,
+    0,
+    1
+  );
 
   // Briefing room lights
-  addCeilingLight(scene, new Vector3(-5, BRIEFING_ROOM.height - 0.2, 3), new Color3(0.8, 0.9, 1), 0.6, lights);
-  addCeilingLight(scene, new Vector3(5, BRIEFING_ROOM.height - 0.2, 3), new Color3(0.8, 0.9, 1), 0.6, lights);
-  addCeilingLight(scene, new Vector3(0, BRIEFING_ROOM.height - 0.2, -3), new Color3(0.8, 0.9, 1), 0.6, lights);
+  addCeilingLight(
+    scene,
+    new Vector3(-5, BRIEFING_ROOM.height - 0.2, 3),
+    new Color3(0.8, 0.9, 1),
+    0.6,
+    lights
+  );
+  addCeilingLight(
+    scene,
+    new Vector3(5, BRIEFING_ROOM.height - 0.2, 3),
+    new Color3(0.8, 0.9, 1),
+    0.6,
+    lights
+  );
+  addCeilingLight(
+    scene,
+    new Vector3(0, BRIEFING_ROOM.height - 0.2, -3),
+    new Color3(0.8, 0.9, 1),
+    0.6,
+    lights
+  );
 
   // ============================================================================
   // CORRIDOR A (4m wide x 30m long x 3m tall)
@@ -881,18 +1083,54 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
 
   // Walls along left side
   for (let wz = CC.z + 10; wz >= CC.z - 10; wz -= 4) {
-    pm(P.wallSingle, `corr_wall_l_${wz}`, corridorA, CC.x - CORRIDOR_A.width / 2, 0, wz, Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `corr_wall_l_${wz}`,
+      corridorA,
+      CC.x - CORRIDOR_A.width / 2,
+      0,
+      wz,
+      Math.PI / 2,
+      1
+    );
   }
   // Walls along right side
   for (let wz = CC.z + 10; wz >= CC.z - 10; wz -= 4) {
-    pm(P.wallSingle, `corr_wall_r_${wz}`, corridorA, CC.x + CORRIDOR_A.width / 2, 0, wz, -Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `corr_wall_r_${wz}`,
+      corridorA,
+      CC.x + CORRIDOR_A.width / 2,
+      0,
+      wz,
+      -Math.PI / 2,
+      1
+    );
   }
 
   // Doorway to platforming room (left)
-  pm(P.doorway, 'corr_door_platform', corridorA, CC.x - CORRIDOR_A.width / 2, 0, CC.z - 2, Math.PI / 2, 1);
+  pm(
+    P.doorway,
+    'corr_door_platform',
+    corridorA,
+    CC.x - CORRIDOR_A.width / 2,
+    0,
+    CC.z - 2,
+    Math.PI / 2,
+    1
+  );
 
   // Doorway to equipment bay (right)
-  pm(P.doorway, 'corr_door_equip', corridorA, CC.x + CORRIDOR_A.width / 2, 0, CC.z - 5, -Math.PI / 2, 1);
+  pm(
+    P.doorway,
+    'corr_door_equip',
+    corridorA,
+    CC.x + CORRIDOR_A.width / 2,
+    0,
+    CC.z - 5,
+    -Math.PI / 2,
+    1
+  );
 
   // Ceiling segments
   for (let cz = CC.z + 12; cz >= CC.z - 12; cz -= 4) {
@@ -905,9 +1143,36 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.pipe1, 'corr_pipe_3', corridorA, CC.x, CORRIDOR_A.height - 0.15, CC.z - 8, 0, 1);
 
   // Beams across corridor
-  pp(P.beamHorizontal1, 'corr_beam_1', corridorA, CC.x, CORRIDOR_A.height - 0.2, CC.z + 8, Math.PI / 2, 1);
-  pp(P.beamHorizontal1, 'corr_beam_2', corridorA, CC.x, CORRIDOR_A.height - 0.2, CC.z - 4, Math.PI / 2, 1);
-  pp(P.beamHorizontal1, 'corr_beam_3', corridorA, CC.x, CORRIDOR_A.height - 0.2, CC.z - 12, Math.PI / 2, 1);
+  pp(
+    P.beamHorizontal1,
+    'corr_beam_1',
+    corridorA,
+    CC.x,
+    CORRIDOR_A.height - 0.2,
+    CC.z + 8,
+    Math.PI / 2,
+    1
+  );
+  pp(
+    P.beamHorizontal1,
+    'corr_beam_2',
+    corridorA,
+    CC.x,
+    CORRIDOR_A.height - 0.2,
+    CC.z - 4,
+    Math.PI / 2,
+    1
+  );
+  pp(
+    P.beamHorizontal1,
+    'corr_beam_3',
+    corridorA,
+    CC.x,
+    CORRIDOR_A.height - 0.2,
+    CC.z - 12,
+    Math.PI / 2,
+    1
+  );
 
   // Lamps along corridor
   pp(P.lamp1, 'corr_lamp_1', corridorA, CC.x - 1.5, CORRIDOR_A.height - 0.3, CC.z + 6, 0, 1);
@@ -932,7 +1197,13 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
 
   // Corridor lights
   for (let z = CC.z + 10; z >= CC.z - 10; z -= 10) {
-    addCeilingLight(scene, new Vector3(CC.x, CORRIDOR_A.height - 0.2, z), new Color3(0.9, 0.95, 1), 0.5, lights);
+    addCeilingLight(
+      scene,
+      new Vector3(CC.x, CORRIDOR_A.height - 0.2, z),
+      new Color3(0.9, 0.95, 1),
+      0.5,
+      lights
+    );
   }
 
   // ============================================================================
@@ -942,26 +1213,89 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Floor
   for (let fx = -6; fx <= 6; fx += 4) {
     for (let fz = -4; fz <= 4; fz += 4) {
-      pm(P.floorCeiling1, `eq_floor_${fx}_${fz}`, equipmentBayRoom, EC.x + fx, -0.05, EC.z + fz, 0, 1);
+      pm(
+        P.floorCeiling1,
+        `eq_floor_${fx}_${fz}`,
+        equipmentBayRoom,
+        EC.x + fx,
+        -0.05,
+        EC.z + fz,
+        0,
+        1
+      );
     }
   }
 
   // Walls
   for (let wx = -6; wx <= 6; wx += 4) {
-    pm(P.wallDouble, `eq_wall_n_${wx}`, equipmentBayRoom, EC.x + wx, 0, EC.z + EQUIPMENT_BAY.depth / 2, 0, 1);
-    pm(P.wallDouble, `eq_wall_s_${wx}`, equipmentBayRoom, EC.x + wx, 0, EC.z - EQUIPMENT_BAY.depth / 2, Math.PI, 1);
+    pm(
+      P.wallDouble,
+      `eq_wall_n_${wx}`,
+      equipmentBayRoom,
+      EC.x + wx,
+      0,
+      EC.z + EQUIPMENT_BAY.depth / 2,
+      0,
+      1
+    );
+    pm(
+      P.wallDouble,
+      `eq_wall_s_${wx}`,
+      equipmentBayRoom,
+      EC.x + wx,
+      0,
+      EC.z - EQUIPMENT_BAY.depth / 2,
+      Math.PI,
+      1
+    );
   }
   for (let wz = -4; wz <= 4; wz += 4) {
-    pm(P.wallSingle, `eq_wall_e_${wz}`, equipmentBayRoom, EC.x + EQUIPMENT_BAY.width / 2, 0, EC.z + wz, -Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `eq_wall_e_${wz}`,
+      equipmentBayRoom,
+      EC.x + EQUIPMENT_BAY.width / 2,
+      0,
+      EC.z + wz,
+      -Math.PI / 2,
+      1
+    );
   }
   // Left wall with door gap
-  pm(P.wallSingle, 'eq_wall_w_top', equipmentBayRoom, EC.x - EQUIPMENT_BAY.width / 2, 0, EC.z + 3, Math.PI / 2, 1);
-  pm(P.wallSingle, 'eq_wall_w_bot', equipmentBayRoom, EC.x - EQUIPMENT_BAY.width / 2, 0, EC.z - 3, Math.PI / 2, 1);
+  pm(
+    P.wallSingle,
+    'eq_wall_w_top',
+    equipmentBayRoom,
+    EC.x - EQUIPMENT_BAY.width / 2,
+    0,
+    EC.z + 3,
+    Math.PI / 2,
+    1
+  );
+  pm(
+    P.wallSingle,
+    'eq_wall_w_bot',
+    equipmentBayRoom,
+    EC.x - EQUIPMENT_BAY.width / 2,
+    0,
+    EC.z - 3,
+    Math.PI / 2,
+    1
+  );
 
   // Ceiling
   for (let cx = -6; cx <= 6; cx += 4) {
     for (let cz = -4; cz <= 4; cz += 4) {
-      pm(P.modRoofPlate, `eq_ceil_${cx}_${cz}`, equipmentBayRoom, EC.x + cx, EQUIPMENT_BAY.height, EC.z + cz, 0, 1);
+      pm(
+        P.modRoofPlate,
+        `eq_ceil_${cx}_${cz}`,
+        equipmentBayRoom,
+        EC.x + cx,
+        EQUIPMENT_BAY.height,
+        EC.z + cz,
+        0,
+        1
+      );
     }
   }
 
@@ -1002,7 +1336,16 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.poster13, 'eq_poster_2', equipmentBayRoom, EC.x - 7, 1.6, EC.z - 2, Math.PI / 2, 0.7);
 
   // Beams
-  pp(P.beamHorizontal2, 'eq_beam_1', equipmentBayRoom, EC.x, EQUIPMENT_BAY.height - 0.3, EC.z, 0, 1);
+  pp(
+    P.beamHorizontal2,
+    'eq_beam_1',
+    equipmentBayRoom,
+    EC.x,
+    EQUIPMENT_BAY.height - 0.3,
+    EC.z,
+    0,
+    1
+  );
 
   // Lamps
   pp(P.lamp1, 'eq_lamp_1', equipmentBayRoom, EC.x - 3, EQUIPMENT_BAY.height - 0.3, EC.z, 0, 1);
@@ -1015,12 +1358,42 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.modColumn2, 'eq_col_4', equipmentBayRoom, EC.x + 6.5, 0, EC.z - 5, 0, 1);
 
   // Pipes on ceiling
-  pp(P.pipe1, 'eq_pipe_1', equipmentBayRoom, EC.x - 4, EQUIPMENT_BAY.height - 0.1, EC.z, Math.PI / 2, 1);
-  pp(P.pipe2, 'eq_pipe_2', equipmentBayRoom, EC.x + 4, EQUIPMENT_BAY.height - 0.1, EC.z, Math.PI / 2, 1);
+  pp(
+    P.pipe1,
+    'eq_pipe_1',
+    equipmentBayRoom,
+    EC.x - 4,
+    EQUIPMENT_BAY.height - 0.1,
+    EC.z,
+    Math.PI / 2,
+    1
+  );
+  pp(
+    P.pipe2,
+    'eq_pipe_2',
+    equipmentBayRoom,
+    EC.x + 4,
+    EQUIPMENT_BAY.height - 0.1,
+    EC.z,
+    Math.PI / 2,
+    1
+  );
 
   // Equipment bay lights
-  addCeilingLight(scene, new Vector3(EC.x - 3, EQUIPMENT_BAY.height - 0.2, EC.z), new Color3(0.9, 0.95, 1), 0.6, lights);
-  addCeilingLight(scene, new Vector3(EC.x + 3, EQUIPMENT_BAY.height - 0.2, EC.z), new Color3(0.9, 0.95, 1), 0.6, lights);
+  addCeilingLight(
+    scene,
+    new Vector3(EC.x - 3, EQUIPMENT_BAY.height - 0.2, EC.z),
+    new Color3(0.9, 0.95, 1),
+    0.6,
+    lights
+  );
+  addCeilingLight(
+    scene,
+    new Vector3(EC.x + 3, EQUIPMENT_BAY.height - 0.2, EC.z),
+    new Color3(0.9, 0.95, 1),
+    0.6,
+    lights
+  );
 
   // ============================================================================
   // SHOOTING RANGE (25m x 10m x 4m) - at end of corridor
@@ -1029,41 +1402,140 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Floor
   for (let fx = -10; fx <= 10; fx += 4) {
     for (let fz = -4; fz <= 4; fz += 4) {
-      pm(P.floorCeiling1, `sr_floor_${fx}_${fz}`, shootingRangeRoom, SC.x + fx, -0.05, SC.z + fz, 0, 1);
+      pm(
+        P.floorCeiling1,
+        `sr_floor_${fx}_${fz}`,
+        shootingRangeRoom,
+        SC.x + fx,
+        -0.05,
+        SC.z + fz,
+        0,
+        1
+      );
     }
   }
 
   // Walls - back (target wall)
   for (let wx = -10; wx <= 10; wx += 4) {
-    pm(P.wallDouble, `sr_wall_back_${wx}`, shootingRangeRoom, SC.x + wx, 0, SC.z - SHOOTING_RANGE.depth / 2, Math.PI, 1);
+    pm(
+      P.wallDouble,
+      `sr_wall_back_${wx}`,
+      shootingRangeRoom,
+      SC.x + wx,
+      0,
+      SC.z - SHOOTING_RANGE.depth / 2,
+      Math.PI,
+      1
+    );
   }
   // Left wall
   for (let wz = -4; wz <= 4; wz += 4) {
-    pm(P.wallSingle, `sr_wall_l_${wz}`, shootingRangeRoom, SC.x - SHOOTING_RANGE.width / 2, 0, SC.z + wz, Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `sr_wall_l_${wz}`,
+      shootingRangeRoom,
+      SC.x - SHOOTING_RANGE.width / 2,
+      0,
+      SC.z + wz,
+      Math.PI / 2,
+      1
+    );
   }
   // Right wall
   for (let wz = -4; wz <= 4; wz += 4) {
-    pm(P.wallSingle, `sr_wall_r_${wz}`, shootingRangeRoom, SC.x + SHOOTING_RANGE.width / 2, 0, SC.z + wz, -Math.PI / 2, 1);
+    pm(
+      P.wallSingle,
+      `sr_wall_r_${wz}`,
+      shootingRangeRoom,
+      SC.x + SHOOTING_RANGE.width / 2,
+      0,
+      SC.z + wz,
+      -Math.PI / 2,
+      1
+    );
   }
   // Front wall with door gap
-  pm(P.wallDouble, 'sr_wall_front_l', shootingRangeRoom, SC.x - 8, 0, SC.z + SHOOTING_RANGE.depth / 2, 0, 1);
-  pm(P.wallDouble, 'sr_wall_front_r', shootingRangeRoom, SC.x + 8, 0, SC.z + SHOOTING_RANGE.depth / 2, 0, 1);
-  pm(P.doorwayWide, 'sr_door_front', shootingRangeRoom, SC.x, 0, SC.z + SHOOTING_RANGE.depth / 2, 0, 1);
+  pm(
+    P.wallDouble,
+    'sr_wall_front_l',
+    shootingRangeRoom,
+    SC.x - 8,
+    0,
+    SC.z + SHOOTING_RANGE.depth / 2,
+    0,
+    1
+  );
+  pm(
+    P.wallDouble,
+    'sr_wall_front_r',
+    shootingRangeRoom,
+    SC.x + 8,
+    0,
+    SC.z + SHOOTING_RANGE.depth / 2,
+    0,
+    1
+  );
+  pm(
+    P.doorwayWide,
+    'sr_door_front',
+    shootingRangeRoom,
+    SC.x,
+    0,
+    SC.z + SHOOTING_RANGE.depth / 2,
+    0,
+    1
+  );
 
   // Ceiling
   for (let cx = -10; cx <= 10; cx += 4) {
-    pm(P.modRoofPlate, `sr_ceil_${cx}`, shootingRangeRoom, SC.x + cx, SHOOTING_RANGE.height, SC.z, 0, 1);
+    pm(
+      P.modRoofPlate,
+      `sr_ceil_${cx}`,
+      shootingRangeRoom,
+      SC.x + cx,
+      SHOOTING_RANGE.height,
+      SC.z,
+      0,
+      1
+    );
   }
 
   // Shooting booth platform
   pp(P.platformB1, 'sr_booth', shootingRangeRoom, SC.x, 0, SC.z + 3, 0, 1);
 
   // Target backdrop wall detail
-  pp(P.wallRtx1, 'sr_target_backdrop', shootingRangeRoom, SC.x, 0, SC.z - SHOOTING_RANGE.depth / 2 + 0.5, 0, 1.5);
+  pp(
+    P.wallRtx1,
+    'sr_target_backdrop',
+    shootingRangeRoom,
+    SC.x,
+    0,
+    SC.z - SHOOTING_RANGE.depth / 2 + 0.5,
+    0,
+    1.5
+  );
 
   // Beams across range ceiling
-  pp(P.beamHorizontal2, 'sr_beam_1', shootingRangeRoom, SC.x - 6, SHOOTING_RANGE.height - 0.3, SC.z, 0, 1);
-  pp(P.beamHorizontal2, 'sr_beam_2', shootingRangeRoom, SC.x + 6, SHOOTING_RANGE.height - 0.3, SC.z, 0, 1);
+  pp(
+    P.beamHorizontal2,
+    'sr_beam_1',
+    shootingRangeRoom,
+    SC.x - 6,
+    SHOOTING_RANGE.height - 0.3,
+    SC.z,
+    0,
+    1
+  );
+  pp(
+    P.beamHorizontal2,
+    'sr_beam_2',
+    shootingRangeRoom,
+    SC.x + 6,
+    SHOOTING_RANGE.height - 0.3,
+    SC.z,
+    0,
+    1
+  );
 
   // Lamps
   pp(P.lamp1, 'sr_lamp_1', shootingRangeRoom, SC.x - 8, SHOOTING_RANGE.height - 0.3, SC.z, 0, 1);
@@ -1081,23 +1553,77 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.firstAidKit, 'sr_firstaid', shootingRangeRoom, SC.x + 12, 1.5, SC.z - 2, -Math.PI / 2, 1);
 
   // Pipes
-  pp(P.pipe1, 'sr_pipe_1', shootingRangeRoom, SC.x - 6, SHOOTING_RANGE.height - 0.1, SC.z, Math.PI / 2, 1);
-  pp(P.pipe2, 'sr_pipe_2', shootingRangeRoom, SC.x + 6, SHOOTING_RANGE.height - 0.1, SC.z, Math.PI / 2, 1);
+  pp(
+    P.pipe1,
+    'sr_pipe_1',
+    shootingRangeRoom,
+    SC.x - 6,
+    SHOOTING_RANGE.height - 0.1,
+    SC.z,
+    Math.PI / 2,
+    1
+  );
+  pp(
+    P.pipe2,
+    'sr_pipe_2',
+    shootingRangeRoom,
+    SC.x + 6,
+    SHOOTING_RANGE.height - 0.1,
+    SC.z,
+    Math.PI / 2,
+    1
+  );
 
   // Vents
   pp(P.modVent1, 'sr_vent_1', shootingRangeRoom, SC.x - 12, 3.2, SC.z, Math.PI / 2, 1);
   pp(P.modVent2, 'sr_vent_2', shootingRangeRoom, SC.x + 12, 3.2, SC.z, -Math.PI / 2, 1);
 
   // Poster
-  pp(P.poster11, 'sr_poster_safety', shootingRangeRoom, SC.x + 12, 1.6, SC.z + 3, -Math.PI / 2, 0.8);
+  pp(
+    P.poster11,
+    'sr_poster_safety',
+    shootingRangeRoom,
+    SC.x + 12,
+    1.6,
+    SC.z + 3,
+    -Math.PI / 2,
+    0.8
+  );
 
   // Door from range to hangar
-  pm(P.doorway3, 'sr_door_hangar', shootingRangeRoom, SC.x, 0, SC.z - SHOOTING_RANGE.depth / 2 - 1, 0, 1);
+  pm(
+    P.doorway3,
+    'sr_door_hangar',
+    shootingRangeRoom,
+    SC.x,
+    0,
+    SC.z - SHOOTING_RANGE.depth / 2 - 1,
+    0,
+    1
+  );
 
   // Shooting range lights
-  addCeilingLight(scene, new Vector3(SC.x - 6, SHOOTING_RANGE.height - 0.2, SC.z), new Color3(0.9, 0.95, 1), 0.5, lights);
-  addCeilingLight(scene, new Vector3(SC.x, SHOOTING_RANGE.height - 0.2, SC.z), new Color3(0.9, 0.95, 1), 0.5, lights);
-  addCeilingLight(scene, new Vector3(SC.x + 6, SHOOTING_RANGE.height - 0.2, SC.z), new Color3(0.9, 0.95, 1), 0.5, lights);
+  addCeilingLight(
+    scene,
+    new Vector3(SC.x - 6, SHOOTING_RANGE.height - 0.2, SC.z),
+    new Color3(0.9, 0.95, 1),
+    0.5,
+    lights
+  );
+  addCeilingLight(
+    scene,
+    new Vector3(SC.x, SHOOTING_RANGE.height - 0.2, SC.z),
+    new Color3(0.9, 0.95, 1),
+    0.5,
+    lights
+  );
+  addCeilingLight(
+    scene,
+    new Vector3(SC.x + 6, SHOOTING_RANGE.height - 0.2, SC.z),
+    new Color3(0.9, 0.95, 1),
+    0.5,
+    lights
+  );
 
   // ============================================================================
   // HANGAR BAY (40m x 30m x 12m)
@@ -1106,17 +1632,44 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Floor - large open area
   for (let fx = -16; fx <= 16; fx += 4) {
     for (let fz = -12; fz <= 12; fz += 4) {
-      pm(P.floorCeilingRtx2, `hb_floor_${fx}_${fz}`, hangarBayRoom, HC.x + fx, -0.05, HC.z + fz, 0, 1);
+      pm(
+        P.floorCeilingRtx2,
+        `hb_floor_${fx}_${fz}`,
+        hangarBayRoom,
+        HC.x + fx,
+        -0.05,
+        HC.z + fz,
+        0,
+        1
+      );
     }
   }
 
   // Walls - left
   for (let wz = -12; wz <= 12; wz += 4) {
-    pm(P.wallM2, `hb_wall_l_${wz}`, hangarBayRoom, HC.x - HANGAR_BAY.width / 2, 0, HC.z + wz, Math.PI / 2, 1);
+    pm(
+      P.wallM2,
+      `hb_wall_l_${wz}`,
+      hangarBayRoom,
+      HC.x - HANGAR_BAY.width / 2,
+      0,
+      HC.z + wz,
+      Math.PI / 2,
+      1
+    );
   }
   // Walls - right
   for (let wz = -12; wz <= 12; wz += 4) {
-    pm(P.wallM2, `hb_wall_r_${wz}`, hangarBayRoom, HC.x + HANGAR_BAY.width / 2, 0, HC.z + wz, -Math.PI / 2, 1);
+    pm(
+      P.wallM2,
+      `hb_wall_r_${wz}`,
+      hangarBayRoom,
+      HC.x + HANGAR_BAY.width / 2,
+      0,
+      HC.z + wz,
+      -Math.PI / 2,
+      1
+    );
   }
   // Front wall with entrance
   pm(P.wallM2, 'hb_wall_front_l', hangarBayRoom, HC.x - 12, 0, HC.z + HANGAR_BAY.depth / 2, 0, 1);
@@ -1125,22 +1678,94 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Ceiling
   for (let cx = -16; cx <= 16; cx += 8) {
     for (let cz = -12; cz <= 12; cz += 8) {
-      pm(P.floorCeilingRtx2, `hb_ceil_${cx}_${cz}`, hangarBayRoom, HC.x + cx, HANGAR_BAY.height, HC.z + cz, Math.PI, 1);
+      pm(
+        P.floorCeilingRtx2,
+        `hb_ceil_${cx}_${cz}`,
+        hangarBayRoom,
+        HC.x + cx,
+        HANGAR_BAY.height,
+        HC.z + cz,
+        Math.PI,
+        1
+      );
     }
   }
 
   // Garage door frames at the back (bay doors)
-  pm(P.garageDoor1, 'hb_garage_door_l', hangarBayRoom, HC.x - 10, 0, HC.z - HANGAR_BAY.depth / 2, Math.PI, 1);
-  pm(P.garageDoor2, 'hb_garage_door_r', hangarBayRoom, HC.x + 10, 0, HC.z - HANGAR_BAY.depth / 2, Math.PI, 1);
+  pm(
+    P.garageDoor1,
+    'hb_garage_door_l',
+    hangarBayRoom,
+    HC.x - 10,
+    0,
+    HC.z - HANGAR_BAY.depth / 2,
+    Math.PI,
+    1
+  );
+  pm(
+    P.garageDoor2,
+    'hb_garage_door_r',
+    hangarBayRoom,
+    HC.x + 10,
+    0,
+    HC.z - HANGAR_BAY.depth / 2,
+    Math.PI,
+    1
+  );
 
   // Windows on side walls
-  pm(P.window1, 'hb_win_l_1', hangarBayRoom, HC.x - HANGAR_BAY.width / 2 + 0.2, 2, HC.z + 6, Math.PI / 2, 1.5);
-  pm(P.window2, 'hb_win_l_2', hangarBayRoom, HC.x - HANGAR_BAY.width / 2 + 0.2, 2, HC.z - 6, Math.PI / 2, 1.5);
-  pm(P.window1, 'hb_win_r_1', hangarBayRoom, HC.x + HANGAR_BAY.width / 2 - 0.2, 2, HC.z + 6, -Math.PI / 2, 1.5);
-  pm(P.window2, 'hb_win_r_2', hangarBayRoom, HC.x + HANGAR_BAY.width / 2 - 0.2, 2, HC.z - 6, -Math.PI / 2, 1.5);
+  pm(
+    P.window1,
+    'hb_win_l_1',
+    hangarBayRoom,
+    HC.x - HANGAR_BAY.width / 2 + 0.2,
+    2,
+    HC.z + 6,
+    Math.PI / 2,
+    1.5
+  );
+  pm(
+    P.window2,
+    'hb_win_l_2',
+    hangarBayRoom,
+    HC.x - HANGAR_BAY.width / 2 + 0.2,
+    2,
+    HC.z - 6,
+    Math.PI / 2,
+    1.5
+  );
+  pm(
+    P.window1,
+    'hb_win_r_1',
+    hangarBayRoom,
+    HC.x + HANGAR_BAY.width / 2 - 0.2,
+    2,
+    HC.z + 6,
+    -Math.PI / 2,
+    1.5
+  );
+  pm(
+    P.window2,
+    'hb_win_r_2',
+    hangarBayRoom,
+    HC.x + HANGAR_BAY.width / 2 - 0.2,
+    2,
+    HC.z - 6,
+    -Math.PI / 2,
+    1.5
+  );
 
   // Platform for the drop pod
-  pm(P.platformLarge, 'hb_pod_platform', hangarBayRoom, ROOM_POSITIONS.dropPod.x, 0, ROOM_POSITIONS.dropPod.z, 0, 1);
+  pm(
+    P.platformLarge,
+    'hb_pod_platform',
+    hangarBayRoom,
+    ROOM_POSITIONS.dropPod.x,
+    0,
+    ROOM_POSITIONS.dropPod.z,
+    0,
+    1
+  );
 
   // Ramp leading to pod area
   pp(P.rampWide, 'hb_ramp_1', hangarBayRoom, HC.x, 0, HC.z - 2, 0, 1);
@@ -1154,8 +1779,26 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Beams spanning the ceiling
   pp(P.beamRtx1, 'hb_beam_1', hangarBayRoom, HC.x, HANGAR_BAY.height - 0.5, HC.z + 6, 0, 2);
   pp(P.beamRtx1, 'hb_beam_2', hangarBayRoom, HC.x, HANGAR_BAY.height - 0.5, HC.z - 6, 0, 2);
-  pp(P.beamHorizontal2, 'hb_beam_3', hangarBayRoom, HC.x - 8, HANGAR_BAY.height - 0.5, HC.z, Math.PI / 2, 1.5);
-  pp(P.beamHorizontal2, 'hb_beam_4', hangarBayRoom, HC.x + 8, HANGAR_BAY.height - 0.5, HC.z, Math.PI / 2, 1.5);
+  pp(
+    P.beamHorizontal2,
+    'hb_beam_3',
+    hangarBayRoom,
+    HC.x - 8,
+    HANGAR_BAY.height - 0.5,
+    HC.z,
+    Math.PI / 2,
+    1.5
+  );
+  pp(
+    P.beamHorizontal2,
+    'hb_beam_4',
+    hangarBayRoom,
+    HC.x + 8,
+    HANGAR_BAY.height - 0.5,
+    HC.z,
+    Math.PI / 2,
+    1.5
+  );
 
   // Industrial props around hangar
   pp(P.barrel1, 'hb_barrel_1', hangarBayRoom, HC.x - 14, 0, HC.z + 10, 0, 1);
@@ -1194,7 +1837,16 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Poster / decals
   pp(P.poster11, 'hb_poster_1', hangarBayRoom, HC.x + 19, 2, HC.z + 2, -Math.PI / 2, 1);
   pp(P.poster12, 'hb_poster_2', hangarBayRoom, HC.x - 19, 2, HC.z - 2, Math.PI / 2, 1);
-  pp(P.poster13, 'hb_poster_3', hangarBayRoom, HC.x - 6, 2, HC.z + HANGAR_BAY.depth / 2 - 0.2, 0, 1);
+  pp(
+    P.poster13,
+    'hb_poster_3',
+    hangarBayRoom,
+    HC.x - 6,
+    2,
+    HC.z + HANGAR_BAY.depth / 2 - 0.2,
+    0,
+    1
+  );
 
   // First aid kit
   pp(P.firstAidKit, 'hb_firstaid', hangarBayRoom, HC.x + 18, 1.5, HC.z + 8, -Math.PI / 2, 1);
@@ -1205,7 +1857,13 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Hangar bay lights (industrial orange)
   for (let x = -12; x <= 12; x += 12) {
     for (let z = HC.z + 8; z >= HC.z - 8; z -= 8) {
-      addCeilingLight(scene, new Vector3(x, HANGAR_BAY.height - 0.3, z), new Color3(1, 0.8, 0.6), 0.7, lights);
+      addCeilingLight(
+        scene,
+        new Vector3(x, HANGAR_BAY.height - 0.3, z),
+        new Color3(1, 0.8, 0.6),
+        0.7,
+        lights
+      );
     }
   }
 
@@ -1282,7 +1940,11 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   scene.beginAnimation(lockerLight, 0, 30, true);
 
   // Placeholder mesh for suitLocker return value (actual visual is GLB)
-  const suitLocker = MeshBuilder.CreateBox('suitLockerRef', { width: 0.1, height: 0.1, depth: 0.1 }, scene);
+  const suitLocker = MeshBuilder.CreateBox(
+    'suitLockerRef',
+    { width: 0.1, height: 0.1, depth: 0.1 },
+    scene
+  );
   suitLocker.isVisible = false;
   suitLocker.parent = suitLockerContainer;
 
@@ -1295,7 +1957,11 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   pp(P.modShelfTall, 'rackFrame', weaponRackContainer, 0, 0, 0, 0, 0.8);
 
   // Placeholder mesh for equipmentRack return value (actual visual is GLB)
-  const equipmentRack = MeshBuilder.CreateBox('equipmentRackRef', { width: 0.1, height: 0.1, depth: 0.1 }, scene);
+  const equipmentRack = MeshBuilder.CreateBox(
+    'equipmentRackRef',
+    { width: 0.1, height: 0.1, depth: 0.1 },
+    scene
+  );
   equipmentRack.isVisible = false;
   equipmentRack.parent = weaponRackContainer;
 
@@ -1419,7 +2085,11 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Caution stripes on bay doors
   for (let y = 2; y < bayDoorHeight - 1; y += 2) {
     for (const door of [bayDoorLeft, bayDoorRight]) {
-      const stripe = MeshBuilder.CreateBox('stripe', { width: bayDoorWidth - 0.5, height: 0.4, depth: 0.52 }, scene);
+      const stripe = MeshBuilder.CreateBox(
+        'stripe',
+        { width: bayDoorWidth - 0.5, height: 0.4, depth: 0.52 },
+        scene
+      );
       stripe.position.set(0, y - bayDoorHeight / 2, 0);
       stripe.material = y % 4 < 2 ? materials.get('caution')! : materials.get('emergency')!;
       stripe.parent = door;
@@ -1432,7 +2102,11 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // Drop pod platform using GLB model (modular base)
   pp(P.modBase, 'podPlatform', hangarBayRoom, podPosition.x, 0, podPosition.z, 0, 1.5);
 
-  const dropPod = MeshBuilder.CreateCylinder('podBody', { height: 3, diameter: 2.5, tessellation: 12 }, scene);
+  const dropPod = MeshBuilder.CreateCylinder(
+    'podBody',
+    { height: 3, diameter: 2.5, tessellation: 12 },
+    scene
+  );
   dropPod.position = new Vector3(podPosition.x, 1.8, podPosition.z);
   dropPod.material = materials.get('pod')!;
   dropPod.parent = hangarBayRoom;
@@ -1466,17 +2140,29 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
 
   // Door status lights
   const doorLightLeft = MeshBuilder.CreateSphere('doorLightL', { diameter: 0.2 }, scene);
-  doorLightLeft.position = new Vector3(-3, SHOOTING_RANGE.height - 0.5, SC.z - SHOOTING_RANGE.depth / 2 - 0.5);
+  doorLightLeft.position = new Vector3(
+    -3,
+    SHOOTING_RANGE.height - 0.5,
+    SC.z - SHOOTING_RANGE.depth / 2 - 0.5
+  );
   doorLightLeft.material = materials.get('active')!;
   doorLightLeft.parent = shootingRangeRoom;
 
   const doorLightRight = MeshBuilder.CreateSphere('doorLightR', { diameter: 0.2 }, scene);
-  doorLightRight.position = new Vector3(3, SHOOTING_RANGE.height - 0.5, SC.z - SHOOTING_RANGE.depth / 2 - 0.5);
+  doorLightRight.position = new Vector3(
+    3,
+    SHOOTING_RANGE.height - 0.5,
+    SC.z - SHOOTING_RANGE.depth / 2 - 0.5
+  );
   doorLightRight.material = materials.get('active')!;
   doorLightRight.parent = shootingRangeRoom;
 
   // Viewport placeholder
-  const viewport = MeshBuilder.CreateBox('viewport', { width: 0.1, height: 0.1, depth: 0.1 }, scene);
+  const viewport = MeshBuilder.CreateBox(
+    'viewport',
+    { width: 0.1, height: 0.1, depth: 0.1 },
+    scene
+  );
   viewport.position = new Vector3(HC.x, 0, HC.z - HANGAR_BAY.depth / 2);
   viewport.isVisible = false;
   viewport.parent = hangarBayRoom;
@@ -1494,7 +2180,13 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   // ============================================================================
 
   const playEquipSuit = (callback: () => void) => {
-    const fadeAnim = new Animation('fadeOut', 'visibility', 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const fadeAnim = new Animation(
+      'fadeOut',
+      'visibility',
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     fadeAnim.setKeys([
       { frame: 0, value: 1 },
       { frame: 30, value: 0 },
@@ -1511,7 +2203,13 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   };
 
   const playDepressurize = (callback: () => void) => {
-    const redPulse = new Animation('redPulse', 'material.emissiveColor', 30, Animation.ANIMATIONTYPE_COLOR3, Animation.ANIMATIONLOOPMODE_CYCLE);
+    const redPulse = new Animation(
+      'redPulse',
+      'material.emissiveColor',
+      30,
+      Animation.ANIMATIONTYPE_COLOR3,
+      Animation.ANIMATIONLOOPMODE_CYCLE
+    );
     redPulse.setKeys([
       { frame: 0, value: new Color3(1, 0, 0) },
       { frame: 15, value: new Color3(0.3, 0, 0) },
@@ -1525,12 +2223,24 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   };
 
   const playOpenBayDoors = (callback: () => void) => {
-    const doorOpenLeft = new Animation('doorOpenL', 'position.x', 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const doorOpenLeft = new Animation(
+      'doorOpenL',
+      'position.x',
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     doorOpenLeft.setKeys([
       { frame: 0, value: bayDoorLeft.position.x },
       { frame: 90, value: bayDoorLeft.position.x - bayDoorWidth - 2 },
     ]);
-    const doorOpenRight = new Animation('doorOpenR', 'position.x', 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const doorOpenRight = new Animation(
+      'doorOpenR',
+      'position.x',
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     doorOpenRight.setKeys([
       { frame: 0, value: bayDoorRight.position.x },
       { frame: 90, value: bayDoorRight.position.x + bayDoorWidth + 2 },
@@ -1548,13 +2258,25 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
   };
 
   const playLaunch = (callback: () => void) => {
-    const podDrop = new Animation('podDrop', 'position.y', 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const podDrop = new Animation(
+      'podDrop',
+      'position.y',
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     podDrop.setKeys([
       { frame: 0, value: dropPod.position.y },
       { frame: 10, value: dropPod.position.y - 0.5 },
       { frame: 60, value: dropPod.position.y - 100 },
     ]);
-    const coneDrop = new Animation('coneDrop', 'position.y', 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const coneDrop = new Animation(
+      'coneDrop',
+      'position.y',
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     coneDrop.setKeys([
       { frame: 0, value: podCone.position.y },
       { frame: 10, value: podCone.position.y - 0.5 },
@@ -1668,7 +2390,13 @@ export async function createStationEnvironment(scene: Scene): Promise<StationEnv
 
     if (!door) return;
 
-    const slideAnim = new Animation('doorSlide', 'position.y', 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const slideAnim = new Animation(
+      'doorSlide',
+      'position.y',
+      30,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     slideAnim.setKeys([
       { frame: 0, value: door.position.y },
       { frame: 30, value: door.position.y + 3 },
@@ -1778,7 +2506,11 @@ function createInteractiveDoor(
   const frameWidth = 2.4;
   const frameHeight = height;
 
-  const leftFrame = MeshBuilder.CreateBox('frameLeft', { width: 0.3, height: frameHeight, depth: 0.5 }, scene);
+  const leftFrame = MeshBuilder.CreateBox(
+    'frameLeft',
+    { width: 0.3, height: frameHeight, depth: 0.5 },
+    scene
+  );
   leftFrame.position = position.clone();
   leftFrame.position.x -= frameWidth / 2 + 0.15;
   leftFrame.position.y = frameHeight / 2;
@@ -1786,7 +2518,11 @@ function createInteractiveDoor(
   leftFrame.material = materials.get('windowFrame')!;
   leftFrame.parent = parent;
 
-  const rightFrame = MeshBuilder.CreateBox('frameRight', { width: 0.3, height: frameHeight, depth: 0.5 }, scene);
+  const rightFrame = MeshBuilder.CreateBox(
+    'frameRight',
+    { width: 0.3, height: frameHeight, depth: 0.5 },
+    scene
+  );
   rightFrame.position = position.clone();
   rightFrame.position.x += frameWidth / 2 + 0.15;
   rightFrame.position.y = frameHeight / 2;
@@ -1794,14 +2530,22 @@ function createInteractiveDoor(
   rightFrame.material = materials.get('windowFrame')!;
   rightFrame.parent = parent;
 
-  const topFrame = MeshBuilder.CreateBox('frameTop', { width: frameWidth + 0.6, height: 0.3, depth: 0.5 }, scene);
+  const topFrame = MeshBuilder.CreateBox(
+    'frameTop',
+    { width: frameWidth + 0.6, height: 0.3, depth: 0.5 },
+    scene
+  );
   topFrame.position = position.clone();
   topFrame.position.y = frameHeight + 0.15;
   topFrame.rotation.y = rotationY;
   topFrame.material = materials.get('windowFrame')!;
   topFrame.parent = parent;
 
-  const door = MeshBuilder.CreateBox('door', { width: frameWidth, height: frameHeight - 0.3, depth: 0.1 }, scene);
+  const door = MeshBuilder.CreateBox(
+    'door',
+    { width: frameWidth, height: frameHeight - 0.3, depth: 0.1 },
+    scene
+  );
   door.position = position.clone();
   door.position.y = (frameHeight - 0.3) / 2;
   door.rotation.y = rotationY;

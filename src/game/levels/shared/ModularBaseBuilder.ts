@@ -1,8 +1,8 @@
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 
@@ -29,11 +29,11 @@ const log = getLogger('ModularBaseBuilder');
 // ---------------------------------------------------------------------------
 
 const MODULE_LENGTH = 4.0;
-const MODULE_WIDTH = 5.55;
+const _MODULE_WIDTH = 5.55;
 const MODULE_HEIGHT = 3.09;
 
 /** Spacing between ceiling lights along the corridor spine */
-const LIGHT_SPACING = MODULE_LENGTH * 2;
+const _LIGHT_SPACING = MODULE_LENGTH * 2;
 
 /** Maximum number of lights to avoid GPU saturation */
 const MAX_LIGHTS = 32;
@@ -147,11 +147,11 @@ function seededRandom(seed: number): () => number {
   let s = seed | 0;
   return () => {
     s = (s * 1664525 + 1013904223) | 0;
-    return ((s >>> 0) / 0xffffffff);
+    return (s >>> 0) / 0xffffffff;
   };
 }
 
-function hashSegment(seg: BaseSegment, index: number): number {
+function _hashSegment(seg: BaseSegment, index: number): number {
   // Simple hash combining position components and index
   return (
     ((seg.position.x * 73856093) ^
@@ -233,7 +233,11 @@ export async function buildModularBase(
       return Promise.resolve(null);
     }
     // For props and other manifest-based assets, use category loading
-    return AssetManager.loadAsset(category as 'props' | 'aliens' | 'vehicles' | 'structures', name, scene);
+    return AssetManager.loadAsset(
+      category as 'props' | 'aliens' | 'vehicles' | 'structures',
+      name,
+      scene
+    );
   });
 
   await Promise.all(loadPromises);

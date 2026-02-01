@@ -3,36 +3,31 @@
  * Handles surface combat, enemy management, and player attacks
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
-
+import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
-import { fireWeapon, startReload, getWeaponActions } from '../../context/useWeaponActions';
-import type { SurfaceEnemy } from './types';
 import {
-  MELEE_COOLDOWN,
+  ACID_DAMAGE,
+  ACID_DAMAGE_INTERVAL,
   MELEE_DAMAGE,
   MELEE_RANGE,
   PRIMARY_FIRE_DAMAGE,
   PRIMARY_FIRE_RANGE,
-  PRIMARY_FIRE_COOLDOWN,
-  ACID_DAMAGE_INTERVAL,
-  ACID_DAMAGE,
-  TERRAIN_BOUNDS,
-  FIRST_ENCOUNTER_ENEMY_COUNT,
 } from './constants';
 import {
-  updateEnemyAI,
-  flashEnemyRed,
   animateEnemyDeath,
+  flashEnemyRed,
   isPlayerInAcidPool,
   isPlayerOnUnstableTerrain,
   updateAcidPoolVisuals,
+  updateEnemyAI,
   updateUnstableTerrainVisuals,
 } from './surface-combat';
+import type { SurfaceEnemy } from './types';
 
 // ============================================================================
 // COMBAT STATE
@@ -404,7 +399,11 @@ export function processEnemyKill(enemy: SurfaceEnemy): void {
 export function handleReload(): { started: boolean; message: string } {
   const weaponState = getWeaponActions()?.getState();
 
-  if (!weaponState || weaponState.isReloading || weaponState.currentAmmo >= weaponState.maxMagazineSize) {
+  if (
+    !weaponState ||
+    weaponState.isReloading ||
+    weaponState.currentAmmo >= weaponState.maxMagazineSize
+  ) {
     return { started: false, message: '' };
   }
 

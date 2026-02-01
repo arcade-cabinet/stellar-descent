@@ -245,7 +245,7 @@ describe('Explosion Effects', () => {
     it('should decay intensity over lifetime', () => {
       const maxIntensity = 20;
       const t = 0.5; // 50% through lifetime
-      const currentIntensity = maxIntensity * Math.pow(1 - t, 3);
+      const currentIntensity = maxIntensity * (1 - t) ** 3;
       expect(currentIntensity).toBe(2.5);
     });
   });

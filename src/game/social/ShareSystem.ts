@@ -12,7 +12,11 @@
 import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
 import { CAMPAIGN_LEVELS } from '../levels/types';
-import { getScreenshotCapture, type ScreenshotData, type ScreenshotOptions } from './ScreenshotCapture';
+import {
+  getScreenshotCapture,
+  type ScreenshotData,
+  type ScreenshotOptions,
+} from './ScreenshotCapture';
 
 const log = getLogger('ShareSystem');
 
@@ -83,10 +87,7 @@ class ShareSystemImpl {
   /**
    * Capture a screenshot of the current game state
    */
-  async captureScreenshot(
-    data?: ScreenshotData,
-    options?: ScreenshotOptions
-  ): Promise<Blob> {
+  async captureScreenshot(data?: ScreenshotData, options?: ScreenshotOptions): Promise<Blob> {
     if (!this.gameCanvas) {
       throw new Error('Game canvas not set. Call setGameCanvas first.');
     }
@@ -118,11 +119,7 @@ class ShareSystemImpl {
    * Check if sharing files is supported
    */
   canShareFiles(): boolean {
-    return (
-      typeof navigator !== 'undefined' &&
-      'share' in navigator &&
-      'canShare' in navigator
-    );
+    return typeof navigator !== 'undefined' && 'share' in navigator && 'canShare' in navigator;
   }
 
   /**
@@ -265,7 +262,16 @@ class ShareSystemImpl {
    * Generate share text based on stats and trigger
    */
   generateShareText(stats: ShareStats, trigger: ShareTrigger = 'level_complete'): string {
-    const { levelId, missionName, rating, kills, isPersonalBest, isCampaignComplete, achievementName, bossName } = stats;
+    const {
+      levelId,
+      missionName,
+      rating,
+      kills,
+      isPersonalBest,
+      isCampaignComplete,
+      achievementName,
+      bossName,
+    } = stats;
     const levelStats = stats.stats;
 
     // Format time
@@ -314,8 +320,6 @@ class ShareSystemImpl {
         if (accuracyStr) text += `Accuracy: ${accuracyStr}\n`;
         text += `Rating: ${rating}\n`;
         break;
-
-      case 'level_complete':
       default:
         text = `Just completed ${missionName} in STELLAR DESCENT!\n\n`;
         text += `Time: ${timeStr}\n`;
@@ -338,7 +342,15 @@ class ShareSystemImpl {
    * Generate share text with emoji formatting
    */
   generateShareTextWithEmoji(stats: ShareStats, trigger: ShareTrigger = 'level_complete'): string {
-    const { missionName, rating, kills, isPersonalBest, isCampaignComplete, achievementName, bossName } = stats;
+    const {
+      missionName,
+      rating,
+      kills,
+      isPersonalBest,
+      isCampaignComplete,
+      achievementName,
+      bossName,
+    } = stats;
     const levelStats = stats.stats;
 
     // Format time
@@ -357,10 +369,10 @@ class ShareSystemImpl {
     // Rating emoji
     const ratingEmoji: Record<string, string> = {
       S: '\u2B50\u2B50\u2B50', // 3 stars
-      A: '\u2B50\u2B50',       // 2 stars
-      B: '\u2B50',             // 1 star
-      C: '\u2705',             // check
-      D: '\u274C',             // x
+      A: '\u2B50\u2B50', // 2 stars
+      B: '\u2B50', // 1 star
+      C: '\u2705', // check
+      D: '\u274C', // x
     };
 
     let text = '';
@@ -397,8 +409,6 @@ class ShareSystemImpl {
         if (accuracyStr) text += `\uD83C\uDFAF Accuracy: ${accuracyStr}\n`;
         text += `${ratingEmoji[rating] || ''} Rating: ${rating}\n`;
         break;
-
-      case 'level_complete':
       default:
         text = `\uD83C\uDFAE Just completed ${missionName} in STELLAR DESCENT!\n\n`;
         text += `\u23F1\uFE0F Time: ${timeStr}\n`;

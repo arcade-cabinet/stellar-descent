@@ -4,25 +4,24 @@
  * Tests for the quest system runtime state management.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MAIN_QUEST_CHAIN, QUEST_REGISTRY } from './QuestChain';
 import {
-  initializeQuestManager,
-  resetQuestManager,
   activateQuest,
-  progressObjective,
   completeObjective,
   getActiveQuests,
   getCurrentObjective,
-  isQuestCompleted,
-  onLevelEnter,
-  onLevelExit,
-  onEnemyKilled,
-  updateTimedObjectives,
+  getObjectiveProgress,
   getObjectiveTimeRemaining,
   getQuestTrackerData,
-  getObjectiveProgress,
+  initializeQuestManager,
+  isQuestCompleted,
+  onEnemyKilled,
+  onLevelEnter,
+  progressObjective,
+  resetQuestManager,
+  updateTimedObjectives,
 } from './QuestManager';
-import { QUEST_REGISTRY, MAIN_QUEST_CHAIN } from './QuestChain';
 
 describe('QuestManager', () => {
   beforeEach(() => {
@@ -138,7 +137,7 @@ describe('QuestManager', () => {
     it('should not re-activate completed quest on level enter', () => {
       // Complete the quest first
       activateQuest('main_anchor_station');
-      const quest = QUEST_REGISTRY['main_anchor_station'];
+      const quest = QUEST_REGISTRY.main_anchor_station;
       for (const obj of quest.objectives) {
         completeObjective('main_anchor_station', obj.id);
       }

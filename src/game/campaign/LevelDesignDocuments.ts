@@ -61,7 +61,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 50,
         tension: 4,
         description:
-          'Briefing room. Commander Vasquez lays out the mission -- Kepler\'s Promise, the lost colony, the silence. The holographic planet rotates slowly.',
+          "Briefing room. Commander Vasquez lays out the mission -- Kepler's Promise, the lost colony, the silence. The holographic planet rotates slowly.",
       },
       {
         progress: 70,
@@ -113,7 +113,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'Anchor Station Prometheus hangs in high orbit above Kepler\'s Promise, a colony world that went dark three days ago. The station should be bustling with marines preparing for deployment, but the corridors are quiet -- most squads have already dropped. You are part of the final wave, a replacement pulled from cryo to fill a slot nobody wanted. The station itself tells a story: hastily evacuated mess halls, flickering emergency lights in sections that should not need them, and cargo manifests that list equipment the UNSC does not officially acknowledge. By the time you reach the drop pod bay, you understand that this is not a rescue mission. It is a last resort.',
+      "Anchor Station Prometheus hangs in high orbit above Kepler's Promise, a colony world that went dark three days ago. The station should be bustling with marines preparing for deployment, but the corridors are quiet -- most squads have already dropped. You are part of the final wave, a replacement pulled from cryo to fill a slot nobody wanted. The station itself tells a story: hastily evacuated mess halls, flickering emergency lights in sections that should not need them, and cargo manifests that list equipment the UNSC does not officially acknowledge. By the time you reach the drop pod bay, you understand that this is not a rescue mission. It is a last resort.",
     previousConnection:
       'This is the first level. The player has no prior context beyond the title screen briefing. The level must establish the world, the controls, and the stakes from zero.',
     newMechanics: [
@@ -125,10 +125,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       'Loadout selection at armory',
     ],
     enemyTypes: [],
-    weaponsAvailable: [
-      'MA5D Assault Rifle (training range)',
-      'M6H Sidearm (training range)',
-    ],
+    weaponsAvailable: ['MA5D Assault Rifle (training range)', 'M6H Sidearm (training range)'],
   },
 
   // --------------------------------------------------------------------------
@@ -223,7 +220,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'The drop pod punches through the upper atmosphere of Kepler\'s Promise at terminal velocity. The ablative shielding burns away in layers, filling the viewport with molten orange. Comms are static. The altimeter spins. When the retro-rockets fire, the deceleration hits like a wall -- and then the pod tears open on impact, spilling the player into a canyon half-buried in red dust. Other pods are scattered across the canyon floor, some cracked open like eggs. The planet is beautiful in a hostile way: towering sandstone walls striated with mineral veins, a sky the color of a bruise, and wind that carries grit sharp enough to score polymer. The colony of Kepler\'s Promise is somewhere beyond the canyon. Between here and there, something is moving in the rocks.',
+      "The drop pod punches through the upper atmosphere of Kepler's Promise at terminal velocity. The ablative shielding burns away in layers, filling the viewport with molten orange. Comms are static. The altimeter spins. When the retro-rockets fire, the deceleration hits like a wall -- and then the pod tears open on impact, spilling the player into a canyon half-buried in red dust. Other pods are scattered across the canyon floor, some cracked open like eggs. The planet is beautiful in a hostile way: towering sandstone walls striated with mineral veins, a sky the color of a bruise, and wind that carries grit sharp enough to score polymer. The colony of Kepler's Promise is somewhere beyond the canyon. Between here and there, something is moving in the rocks.",
     previousConnection:
       'The player steps into the drop pod at the end of Anchor Station. The transition is seamless -- the pod bay door closes, the countdown hits zero, and the freefall begins. This level picks up mid-descent.',
     newMechanics: [
@@ -233,15 +230,8 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       'Enemy target prioritization (Drone vs Stalker behavior)',
       'Supply scavenging from environment',
     ],
-    enemyTypes: [
-      'Wraith Drone (basic melee rusher)',
-      'Wraith Stalker (ranged, uses cover)',
-    ],
-    weaponsAvailable: [
-      'MA5D Assault Rifle',
-      'M6H Sidearm',
-      'M9 Frag Grenades',
-    ],
+    enemyTypes: ['Wraith Drone (basic melee rusher)', 'Wraith Stalker (ranged, uses cover)'],
+    weaponsAvailable: ['MA5D Assault Rifle', 'M6H Sidearm', 'M9 Frag Grenades'],
   },
 
   // ==========================================================================
@@ -264,7 +254,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 0,
         tension: 3,
         description:
-          'Vehicle startup. The Warthog\'s engine catches with a roar. The canyon stretches out ahead, wide enough to drive but narrow enough to worry.',
+          "Vehicle startup. The Warthog's engine catches with a roar. The canyon stretches out ahead, wide enough to drive but narrow enough to worry.",
       },
       {
         progress: 15,
@@ -433,7 +423,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         type: 'reveal',
       },
       {
-        name: 'The Sergeant\'s Logs',
+        name: "The Sergeant's Logs",
         description:
           'A sequence of audio logs from Sergeant Chen, found throughout the base, chronicle the deterioration of FOB Delta over seven days. Each log is more desperate than the last. The final log is recorded in the dark: "If you are hearing this, do not go underground. Do not--" Static.',
         progressPercent: 30,
@@ -442,7 +432,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'Lights Out',
         description:
-          'The sub-level loses power entirely. The player is reduced to their flashlight. Wraith Lurkers -- a new enemy type that clings to surfaces and ambushes from above -- attack in the dark. This is the level\'s horror peak, designed to make the player feel genuinely vulnerable.',
+          "The sub-level loses power entirely. The player is reduced to their flashlight. Wraith Lurkers -- a new enemy type that clings to surfaces and ambushes from above -- attack in the dark. This is the level's horror peak, designed to make the player feel genuinely vulnerable.",
         progressPercent: 55,
         type: 'combat',
       },
@@ -454,7 +444,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         type: 'combat',
       },
       {
-        name: 'Marcus\'s Signal',
+        name: "Marcus's Signal",
         description:
           'With comms restored, a garbled distress signal comes through -- Corporal Marcus Cole, the player\'s pre-war friend, is alive. He is pinned down with his damaged mech at a position east of the base. The objective updates: "Reach Corporal Cole." This is the emotional hook for the next level.',
         progressPercent: 95,
@@ -462,7 +452,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'FOB Delta was established six weeks ago as the primary forward operating base for the Kepler\'s Promise relief operation. Forty marines, two armor units, and a full medical staff. It reported on schedule for five weeks. Then the reports became sporadic -- equipment failures, personnel transfers that no one authorized, and supply requests for ammunition quantities that made no sense. Then nothing. The base sits in a shallow valley at the southern end of the rift, surrounded by defensive berms and prefab walls. From the outside, it looks intact. The gate is open. The lights are off. Every instinct says to turn around, but the comms relay inside is the only way to contact the fleet. The player must go in.',
+      "FOB Delta was established six weeks ago as the primary forward operating base for the Kepler's Promise relief operation. Forty marines, two armor units, and a full medical staff. It reported on schedule for five weeks. Then the reports became sporadic -- equipment failures, personnel transfers that no one authorized, and supply requests for ammunition quantities that made no sense. Then nothing. The base sits in a shallow valley at the southern end of the rift, surrounded by defensive berms and prefab walls. From the outside, it looks intact. The gate is open. The lights are off. Every instinct says to turn around, but the comms relay inside is the only way to contact the fleet. The player must go in.",
     previousConnection:
       'The player arrives at the gates of FOB Delta after the Canyon Run. The Warthog is dead -- shot through and smoking. From here, the player proceeds on foot into the base.',
     newMechanics: [
@@ -503,7 +493,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 0,
         tension: 4,
         description:
-          'Approaching Marcus\'s position through a dust storm. Visibility is low. His mech\'s beacon flickers on the HUD.',
+          "Approaching Marcus's position through a dust storm. Visibility is low. His mech's beacon flickers on the HUD.",
       },
       {
         progress: 12,
@@ -521,7 +511,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 40,
         tension: 7,
         description:
-          'Wave 1: Wraith Drones and Stalkers probe the defenses. Marcus\'s mech stomps through the front line while the player covers the flanks.',
+          "Wave 1: Wraith Drones and Stalkers probe the defenses. Marcus's mech stomps through the front line while the player covers the flanks.",
       },
       {
         progress: 55,
@@ -533,13 +523,13 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 70,
         tension: 9,
         description:
-          'Wave 3: A Wraith Spitter (new artillery enemy) bombards the position from range while ground forces close in. Marcus\'s mech takes critical damage.',
+          "Wave 3: A Wraith Spitter (new artillery enemy) bombards the position from range while ground forces close in. Marcus's mech takes critical damage.",
       },
       {
         progress: 85,
         tension: 10,
         description:
-          'Final wave. Everything the Wraith have throws itself at the position. Marcus\'s mech is down to one weapon. The player is the last line.',
+          "Final wave. Everything the Wraith have throws itself at the position. Marcus's mech is down to one weapon. The player is the last line.",
       },
       {
         progress: 95,
@@ -573,7 +563,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'Marcus Goes Down',
         description:
-          'A Spitter barrage cripples Marcus\'s mech. His weapons go offline. He can still move but cannot fight. The player must solo the final wave while Marcus uses his mech as a mobile shield. The desperation is palpable. Marcus\'s comms chatter shifts from bravado to quiet encouragement.',
+          "A Spitter barrage cripples Marcus's mech. His weapons go offline. He can still move but cannot fight. The player must solo the final wave while Marcus uses his mech as a mobile shield. The desperation is palpable. Marcus's comms chatter shifts from bravado to quiet encouragement.",
         progressPercent: 82,
         type: 'combat',
       },
@@ -586,9 +576,9 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'Corporal Marcus Cole -- callsign "Ironside" -- has been fighting alone for nine days. His squad was wiped out defending a supply convoy. His Atlas-class mech lost its left arm to a Brute that ripped it off at the shoulder joint. He has been surviving on emergency rations and stubborn refusal to die, broadcasting a distress signal on a frequency that nobody was listening to until FOB Delta\'s comms came back online. The player approaches through a worsening dust storm, following the mech\'s beacon through rocky terrain that offers cover to things that do not need roads. Marcus is not just a squadmate -- he is the player character\'s oldest friend, referenced in audio logs throughout Anchor Station and FOB Delta. Finding him alive is the emotional axis of Act 2. Losing him is not an option.',
+      "Corporal Marcus Cole -- callsign \"Ironside\" -- has been fighting alone for nine days. His squad was wiped out defending a supply convoy. His Atlas-class mech lost its left arm to a Brute that ripped it off at the shoulder joint. He has been surviving on emergency rations and stubborn refusal to die, broadcasting a distress signal on a frequency that nobody was listening to until FOB Delta's comms came back online. The player approaches through a worsening dust storm, following the mech's beacon through rocky terrain that offers cover to things that do not need roads. Marcus is not just a squadmate -- he is the player character's oldest friend, referenced in audio logs throughout Anchor Station and FOB Delta. Finding him alive is the emotional axis of Act 2. Losing him is not an option.",
     previousConnection:
-      'Marcus\'s distress signal was received at the end of FOB Delta. The player leaves the restored base on foot, heading east into the dust storm toward Marcus\'s last known position.',
+      "Marcus's distress signal was received at the end of FOB Delta. The player leaves the restored base on foot, heading east into the dust storm toward Marcus's last known position.",
     newMechanics: [
       'AI ally coordination (target designation)',
       'Mech companion tactical behavior',
@@ -607,7 +597,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       'M6H Sidearm',
       'M9 Frag Grenades',
       'M45 Shotgun',
-      'SRS99 Sniper Rifle (found at Marcus\'s cache)',
+      "SRS99 Sniper Rifle (found at Marcus's cache)",
     ],
   },
 
@@ -625,13 +615,13 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
     narrativeBeat:
       'Cross a frozen wasteland toward the hive entrance. Environmental hazards and isolation replace overwhelming combat. The cold itself is the enemy.',
     emotionalArc:
-      'Isolation deepening into dread. The ice shelf is vast and empty. Blizzard conditions reduce visibility to meters. Marcus\'s mech struggles with the terrain. The player feels small and exposed. When the Wraith appear, they are different here -- adapted, camouflaged, and patient. The level ends at a massive organic structure protruding from the ice -- the entrance to the hive.',
+      "Isolation deepening into dread. The ice shelf is vast and empty. Blizzard conditions reduce visibility to meters. Marcus's mech struggles with the terrain. The player feels small and exposed. When the Wraith appear, they are different here -- adapted, camouflaged, and patient. The level ends at a massive organic structure protruding from the ice -- the entrance to the hive.",
     tensionCurve: [
       {
         progress: 0,
         tension: 3,
         description:
-          'Crossing onto the ice shelf. The temperature drops. Marcus\'s mech servos protest in the cold. Breath fogs inside the helmet.',
+          "Crossing onto the ice shelf. The temperature drops. Marcus's mech servos protest in the cold. Breath fogs inside the helmet.",
       },
       {
         progress: 15,
@@ -661,7 +651,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 70,
         tension: 6,
         description:
-          'Marcus\'s mech breaks through the ice into a cavern below. He is alive but trapped. The player must find an alternate route down to reach him.',
+          "Marcus's mech breaks through the ice into a cavern below. He is alive but trapped. The player must find an alternate route down to reach him.",
       },
       {
         progress: 85,
@@ -680,7 +670,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'The White Wall',
         description:
-          'The blizzard descends with a sound like static. Within seconds, the world is white. The HUD compass becomes the only reliable navigation tool. Marcus\'s mech is a shadow beside the player, barely visible. The isolation is total. This is designed to make the player feel genuinely alone even with a companion.',
+          "The blizzard descends with a sound like static. Within seconds, the world is white. The HUD compass becomes the only reliable navigation tool. Marcus's mech is a shadow beside the player, barely visible. The isolation is total. This is designed to make the player feel genuinely alone even with a companion.",
         progressPercent: 18,
         type: 'setpiece',
       },
@@ -747,9 +737,9 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
     estimatedMinutes: { min: 15, max: 25 },
     pacingStyle: 'boss',
     narrativeBeat:
-      'Enter the hive. Descend through alien architecture into the Queen\'s chamber. Fight the Hive Queen -- the turning point of the entire war.',
+      "Enter the hive. Descend through alien architecture into the Queen's chamber. Fight the Hive Queen -- the turning point of the entire war.",
     emotionalArc:
-      'Awe collapsing into terror, then rising to desperate triumph. The hive interior is unlike anything the player has seen -- organic, vast, and beautiful in a way that is deeply wrong. The descent strips away human reference points. The Queen fight is the campaign\'s midpoint climax: a multi-phase battle that demands everything the player has learned. Victory does not feel like winning. It feels like surviving.',
+      "Awe collapsing into terror, then rising to desperate triumph. The hive interior is unlike anything the player has seen -- organic, vast, and beautiful in a way that is deeply wrong. The descent strips away human reference points. The Queen fight is the campaign's midpoint climax: a multi-phase battle that demands everything the player has learned. Victory does not feel like winning. It feels like surviving.",
     tensionCurve: [
       {
         progress: 0,
@@ -779,13 +769,13 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 50,
         tension: 6,
         description:
-          'Descent into the deep hive. The tunnels widen. The temperature rises. Marcus\'s mech barely fits. The bioluminescence shifts to a warning red.',
+          "Descent into the deep hive. The tunnels widen. The temperature rises. Marcus's mech barely fits. The bioluminescence shifts to a warning red.",
       },
       {
         progress: 65,
         tension: 8,
         description:
-          'Approaching the Queen\'s chamber. The sound changes -- a low vibration felt in the chest. Guard Wraith attack with suicidal intensity. They are buying time.',
+          "Approaching the Queen's chamber. The sound changes -- a low vibration felt in the chest. Guard Wraith attack with suicidal intensity. They are buying time.",
       },
       {
         progress: 80,
@@ -831,7 +821,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'Phase Shift',
         description:
-          'When the Queen\'s anchor points are destroyed, she drops to the floor with an impact that staggers the player. Phase 2 is a mobile fight -- she charges, sweeps, and sprays acid in patterns the player must read and punish. Marcus draws her attention when his mech can still move, creating windows.',
+          "When the Queen's anchor points are destroyed, she drops to the floor with an impact that staggers the player. Phase 2 is a mobile fight -- she charges, sweeps, and sprays acid in patterns the player must read and punish. Marcus draws her attention when his mech can still move, creating windows.",
         progressPercent: 90,
         type: 'combat',
       },
@@ -884,7 +874,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
     narrativeBeat:
       'Combined arms assault on the main hive complex. Infantry, mechs, and orbital support push into the heart of the Wraith network to plant a seismic charge.',
     emotionalArc:
-      'Grim resolve hardening into fury. The player is no longer alone -- a full marine assault force backs them up. The scale of combat is the largest in the game. But the Wraith fight with a desperation that mirrors the player\'s own. Every meter is paid for. The emotional peak is planting the charge and knowing that detonation will crack the planet\'s crust. There is no clean victory here.',
+      "Grim resolve hardening into fury. The player is no longer alone -- a full marine assault force backs them up. The scale of combat is the largest in the game. But the Wraith fight with a desperation that mirrors the player's own. Every meter is paid for. The emotional peak is planting the charge and knowing that detonation will crack the planet's crust. There is no clean victory here.",
     tensionCurve: [
       {
         progress: 0,
@@ -939,21 +929,21 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'All Hands',
         description:
-          'The assault briefing brings together every surviving marine on Kepler\'s Promise. The holographic display shows the hive network -- it extends across the entire southern hemisphere. The seismic charge will collapse the primary node, but collateral damage to the planet\'s crust is unavoidable. The Commander\'s final words: "We are not saving this world. We are making sure it does not follow us home."',
+          "The assault briefing brings together every surviving marine on Kepler's Promise. The holographic display shows the hive network -- it extends across the entire southern hemisphere. The seismic charge will collapse the primary node, but collateral damage to the planet's crust is unavoidable. The Commander's final words: \"We are not saving this world. We are making sure it does not follow us home.\"",
         progressPercent: 5,
         type: 'dialogue',
       },
       {
         name: 'Surface Push',
         description:
-          'The assault across the surface is the game\'s largest combat setpiece. Warthogs, mechs, and infantry advance in formation while orbital strikes crater the ground ahead. Wraith emerge from dozens of tunnel openings. The scale is overwhelming. The player fights from a vehicle turret during the approach.',
+          "The assault across the surface is the game's largest combat setpiece. Warthogs, mechs, and infantry advance in formation while orbital strikes crater the ground ahead. Wraith emerge from dozens of tunnel openings. The scale is overwhelming. The player fights from a vehicle turret during the approach.",
         progressPercent: 15,
         type: 'setpiece',
       },
       {
         name: 'The Flanking Run',
         description:
-          'When the assault stalls, the player volunteers to find a way around the fortified junction. A solo infiltration through narrow ventilation tunnels -- tight, dark, and infested with Lurkers. Success opens the junction from behind, allowing the assault to continue. This is a callback to the player\'s solo capability.',
+          "When the assault stalls, the player volunteers to find a way around the fortified junction. A solo infiltration through narrow ventilation tunnels -- tight, dark, and infested with Lurkers. Success opens the junction from behind, allowing the assault to continue. This is a callback to the player's solo capability.",
         progressPercent: 45,
         type: 'combat',
       },
@@ -973,7 +963,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'The Queen is dead, but the hive is not. Seismic data from the Prometheus shows the network extends across the entire southern hemisphere -- hundreds of interconnected nodes feeding into a primary core. Kill the core, and the network dies. Command has committed every remaining asset to a single push: Operation Cauterize. Three mech squads, two infantry platoons, orbital fire support from the Prometheus, and a geological seismic charge capable of cracking tectonic plates. The plan is brutal and the math is worse: the charge will destabilize the planet\'s crust within hours of detonation. Anyone still on the surface when the cascade begins will not leave. This is a one-way mission unless extraction arrives on time. Marcus checks his mech\'s ammunition counter and does not share the number.',
+      "The Queen is dead, but the hive is not. Seismic data from the Prometheus shows the network extends across the entire southern hemisphere -- hundreds of interconnected nodes feeding into a primary core. Kill the core, and the network dies. Command has committed every remaining asset to a single push: Operation Cauterize. Three mech squads, two infantry platoons, orbital fire support from the Prometheus, and a geological seismic charge capable of cracking tectonic plates. The plan is brutal and the math is worse: the charge will destabilize the planet's crust within hours of detonation. Anyone still on the surface when the cascade begins will not leave. This is a one-way mission unless extraction arrives on time. Marcus checks his mech's ammunition counter and does not share the number.",
     previousConnection:
       'After escaping the collapsing hive in The Breach, the player and Marcus return to command with intelligence about the hive network. The seismic data confirms that killing the Queen was not enough. Operation Cauterize is authorized within hours.',
     newMechanics: [
@@ -1089,7 +1079,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'The Long Minute',
         description:
-          'The final wave arrives with 90 seconds left on the Pelican timer. The defenses are gone. Marcus\'s mech is barely standing. The player is low on ammo. This is designed to be the most intense 90 seconds in the game -- pure survival against overwhelming force.',
+          "The final wave arrives with 90 seconds left on the Pelican timer. The defenses are gone. Marcus's mech is barely standing. The player is low on ammo. This is designed to be the most intense 90 seconds in the game -- pure survival against overwhelming force.",
         progressPercent: 82,
         type: 'combat',
       },
@@ -1102,7 +1092,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'The seismic charge is counting down. The planet\'s crust will begin to fracture in approximately forty minutes. The only extraction point is Landing Zone Omega -- a flat plateau two kilometers from the hive entrance, chosen because it is the only terrain flat enough for a Pelican to land in the worsening geological conditions. The Pelican is inbound from the Prometheus but the atmospheric turbulence from the seismic activity is slowing its approach. ETA: eighteen minutes. The Wraith know the hive is dying. They are not retreating. They are converging on every human signature on the surface, and the two brightest signatures are standing on an exposed plateau with a flare lit. Marcus parks his battered mech at the eastern approach and loads his last magazine. The player places turrets and mines with the care of someone who knows that every placement might be the difference between extraction and oblivion.',
+      "The seismic charge is counting down. The planet's crust will begin to fracture in approximately forty minutes. The only extraction point is Landing Zone Omega -- a flat plateau two kilometers from the hive entrance, chosen because it is the only terrain flat enough for a Pelican to land in the worsening geological conditions. The Pelican is inbound from the Prometheus but the atmospheric turbulence from the seismic activity is slowing its approach. ETA: eighteen minutes. The Wraith know the hive is dying. They are not retreating. They are converging on every human signature on the surface, and the two brightest signatures are standing on an exposed plateau with a flare lit. Marcus parks his battered mech at the eastern approach and loads his last magazine. The player places turrets and mines with the care of someone who knows that every placement might be the difference between extraction and oblivion.",
     previousConnection:
       'After the fighting retreat from the hive in Hive Assault, the survivors make for LZ Omega. The seismic charge is armed and counting down. The Pelican is the only way off the planet.',
     newMechanics: [
@@ -1141,7 +1131,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
     narrativeBeat:
       'The planet is breaking apart. A desperate vehicle sprint across collapsing terrain to reach the launch pad before the surface disintegrates.',
     emotionalArc:
-      'Pure adrenaline burning to bittersweet triumph. This is the climax -- no exploration, no puzzle-solving, just speed and survival. The ground literally falls away behind the player. The emotional payload is the ending: reaching the launch pad, blasting off as the planet cracks open, and watching Kepler\'s Promise break apart from orbit. They made it. Barely. Together.',
+      "Pure adrenaline burning to bittersweet triumph. This is the climax -- no exploration, no puzzle-solving, just speed and survival. The ground literally falls away behind the player. The emotional payload is the ending: reaching the launch pad, blasting off as the planet cracks open, and watching Kepler's Promise break apart from orbit. They made it. Barely. Together.",
     tensionCurve: [
       {
         progress: 0,
@@ -1189,7 +1179,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
         progress: 95,
         tension: 8,
         description:
-          'The shuttle launches. Through the viewport, the player watches Kepler\'s Promise fracture -- continents splitting, magma flooding the surface, the hive network burning.',
+          "The shuttle launches. Through the viewport, the player watches Kepler's Promise fracture -- continents splitting, magma flooding the surface, the hive network burning.",
       },
     ],
     keyMoments: [
@@ -1210,7 +1200,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       {
         name: 'Bridge Jump',
         description:
-          'A bridge spanning a lava-filled rift begins collapsing from the far end. The player hits the ramp at full speed as the bridge disintegrates behind them. The Warthog goes airborne for three terrifying seconds before slamming down on the far side. Marcus whoops from the turret. The player\'s knuckles are white.',
+          "A bridge spanning a lava-filled rift begins collapsing from the far end. The player hits the ramp at full speed as the bridge disintegrates behind them. The Warthog goes airborne for three terrifying seconds before slamming down on the far side. Marcus whoops from the turret. The player's knuckles are white.",
         progressPercent: 42,
         type: 'setpiece',
       },
@@ -1230,7 +1220,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       },
     ],
     narrativeSetup:
-      'The seismic charge has done its work. Kepler\'s Promise is dying. The planet\'s crust has entered a cascading failure state -- tectonic plates are fracturing, magma is breaching the surface, and the hive network is collapsing into the geological chaos it created. The Pelican that extracted the player from LZ Omega drops them at a motor pool eight kilometers from the emergency launch pad where a shuttle is prepped for orbital escape. Eight kilometers of road that is falling apart in real time. A Warthog with a full tank and a mounted gun is the only option. Marcus climbs into the turret with the grim enthusiasm of a man who has decided that if this is the end, it will at least be fast. The drive ahead is not a combat mission. It is an escape from a dying world, and the world is not going quietly. Lava geysers, collapsing terrain, desperate Wraith, and the sheer geological violence of a planet tearing itself apart stand between the player and the shuttle. There is no plan B. There is no second route. There is only speed, reflexes, and the stubborn refusal of two soldiers to die on a world that is not theirs.',
+      "The seismic charge has done its work. Kepler's Promise is dying. The planet's crust has entered a cascading failure state -- tectonic plates are fracturing, magma is breaching the surface, and the hive network is collapsing into the geological chaos it created. The Pelican that extracted the player from LZ Omega drops them at a motor pool eight kilometers from the emergency launch pad where a shuttle is prepped for orbital escape. Eight kilometers of road that is falling apart in real time. A Warthog with a full tank and a mounted gun is the only option. Marcus climbs into the turret with the grim enthusiasm of a man who has decided that if this is the end, it will at least be fast. The drive ahead is not a combat mission. It is an escape from a dying world, and the world is not going quietly. Lava geysers, collapsing terrain, desperate Wraith, and the sheer geological violence of a planet tearing itself apart stand between the player and the shuttle. There is no plan B. There is no second route. There is only speed, reflexes, and the stubborn refusal of two soldiers to die on a world that is not theirs.",
     previousConnection:
       'The Pelican from the Extraction level drops the player at the motor pool. The seismic charge has detonated and the planet is in its death throes. This is the final level.',
     newMechanics: [
@@ -1240,10 +1230,7 @@ export const LEVEL_DESIGN_DOCUMENTS: Record<LevelId, LevelDesignDocument> = {
       'Vehicle jump sequences',
       'Environmental hazard navigation at speed (lava, debris, collapse)',
     ],
-    enemyTypes: [
-      'Wraith Drone (scattered, disorganized)',
-      'Wraith Brute (roadblock encounters)',
-    ],
+    enemyTypes: ['Wraith Drone (scattered, disorganized)', 'Wraith Brute (roadblock encounters)'],
     weaponsAvailable: [
       'Warthog Mounted Turret',
       'MA5D Assault Rifle (emergency dismount only)',

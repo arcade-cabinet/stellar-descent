@@ -60,7 +60,7 @@ vi.mock('@babylonjs/core/PostProcesses/depthOfFieldEffect', () => ({
 }));
 
 // Store the last created mock pipeline for test access
-let lastMockPipeline: any = null;
+const _lastMockPipeline: any = null;
 
 // Mock the DefaultRenderingPipeline
 vi.mock('@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline', () => {
@@ -109,7 +109,10 @@ function getMockPipeline(): any {
 
 // Mock shader imports (no-ops)
 vi.mock('@babylonjs/core/Rendering/depthRendererSceneComponent', () => ({}));
-vi.mock('@babylonjs/core/PostProcesses/RenderPipeline/postProcessRenderPipelineManagerSceneComponent', () => ({}));
+vi.mock(
+  '@babylonjs/core/PostProcesses/RenderPipeline/postProcessRenderPipelineManagerSceneComponent',
+  () => ({})
+);
 vi.mock('@babylonjs/core/Shaders/chromaticAberration.fragment', () => ({}));
 vi.mock('@babylonjs/core/Shaders/grain.fragment', () => ({}));
 vi.mock('@babylonjs/core/Shaders/sharpen.fragment', () => ({}));
@@ -274,7 +277,7 @@ describe('PostProcessManager Types', () => {
   describe('Level Type Color Grading', () => {
     it('should have color grades for all level types', () => {
       // Expected level types that should have color grading
-      const levelTypes = ['station', 'drop', 'canyon', 'base', 'brothers', 'hive', 'extraction'];
+      const _levelTypes = ['station', 'drop', 'canyon', 'base', 'brothers', 'hive', 'extraction'];
 
       // Each level type should have specific color grading characteristics
       const colorGradeCharacteristics = {
@@ -294,10 +297,10 @@ describe('PostProcessManager Types', () => {
 // ============================================================================
 
 import {
-  PostProcessManager,
-  initializePostProcessManager,
-  getPostProcessManager,
   disposePostProcessManager,
+  getPostProcessManager,
+  initializePostProcessManager,
+  PostProcessManager,
 } from './PostProcessManager';
 
 describe('PostProcessManager Unit Tests', () => {

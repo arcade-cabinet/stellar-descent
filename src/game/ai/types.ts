@@ -15,7 +15,17 @@ import type { LevelId } from '../levels/types';
 /**
  * Aspect ratio options for generated media
  */
-export type AspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9';
+export type AspectRatio =
+  | '1:1'
+  | '2:3'
+  | '3:2'
+  | '3:4'
+  | '4:3'
+  | '4:5'
+  | '5:4'
+  | '9:16'
+  | '16:9'
+  | '21:9';
 
 /**
  * Image resolution options (for Imagen)
@@ -26,14 +36,14 @@ export type ImageResolution = '1K' | '2K' | '4K';
  * Visual style presets for consistent game aesthetics
  */
 export type VisualStyle =
-  | 'cinematic_scifi'      // Epic sci-fi cinematics
-  | 'horror_scifi'         // Dark, atmospheric horror sci-fi
-  | 'military_tactical'    // Military/tactical shooter style
-  | 'alien_organic'        // Organic alien environments
-  | 'frozen_wasteland'     // Ice/snow environments
-  | 'industrial_decay'     // Abandoned industrial facilities
-  | 'space_station'        // Clean/damaged space station interiors
-  | 'portrait_realistic';  // Character portraits
+  | 'cinematic_scifi' // Epic sci-fi cinematics
+  | 'horror_scifi' // Dark, atmospheric horror sci-fi
+  | 'military_tactical' // Military/tactical shooter style
+  | 'alien_organic' // Organic alien environments
+  | 'frozen_wasteland' // Ice/snow environments
+  | 'industrial_decay' // Abandoned industrial facilities
+  | 'space_station' // Clean/damaged space station interiors
+  | 'portrait_realistic'; // Character portraits
 
 /**
  * Definition for a cinematic video asset
@@ -423,7 +433,13 @@ export interface FreesoundSearchOptions {
   /** Raw filter string (Freesound query syntax) */
   filter?: string;
   /** Sort order */
-  sort?: 'score' | 'duration_desc' | 'duration_asc' | 'downloads_desc' | 'rating_desc' | 'created_desc';
+  sort?:
+    | 'score'
+    | 'duration_desc'
+    | 'duration_asc'
+    | 'downloads_desc'
+    | 'rating_desc'
+    | 'created_desc';
   /** Fields to return */
   fields?: string[];
   /** Results per page */

@@ -17,11 +17,7 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../core/AudioManager';
 import { getLogger } from '../core/Logger';
-import {
-  getJetpackSystem,
-  type JetpackState,
-  type JetpackSystem,
-} from './JetpackSystem';
+import { getJetpackSystem, type JetpackState, type JetpackSystem } from './JetpackSystem';
 import {
   getMantleSystem,
   type MantlePhase,
@@ -152,9 +148,6 @@ export class VerticalMovement {
   // Jump buffering
   private jumpBufferTime = 0;
   private jumpRequested = false;
-
-  // Ground mesh detection
-  private groundMesh: AbstractMesh | null = null;
   private ignoredMeshes: Set<AbstractMesh> = new Set();
 
   // Ground info
@@ -374,7 +367,8 @@ export class VerticalMovement {
         if (normal) {
           this.groundInfo.groundNormal = normal;
           // Calculate slope angle from normal
-          const slopeAngle = Math.acos(Math.abs(Vector3.Dot(normal, Vector3.Up()))) * (180 / Math.PI);
+          const slopeAngle =
+            Math.acos(Math.abs(Vector3.Dot(normal, Vector3.Up()))) * (180 / Math.PI);
           this.groundInfo.slopeAngle = slopeAngle;
           this.groundInfo.isWalkable = slopeAngle <= MAX_WALKABLE_SLOPE;
         }
@@ -398,16 +392,31 @@ export class VerticalMovement {
     if (!mesh) return 'default';
 
     const name = mesh.name.toLowerCase();
-    if (name.includes('metal') || name.includes('steel') || name.includes('grate') || name.includes('floor')) {
+    if (
+      name.includes('metal') ||
+      name.includes('steel') ||
+      name.includes('grate') ||
+      name.includes('floor')
+    ) {
       return 'metal';
     }
-    if (name.includes('organic') || name.includes('flesh') || name.includes('hive') || name.includes('alien')) {
+    if (
+      name.includes('organic') ||
+      name.includes('flesh') ||
+      name.includes('hive') ||
+      name.includes('alien')
+    ) {
       return 'organic';
     }
     if (name.includes('ice') || name.includes('snow') || name.includes('frozen')) {
       return 'ice';
     }
-    if (name.includes('rock') || name.includes('stone') || name.includes('terrain') || name.includes('ground')) {
+    if (
+      name.includes('rock') ||
+      name.includes('stone') ||
+      name.includes('terrain') ||
+      name.includes('ground')
+    ) {
       return 'rock';
     }
     return 'default';
@@ -545,7 +554,11 @@ export class VerticalMovement {
 
     // Auto-detect mantle opportunities when in air and moving toward a ledge
     if (!this.isGrounded && !this.mantleSystem.isMantling() && this.velocityY < 5) {
-      const ledgeInfo = this.mantleSystem.detectLedge(playerPosition, playerForward, this.isGrounded);
+      const ledgeInfo = this.mantleSystem.detectLedge(
+        playerPosition,
+        playerForward,
+        this.isGrounded
+      );
 
       if (ledgeInfo.found) {
         // Try to auto-mantle if we're close to a ledge and falling
@@ -639,7 +652,12 @@ export class VerticalMovement {
   /**
    * Get camera animation offsets
    */
-  getCameraAnimation(): { pitchOffset: number; rollOffset: number; shakeX: number; shakeY: number } {
+  getCameraAnimation(): {
+    pitchOffset: number;
+    rollOffset: number;
+    shakeX: number;
+    shakeY: number;
+  } {
     // Combine mantle and jetpack camera effects
     const mantleAnim = this.mantleSystem.getCameraAnimation();
     const jetpackShake = this.jetpackSystem.getCameraShake();

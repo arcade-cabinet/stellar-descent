@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { disposeInputManager, getInputManager, InputManager } from './InputManager';
+import { useKeybindingsStore } from '../stores/useKeybindingsStore';
+import { disposeInputManager, getInputManager } from './InputManager';
 
 // Mock localStorage
 const mockStorage: Record<string, string> = {};
@@ -26,6 +27,11 @@ beforeEach(() => {
   });
 });
 
+beforeEach(() => {
+  // Reset keybindings store to defaults
+  useKeybindingsStore.getState().resetToDefaults();
+});
+
 afterEach(() => {
   disposeInputManager();
 });
@@ -45,11 +51,9 @@ describe('InputManager', () => {
       expect(manager.getKeyForAction('sprint')).toBe('ShiftLeft');
     });
 
-    it('loads custom keybindings from localStorage', () => {
-      // Set up custom bindings before creating manager
-      mockStorage['stellar-descent-keybindings'] = JSON.stringify({
-        fire: 'KeyF',
-      });
+    it('loads custom keybindings from store', () => {
+      // Set up custom bindings via store
+      useKeybindingsStore.getState().setKeybinding('fire', 'KeyF');
 
       disposeInputManager();
       const manager = getInputManager();
@@ -87,10 +91,8 @@ describe('InputManager', () => {
     });
 
     it('respects custom keybindings', () => {
-      // Set up custom bindings
-      mockStorage['stellar-descent-keybindings'] = JSON.stringify({
-        fire: 'KeyF',
-      });
+      // Set up custom bindings via store
+      useKeybindingsStore.getState().setKeybinding('fire', 'KeyF');
 
       disposeInputManager();
       const manager = getInputManager();
@@ -234,16 +236,14 @@ describe('InputManager', () => {
   });
 
   describe('refreshKeybindings', () => {
-    it('reloads keybindings from localStorage', () => {
+    it('reloads keybindings from store', () => {
       const manager = getInputManager();
 
       // Initially fire is Mouse0
       expect(manager.getKeyForAction('fire')).toBe('Mouse0');
 
-      // Update localStorage
-      mockStorage['stellar-descent-keybindings'] = JSON.stringify({
-        fire: 'KeyF',
-      });
+      // Update via store
+      useKeybindingsStore.getState().setKeybinding('fire', 'KeyF');
 
       // Refresh should pick up new bindings
       manager.refreshKeybindings();

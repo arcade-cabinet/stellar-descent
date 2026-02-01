@@ -48,7 +48,11 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => {
       return new MockVector3(this.x, this.y, this.z);
     }
     subtract(other: any) {
-      return new MockVector3(this.x - (other?.x || 0), this.y - (other?.y || 0), this.z - (other?.z || 0));
+      return new MockVector3(
+        this.x - (other?.x || 0),
+        this.y - (other?.y || 0),
+        this.z - (other?.z || 0)
+      );
     }
     normalize() {
       const len = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z) || 1;
@@ -78,7 +82,15 @@ vi.mock('@babylonjs/core/Meshes/meshBuilder', () => {
     material: null,
     position: { x: 0, y: 0, z: 0, set: vi.fn() },
     rotation: { x: 0, y: 0, z: 0, set: vi.fn() },
-    scaling: { x: 1, y: 1, z: 1, setAll: vi.fn(), clone: vi.fn().mockReturnThis(), scale: vi.fn().mockReturnThis(), scaleInPlace: vi.fn() },
+    scaling: {
+      x: 1,
+      y: 1,
+      z: 1,
+      setAll: vi.fn(),
+      clone: vi.fn().mockReturnThis(),
+      scale: vi.fn().mockReturnThis(),
+      scaleInPlace: vi.fn(),
+    },
     isVisible: true,
     parent: null,
     getBoundingInfo: vi.fn().mockReturnValue({
@@ -103,8 +115,23 @@ vi.mock('../../core/AssetManager', () => {
       y: 0,
       z: 0,
       set: vi.fn(),
-      clone: function () { return { x: this.x, y: this.y, z: this.z, subtract: vi.fn().mockReturnThis(), normalize: vi.fn().mockReturnThis(), scale: vi.fn().mockReturnThis() }; },
-      subtract: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0, normalize: vi.fn().mockReturnThis(), scale: vi.fn().mockReturnThis() }),
+      clone: function () {
+        return {
+          x: this.x,
+          y: this.y,
+          z: this.z,
+          subtract: vi.fn().mockReturnThis(),
+          normalize: vi.fn().mockReturnThis(),
+          scale: vi.fn().mockReturnThis(),
+        };
+      },
+      subtract: vi.fn().mockReturnValue({
+        x: 0,
+        y: 0,
+        z: 0,
+        normalize: vi.fn().mockReturnThis(),
+        scale: vi.fn().mockReturnThis(),
+      }),
       addInPlace: vi.fn(),
     },
     rotation: { x: 0, y: 0, z: 0, set: vi.fn() },
@@ -114,7 +141,15 @@ vi.mock('../../core/AssetManager', () => {
       z: 1,
       set: vi.fn(),
       setAll: vi.fn(),
-      clone: function () { return { x: this.x, y: this.y, z: this.z, scale: vi.fn().mockReturnThis(), scaleInPlace: vi.fn() }; },
+      clone: function () {
+        return {
+          x: this.x,
+          y: this.y,
+          z: this.z,
+          scale: vi.fn().mockReturnThis(),
+          scaleInPlace: vi.fn(),
+        };
+      },
       scale: vi.fn().mockReturnThis(),
       scaleInPlace: vi.fn(),
     },
@@ -194,48 +229,48 @@ vi.mock('./constants', () => ({
   QUEEN_DEATH_SLOWMO_SCALE: 0.3,
 }));
 
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 // Import after mocks
 import {
+  activateDeathThroes,
+  animateAcidSpray,
+  animateCharge,
+  animateEggBurst,
+  animateFrenzyAttack,
+  animatePhaseTransition,
+  animatePoisonCloud,
+  animateQueen,
+  animateQueenDeath,
+  animateScreech,
+  animateTailSwipe,
+  calculateQueenDamage,
+  checkChargeCollision,
+  checkPoisonCloudCollision,
+  checkWeakPointHit,
   createQueen,
-  getQueenPhase,
-  shouldEnterDeathThroes,
+  damageWeakPoint,
+  disposeQueen,
+  getAcidSprayPositions,
   getAvailableAttacks,
+  getEggBurstSpawnPositions,
   getPhaseAttackCooldown,
   getPhaseMultiplier,
+  getQueenPhase,
+  getScaledCooldown,
+  getScaledQueenDamage,
+  getScaledQueenHealth,
   getSpawnCooldown,
   getSpawnCount,
   getSpawnType,
-  selectNextAttack,
-  checkWeakPointHit,
-  damageWeakPoint,
-  calculateQueenDamage,
-  updateQueenAI,
-  animateQueen,
-  animateAcidSpray,
-  animateTailSwipe,
-  animateScreech,
-  animateCharge,
-  animateEggBurst,
-  animatePoisonCloud,
-  animateFrenzyAttack,
-  animatePhaseTransition,
-  animateQueenDeath,
-  disposeQueen,
-  getAcidSprayPositions,
-  checkChargeCollision,
-  checkPoisonCloudCollision,
-  getEggBurstSpawnPositions,
-  revealWeakPoints,
   hideWeakPoints,
-  startFrenzy,
-  activateDeathThroes,
-  setQueenDifficulty,
-  getScaledQueenHealth,
-  getScaledQueenDamage,
-  getScaledCooldown,
   type Queen,
+  revealWeakPoints,
+  selectNextAttack,
+  setQueenDifficulty,
+  shouldEnterDeathThroes,
+  startFrenzy,
+  updateQueenAI,
 } from './queen';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 
 describe('Queen Boss', () => {
   let mockScene: any;
@@ -865,5 +900,4 @@ describe('Queen Boss', () => {
       expect(['acid_spray', 'tail_swipe', 'screech', 'none']).toContain(attack);
     });
   });
-
 });

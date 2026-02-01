@@ -10,14 +10,14 @@
  * The bridge ensures all levels use consistent, user-configurable keybindings.
  */
 
-import type { BindableAction, KeybindingValue } from '../context/KeybindingsContext';
+import type { BindableAction } from '../stores/useKeybindingsStore';
 import {
   DEFAULT_KEYBINDINGS,
+  getKeybindings,
   getKeyDisplayName,
   getKeysForAction,
   getPrimaryKey,
-} from '../context/KeybindingsContext';
-import { getKeybindings } from '../context/useInputActions';
+} from '../stores/useKeybindingsStore';
 
 // ============================================================================
 // KEY DISPLAY FORMATTING
@@ -375,9 +375,9 @@ export function isQuickSwapKeyEvent(event: KeyboardEvent): boolean {
 // ============================================================================
 
 import {
-  switchToWeaponSlot,
   cycleWeapon as cycleWeaponAction,
   quickSwapWeapon,
+  switchToWeaponSlot,
 } from '../context/useWeaponActions';
 
 /**

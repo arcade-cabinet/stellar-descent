@@ -19,8 +19,13 @@ vi.mock('@babylonjs/core/scene', () => ({
 
 vi.mock('@babylonjs/core/Maths/math.color', () => ({
   Color4: vi.fn().mockImplementation((r, g, b, a) => ({
-    r, g, b, a,
-    clone: function() { return { r: this.r, g: this.g, b: this.b, a: this.a }; },
+    r,
+    g,
+    b,
+    a,
+    clone: function () {
+      return { r: this.r, g: this.g, b: this.b, a: this.a };
+    },
   })),
 }));
 
@@ -73,7 +78,7 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => ({
 }));
 
 vi.mock('@babylonjs/core/Meshes/transformNode', () => ({
-  TransformNode: vi.fn().mockImplementation((name, scene) => ({
+  TransformNode: vi.fn().mockImplementation((name, _scene) => ({
     name,
     position: { x: 0, y: 0, z: 0, set: vi.fn() },
     rotation: { y: 0 },
@@ -135,9 +140,16 @@ vi.mock('../../types/actions', () => ({
 }));
 
 vi.mock('../BaseLevel', () => ({
-  BaseLevel: vi.fn().mockImplementation(function(this: any) {
+  BaseLevel: vi.fn().mockImplementation(function (this: any) {
     this.camera = {
-      position: { x: 0, y: 1.7, z: 0, set: vi.fn(), clone: vi.fn().mockReturnThis(), addInPlace: vi.fn() },
+      position: {
+        x: 0,
+        y: 1.7,
+        z: 0,
+        set: vi.fn(),
+        clone: vi.fn().mockReturnThis(),
+        addInPlace: vi.fn(),
+      },
       rotation: { x: 0, y: 0, z: 0, set: vi.fn() },
     };
     this.scene = {
@@ -210,7 +222,12 @@ vi.mock('./constants', () => ({
   ESCAPE_TUNNEL_LENGTH: 300,
   LZ_POSITION: { x: 0, y: 0, z: -500 },
   DROPSHIP_ETA_INITIAL: 420,
-  DROPSHIP_COLLAPSE_POSITION: { x: 0, y: 8, z: -500, clone: () => ({ x: 0, y: 8, z: -500, addInPlace: vi.fn() }) },
+  DROPSHIP_COLLAPSE_POSITION: {
+    x: 0,
+    y: 8,
+    z: -500,
+    clone: () => ({ x: 0, y: 8, z: -500, addInPlace: vi.fn() }),
+  },
   HIVE_COLLAPSE_TIMER: 90,
   TOTAL_WAVES: 7,
   GRENADE_COOLDOWN_TIME: 5000,
@@ -339,13 +356,21 @@ vi.mock('./phases', () => ({
 
 vi.mock('./effects', () => ({
   spawnTunnelDebris: vi.fn().mockReturnValue({
-    mesh: { position: { addInPlace: vi.fn() }, rotation: { addInPlace: vi.fn() }, dispose: vi.fn() },
+    mesh: {
+      position: { addInPlace: vi.fn() },
+      rotation: { addInPlace: vi.fn() },
+      dispose: vi.fn(),
+    },
     velocity: { scale: vi.fn().mockReturnThis() },
     rotationSpeed: { scale: vi.fn().mockReturnThis() },
     lifetime: 5,
   }),
   spawnCollapseDebris: vi.fn().mockReturnValue({
-    mesh: { position: { addInPlace: vi.fn() }, rotation: { addInPlace: vi.fn() }, dispose: vi.fn() },
+    mesh: {
+      position: { addInPlace: vi.fn() },
+      rotation: { addInPlace: vi.fn() },
+      dispose: vi.fn(),
+    },
     velocity: { scale: vi.fn().mockReturnThis() },
     rotationSpeed: { scale: vi.fn().mockReturnThis() },
     lifetime: 5,

@@ -15,13 +15,28 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => {
       this.y = y;
       this.z = z;
     }
-    clone() { return new Vector3(this.x, this.y, this.z); }
-    add(v: any) { return new Vector3(this.x + v.x, this.y + v.y, this.z + v.z); }
-    subtract(v: any) { return new Vector3(this.x - v.x, this.y - v.y, this.z - v.z); }
-    scale(n: number) { return new Vector3(this.x * n, this.y * n, this.z * n); }
-    length() { return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2); }
-    normalize() { const l = this.length(); return new Vector3(this.x / l, this.y / l, this.z / l); }
-    static Zero() { return new Vector3(0, 0, 0); }
+    clone() {
+      return new Vector3(this.x, this.y, this.z);
+    }
+    add(v: any) {
+      return new Vector3(this.x + v.x, this.y + v.y, this.z + v.z);
+    }
+    subtract(v: any) {
+      return new Vector3(this.x - v.x, this.y - v.y, this.z - v.z);
+    }
+    scale(n: number) {
+      return new Vector3(this.x * n, this.y * n, this.z * n);
+    }
+    length() {
+      return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
+    }
+    normalize() {
+      const l = this.length();
+      return new Vector3(this.x / l, this.y / l, this.z / l);
+    }
+    static Zero() {
+      return new Vector3(0, 0, 0);
+    }
     static Distance(v1: any, v2: any) {
       const dx = v1.x - v2.x;
       const dy = v1.y - v2.y;
@@ -41,10 +56,10 @@ vi.mock('../../core/Logger', () => ({
   }),
 }));
 
+import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { LevelSpawnConfig } from './SpawnConfig';
 // Import after mocks
 import { SpawnManager, type SpawnManagerCallbacks } from './SpawnManager';
-import type { LevelSpawnConfig } from './SpawnConfig';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 
 // Create a helper to create Vector3-like objects
 function createVector3(x: number, y: number, z: number): Vector3 {
@@ -89,9 +104,7 @@ describe('SpawnManager', () => {
         waveNumber: 0,
         label: 'First Wave',
         trigger: { type: 'timer', delay: 0 },
-        groups: [
-          { speciesId: 'skitterer', count: 3, spawnPointIds: ['spawn_north'] },
-        ],
+        groups: [{ speciesId: 'skitterer', count: 3, spawnPointIds: ['spawn_north'] }],
         spawnInterval: 0.5,
         maxConcurrent: 5,
       },
@@ -110,9 +123,7 @@ describe('SpawnManager', () => {
         waveNumber: 2,
         label: 'Final Wave',
         trigger: { type: 'objective', objectiveFlag: 'door_opened' },
-        groups: [
-          { speciesId: 'husk', count: 2 },
-        ],
+        groups: [{ speciesId: 'husk', count: 2 }],
         spawnInterval: 2.0,
       },
     ],
@@ -124,9 +135,11 @@ describe('SpawnManager', () => {
     vi.clearAllMocks();
 
     // Create mock callbacks
-    onSpawnEnemySpy = vi.fn().mockImplementation((speciesId, position, facingAngle, overrides) => {
-      return `entity_${speciesId}_${Math.random().toString(36).substring(7)}`;
-    });
+    onSpawnEnemySpy = vi
+      .fn()
+      .mockImplementation((speciesId, _position, _facingAngle, _overrides) => {
+        return `entity_${speciesId}_${Math.random().toString(36).substring(7)}`;
+      });
     onWaveStartSpy = vi.fn();
     onWaveCompleteSpy = vi.fn();
     onAllWavesCompleteSpy = vi.fn();
@@ -175,9 +188,7 @@ describe('SpawnManager', () => {
       // Create a config with more enemies than maxConcurrent to properly test the limit
       const limitTestConfig: LevelSpawnConfig = {
         levelId: 'test_limit',
-        spawnPoints: [
-          { id: 'sp1', position: { x: 0, y: 0, z: 0 }, facingAngle: 0, radius: 1 },
-        ],
+        spawnPoints: [{ id: 'sp1', position: { x: 0, y: 0, z: 0 }, facingAngle: 0, radius: 1 }],
         waves: [
           {
             waveNumber: 0,
@@ -262,7 +273,7 @@ describe('SpawnManager', () => {
     });
 
     it('should trigger wave on objective flag', () => {
-      const playerPos = createVector3(0, 0, 0);
+      const _playerPos = createVector3(0, 0, 0);
 
       // Wave 2 triggers on 'door_opened' flag
       spawnManager.setFlag('door_opened', true);
@@ -478,9 +489,7 @@ describe('SpawnManager', () => {
       // Create a config where wave 0 won't quickly transition to wave 1
       const singleWaveConfig: LevelSpawnConfig = {
         levelId: 'test_single',
-        spawnPoints: [
-          { id: 'sp1', position: { x: 0, y: 0, z: 0 }, facingAngle: 0, radius: 1 },
-        ],
+        spawnPoints: [{ id: 'sp1', position: { x: 0, y: 0, z: 0 }, facingAngle: 0, radius: 1 }],
         waves: [
           {
             waveNumber: 0,

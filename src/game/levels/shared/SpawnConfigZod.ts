@@ -87,13 +87,7 @@ export type SpawnUnit = z.infer<typeof SpawnUnitSchema>;
  * - proximity: starts when player enters a radius
  * - manual: only starts via explicit API call
  */
-export const TriggerTypeEnum = z.enum([
-  'immediate',
-  'objective',
-  'timer',
-  'proximity',
-  'manual',
-]);
+export const TriggerTypeEnum = z.enum(['immediate', 'objective', 'timer', 'proximity', 'manual']);
 
 export type TriggerType = z.infer<typeof TriggerTypeEnum>;
 
@@ -227,9 +221,7 @@ export function validateSpawnPointReferences(config: LevelSpawnConfig): string[]
   for (const wave of config.waves) {
     for (const unit of wave.units) {
       if (!spawnPointIds.has(unit.spawnPoint)) {
-        errors.push(
-          `Wave "${wave.id}" references unknown spawn point "${unit.spawnPoint}"`
-        );
+        errors.push(`Wave "${wave.id}" references unknown spawn point "${unit.spawnPoint}"`);
       }
     }
   }
@@ -250,9 +242,7 @@ export function validateWaveChain(config: LevelSpawnConfig): string[] {
   for (const wave of config.waves) {
     if (wave.onComplete && wave.onComplete !== 'victory') {
       if (!waveIds.has(wave.onComplete)) {
-        errors.push(
-          `Wave "${wave.id}" references unknown onComplete target "${wave.onComplete}"`
-        );
+        errors.push(`Wave "${wave.id}" references unknown onComplete target "${wave.onComplete}"`);
       }
     }
   }
@@ -277,9 +267,7 @@ export function validateSpawnConfigFull(config: unknown): {
     return {
       isValid: false,
       config: null,
-      errors: parseResult.error.issues.map(
-        (e) => `${e.path.join('.')}: ${e.message}`
-      ),
+      errors: parseResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`),
     };
   }
 
@@ -312,7 +300,7 @@ export function degreesToRadians(degrees: number): number {
  */
 export function parsePositionString(posStr: string): [number, number, number] | null {
   const parts = posStr.split(',').map((s) => parseFloat(s.trim()));
-  if (parts.length !== 3 || parts.some(isNaN)) {
+  if (parts.length !== 3 || parts.some(Number.isNaN)) {
     return null;
   }
   return parts as [number, number, number];

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../../game/context/GameContext';
 import styles from './Crosshair.module.css';
 

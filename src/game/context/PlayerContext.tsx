@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   type ReactNode,
   useCallback,
@@ -7,13 +7,13 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { getLogger } from '../core/Logger';
 import {
   type DifficultyLevel,
   type DifficultyModifiers,
   getDifficultyModifiers,
   useDifficultyStore,
 } from '../difficulty';
-import { getLogger } from '../core/Logger';
 import { getLowHealthFeedback } from '../effects/LowHealthFeedback';
 import type { TutorialPhase } from '../levels/anchor-station/tutorialSteps';
 import type { TouchInput } from '../types';
@@ -163,14 +163,17 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
   }, []);
 
   // Difficulty setter - syncs with Zustand store (which handles persistence)
-  const setDifficulty = useCallback((newDifficulty: DifficultyLevel) => {
-    storeSetDifficulty(newDifficulty);
-    // Import dynamically to avoid circular dependency
-    import('../persistence/SaveSystem').then(({ saveSystem }) => {
-      saveSystem.setDifficulty(newDifficulty);
-    });
-    log.info(`Difficulty set to ${newDifficulty}`);
-  }, [storeSetDifficulty]);
+  const setDifficulty = useCallback(
+    (newDifficulty: DifficultyLevel) => {
+      storeSetDifficulty(newDifficulty);
+      // Import dynamically to avoid circular dependency
+      import('../persistence/SaveSystem').then(({ saveSystem }) => {
+        saveSystem.setDifficulty(newDifficulty);
+      });
+      log.info(`Difficulty set to ${newDifficulty}`);
+    },
+    [storeSetDifficulty]
+  );
 
   // HUD visibility management - allows partial updates
   const setHUDVisibility = useCallback((visibility: Partial<HUDVisibility>) => {

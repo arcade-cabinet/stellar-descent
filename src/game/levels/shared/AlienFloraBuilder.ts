@@ -16,10 +16,10 @@
  *   const nodes = await buildFloraFromPlacements(scene, placements, parentNode);
  */
 
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 
 import '@babylonjs/loaders/glTF';
 
@@ -91,9 +91,7 @@ const FLORA_CATALOG = {
     'alien_tall_rock_3_01',
     'alien_boulder_polyhaven',
   ],
-  groundCover: [
-    'alien_iceplant',
-  ],
+  groundCover: ['alien_iceplant'],
 } as const;
 
 type FloraCategoryKey = keyof typeof FLORA_CATALOG;
@@ -171,40 +169,40 @@ function getThemePool(theme: FloraTheme): Array<{ category: FloraCategoryKey; we
       return [
         { category: 'trees', weight: 0.35 },
         { category: 'plants', weight: 0.35 },
-        { category: 'rocks', weight: 0.10 },
-        { category: 'groundCover', weight: 0.20 },
+        { category: 'rocks', weight: 0.1 },
+        { category: 'groundCover', weight: 0.2 },
       ];
     case 'mushroom_grove':
       return [
         { category: 'mushrooms', weight: 0.55 },
         { category: 'groundCover', weight: 0.15 },
-        { category: 'plants', weight: 0.30 },
+        { category: 'plants', weight: 0.3 },
       ];
     case 'rocky_outcrop':
       return [
         { category: 'rocks', weight: 0.55 },
         { category: 'groundCover', weight: 0.25 },
-        { category: 'plants', weight: 0.20 },
+        { category: 'plants', weight: 0.2 },
       ];
     case 'mixed':
       return [
         { category: 'trees', weight: 0.25 },
-        { category: 'mushrooms', weight: 0.20 },
+        { category: 'mushrooms', weight: 0.2 },
         { category: 'plants', weight: 0.25 },
-        { category: 'rocks', weight: 0.20 },
-        { category: 'groundCover', weight: 0.10 },
+        { category: 'rocks', weight: 0.2 },
+        { category: 'groundCover', weight: 0.1 },
       ];
     case 'frozen':
       return [
         { category: 'rocks', weight: 0.35 },
         { category: 'groundCover', weight: 0.25 },
-        { category: 'trees', weight: 0.40 },
+        { category: 'trees', weight: 0.4 },
       ];
     case 'bioluminescent':
       return [
         { category: 'mushrooms', weight: 0.45 },
         { category: 'plants', weight: 0.35 },
-        { category: 'groundCover', weight: 0.20 },
+        { category: 'groundCover', weight: 0.2 },
       ];
   }
 }
@@ -219,18 +217,14 @@ function getFilteredItems(category: FloraCategoryKey, theme: FloraTheme): readon
 
   if (theme === 'frozen' && category === 'trees') {
     return items.filter(
-      (name) =>
-        name.startsWith('alien_deadtree') ||
-        name.startsWith('alien_spruce')
+      (name) => name.startsWith('alien_deadtree') || name.startsWith('alien_spruce')
     );
   }
 
   if (theme === 'bioluminescent' && category === 'plants') {
     return items.filter(
       (name) =>
-        name === 'alien_flower' ||
-        name === 'alien_hanging_moss_01' ||
-        name === 'alien_fern_1'
+        name === 'alien_flower' || name === 'alien_hanging_moss_01' || name === 'alien_fern_1'
     );
   }
 
@@ -341,11 +335,7 @@ export function generateFloraCluster(config: FloraClusterConfig): FloraPlacement
 
     placements.push({
       path: floraCatalogPath(filename),
-      position: new Vector3(
-        config.center.x + offsetX,
-        config.center.y,
-        config.center.z + offsetZ
-      ),
+      position: new Vector3(config.center.x + offsetX, config.center.y, config.center.z + offsetZ),
       rotationY,
       scale,
     });

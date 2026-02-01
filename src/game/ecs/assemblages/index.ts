@@ -8,7 +8,6 @@
  * 4. Visited locations are persisted so they don't change on revisit
  */
 
-import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { StructuralEntity } from '../components/structural';
 
 export const CHUNK_SIZE = 32; // 32 units = 8 grid tiles (4 units each)

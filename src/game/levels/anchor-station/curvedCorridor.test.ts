@@ -141,7 +141,10 @@ describe('CurvedCorridor - Position Helpers', () => {
       const ringRadius = 50;
       const startAngle = -Math.PI / 2;
 
-      const getPositionOnCorridor = (t: number, config: { ringRadius: number; startAngle: number; arcAngle: number }) => {
+      const getPositionOnCorridor = (
+        t: number,
+        config: { ringRadius: number; startAngle: number; arcAngle: number }
+      ) => {
         const angle = config.startAngle + t * config.arcAngle;
         return new Vector3(
           Math.cos(angle) * config.ringRadius,
@@ -166,7 +169,10 @@ describe('CurvedCorridor - Position Helpers', () => {
       const startAngle = 0;
       const arcAngle = Math.PI / 2;
 
-      const getPositionOnCorridor = (t: number, config: { ringRadius: number; startAngle: number; arcAngle: number }) => {
+      const getPositionOnCorridor = (
+        t: number,
+        config: { ringRadius: number; startAngle: number; arcAngle: number }
+      ) => {
         const angle = config.startAngle + t * config.arcAngle;
         return new Vector3(
           Math.cos(angle) * config.ringRadius,
@@ -191,7 +197,10 @@ describe('CurvedCorridor - Position Helpers', () => {
       const startAngle = 0;
       const arcAngle = Math.PI / 2;
 
-      const getPositionOnCorridor = (t: number, config: { ringRadius: number; startAngle: number; arcAngle: number }) => {
+      const getPositionOnCorridor = (
+        t: number,
+        config: { ringRadius: number; startAngle: number; arcAngle: number }
+      ) => {
         const angle = config.startAngle + t * config.arcAngle;
         return new Vector3(
           Math.cos(angle) * config.ringRadius,
@@ -240,11 +249,7 @@ describe('CurvedCorridor - Position Helpers', () => {
       };
 
       // Position on the ring at angle PI/4
-      const testPos = new Vector3(
-        50 * Math.cos(Math.PI / 4),
-        0,
-        50 * Math.sin(Math.PI / 4)
-      );
+      const testPos = new Vector3(50 * Math.cos(Math.PI / 4), 0, 50 * Math.sin(Math.PI / 4));
 
       expect(isInCorridor(testPos, config)).toBe(true);
     });
@@ -316,11 +321,7 @@ describe('CurvedCorridor - Position Helpers', () => {
 
         const clampedRadius = Math.max(minRadius, Math.min(maxRadius, distFromCenter));
 
-        return new Vector3(
-          Math.cos(angle) * clampedRadius,
-          pos.y,
-          Math.sin(angle) * clampedRadius
-        );
+        return new Vector3(Math.cos(angle) * clampedRadius, pos.y, Math.sin(angle) * clampedRadius);
       };
 
       // Position too far out
@@ -345,11 +346,7 @@ describe('CurvedCorridor - Position Helpers', () => {
 
         const clampedRadius = Math.max(minRadius, Math.min(maxRadius, distFromCenter));
 
-        return new Vector3(
-          Math.cos(angle) * clampedRadius,
-          pos.y,
-          Math.sin(angle) * clampedRadius
-        );
+        return new Vector3(Math.cos(angle) * clampedRadius, pos.y, Math.sin(angle) * clampedRadius);
       };
 
       const pos = new Vector3(60, 1.7, 0);

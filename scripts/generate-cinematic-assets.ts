@@ -1,4 +1,5 @@
 #!/usr/bin/env npx tsx
+
 /**
  * generate-cinematic-assets.ts
  *
@@ -27,9 +28,9 @@
  *   Also caches to IndexedDB for browser access (when run in browser context)
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // Import manifest definitions
 // Note: This script is designed to be run with tsx which handles TypeScript imports
@@ -440,9 +441,7 @@ async function generateImage(
   _config: GenerationConfig
 ): Promise<boolean> {
   const model =
-    def.resolution === '4K' || def.resolution === '2K'
-      ? MODELS.imageHighQuality
-      : MODELS.image;
+    def.resolution === '4K' || def.resolution === '2K' ? MODELS.imageHighQuality : MODELS.image;
 
   log(`Generating image: ${def.id} using ${model}`);
 
@@ -546,7 +545,7 @@ async function main(): Promise<void> {
 
   // Filter assets based on config
   let cinematics = [...CINEMATIC_ASSETS];
-  let portraits = [...PORTRAIT_ASSETS];
+  const portraits = [...PORTRAIT_ASSETS];
   let questImages = [...QUEST_IMAGES];
   let textContent = [...TEXT_CONTENT];
 
@@ -649,7 +648,7 @@ async function main(): Promise<void> {
   }
 
   // Print results
-  log('\n' + '='.repeat(60));
+  log(`\n${'='.repeat(60)}`);
   log('GENERATION COMPLETE');
   log('='.repeat(60));
   log(`Videos:  ${results.videos.success} success, ${results.videos.failed} failed`);
@@ -657,8 +656,7 @@ async function main(): Promise<void> {
   log(`Text:    ${results.text.success} success, ${results.text.failed} failed`);
   log('='.repeat(60));
 
-  const totalFailed =
-    results.videos.failed + results.images.failed + results.text.failed;
+  const totalFailed = results.videos.failed + results.images.failed + results.text.failed;
   if (totalFailed > 0) {
     process.exit(1);
   }

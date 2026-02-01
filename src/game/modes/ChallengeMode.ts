@@ -14,6 +14,7 @@
  */
 
 import { getLogger } from '../core/Logger';
+import { capacitorDb } from '../db/database';
 import type { LevelId } from '../levels/types';
 
 const log = getLogger('ChallengeMode');
@@ -40,13 +41,7 @@ export type ObjectiveType =
   | 'weaponMastery'
   | 'multiKills';
 
-export type RewardType =
-  | 'xp'
-  | 'skull'
-  | 'cosmetic'
-  | 'badge'
-  | 'title'
-  | 'leaderboard_entry';
+export type RewardType = 'xp' | 'skull' | 'cosmetic' | 'badge' | 'title' | 'leaderboard_entry';
 
 export type DifficultyModifier = 'easy' | 'normal' | 'hard' | 'insane';
 
@@ -254,9 +249,7 @@ const WEEKLY_CHALLENGE_TEMPLATES: WeeklyChallengeTemplate[] = [
     id: 'weekly_campaign_hard',
     name: 'Hard Mode Warrior',
     description: 'Complete the entire campaign on Hard difficulty',
-    objectives: [
-      { type: 'campaignComplete', targetRange: [1, 1] },
-    ],
+    objectives: [{ type: 'campaignComplete', targetRange: [1, 1] }],
     rewards: [
       { type: 'xp', amount: 5000 },
       { type: 'badge', amount: 1, id: 'hard_mode_badge' },
@@ -267,20 +260,14 @@ const WEEKLY_CHALLENGE_TEMPLATES: WeeklyChallengeTemplate[] = [
     id: 'weekly_total_kills',
     name: 'Alien Apocalypse',
     description: 'Kill 500 enemies across all levels',
-    objectives: [
-      { type: 'kills', targetRange: [400, 600] },
-    ],
-    rewards: [
-      { type: 'xp', amount: 3000 },
-    ],
+    objectives: [{ type: 'kills', targetRange: [400, 600] }],
+    rewards: [{ type: 'xp', amount: 3000 }],
   },
   {
     id: 'weekly_all_skulls',
     name: 'Skull Collector',
     description: 'Collect all skulls in the campaign',
-    objectives: [
-      { type: 'skullsCollected', targetRange: [10, 10] },
-    ],
+    objectives: [{ type: 'skullsCollected', targetRange: [10, 10] }],
     rewards: [
       { type: 'xp', amount: 4000 },
       { type: 'skull', amount: 1, id: 'bonus_skull_weekly' },
@@ -315,9 +302,7 @@ const WEEKLY_CHALLENGE_TEMPLATES: WeeklyChallengeTemplate[] = [
     id: 'weekly_deathless',
     name: 'Immortal Marine',
     description: 'Complete 5 levels without dying',
-    objectives: [
-      { type: 'noDeaths', targetRange: [5, 5] },
-    ],
+    objectives: [{ type: 'noDeaths', targetRange: [5, 5] }],
     rewards: [
       { type: 'xp', amount: 4500 },
       { type: 'badge', amount: 1, id: 'immortal_badge' },
@@ -346,8 +331,19 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
       },
     ],
     rewards: [
-      { type: 'xp', amount: 2500, name: 'Rifle Mastery XP', description: 'XP for completing rifle mastery' },
-      { type: 'cosmetic', amount: 1, id: 'rifle_gold', name: 'Golden Rifle', description: 'Unlock the golden rifle skin' },
+      {
+        type: 'xp',
+        amount: 2500,
+        name: 'Rifle Mastery XP',
+        description: 'XP for completing rifle mastery',
+      },
+      {
+        type: 'cosmetic',
+        amount: 1,
+        id: 'rifle_gold',
+        name: 'Golden Rifle',
+        description: 'Unlock the golden rifle skin',
+      },
     ],
   },
   {
@@ -365,8 +361,19 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
       },
     ],
     rewards: [
-      { type: 'xp', amount: 2500, name: 'Shotgun Mastery XP', description: 'XP for completing shotgun mastery' },
-      { type: 'cosmetic', amount: 1, id: 'shotgun_gold', name: 'Golden Shotgun', description: 'Unlock the golden shotgun skin' },
+      {
+        type: 'xp',
+        amount: 2500,
+        name: 'Shotgun Mastery XP',
+        description: 'XP for completing shotgun mastery',
+      },
+      {
+        type: 'cosmetic',
+        amount: 1,
+        id: 'shotgun_gold',
+        name: 'Golden Shotgun',
+        description: 'Unlock the golden shotgun skin',
+      },
     ],
   },
   {
@@ -384,8 +391,19 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
       },
     ],
     rewards: [
-      { type: 'xp', amount: 2000, name: 'Pistol Mastery XP', description: 'XP for completing pistol mastery' },
-      { type: 'cosmetic', amount: 1, id: 'pistol_gold', name: 'Golden Pistol', description: 'Unlock the golden pistol skin' },
+      {
+        type: 'xp',
+        amount: 2000,
+        name: 'Pistol Mastery XP',
+        description: 'XP for completing pistol mastery',
+      },
+      {
+        type: 'cosmetic',
+        amount: 1,
+        id: 'pistol_gold',
+        name: 'Golden Pistol',
+        description: 'Unlock the golden pistol skin',
+      },
     ],
   },
   // Level Mastery Challenges (3-star ratings)
@@ -395,13 +413,42 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
     name: 'Landfall Mastery',
     description: 'Complete Landfall with 3 stars (no deaths, all secrets, under par time)',
     objectives: [
-      { type: 'noDeaths', target: 1, current: 0, description: 'Complete without dying', levelId: 'landfall' },
-      { type: 'secretsFound', target: 2, current: 0, description: 'Find all secrets', levelId: 'landfall' },
-      { type: 'time', target: 5, current: 0, description: 'Complete in under 5 minutes', levelId: 'landfall' },
+      {
+        type: 'noDeaths',
+        target: 1,
+        current: 0,
+        description: 'Complete without dying',
+        levelId: 'landfall',
+      },
+      {
+        type: 'secretsFound',
+        target: 2,
+        current: 0,
+        description: 'Find all secrets',
+        levelId: 'landfall',
+      },
+      {
+        type: 'time',
+        target: 5,
+        current: 0,
+        description: 'Complete in under 5 minutes',
+        levelId: 'landfall',
+      },
     ],
     rewards: [
-      { type: 'xp', amount: 1500, name: 'Landfall Mastery XP', description: 'XP for mastering Landfall' },
-      { type: 'badge', amount: 1, id: 'landfall_3star', name: 'Landfall Expert', description: '3-star Landfall badge' },
+      {
+        type: 'xp',
+        amount: 1500,
+        name: 'Landfall Mastery XP',
+        description: 'XP for mastering Landfall',
+      },
+      {
+        type: 'badge',
+        amount: 1,
+        id: 'landfall_3star',
+        name: 'Landfall Expert',
+        description: '3-star Landfall badge',
+      },
     ],
   },
   {
@@ -410,13 +457,42 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
     name: 'Canyon Run Mastery',
     description: 'Complete Canyon Run with 3 stars (no deaths, all secrets, under par time)',
     objectives: [
-      { type: 'noDeaths', target: 1, current: 0, description: 'Complete without dying', levelId: 'canyon_run' },
-      { type: 'secretsFound', target: 2, current: 0, description: 'Find all secrets', levelId: 'canyon_run' },
-      { type: 'time', target: 4, current: 0, description: 'Complete in under 4 minutes', levelId: 'canyon_run' },
+      {
+        type: 'noDeaths',
+        target: 1,
+        current: 0,
+        description: 'Complete without dying',
+        levelId: 'canyon_run',
+      },
+      {
+        type: 'secretsFound',
+        target: 2,
+        current: 0,
+        description: 'Find all secrets',
+        levelId: 'canyon_run',
+      },
+      {
+        type: 'time',
+        target: 4,
+        current: 0,
+        description: 'Complete in under 4 minutes',
+        levelId: 'canyon_run',
+      },
     ],
     rewards: [
-      { type: 'xp', amount: 1500, name: 'Canyon Run Mastery XP', description: 'XP for mastering Canyon Run' },
-      { type: 'badge', amount: 1, id: 'canyon_run_3star', name: 'Canyon Runner', description: '3-star Canyon Run badge' },
+      {
+        type: 'xp',
+        amount: 1500,
+        name: 'Canyon Run Mastery XP',
+        description: 'XP for mastering Canyon Run',
+      },
+      {
+        type: 'badge',
+        amount: 1,
+        id: 'canyon_run_3star',
+        name: 'Canyon Runner',
+        description: '3-star Canyon Run badge',
+      },
     ],
   },
   {
@@ -425,14 +501,49 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
     name: 'The Breach Mastery',
     description: 'Defeat the Queen with 3 stars (no deaths, all secrets, under par time)',
     objectives: [
-      { type: 'noDeaths', target: 1, current: 0, description: 'Complete without dying', levelId: 'the_breach' },
-      { type: 'secretsFound', target: 3, current: 0, description: 'Find all secrets', levelId: 'the_breach' },
-      { type: 'time', target: 12, current: 0, description: 'Complete in under 12 minutes', levelId: 'the_breach' },
+      {
+        type: 'noDeaths',
+        target: 1,
+        current: 0,
+        description: 'Complete without dying',
+        levelId: 'the_breach',
+      },
+      {
+        type: 'secretsFound',
+        target: 3,
+        current: 0,
+        description: 'Find all secrets',
+        levelId: 'the_breach',
+      },
+      {
+        type: 'time',
+        target: 12,
+        current: 0,
+        description: 'Complete in under 12 minutes',
+        levelId: 'the_breach',
+      },
     ],
     rewards: [
-      { type: 'xp', amount: 3000, name: 'The Breach Mastery XP', description: 'XP for mastering The Breach' },
-      { type: 'badge', amount: 1, id: 'the_breach_3star', name: 'Queen Slayer', description: '3-star The Breach badge' },
-      { type: 'skull', amount: 1, id: 'queen_skull', name: 'Queen Skull', description: 'Rare skull from The Breach mastery' },
+      {
+        type: 'xp',
+        amount: 3000,
+        name: 'The Breach Mastery XP',
+        description: 'XP for mastering The Breach',
+      },
+      {
+        type: 'badge',
+        amount: 1,
+        id: 'the_breach_3star',
+        name: 'Queen Slayer',
+        description: '3-star The Breach badge',
+      },
+      {
+        type: 'skull',
+        amount: 1,
+        id: 'queen_skull',
+        name: 'Queen Skull',
+        description: 'Rare skull from The Breach mastery',
+      },
     ],
   },
   // Meta Challenges
@@ -442,11 +553,22 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
     name: 'Campaign Veteran',
     description: 'Complete the full campaign 3 times',
     objectives: [
-      { type: 'campaignComplete', target: 3, current: 0, description: 'Complete the campaign 3 times' },
+      {
+        type: 'campaignComplete',
+        target: 3,
+        current: 0,
+        description: 'Complete the campaign 3 times',
+      },
     ],
     rewards: [
       { type: 'xp', amount: 10000, name: 'Veteran XP', description: 'XP for true dedication' },
-      { type: 'title', amount: 1, id: 'veteran_title', name: 'Veteran', description: 'The "Veteran" title' },
+      {
+        type: 'title',
+        amount: 1,
+        id: 'veteran_title',
+        name: 'Veteran',
+        description: 'The "Veteran" title',
+      },
     ],
   },
   {
@@ -455,12 +577,35 @@ const PERMANENT_CHALLENGES: Omit<Challenge, 'startDate' | 'endDate' | 'completed
     name: 'Insane Completionist',
     description: 'Complete all levels on Insane difficulty',
     objectives: [
-      { type: 'levelComplete', target: 10, current: 0, description: 'Complete all 10 levels on Insane', difficulty: 'insane' },
+      {
+        type: 'levelComplete',
+        target: 10,
+        current: 0,
+        description: 'Complete all 10 levels on Insane',
+        difficulty: 'insane',
+      },
     ],
     rewards: [
-      { type: 'xp', amount: 15000, name: 'Insane XP', description: 'Massive XP for the ultimate challenge' },
-      { type: 'title', amount: 1, id: 'insane_title', name: 'Insane Marine', description: 'The "Insane Marine" title' },
-      { type: 'cosmetic', amount: 1, id: 'insane_armor', name: 'Elite Armor', description: 'Exclusive armor skin for insane completion' },
+      {
+        type: 'xp',
+        amount: 15000,
+        name: 'Insane XP',
+        description: 'Massive XP for the ultimate challenge',
+      },
+      {
+        type: 'title',
+        amount: 1,
+        id: 'insane_title',
+        name: 'Insane Marine',
+        description: 'The "Insane Marine" title',
+      },
+      {
+        type: 'cosmetic',
+        amount: 1,
+        id: 'insane_armor',
+        name: 'Elite Armor',
+        description: 'Exclusive armor skin for insane completion',
+      },
     ],
   },
 ];
@@ -530,7 +675,7 @@ export function generateDailyChallenges(date: Date = new Date()): Challenge[] {
     }
 
     // Build description with substitutions
-    let description = template.description
+    const description = template.description
       .replace('{target}', target.toString())
       .replace('{level}', levelName);
 
@@ -667,7 +812,7 @@ function getRewardName(type: RewardType, amount: number, id?: string): string {
   }
 }
 
-function getRewardDescription(type: RewardType, amount: number, id?: string): string {
+function getRewardDescription(type: RewardType, amount: number, _id?: string): string {
   switch (type) {
     case 'xp':
       return `Earn ${amount} experience points`;
@@ -727,39 +872,38 @@ function getObjectiveDescription(type: ObjectiveType, target: number, levelId?: 
 // STORAGE
 // ============================================================================
 
-const STORAGE_KEY = 'stellar_descent_challenges';
+const TABLE_CHALLENGES = 'challenge_state';
+
+/** Flag to track if database is initialized */
+let dbInitialized = false;
+let initPromise: Promise<void> | null = null;
 
 /**
- * Load challenge state from localStorage
+ * Ensure the challenge table exists
  */
-export function loadChallengeState(): ChallengeState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const state = JSON.parse(stored);
-      // Convert date strings back to Date objects
-      state.dailyChallenges = state.dailyChallenges?.map((c: Challenge) => ({
-        ...c,
-        startDate: new Date(c.startDate),
-        endDate: new Date(c.endDate),
-      })) ?? [];
-      state.weeklyChallenges = state.weeklyChallenges?.map((c: Challenge) => ({
-        ...c,
-        startDate: new Date(c.startDate),
-        endDate: new Date(c.endDate),
-      })) ?? [];
-      state.permanentChallenges = state.permanentChallenges?.map((c: Challenge) => ({
-        ...c,
-        startDate: new Date(c.startDate),
-        endDate: new Date(c.endDate),
-      })) ?? [];
-      return state;
-    }
-  } catch (error) {
-    log.error('Failed to load challenge state:', error);
-  }
+async function ensureTable(): Promise<void> {
+  if (dbInitialized) return;
+  if (initPromise) return initPromise;
 
-  // Return default state
+  initPromise = doEnsureTable();
+  return initPromise;
+}
+
+async function doEnsureTable(): Promise<void> {
+  await capacitorDb.init();
+  await capacitorDb.execute(`
+    CREATE TABLE IF NOT EXISTS ${TABLE_CHALLENGES} (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+  dbInitialized = true;
+}
+
+/**
+ * Create default challenge state
+ */
+function createDefaultState(): ChallengeState {
   return {
     dailyChallenges: [],
     weeklyChallenges: [],
@@ -772,11 +916,56 @@ export function loadChallengeState(): ChallengeState {
 }
 
 /**
- * Save challenge state to localStorage
+ * Load challenge state from SQLite
  */
-export function saveChallengeState(state: ChallengeState): void {
+export async function loadChallengeState(): Promise<ChallengeState> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    await ensureTable();
+    const rows = await capacitorDb.query<{ key: string; value: string }>(
+      `SELECT key, value FROM ${TABLE_CHALLENGES} WHERE key = ?`,
+      ['state']
+    );
+    if (rows.length > 0) {
+      const state = JSON.parse(rows[0].value);
+      // Convert date strings back to Date objects
+      state.dailyChallenges =
+        state.dailyChallenges?.map((c: Challenge) => ({
+          ...c,
+          startDate: new Date(c.startDate),
+          endDate: new Date(c.endDate),
+        })) ?? [];
+      state.weeklyChallenges =
+        state.weeklyChallenges?.map((c: Challenge) => ({
+          ...c,
+          startDate: new Date(c.startDate),
+          endDate: new Date(c.endDate),
+        })) ?? [];
+      state.permanentChallenges =
+        state.permanentChallenges?.map((c: Challenge) => ({
+          ...c,
+          startDate: new Date(c.startDate),
+          endDate: new Date(c.endDate),
+        })) ?? [];
+      return state;
+    }
+  } catch (error) {
+    log.error('Failed to load challenge state:', error);
+  }
+
+  // Return default state
+  return createDefaultState();
+}
+
+/**
+ * Save challenge state to SQLite
+ */
+export async function saveChallengeState(state: ChallengeState): Promise<void> {
+  try {
+    await ensureTable();
+    await capacitorDb.run(`INSERT OR REPLACE INTO ${TABLE_CHALLENGES} (key, value) VALUES (?, ?)`, [
+      'state',
+      JSON.stringify(state),
+    ]);
   } catch (error) {
     log.error('Failed to save challenge state:', error);
   }

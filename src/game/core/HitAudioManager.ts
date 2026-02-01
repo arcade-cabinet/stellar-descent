@@ -185,7 +185,7 @@ export class HitAudioManager {
   /**
    * Critical/headshot hit sound - ascending ding with extra satisfaction
    */
-  private playCriticalHitSound(damage: number, time: number): void {
+  private playCriticalHitSound(_damage: number, time: number): void {
     const ctx = this.getContext();
     const output = this.getOutputNode();
 

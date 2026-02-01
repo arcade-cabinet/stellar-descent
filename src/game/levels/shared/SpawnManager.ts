@@ -27,7 +27,7 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-
+import { getLogger } from '../../core/Logger';
 import type {
   EnemyStatOverrides,
   LevelSpawnConfig,
@@ -36,8 +36,6 @@ import type {
   SpawnWaveConfig,
   TriggerCondition,
 } from './SpawnConfig';
-
-import { getLogger } from '../../core/Logger';
 
 const log = getLogger('SpawnManager');
 
@@ -139,7 +137,6 @@ export class SpawnManager {
 
   // Global counters
   private totalKills = 0;
-  private totalSpawned = 0;
   private elapsedTime = 0;
 
   // Objective flags (set by the hosting level)
@@ -486,9 +483,7 @@ export class SpawnManager {
     const queue: QueuedSpawn[] = [];
 
     // Expand each group into individual spawn entries
-    const expanded: QueuedSpawn[][] = waveConfig.groups.map((group) =>
-      this.expandGroup(group)
-    );
+    const expanded: QueuedSpawn[][] = waveConfig.groups.map((group) => this.expandGroup(group));
 
     // Interleave: round-robin across groups for variety
     let remaining = true;
@@ -514,9 +509,7 @@ export class SpawnManager {
     for (let i = 0; i < group.count; i++) {
       entries.push({
         speciesId: group.speciesId,
-        spawnPointId: spawnPointIds
-          ? spawnPointIds[i % spawnPointIds.length]
-          : null,
+        spawnPointId: spawnPointIds ? spawnPointIds[i % spawnPointIds.length] : null,
         overrides: group.overrides ?? null,
       });
     }
@@ -570,7 +563,7 @@ export class SpawnManager {
       facingAngle = 0;
       log.warn(
         `No spawn point resolved for species "${queued.speciesId}" ` +
-        `in wave ${wave.config.waveNumber}. Using fallback position.`
+          `in wave ${wave.config.waveNumber}. Using fallback position.`
       );
     }
 
@@ -624,7 +617,9 @@ export class SpawnManager {
     if (waveLevelIds && waveLevelIds.length > 0) {
       const eligible = waveLevelIds
         .map((id) => this.spawnPointMap.get(id))
-        .filter((p): p is SpawnPointConfig => p !== undefined && this.isSpeciesAllowed(p, speciesId));
+        .filter(
+          (p): p is SpawnPointConfig => p !== undefined && this.isSpeciesAllowed(p, speciesId)
+        );
 
       if (eligible.length > 0) {
         return eligible[Math.floor(Math.random() * eligible.length)];
@@ -632,9 +627,7 @@ export class SpawnManager {
     }
 
     // Fall back to all level spawn points
-    const allEligible = this.config.spawnPoints.filter((p) =>
-      this.isSpeciesAllowed(p, speciesId)
-    );
+    const allEligible = this.config.spawnPoints.filter((p) => this.isSpeciesAllowed(p, speciesId));
     if (allEligible.length > 0) {
       return allEligible[Math.floor(Math.random() * allEligible.length)];
     }

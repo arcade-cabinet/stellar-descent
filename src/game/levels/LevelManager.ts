@@ -12,15 +12,14 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { getMissionDefinition } from '../campaign/MissionDefinitions';
+import { getEventBus } from '../core/EventBus';
 import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
 import { type GameSave, saveSystem } from '../persistence';
 import {
   CAMPAIGN_LEVELS,
   type ILevel,
-  type LevelCallbacks,
   type LevelConfig,
-  type LevelFactory,
   type LevelFactoryRegistry,
   type LevelId,
   type LevelState,
@@ -31,14 +30,12 @@ const log = getLogger('LevelManager');
 export interface LevelManagerConfig {
   engine: Engine;
   canvas: HTMLCanvasElement;
-  callbacks: LevelCallbacks;
   levelFactories: Partial<LevelFactoryRegistry>;
 }
 
 export class LevelManager {
   private engine: Engine;
   private canvas: HTMLCanvasElement;
-  private callbacks: LevelCallbacks;
   private factories: Partial<LevelFactoryRegistry>;
 
   private currentLevel: ILevel | null = null;
@@ -46,16 +43,12 @@ export class LevelManager {
   private isTransitioning = false;
   private savedStatesLoaded = false;
 
-  // Render loop handle
-  private renderLoopHandle: number | null = null;
-
   // Callbacks for state restoration
   private onStateRestored: ((save: GameSave) => void) | null = null;
 
   constructor(config: LevelManagerConfig) {
     this.engine = config.engine;
     this.canvas = config.canvas;
-    this.callbacks = config.callbacks;
     this.factories = config.levelFactories;
   }
 
@@ -105,7 +98,7 @@ export class LevelManager {
       }
 
       // Create the level
-      const level = factory(this.engine, this.canvas, config, this.callbacks);
+      const level = factory(this.engine, this.canvas, config);
 
       // Restore state if we have it (from level states map)
       const savedLevelState = this.levelStates.get(levelId);
@@ -148,8 +141,11 @@ export class LevelManager {
       // Start render loop for this level's scene
       this.startRenderLoop(level);
 
-      // Update chapter
-      this.callbacks.onChapterChange(config.chapter);
+      // Emit chapter changed event
+      getEventBus().emit({
+        type: 'CHAPTER_CHANGED',
+        chapter: config.chapter,
+      });
 
       this.currentLevel = level;
       log.info(`Level started: ${levelId}`);
@@ -170,8 +166,18 @@ export class LevelManager {
     const nextLevelId = this.currentLevel.config.nextLevelId;
     if (!nextLevelId) {
       log.info('No next level - campaign complete!');
-      // Issue #65: Notify callback with null for credits sequence
-      this.callbacks.onLevelComplete(null);
+      // Issue #65: Emit level complete event with null for credits sequence
+      getEventBus().emit({
+        type: 'LEVEL_COMPLETE',
+        levelId: this.currentLevel.id,
+        nextLevelId: null,
+        stats: this.currentLevel.getState().stats ?? {
+          kills: 0,
+          timeSpent: 0,
+          secretsFound: 0,
+          deaths: 0,
+        },
+      });
       return;
     }
 

@@ -15,19 +15,19 @@
  */
 
 import 'dotenv/config';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'fs';
-import * as path from 'path';
 import {
-  PortraitManifestSchema,
-  SplashManifestSchema,
+  type CinematicManifest,
   CinematicManifestSchema,
   hashPrompt,
   needsRegeneration,
-  type PortraitManifest,
   type PortraitAsset,
+  type PortraitManifest,
+  PortraitManifestSchema,
   type SplashManifest,
-  type CinematicManifest,
+  SplashManifestSchema,
   type VideoAsset,
 } from '../src/game/ai/schemas/GenerationManifestSchemas';
 
@@ -92,9 +92,10 @@ function buildPortraitPrompt(asset: PortraitAsset, manifest: PortraitManifest): 
     branding.push(manifest.loreBranding.rankInsignia[asset.characterId]);
   }
 
-  const brandingText = branding.length > 0
-    ? `\n\nMilitary details: ${branding.join('. ')}.\n\n${manifest.loreBranding.styleGuide}`
-    : `\n\n${manifest.loreBranding.styleGuide}`;
+  const brandingText =
+    branding.length > 0
+      ? `\n\nMilitary details: ${branding.join('. ')}.\n\n${manifest.loreBranding.styleGuide}`
+      : `\n\n${manifest.loreBranding.styleGuide}`;
 
   return `${asset.prompt}${brandingText}`;
 }
@@ -119,16 +120,17 @@ async function generatePortrait(
 
   console.log(`🎨 Generating portrait: ${asset.id}`);
   if (process.env.VERBOSE) {
-    console.log('   Prompt:', fullPrompt.slice(0, 200) + '...');
+    console.log('   Prompt:', `${fullPrompt.slice(0, 200)}...`);
   }
 
   asset.status = 'generating';
   const startTime = Date.now();
 
   try {
-    const model = asset.resolution === '2K' || asset.resolution === '4K'
-      ? MODELS.imageHighQuality
-      : MODELS.image;
+    const model =
+      asset.resolution === '2K' || asset.resolution === '4K'
+        ? MODELS.imageHighQuality
+        : MODELS.image;
 
     const response = await ai.models.generateContent({
       model,
@@ -161,7 +163,9 @@ async function generatePortrait(
         };
         delete asset.lastError;
 
-        console.log(`✅ Generated: ${asset.filename} (${(buffer.length / 1024).toFixed(1)} KB, ${((Date.now() - startTime) / 1000).toFixed(1)}s)`);
+        console.log(
+          `✅ Generated: ${asset.filename} (${(buffer.length / 1024).toFixed(1)} KB, ${((Date.now() - startTime) / 1000).toFixed(1)}s)`
+        );
         return true;
       }
     }
@@ -221,7 +225,7 @@ async function generateVideo(
       if (Date.now() - startTime > maxWait) {
         throw new Error('Timed out after 10 minutes');
       }
-      await new Promise(r => setTimeout(r, 10000));
+      await new Promise((r) => setTimeout(r, 10000));
       operation = await ai.operations.getVideosOperation({ operation });
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
       console.log(`   Polling... (${elapsed}s)`);
@@ -252,7 +256,9 @@ async function generateVideo(
       };
       delete asset.lastError;
 
-      console.log(`✅ Generated: ${asset.filename} (${(buffer.length / 1024 / 1024).toFixed(2)} MB, ${((Date.now() - startTime) / 1000).toFixed(0)}s)`);
+      console.log(
+        `✅ Generated: ${asset.filename} (${(buffer.length / 1024 / 1024).toFixed(2)} MB, ${((Date.now() - startTime) / 1000).toFixed(0)}s)`
+      );
       return true;
     }
 
@@ -277,8 +283,8 @@ async function runPortraits(ai: GoogleGenAI, target?: string, force = false): Pr
       await generatePortrait(ai, asset, manifest, force);
     }
   } else {
-    const idx = isNaN(Number(target))
-      ? manifest.assets.findIndex(a => a.id === target)
+    const idx = Number.isNaN(Number(target))
+      ? manifest.assets.findIndex((a) => a.id === target)
       : Number(target);
     const asset = manifest.assets[idx];
     if (!asset) {
@@ -300,14 +306,14 @@ async function runSplash(ai: GoogleGenAI, target?: string, force = false): Promi
       await generateVideo(ai, asset, MANIFEST_PATHS.splash, force);
     }
   } else if (target === '16:9' || target === '16x9') {
-    const asset = manifest.assets.find(a => a.aspectRatio === '16:9');
+    const asset = manifest.assets.find((a) => a.aspectRatio === '16:9');
     if (asset) await generateVideo(ai, asset, MANIFEST_PATHS.splash, force);
   } else if (target === '9:16' || target === '9x16') {
-    const asset = manifest.assets.find(a => a.aspectRatio === '9:16');
+    const asset = manifest.assets.find((a) => a.aspectRatio === '9:16');
     if (asset) await generateVideo(ai, asset, MANIFEST_PATHS.splash, force);
   } else {
-    const idx = isNaN(Number(target))
-      ? manifest.assets.findIndex(a => a.id === target)
+    const idx = Number.isNaN(Number(target))
+      ? manifest.assets.findIndex((a) => a.id === target)
       : Number(target);
     const asset = manifest.assets[idx];
     if (!asset) {
@@ -329,8 +335,8 @@ async function runCinematics(ai: GoogleGenAI, target?: string, force = false): P
       await generateVideo(ai, asset, MANIFEST_PATHS.cinematics, force);
     }
   } else {
-    const idx = isNaN(Number(target))
-      ? manifest.assets.findIndex(a => a.id === target || a.levelId === target)
+    const idx = Number.isNaN(Number(target))
+      ? manifest.assets.findIndex((a) => a.id === target || a.levelId === target)
       : Number(target);
     const asset = manifest.assets[idx];
     if (!asset) {
@@ -352,7 +358,9 @@ function showStatus(): void {
   const portraits = loadPortraitManifest();
   for (const asset of portraits.assets) {
     const status = asset.status === 'generated' ? '✅' : asset.status === 'failed' ? '❌' : '⏳';
-    const size = asset.metadata?.fileSizeBytes ? ` (${(asset.metadata.fileSizeBytes / 1024).toFixed(0)} KB)` : '';
+    const size = asset.metadata?.fileSizeBytes
+      ? ` (${(asset.metadata.fileSizeBytes / 1024).toFixed(0)} KB)`
+      : '';
     console.log(`   ${status} ${asset.id}${size}`);
   }
 
@@ -361,7 +369,9 @@ function showStatus(): void {
   const splash = loadSplashManifest();
   for (const asset of splash.assets) {
     const status = asset.status === 'generated' ? '✅' : asset.status === 'failed' ? '❌' : '⏳';
-    const size = asset.metadata?.fileSizeBytes ? ` (${(asset.metadata.fileSizeBytes / 1024 / 1024).toFixed(1)} MB)` : '';
+    const size = asset.metadata?.fileSizeBytes
+      ? ` (${(asset.metadata.fileSizeBytes / 1024 / 1024).toFixed(1)} MB)`
+      : '';
     console.log(`   ${status} ${asset.id} [${asset.aspectRatio}]${size}`);
   }
 
@@ -370,15 +380,17 @@ function showStatus(): void {
   const cinematics = loadCinematicManifest();
   for (const asset of cinematics.assets) {
     const status = asset.status === 'generated' ? '✅' : asset.status === 'failed' ? '❌' : '⏳';
-    const size = asset.metadata?.fileSizeBytes ? ` (${(asset.metadata.fileSizeBytes / 1024 / 1024).toFixed(1)} MB)` : '';
+    const size = asset.metadata?.fileSizeBytes
+      ? ` (${(asset.metadata.fileSizeBytes / 1024 / 1024).toFixed(1)} MB)`
+      : '';
     console.log(`   ${status} ${asset.id}${size}`);
   }
 
   // Summary
   const allAssets = [...portraits.assets, ...splash.assets, ...cinematics.assets];
-  const generated = allAssets.filter(a => a.status === 'generated').length;
-  const pending = allAssets.filter(a => a.status === 'pending').length;
-  const failed = allAssets.filter(a => a.status === 'failed').length;
+  const generated = allAssets.filter((a) => a.status === 'generated').length;
+  const pending = allAssets.filter((a) => a.status === 'pending').length;
+  const failed = allAssets.filter((a) => a.status === 'failed').length;
 
   console.log(`\n📊 Summary: ${generated} generated, ${pending} pending, ${failed} failed`);
 }

@@ -11,7 +11,6 @@ vi.mock('@babylonjs/core/Materials/standardMaterial', () => {
     disableLighting = false;
     alpha = 1;
     dispose = vi.fn();
-    constructor(_name?: string, _scene?: any) {}
   }
   return { StandardMaterial: MockStandardMaterial };
 });
@@ -42,7 +41,9 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => {
       this.z = z;
     }
     subtract = vi.fn().mockReturnValue({
-      x: 0, y: 0, z: 0,
+      x: 0,
+      y: 0,
+      z: 0,
       normalize: vi.fn().mockReturnThis(),
       scale: vi.fn().mockReturnThis(),
       length: vi.fn().mockReturnValue(1),
@@ -52,7 +53,13 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => {
     scale = vi.fn().mockReturnThis();
     clone = vi.fn(() => new MockVector3(this.x, this.y, this.z));
     addInPlace = vi.fn();
-    static Cross = vi.fn().mockReturnValue({ x: 0, y: 1, z: 0, normalize: vi.fn().mockReturnThis(), length: vi.fn().mockReturnValue(1) });
+    static Cross = vi.fn().mockReturnValue({
+      x: 0,
+      y: 1,
+      z: 0,
+      normalize: vi.fn().mockReturnThis(),
+      length: vi.fn().mockReturnValue(1),
+    });
     static Dot = vi.fn().mockReturnValue(0);
     static Up = vi.fn().mockReturnValue({ x: 0, y: 1, z: 0, normalize: vi.fn().mockReturnThis() });
     static Distance = vi.fn().mockReturnValue(5);
@@ -77,7 +84,6 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => {
     origin = { x: 0, y: 0, z: 0 };
     direction = { x: 0, y: 0, z: 1 };
     length = 100;
-    constructor(_origin?: any, _direction?: any, _length?: number) {}
   }
 
   return {
@@ -92,7 +98,6 @@ vi.mock('@babylonjs/core/Culling/ray', () => {
     origin = { x: 0, y: 0, z: 0 };
     direction = { x: 0, y: 0, z: 1 };
     length = 100;
-    constructor(_origin?: any, _direction?: any, _length?: number) {}
   }
   return { Ray: MockRay };
 });
@@ -254,7 +259,11 @@ vi.mock('./HitReactionSystem', () => ({
   hitReactionSystem: {
     init: vi.fn(),
     applyHitReaction: vi.fn(),
-    selectDeathAnimation: vi.fn().mockReturnValue({ animationType: 'ragdoll', forceDirection: { x: 0, y: 0, z: 1 }, duration: 800 }),
+    selectDeathAnimation: vi.fn().mockReturnValue({
+      animationType: 'ragdoll',
+      forceDirection: { x: 0, y: 0, z: 1 },
+      duration: 800,
+    }),
     executeDeathAnimation: vi.fn(),
     removeEntity: vi.fn(),
     update: vi.fn(),
@@ -278,9 +287,6 @@ vi.mock('../utils/designTokens', () => ({
 
 // Import after mocks
 import { CombatSystem } from './combatSystem';
-import { getEventBus } from '../core/EventBus';
-import { hitAudioManager } from '../core/HitAudioManager';
-import { removeEntity } from '../core/ecs';
 
 // Helper to create mock Vector3-like position with clone method
 function createMockPosition(x = 0, y = 0, z = 0) {
@@ -290,7 +296,9 @@ function createMockPosition(x = 0, y = 0, z = 0) {
     z,
     clone: vi.fn(() => createMockPosition(pos.x, pos.y, pos.z)),
     subtract: vi.fn().mockReturnValue({
-      x: 0, y: 0, z: 0,
+      x: 0,
+      y: 0,
+      z: 0,
       normalize: vi.fn().mockReturnThis(),
       scale: vi.fn().mockReturnThis(),
       length: vi.fn().mockReturnValue(1),
@@ -340,16 +348,16 @@ describe('CombatSystem', () => {
   describe('Collision detection', () => {
     it('should detect sphere-sphere collision', () => {
       // Test basic collision detection between entities
-      const enemy = {
+      const _enemy = {
         id: 'enemy-1',
         transform: { position: { x: 1, y: 1, z: 0 } },
         health: { current: 100, max: 100 },
         renderable: {
           mesh: {
             getBoundingInfo: vi.fn().mockReturnValue({
-              boundingBox: { extendSize: { x: 1, y: 1, z: 1 } }
-            })
-          }
+              boundingBox: { extendSize: { x: 1, y: 1, z: 1 } },
+            }),
+          },
         },
       };
 

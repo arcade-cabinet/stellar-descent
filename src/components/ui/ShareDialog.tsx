@@ -9,15 +9,11 @@
  * - Military terminal styling
  */
 
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
 import type { LevelId } from '../../game/levels/types';
-import {
-  getShareSystem,
-  type ShareStats,
-  type ShareTrigger,
-} from '../../game/social/ShareSystem';
 import type { ScreenshotData } from '../../game/social/ScreenshotCapture';
+import { getShareSystem, type ShareStats, type ShareTrigger } from '../../game/social/ShareSystem';
 import styles from './ShareDialog.module.css';
 
 /** Stats data for the share dialog */
@@ -98,17 +94,30 @@ export function ShareDialog({
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // Build share stats object
-  const shareStats: ShareStats = useMemo(() => ({
-    levelId,
-    missionName,
-    rating,
-    stats,
-    kills,
-    isPersonalBest,
-    isCampaignComplete,
-    achievementName,
-    bossName,
-  }), [levelId, missionName, rating, stats, kills, isPersonalBest, isCampaignComplete, achievementName, bossName]);
+  const shareStats: ShareStats = useMemo(
+    () => ({
+      levelId,
+      missionName,
+      rating,
+      stats,
+      kills,
+      isPersonalBest,
+      isCampaignComplete,
+      achievementName,
+      bossName,
+    }),
+    [
+      levelId,
+      missionName,
+      rating,
+      stats,
+      kills,
+      isPersonalBest,
+      isCampaignComplete,
+      achievementName,
+      bossName,
+    ]
+  );
 
   // Generate initial share text
   const [shareText, setShareText] = useState('');
@@ -143,9 +152,7 @@ export function ShareDialog({
         const screenshotData: ScreenshotData = shareSystem.createScreenshotData(shareStats);
 
         // Capture preview
-        const url = await shareSystem.capturePreview(
-          includeStats ? screenshotData : undefined
-        );
+        const url = await shareSystem.capturePreview(includeStats ? screenshotData : undefined);
         setPreviewUrl(url);
 
         // Capture full-quality for download/share
@@ -164,7 +171,7 @@ export function ShareDialog({
     };
 
     captureScreenshot();
-  }, [isOpen, includeStats, shareStats]);
+  }, [isOpen, includeStats, shareStats, previewUrl]);
 
   // Re-capture when stats toggle changes
   useEffect(() => {
@@ -181,9 +188,7 @@ export function ShareDialog({
           URL.revokeObjectURL(previewUrl);
         }
 
-        const url = await shareSystem.capturePreview(
-          includeStats ? screenshotData : undefined
-        );
+        const url = await shareSystem.capturePreview(includeStats ? screenshotData : undefined);
         setPreviewUrl(url);
 
         const blob = await shareSystem.captureScreenshot(
@@ -199,7 +204,7 @@ export function ShareDialog({
     };
 
     recapture();
-  }, [includeStats]);
+  }, [includeStats, isOpen, previewUrl, shareStats]);
 
   // Play sound helper
   const playSound = useCallback((type: 'click' | 'success' | 'error') => {
@@ -377,8 +382,12 @@ export function ShareDialog({
 
         {/* Header */}
         <div className={styles.header}>
-          <span className={styles.shareIcon} aria-hidden="true">{'\u2197'}</span>
-          <h2 id="share-title" className={styles.title}>Share</h2>
+          <span className={styles.shareIcon} aria-hidden="true">
+            {'\u2197'}
+          </span>
+          <h2 id="share-title" className={styles.title}>
+            Share
+          </h2>
         </div>
 
         {/* Screenshot preview section */}
@@ -387,21 +396,11 @@ export function ShareDialog({
         </div>
 
         <div className={styles.previewContainer}>
-          {isLoading && (
-            <div className={styles.previewLoading}>
-              Capturing...
-            </div>
-          )}
+          {isLoading && <div className={styles.previewLoading}>Capturing...</div>}
           {previewUrl ? (
-            <img
-              src={previewUrl}
-              alt="Screenshot preview"
-              className={styles.previewImage}
-            />
-          ) : !isLoading && (
-            <div className={styles.previewPlaceholder}>
-              Screenshot not available
-            </div>
+            <img src={previewUrl} alt="Screenshot preview" className={styles.previewImage} />
+          ) : (
+            !isLoading && <div className={styles.previewPlaceholder}>Screenshot not available</div>
           )}
         </div>
 
@@ -483,9 +482,7 @@ export function ShareDialog({
             onClick={handleCopyText}
             disabled={isLoading}
           >
-            <span className={styles.actionIcon}>
-              {copiedText ? '\u2713' : '\u2398'}
-            </span>
+            <span className={styles.actionIcon}>{copiedText ? '\u2713' : '\u2398'}</span>
             {copiedText ? 'Copied!' : 'Copy Text'}
           </button>
 
@@ -494,9 +491,7 @@ export function ShareDialog({
             onClick={handleCopyImage}
             disabled={isLoading || !screenshotBlob}
           >
-            <span className={styles.actionIcon}>
-              {copiedImage ? '\u2713' : '\uD83D\uDCCB'}
-            </span>
+            <span className={styles.actionIcon}>{copiedImage ? '\u2713' : '\uD83D\uDCCB'}</span>
             {copiedImage ? 'Copied!' : 'Copy Image'}
           </button>
 
@@ -519,9 +514,7 @@ export function ShareDialog({
 
         {/* Footer */}
         <div className={styles.footer}>
-          <span className={styles.footerText}>
-            7TH DROP MARINES - STELLAR DESCENT
-          </span>
+          <span className={styles.footerText}>7TH DROP MARINES - STELLAR DESCENT</span>
         </div>
       </div>
     </div>

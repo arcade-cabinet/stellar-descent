@@ -7,6 +7,12 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  calculateSustainedDPS,
+  calculateTotalAmmo,
+  calculateWeaponDPS,
+  WEAPON_BALANCE,
+} from '../balance/CombatBalanceConfig';
+import {
   ALL_WEAPON_IDS,
   categoryToEffectType,
   DEFAULT_WEAPON,
@@ -18,15 +24,8 @@ import {
   WEAPON_SLOTS,
   WEAPONS,
   type WeaponCategory,
-  type WeaponDefinition,
   type WeaponId,
 } from '../entities/weapons';
-import {
-  calculateSustainedDPS,
-  calculateTotalAmmo,
-  calculateWeaponDPS,
-  WEAPON_BALANCE,
-} from '../balance/CombatBalanceConfig';
 
 // ---------------------------------------------------------------------------
 // Constants for validation
@@ -285,9 +284,10 @@ describe('Ammo Consumption', () => {
   it('should have positive magazine size for all weapons', () => {
     for (const id of ALL_WEAPON_IDS) {
       const weapon = WEAPONS[id];
-      expect(weapon.magazineSize, `${weapon.name} magazine size should be positive`).toBeGreaterThan(
-        0
-      );
+      expect(
+        weapon.magazineSize,
+        `${weapon.name} magazine size should be positive`
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -308,10 +308,9 @@ describe('Ammo Consumption', () => {
   it('should have positive reserve ammo for all weapons', () => {
     for (const id of ALL_WEAPON_IDS) {
       const weapon = WEAPONS[id];
-      expect(
-        weapon.reserveAmmo,
-        `${weapon.name} reserve ammo should be positive`
-      ).toBeGreaterThan(0);
+      expect(weapon.reserveAmmo, `${weapon.name} reserve ammo should be positive`).toBeGreaterThan(
+        0
+      );
     }
   });
 
@@ -347,7 +346,10 @@ describe('Ammo Consumption', () => {
       const weapon = WEAPONS[id];
       const totalShots = weapon.magazineSize + weapon.reserveAmmo;
       // At minimum, should have enough for 20 shots
-      expect(totalShots, `${weapon.name} should have at least 20 total shots`).toBeGreaterThanOrEqual(20);
+      expect(
+        totalShots,
+        `${weapon.name} should have at least 20 total shots`
+      ).toBeGreaterThanOrEqual(20);
     }
   });
 });
@@ -422,10 +424,9 @@ describe('DPS Calculations', () => {
     for (const id of weaponIds) {
       const burstDps = calculateWeaponDPS(id);
       const sustainedDps = calculateSustainedDPS(id);
-      expect(
-        burstDps,
-        `${id} burst DPS should >= sustained DPS`
-      ).toBeGreaterThanOrEqual(sustainedDps - 0.01); // small tolerance for floating point
+      expect(burstDps, `${id} burst DPS should >= sustained DPS`).toBeGreaterThanOrEqual(
+        sustainedDps - 0.01
+      ); // small tolerance for floating point
     }
   });
 
@@ -575,8 +576,10 @@ describe('Weapon Tier System', () => {
     const tier1Weapons = ALL_WEAPON_IDS.filter((id) => WEAPONS[id].tier === 1);
     const tier5Weapons = ALL_WEAPON_IDS.filter((id) => WEAPONS[id].tier === 5);
 
-    const avgTier1Damage = tier1Weapons.reduce((sum, id) => sum + WEAPONS[id].damage, 0) / tier1Weapons.length;
-    const avgTier5Damage = tier5Weapons.reduce((sum, id) => sum + WEAPONS[id].damage, 0) / tier5Weapons.length;
+    const avgTier1Damage =
+      tier1Weapons.reduce((sum, id) => sum + WEAPONS[id].damage, 0) / tier1Weapons.length;
+    const avgTier5Damage =
+      tier5Weapons.reduce((sum, id) => sum + WEAPONS[id].damage, 0) / tier5Weapons.length;
 
     expect(avgTier5Damage).toBeGreaterThan(avgTier1Damage);
   });

@@ -10,13 +10,13 @@
  * Inspired by: DOOM Eternal (aggressive), Halo (measured), CoD (snappy)
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Camera } from '@babylonjs/core/Cameras/camera';
 import type { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import type { WeaponCategory, WeaponId } from '../entities/weapons';
 import { WEAPONS } from '../entities/weapons';
-import { getLogger } from '../core/Logger';
 
 const log = getLogger('WeaponRecoilSystem');
 
@@ -318,8 +318,6 @@ interface ChromaticState {
  */
 export class WeaponRecoilSystem {
   private static instance: WeaponRecoilSystem | null = null;
-
-  private scene: Scene | null = null;
   private camera: FreeCamera | null = null;
 
   // State
@@ -352,12 +350,9 @@ export class WeaponRecoilSystem {
 
   // Original camera values for restoration
   private baseFOV: number = 1.0; // radians
-  private baseRotationX: number = 0;
-  private baseRotationY: number = 0;
 
   // Current profile
   private currentProfile: WeaponRecoilProfile | null = null;
-  private currentWeaponId: WeaponId | null = null;
 
   // ADS reduces recoil
   private adsBlend: number = 0;

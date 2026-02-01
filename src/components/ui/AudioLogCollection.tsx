@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AudioLog } from '../../game/collectibles';
 import {
   AUDIO_LOGS,
-  getCollectionProgress,
+  getCollectiblesProgress,
   getDiscoveredAudioLogIds,
   getUnplayedAudioLogs,
 } from '../../game/collectibles';
@@ -68,6 +68,54 @@ export function AudioLogCollection({ isOpen, onClose }: AudioLogCollectionProps)
   const [filter, setFilter] = useState<FilterOption>('all');
   const [selectedLog, setSelectedLog] = useState<AudioLog | null>(null);
 
+  // Collection state
+  const [progress, setProgress] = useState<{
+    total: number;
+    discovered: number;
+    played: number;
+    percentage: number;
+    byLevel: Record<LevelId, { total: number; discovered: number }>;
+  } | null>(null);
+  const [discoveredIds, setDiscoveredIds] = useState<Set<string>>(new Set());
+  const [unplayedIds, setUnplayedIds] = useState<Set<string>>(new Set());
+
+  // Load data when component opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const collectiblesProgress = getCollectiblesProgress();
+    const discoveredData = getDiscoveredAudioLogIds();
+    const unplayedData = getUnplayedAudioLogs();
+    const discoveredSet = new Set(discoveredData);
+
+    // Calculate per-level progress from AUDIO_LOGS and discovered data
+    const byLevel: Record<string, { total: number; discovered: number }> = {};
+    for (const log of AUDIO_LOGS) {
+      if (!byLevel[log.levelId]) {
+        byLevel[log.levelId] = { total: 0, discovered: 0 };
+      }
+      byLevel[log.levelId].total++;
+      if (discoveredSet.has(log.id)) {
+        byLevel[log.levelId].discovered++;
+      }
+    }
+
+    setProgress({
+      total: collectiblesProgress.audioLogs.total,
+      discovered: collectiblesProgress.audioLogs.found,
+      played: collectiblesProgress.audioLogs.played,
+      percentage:
+        collectiblesProgress.audioLogs.total > 0
+          ? Math.round(
+              (collectiblesProgress.audioLogs.found / collectiblesProgress.audioLogs.total) * 100
+            )
+          : 0,
+      byLevel: byLevel as Record<LevelId, { total: number; discovered: number }>,
+    });
+    setDiscoveredIds(discoveredSet);
+    setUnplayedIds(new Set(unplayedData.map((d) => d.logId)));
+  }, [isOpen]);
+
   // Handle Escape key to close
   useEffect(() => {
     if (!isOpen) return;
@@ -87,11 +135,6 @@ export function AudioLogCollection({ isOpen, onClose }: AudioLogCollectionProps)
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, selectedLog]);
-
-  // Get collection state
-  const progress = useMemo(() => getCollectionProgress(), []);
-  const discoveredIds = useMemo(() => new Set(getDiscoveredAudioLogIds()), []);
-  const unplayedIds = useMemo(() => new Set(getUnplayedAudioLogs().map((d) => d.logId)), []);
 
   // Filter logs
   const filteredLogs = useMemo(() => {
@@ -139,6 +182,25 @@ export function AudioLogCollection({ isOpen, onClose }: AudioLogCollectionProps)
   }, []);
 
   if (!isOpen) return null;
+
+  // Show loading state while async data loads
+  if (!progress) {
+    return (
+      <div className={styles.overlay}>
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Audio Logs</h2>
+            <button type="button" className={styles.closeButton} onClick={onClose}>
+              [ CLOSE ]
+            </button>
+          </div>
+          <div className={styles.emptyState}>
+            <p className={styles.emptyText}>Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.overlay}>

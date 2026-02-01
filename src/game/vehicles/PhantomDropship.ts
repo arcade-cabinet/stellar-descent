@@ -21,7 +21,7 @@ import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
@@ -98,20 +98,11 @@ export class PhantomDropship extends VehicleBase {
   private glbRoot: TransformNode | null = null;
   private glbMeshes: AbstractMesh[] = [];
 
-  // Cached animated part references (from GLB child meshes)
-  private rampMesh: AbstractMesh | null = null;
-  private leftEngineMesh: AbstractMesh | null = null;
-  private rightEngineMesh: AbstractMesh | null = null;
-  private turretMesh: AbstractMesh | null = null;
-
   // Visual references
   private engineGlowMeshes: Mesh[] = [];
   private shieldMesh: Mesh | null = null;
   private shieldMat: StandardMaterial | null = null;
   private hullGlowMat: StandardMaterial | null = null;
-
-  // Landing animation progress
-  private landingProgress = 0;
 
   constructor(scene: Scene, position: Vector3) {
     super(scene, 'phantom_dropship', 'Phantom Dropship', position, PHANTOM_STATS, 4);
@@ -197,9 +188,7 @@ export class PhantomDropship extends VehicleBase {
         this.cacheAnimatedParts(childMeshes);
 
         this.modelReady = true;
-        log.info(
-          `GLB loaded via AssetManager: ${childMeshes.length} mesh instances`
-        );
+        log.info(`GLB loaded via AssetManager: ${childMeshes.length} mesh instances`);
       } else {
         log.warn('AssetManager instance creation failed');
       }
@@ -529,7 +518,8 @@ export class PhantomDropship extends VehicleBase {
     }
 
     // Vertical: Space up, Ctrl/Shift down
-    if (input.handbrake) { // Space = handbrake input = vertical up
+    if (input.handbrake) {
+      // Space = handbrake input = vertical up
       this.verticalInput = 1;
     } else if (this.isKeyDown('ControlLeft') || input.boost) {
       this.verticalInput = -1;
@@ -768,7 +758,7 @@ export class PhantomDropship extends VehicleBase {
     }
   }
 
-  private updateEngineGlow(deltaTime: number): void {
+  private updateEngineGlow(_deltaTime: number): void {
     const time = performance.now() * 0.003;
     const intensity =
       this.landingState === 'grounded'

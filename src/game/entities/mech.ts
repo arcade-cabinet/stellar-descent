@@ -21,15 +21,10 @@ const MECH_GLB_PATH = '/assets/models/vehicles/marcus_mech.glb';
  * Try to find a child mesh whose name contains one of the given substrings
  * (case-insensitive). Returns the first match or null.
  */
-function findChildMesh(
-  meshes: AbstractMesh[],
-  ...substrings: string[]
-): Mesh | null {
+function findChildMesh(meshes: AbstractMesh[], ...substrings: string[]): Mesh | null {
   for (const sub of substrings) {
     const lower = sub.toLowerCase();
-    const found = meshes.find(
-      (m) => m.name.toLowerCase().includes(lower) && m instanceof Mesh
-    );
+    const found = meshes.find((m) => m.name.toLowerCase().includes(lower) && m instanceof Mesh);
     if (found) return found as Mesh;
   }
   return null;
@@ -166,7 +161,6 @@ export class MechWarrior {
     log.info('Mech GLB loaded successfully');
     return new MechWarrior(scene, position, rootNode, body, leftArm, rightArm, legs);
   }
-
 
   // -----------------------------------------------------------------------
   // Entity creation (unchanged)
@@ -344,7 +338,6 @@ export class MechWarrior {
 
   // Animation state
   private walkAnimTime = 0;
-  private isMoving = false;
 
   update(deltaTime: number): void {
     // Move towards target position

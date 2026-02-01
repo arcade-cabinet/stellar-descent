@@ -9,16 +9,11 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { QuestTrackerData } from '../../components/ui/QuestTracker';
 import type { LevelId } from '../levels/types';
 import {
-  getActiveMainQuest,
   getActiveQuests,
-  getCurrentObjective,
   getObjectiveProgress,
-  getObjectiveTimeRemaining,
   getQuestTrackerData,
   updateTimedObjectives,
 } from './QuestManager';
-import type { QuestState } from './QuestManager';
-import { QUEST_REGISTRY, getMainQuestForLevel, getBranchQuestsForLevel } from './QuestChain';
 
 // ============================================================================
 // QUEST STATE STORE (for useSyncExternalStore)
@@ -205,7 +200,9 @@ export function resumeQuestTimerTick(): void {
 /**
  * Hook to get just the current objective progress.
  */
-export function useObjectiveProgress(questId: string): { current: number; required: number } | null {
+export function useObjectiveProgress(
+  questId: string
+): { current: number; required: number } | null {
   const [progress, setProgress] = useState<{ current: number; required: number } | null>(null);
 
   useEffect(() => {

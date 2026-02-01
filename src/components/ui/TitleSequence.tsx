@@ -308,7 +308,7 @@ export function TitleSequence({ onComplete, isTouchDevice = false }: TitleSequen
     if (briefingRef.current) {
       briefingRef.current.scrollTop = briefingRef.current.scrollHeight;
     }
-  }, [displayedLines]);
+  }, []);
 
   const handleLineComplete = useCallback(() => {
     setLineComplete(true);

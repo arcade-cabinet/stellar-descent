@@ -26,7 +26,7 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
@@ -206,12 +206,6 @@ export class CollapsingTerrain {
 
   // Counter for unique falling rock instance names
   private rockInstanceCounter = 0;
-
-  // Track if debris GLBs have been preloaded
-  private debrisPreloaded = false;
-
-  // Track if structural GLBs have been preloaded
-  private structuralGLBsPreloaded = false;
 
   // Counters for unique instance naming
   private terrainSegmentCounter = 0;
@@ -694,7 +688,9 @@ export class CollapsingTerrain {
     const size = 0.8 + this.seededNoise(this.totalElapsed * 4.1) * 1.5;
 
     // Pick a random debris GLB path
-    const debrisIndex = Math.floor(this.seededNoise(this.totalElapsed * 5.3) * DEBRIS_GLB_PATHS.length);
+    const debrisIndex = Math.floor(
+      this.seededNoise(this.totalElapsed * 5.3) * DEBRIS_GLB_PATHS.length
+    );
     const debrisPath = DEBRIS_GLB_PATHS[debrisIndex];
     const instanceName = `rock_${this.rockInstanceCounter++}`;
 
@@ -1022,7 +1018,7 @@ export class CollapsingTerrain {
   /**
    * Update lava material emissive pulsing.
    */
-  private updateLavaAnimation(deltaTime: number): void {
+  private updateLavaAnimation(_deltaTime: number): void {
     if (!this.lavaMaterial) return;
 
     const pulse = Math.sin(this.totalElapsed * 2) * 0.15 + 0.85;

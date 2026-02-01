@@ -15,17 +15,15 @@
  * - underground: Dark ambient with no visible sky
  */
 
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
+import { EquiRectangularCubeTexture } from '@babylonjs/core/Materials/Textures/equiRectangularCubeTexture';
+import type { HDRCubeTexture } from '@babylonjs/core/Materials/Textures/hdrCubeTexture';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
-import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
-import { EquiRectangularCubeTexture } from '@babylonjs/core/Materials/Textures/equiRectangularCubeTexture';
-import { HDRCubeTexture } from '@babylonjs/core/Materials/Textures/hdrCubeTexture';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 // Import EXR texture loader for HDRI support
 import '@babylonjs/core/Materials/Textures/Loaders/exrTextureLoader';
 import { getLogger } from './Logger';
@@ -193,7 +191,7 @@ export class SkyboxManager {
     material.specularColor = Color3.Black();
 
     let cubeTexture: CubeTexture | null = null;
-    let hdrTexture: HDRCubeTexture | null = null;
+    const hdrTexture: HDRCubeTexture | null = null;
     let envTexture: EquiRectangularCubeTexture | null = null;
 
     const paths = HDRI_PATHS[type];
@@ -343,9 +341,8 @@ export class SkyboxManager {
           if (envTexture && this.currentSkybox === result) {
             result.envTexture = envTexture;
             this.scene.environmentTexture = envTexture;
-            this.scene.environmentIntensity = type === 'underground'
-              ? environmentIntensity * 0.3
-              : environmentIntensity;
+            this.scene.environmentIntensity =
+              type === 'underground' ? environmentIntensity * 0.3 : environmentIntensity;
           }
         })
         .catch((error) => {
@@ -427,29 +424,6 @@ export class SkyboxManager {
         (message, exception) => {
           // On error
           log.warn(`CubeTexture load failed: ${message}`, exception);
-          resolve(null);
-        }
-      );
-    });
-  }
-
-  private async loadHDRTexture(path: string, intensity: number): Promise<HDRCubeTexture | null> {
-    return new Promise((resolve) => {
-      const texture = new HDRCubeTexture(
-        path,
-        this.scene,
-        512, // size
-        false, // noMipmap
-        true, // generateHarmonics
-        false, // gammaSpace
-        false, // reserved
-        () => {
-          // On load success
-          resolve(texture);
-        },
-        (message, exception) => {
-          // On error
-          log.warn(`HDRCubeTexture load failed: ${message}`, exception);
           resolve(null);
         }
       );

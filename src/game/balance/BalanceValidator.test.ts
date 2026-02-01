@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DIFFICULTY_ORDER, type DifficultyLevel } from '../core/DifficultySettings';
+import { DIFFICULTY_ORDER } from '../core/DifficultySettings';
 import type { WeaponId } from '../entities/weapons';
 import { BalanceValidator, formatBalanceReport, runBalanceValidation } from './BalanceValidator';
 import {
@@ -319,7 +319,7 @@ describe('Player survivability', () => {
 // ---------------------------------------------------------------------------
 
 describe('Spawn configuration integrity', () => {
-  for (const [levelId, config] of Object.entries(LEVEL_SPAWN_CONFIG)) {
+  for (const [_levelId, config] of Object.entries(LEVEL_SPAWN_CONFIG)) {
     it(`${config.levelName} species mix sums to 1.0`, () => {
       const total = Object.values(config.speciesMix).reduce((sum, v) => sum + v, 0);
       expect(total).toBeCloseTo(1.0, 2);
@@ -689,7 +689,6 @@ describe('Weapon damage validation', () => {
   it('plasma rifle headshot multiplier is 1.5x', () => {
     expect(WEAPON_BALANCE.plasma_cannon!.critMultiplier).toBe(1.5);
   });
-
 });
 
 // ---------------------------------------------------------------------------

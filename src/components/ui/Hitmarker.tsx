@@ -1,7 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCombat } from '../../game/context/CombatContext';
-import { useSettings } from '../../game/context/SettingsContext';
+import { useSettings } from '../../game/stores/useSettingsStore';
+import { useGameEvent } from '../../hooks/useGameEvent';
 import styles from './Hitmarker.module.css';
+
+/**
+ * HitMarker data structure for EventBus-driven markers
+ */
+interface EventBusHitMarker {
+  id: number;
+  isCritical: boolean;
+  isKill: boolean;
+  damage: number;
+  timestamp: number;
+}
 
 /**
  * Hit marker type determines the visual style
@@ -83,19 +95,20 @@ export function Hitmarker({ type, visible, onComplete }: HitmarkerProps) {
       )}
 
       {/* Critical hit flash effect */}
-      {type === 'critical' && (
-        <div className={styles.criticalFlash} />
-      )}
+      {type === 'critical' && <div className={styles.criticalFlash} />}
     </div>
   );
 }
 
 /**
  * HitmarkerDisplay - Container component that manages multiple hitmarkers
- * Integrates with CombatContext for automatic display
+ * Integrates with CombatContext and EventBus for automatic display
  *
- * This component automatically renders hitmarkers based on the hitMarkers
- * array from CombatContext. It handles:
+ * This component automatically renders hitmarkers based on:
+ * - hitMarkers array from CombatContext
+ * - PROJECTILE_IMPACT and ENEMY_KILLED events from EventBus
+ *
+ * It handles:
  * - Normal hits (white X)
  * - Critical hits (red X, slightly larger)
  * - Kill confirmations (large red X with + icon)
@@ -106,13 +119,43 @@ export function HitmarkerDisplay() {
   const { hitMarkers, removeHitMarker } = useCombat();
   const { settings } = useSettings();
 
+  // EventBus-driven state (supplements context for self-contained operation)
+  const [eventBusMarkers, setEventBusMarkers] = useState<EventBusHitMarker[]>([]);
+  const eventBusIdRef = useRef(0);
+
+  // Subscribe to PROJECTILE_IMPACT events for hit markers
+  useGameEvent('PROJECTILE_IMPACT', (event) => {
+    const id = eventBusIdRef.current++;
+    const newMarker: EventBusHitMarker = {
+      id,
+      damage: event.damage,
+      isCritical: event.isCritical,
+      isKill: false,
+      timestamp: performance.now(),
+    };
+    setEventBusMarkers((prev) => [...prev, newMarker]);
+  });
+
+  // Subscribe to ENEMY_KILLED events for kill markers
+  useGameEvent('ENEMY_KILLED', () => {
+    const id = eventBusIdRef.current++;
+    const newMarker: EventBusHitMarker = {
+      id,
+      damage: 0,
+      isCritical: false,
+      isKill: true,
+      timestamp: performance.now(),
+    };
+    setEventBusMarkers((prev) => [...prev, newMarker]);
+  });
+
   // Determine if we should use reduced animations
   const prefersReducedMotion = useMemo(() => {
     if (typeof window === 'undefined') return false;
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches || settings.reduceMotion;
   }, [settings.reduceMotion]);
 
-  // Remove expired hit markers
+  // Remove expired context hit markers
   useEffect(() => {
     const HIT_DURATION = 150;
     const CRITICAL_DURATION = 200;
@@ -137,32 +180,54 @@ export function HitmarkerDisplay() {
     return () => clearInterval(interval);
   }, [hitMarkers, removeHitMarker]);
 
+  // Remove expired EventBus hit markers
+  useEffect(() => {
+    const HIT_DURATION = 150;
+    const CRITICAL_DURATION = 200;
+    const KILL_DURATION = 300;
+
+    const interval = setInterval(() => {
+      const now = performance.now();
+      setEventBusMarkers((prev) =>
+        prev.filter((marker) => {
+          let duration = HIT_DURATION;
+          if (marker.isKill) duration = KILL_DURATION;
+          else if (marker.isCritical) duration = CRITICAL_DURATION;
+          return now - marker.timestamp < duration;
+        })
+      );
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Combine context and EventBus markers
+  const effectiveMarkers = [...hitMarkers, ...eventBusMarkers];
+
   // Don't render if hitmarkers are disabled in settings
   if (!settings.showHitmarkers) {
     return null;
   }
 
-  if (hitMarkers.length === 0) {
+  if (effectiveMarkers.length === 0) {
     return null;
   }
 
   return (
     <div className={styles.hitmarkerContainer} aria-hidden="true">
-      {hitMarkers.map((marker) => {
-        const type: HitmarkerType = marker.isKill
-          ? 'kill'
-          : marker.isCritical
-            ? 'critical'
-            : 'hit';
+      {effectiveMarkers.map((marker) => {
+        const type: HitmarkerType = marker.isKill ? 'kill' : marker.isCritical ? 'critical' : 'hit';
 
         return (
           <div
-            key={marker.id}
+            key={`marker-${marker.id}`}
             className={[
               styles.hitmarker,
               styles[type],
               prefersReducedMotion ? styles.reducedMotion : '',
-            ].filter(Boolean).join(' ')}
+            ]
+              .filter(Boolean)
+              .join(' ')}
           >
             {/* X-shaped marker lines */}
             <div className={styles.line1} />
@@ -176,9 +241,7 @@ export function HitmarkerDisplay() {
             )}
 
             {/* Critical flash */}
-            {type === 'critical' && (
-              <div className={styles.criticalFlash} />
-            )}
+            {type === 'critical' && <div className={styles.criticalFlash} />}
           </div>
         );
       })}

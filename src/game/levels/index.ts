@@ -32,7 +32,6 @@ export { type SurfaceConfig, SurfaceLevel } from './SurfaceLevel';
 // Types
 export type {
   ILevel,
-  LevelCallbacks,
   LevelConfig,
   LevelFactory,
   LevelFactoryRegistry,

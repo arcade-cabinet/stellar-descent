@@ -7,36 +7,35 @@
  * - Unified Vertical Movement Controller
  */
 
-// Mantle system (includes ledge grab)
-export {
-  MantleSystem,
-  getMantleSystem,
-  disposeMantleSystem,
-  DEFAULT_MANTLE_CONFIG,
-  type MantleConfig,
-  type MantleState,
-  type MantlePhase,
-  type LedgeInfo,
-} from './MantleSystem';
-
 // Jetpack system
 export {
-  JetpackSystem,
-  getJetpackSystem,
-  disposeJetpackSystem,
   DEFAULT_JETPACK_CONFIG,
+  disposeJetpackSystem,
+  getJetpackSystem,
   type JetpackConfig,
   type JetpackState,
+  JetpackSystem,
 } from './JetpackSystem';
+// Mantle system (includes ledge grab)
+export {
+  DEFAULT_MANTLE_CONFIG,
+  disposeMantleSystem,
+  getMantleSystem,
+  type LedgeInfo,
+  type MantleConfig,
+  type MantlePhase,
+  type MantleState,
+  MantleSystem,
+} from './MantleSystem';
 
 // Unified vertical movement controller
 export {
-  VerticalMovement,
-  getVerticalMovement,
-  disposeVerticalMovement,
   DEFAULT_VERTICAL_CONFIG,
+  disposeVerticalMovement,
+  type GroundInfo,
+  getVerticalMovement,
+  type SurfaceType,
+  VerticalMovement,
   type VerticalMovementConfig,
   type VerticalState,
-  type GroundInfo,
-  type SurfaceType,
 } from './VerticalMovement';

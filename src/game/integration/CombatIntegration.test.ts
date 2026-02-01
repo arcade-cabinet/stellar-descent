@@ -12,10 +12,10 @@
  * - Grenade explosions with AOE
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { createEntity, type Entity, world, queries, removeEntity } from '../core/ecs';
-import { EventBus, getEventBus, disposeEventBus } from '../core/EventBus';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { disposeEventBus, type EventBus, getEventBus } from '../core/EventBus';
+import { createEntity, type Entity, queries, removeEntity, world } from '../core/ecs';
 import { ALIEN_SPECIES, calculateKnockbackForce, getHitReactionConfig } from '../entities/aliens';
 
 // Mock rendering systems
@@ -239,10 +239,7 @@ describe('Combat Integration', () => {
         },
       });
 
-      const distance = Vector3.Distance(
-        projectile.transform!.position,
-        enemy.transform!.position
-      );
+      const distance = Vector3.Distance(projectile.transform!.position, enemy.transform!.position);
 
       const hitRadius = 1.5;
       const isCollision = distance < hitRadius;
@@ -394,8 +391,8 @@ describe('Combat Integration', () => {
 
     it('should respect knockback resistance', () => {
       // Heavy enemy has high knockback resistance (0.85)
-      const heavyEnemy = enemyEntities[3]; // heavy
-      const skittererEnemy = enemyEntities[0]; // skitterer (0.1 resistance)
+      const _heavyEnemy = enemyEntities[3]; // heavy
+      const _skittererEnemy = enemyEntities[0]; // skitterer (0.1 resistance)
 
       const weaponDamage = 50;
       const heavyKnockback = calculateKnockbackForce('heavy', weaponDamage);
@@ -466,19 +463,13 @@ describe('Combat Integration', () => {
 
       // Find all enemies in explosion radius
       const affectedEnemies = enemyEntities.filter((enemy) => {
-        const distance = Vector3.Distance(
-          grenadePosition,
-          enemy.transform!.position
-        );
+        const distance = Vector3.Distance(grenadePosition, enemy.transform!.position);
         return distance <= explosionRadius;
       });
 
       // Apply damage with falloff
       for (const enemy of affectedEnemies) {
-        const distance = Vector3.Distance(
-          grenadePosition,
-          enemy.transform!.position
-        );
+        const distance = Vector3.Distance(grenadePosition, enemy.transform!.position);
         const falloff = 1 - (distance / explosionRadius) * 0.75;
         const damage = Math.round(baseDamage * falloff);
         enemy.health!.current -= damage;
@@ -527,10 +518,7 @@ describe('Combat Integration', () => {
       const explosionRadius = 5.0;
 
       const enemiesInRange = enemyEntities.filter((enemy) => {
-        const distance = Vector3.Distance(
-          grenadePosition,
-          enemy.transform!.position
-        );
+        const distance = Vector3.Distance(grenadePosition, enemy.transform!.position);
         return distance <= explosionRadius;
       });
 
@@ -560,8 +548,8 @@ describe('Combat Integration', () => {
       const enemy = enemyEntities[0];
       playerEntity.transform!.position = new Vector3(0, 1.8, 0);
 
-      const direction = playerEntity.transform!.position
-        .subtract(enemy.transform!.position)
+      const direction = playerEntity
+        .transform!.position.subtract(enemy.transform!.position)
         .normalize();
 
       // Direction should point toward player

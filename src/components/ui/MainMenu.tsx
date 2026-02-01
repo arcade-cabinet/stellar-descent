@@ -1,20 +1,28 @@
 import { Capacitor } from '@capacitor/core';
-import { getLogger } from '../../game/core/Logger';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
-import { disposeSplashAudioManager, getSplashAudioManager } from '../../game/core/audio/SplashAudioManager';
-import { type DifficultyLevel, getDifficultyDisplayName } from '../../game/core/DifficultySettings';
+import {
+  disposeSplashAudioManager,
+  getSplashAudioManager,
+} from '../../game/core/audio/SplashAudioManager';
+import type { DifficultyLevel } from '../../game/core/DifficultySettings';
+import { getLogger } from '../../game/core/Logger';
 import { GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, LORE } from '../../game/core/lore';
+import { useDifficultyStore } from '../../game/difficulty';
 import type { LevelId } from '../../game/levels/types';
+import {
+  getNewGamePlusSystem,
+  initChallenges,
+  initNewGamePlus,
+  MAX_NG_PLUS_TIER,
+} from '../../game/modes';
 import {
   formatPlayTime,
   type GameSaveMetadata,
   getLevelDisplayName,
   saveSystem,
 } from '../../game/persistence';
-import { getNewGamePlusSystem, initNewGamePlus, MAX_NG_PLUS_TIER, initChallenges } from '../../game/modes';
 import { AchievementsPanel } from './AchievementsPanel';
 import { ChallengeScreen } from './ChallengeScreen';
 import { DifficultySelector } from './DifficultySelector';
@@ -62,10 +70,10 @@ export function MainMenu({
   const [isNgPlusMode, setIsNgPlusMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { difficulty } = useGame();
+  const _difficulty = useDifficultyStore((state) => state.difficulty);
 
   // Check if running on web platform (not native iOS/Android)
-  const isWebPlatform = !Capacitor.isNativePlatform();
+  const _isWebPlatform = !Capacitor.isNativePlatform();
 
   useEffect(() => {
     const checkSave = async () => {
@@ -130,15 +138,12 @@ export function MainMenu({
   }, [hasSave, playClickSound]);
 
   // When difficulty is selected in the difficulty modal, just store it
-  const handleDifficultySelect = useCallback(
-    (diff: DifficultyLevel) => {
-      setSelectedDifficulty(diff);
-    },
-    []
-  );
+  const handleDifficultySelect = useCallback((diff: DifficultyLevel) => {
+    setSelectedDifficulty(diff);
+  }, []);
 
   // When START CAMPAIGN is clicked in difficulty modal
-  const handleStartCampaign = useCallback(() => {
+  const _handleStartCampaign = useCallback(() => {
     playClickSound();
     if (!selectedStartLevel || !selectedDifficulty) return;
 
@@ -396,18 +401,14 @@ export function MainMenu({
         <div className={styles.buttonColumns}>
           {/* Left Column - Game Actions */}
           <div className={styles.buttonColumn}>
-            <MilitaryButton
-              variant="primary"
-              onClick={handleNewGame}
-              icon={<>{'\u25B6'}</>}
-            >
+            <MilitaryButton variant="primary" onClick={handleNewGame} icon={'\u25B6'}>
               NEW GAME
             </MilitaryButton>
 
             <MilitaryButton
               onClick={handleContinue}
               disabled={!hasSave}
-              icon={<>{'\u25B6'}</>}
+              icon={'\u25B6'}
               info={
                 saveMetadata
                   ? `Ch.${saveMetadata.currentChapter} - ${formatPlayTime(saveMetadata.playTime)}`
@@ -417,11 +418,11 @@ export function MainMenu({
               CONTINUE
             </MilitaryButton>
 
-            <MilitaryButton onClick={handleLoadClick} icon={<>{'\u2191'}</>}>
+            <MilitaryButton onClick={handleLoadClick} icon={'\u2191'}>
               LOAD GAME
             </MilitaryButton>
 
-            <MilitaryButton onClick={handleShowChallenges} icon={<>{'\u26A1'}</>}>
+            <MilitaryButton onClick={handleShowChallenges} icon={'\u26A1'}>
               CHALLENGES
             </MilitaryButton>
 
@@ -430,7 +431,7 @@ export function MainMenu({
               <MilitaryButton
                 variant="primary"
                 onClick={handleNewGamePlus}
-                icon={<>{'\u2B50'}</>}
+                icon={'\u2B50'}
                 info={`Tier ${Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)}`}
               >
                 {getNgPlusTierDisplay()}
@@ -440,19 +441,19 @@ export function MainMenu({
 
           {/* Right Column - System */}
           <div className={styles.buttonColumn}>
-            <MilitaryButton onClick={handleShowSettings} icon={<>{'\u2699'}</>}>
+            <MilitaryButton onClick={handleShowSettings} icon={'\u2699'}>
               SETTINGS
             </MilitaryButton>
 
-            <MilitaryButton onClick={handleShowAchievements} icon={<>{'\u2606'}</>}>
+            <MilitaryButton onClick={handleShowAchievements} icon={'\u2606'}>
               ACHIEVEMENTS
             </MilitaryButton>
 
-            <MilitaryButton onClick={handleShowLeaderboard} icon={<>{'\u2605'}</>}>
+            <MilitaryButton onClick={handleShowLeaderboard} icon={'\u2605'}>
               LEADERBOARDS
             </MilitaryButton>
 
-            <MilitaryButton onClick={handleShowHelp} icon={<>{'\u003F'}</>}>
+            <MilitaryButton onClick={handleShowHelp} icon={'\u003F'}>
               HELP
             </MilitaryButton>
           </div>
@@ -640,11 +641,15 @@ export function MainMenu({
                 </div>
                 <div className={styles.savePreviewRow}>
                   <span>Enemy Health:</span>
-                  <span>+{Math.round((Math.pow(1.5, Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)) - 1) * 100)}%</span>
+                  <span>
+                    +{Math.round((1.5 ** Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER) - 1) * 100)}%
+                  </span>
                 </div>
                 <div className={styles.savePreviewRow}>
                   <span>Enemy Damage:</span>
-                  <span>+{Math.round((Math.pow(1.25, Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)) - 1) * 100)}%</span>
+                  <span>
+                    +{Math.round((1.25 ** Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER) - 1) * 100)}%
+                  </span>
                 </div>
                 <div className={styles.savePreviewRow}>
                   <span>Starting Health Bonus:</span>

@@ -8,116 +8,106 @@
  * - Level-specific audio configurations
  */
 
-// Types
-export type {
-  SoundEffect,
-  MusicTrack,
-  SoundConfig,
-  LevelAudioConfig,
-  ProceduralAmbientType,
-  MusicEnvironment,
-  TrackInfo,
-  LoopableSoundEffect,
-  AudioLoopHandle,
-  VolumeSettings,
-  AudioState,
-} from './types';
-
-// Constants
-export {
-  MUSIC_PATHS,
-  TRACK_INFO,
-  LEVEL_AUDIO_CONFIGS,
-  DEFAULT_VOLUMES,
-  FADE_DURATIONS,
-  COMBAT_EXIT_DELAY_MS,
-  FREQUENCIES,
-  LFO_RATES,
-  FILTER_Q,
-} from './constants';
-
-// Sound generators
-export { UISoundGenerator } from './sounds/ui';
-export { WeaponSoundGenerator } from './sounds/weapons';
-export { EnemySoundGenerator } from './sounds/enemies';
-export { EnvironmentSoundGenerator } from './sounds/environment';
-
-// Music player
-export { MusicPlayer } from './music';
-
-// Sound dispatcher
-export { SoundDispatcher, ProceduralAmbientGenerator } from './SoundDispatcher';
-export type { AudioPosition, SpatialEnvironment } from './SoundDispatcher';
-
-// Splash audio manager
-export {
-  SplashAudioManager,
-  getSplashAudioManager,
-  disposeSplashAudioManager,
-} from './SplashAudioManager';
-export type { AudioUnlockState, OrientationPreference } from './SplashAudioManager';
-
-// Audio event handler
-export {
-  AudioEventHandler,
-  getAudioEventHandler,
-  initializeAudioEventHandler,
-  disposeAudioEventHandler,
-} from './AudioEventHandler';
-
-// Adaptive music layer system
-export {
-  MusicLayerType,
-  MusicLayer,
-  TRANSITION_TIMING,
-  LAYER_VOLUMES,
-  LEVEL_MUSIC_THEMES,
-  SCALES,
-  BASS_NOTES,
-  CHORD_PROGRESSIONS,
-  calculateCombatIntensity,
-  getActiveLayersForIntensity,
-  getNextBarTime,
-  scheduleAtNextBar,
-  getSynthFactoryForStyle,
-  createIndustrialSynths,
-  createDesolateSynths,
-  createOrganicSynths,
-  createUrgentSynths,
-  createHorrorSynths,
-  createFrozenSynths,
-  generateAmbientPattern,
-  generatePercussionPattern,
-  generateBassPattern,
-  generateStabPattern,
-  generateLeadPattern,
-} from './MusicLayers';
-export type {
-  CombatState,
-  LayerState,
-  LevelMusicTheme,
-  BossMusicConfig,
-  LayerSynthSet,
-} from './MusicLayers';
-
-// Tone.js-based music composer (menu, combat, boss music)
-export {
-  MusicComposer,
-  getMusicComposer,
-  disposeMusicComposer,
-} from './MusicComposer';
-
-// Tone.js-based procedural sound effects
-export {
-  ProceduralSFX,
-  getProceduralSFX,
-  disposeProceduralSFX,
-} from './ProceduralSFX';
-
+export type { EnvironmentType } from './AmbientSoundscapes';
 // Ambient soundscape system
 export {
   AmbientSoundscapes,
-  getAmbientSoundscapes,
   disposeAmbientSoundscapes,
+  getAmbientSoundscapes,
 } from './AmbientSoundscapes';
-export type { EnvironmentType } from './AmbientSoundscapes';
+// Audio event handler
+export {
+  AudioEventHandler,
+  disposeAudioEventHandler,
+  getAudioEventHandler,
+  initializeAudioEventHandler,
+} from './AudioEventHandler';
+// Constants
+export {
+  COMBAT_EXIT_DELAY_MS,
+  DEFAULT_VOLUMES,
+  FADE_DURATIONS,
+  FILTER_Q,
+  FREQUENCIES,
+  LEVEL_AUDIO_CONFIGS,
+  LFO_RATES,
+  MUSIC_PATHS,
+  TRACK_INFO,
+} from './constants';
+// Tone.js-based music composer (menu, combat, boss music)
+export {
+  disposeMusicComposer,
+  getMusicComposer,
+  MusicComposer,
+} from './MusicComposer';
+export type {
+  BossMusicConfig,
+  CombatState,
+  LayerState,
+  LayerSynthSet,
+  LevelMusicTheme,
+} from './MusicLayers';
+// Adaptive music layer system
+export {
+  BASS_NOTES,
+  CHORD_PROGRESSIONS,
+  calculateCombatIntensity,
+  createDesolateSynths,
+  createFrozenSynths,
+  createHorrorSynths,
+  createIndustrialSynths,
+  createOrganicSynths,
+  createUrgentSynths,
+  generateAmbientPattern,
+  generateBassPattern,
+  generateLeadPattern,
+  generatePercussionPattern,
+  generateStabPattern,
+  getActiveLayersForIntensity,
+  getNextBarTime,
+  getSynthFactoryForStyle,
+  LAYER_VOLUMES,
+  LEVEL_MUSIC_THEMES,
+  MusicLayer,
+  MusicLayerType,
+  SCALES,
+  scheduleAtNextBar,
+  TRANSITION_TIMING,
+} from './MusicLayers';
+// Music player
+export { MusicPlayer } from './music';
+// Tone.js-based procedural sound effects
+export {
+  disposeProceduralSFX,
+  getProceduralSFX,
+  ProceduralSFX,
+} from './ProceduralSFX';
+export type { AudioPosition, SpatialEnvironment } from './SoundDispatcher';
+// Sound dispatcher
+export { ProceduralAmbientGenerator, SoundDispatcher } from './SoundDispatcher';
+export type { AudioUnlockState, OrientationPreference } from './SplashAudioManager';
+// Splash audio manager
+export {
+  disposeSplashAudioManager,
+  getSplashAudioManager,
+  SplashAudioManager,
+} from './SplashAudioManager';
+export { EnemySoundGenerator } from './sounds/enemies';
+export { EnvironmentSoundGenerator } from './sounds/environment';
+// Sound generators
+export { UISoundGenerator } from './sounds/ui';
+export { WeaponSoundGenerator } from './sounds/weapons';
+// Types
+export type {
+  AudioLoopHandle,
+  AudioState,
+  LevelAudioConfig,
+  LoopableSoundEffect,
+  MusicEnvironment,
+  MusicTrack,
+  ProceduralAmbientType,
+  SoundConfig,
+  SoundEffect,
+  TrackInfo,
+  VolumeSettings,
+} from './types';

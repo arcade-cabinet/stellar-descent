@@ -18,20 +18,16 @@
  * - Combat systems: Apply combined modifiers to enemies/player
  */
 
+import { getSkullSystem } from '../collectibles/SkullSystem';
 import {
   type DifficultyLevel,
-  type DifficultyModifiers,
   getDifficultyModifiers,
   loadDifficultySetting,
 } from '../core/DifficultySettings';
 import { getLogger } from '../core/Logger';
-import { getSkullSystem, type SkullModifiers } from '../collectibles/SkullSystem';
-import {
-  getNewGamePlusSystem,
-  type NewGamePlusModifiers,
-} from './NewGamePlus';
 import type { WeaponId } from '../entities/weapons';
 import type { LevelId } from '../levels/types';
+import { getNewGamePlusSystem } from './NewGamePlus';
 
 const log = getLogger('GameModeManager');
 
@@ -230,10 +226,7 @@ class GameModeManagerImpl {
     this.currentMode = mode;
     this.currentDifficulty = difficulty;
 
-    const ngPlusTier =
-      mode === 'new_game_plus'
-        ? getNewGamePlusSystem().getCurrentTier()
-        : 0;
+    const ngPlusTier = mode === 'new_game_plus' ? getNewGamePlusSystem().getCurrentTier() : 0;
 
     this.sessionState = {
       mode,
@@ -363,8 +356,7 @@ class GameModeManagerImpl {
         baseMods.enemyDetectionMultiplier *
         ngPlusMods.enemyDetectionMultiplier *
         skullMods.enemyDetectionMultiplier,
-      spawnRateMultiplier:
-        baseMods.spawnRateMultiplier * ngPlusMods.spawnRateMultiplier,
+      spawnRateMultiplier: baseMods.spawnRateMultiplier * ngPlusMods.spawnRateMultiplier,
 
       // Player modifiers
       playerDamageReceivedMultiplier: baseMods.playerDamageReceivedMultiplier,
@@ -377,10 +369,7 @@ class GameModeManagerImpl {
         baseMods.resourceDropMultiplier *
         ngPlusMods.resourceDropMultiplier *
         skullMods.resourceDropMultiplier,
-      xpMultiplier:
-        baseMods.xpMultiplier *
-        ngPlusMods.scoreMultiplier *
-        skullMods.scoreMultiplier,
+      xpMultiplier: baseMods.xpMultiplier * ngPlusMods.scoreMultiplier * skullMods.scoreMultiplier,
       scoreMultiplier: ngPlusMods.scoreMultiplier * skullMods.scoreMultiplier,
       bonusCredits: ngPlusMods.bonusCredits,
 
@@ -500,10 +489,10 @@ class GameModeManagerImpl {
 
     // Calculate a "challenge rating" based on combined modifiers
     const challengeRating = Math.round(
-      (mods.enemyHealthMultiplier *
+      mods.enemyHealthMultiplier *
         mods.enemyDamageMultiplier *
         mods.spawnRateMultiplier *
-        (mods.eliteEnemiesEnabled ? 1.5 : 1.0)) *
+        (mods.eliteEnemiesEnabled ? 1.5 : 1.0) *
         100
     );
 

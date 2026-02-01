@@ -135,6 +135,7 @@ vi.mock('./constants', () => ({
   },
 }));
 
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 // Import after mocks
 import { createEntity, removeEntity } from '../../core/ecs';
 import { damageFeedback } from '../../effects/DamageFeedback';
@@ -154,7 +155,6 @@ import {
   updateEnemyAI,
 } from './enemies';
 import type { Enemy, EnemyType, HiveZone } from './types';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 
 describe('The Breach Enemies', () => {
   let mockScene: any;
@@ -389,7 +389,7 @@ describe('The Breach Enemies', () => {
 
     it('should move toward player when chasing', () => {
       enemy.state = 'chase';
-      const initialX = enemy.position.x;
+      const _initialX = enemy.position.x;
 
       updateEnemyAI(enemy, playerPosition, 0.1);
 
@@ -533,12 +533,7 @@ describe('The Breach Enemies', () => {
 
       damageEnemy(enemy, 50, hitDir, true);
 
-      expect(damageFeedback.applyDamageFeedback).toHaveBeenCalledWith(
-        enemy.mesh,
-        50,
-        hitDir,
-        true
-      );
+      expect(damageFeedback.applyDamageFeedback).toHaveBeenCalledWith(enemy.mesh, 50, hitDir, true);
     });
 
     it('should emit alien splatter particles', () => {

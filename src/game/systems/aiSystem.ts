@@ -1,6 +1,6 @@
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Quaternion, Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
+import { Vector3 as BabylonVector3, Quaternion } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import {
@@ -15,8 +15,8 @@ import {
 } from 'yuka';
 import { getEnemySoundManager } from '../core/EnemySoundManager';
 import { getEventBus } from '../core/EventBus';
-import { getLogger } from '../core/Logger';
 import { createEntity, type Entity, getEntitiesInRadius, queries } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 
 const log = getLogger('AISystem');
 
@@ -516,7 +516,6 @@ export class AISystem {
           // --- ENEMY SHOOTING ---
           // When in attack state and within attack radius, attempt to fire
           this.tryEnemyFire(entity, playerPos);
-
         } else if (distToPlayer < entity.ai.alertRadius) {
           // Chase state
           entity.ai.state = 'chase';

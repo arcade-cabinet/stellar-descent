@@ -72,8 +72,8 @@ describe('LoadingTips', () => {
       const tips2 = getShuffledTips();
       // Given enough tips, shuffled results should differ
       // (statistically unlikely to get same order twice)
-      const order1 = tips1.map((t) => t.tip).join('|');
-      const order2 = tips2.map((t) => t.tip).join('|');
+      const _order1 = tips1.map((t) => t.tip).join('|');
+      const _order2 = tips2.map((t) => t.tip).join('|');
       // Note: There's a tiny chance this could fail due to random chance
       // but with 60+ tips the probability is vanishingly small
       expect(tips1.length).toEqual(tips2.length);

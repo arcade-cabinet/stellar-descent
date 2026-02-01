@@ -24,13 +24,14 @@ import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/loaders/glTF';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('CanyonEnv');
+
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
@@ -40,8 +41,8 @@ import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 import {
-  CANYON_TERRAIN_CONFIG,
   CANYON_ROCK_CONFIG,
+  CANYON_TERRAIN_CONFIG,
   createPBRTerrainMaterial,
 } from '../shared/PBRTerrainMaterials';
 
@@ -199,7 +200,8 @@ const GLB = {
   tankSystem: '/assets/models/environment/industrial/tank_system_mx_1.glb',
   shippingContainer1: '/assets/models/environment/industrial/shipping_container_mx_1.glb',
   shippingContainer2: '/assets/models/environment/industrial/shipping_container_mx_2.glb',
-  shippingContainerHollow: '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+  shippingContainerHollow:
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
   cage: '/assets/models/environment/industrial/cage_mx_1.glb',
   machinery: '/assets/models/environment/industrial/machinery_mx_1.glb',
   distillery: '/assets/models/environment/industrial/distillery_mx_1.glb',
@@ -319,32 +321,128 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Barricade checkpoint at the canyon mouth
-    { model: GLB.barricadeB1, position: new Vector3(-8, 0, -40), rotationY: 0, scale: 2.5, name: 'barricade_start_L' },
-    { model: GLB.barricadeB2, position: new Vector3(8, 0, -40), rotationY: Math.PI, scale: 2.5, name: 'barricade_start_R' },
-    { model: GLB.concreteFencePillar, position: new Vector3(-14, 0, -40), rotationY: 0, scale: 2.0, name: 'fence_pillar_start_L' },
-    { model: GLB.concreteFencePillar, position: new Vector3(14, 0, -40), rotationY: 0, scale: 2.0, name: 'fence_pillar_start_R' },
+    {
+      model: GLB.barricadeB1,
+      position: new Vector3(-8, 0, -40),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'barricade_start_L',
+    },
+    {
+      model: GLB.barricadeB2,
+      position: new Vector3(8, 0, -40),
+      rotationY: Math.PI,
+      scale: 2.5,
+      name: 'barricade_start_R',
+    },
+    {
+      model: GLB.concreteFencePillar,
+      position: new Vector3(-14, 0, -40),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'fence_pillar_start_L',
+    },
+    {
+      model: GLB.concreteFencePillar,
+      position: new Vector3(14, 0, -40),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'fence_pillar_start_R',
+    },
 
     // Overturned shipping container (roadside)
-    { model: GLB.shippingContainer2, position: new Vector3(-18, 1.0, -80), rotationY: 0.3, scale: 2.0, name: 'container_start_1' },
-    { model: GLB.barrel3, position: new Vector3(-14, 0, -85), rotationY: 0, scale: 2.0, name: 'barrel_start_1' },
-    { model: GLB.barrel4, position: new Vector3(-15, 0, -78), rotationY: 1.2, scale: 2.0, name: 'barrel_start_2' },
+    {
+      model: GLB.shippingContainer2,
+      position: new Vector3(-18, 1.0, -80),
+      rotationY: 0.3,
+      scale: 2.0,
+      name: 'container_start_1',
+    },
+    {
+      model: GLB.barrel3,
+      position: new Vector3(-14, 0, -85),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'barrel_start_1',
+    },
+    {
+      model: GLB.barrel4,
+      position: new Vector3(-15, 0, -78),
+      rotationY: 1.2,
+      scale: 2.0,
+      name: 'barrel_start_2',
+    },
 
     // Gravel piles flanking the road
-    { model: GLB.gravelPile1, position: new Vector3(18, 0, -120), rotationY: 0, scale: 3.0, name: 'gravel_start_1' },
-    { model: GLB.gravelPile2, position: new Vector3(-20, 0, -150), rotationY: 1.5, scale: 3.0, name: 'gravel_start_2' },
+    {
+      model: GLB.gravelPile1,
+      position: new Vector3(18, 0, -120),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'gravel_start_1',
+    },
+    {
+      model: GLB.gravelPile2,
+      position: new Vector3(-20, 0, -150),
+      rotationY: 1.5,
+      scale: 3.0,
+      name: 'gravel_start_2',
+    },
 
     // Debris and tires from a previous firefight
-    { model: GLB.tire1, position: new Vector3(5, 0, -100), rotationY: 0.5, scale: 2.0, name: 'tire_start_1' },
-    { model: GLB.tire2, position: new Vector3(-3, 0, -110), rotationY: 2.1, scale: 2.0, name: 'tire_start_2' },
-    { model: GLB.scrapMetal1, position: new Vector3(10, 0, -130), rotationY: 0.8, scale: 2.5, name: 'scrap_start_1' },
+    {
+      model: GLB.tire1,
+      position: new Vector3(5, 0, -100),
+      rotationY: 0.5,
+      scale: 2.0,
+      name: 'tire_start_1',
+    },
+    {
+      model: GLB.tire2,
+      position: new Vector3(-3, 0, -110),
+      rotationY: 2.1,
+      scale: 2.0,
+      name: 'tire_start_2',
+    },
+    {
+      model: GLB.scrapMetal1,
+      position: new Vector3(10, 0, -130),
+      rotationY: 0.8,
+      scale: 2.5,
+      name: 'scrap_start_1',
+    },
 
     // Small shed near start (supply outpost)
-    { model: GLB.shed1, position: new Vector3(20, 0, -60), rotationY: -0.2, scale: 2.5, name: 'shed_start' },
+    {
+      model: GLB.shed1,
+      position: new Vector3(20, 0, -60),
+      rotationY: -0.2,
+      scale: 2.5,
+      name: 'shed_start',
+    },
 
     // Wooden crates and jerrycans (supplies)
-    { model: GLB.woodenCrate1, position: new Vector3(16, 0, -70), rotationY: 0.3, scale: 2.0, name: 'crate_start_1' },
-    { model: GLB.woodenCrate2a, position: new Vector3(18, 0, -65), rotationY: 0.8, scale: 2.0, name: 'crate_start_2' },
-    { model: GLB.jerrycan, position: new Vector3(17, 0, -75), rotationY: 1.0, scale: 2.0, name: 'jerrycan_start_1' },
+    {
+      model: GLB.woodenCrate1,
+      position: new Vector3(16, 0, -70),
+      rotationY: 0.3,
+      scale: 2.0,
+      name: 'crate_start_1',
+    },
+    {
+      model: GLB.woodenCrate2a,
+      position: new Vector3(18, 0, -65),
+      rotationY: 0.8,
+      scale: 2.0,
+      name: 'crate_start_2',
+    },
+    {
+      model: GLB.jerrycan,
+      position: new Vector3(17, 0, -75),
+      rotationY: 1.0,
+      scale: 2.0,
+      name: 'jerrycan_start_1',
+    },
 
     // ========================================================================
     // ZONE 2: NARROW PASSAGE (Z = -300 to Z = -600)
@@ -352,36 +450,144 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Wall segments forming narrowing passage
-    { model: GLB.wallDouble, position: new Vector3(-22, 0, -320), rotationY: 0, scale: 3.0, name: 'wall_narrow_L1' },
-    { model: GLB.wallDouble, position: new Vector3(22, 0, -320), rotationY: Math.PI, scale: 3.0, name: 'wall_narrow_R1' },
-    { model: GLB.wallHole1, position: new Vector3(-22, 0, -360), rotationY: 0, scale: 3.0, name: 'wall_hole_L1' },
-    { model: GLB.wallSingle, position: new Vector3(22, 0, -360), rotationY: Math.PI, scale: 3.0, name: 'wall_single_R1' },
+    {
+      model: GLB.wallDouble,
+      position: new Vector3(-22, 0, -320),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'wall_narrow_L1',
+    },
+    {
+      model: GLB.wallDouble,
+      position: new Vector3(22, 0, -320),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'wall_narrow_R1',
+    },
+    {
+      model: GLB.wallHole1,
+      position: new Vector3(-22, 0, -360),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'wall_hole_L1',
+    },
+    {
+      model: GLB.wallSingle,
+      position: new Vector3(22, 0, -360),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'wall_single_R1',
+    },
 
     // Industrial pipes crossing overhead
-    { model: GLB.pipeHorizMid1, position: new Vector3(0, 12, -380), rotationY: Math.PI / 2, scale: 4.0, name: 'pipe_overhead_1' },
-    { model: GLB.pipeHorizMid2, position: new Vector3(0, 14, -420), rotationY: Math.PI / 2, scale: 4.0, name: 'pipe_overhead_2' },
+    {
+      model: GLB.pipeHorizMid1,
+      position: new Vector3(0, 12, -380),
+      rotationY: Math.PI / 2,
+      scale: 4.0,
+      name: 'pipe_overhead_1',
+    },
+    {
+      model: GLB.pipeHorizMid2,
+      position: new Vector3(0, 14, -420),
+      rotationY: Math.PI / 2,
+      scale: 4.0,
+      name: 'pipe_overhead_2',
+    },
 
     // Boiler tucked into left canyon wall
-    { model: GLB.boiler, position: new Vector3(-22, 0, -400), rotationY: 0.3, scale: 3.0, name: 'boiler_L1' },
+    {
+      model: GLB.boiler,
+      position: new Vector3(-22, 0, -400),
+      rotationY: 0.3,
+      scale: 3.0,
+      name: 'boiler_L1',
+    },
 
     // Electrical equipment on right wall
-    { model: GLB.electricalEquip1, position: new Vector3(21, 2, -350), rotationY: -Math.PI / 2, scale: 2.5, name: 'elec_equip_R1' },
-    { model: GLB.electricalEquip2, position: new Vector3(21, 2, -440), rotationY: -Math.PI / 2, scale: 2.5, name: 'elec_equip_R2' },
+    {
+      model: GLB.electricalEquip1,
+      position: new Vector3(21, 2, -350),
+      rotationY: -Math.PI / 2,
+      scale: 2.5,
+      name: 'elec_equip_R1',
+    },
+    {
+      model: GLB.electricalEquip2,
+      position: new Vector3(21, 2, -440),
+      rotationY: -Math.PI / 2,
+      scale: 2.5,
+      name: 'elec_equip_R2',
+    },
 
     // Concrete barricade chicane (forces weaving)
-    { model: GLB.barricadeA1, position: new Vector3(-6, 0, -460), rotationY: 0.2, scale: 2.5, name: 'chicane_L1' },
-    { model: GLB.barricadeA2, position: new Vector3(8, 0, -480), rotationY: -0.3, scale: 2.5, name: 'chicane_R1' },
-    { model: GLB.barricadeA3, position: new Vector3(-4, 0, -500), rotationY: 0.15, scale: 2.5, name: 'chicane_L2' },
+    {
+      model: GLB.barricadeA1,
+      position: new Vector3(-6, 0, -460),
+      rotationY: 0.2,
+      scale: 2.5,
+      name: 'chicane_L1',
+    },
+    {
+      model: GLB.barricadeA2,
+      position: new Vector3(8, 0, -480),
+      rotationY: -0.3,
+      scale: 2.5,
+      name: 'chicane_R1',
+    },
+    {
+      model: GLB.barricadeA3,
+      position: new Vector3(-4, 0, -500),
+      rotationY: 0.15,
+      scale: 2.5,
+      name: 'chicane_L2',
+    },
 
     // Broken pillars at passage exit
-    { model: GLB.pillarBroken, position: new Vector3(-16, 0, -550), rotationY: 0, scale: 3.0, name: 'pillar_broken_L1' },
-    { model: GLB.pillarBroken, position: new Vector3(16, 0, -560), rotationY: 0.8, scale: 3.0, name: 'pillar_broken_R1' },
+    {
+      model: GLB.pillarBroken,
+      position: new Vector3(-16, 0, -550),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'pillar_broken_L1',
+    },
+    {
+      model: GLB.pillarBroken,
+      position: new Vector3(16, 0, -560),
+      rotationY: 0.8,
+      scale: 3.0,
+      name: 'pillar_broken_R1',
+    },
 
     // Concrete fencing along roadside
-    { model: GLB.concreteFence, position: new Vector3(-20, 0, -330), rotationY: 0, scale: 2.0, name: 'cfence_L1' },
-    { model: GLB.concreteFence, position: new Vector3(-20, 0, -340), rotationY: 0, scale: 2.0, name: 'cfence_L2' },
-    { model: GLB.concreteFence2, position: new Vector3(20, 0, -330), rotationY: Math.PI, scale: 2.0, name: 'cfence_R1' },
-    { model: GLB.concreteFence2, position: new Vector3(20, 0, -340), rotationY: Math.PI, scale: 2.0, name: 'cfence_R2' },
+    {
+      model: GLB.concreteFence,
+      position: new Vector3(-20, 0, -330),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'cfence_L1',
+    },
+    {
+      model: GLB.concreteFence,
+      position: new Vector3(-20, 0, -340),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'cfence_L2',
+    },
+    {
+      model: GLB.concreteFence2,
+      position: new Vector3(20, 0, -330),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'cfence_R1',
+    },
+    {
+      model: GLB.concreteFence2,
+      position: new Vector3(20, 0, -340),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'cfence_R2',
+    },
 
     // ========================================================================
     // ZONE 3: EARLY BRIDGE AREA (Z = -600)
@@ -389,16 +595,52 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Platform pieces forming bridge approaches
-    { model: GLB.platformLarge, position: new Vector3(-20, 4, -580), rotationY: 0, scale: 2.5, name: 'plat_bridge1_L' },
-    { model: GLB.platformLarge, position: new Vector3(20, 4, -580), rotationY: Math.PI, scale: 2.5, name: 'plat_bridge1_R' },
+    {
+      model: GLB.platformLarge,
+      position: new Vector3(-20, 4, -580),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'plat_bridge1_L',
+    },
+    {
+      model: GLB.platformLarge,
+      position: new Vector3(20, 4, -580),
+      rotationY: Math.PI,
+      scale: 2.5,
+      name: 'plat_bridge1_R',
+    },
 
     // Structural beams under early bridge
-    { model: GLB.beamVert1, position: new Vector3(-18, 0, -600), rotationY: 0, scale: 3.0, name: 'beam_bridge1_L' },
-    { model: GLB.beamVert2, position: new Vector3(18, 0, -600), rotationY: 0, scale: 3.0, name: 'beam_bridge1_R' },
+    {
+      model: GLB.beamVert1,
+      position: new Vector3(-18, 0, -600),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'beam_bridge1_L',
+    },
+    {
+      model: GLB.beamVert2,
+      position: new Vector3(18, 0, -600),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'beam_bridge1_R',
+    },
 
     // Asphalt road patches leading to bridge
-    { model: GLB.asphalt2, position: new Vector3(0, 0.1, -570), rotationY: 0, scale: 3.0, name: 'asphalt_bridge1_a' },
-    { model: GLB.asphalt3, position: new Vector3(0, 0.1, -630), rotationY: 0, scale: 3.0, name: 'asphalt_bridge1_b' },
+    {
+      model: GLB.asphalt2,
+      position: new Vector3(0, 0.1, -570),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'asphalt_bridge1_a',
+    },
+    {
+      model: GLB.asphalt3,
+      position: new Vector3(0, 0.1, -630),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'asphalt_bridge1_b',
+    },
 
     // ========================================================================
     // ZONE 4: RAMP JUMP SECTION (Z = -700 to Z = -900)
@@ -406,39 +648,141 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // First vehicle ramp
-    { model: GLB.rampWide, position: new Vector3(0, 0, -720), rotationY: Math.PI, scale: 3.0, name: 'ramp_jump_1' },
+    {
+      model: GLB.rampWide,
+      position: new Vector3(0, 0, -720),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'ramp_jump_1',
+    },
 
     // Landing debris after ramp
-    { model: GLB.debrisBricks1, position: new Vector3(-8, 0, -760), rotationY: 0.5, scale: 3.0, name: 'debris_ramp1_1' },
-    { model: GLB.debrisBricks2, position: new Vector3(6, 0, -770), rotationY: 1.2, scale: 3.0, name: 'debris_ramp1_2' },
+    {
+      model: GLB.debrisBricks1,
+      position: new Vector3(-8, 0, -760),
+      rotationY: 0.5,
+      scale: 3.0,
+      name: 'debris_ramp1_1',
+    },
+    {
+      model: GLB.debrisBricks2,
+      position: new Vector3(6, 0, -770),
+      rotationY: 1.2,
+      scale: 3.0,
+      name: 'debris_ramp1_2',
+    },
 
     // Water tower on canyon ledge (landmark)
-    { model: GLB.waterTower, position: new Vector3(-22, 0, -750), rotationY: 0, scale: 2.5, name: 'water_tower_1' },
+    {
+      model: GLB.waterTower,
+      position: new Vector3(-22, 0, -750),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'water_tower_1',
+    },
 
     // Chimney stacks along left wall (industrial ruins)
-    { model: GLB.chimney1, position: new Vector3(-23, 0, -800), rotationY: 0, scale: 2.5, name: 'chimney_L1' },
-    { model: GLB.chimney2, position: new Vector3(-24, 0, -830), rotationY: 0.2, scale: 2.5, name: 'chimney_L2' },
+    {
+      model: GLB.chimney1,
+      position: new Vector3(-23, 0, -800),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'chimney_L1',
+    },
+    {
+      model: GLB.chimney2,
+      position: new Vector3(-24, 0, -830),
+      rotationY: 0.2,
+      scale: 2.5,
+      name: 'chimney_L2',
+    },
 
     // Storage tanks on right wall
-    { model: GLB.storageTank, position: new Vector3(22, 0, -790), rotationY: 0, scale: 2.5, name: 'tank_R1' },
-    { model: GLB.tankSystem, position: new Vector3(23, 0, -850), rotationY: -0.3, scale: 2.5, name: 'tank_system_R1' },
+    {
+      model: GLB.storageTank,
+      position: new Vector3(22, 0, -790),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'tank_R1',
+    },
+    {
+      model: GLB.tankSystem,
+      position: new Vector3(23, 0, -850),
+      rotationY: -0.3,
+      scale: 2.5,
+      name: 'tank_system_R1',
+    },
 
     // Barricade gauntlet before rockslide zone
-    { model: GLB.barricadeB3, position: new Vector3(-10, 0, -870), rotationY: 0.1, scale: 2.5, name: 'barricade_gauntlet_L1' },
-    { model: GLB.barricadeB4, position: new Vector3(12, 0, -880), rotationY: -0.2, scale: 2.5, name: 'barricade_gauntlet_R1' },
-    { model: GLB.barricadeB1, position: new Vector3(-5, 0, -900), rotationY: 0.3, scale: 2.5, name: 'barricade_gauntlet_L2' },
+    {
+      model: GLB.barricadeB3,
+      position: new Vector3(-10, 0, -870),
+      rotationY: 0.1,
+      scale: 2.5,
+      name: 'barricade_gauntlet_L1',
+    },
+    {
+      model: GLB.barricadeB4,
+      position: new Vector3(12, 0, -880),
+      rotationY: -0.2,
+      scale: 2.5,
+      name: 'barricade_gauntlet_R1',
+    },
+    {
+      model: GLB.barricadeB1,
+      position: new Vector3(-5, 0, -900),
+      rotationY: 0.3,
+      scale: 2.5,
+      name: 'barricade_gauntlet_L2',
+    },
 
     // Second ramp (sends player airborne through rockslide zone)
-    { model: GLB.rampSlim, position: new Vector3(3, 0, -910), rotationY: Math.PI, scale: 2.5, name: 'ramp_jump_2' },
+    {
+      model: GLB.rampSlim,
+      position: new Vector3(3, 0, -910),
+      rotationY: Math.PI,
+      scale: 2.5,
+      name: 'ramp_jump_2',
+    },
 
     // Cage obstacle in the road
-    { model: GLB.cage, position: new Vector3(-12, 0, -840), rotationY: 0.5, scale: 2.5, name: 'cage_roadblock_1' },
+    {
+      model: GLB.cage,
+      position: new Vector3(-12, 0, -840),
+      rotationY: 0.5,
+      scale: 2.5,
+      name: 'cage_roadblock_1',
+    },
 
     // Metal fencing along this stretch
-    { model: GLB.metalFence, position: new Vector3(-21, 0, -720), rotationY: 0, scale: 2.0, name: 'mfence_L1' },
-    { model: GLB.metalFence, position: new Vector3(-21, 0, -730), rotationY: 0, scale: 2.0, name: 'mfence_L2' },
-    { model: GLB.metalFenceTall, position: new Vector3(21, 0, -720), rotationY: Math.PI, scale: 2.0, name: 'mfence_R1' },
-    { model: GLB.metalFenceTall, position: new Vector3(21, 0, -730), rotationY: Math.PI, scale: 2.0, name: 'mfence_R2' },
+    {
+      model: GLB.metalFence,
+      position: new Vector3(-21, 0, -720),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'mfence_L1',
+    },
+    {
+      model: GLB.metalFence,
+      position: new Vector3(-21, 0, -730),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'mfence_L2',
+    },
+    {
+      model: GLB.metalFenceTall,
+      position: new Vector3(21, 0, -720),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'mfence_R1',
+    },
+    {
+      model: GLB.metalFenceTall,
+      position: new Vector3(21, 0, -730),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'mfence_R2',
+    },
 
     // ========================================================================
     // ZONE 5: MID-CANYON (Z = -900 to Z = -1200)
@@ -446,32 +790,116 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Shipping container roadblock cluster
-    { model: GLB.shippingContainer1, position: new Vector3(-15, 0, -950), rotationY: 0.4, scale: 2.0, name: 'container_mid_1' },
-    { model: GLB.shippingContainer2, position: new Vector3(12, 1.5, -980), rotationY: -0.6, scale: 2.0, name: 'container_mid_2' },
-    { model: GLB.shippingContainerHollow, position: new Vector3(0, 0, -1020), rotationY: Math.PI / 2, scale: 2.0, name: 'container_mid_hollow' },
+    {
+      model: GLB.shippingContainer1,
+      position: new Vector3(-15, 0, -950),
+      rotationY: 0.4,
+      scale: 2.0,
+      name: 'container_mid_1',
+    },
+    {
+      model: GLB.shippingContainer2,
+      position: new Vector3(12, 1.5, -980),
+      rotationY: -0.6,
+      scale: 2.0,
+      name: 'container_mid_2',
+    },
+    {
+      model: GLB.shippingContainerHollow,
+      position: new Vector3(0, 0, -1020),
+      rotationY: Math.PI / 2,
+      scale: 2.0,
+      name: 'container_mid_hollow',
+    },
 
     // Player can drive THROUGH the hollow container (tunnel)
 
     // Machinery on canyon walls
-    { model: GLB.machinery, position: new Vector3(-22, 0, -1050), rotationY: 0, scale: 2.5, name: 'machinery_L1' },
-    { model: GLB.distillery, position: new Vector3(22, 0, -1080), rotationY: Math.PI, scale: 2.5, name: 'distillery_R1' },
+    {
+      model: GLB.machinery,
+      position: new Vector3(-22, 0, -1050),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'machinery_L1',
+    },
+    {
+      model: GLB.distillery,
+      position: new Vector3(22, 0, -1080),
+      rotationY: Math.PI,
+      scale: 2.5,
+      name: 'distillery_R1',
+    },
 
     // Platform overpass (players drive under)
-    { model: GLB.platformAx1, position: new Vector3(0, 10, -1100), rotationY: Math.PI / 2, scale: 3.5, name: 'overpass_mid_1' },
-    { model: GLB.beamVert1, position: new Vector3(-15, 0, -1100), rotationY: 0, scale: 3.5, name: 'overpass_pillar_L' },
-    { model: GLB.beamVert2, position: new Vector3(15, 0, -1100), rotationY: 0, scale: 3.5, name: 'overpass_pillar_R' },
+    {
+      model: GLB.platformAx1,
+      position: new Vector3(0, 10, -1100),
+      rotationY: Math.PI / 2,
+      scale: 3.5,
+      name: 'overpass_mid_1',
+    },
+    {
+      model: GLB.beamVert1,
+      position: new Vector3(-15, 0, -1100),
+      rotationY: 0,
+      scale: 3.5,
+      name: 'overpass_pillar_L',
+    },
+    {
+      model: GLB.beamVert2,
+      position: new Vector3(15, 0, -1100),
+      rotationY: 0,
+      scale: 3.5,
+      name: 'overpass_pillar_R',
+    },
 
     // Warehouse structure on left wall
-    { model: GLB.warehouse, position: new Vector3(-24, 0, -1150), rotationY: Math.PI / 2, scale: 2.5, name: 'warehouse_L1' },
+    {
+      model: GLB.warehouse,
+      position: new Vector3(-24, 0, -1150),
+      rotationY: Math.PI / 2,
+      scale: 2.5,
+      name: 'warehouse_L1',
+    },
 
     // Barrels scattered as minor obstacles
-    { model: GLB.barrel3, position: new Vector3(-3, 0, -1000), rotationY: 0, scale: 2.0, name: 'barrel_mid_1' },
-    { model: GLB.barrel4, position: new Vector3(7, 0, -1060), rotationY: 1.5, scale: 2.0, name: 'barrel_mid_2' },
-    { model: GLB.barrel3, position: new Vector3(-9, 0, -1120), rotationY: 2.3, scale: 2.0, name: 'barrel_mid_3' },
+    {
+      model: GLB.barrel3,
+      position: new Vector3(-3, 0, -1000),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'barrel_mid_1',
+    },
+    {
+      model: GLB.barrel4,
+      position: new Vector3(7, 0, -1060),
+      rotationY: 1.5,
+      scale: 2.0,
+      name: 'barrel_mid_2',
+    },
+    {
+      model: GLB.barrel3,
+      position: new Vector3(-9, 0, -1120),
+      rotationY: 2.3,
+      scale: 2.0,
+      name: 'barrel_mid_3',
+    },
 
     // Gravel piles along walls
-    { model: GLB.gravelPile1, position: new Vector3(19, 0, -960), rotationY: 0.7, scale: 3.0, name: 'gravel_mid_1' },
-    { model: GLB.gravelPile2, position: new Vector3(-19, 0, -1040), rotationY: 2.0, scale: 3.0, name: 'gravel_mid_2' },
+    {
+      model: GLB.gravelPile1,
+      position: new Vector3(19, 0, -960),
+      rotationY: 0.7,
+      scale: 3.0,
+      name: 'gravel_mid_1',
+    },
+    {
+      model: GLB.gravelPile2,
+      position: new Vector3(-19, 0, -1040),
+      rotationY: 2.0,
+      scale: 3.0,
+      name: 'gravel_mid_2',
+    },
 
     // ========================================================================
     // ZONE 6: APPROACH TO MAIN BRIDGE (Z = -1200 to Z = -1500)
@@ -479,30 +907,114 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Garage structure (abandoned maintenance depot)
-    { model: GLB.garageBlock, position: new Vector3(-22, 0, -1250), rotationY: Math.PI / 2, scale: 2.5, name: 'garage_approach' },
-    { model: GLB.garage1, position: new Vector3(22, 0, -1280), rotationY: -Math.PI / 2, scale: 2.5, name: 'garage_R1' },
+    {
+      model: GLB.garageBlock,
+      position: new Vector3(-22, 0, -1250),
+      rotationY: Math.PI / 2,
+      scale: 2.5,
+      name: 'garage_approach',
+    },
+    {
+      model: GLB.garage1,
+      position: new Vector3(22, 0, -1280),
+      rotationY: -Math.PI / 2,
+      scale: 2.5,
+      name: 'garage_R1',
+    },
 
     // Concrete barrier line (player must weave)
-    { model: GLB.concreteFence, position: new Vector3(-8, 0, -1300), rotationY: 0.1, scale: 2.0, name: 'cfence_approach_L1' },
-    { model: GLB.concreteFence, position: new Vector3(-8, 0, -1310), rotationY: 0.1, scale: 2.0, name: 'cfence_approach_L2' },
-    { model: GLB.concreteFence2, position: new Vector3(10, 0, -1330), rotationY: -0.15, scale: 2.0, name: 'cfence_approach_R1' },
-    { model: GLB.concreteFence2, position: new Vector3(10, 0, -1340), rotationY: -0.15, scale: 2.0, name: 'cfence_approach_R2' },
+    {
+      model: GLB.concreteFence,
+      position: new Vector3(-8, 0, -1300),
+      rotationY: 0.1,
+      scale: 2.0,
+      name: 'cfence_approach_L1',
+    },
+    {
+      model: GLB.concreteFence,
+      position: new Vector3(-8, 0, -1310),
+      rotationY: 0.1,
+      scale: 2.0,
+      name: 'cfence_approach_L2',
+    },
+    {
+      model: GLB.concreteFence2,
+      position: new Vector3(10, 0, -1330),
+      rotationY: -0.15,
+      scale: 2.0,
+      name: 'cfence_approach_R1',
+    },
+    {
+      model: GLB.concreteFence2,
+      position: new Vector3(10, 0, -1340),
+      rotationY: -0.15,
+      scale: 2.0,
+      name: 'cfence_approach_R2',
+    },
 
     // Broken pillars increasing in density
-    { model: GLB.pillar2, position: new Vector3(-17, 0, -1350), rotationY: 0, scale: 3.0, name: 'pillar_approach_L1' },
-    { model: GLB.pillar4, position: new Vector3(17, 0, -1370), rotationY: 0, scale: 3.0, name: 'pillar_approach_R1' },
-    { model: GLB.pillar5, position: new Vector3(-12, 0, -1390), rotationY: 0.4, scale: 3.0, name: 'pillar_approach_L2' },
+    {
+      model: GLB.pillar2,
+      position: new Vector3(-17, 0, -1350),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'pillar_approach_L1',
+    },
+    {
+      model: GLB.pillar4,
+      position: new Vector3(17, 0, -1370),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'pillar_approach_R1',
+    },
+    {
+      model: GLB.pillar5,
+      position: new Vector3(-12, 0, -1390),
+      rotationY: 0.4,
+      scale: 3.0,
+      name: 'pillar_approach_L2',
+    },
 
     // Third ramp (dramatic pre-bridge jump)
-    { model: GLB.rampWide, position: new Vector3(0, 0, -1420), rotationY: Math.PI, scale: 3.0, name: 'ramp_bridge_approach' },
+    {
+      model: GLB.rampWide,
+      position: new Vector3(0, 0, -1420),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'ramp_bridge_approach',
+    },
 
     // Asphalt road surface approaching bridge
-    { model: GLB.asphaltLarge, position: new Vector3(0, 0.1, -1460), rotationY: 0, scale: 3.5, name: 'asphalt_bridge_approach' },
-    { model: GLB.asphalt2, position: new Vector3(0, 0.1, -1480), rotationY: 0, scale: 3.0, name: 'asphalt_bridge_lead' },
+    {
+      model: GLB.asphaltLarge,
+      position: new Vector3(0, 0.1, -1460),
+      rotationY: 0,
+      scale: 3.5,
+      name: 'asphalt_bridge_approach',
+    },
+    {
+      model: GLB.asphalt2,
+      position: new Vector3(0, 0.1, -1480),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'asphalt_bridge_lead',
+    },
 
     // Pipes running along walls near bridge
-    { model: GLB.pipes, position: new Vector3(-23, 4, -1350), rotationY: 0, scale: 3.0, name: 'pipes_approach_L1' },
-    { model: GLB.pipeElbow, position: new Vector3(23, 4, -1380), rotationY: Math.PI, scale: 3.0, name: 'pipe_elbow_R1' },
+    {
+      model: GLB.pipes,
+      position: new Vector3(-23, 4, -1350),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'pipes_approach_L1',
+    },
+    {
+      model: GLB.pipeElbow,
+      position: new Vector3(23, 4, -1380),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'pipe_elbow_R1',
+    },
 
     // ========================================================================
     // ZONE 7: MAIN BRIDGE (Z = -1500)
@@ -511,12 +1023,36 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Platform bases for bridge supports
-    { model: GLB.platformBx1, position: new Vector3(-22, 0, -1500), rotationY: 0, scale: 3.0, name: 'bridge_base_L' },
-    { model: GLB.platformBx1, position: new Vector3(22, 0, -1500), rotationY: Math.PI, scale: 3.0, name: 'bridge_base_R' },
+    {
+      model: GLB.platformBx1,
+      position: new Vector3(-22, 0, -1500),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'bridge_base_L',
+    },
+    {
+      model: GLB.platformBx1,
+      position: new Vector3(22, 0, -1500),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'bridge_base_R',
+    },
 
     // Beams visible beside the bridge
-    { model: GLB.beamHoriz1, position: new Vector3(-20, 6, -1490), rotationY: 0, scale: 3.0, name: 'bridge_beam_L1' },
-    { model: GLB.beamHoriz2, position: new Vector3(20, 6, -1510), rotationY: Math.PI, scale: 3.0, name: 'bridge_beam_R1' },
+    {
+      model: GLB.beamHoriz1,
+      position: new Vector3(-20, 6, -1490),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'bridge_beam_L1',
+    },
+    {
+      model: GLB.beamHoriz2,
+      position: new Vector3(20, 6, -1510),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'bridge_beam_R1',
+    },
 
     // ========================================================================
     // ZONE 8: POST-BRIDGE (Z = -1500 to Z = -2000)
@@ -524,39 +1060,153 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // CRASHED SPACESHIP in canyon wall (major landmark)
-    { model: GLB.spaceshipChallenger, position: new Vector3(-25, 5, -1650), rotationY: 0.7, scale: 4.0, name: 'crashed_ship_1' },
+    {
+      model: GLB.spaceshipChallenger,
+      position: new Vector3(-25, 5, -1650),
+      rotationY: 0.7,
+      scale: 4.0,
+      name: 'crashed_ship_1',
+    },
 
     // Station external module (crashed habitation pod)
-    { model: GLB.stationExt03, position: new Vector3(20, 3, -1700), rotationY: -0.4, scale: 3.5, name: 'station_wreck_1' },
+    {
+      model: GLB.stationExt03,
+      position: new Vector3(20, 3, -1700),
+      rotationY: -0.4,
+      scale: 3.5,
+      name: 'station_wreck_1',
+    },
 
     // Heavy debris field around crash site
-    { model: GLB.debrisBricks1, position: new Vector3(-15, 0, -1630), rotationY: 0.3, scale: 3.5, name: 'debris_crash_1' },
-    { model: GLB.debrisBricks2, position: new Vector3(-10, 0, -1660), rotationY: 1.8, scale: 3.5, name: 'debris_crash_2' },
-    { model: GLB.gravelPile1, position: new Vector3(-18, 0, -1680), rotationY: 0, scale: 4.0, name: 'gravel_crash_1' },
-    { model: GLB.gravelPile2, position: new Vector3(15, 0, -1720), rotationY: 1.0, scale: 4.0, name: 'gravel_crash_2' },
-    { model: GLB.scrapMetal1, position: new Vector3(5, 0, -1640), rotationY: 2.5, scale: 3.0, name: 'scrap_crash_1' },
+    {
+      model: GLB.debrisBricks1,
+      position: new Vector3(-15, 0, -1630),
+      rotationY: 0.3,
+      scale: 3.5,
+      name: 'debris_crash_1',
+    },
+    {
+      model: GLB.debrisBricks2,
+      position: new Vector3(-10, 0, -1660),
+      rotationY: 1.8,
+      scale: 3.5,
+      name: 'debris_crash_2',
+    },
+    {
+      model: GLB.gravelPile1,
+      position: new Vector3(-18, 0, -1680),
+      rotationY: 0,
+      scale: 4.0,
+      name: 'gravel_crash_1',
+    },
+    {
+      model: GLB.gravelPile2,
+      position: new Vector3(15, 0, -1720),
+      rotationY: 1.0,
+      scale: 4.0,
+      name: 'gravel_crash_2',
+    },
+    {
+      model: GLB.scrapMetal1,
+      position: new Vector3(5, 0, -1640),
+      rotationY: 2.5,
+      scale: 3.0,
+      name: 'scrap_crash_1',
+    },
 
     // Tires and barrels from the wreckage
-    { model: GLB.tire1, position: new Vector3(-7, 0, -1670), rotationY: 0.9, scale: 2.0, name: 'tire_crash_1' },
-    { model: GLB.tire2, position: new Vector3(3, 0, -1690), rotationY: 1.7, scale: 2.0, name: 'tire_crash_2' },
-    { model: GLB.barrel3, position: new Vector3(-2, 0, -1710), rotationY: 0, scale: 2.0, name: 'barrel_crash_1' },
-    { model: GLB.barrel4, position: new Vector3(9, 0, -1650), rotationY: 1.3, scale: 2.0, name: 'barrel_crash_2' },
+    {
+      model: GLB.tire1,
+      position: new Vector3(-7, 0, -1670),
+      rotationY: 0.9,
+      scale: 2.0,
+      name: 'tire_crash_1',
+    },
+    {
+      model: GLB.tire2,
+      position: new Vector3(3, 0, -1690),
+      rotationY: 1.7,
+      scale: 2.0,
+      name: 'tire_crash_2',
+    },
+    {
+      model: GLB.barrel3,
+      position: new Vector3(-2, 0, -1710),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'barrel_crash_1',
+    },
+    {
+      model: GLB.barrel4,
+      position: new Vector3(9, 0, -1650),
+      rotationY: 1.3,
+      scale: 2.0,
+      name: 'barrel_crash_2',
+    },
 
     // Shipping containers as improvised barricades
-    { model: GLB.shippingContainer1, position: new Vector3(15, 0, -1780), rotationY: 0.8, scale: 2.0, name: 'container_post_1' },
-    { model: GLB.shippingContainer2, position: new Vector3(-14, 2.0, -1820), rotationY: -0.5, scale: 2.0, name: 'container_post_2' },
+    {
+      model: GLB.shippingContainer1,
+      position: new Vector3(15, 0, -1780),
+      rotationY: 0.8,
+      scale: 2.0,
+      name: 'container_post_1',
+    },
+    {
+      model: GLB.shippingContainer2,
+      position: new Vector3(-14, 2.0, -1820),
+      rotationY: -0.5,
+      scale: 2.0,
+      name: 'container_post_2',
+    },
 
     // Another overpass structure
-    { model: GLB.platformAx2, position: new Vector3(0, 12, -1850), rotationY: Math.PI / 2, scale: 3.5, name: 'overpass_post_1' },
-    { model: GLB.beamVert1, position: new Vector3(-16, 0, -1850), rotationY: 0, scale: 3.5, name: 'overpass_post_L' },
-    { model: GLB.beamVert2, position: new Vector3(16, 0, -1850), rotationY: 0, scale: 3.5, name: 'overpass_post_R' },
+    {
+      model: GLB.platformAx2,
+      position: new Vector3(0, 12, -1850),
+      rotationY: Math.PI / 2,
+      scale: 3.5,
+      name: 'overpass_post_1',
+    },
+    {
+      model: GLB.beamVert1,
+      position: new Vector3(-16, 0, -1850),
+      rotationY: 0,
+      scale: 3.5,
+      name: 'overpass_post_L',
+    },
+    {
+      model: GLB.beamVert2,
+      position: new Vector3(16, 0, -1850),
+      rotationY: 0,
+      scale: 3.5,
+      name: 'overpass_post_R',
+    },
 
     // Wall segments with holes (cover from wraith fire)
-    { model: GLB.wallHole2, position: new Vector3(-20, 0, -1900), rotationY: 0, scale: 3.0, name: 'wall_cover_L1' },
-    { model: GLB.wallHole1, position: new Vector3(20, 0, -1930), rotationY: Math.PI, scale: 3.0, name: 'wall_cover_R1' },
+    {
+      model: GLB.wallHole2,
+      position: new Vector3(-20, 0, -1900),
+      rotationY: 0,
+      scale: 3.0,
+      name: 'wall_cover_L1',
+    },
+    {
+      model: GLB.wallHole1,
+      position: new Vector3(20, 0, -1930),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'wall_cover_R1',
+    },
 
     // Fourth ramp (high-speed jump over debris)
-    { model: GLB.rampSlim, position: new Vector3(-5, 0, -1960), rotationY: Math.PI, scale: 2.5, name: 'ramp_post_bridge' },
+    {
+      model: GLB.rampSlim,
+      position: new Vector3(-5, 0, -1960),
+      rotationY: Math.PI,
+      scale: 2.5,
+      name: 'ramp_post_bridge',
+    },
 
     // ========================================================================
     // ZONE 9: FINAL GAUNTLET (Z = -2000 to Z = -2600)
@@ -564,50 +1214,194 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Portal structure (alien arch, purely decorative)
-    { model: GLB.portal, position: new Vector3(0, 0, -2020), rotationY: Math.PI / 2, scale: 4.0, name: 'alien_arch_1' },
+    {
+      model: GLB.portal,
+      position: new Vector3(0, 0, -2020),
+      rotationY: Math.PI / 2,
+      scale: 4.0,
+      name: 'alien_arch_1',
+    },
 
     // Dense barricade field
-    { model: GLB.barricadeA1, position: new Vector3(-12, 0, -2080), rotationY: 0.15, scale: 2.5, name: 'barricade_final_L1' },
-    { model: GLB.barricadeB2, position: new Vector3(10, 0, -2100), rotationY: -0.2, scale: 2.5, name: 'barricade_final_R1' },
-    { model: GLB.barricadeA3, position: new Vector3(-5, 0, -2130), rotationY: 0.3, scale: 2.5, name: 'barricade_final_C1' },
-    { model: GLB.barricadeB4, position: new Vector3(14, 0, -2160), rotationY: -0.1, scale: 2.5, name: 'barricade_final_R2' },
-    { model: GLB.barricadeA2, position: new Vector3(-8, 0, -2190), rotationY: 0.25, scale: 2.5, name: 'barricade_final_L2' },
+    {
+      model: GLB.barricadeA1,
+      position: new Vector3(-12, 0, -2080),
+      rotationY: 0.15,
+      scale: 2.5,
+      name: 'barricade_final_L1',
+    },
+    {
+      model: GLB.barricadeB2,
+      position: new Vector3(10, 0, -2100),
+      rotationY: -0.2,
+      scale: 2.5,
+      name: 'barricade_final_R1',
+    },
+    {
+      model: GLB.barricadeA3,
+      position: new Vector3(-5, 0, -2130),
+      rotationY: 0.3,
+      scale: 2.5,
+      name: 'barricade_final_C1',
+    },
+    {
+      model: GLB.barricadeB4,
+      position: new Vector3(14, 0, -2160),
+      rotationY: -0.1,
+      scale: 2.5,
+      name: 'barricade_final_R2',
+    },
+    {
+      model: GLB.barricadeA2,
+      position: new Vector3(-8, 0, -2190),
+      rotationY: 0.25,
+      scale: 2.5,
+      name: 'barricade_final_L2',
+    },
 
     // Water tower cluster (second landmark)
-    { model: GLB.waterTower, position: new Vector3(22, 0, -2120), rotationY: 0, scale: 2.5, name: 'water_tower_2' },
+    {
+      model: GLB.waterTower,
+      position: new Vector3(22, 0, -2120),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'water_tower_2',
+    },
 
     // Chimney stacks (ruins continuing)
-    { model: GLB.chimney3, position: new Vector3(-24, 0, -2200), rotationY: 0, scale: 2.5, name: 'chimney_final_L1' },
-    { model: GLB.chimney1, position: new Vector3(24, 0, -2250), rotationY: 0.5, scale: 2.5, name: 'chimney_final_R1' },
+    {
+      model: GLB.chimney3,
+      position: new Vector3(-24, 0, -2200),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'chimney_final_L1',
+    },
+    {
+      model: GLB.chimney1,
+      position: new Vector3(24, 0, -2250),
+      rotationY: 0.5,
+      scale: 2.5,
+      name: 'chimney_final_R1',
+    },
 
     // Industrial pipes overhead
-    { model: GLB.pipeHorizMid1, position: new Vector3(0, 13, -2280), rotationY: Math.PI / 2, scale: 4.0, name: 'pipe_final_1' },
-    { model: GLB.pipeHorizMid2, position: new Vector3(0, 15, -2350), rotationY: Math.PI / 2, scale: 4.0, name: 'pipe_final_2' },
+    {
+      model: GLB.pipeHorizMid1,
+      position: new Vector3(0, 13, -2280),
+      rotationY: Math.PI / 2,
+      scale: 4.0,
+      name: 'pipe_final_1',
+    },
+    {
+      model: GLB.pipeHorizMid2,
+      position: new Vector3(0, 15, -2350),
+      rotationY: Math.PI / 2,
+      scale: 4.0,
+      name: 'pipe_final_2',
+    },
 
     // Shipping containers forming a slalom
-    { model: GLB.shippingContainer1, position: new Vector3(-10, 0, -2300), rotationY: 0.2, scale: 2.0, name: 'container_final_1' },
-    { model: GLB.shippingContainer2, position: new Vector3(8, 0, -2340), rotationY: -0.3, scale: 2.0, name: 'container_final_2' },
-    { model: GLB.shippingContainerHollow, position: new Vector3(-3, 0, -2380), rotationY: 0, scale: 2.0, name: 'container_final_hollow' },
+    {
+      model: GLB.shippingContainer1,
+      position: new Vector3(-10, 0, -2300),
+      rotationY: 0.2,
+      scale: 2.0,
+      name: 'container_final_1',
+    },
+    {
+      model: GLB.shippingContainer2,
+      position: new Vector3(8, 0, -2340),
+      rotationY: -0.3,
+      scale: 2.0,
+      name: 'container_final_2',
+    },
+    {
+      model: GLB.shippingContainerHollow,
+      position: new Vector3(-3, 0, -2380),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'container_final_hollow',
+    },
 
     // Fifth ramp (dramatic final jump)
-    { model: GLB.rampWide, position: new Vector3(0, 0, -2430), rotationY: Math.PI, scale: 3.0, name: 'ramp_final' },
+    {
+      model: GLB.rampWide,
+      position: new Vector3(0, 0, -2430),
+      rotationY: Math.PI,
+      scale: 3.0,
+      name: 'ramp_final',
+    },
 
     // Cage and machinery obstacles
-    { model: GLB.cage, position: new Vector3(15, 0, -2460), rotationY: 0.7, scale: 2.5, name: 'cage_final_1' },
-    { model: GLB.machinery, position: new Vector3(-22, 0, -2480), rotationY: 0.2, scale: 2.5, name: 'machinery_final_L1' },
-    { model: GLB.distillery, position: new Vector3(22, 0, -2520), rotationY: -Math.PI / 2, scale: 2.5, name: 'distillery_final_R1' },
+    {
+      model: GLB.cage,
+      position: new Vector3(15, 0, -2460),
+      rotationY: 0.7,
+      scale: 2.5,
+      name: 'cage_final_1',
+    },
+    {
+      model: GLB.machinery,
+      position: new Vector3(-22, 0, -2480),
+      rotationY: 0.2,
+      scale: 2.5,
+      name: 'machinery_final_L1',
+    },
+    {
+      model: GLB.distillery,
+      position: new Vector3(22, 0, -2520),
+      rotationY: -Math.PI / 2,
+      scale: 2.5,
+      name: 'distillery_final_R1',
+    },
 
     // Concrete fencing guiding toward extraction
-    { model: GLB.concreteFence, position: new Vector3(-15, 0, -2550), rotationY: 0.05, scale: 2.0, name: 'cfence_final_L1' },
-    { model: GLB.concreteFence, position: new Vector3(-15, 0, -2560), rotationY: 0.05, scale: 2.0, name: 'cfence_final_L2' },
-    { model: GLB.concreteFence2, position: new Vector3(15, 0, -2550), rotationY: Math.PI, scale: 2.0, name: 'cfence_final_R1' },
-    { model: GLB.concreteFence2, position: new Vector3(15, 0, -2560), rotationY: Math.PI, scale: 2.0, name: 'cfence_final_R2' },
+    {
+      model: GLB.concreteFence,
+      position: new Vector3(-15, 0, -2550),
+      rotationY: 0.05,
+      scale: 2.0,
+      name: 'cfence_final_L1',
+    },
+    {
+      model: GLB.concreteFence,
+      position: new Vector3(-15, 0, -2560),
+      rotationY: 0.05,
+      scale: 2.0,
+      name: 'cfence_final_L2',
+    },
+    {
+      model: GLB.concreteFence2,
+      position: new Vector3(15, 0, -2550),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'cfence_final_R1',
+    },
+    {
+      model: GLB.concreteFence2,
+      position: new Vector3(15, 0, -2560),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'cfence_final_R2',
+    },
 
     // Second crashed spaceship (further along)
-    { model: GLB.spaceshipOmen, position: new Vector3(25, 8, -2500), rotationY: -0.9, scale: 3.5, name: 'crashed_ship_2' },
+    {
+      model: GLB.spaceshipOmen,
+      position: new Vector3(25, 8, -2500),
+      rotationY: -0.9,
+      scale: 3.5,
+      name: 'crashed_ship_2',
+    },
 
     // Warehouse on right wall
-    { model: GLB.warehouseMx1, position: new Vector3(24, 0, -2400), rotationY: -Math.PI / 2, scale: 3.0, name: 'warehouse_final_R1' },
+    {
+      model: GLB.warehouseMx1,
+      position: new Vector3(24, 0, -2400),
+      rotationY: -Math.PI / 2,
+      scale: 3.0,
+      name: 'warehouse_final_R1',
+    },
 
     // ========================================================================
     // ZONE 10: EXTRACTION APPROACH (Z = -2600 to Z = -2900)
@@ -615,33 +1409,123 @@ function getCanyonPropPlacements(): PropPlacement[] {
     // ========================================================================
 
     // Station external module (base infrastructure)
-    { model: GLB.stationExt05, position: new Vector3(-22, 0, -2650), rotationY: 0.3, scale: 3.0, name: 'station_extraction_L' },
+    {
+      model: GLB.stationExt05,
+      position: new Vector3(-22, 0, -2650),
+      rotationY: 0.3,
+      scale: 3.0,
+      name: 'station_extraction_L',
+    },
 
     // Shed structures (forward operating post)
-    { model: GLB.shed2, position: new Vector3(20, 0, -2680), rotationY: -0.5, scale: 2.5, name: 'shed_extraction_R1' },
-    { model: GLB.shed3, position: new Vector3(-20, 0, -2720), rotationY: 0.3, scale: 2.5, name: 'shed_extraction_L1' },
+    {
+      model: GLB.shed2,
+      position: new Vector3(20, 0, -2680),
+      rotationY: -0.5,
+      scale: 2.5,
+      name: 'shed_extraction_R1',
+    },
+    {
+      model: GLB.shed3,
+      position: new Vector3(-20, 0, -2720),
+      rotationY: 0.3,
+      scale: 2.5,
+      name: 'shed_extraction_L1',
+    },
 
     // Barrel and crate supply dump near extraction
-    { model: GLB.barrel3, position: new Vector3(15, 0, -2750), rotationY: 0, scale: 2.0, name: 'barrel_extract_1' },
-    { model: GLB.barrel4, position: new Vector3(13, 0, -2760), rotationY: 1.0, scale: 2.0, name: 'barrel_extract_2' },
-    { model: GLB.woodenCrate1, position: new Vector3(-16, 0, -2770), rotationY: 0.5, scale: 2.0, name: 'crate_extract_1' },
-    { model: GLB.woodenCrate2a, position: new Vector3(-14, 0, -2780), rotationY: 0.9, scale: 2.0, name: 'crate_extract_2' },
-    { model: GLB.jerrycan, position: new Vector3(12, 0, -2790), rotationY: 2.0, scale: 2.0, name: 'jerrycan_extract_1' },
+    {
+      model: GLB.barrel3,
+      position: new Vector3(15, 0, -2750),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'barrel_extract_1',
+    },
+    {
+      model: GLB.barrel4,
+      position: new Vector3(13, 0, -2760),
+      rotationY: 1.0,
+      scale: 2.0,
+      name: 'barrel_extract_2',
+    },
+    {
+      model: GLB.woodenCrate1,
+      position: new Vector3(-16, 0, -2770),
+      rotationY: 0.5,
+      scale: 2.0,
+      name: 'crate_extract_1',
+    },
+    {
+      model: GLB.woodenCrate2a,
+      position: new Vector3(-14, 0, -2780),
+      rotationY: 0.9,
+      scale: 2.0,
+      name: 'crate_extract_2',
+    },
+    {
+      model: GLB.jerrycan,
+      position: new Vector3(12, 0, -2790),
+      rotationY: 2.0,
+      scale: 2.0,
+      name: 'jerrycan_extract_1',
+    },
 
     // Concrete barriers guiding to landing pad
-    { model: GLB.barricadeB1, position: new Vector3(-10, 0, -2830), rotationY: 0, scale: 2.5, name: 'barricade_extract_L1' },
-    { model: GLB.barricadeB2, position: new Vector3(10, 0, -2830), rotationY: Math.PI, scale: 2.5, name: 'barricade_extract_R1' },
+    {
+      model: GLB.barricadeB1,
+      position: new Vector3(-10, 0, -2830),
+      rotationY: 0,
+      scale: 2.5,
+      name: 'barricade_extract_L1',
+    },
+    {
+      model: GLB.barricadeB2,
+      position: new Vector3(10, 0, -2830),
+      rotationY: Math.PI,
+      scale: 2.5,
+      name: 'barricade_extract_R1',
+    },
 
     // Asphalt road surface at extraction
-    { model: GLB.asphaltLarge, position: new Vector3(0, 0.1, -2870), rotationY: 0, scale: 4.0, name: 'asphalt_extraction' },
+    {
+      model: GLB.asphaltLarge,
+      position: new Vector3(0, 0.1, -2870),
+      rotationY: 0,
+      scale: 4.0,
+      name: 'asphalt_extraction',
+    },
 
     // Gravel and debris at edges of landing zone
-    { model: GLB.gravelPile1, position: new Vector3(-18, 0, -2880), rotationY: 0.5, scale: 3.5, name: 'gravel_extract_1' },
-    { model: GLB.gravelPile2, position: new Vector3(18, 0, -2890), rotationY: 1.8, scale: 3.5, name: 'gravel_extract_2' },
+    {
+      model: GLB.gravelPile1,
+      position: new Vector3(-18, 0, -2880),
+      rotationY: 0.5,
+      scale: 3.5,
+      name: 'gravel_extract_1',
+    },
+    {
+      model: GLB.gravelPile2,
+      position: new Vector3(18, 0, -2890),
+      rotationY: 1.8,
+      scale: 3.5,
+      name: 'gravel_extract_2',
+    },
 
     // Metal fencing around the landing pad perimeter
-    { model: GLB.metalFencePillar, position: new Vector3(-13, 0, -2880), rotationY: 0, scale: 2.0, name: 'fence_extract_L' },
-    { model: GLB.metalFencePillar, position: new Vector3(13, 0, -2880), rotationY: Math.PI, scale: 2.0, name: 'fence_extract_R' },
+    {
+      model: GLB.metalFencePillar,
+      position: new Vector3(-13, 0, -2880),
+      rotationY: 0,
+      scale: 2.0,
+      name: 'fence_extract_L',
+    },
+    {
+      model: GLB.metalFencePillar,
+      position: new Vector3(13, 0, -2880),
+      rotationY: Math.PI,
+      scale: 2.0,
+      name: 'fence_extract_R',
+    },
   ];
 }
 
@@ -1056,7 +1940,11 @@ function createCanyonWalls(
     );
     if (rightRockNode2) {
       rightRockNode2.position.set(rightOffset + 8, rightWallHeight * 0.2, z - rightWallDepth * 0.3);
-      rightRockNode2.scaling.set(rightWallWidth * 0.4, rightWallHeight * 0.25, rightWallDepth * 0.3);
+      rightRockNode2.scaling.set(
+        rightWallWidth * 0.4,
+        rightWallHeight * 0.25,
+        rightWallDepth * 0.3
+      );
       rightRockNode2.rotation.y = rand() * Math.PI * 2;
     }
   }
@@ -1648,7 +2536,7 @@ export function getCanyonSkyboxResult(): SkyboxResult | null {
  * Animate the collapse of a bridge structure.
  * Each segment falls with slightly different timing for dramatic effect.
  */
-export function collapseBridge(bridge: BridgeStructure, scene: Scene): void {
+export function collapseBridge(bridge: BridgeStructure, _scene: Scene): void {
   if (bridge.collapsed || !bridge.isCollapsible) return;
   bridge.collapsed = true;
 

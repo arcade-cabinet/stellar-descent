@@ -1,15 +1,12 @@
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Ray } from '@babylonjs/core/Culling/ray';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getAudioManager } from '../core/AudioManager';
-import { hitAudioManager } from '../core/HitAudioManager';
-import { getLogger } from '../core/Logger';
 import {
   type DifficultyLevel,
   type DifficultyModifiers,
@@ -17,18 +14,20 @@ import {
   loadDifficultySetting,
 } from '../core/DifficultySettings';
 import { getEnemySoundManager } from '../core/EnemySoundManager';
-import { createEntity, type Entity, getEntitiesInRadius, queries, removeEntity } from '../core/ecs';
 import { getEventBus } from '../core/EventBus';
+import { createEntity, type Entity, getEntitiesInRadius, queries, removeEntity } from '../core/ecs';
+import { hitAudioManager } from '../core/HitAudioManager';
+import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
 import { damageFeedback } from '../effects/DamageFeedback';
-import { deathEffects, type DeathEffectType } from '../effects/DeathEffects';
-import { impactDecals, type DecalSurfaceType } from '../effects/ImpactDecals';
-import { impactParticles, type ImpactSurfaceType } from '../effects/ImpactParticles';
+import { deathEffects } from '../effects/DeathEffects';
+import { type DecalSurfaceType, impactDecals } from '../effects/ImpactDecals';
+import { type ImpactSurfaceType, impactParticles } from '../effects/ImpactParticles';
 import { muzzleFlash } from '../effects/MuzzleFlash';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
-import { hitReactionSystem } from './HitReactionSystem';
 import { tokens } from '../utils/designTokens';
+import { hitReactionSystem } from './HitReactionSystem';
 
 // ---------------------------------------------------------------------------
 // Projectile Types
@@ -73,10 +72,7 @@ class SpatialHashGrid {
   updateEntity(entity: Entity): void {
     if (!entity.transform || !entity.id) return;
 
-    const newKey = this.getCellKey(
-      entity.transform.position.x,
-      entity.transform.position.z
-    );
+    const newKey = this.getCellKey(entity.transform.position.x, entity.transform.position.z);
     const oldKey = this.entityCells.get(entity.id);
 
     // If entity moved to a new cell, update
@@ -550,19 +546,8 @@ export class CombatSystem {
    * Register a projectile with additional metadata for collision handling.
    * Call this when spawning a projectile to enable type-specific collision behavior.
    */
-  registerProjectile(
-    projectileId: string,
-    info: ProjectileInfo
-  ): void {
+  registerProjectile(projectileId: string, info: ProjectileInfo): void {
     this.projectileInfo.set(projectileId, info);
-  }
-
-  /**
-   * Get the projectile type for collision handling.
-   * Returns 'bullet' as default if not registered.
-   */
-  private getProjectileType(projectileId: string): ProjectileType {
-    return this.projectileInfo.get(projectileId)?.type ?? 'bullet';
   }
 
   /**
@@ -618,7 +603,7 @@ export class CombatSystem {
    * Returns hit info if collision detected.
    */
   private raycastProjectileCollision(
-    projectile: Entity,
+    _projectile: Entity,
     previousPos: Vector3,
     currentPos: Vector3,
     targets: Entity[]
@@ -659,7 +644,8 @@ export class CombatSystem {
       // Check if ray passes within target radius
       if (distToCenter <= targetRadius) {
         // Calculate actual hit point on the surface
-        const hitDist = projectionLength - Math.sqrt(targetRadius * targetRadius - distToCenter * distToCenter);
+        const hitDist =
+          projectionLength - Math.sqrt(targetRadius * targetRadius - distToCenter * distToCenter);
         if (hitDist > 0 && hitDist < distance) {
           const hitPosition = previousPos.add(normalizedDir.scale(hitDist));
 
@@ -1059,12 +1045,9 @@ export class CombatSystem {
 
     // Schedule entity removal after death animation completes
     // The death effects system handles the mesh animation
-    window.setTimeout(
-      () => {
-        removeEntity(entity);
-      },
-      deathDuration
-    );
+    window.setTimeout(() => {
+      removeEntity(entity);
+    }, deathDuration);
   }
 
   private checkEnemyAttacks(_deltaTime: number): void {
@@ -1265,7 +1248,7 @@ export class CombatSystem {
       let hitPosition = currentPos.clone();
 
       switch (projType) {
-        case 'bullet':
+        case 'bullet': {
           // Raycast collision for fast projectiles
           const direction = currentPos.subtract(previousPos);
           const distance = direction.length();
@@ -1285,10 +1268,8 @@ export class CombatSystem {
             }
           }
           break;
-
-        case 'plasma':
-        case 'explosive':
-        default:
+        }
+        default: {
           // Sphere collision for slower projectiles
           const dist = Vector3.Distance(currentPos, playerPos);
           if (dist < playerRadius + 0.5) {
@@ -1296,6 +1277,7 @@ export class CombatSystem {
             hitPosition = currentPos.clone();
           }
           break;
+        }
       }
 
       if (hit) {
@@ -1388,7 +1370,14 @@ export class CombatSystem {
   createBulletImpact(
     position: Vector3,
     normal?: Vector3,
-    surfaceType: 'metal' | 'concrete' | 'organic' | 'ice' | 'energy' | 'dirt' | 'default' = 'default',
+    surfaceType:
+      | 'metal'
+      | 'concrete'
+      | 'organic'
+      | 'ice'
+      | 'energy'
+      | 'dirt'
+      | 'default' = 'default',
     damage = 25,
     targetMesh?: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh
   ): void {
@@ -1413,8 +1402,7 @@ export class CombatSystem {
     }
 
     // Also use weapon effects for additional visual reinforcement
-    const mappedSurface =
-      surfaceType === 'ice' || surfaceType === 'dirt' ? 'default' : surfaceType;
+    const mappedSurface = surfaceType === 'ice' || surfaceType === 'dirt' ? 'default' : surfaceType;
     weaponEffects.emitImpact(position, normal, mappedSurface);
   }
 

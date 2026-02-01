@@ -13,11 +13,7 @@
       "duration": 8,
       "filename": "anchor_station/intro.mp4",
       "levelId": "anchor_station",
-      "tags": [
-        "intro",
-        "tutorial",
-        "space_station"
-      ],
+      "tags": ["intro", "tutorial", "space_station"],
       "status": "generated",
       "metadata": {
         "promptHash": "200ae898",
@@ -36,11 +32,7 @@
       "duration": 8,
       "filename": "landfall/intro.mp4",
       "levelId": "landfall",
-      "tags": [
-        "intro",
-        "drop",
-        "atmosphere"
-      ],
+      "tags": ["intro", "drop", "atmosphere"],
       "status": "generated",
       "metadata": {
         "promptHash": "7be0063c",
@@ -59,11 +51,7 @@
       "duration": 8,
       "filename": "canyon_run/intro.mp4",
       "levelId": "canyon_run",
-      "tags": [
-        "intro",
-        "vehicle",
-        "chase"
-      ],
+      "tags": ["intro", "vehicle", "chase"],
       "status": "generated",
       "metadata": {
         "promptHash": "24f57c8d",
@@ -82,11 +70,7 @@
       "duration": 8,
       "filename": "fob_delta/intro.mp4",
       "levelId": "fob_delta",
-      "tags": [
-        "intro",
-        "base",
-        "horror"
-      ],
+      "tags": ["intro", "base", "horror"],
       "status": "generated",
       "metadata": {
         "promptHash": "60c78b51",
@@ -105,11 +89,7 @@
       "duration": 8,
       "filename": "brothers_in_arms/intro.mp4",
       "levelId": "brothers_in_arms",
-      "tags": [
-        "intro",
-        "reunion",
-        "emotional"
-      ],
+      "tags": ["intro", "reunion", "emotional"],
       "status": "generated",
       "metadata": {
         "promptHash": "2f93717f",
@@ -128,11 +108,7 @@
       "duration": 8,
       "filename": "southern_ice/intro.mp4",
       "levelId": "southern_ice",
-      "tags": [
-        "intro",
-        "ice",
-        "horror"
-      ],
+      "tags": ["intro", "ice", "horror"],
       "status": "generated",
       "metadata": {
         "promptHash": "0ff9acd7",
@@ -151,11 +127,7 @@
       "duration": 8,
       "filename": "the_breach/intro.mp4",
       "levelId": "the_breach",
-      "tags": [
-        "intro",
-        "underground",
-        "boss"
-      ],
+      "tags": ["intro", "underground", "boss"],
       "status": "generated",
       "metadata": {
         "promptHash": "40aa659b",
@@ -174,11 +146,7 @@
       "duration": 8,
       "filename": "hive_assault/intro.mp4",
       "levelId": "hive_assault",
-      "tags": [
-        "intro",
-        "assault",
-        "epic"
-      ],
+      "tags": ["intro", "assault", "epic"],
       "status": "generated",
       "metadata": {
         "promptHash": "22feb7e0",
@@ -197,11 +165,7 @@
       "duration": 8,
       "filename": "extraction/intro.mp4",
       "levelId": "extraction",
-      "tags": [
-        "intro",
-        "extraction",
-        "tense"
-      ],
+      "tags": ["intro", "extraction", "tense"],
       "status": "generated",
       "metadata": {
         "promptHash": "30f8df0a",
@@ -220,11 +184,7 @@
       "duration": 8,
       "filename": "final_escape/intro.mp4",
       "levelId": "final_escape",
-      "tags": [
-        "intro",
-        "finale",
-        "escape"
-      ],
+      "tags": ["intro", "finale", "escape"],
       "status": "generated",
       "metadata": {
         "promptHash": "537efd59",

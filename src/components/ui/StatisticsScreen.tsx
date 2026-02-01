@@ -217,15 +217,8 @@ function OverviewTab({ stats, derived }: { stats: PlayerStats; derived: DerivedS
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Campaign Progress</h3>
         <div className={styles.statGrid}>
-          <StatCard
-            label="Levels Completed"
-            value={stats.levelsCompleted}
-            subLabel="of 10"
-          />
-          <StatCard
-            label="Campaign Completions"
-            value={stats.campaignCompletions}
-          />
+          <StatCard label="Levels Completed" value={stats.levelsCompleted} subLabel="of 10" />
+          <StatCard label="Campaign Completions" value={stats.campaignCompletions} />
           <StatCard
             label="Fastest Campaign"
             value={stats.fastestCampaign ? formatTime(stats.fastestCampaign) : '--:--'}
@@ -369,7 +362,8 @@ function WeaponsTab({ stats }: { stats: PlayerStats }) {
     const data: { label: string; value: number; color: string }[] = [];
 
     for (const [weaponId, shots] of Object.entries(stats.shotsFiredByWeapon)) {
-      if (shots && shots > 10) { // Minimum 10 shots for meaningful accuracy
+      if (shots && shots > 10) {
+        // Minimum 10 shots for meaningful accuracy
         const hits = stats.shotsHitByWeapon[weaponId as WeaponId] || 0;
         const accuracy = (hits / shots) * 100;
         const weapon = WEAPONS[weaponId as WeaponId];
@@ -413,9 +407,16 @@ function WeaponsTab({ stats }: { stats: PlayerStats }) {
 function EnemiesTab({ stats }: { stats: PlayerStats }) {
   const enemyData = useMemo(() => {
     const colors = [
-      '#ff4040', '#ff8040', '#ffbb40', '#40ff40',
-      '#40ffff', '#4080ff', '#8040ff', '#ff40ff',
-      '#ff4080', '#80ff40',
+      '#ff4040',
+      '#ff8040',
+      '#ffbb40',
+      '#40ff40',
+      '#40ffff',
+      '#4080ff',
+      '#8040ff',
+      '#ff40ff',
+      '#ff4080',
+      '#80ff40',
     ];
 
     const data: { label: string; value: number; color: string }[] = [];

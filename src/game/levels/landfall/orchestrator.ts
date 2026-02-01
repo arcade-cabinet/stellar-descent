@@ -22,25 +22,25 @@
  * - Catastrophic: Death / slingshot into space
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { getLogger } from '../../core/Logger';
 import {
+  type CinematicCallbacks,
   CinematicSystem,
   createLandfallIntroCinematic,
-  type CinematicCallbacks,
 } from '../../cinematics';
+import { getLogger } from '../../core/Logger';
 
 const log = getLogger('Landfall');
+
+import type { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
-import type { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import '@babylonjs/core/Animations/animatable';
 import { Animation } from '@babylonjs/core/Animations/animation';
 import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
@@ -52,74 +52,81 @@ import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
+import { preloadVehicleAssets } from '../../vehicles/VehicleUtils';
 import { BaseLevel } from '../BaseLevel';
-import { buildFloraFromPlacements, getLandfallFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getLandfallCollectibles } from '../shared/CollectiblePlacer';
-import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
-import {
-  buildLandfallEnvironment,
-  setEnvironmentVisible,
-  disposeEnvironment,
-  type LandfallEnvironmentNodes,
-} from './LandfallEnvironment';
-
-// Import modular components
-import type { DropPhase, LandingOutcome, Asteroid, DistantThreat, DistantSpaceship, SurfaceEnemy } from './types';
 import { VehicleController } from '../canyon-run/VehicleController';
+import { buildFloraFromPlacements, getLandfallFlora } from '../shared/AlienFloraBuilder';
 import {
-  preloadVehicleAssets,
-  type SpawnedVehicle,
-} from '../../vehicles/VehicleUtils';
-import {
-  ALL_LANDFALL_GLB_PATHS,
-  SURFACE_GLB_PATHS,
-  ARENA_GLB_PATHS,
-  DROP_POD_GLB_PATHS,
-  FREEFALL_FOV,
-  POWERED_DESCENT_FOV,
-  SURFACE_FOV,
-  MIN_PLAYER_HEIGHT,
-  TERRAIN_BOUNDS,
-  MAX_FUEL,
-  FUEL_BURN_RATE,
-  FUEL_REGEN_RATE,
-  SURFACE_ENEMY_SPECIES,
-  FIRST_ENCOUNTER_ENEMY_COUNT,
-  TUTORIAL_SLOWDOWN_DURATION,
-} from './constants';
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getLandfallCollectibles,
+} from '../shared/CollectiblePlacer';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
+import type { LevelId } from '../types';
+import * as Combat from './combat';
 import * as comms from './comms';
 import {
-  createParticleTexture,
-  spawnAsteroid,
-  createReentryParticles,
-  createPlayerSmokeTrail,
-  createAtmosphereStreaks,
-  createThrusterExhaust,
-  createWindStreaks,
-  DISTANT_THREAT_DEFINITIONS,
-  spawnDistantThreat,
-  updateDistantThreat,
-  DISTANT_SPACESHIP_DEFINITIONS,
-  spawnDistantSpaceship,
-  updateDistantSpaceship,
-} from './halo-drop';
-import {
-  spawnFirstEncounterEnemy,
-  createAcidPools,
-  createUnstableTerrain,
-} from './surface-combat';
-import {
-  createAnchorStation,
-  updateAnchorStation,
-  disposeAnchorStation,
-  type AnchorStationNodes,
-} from './station';
-
+  ALL_LANDFALL_GLB_PATHS,
+  ARENA_GLB_PATHS,
+  DROP_POD_GLB_PATHS,
+  FIRST_ENCOUNTER_ENEMY_COUNT,
+  FREEFALL_FOV,
+  FUEL_BURN_RATE,
+  FUEL_REGEN_RATE,
+  MAX_FUEL,
+  MIN_PLAYER_HEIGHT,
+  POWERED_DESCENT_FOV,
+  SURFACE_ENEMY_SPECIES,
+  SURFACE_FOV,
+  SURFACE_GLB_PATHS,
+  TERRAIN_BOUNDS,
+  TUTORIAL_SLOWDOWN_DURATION,
+} from './constants';
 // Import new modular components
 import * as Descent from './descent';
-import * as Combat from './combat';
-import { updateVisualEffects, stopAllDescentEffects, disposeDescentEffects, type DescentEffects } from './visual-effects';
+import {
+  createAtmosphereStreaks,
+  createParticleTexture,
+  createPlayerSmokeTrail,
+  createReentryParticles,
+  createThrusterExhaust,
+  createWindStreaks,
+  DISTANT_SPACESHIP_DEFINITIONS,
+  DISTANT_THREAT_DEFINITIONS,
+  spawnAsteroid,
+  spawnDistantSpaceship,
+  spawnDistantThreat,
+  updateDistantSpaceship,
+  updateDistantThreat,
+} from './halo-drop';
+import {
+  buildLandfallEnvironment,
+  disposeEnvironment,
+  type LandfallEnvironmentNodes,
+  setEnvironmentVisible,
+} from './LandfallEnvironment';
+import {
+  type AnchorStationNodes,
+  createAnchorStation,
+  disposeAnchorStation,
+  updateAnchorStation,
+} from './station';
+import { createAcidPools, createUnstableTerrain, spawnFirstEncounterEnemy } from './surface-combat';
+// Import modular components
+import type {
+  Asteroid,
+  DistantSpaceship,
+  DistantThreat,
+  DropPhase,
+  LandingOutcome,
+  SurfaceEnemy,
+} from './types';
+import {
+  type DescentEffects,
+  disposeDescentEffects,
+  stopAllDescentEffects,
+  updateVisualEffects,
+} from './visual-effects';
 
 export class LandfallLevel extends BaseLevel {
   // Flora & collectibles
@@ -244,10 +251,6 @@ export class LandfallLevel extends BaseLevel {
   private vehicleTransitTargetDistance = 80; // ~30 seconds at moderate speed
   private vehicleObjectiveMarker: Mesh | null = null;
 
-  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig, callbacks: LevelCallbacks) {
-    super(engine, canvas, config, callbacks);
-  }
-
   protected getBackgroundColor(): Color4 {
     switch (this.phase) {
       case 'freefall_start':
@@ -301,7 +304,11 @@ export class LandfallLevel extends BaseLevel {
     const floraRoot = new TransformNode('flora_root', this.scene);
     this.floraNodes = await buildFloraFromPlacements(this.scene, getLandfallFlora(), floraRoot);
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getLandfallCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getLandfallCollectibles(),
+      collectibleRoot
+    );
 
     // Initialize cinematic system
     this.initializeCinematicSystem();
@@ -316,27 +323,32 @@ export class LandfallLevel extends BaseLevel {
   private initializeCinematicSystem(): void {
     const cinematicCallbacks: CinematicCallbacks = {
       onCommsMessage: (message) => {
-        this.callbacks.onCommsMessage({
+        this.emitCommsMessage({
           sender: message.sender,
           callsign: message.callsign ?? '',
-          portrait: (message.portrait ?? 'ai') as 'commander' | 'ai' | 'marcus' | 'armory' | 'player',
+          portrait: (message.portrait ?? 'ai') as
+            | 'commander'
+            | 'ai'
+            | 'marcus'
+            | 'armory'
+            | 'player',
           text: message.text,
         });
       },
       onNotification: (text, duration) => {
-        this.callbacks.onNotification(text, duration ?? 3000);
+        this.emitNotification(text, duration ?? 3000);
       },
       onObjectiveUpdate: (title, instructions) => {
-        this.callbacks.onObjectiveUpdate(title, instructions);
+        this.emitObjectiveUpdate(title, instructions);
       },
       onShakeCamera: (intensity) => {
         this.triggerShake(intensity);
       },
       onCinematicStart: () => {
-        this.callbacks.onCinematicStart?.();
+        this.emitCinematicStart();
       },
       onCinematicEnd: () => {
-        this.callbacks.onCinematicEnd?.();
+        this.emitCinematicEnd();
       },
     };
 
@@ -356,13 +368,10 @@ export class LandfallLevel extends BaseLevel {
     // Planet position for the intro cinematic
     const planetPosition = this.planet?.position ?? new Vector3(0, -150, 0);
 
-    const sequence = createLandfallIntroCinematic(
-      () => {
-        // Cinematic complete - start the HALO drop
-        this.startJump();
-      },
-      planetPosition
-    );
+    const sequence = createLandfallIntroCinematic(() => {
+      // Cinematic complete - start the HALO drop
+      this.startJump();
+    }, planetPosition);
 
     this.cinematicSystem.play(sequence);
   }
@@ -405,7 +414,11 @@ export class LandfallLevel extends BaseLevel {
   }
 
   private createStarfield(): void {
-    this.starfield = MeshBuilder.CreateSphere('stars', { diameter: 8000, segments: 16, sideOrientation: 1 }, this.scene);
+    this.starfield = MeshBuilder.CreateSphere(
+      'stars',
+      { diameter: 8000, segments: 16, sideOrientation: 1 },
+      this.scene
+    );
     const mat = new StandardMaterial('starsMat', this.scene);
     mat.emissiveColor = new Color3(0.03, 0.03, 0.06);
     mat.disableLighting = true;
@@ -421,7 +434,11 @@ export class LandfallLevel extends BaseLevel {
     this.planet.material = planetMat;
     this.planet.position.set(0, -150, 0);
 
-    this.planetAtmosphere = MeshBuilder.CreateSphere('atmos', { diameter: 90, segments: 32 }, this.scene);
+    this.planetAtmosphere = MeshBuilder.CreateSphere(
+      'atmos',
+      { diameter: 90, segments: 32 },
+      this.scene
+    );
     const atmosMat = new StandardMaterial('atmosMat', this.scene);
     atmosMat.emissiveColor = new Color3(0.9, 0.6, 0.4);
     atmosMat.alpha = 0.15;
@@ -434,11 +451,19 @@ export class LandfallLevel extends BaseLevel {
     const armMat = new StandardMaterial('armMat', this.scene);
     armMat.diffuseColor = new Color3(0.15, 0.15, 0.18);
 
-    this.leftArm = MeshBuilder.CreateCylinder('leftArm', { height: 3, diameterTop: 0.25, diameterBottom: 0.3 }, this.scene);
+    this.leftArm = MeshBuilder.CreateCylinder(
+      'leftArm',
+      { height: 3, diameterTop: 0.25, diameterBottom: 0.3 },
+      this.scene
+    );
     this.leftArm.material = armMat;
     this.leftArm.position.set(-1.8, -2.5, 0);
 
-    this.rightArm = MeshBuilder.CreateCylinder('rightArm', { height: 3, diameterTop: 0.25, diameterBottom: 0.3 }, this.scene);
+    this.rightArm = MeshBuilder.CreateCylinder(
+      'rightArm',
+      { height: 3, diameterTop: 0.25, diameterBottom: 0.3 },
+      this.scene
+    );
     this.rightArm.material = armMat;
     this.rightArm.position.set(1.8, -2.5, 0);
 
@@ -455,7 +480,11 @@ export class LandfallLevel extends BaseLevel {
     this.rightGlove.position.set(1.8, -4.2, 0.3);
     this.rightGlove.scaling.set(1, 0.6, 1.2);
 
-    this.visorFrame = MeshBuilder.CreateTorus('visor', { diameter: 10, thickness: 0.3 }, this.scene);
+    this.visorFrame = MeshBuilder.CreateTorus(
+      'visor',
+      { diameter: 10, thickness: 0.3 },
+      this.scene
+    );
     const visorMat = new StandardMaterial('visorMat', this.scene);
     visorMat.diffuseColor = new Color3(0.1, 0.1, 0.12);
     visorMat.alpha = 0.6;
@@ -468,12 +497,20 @@ export class LandfallLevel extends BaseLevel {
     const handleMat = new StandardMaterial('handleMat', this.scene);
     handleMat.diffuseColor = new Color3(0.2, 0.2, 0.22);
 
-    this.leftHandle = MeshBuilder.CreateCylinder('leftHandle', { height: 0.8, diameter: 0.12 }, this.scene);
+    this.leftHandle = MeshBuilder.CreateCylinder(
+      'leftHandle',
+      { height: 0.8, diameter: 0.12 },
+      this.scene
+    );
     this.leftHandle.material = handleMat;
     this.leftHandle.position.set(-0.6, -0.3, 0.5);
     this.leftHandle.rotation.z = Math.PI / 2;
 
-    this.rightHandle = MeshBuilder.CreateCylinder('rightHandle', { height: 0.8, diameter: 0.12 }, this.scene);
+    this.rightHandle = MeshBuilder.CreateCylinder(
+      'rightHandle',
+      { height: 0.8, diameter: 0.12 },
+      this.scene
+    );
     this.rightHandle.material = handleMat;
     this.rightHandle.position.set(0.6, -0.3, 0.5);
     this.rightHandle.rotation.z = Math.PI / 2;
@@ -531,7 +568,11 @@ export class LandfallLevel extends BaseLevel {
     this.plasmaGlow.rotation.x = Math.PI / 2;
     this.plasmaGlow.position.y = -3;
 
-    this.heatDistortion = MeshBuilder.CreateSphere('heatDistortion', { diameter: 8, segments: 16 }, this.scene);
+    this.heatDistortion = MeshBuilder.CreateSphere(
+      'heatDistortion',
+      { diameter: 8, segments: 16 },
+      this.scene
+    );
     const heatMat = new StandardMaterial('heatMat', this.scene);
     heatMat.emissiveColor = new Color3(1, 0.4, 0.1);
     heatMat.alpha = 0;
@@ -547,7 +588,13 @@ export class LandfallLevel extends BaseLevel {
   }
 
   private createLandingZone(): void {
-    const lzPadNode = AssetManager.createInstanceByPath(SURFACE_GLB_PATHS.lzPadAsphalt, 'lzPad', this.scene, true, 'environment');
+    const lzPadNode = AssetManager.createInstanceByPath(
+      SURFACE_GLB_PATHS.lzPadAsphalt,
+      'lzPad',
+      this.scene,
+      true,
+      'environment'
+    );
     if (!lzPadNode) throw new Error(`[LandfallLevel] Failed to create LZ pad`);
     lzPadNode.scaling.set(2, 1, 2);
     lzPadNode.position.set(0, 0.05, 0);
@@ -564,15 +611,35 @@ export class LandfallLevel extends BaseLevel {
   }
 
   private createSurface(): void {
-    const { mesh } = createDynamicTerrain(this.scene, { ...ROCK_TERRAIN, size: 600, materialName: 'landfallTerrain' });
+    const { mesh } = createDynamicTerrain(this.scene, {
+      ...ROCK_TERRAIN,
+      size: 600,
+      materialName: 'landfallTerrain',
+    });
     this.terrain = mesh;
     this.terrain.isVisible = false;
 
-    const wallGlbPaths = [SURFACE_GLB_PATHS.wallRg1, SURFACE_GLB_PATHS.wallRg15, SURFACE_GLB_PATHS.wallHs1, SURFACE_GLB_PATHS.wallHs15];
-    const wallPositions = [{ x: -70, z: -50, rotY: 0 }, { x: 70, z: -50, rotY: Math.PI }, { x: -80, z: -80, rotY: 0 }, { x: 80, z: -80, rotY: Math.PI }];
+    const wallGlbPaths = [
+      SURFACE_GLB_PATHS.wallRg1,
+      SURFACE_GLB_PATHS.wallRg15,
+      SURFACE_GLB_PATHS.wallHs1,
+      SURFACE_GLB_PATHS.wallHs15,
+    ];
+    const wallPositions = [
+      { x: -70, z: -50, rotY: 0 },
+      { x: 70, z: -50, rotY: Math.PI },
+      { x: -80, z: -80, rotY: 0 },
+      { x: 80, z: -80, rotY: Math.PI },
+    ];
 
     for (let i = 0; i < 4; i++) {
-      const wallNode = AssetManager.createInstanceByPath(wallGlbPaths[i], `canyonWall_${i}`, this.scene, true, 'environment');
+      const wallNode = AssetManager.createInstanceByPath(
+        wallGlbPaths[i],
+        `canyonWall_${i}`,
+        this.scene,
+        true,
+        'environment'
+      );
       if (!wallNode) throw new Error(`[LandfallLevel] Failed to create canyon wall`);
       wallNode.scaling.set(8, 15, 25);
       wallNode.position.set(wallPositions[i].x, 50, wallPositions[i].z);
@@ -601,7 +668,12 @@ export class LandfallLevel extends BaseLevel {
   }
 
   private createCombatArenaCover(): void {
-    const rockGlbs = [ARENA_GLB_PATHS.boulderA, ARENA_GLB_PATHS.rockMedA, ARENA_GLB_PATHS.rockMedB, ARENA_GLB_PATHS.rockMedC];
+    const rockGlbs = [
+      ARENA_GLB_PATHS.boulderA,
+      ARENA_GLB_PATHS.rockMedA,
+      ARENA_GLB_PATHS.rockMedB,
+      ARENA_GLB_PATHS.rockMedC,
+    ];
     const rockPositions = [
       { pos: new Vector3(15, 0, 20), scale: new Vector3(2.5, 2.5, 3), rotY: 0.3 },
       { pos: new Vector3(-18, 0, 15), scale: new Vector3(2, 2, 2.5), rotY: -0.5 },
@@ -611,7 +683,13 @@ export class LandfallLevel extends BaseLevel {
 
     for (let i = 0; i < rockPositions.length; i++) {
       const r = rockPositions[i];
-      const node = AssetManager.createInstanceByPath(rockGlbs[i], `rock_${i}`, this.scene, true, 'prop');
+      const node = AssetManager.createInstanceByPath(
+        rockGlbs[i],
+        `rock_${i}`,
+        this.scene,
+        true,
+        'prop'
+      );
       if (node) {
         node.position = r.pos;
         node.rotation = new Vector3(0, r.rotY, 0);
@@ -621,7 +699,13 @@ export class LandfallLevel extends BaseLevel {
       }
     }
 
-    const crashedHull = AssetManager.createInstanceByPath(ARENA_GLB_PATHS.shippingContainer, 'crashedHull', this.scene, true, 'prop');
+    const crashedHull = AssetManager.createInstanceByPath(
+      ARENA_GLB_PATHS.shippingContainer,
+      'crashedHull',
+      this.scene,
+      true,
+      'prop'
+    );
     if (crashedHull) {
       crashedHull.position.set(0, 0, 25);
       crashedHull.rotation.set(0, 0.4, Math.PI / 6);
@@ -637,13 +721,21 @@ export class LandfallLevel extends BaseLevel {
     markerMat.alpha = 0.6;
     markerMat.disableLighting = true;
 
-    this.fobDeltaBeacon = MeshBuilder.CreateCylinder('fobDeltaBeacon', { height: 50, diameter: 3, tessellation: 8 }, this.scene);
+    this.fobDeltaBeacon = MeshBuilder.CreateCylinder(
+      'fobDeltaBeacon',
+      { height: 50, diameter: 3, tessellation: 8 },
+      this.scene
+    );
     this.fobDeltaBeacon.material = markerMat;
     this.fobDeltaBeacon.position = this.fobDeltaPosition.clone();
     this.fobDeltaBeacon.position.y = 25;
     this.fobDeltaBeacon.isVisible = false;
 
-    this.fobDeltaMarker = MeshBuilder.CreateTorus('fobDeltaMarker', { diameter: 8, thickness: 0.5, tessellation: 24 }, this.scene);
+    this.fobDeltaMarker = MeshBuilder.CreateTorus(
+      'fobDeltaMarker',
+      { diameter: 8, thickness: 0.5, tessellation: 24 },
+      this.scene
+    );
     const groundMat = new StandardMaterial('fobGroundMat', this.scene);
     groundMat.diffuseColor = Color3.FromHexString('#4080C0');
     groundMat.emissiveColor = new Color3(0.1, 0.3, 0.5);
@@ -684,36 +776,19 @@ export class LandfallLevel extends BaseLevel {
     }
   }
 
-  /**
-   * Restore lighting for space/drop phases.
-   */
-  private restoreSpaceLighting(): void {
-    if (this.surfaceSunLight) {
-      this.surfaceSunLight.dispose();
-      this.surfaceSunLight = null;
-    }
-    if (this.sunLight) {
-      this.sunLight.setEnabled(true);
-    }
-    if (this.ambientLight) {
-      this.ambientLight.setEnabled(true);
-      this.ambientLight.intensity = 0.4;
-    }
-  }
-
   private startJump(): void {
     this.phase = 'freefall_start';
     this.altitude = 1000;
     this.velocity = 10;
     this.phaseTime = 0;
 
-    this.callbacks.onCinematicStart?.();
-    this.callbacks.onNotification('HALO JUMP INITIATED', 3000);
+    this.emitCinematicStart();
+    this.emitNotification('HALO JUMP INITIATED', 3000);
 
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
 
-    setTimeout(() => comms.sendClearOfStationMessage(this.callbacks), 1500);
+    setTimeout(() => comms.sendClearOfStationMessage(), 1500);
     setTimeout(() => this.transitionToPhase('freefall_belt'), 4000);
   }
 
@@ -723,7 +798,7 @@ export class LandfallLevel extends BaseLevel {
         if (this.phase === 'freefall_clear' && this.altitude < 600) {
           this.transitionToPhase('powered_descent');
         } else {
-          this.callbacks.onNotification('TOO HIGH FOR IGNITION', 1500);
+          this.emitNotification('TOO HIGH FOR IGNITION', 1500);
         }
         break;
       case 'boost':
@@ -744,7 +819,8 @@ export class LandfallLevel extends BaseLevel {
         if (this.phase === 'surface' && this.combatState.surfaceCombatActive) this.throwGrenade();
         break;
       case 'melee':
-        if (this.phase === 'surface' && this.combatState.surfaceCombatActive) this.performMeleeAttack();
+        if (this.phase === 'surface' && this.combatState.surfaceCombatActive)
+          this.performMeleeAttack();
         break;
     }
   }
@@ -755,24 +831,24 @@ export class LandfallLevel extends BaseLevel {
 
     switch (newPhase) {
       case 'freefall_belt':
-        this.callbacks.onNotification('ENTERING DEBRIS FIELD', 2000);
-        this.callbacks.onObjectiveUpdate('NAVIGATE DEBRIS', 'WASD: Body position | Dodge asteroids');
+        this.emitNotification('ENTERING DEBRIS FIELD', 2000);
+        this.emitObjectiveUpdate('NAVIGATE DEBRIS', 'WASD: Body position | Dodge asteroids');
         this.setBaseShake(0.3);
         break;
       case 'freefall_clear':
-        this.callbacks.onNotification('DEBRIS FIELD CLEARED', 2000);
-        comms.sendDebrisClearedMessage(this.callbacks);
+        this.emitNotification('DEBRIS FIELD CLEARED', 2000);
+        comms.sendDebrisClearedMessage();
         this.updateActionButtons('ignite');
         break;
       case 'powered_descent':
-        this.callbacks.onNotification('JETS IGNITED', 2000);
-        comms.sendJetsIgnitedMessage(this.callbacks);
+        this.emitNotification('JETS IGNITED', 2000);
+        comms.sendJetsIgnitedMessage();
         this.targetFOV = POWERED_DESCENT_FOV;
         this.switchToPoweredDescent();
         this.updateActionButtons('descent');
         break;
       case 'landing':
-        this.callbacks.onNotification('FINAL APPROACH', 2000);
+        this.emitNotification('FINAL APPROACH', 2000);
         this.setBaseShake(2);
         break;
       case 'surface':
@@ -789,15 +865,15 @@ export class LandfallLevel extends BaseLevel {
   }
 
   private setFreefallVisible(visible: boolean): void {
-    [this.leftArm, this.rightArm, this.leftGlove, this.rightGlove, this.visorFrame].forEach(
-      (m) => { if (m) m.isVisible = visible; }
-    );
+    [this.leftArm, this.rightArm, this.leftGlove, this.rightGlove, this.visorFrame].forEach((m) => {
+      if (m) m.isVisible = visible;
+    });
   }
 
   private setPoweredDescentVisible(visible: boolean): void {
-    [this.leftHandle, this.rightHandle, this.thrusterGlow].forEach(
-      (m) => { if (m) m.isVisible = visible; }
-    );
+    [this.leftHandle, this.rightHandle, this.thrusterGlow].forEach((m) => {
+      if (m) m.isVisible = visible;
+    });
   }
 
   private switchToPoweredDescent(): void {
@@ -809,11 +885,20 @@ export class LandfallLevel extends BaseLevel {
       this.dropPodInterior.setEnabled(true);
     }
 
-    const rotationAnim = new Animation('cameraRotationTransition', 'rotation.x', 60, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    const rotationAnim = new Animation(
+      'cameraRotationTransition',
+      'rotation.x',
+      60,
+      Animation.ANIMATIONTYPE_FLOAT,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
     const easing = new CubicEase();
     easing.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
     rotationAnim.setEasingFunction(easing);
-    rotationAnim.setKeys([{ frame: 0, value: this.camera.rotation.x }, { frame: 60, value: 0.3 }]);
+    rotationAnim.setKeys([
+      { frame: 0, value: this.camera.rotation.x },
+      { frame: 60, value: 0.3 },
+    ]);
 
     this.camera.animations = [rotationAnim];
     this.scene.beginAnimation(this.camera, 0, 60, false, 1, () => {
@@ -845,35 +930,94 @@ export class LandfallLevel extends BaseLevel {
 
     switch (mode) {
       case 'ignite':
-        groups = [{ id: 'ignite', label: 'RETROS', position: 'right', buttons: [
-          createAction('ignite_jets', 'IGNITE JETS', jets.key, { keyDisplay: jets.keyDisplay, variant: 'danger', size: 'large', highlighted: true }),
-        ]}];
+        groups = [
+          {
+            id: 'ignite',
+            label: 'RETROS',
+            position: 'right',
+            buttons: [
+              createAction('ignite_jets', 'IGNITE JETS', jets.key, {
+                keyDisplay: jets.keyDisplay,
+                variant: 'danger',
+                size: 'large',
+                highlighted: true,
+              }),
+            ],
+          },
+        ];
         break;
       case 'descent':
-        groups = [{ id: 'descent', label: 'THRUSTERS', position: 'right', buttons: [
-          createAction('boost', 'BOOST', boost.key, { keyDisplay: boost.keyDisplay, variant: 'primary', size: 'large' }),
-          createAction('stabilize', 'STABILIZE', stabilize.key, { keyDisplay: stabilize.keyDisplay, variant: 'secondary' }),
-        ]}];
+        groups = [
+          {
+            id: 'descent',
+            label: 'THRUSTERS',
+            position: 'right',
+            buttons: [
+              createAction('boost', 'BOOST', boost.key, {
+                keyDisplay: boost.keyDisplay,
+                variant: 'primary',
+                size: 'large',
+              }),
+              createAction('stabilize', 'STABILIZE', stabilize.key, {
+                keyDisplay: stabilize.keyDisplay,
+                variant: 'secondary',
+              }),
+            ],
+          },
+        ];
         break;
       case 'vehicle':
-        groups = [{ id: 'vehicle', label: 'VEHICLE', position: 'right', buttons: [
-          createAction('boost', 'BOOST', boost.key, { keyDisplay: boost.keyDisplay, variant: 'primary', size: 'large' }),
-        ]}];
+        groups = [
+          {
+            id: 'vehicle',
+            label: 'VEHICLE',
+            position: 'right',
+            buttons: [
+              createAction('boost', 'BOOST', boost.key, {
+                keyDisplay: boost.keyDisplay,
+                variant: 'primary',
+                size: 'large',
+              }),
+            ],
+          },
+        ];
         break;
       case 'combat':
-        groups = [{ id: 'combat', label: 'COMBAT', position: 'right', buttons: [
-          createAction('grenade', 'GRENADE', grenade.key, { keyDisplay: grenade.keyDisplay, variant: 'danger', cooldown: 5000 }),
-          createAction('melee', 'MELEE', melee.key, { keyDisplay: melee.keyDisplay, variant: 'primary' }),
-        ]}];
+        groups = [
+          {
+            id: 'combat',
+            label: 'COMBAT',
+            position: 'right',
+            buttons: [
+              createAction('grenade', 'GRENADE', grenade.key, {
+                keyDisplay: grenade.keyDisplay,
+                variant: 'danger',
+                cooldown: 5000,
+              }),
+              createAction('melee', 'MELEE', melee.key, {
+                keyDisplay: melee.keyDisplay,
+                variant: 'primary',
+              }),
+            ],
+          },
+        ];
         break;
     }
 
-    this.callbacks.onActionGroupsChange(groups);
+    this.emitActionGroupsChanged(groups);
   }
 
   private setupSurfaceEnvironmentalAudio(): void {
-    this.addSpatialSound('wind_canyon1', 'wind_howl', { x: 50, y: 10, z: 0 }, { maxDistance: 40, volume: 0.5 });
-    this.addAudioZone('zone_surface', 'surface', { x: 0, y: 0, z: 0 }, 150, { isIndoor: false, intensity: 0.6 });
+    this.addSpatialSound(
+      'wind_canyon1',
+      'wind_howl',
+      { x: 50, y: 10, z: 0 },
+      { maxDistance: 40, volume: 0.5 }
+    );
+    this.addAudioZone('zone_surface', 'surface', { x: 0, y: 0, z: 0 }, 150, {
+      isIndoor: false,
+      intensity: 0.6,
+    });
   }
 
   protected override processMovement(deltaTime: number): void {
@@ -892,11 +1036,24 @@ export class LandfallLevel extends BaseLevel {
     };
 
     if (this.phase === 'freefall_belt' || this.phase === 'freefall_start') {
-      const result = Descent.processFreefallMovement(input, this.lateralVelocityX, this.lateralVelocityZ, deltaTime);
+      const result = Descent.processFreefallMovement(
+        input,
+        this.lateralVelocityX,
+        this.lateralVelocityZ,
+        deltaTime
+      );
       this.lateralVelocityX = result.lateralVelocityX;
       this.lateralVelocityZ = result.lateralVelocityZ;
     } else if (this.phase === 'powered_descent') {
-      const result = Descent.processPoweredDescentMovement(input, this.lateralVelocityX, this.lateralVelocityZ, this.velocity, this.fuel, FUEL_BURN_RATE, deltaTime);
+      const result = Descent.processPoweredDescentMovement(
+        input,
+        this.lateralVelocityX,
+        this.lateralVelocityZ,
+        this.velocity,
+        this.fuel,
+        FUEL_BURN_RATE,
+        deltaTime
+      );
       this.lateralVelocityX = result.lateralVelocityX;
       this.lateralVelocityZ = result.lateralVelocityZ;
       this.velocity = result.velocity;
@@ -965,7 +1122,14 @@ export class LandfallLevel extends BaseLevel {
     }
 
     // Update station
-    updateAnchorStation(this.anchorStation, deltaTime, this.altitude, this.positionX, this.positionZ, this.phase);
+    updateAnchorStation(
+      this.anchorStation,
+      deltaTime,
+      this.altitude,
+      this.positionX,
+      this.positionZ,
+      this.phase
+    );
 
     // Update visual effects
     const effects: DescentEffects = {
@@ -977,13 +1141,23 @@ export class LandfallLevel extends BaseLevel {
       heatDistortion: this.heatDistortion,
       windStreaks: this.windStreaks,
     };
-    const effectResult = updateVisualEffects({
-      phase: this.phase,
-      effects,
-      state: { altitude: this.altitude, velocity: this.velocity, fuel: this.fuel, lateralVelocityX: this.lateralVelocityX, lateralVelocityZ: this.lateralVelocityZ, windIntensity: this.windIntensity },
-      inputTracker: this.inputTracker,
-      setBaseShake: this.setBaseShake.bind(this),
-    }, deltaTime);
+    const effectResult = updateVisualEffects(
+      {
+        phase: this.phase,
+        effects,
+        state: {
+          altitude: this.altitude,
+          velocity: this.velocity,
+          fuel: this.fuel,
+          lateralVelocityX: this.lateralVelocityX,
+          lateralVelocityZ: this.lateralVelocityZ,
+          windIntensity: this.windIntensity,
+        },
+        inputTracker: this.inputTracker,
+        setBaseShake: this.setBaseShake.bind(this),
+      },
+      deltaTime
+    );
     this.windIntensity = effectResult.newWindIntensity;
 
     // Phase-specific updates
@@ -1001,14 +1175,18 @@ export class LandfallLevel extends BaseLevel {
         Descent.updateLZBeaconColor(this.lzBeacon, this.positionX, this.positionZ);
         if (Descent.checkTrajectoryLost(this.positionX, this.positionZ)) {
           this.landingOutcome = 'slingshot';
-          this.callbacks.onNotification('TRAJECTORY LOST', 2000);
+          this.emitNotification('TRAJECTORY LOST', 2000);
         }
         if (this.altitude < 80) this.transitionToPhase('landing');
         break;
       case 'landing':
         if (this.altitude <= 0) {
           this.altitude = 0;
-          this.landingOutcome = Descent.determineLandingOutcome(this.positionX, this.positionZ, this.velocity);
+          this.landingOutcome = Descent.determineLandingOutcome(
+            this.positionX,
+            this.positionZ,
+            this.velocity
+          );
           this.transitionToPhase('surface');
         }
         break;
@@ -1038,8 +1216,8 @@ export class LandfallLevel extends BaseLevel {
     if (asteroidUpdate.result.suitDamage > 0) {
       this.suitIntegrity = Math.max(0, this.suitIntegrity - asteroidUpdate.result.suitDamage);
       this.triggerShake(4 + asteroidUpdate.result.suitDamage * 0.2);
-      this.callbacks.onDamage();
-      this.callbacks.onHealthChange(this.suitIntegrity);
+      this.emitDamageRegistered();
+      this.emitHealthChanged(this.suitIntegrity);
       this.windIntensity = Math.min(1, this.windIntensity + 0.5);
     }
 
@@ -1069,7 +1247,7 @@ export class LandfallLevel extends BaseLevel {
     this.distantThreats.forEach((t) => updateDistantThreat(t, deltaTime));
     this.distantSpaceships.forEach((s) => updateDistantSpaceship(s, deltaTime));
 
-    if (this.altitude < 200) this.callbacks.onNotification('IGNITE JETS NOW!', 1000);
+    if (this.altitude < 200) this.emitNotification('IGNITE JETS NOW!', 1000);
     if (this.altitude < 50) {
       this.landingOutcome = 'crash';
       this.transitionToPhase('surface');
@@ -1084,9 +1262,12 @@ export class LandfallLevel extends BaseLevel {
       if (this.phase === 'powered_descent' || this.phase === 'landing') {
         const fuelStr = this.fuel.toFixed(0);
         const distToLZ = Math.sqrt(this.positionX ** 2 + this.positionZ ** 2).toFixed(0);
-        this.callbacks.onObjectiveUpdate('TARGET LZ', `ALT: ${altStr} | VEL: ${velStr} | FUEL: ${fuelStr}% | LZ: ${distToLZ}m`);
+        this.emitObjectiveUpdate(
+          'TARGET LZ',
+          `ALT: ${altStr} | VEL: ${velStr} | FUEL: ${fuelStr}% | LZ: ${distToLZ}m`
+        );
       } else {
-        this.callbacks.onObjectiveUpdate(
+        this.emitObjectiveUpdate(
           this.phase === 'freefall_belt' ? 'NAVIGATE DEBRIS' : 'FREEFALL',
           `ALT: ${altStr} | VEL: ${velStr} m/s | SUIT: ${this.suitIntegrity}%`
         );
@@ -1114,54 +1295,60 @@ export class LandfallLevel extends BaseLevel {
       }
     }
 
-    setTimeout(() => comms.sendEnemyAirTrafficWarning(this.callbacks), 500);
+    setTimeout(() => comms.sendEnemyAirTrafficWarning(), 500);
   }
 
   private completeLanding(): void {
     this.setBaseShake(0);
-    this.callbacks.onCinematicEnd?.();
+    this.emitCinematicEnd();
     this.updateActionButtons('none');
 
     switch (this.landingOutcome) {
       case 'perfect':
         this.triggerShake(2);
-        this.callbacks.onNotification('PERFECT LANDING', 3000);
-        setTimeout(() => comms.sendPerfectLandingMessage(this.callbacks, this.asteroidsDodged), 2000);
+        this.emitNotification('PERFECT LANDING', 3000);
+        setTimeout(() => comms.sendPerfectLandingMessage(this.asteroidsDodged), 2000);
         this.transitionToSurface(false);
         break;
       case 'near_miss':
         this.triggerShake(4);
-        this.callbacks.onNotification('NEAR MISS - HOSTILES INBOUND', 3000);
-        setTimeout(() => comms.sendNearMissLandingMessage(this.callbacks), 2000);
+        this.emitNotification('NEAR MISS - HOSTILES INBOUND', 3000);
+        setTimeout(() => comms.sendNearMissLandingMessage(), 2000);
         this.transitionToSurface(true);
         break;
       case 'rough':
         this.triggerShake(6);
         this.suitIntegrity = Math.max(0, this.suitIntegrity - 25);
-        this.callbacks.onHealthChange(this.suitIntegrity);
-        this.callbacks.onNotification('ROUGH LANDING - DAMAGE TAKEN', 3000);
-        setTimeout(() => comms.sendRoughLandingMessage(this.callbacks), 2000);
+        this.emitHealthChanged(this.suitIntegrity);
+        this.emitNotification('ROUGH LANDING - DAMAGE TAKEN', 3000);
+        setTimeout(() => comms.sendRoughLandingMessage(), 2000);
         this.transitionToSurface(true);
         break;
       case 'crash':
         this.triggerShake(10);
         this.suitIntegrity = Math.max(10, this.suitIntegrity - 50);
-        this.callbacks.onHealthChange(this.suitIntegrity);
-        this.callbacks.onNotification('CRASH LANDING', 3000);
-        setTimeout(() => comms.sendCrashLandingMessage(this.callbacks), 2000);
+        this.emitHealthChanged(this.suitIntegrity);
+        this.emitNotification('CRASH LANDING', 3000);
+        setTimeout(() => comms.sendCrashLandingMessage(), 2000);
         this.transitionToSurface(true);
         break;
       case 'slingshot':
-        this.callbacks.onNotification('TRAJECTORY LOST - KIA', 3000);
-        setTimeout(() => comms.sendSlingshotMessage(this.callbacks), 2000);
+        this.emitNotification('TRAJECTORY LOST - KIA', 3000);
+        setTimeout(() => comms.sendSlingshotMessage(), 2000);
         break;
     }
   }
 
   private enforceTerrainConstraints(): void {
     if (this.camera.position.y < MIN_PLAYER_HEIGHT) this.camera.position.y = MIN_PLAYER_HEIGHT;
-    this.camera.position.x = Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.camera.position.x));
-    this.camera.position.z = Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.camera.position.z));
+    this.camera.position.x = Math.max(
+      -TERRAIN_BOUNDS,
+      Math.min(TERRAIN_BOUNDS, this.camera.position.x)
+    );
+    this.camera.position.z = Math.max(
+      -TERRAIN_BOUNDS,
+      Math.min(TERRAIN_BOUNDS, this.camera.position.z)
+    );
   }
 
   private transitionToSurface(combatRequired: boolean): void {
@@ -1176,7 +1363,11 @@ export class LandfallLevel extends BaseLevel {
       this.dropPodInterior.setEnabled(false);
     }
 
-    [this.planet, this.planetAtmosphere, this.starfield, this.plasmaGlow, this.lzBeacon].forEach((m) => { if (m) m.isVisible = false; });
+    [this.planet, this.planetAtmosphere, this.starfield, this.plasmaGlow, this.lzBeacon].forEach(
+      (m) => {
+        if (m) m.isVisible = false;
+      }
+    );
 
     Descent.disposeAsteroids(this.asteroids);
     this.asteroids = [];
@@ -1198,7 +1389,10 @@ export class LandfallLevel extends BaseLevel {
     if (this.skyDome) this.skyDome.isVisible = true;
     if (this.lzPad) this.lzPad.setEnabled(true);
     this.canyonWalls.forEach((w) => w.setEnabled(true));
-    this.coverObjects.forEach((obj) => { obj.setEnabled(true); if ('isVisible' in obj) (obj as Mesh).isVisible = true; });
+    this.coverObjects.forEach((obj) => {
+      obj.setEnabled(true);
+      if ('isVisible' in obj) (obj as Mesh).isVisible = true;
+    });
     if (this.glbEnvironment) setEnvironmentVisible(this.glbEnvironment, true);
     this.acidPools.forEach((p) => (p.isVisible = true));
     this.unstableTerrain.forEach((t) => (t.isVisible = true));
@@ -1209,15 +1403,32 @@ export class LandfallLevel extends BaseLevel {
     this.setupSurfaceLighting();
 
     this.targetFOV = SURFACE_FOV;
-    this.camera.position.set(Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.positionX)), MIN_PLAYER_HEIGHT, Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.positionZ)));
+    this.camera.position.set(
+      Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.positionX)),
+      MIN_PLAYER_HEIGHT,
+      Math.max(-TERRAIN_BOUNDS, Math.min(TERRAIN_BOUNDS, this.positionZ))
+    );
 
-    const rotAnim = new Animation('landingCameraRotation', 'rotation', 60, Animation.ANIMATIONTYPE_VECTOR3, Animation.ANIMATIONLOOPMODE_CONSTANT);
-    rotAnim.setKeys([{ frame: 0, value: new Vector3(this.camera.rotation.x, this.camera.rotation.y, 0) }, { frame: 48, value: new Vector3(0, Math.PI, 0) }]);
+    const rotAnim = new Animation(
+      'landingCameraRotation',
+      'rotation',
+      60,
+      Animation.ANIMATIONTYPE_VECTOR3,
+      Animation.ANIMATIONLOOPMODE_CONSTANT
+    );
+    rotAnim.setKeys([
+      { frame: 0, value: new Vector3(this.camera.rotation.x, this.camera.rotation.y, 0) },
+      { frame: 48, value: new Vector3(0, Math.PI, 0) },
+    ]);
     const easing = new CubicEase();
     easing.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
     rotAnim.setEasingFunction(easing);
     this.camera.animations = [rotAnim];
-    this.scene.beginAnimation(this.camera, 0, 48, false, 1, () => { this.rotationX = 0; this.rotationY = Math.PI; this.camera.rotation.set(0, Math.PI, 0); });
+    this.scene.beginAnimation(this.camera, 0, 48, false, 1, () => {
+      this.rotationX = 0;
+      this.rotationY = Math.PI;
+      this.camera.rotation.set(0, Math.PI, 0);
+    });
 
     this.scene.clearColor = new Color4(0.75, 0.5, 0.35, 1);
 
@@ -1258,8 +1469,8 @@ export class LandfallLevel extends BaseLevel {
     // Update action buttons for vehicle
     this.updateActionButtons('vehicle');
 
-    this.callbacks.onObjectiveUpdate('REACH FORWARD POSITION', 'Drive the ATV to the waypoint ahead.');
-    this.callbacks.onCommsMessage({
+    this.emitObjectiveUpdate('REACH FORWARD POSITION', 'Drive the ATV to the waypoint ahead.');
+    this.emitCommsMessage({
       sender: 'PROMETHEUS A.I.',
       callsign: 'ATHENA',
       portrait: 'ai',
@@ -1287,7 +1498,7 @@ export class LandfallLevel extends BaseLevel {
     });
 
     // Track distance traveled
-    const vehiclePos = this.transitVehicle.getPosition();
+    const _vehiclePos = this.transitVehicle.getPosition();
     const speed = Math.abs(this.transitVehicle.getSpeed());
     this.vehicleTransitDistance += speed * deltaTime;
 
@@ -1302,26 +1513,31 @@ export class LandfallLevel extends BaseLevel {
     }
 
     // Update HUD
-    const distRemaining = Math.max(0, this.vehicleTransitTargetDistance - this.vehicleTransitDistance);
+    const distRemaining = Math.max(
+      0,
+      this.vehicleTransitTargetDistance - this.vehicleTransitDistance
+    );
     const speedDisplay = Math.round(speed);
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'REACH FORWARD POSITION',
       `SPEED: ${speedDisplay} m/s | DISTANCE: ${Math.round(distRemaining)}m`
     );
 
     // Check if reached destination
     if (this.vehicleTransitDistance >= this.vehicleTransitTargetDistance) {
-      const combatRequired = (this as unknown as { _combatRequired: boolean })._combatRequired ?? true;
+      const combatRequired =
+        (this as unknown as { _combatRequired: boolean })._combatRequired ?? true;
       this.endVehicleTransit(combatRequired);
     }
 
     // Vehicle damage feedback
     const vehicleState = this.transitVehicle.getState();
-    this.callbacks.onHealthChange(Math.round(vehicleState.health));
+    this.emitHealthChanged(Math.round(vehicleState.health));
 
     if (vehicleState.isDead) {
-      this.callbacks.onNotification('VEHICLE DESTROYED', 2000);
-      const combatRequired = (this as unknown as { _combatRequired: boolean })._combatRequired ?? true;
+      this.emitNotification('VEHICLE DESTROYED', 2000);
+      const combatRequired =
+        (this as unknown as { _combatRequired: boolean })._combatRequired ?? true;
       this.endVehicleTransit(combatRequired);
     }
   }
@@ -1370,8 +1586,8 @@ export class LandfallLevel extends BaseLevel {
     this.phase = 'surface';
     this.phaseTime = 0;
 
-    this.callbacks.onNotification('DISMOUNTING - PROCEED ON FOOT', 2000);
-    this.callbacks.onCommsMessage({
+    this.emitNotification('DISMOUNTING - PROCEED ON FOOT', 2000);
+    this.emitCommsMessage({
       sender: 'PROMETHEUS A.I.',
       callsign: 'ATHENA',
       portrait: 'ai',
@@ -1379,23 +1595,39 @@ export class LandfallLevel extends BaseLevel {
     });
 
     if (combatRequired) {
-      setTimeout(() => this.callbacks.onObjectiveUpdate('GET YOUR BEARINGS', 'Assess the situation. Cover positions ahead.'), 1000);
-      setTimeout(() => comms.sendSeismicWarningMessage(this.callbacks), 4000);
-      setTimeout(() => { this.callbacks.onNotification('SEISMIC WARNING', 1500); this.triggerShake(2); }, 6000);
+      setTimeout(
+        () =>
+          this.emitObjectiveUpdate(
+            'GET YOUR BEARINGS',
+            'Assess the situation. Cover positions ahead.'
+          ),
+        1000
+      );
+      setTimeout(() => comms.sendSeismicWarningMessage(), 4000);
       setTimeout(() => {
-        comms.sendCombatBeginsMessage(this.callbacks);
-        this.callbacks.onObjectiveUpdate('SURVIVE THE AMBUSH', 'Eliminate hostiles. Use the debris for cover!');
-        this.callbacks.onCombatStateChange(true);
+        this.emitNotification('SEISMIC WARNING', 1500);
+        this.triggerShake(2);
+      }, 6000);
+      setTimeout(() => {
+        comms.sendCombatBeginsMessage();
+        this.emitObjectiveUpdate(
+          'SURVIVE THE AMBUSH',
+          'Eliminate hostiles. Use the debris for cover!'
+        );
+        this.emitCombatStateChanged(true);
         this.updateActionButtons('combat');
         getAudioManager().enterCombat();
 
         const am = getAchievementManager();
         this.combatTutorialActive = !am.isUnlocked('first_steps') && !am.isUnlocked('sharpshooter');
-        if (this.combatTutorialActive) setTimeout(() => comms.sendCombatTutorialMessage(this.callbacks), 2000);
+        if (this.combatTutorialActive) setTimeout(() => comms.sendCombatTutorialMessage(), 2000);
         this.spawnFirstCombatEncounter();
       }, 8000);
     } else {
-      setTimeout(() => { this.callbacks.onObjectiveUpdate('PROCEED TO FOB DELTA', 'Area secure. Move out.'); setTimeout(() => this.completeLevel(), 5000); }, 3000);
+      setTimeout(() => {
+        this.emitObjectiveUpdate('PROCEED TO FOB DELTA', 'Area secure. Move out.');
+        setTimeout(() => this.completeLevel(), 5000);
+      }, 3000);
     }
   }
 
@@ -1420,7 +1652,7 @@ export class LandfallLevel extends BaseLevel {
 
     const spawnEnemy = (index: number) => {
       if (index >= FIRST_ENCOUNTER_ENEMY_COUNT) {
-        setTimeout(() => this.callbacks.onNotification('TIP: Use debris for cover!', 2500), 1500);
+        setTimeout(() => this.emitNotification('TIP: Use debris for cover!', 2500), 1500);
         return;
       }
 
@@ -1428,10 +1660,19 @@ export class LandfallLevel extends BaseLevel {
       getAudioManager().play('alien_screech', { volume: 0.4 });
 
       setTimeout(() => {
-        const { enemy } = spawnFirstEncounterEnemy(this.scene, spawnPoints[index], index, this.surfaceEnemiesPreloaded);
+        const { enemy } = spawnFirstEncounterEnemy(
+          this.scene,
+          spawnPoints[index],
+          index,
+          this.surfaceEnemiesPreloaded
+        );
         this.surfaceEnemies.push(enemy);
         this.combatState.enemyCount++;
-        if (index === 0) setTimeout(() => this.callbacks.onNotification(`${FIRST_ENCOUNTER_ENEMY_COUNT} HOSTILES DETECTED`, 1500), 500);
+        if (index === 0)
+          setTimeout(
+            () => this.emitNotification(`${FIRST_ENCOUNTER_ENEMY_COUNT} HOSTILES DETECTED`, 1500),
+            500
+          );
       }, 300);
 
       setTimeout(() => spawnEnemy(index + 1), 800 + Math.random() * 400);
@@ -1447,114 +1688,198 @@ export class LandfallLevel extends BaseLevel {
       this.combatState.tutorialSlowdownTimer += deltaTime;
       if (this.combatState.tutorialSlowdownTimer >= TUTORIAL_SLOWDOWN_DURATION) {
         this.combatState.tutorialSlowdownActive = false;
-        this.callbacks.onNotification('ENEMIES BECOMING AGGRESSIVE!', 1500);
+        this.emitNotification('ENEMIES BECOMING AGGRESSIVE!', 1500);
       }
     }
 
-    const tutorialProgress = Math.min(this.combatState.tutorialSlowdownTimer / TUTORIAL_SLOWDOWN_DURATION, 1);
-    const enemyUpdate = Combat.updateSurfaceEnemies(this.surfaceEnemies, playerPos, deltaTime, this.combatState.tutorialSlowdownActive, tutorialProgress);
+    const tutorialProgress = Math.min(
+      this.combatState.tutorialSlowdownTimer / TUTORIAL_SLOWDOWN_DURATION,
+      1
+    );
+    const enemyUpdate = Combat.updateSurfaceEnemies(
+      this.surfaceEnemies,
+      playerPos,
+      deltaTime,
+      this.combatState.tutorialSlowdownActive,
+      tutorialProgress
+    );
 
     if (enemyUpdate.playerDamage > 0) this.onEnemyAttack(enemyUpdate.playerDamage);
 
     const aliveEnemies = this.surfaceEnemies.filter((e) => e.health > 0);
-    if (aliveEnemies.length === 0 && this.combatState.surfaceCombatActive && this.combatState.killCount > 0) this.onCombatCleared();
+    if (
+      aliveEnemies.length === 0 &&
+      this.combatState.surfaceCombatActive &&
+      this.combatState.killCount > 0
+    )
+      this.onCombatCleared();
 
-    const hazardUpdate = Combat.updateEnvironmentHazards(playerPos, this.acidPools, this.unstableTerrain, this.combatState.acidDamageTimer, this.combatState.unstableTerrainShakeTimer, this.combatState.playerInAcid, deltaTime);
+    const hazardUpdate = Combat.updateEnvironmentHazards(
+      playerPos,
+      this.acidPools,
+      this.unstableTerrain,
+      this.combatState.acidDamageTimer,
+      this.combatState.unstableTerrainShakeTimer,
+      this.combatState.playerInAcid,
+      deltaTime
+    );
     this.combatState.acidDamageTimer = hazardUpdate.newAcidDamageTimer;
     this.combatState.unstableTerrainShakeTimer = hazardUpdate.newUnstableTerrainShakeTimer;
 
-    if (hazardUpdate.result.enteredAcid) { this.combatState.playerInAcid = true; this.callbacks.onNotification('ACID BURNS!', 1000); this.triggerShake(1.5); }
-    if (hazardUpdate.result.exitedAcid) { this.combatState.playerInAcid = false; this.callbacks.onNotification('ESCAPED ACID', 800); }
+    if (hazardUpdate.result.enteredAcid) {
+      this.combatState.playerInAcid = true;
+      this.emitNotification('ACID BURNS!', 1000);
+      this.triggerShake(1.5);
+    }
+    if (hazardUpdate.result.exitedAcid) {
+      this.combatState.playerInAcid = false;
+      this.emitNotification('ESCAPED ACID', 800);
+    }
     if (hazardUpdate.result.acidDamage > 0) {
       this.suitIntegrity = Math.max(0, this.suitIntegrity - hazardUpdate.result.acidDamage);
-      this.callbacks.onHealthChange(-hazardUpdate.result.acidDamage);
+      this.emitHealthChanged(-hazardUpdate.result.acidDamage);
       this.triggerDamageShake(hazardUpdate.result.acidDamage);
       particleManager.emitSmallExplosion(playerPos.clone());
     }
     if (hazardUpdate.result.shouldShake) this.triggerShake(1.0);
-    if (hazardUpdate.result.showUnstableWarning) this.callbacks.onNotification('GROUND UNSTABLE!', 800);
+    if (hazardUpdate.result.showUnstableWarning) this.emitNotification('GROUND UNSTABLE!', 800);
 
     this.updateCombatTutorialPrompts();
   }
 
   private updateCombatTutorialPrompts(): void {
     if (!this.combatTutorialActive) return;
-    if (!this.hasShownMovementTutorial && this.phaseTime > 2) { this.hasShownMovementTutorial = true; this.callbacks.onNotification('TIP: WASD to move, dodge enemy attacks!', 3000); }
-    if (!this.hasShownAimingTutorial && this.phaseTime > 5 && this.hasShownMovementTutorial) { this.hasShownAimingTutorial = true; this.callbacks.onNotification('TIP: Click to shoot, aim at center mass!', 3000); }
-    if (!this.hasShownCoverTutorial && this.phaseTime > 8 && this.hasShownAimingTutorial) { this.hasShownCoverTutorial = true; this.callbacks.onNotification('TIP: Use debris and rocks for cover!', 3000); }
-    if (!this.hasShownReloadTutorial && this.phaseTime > 12 && this.hasShownCoverTutorial) { this.hasShownReloadTutorial = true; this.callbacks.onNotification('TIP: R to reload when ammo is low!', 3000); }
+    if (!this.hasShownMovementTutorial && this.phaseTime > 2) {
+      this.hasShownMovementTutorial = true;
+      this.emitNotification('TIP: WASD to move, dodge enemy attacks!', 3000);
+    }
+    if (!this.hasShownAimingTutorial && this.phaseTime > 5 && this.hasShownMovementTutorial) {
+      this.hasShownAimingTutorial = true;
+      this.emitNotification('TIP: Click to shoot, aim at center mass!', 3000);
+    }
+    if (!this.hasShownCoverTutorial && this.phaseTime > 8 && this.hasShownAimingTutorial) {
+      this.hasShownCoverTutorial = true;
+      this.emitNotification('TIP: Use debris and rocks for cover!', 3000);
+    }
+    if (!this.hasShownReloadTutorial && this.phaseTime > 12 && this.hasShownCoverTutorial) {
+      this.hasShownReloadTutorial = true;
+      this.emitNotification('TIP: R to reload when ammo is low!', 3000);
+    }
   }
 
   private onEnemyAttack(damage: number): void {
     this.suitIntegrity = Math.max(0, this.suitIntegrity - damage);
-    this.callbacks.onHealthChange(-damage);
+    this.emitHealthChanged(-damage);
     this.triggerDamageShake(damage);
-    this.callbacks.onNotification('TAKING DAMAGE!', 500);
+    this.emitNotification('TAKING DAMAGE!', 500);
   }
 
   private onEnemyKilled(enemy: SurfaceEnemy): void {
     this.combatState.killCount++;
     this.combatState.enemyCount--;
     Combat.processEnemyKill(enemy);
-    this.callbacks.onKill();
-    this.callbacks.onNotification(`HOSTILE DOWN [${this.combatState.killCount}/${FIRST_ENCOUNTER_ENEMY_COUNT}]`, 800);
+    this.recordKill();
+    this.emitNotification(
+      `HOSTILE DOWN [${this.combatState.killCount}/${FIRST_ENCOUNTER_ENEMY_COUNT}]`,
+      800
+    );
   }
 
   private onCombatCleared(): void {
     this.combatState.surfaceCombatActive = false;
     this.combatState.tutorialSlowdownActive = false;
-    this.callbacks.onCombatStateChange(false);
+    this.emitCombatStateChanged(false);
     getAudioManager().exitCombat();
-    this.callbacks.onNotification('ALL HOSTILES ELIMINATED', 2000);
-    setTimeout(() => { this.callbacks.onNotification('FIRST BLOOD - SURFACE COMBAT COMPLETE', 2500); getAchievementManager().onFirstCombatWin(); }, 2500);
-    setTimeout(() => comms.sendCombatClearedMessage(this.callbacks, this.combatState.killCount), 3000);
-    setTimeout(() => { this.callbacks.onObjectiveUpdate('SECURE THE LANDING ZONE', 'Proceed to the LZ pad. Watch for stragglers.'); }, 5000);
-    setTimeout(() => { comms.sendLZSecuredMessage(this.callbacks); this.callbacks.onObjectiveUpdate('PROCEED TO FOB DELTA', 'LZ secure. Move out. Waypoint set.'); this.updateActionButtons('none'); this.showFOBDeltaMarker(); }, 8000);
+    this.emitNotification('ALL HOSTILES ELIMINATED', 2000);
+    setTimeout(() => {
+      this.emitNotification('FIRST BLOOD - SURFACE COMBAT COMPLETE', 2500);
+      getAchievementManager().onFirstCombatWin();
+    }, 2500);
+    setTimeout(() => comms.sendCombatClearedMessage(this.combatState.killCount), 3000);
+    setTimeout(() => {
+      this.emitObjectiveUpdate(
+        'SECURE THE LANDING ZONE',
+        'Proceed to the LZ pad. Watch for stragglers.'
+      );
+    }, 5000);
+    setTimeout(() => {
+      comms.sendLZSecuredMessage();
+      this.emitObjectiveUpdate('PROCEED TO FOB DELTA', 'LZ secure. Move out. Waypoint set.');
+      this.updateActionButtons('none');
+      this.showFOBDeltaMarker();
+    }, 8000);
     setTimeout(() => this.completeLevel(), 12000);
   }
 
   private showFOBDeltaMarker(): void {
     if (this.fobDeltaBeacon) this.fobDeltaBeacon.isVisible = true;
     if (this.fobDeltaMarker) this.fobDeltaMarker.isVisible = true;
-    setTimeout(() => comms.sendFOBDeltaWaypointMessage(this.callbacks), 2000);
+    setTimeout(() => comms.sendFOBDeltaWaypointMessage(), 2000);
   }
 
   private throwGrenade(): void {
-    this.callbacks.onNotification('GRENADE OUT!', 1000);
+    this.emitNotification('GRENADE OUT!', 1000);
     const forward = this.camera.getDirection(Vector3.Forward());
 
     setTimeout(() => {
-      const result = Combat.throwGrenade(this.surfaceEnemies, this.camera.position.clone(), forward);
+      const result = Combat.throwGrenade(
+        this.surfaceEnemies,
+        this.camera.position.clone(),
+        forward
+      );
       this.triggerShake(3);
       for (const enemy of result.killedEnemies) this.onEnemyKilled(enemy);
     }, 1500);
   }
 
   private performMeleeAttack(): void {
-    if (this.combatState.meleeCooldown > 0 || this.phase !== 'surface' || !this.combatState.surfaceCombatActive) return;
+    if (
+      this.combatState.meleeCooldown > 0 ||
+      this.phase !== 'surface' ||
+      !this.combatState.surfaceCombatActive
+    )
+      return;
     this.combatState.meleeCooldown = 0.5;
-    this.callbacks.onNotification('MELEE!', 500);
+    this.emitNotification('MELEE!', 500);
 
-    const result = Combat.performMeleeAttack(this.surfaceEnemies, this.camera.position, this.rotationY);
+    const result = Combat.performMeleeAttack(
+      this.surfaceEnemies,
+      this.camera.position,
+      this.rotationY
+    );
     if (result.enemyKilled) this.onEnemyKilled(result.enemyKilled);
   }
 
   private firePrimaryWeapon(): void {
-    if (this.combatState.primaryFireCooldown > 0 || !this.isPointerLocked() || this.phase !== 'surface' || !this.combatState.surfaceCombatActive) return;
+    if (
+      this.combatState.primaryFireCooldown > 0 ||
+      !this.isPointerLocked() ||
+      this.phase !== 'surface' ||
+      !this.combatState.surfaceCombatActive
+    )
+      return;
     this.combatState.primaryFireCooldown = 0.15;
 
     const forward = this.camera.getDirection(Vector3.Forward());
-    const result = Combat.firePrimaryWeapon(this.scene, this.surfaceEnemies, this.camera.position, forward);
+    const result = Combat.firePrimaryWeapon(
+      this.scene,
+      this.surfaceEnemies,
+      this.camera.position,
+      forward
+    );
 
-    if (result.outOfAmmo) { this.callbacks.onNotification('NO AMMO - RELOADING', 800); return; }
-    if (result.hit) this.callbacks.onNotification('HIT!', 300);
+    if (result.outOfAmmo) {
+      this.emitNotification('NO AMMO - RELOADING', 800);
+      return;
+    }
+    if (result.hit) this.emitNotification('HIT!', 300);
     if (result.enemyKilled) this.onEnemyKilled(result.enemyKilled);
   }
 
   private handleReload(): void {
     if (this.phase !== 'surface' || !this.combatState.surfaceCombatActive) return;
     const result = Combat.handleReload();
-    if (result.message) this.callbacks.onNotification(result.message, result.started ? 1500 : 800);
+    if (result.message) this.emitNotification(result.message, result.started ? 1500 : 800);
   }
 
   protected override handleKeyDown(e: KeyboardEvent): void {
@@ -1573,7 +1898,9 @@ export class LandfallLevel extends BaseLevel {
   }
 
   override canTransitionTo(levelId: LevelId): boolean {
-    return levelId === 'fob_delta' && (this.phase === 'surface' || this.phase === 'vehicle_transit');
+    return (
+      levelId === 'fob_delta' && (this.phase === 'surface' || this.phase === 'vehicle_transit')
+    );
   }
 
   protected disposeLevel(): void {
@@ -1585,8 +1912,8 @@ export class LandfallLevel extends BaseLevel {
     this.floraNodes = [];
     this.collectibleSystem?.dispose();
     this.collectibleSystem = null;
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
 
     // Dispose transit vehicle
     if (this.transitVehicle) {
@@ -1609,7 +1936,26 @@ export class LandfallLevel extends BaseLevel {
       this.dropPodInterior = null;
     }
 
-    [this.planet, this.planetAtmosphere, this.starfield, this.leftArm, this.rightArm, this.leftGlove, this.rightGlove, this.visorFrame, this.leftHandle, this.rightHandle, this.thrusterGlow, this.plasmaGlow, this.lzPad, this.lzBeacon, this.terrain, this.heatDistortion, this.fobDeltaMarker, this.fobDeltaBeacon].forEach((m) => m?.dispose());
+    [
+      this.planet,
+      this.planetAtmosphere,
+      this.starfield,
+      this.leftArm,
+      this.rightArm,
+      this.leftGlove,
+      this.rightGlove,
+      this.visorFrame,
+      this.leftHandle,
+      this.rightHandle,
+      this.thrusterGlow,
+      this.plasmaGlow,
+      this.lzPad,
+      this.lzBeacon,
+      this.terrain,
+      this.heatDistortion,
+      this.fobDeltaMarker,
+      this.fobDeltaBeacon,
+    ].forEach((m) => m?.dispose());
     this.canyonWalls.forEach((w) => w.dispose());
 
     for (const obj of this.coverObjects) if (!obj.isDisposed()) obj.dispose(false, true);
@@ -1626,15 +1972,24 @@ export class LandfallLevel extends BaseLevel {
     this.distantSpaceships.forEach((s) => s.node.dispose());
     this.distantSpaceships = [];
 
-    this.surfaceEnemies.forEach((e) => { if (e.mesh && !e.mesh.isDisposed()) e.mesh.dispose(); });
+    this.surfaceEnemies.forEach((e) => {
+      if (e.mesh && !e.mesh.isDisposed()) e.mesh.dispose();
+    });
     this.surfaceEnemies = [];
 
-    this.acidPools.forEach((p) => { if (p && !p.isDisposed()) p.dispose(); });
+    this.acidPools.forEach((p) => {
+      if (p && !p.isDisposed()) p.dispose();
+    });
     this.acidPools = [];
-    this.unstableTerrain.forEach((t) => { if (t && !t.isDisposed()) t.dispose(); });
+    this.unstableTerrain.forEach((t) => {
+      if (t && !t.isDisposed()) t.dispose();
+    });
     this.unstableTerrain = [];
 
-    if (this.glbEnvironment) { disposeEnvironment(this.glbEnvironment); this.glbEnvironment = null; }
+    if (this.glbEnvironment) {
+      disposeEnvironment(this.glbEnvironment);
+      this.glbEnvironment = null;
+    }
 
     // Dispose surface lighting
     if (this.surfaceSunLight) {
@@ -1651,7 +2006,11 @@ export class LandfallLevel extends BaseLevel {
       heatDistortion: this.heatDistortion,
       windStreaks: this.windStreaks,
     });
-    this.reentryParticles = this.playerSmokeTrail = this.atmosphereStreaks = this.thrusterExhaustParticles = null;
+    this.reentryParticles =
+      this.playerSmokeTrail =
+      this.atmosphereStreaks =
+      this.thrusterExhaustParticles =
+        null;
 
     this.particleTexture?.dispose();
     this.particleTexture = null;

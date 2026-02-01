@@ -173,7 +173,6 @@ const SCOUTING_DIALOGUE = {
 // ============================================================================
 
 export class ScoutingSystem {
-  private scene: Scene;
   private config: ScoutingConfig;
   private callbacks: ScoutingCallbacks;
 
@@ -559,8 +558,7 @@ export class ScoutingSystem {
       const report: IntelReport = {
         type: count === 1 ? 'enemy_contact' : 'enemy_group',
         position: group.center,
-        description:
-          count === 1 ? 'Single hostile detected' : `${count} hostiles grouped`,
+        description: count === 1 ? 'Single hostile detected' : `${count} hostiles grouped`,
         timestamp: performance.now(),
         entityIds: group.enemies.map((e) => e.id),
         threatLevel,

@@ -3,8 +3,8 @@
  * Procedural audio for ambient sounds, drop sequences, and level atmospheres
  */
 
-import type { ProceduralAmbientType, AudioLoopHandle } from '../types';
 import { LFO_RATES } from '../constants';
+import type { AudioLoopHandle, ProceduralAmbientType } from '../types';
 
 /**
  * Environment Sound Generator class

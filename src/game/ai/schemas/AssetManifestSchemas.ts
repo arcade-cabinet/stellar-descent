@@ -11,12 +11,7 @@ import { z } from 'zod';
 // ENUMS AND CONSTANTS
 // ============================================================================
 
-export const AssetTypeEnum = z.enum([
-  'video',
-  'image',
-  'audio',
-  'text',
-]);
+export const AssetTypeEnum = z.enum(['video', 'image', 'audio', 'text']);
 
 export const VideoStyleEnum = z.enum([
   'cinematic_scifi',
@@ -36,19 +31,13 @@ export const ImageStyleEnum = z.enum([
   'quest_illustration',
 ]);
 
-export const AspectRatioEnum = z.enum([
-  '16:9',
-  '21:9',
-  '9:16',
-  '1:1',
-  '4:3',
-]);
+export const AspectRatioEnum = z.enum(['16:9', '21:9', '9:16', '1:1', '4:3']);
 
 export const ImageResolutionEnum = z.enum([
-  'SD',    // 512px
-  'HD',    // 1024px
-  '2K',    // 2048px
-  '4K',    // 4096px
+  'SD', // 512px
+  'HD', // 1024px
+  '2K', // 2048px
+  '4K', // 4096px
 ]);
 
 export const LevelIdEnum = z.enum([
@@ -357,12 +346,14 @@ export const ManifestUpdateRequestSchema = z.object({
   /** Action to perform */
   action: z.enum(['add', 'update', 'remove', 'analyze']),
   /** Asset being added/updated */
-  asset: z.union([
-    VideoAssetMetadataSchema,
-    ImageAssetMetadataSchema,
-    AudioAssetMetadataSchema,
-    TextAssetMetadataSchema,
-  ]).optional(),
+  asset: z
+    .union([
+      VideoAssetMetadataSchema,
+      ImageAssetMetadataSchema,
+      AudioAssetMetadataSchema,
+      TextAssetMetadataSchema,
+    ])
+    .optional(),
   /** Target manifest type */
   targetManifest: z.enum(['level', 'shared']),
   /** Level ID if targeting level manifest */
@@ -382,12 +373,16 @@ export const ManifestUpdateResponseSchema = z.object({
   /** Warnings (non-blocking issues) */
   warnings: z.array(z.string()).default([]),
   /** Suggested improvements to the asset */
-  suggestions: z.array(z.object({
-    field: z.string(),
-    current: z.string(),
-    suggested: z.string(),
-    reason: z.string(),
-  })).default([]),
+  suggestions: z
+    .array(
+      z.object({
+        field: z.string(),
+        current: z.string(),
+        suggested: z.string(),
+        reason: z.string(),
+      })
+    )
+    .default([]),
   /** Updated manifest (if action was add/update) */
   updatedManifest: z.any().optional(),
 });
@@ -401,7 +396,7 @@ export type ManifestUpdateResponse = z.infer<typeof ManifestUpdateResponseSchema
 /**
  * Generate JSON Schema from Zod schema for use with Gemini
  */
-export function zodToJsonSchema(schema: z.ZodType): object {
+export function zodToJsonSchema(_schema: z.ZodType): object {
   // This is a simplified conversion - for production use zodToJsonSchema package
   return {
     type: 'object',

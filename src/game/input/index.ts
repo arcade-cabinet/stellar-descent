@@ -16,22 +16,14 @@
  * - Provides isActionPressed(action) for action-based queries
  */
 
-// Primary input manager (preferred)
-export {
-  disposeInputManager,
-  getInputManager,
-  InputManager,
-  type AnalogState,
-  type AnyAction,
-  type InputSource,
-  type InputState,
-  type TouchInputState,
-} from './InputManager';
-
 // Legacy InputTracker (for backwards compatibility)
 export { disposeInputTracker, getInputTracker, InputTracker } from '../context/useInputActions';
-
-export type { ActionKeyInfo, LevelSpecificAction, WeaponSwitchAction, TouchWeaponSwitchInput } from './InputBridge';
+export type {
+  ActionKeyInfo,
+  LevelSpecificAction,
+  TouchWeaponSwitchInput,
+  WeaponSwitchAction,
+} from './InputBridge';
 export {
   // Default key info
   ACTION_DEFAULT_KEYS,
@@ -46,20 +38,31 @@ export {
   getKeyForAction,
   // Level-specific actions
   getLevelSpecificKeyInfo,
+  getWeaponSlotFromKeyEvent,
+  getWeaponSwitchKeyInfo,
+  handleWeaponSwitchKeyEvent,
+  handleWeaponSwitchTouchInput,
+  handleWeaponSwitchWheelEvent,
   isDefaultKeyForAction,
   // Key event matching
   isKeyEventForAction,
   isMouseEventForAction,
+  isQuickSwapKeyEvent,
+  isWeaponSwitchKeyEvent,
   LEVEL_SPECIFIC_KEYS,
   levelActionParams,
+  setupWeaponSwitchListeners,
   // Weapon switching
   WEAPON_SWITCH_KEYS,
-  getWeaponSwitchKeyInfo,
-  isWeaponSwitchKeyEvent,
-  getWeaponSlotFromKeyEvent,
-  isQuickSwapKeyEvent,
-  handleWeaponSwitchKeyEvent,
-  handleWeaponSwitchWheelEvent,
-  handleWeaponSwitchTouchInput,
-  setupWeaponSwitchListeners,
 } from './InputBridge';
+// Primary input manager (preferred)
+export {
+  type AnalogState,
+  type AnyAction,
+  disposeInputManager,
+  getInputManager,
+  InputManager,
+  type InputSource,
+  type InputState,
+  type TouchInputState,
+} from './InputManager';

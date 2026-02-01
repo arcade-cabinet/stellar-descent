@@ -10,15 +10,15 @@
 
 import { getLogger } from '../core/Logger';
 import type {
+  AudioProcessingOptions,
+  CachedAudioAsset,
+  FreesoundClientOptions,
+  FreesoundDownloadResult,
+  FreesoundLicense,
   FreesoundSearchOptions,
   FreesoundSearchResult,
   FreesoundSound,
   FreesoundSoundPreview,
-  FreesoundLicense,
-  FreesoundDownloadResult,
-  FreesoundClientOptions,
-  CachedAudioAsset,
-  AudioProcessingOptions,
 } from './types';
 
 const log = getLogger('FreesoundClient');
@@ -415,7 +415,7 @@ function applyPitchShift(
   semitones: number
 ): AudioBuffer {
   // Calculate pitch ratio (2^(semitones/12))
-  const pitchRatio = Math.pow(2, semitones / 12);
+  const pitchRatio = 2 ** (semitones / 12);
 
   // New buffer length
   const newLength = Math.floor(buffer.length / pitchRatio);

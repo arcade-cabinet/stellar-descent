@@ -699,7 +699,9 @@ class WorldDatabase {
   }
 
   async getInventory(): Promise<InventoryItem[]> {
-    const rows = await capacitorDb.query<InventoryRow>('SELECT * FROM inventory WHERE quantity > 0');
+    const rows = await capacitorDb.query<InventoryRow>(
+      'SELECT * FROM inventory WHERE quantity > 0'
+    );
 
     return rows.map((row) => ({
       itemId: row.item_id,
@@ -720,7 +722,11 @@ class WorldDatabase {
     );
   }
 
-  async updateQuestStep(questId: string, stepIndex: number, data?: Record<string, unknown>): Promise<void> {
+  async updateQuestStep(
+    questId: string,
+    stepIndex: number,
+    data?: Record<string, unknown>
+  ): Promise<void> {
     await capacitorDb.run(`UPDATE quests SET step_index = ?, data = ? WHERE quest_id = ?`, [
       stepIndex,
       JSON.stringify(data || {}),
@@ -729,14 +735,16 @@ class WorldDatabase {
   }
 
   async completeQuest(questId: string): Promise<void> {
-    await capacitorDb.run(`UPDATE quests SET completed = 1, completed_timestamp = ? WHERE quest_id = ?`, [
-      Date.now(),
-      questId,
-    ]);
+    await capacitorDb.run(
+      `UPDATE quests SET completed = 1, completed_timestamp = ? WHERE quest_id = ?`,
+      [Date.now(), questId]
+    );
   }
 
   async getQuestProgress(questId: string): Promise<QuestProgress | null> {
-    const rows = await capacitorDb.query<QuestRow>('SELECT * FROM quests WHERE quest_id = ?', [questId]);
+    const rows = await capacitorDb.query<QuestRow>('SELECT * FROM quests WHERE quest_id = ?', [
+      questId,
+    ]);
 
     if (rows.length === 0) return null;
 
@@ -768,8 +776,14 @@ class WorldDatabase {
   // TUTORIAL PROGRESS
   // ============================================================================
 
-  async getTutorialProgressAsync(): Promise<{ completed: boolean; currentStep: number; stepsCompleted: string[] }> {
-    const rows = await capacitorDb.query<TutorialRow>('SELECT * FROM tutorial_progress WHERE id = 1');
+  async getTutorialProgressAsync(): Promise<{
+    completed: boolean;
+    currentStep: number;
+    stepsCompleted: string[];
+  }> {
+    const rows = await capacitorDb.query<TutorialRow>(
+      'SELECT * FROM tutorial_progress WHERE id = 1'
+    );
 
     if (rows.length === 0) {
       return { completed: false, currentStep: 0, stepsCompleted: [] };
@@ -790,10 +804,10 @@ class WorldDatabase {
   }
 
   async updateTutorialProgress(currentStep: number, stepsCompleted: string[]): Promise<void> {
-    await capacitorDb.run(`UPDATE tutorial_progress SET current_step = ?, steps_completed = ? WHERE id = 1`, [
-      currentStep,
-      JSON.stringify(stepsCompleted),
-    ]);
+    await capacitorDb.run(
+      `UPDATE tutorial_progress SET current_step = ?, steps_completed = ? WHERE id = 1`,
+      [currentStep, JSON.stringify(stepsCompleted)]
+    );
   }
 
   async completeTutorial(): Promise<void> {
@@ -814,18 +828,20 @@ class WorldDatabase {
   // ============================================================================
 
   async getChunkData(key: string): Promise<string | null> {
-    const rows = await capacitorDb.query<ChunkDataRow>('SELECT data FROM chunk_data WHERE key = ?', [key]);
+    const rows = await capacitorDb.query<ChunkDataRow>(
+      'SELECT data FROM chunk_data WHERE key = ?',
+      [key]
+    );
 
     if (rows.length === 0) return null;
     return rows[0].data;
   }
 
   async setChunkData(key: string, data: string): Promise<void> {
-    await capacitorDb.run(`INSERT OR REPLACE INTO chunk_data (key, data, updated_at) VALUES (?, ?, ?)`, [
-      key,
-      data,
-      Date.now(),
-    ]);
+    await capacitorDb.run(
+      `INSERT OR REPLACE INTO chunk_data (key, data, updated_at) VALUES (?, ?, ?)`,
+      [key, data, Date.now()]
+    );
   }
 
   async deleteChunkData(key: string): Promise<void> {
@@ -833,9 +849,10 @@ class WorldDatabase {
   }
 
   async getChunkKeysByEnvironment(environment: string): Promise<string[]> {
-    const rows = await capacitorDb.query<{ key: string }>('SELECT key FROM chunk_data WHERE key LIKE ?', [
-      `chunk_${environment}_%`,
-    ]);
+    const rows = await capacitorDb.query<{ key: string }>(
+      'SELECT key FROM chunk_data WHERE key LIKE ?',
+      [`chunk_${environment}_%`]
+    );
 
     return rows.map((row) => row.key);
   }
@@ -870,7 +887,10 @@ class WorldDatabase {
   // LEVEL COMPLETION TRACKING
   // ============================================================================
 
-  async completeLevel(levelId: string, stats?: { timeSeconds?: number; kills?: number }): Promise<void> {
+  async completeLevel(
+    levelId: string,
+    stats?: { timeSeconds?: number; kills?: number }
+  ): Promise<void> {
     const now = Date.now();
 
     const existing = await capacitorDb.query<{ best_time_seconds: number | null }>(

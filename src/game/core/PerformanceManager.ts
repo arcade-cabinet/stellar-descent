@@ -465,7 +465,7 @@ class PerformanceManager {
         this.isCharging = battery.charging;
         this.updateLowBatteryMode();
       });
-    } catch (e) {
+    } catch (_e) {
       // Battery API not available or failed
       log.info('Battery monitoring not available');
     }
@@ -665,7 +665,7 @@ class PerformanceManager {
     if (!this.engine || this.frameHistory.length < 10) return;
 
     const fps = this.calculateFPS();
-    const targetFPS = this.settings.targetFPS;
+    const _targetFPS = this.settings.targetFPS;
 
     // Below low threshold - reduce resolution
     if (fps < this.config.lowFPSThreshold) {
@@ -682,9 +682,7 @@ class PerformanceManager {
         this.scalingCooldown = this.SCALING_COOLDOWN_FRAMES;
 
         if (this.config.showWarnings) {
-          log.info(
-            `Reduced resolution to ${Math.round(newScale * 100)}% (FPS: ${fps.toFixed(1)})`
-          );
+          log.info(`Reduced resolution to ${Math.round(newScale * 100)}% (FPS: ${fps.toFixed(1)})`);
         }
       }
     }
@@ -1162,9 +1160,7 @@ class PerformanceManager {
 
     // Draw call warning
     if (metrics.drawCalls > this.settings.drawCallBudget) {
-      log.warn(
-        `Draw calls (${metrics.drawCalls}) exceed budget (${this.settings.drawCallBudget})`
-      );
+      log.warn(`Draw calls (${metrics.drawCalls}) exceed budget (${this.settings.drawCallBudget})`);
     }
 
     // Particle system warning
@@ -1247,7 +1243,7 @@ class PerformanceManager {
       <div>Quality: ${m.qualityLevel.toUpperCase()} (${this.performanceTier})</div>
       <div>Auto: ${autoQualityStatus}</div>
       <div>Resolution: ${Math.round(m.currentResolutionScale * 100)}%${m.dynamicScalingActive ? ' (scaling)' : ''}</div>
-      <div>Shadows: ${this.settings.shadowsEnabled ? this.settings.shadowMapSize + 'px' : 'OFF'}</div>
+      <div>Shadows: ${this.settings.shadowsEnabled ? `${this.settings.shadowMapSize}px` : 'OFF'}</div>
       <div>Meshes: ${m.activeMeshes} | Draw: ${m.drawCalls}</div>
       <div>Particles: ${m.activeParticles}/${this.settings.maxParticleSystems} (x${this.settings.particleMultiplier.toFixed(2)})</div>
       ${this.batteryLevel !== null ? `<div>Battery: ${Math.round(this.batteryLevel * 100)}%${this.lowBatteryMode ? ' (SAVING)' : ''}</div>` : ''}
@@ -1269,7 +1265,7 @@ class PerformanceManager {
     this.removeDebugOverlay();
 
     // Dispose shadow generators
-    for (const [name, generator] of this.shadowGenerators) {
+    for (const [_name, generator] of this.shadowGenerators) {
       generator.dispose();
     }
     this.shadowGenerators.clear();

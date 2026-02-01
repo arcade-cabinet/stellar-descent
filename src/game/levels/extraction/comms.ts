@@ -6,7 +6,6 @@
  */
 
 import type { CommsMessage } from './types';
-import { LZ_POSITION } from './constants';
 
 // ============================================================================
 // ESCAPE PHASE COMMS

@@ -403,18 +403,16 @@ export function createBlendedTerrainMaterial(
 /**
  * Get the appropriate terrain config for a level by name.
  */
-export function getTerrainConfigByLevel(
-  levelId: string
-): TerrainBiomeConfig | null {
+export function getTerrainConfigByLevel(levelId: string): TerrainBiomeConfig | null {
   const configs: Record<string, TerrainBiomeConfig> = {
-    'landfall': LANDFALL_TERRAIN_CONFIG,
+    landfall: LANDFALL_TERRAIN_CONFIG,
     'fob-delta': FOB_DELTA_TERRAIN_CONFIG,
     'mining-depths': FOB_DELTA_TERRAIN_CONFIG, // Use concrete for underground
     'canyon-run': CANYON_TERRAIN_CONFIG,
     'southern-ice': ICE_TERRAIN_CONFIG,
     'hive-assault': HIVE_TERRAIN_CONFIG,
     'brothers-in-arms': BROTHERS_TERRAIN_CONFIG,
-    'extraction': EXTRACTION_TERRAIN_CONFIG,
+    extraction: EXTRACTION_TERRAIN_CONFIG,
     'the-breach': BREACH_TERRAIN_CONFIG,
     'final-escape': FINAL_ESCAPE_TERRAIN_CONFIG,
     'anchor-station': HIVE_TERRAIN_CONFIG, // Space station uses similar textures
@@ -433,7 +431,15 @@ export async function preloadTerrainTextures(
 ): Promise<void> {
   const loadTexture = (path: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const tex = new Texture(path, scene, false, true, Texture.TRILINEAR_SAMPLINGMODE, resolve, reject);
+      const tex = new Texture(
+        path,
+        scene,
+        false,
+        true,
+        Texture.TRILINEAR_SAMPLINGMODE,
+        resolve,
+        reject
+      );
       tex.dispose();
     });
   };

@@ -9,26 +9,26 @@
  * - Death force direction based on shot origin
  */
 
+import type { Animatable } from '@babylonjs/core/Animations/animatable';
 import { Animation } from '@babylonjs/core/Animations/animation';
 import { BezierCurveEase } from '@babylonjs/core/Animations/easing';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
-import type { Animatable } from '@babylonjs/core/Animations/animatable';
 
 // Required for animation
 import '@babylonjs/core/Animations/animatable';
 
+import { getAudioManager, type SoundEffect } from '../core/AudioManager';
+import type { Entity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import {
   calculateKnockbackForce,
   getHitReactionConfig,
   getRandomDeathAnimation,
   getRandomPainSound,
 } from '../entities/aliens';
-import type { Entity } from '../core/ecs';
-import { getLogger } from '../core/Logger';
-import { getAudioManager, type SoundEffect } from '../core/AudioManager';
 
 const log = getLogger('HitReactionSystem');
 
@@ -167,7 +167,7 @@ export class HitReactionSystem {
     entity: Entity,
     damage: number,
     hitDirection: Vector3,
-    shotOrigin?: Vector3
+    _shotOrigin?: Vector3
   ): void {
     if (!entity.id || !entity.transform || !entity.alienInfo || !entity.renderable?.mesh) {
       return;
@@ -226,7 +226,7 @@ export class HitReactionSystem {
   /**
    * Play a random pain sound for the species.
    */
-  private playPainSound(entity: Entity, speciesId: string): void {
+  private playPainSound(_entity: Entity, speciesId: string): void {
     const soundId = getRandomPainSound(speciesId);
 
     // Map to AudioManager sound effects
@@ -391,26 +391,25 @@ export class HitReactionSystem {
     mesh: Mesh | TransformNode,
     animationType: DeathAnimationType,
     forceDirection: Vector3,
-    scale: number = 1
+    _scale: number = 1
   ): void {
     if (!this.scene) return;
 
     const config = DEATH_ANIMATION_CONFIGS[animationType] || DEATH_ANIMATION_CONFIGS.death_collapse;
     const duration = config.duration;
-    const frameCount = Math.floor(duration / 16.67);
+    const _frameCount = Math.floor(duration / 16.67);
 
     // Determine rotation axis
-    let rotationAxis: Vector3;
+    let _rotationAxis: Vector3;
     switch (config.rotationAxis) {
       case 'x':
-        rotationAxis = new Vector3(1, 0, 0);
+        _rotationAxis = new Vector3(1, 0, 0);
         break;
       case 'z':
-        rotationAxis = new Vector3(0, 0, 1);
+        _rotationAxis = new Vector3(0, 0, 1);
         break;
-      case 'random':
       default:
-        rotationAxis = new Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+        _rotationAxis = new Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
         break;
     }
 
@@ -628,7 +627,7 @@ export class HitReactionSystem {
    */
   private animateShatter(
     mesh: Mesh | TransformNode,
-    startPos: Vector3,
+    _startPos: Vector3,
     startRot: Vector3,
     config: DeathAnimationConfig
   ): void {
@@ -731,7 +730,7 @@ export class HitReactionSystem {
   update(): void {
     const now = performance.now();
 
-    for (const [entityId, state] of this.entityStates) {
+    for (const [_entityId, state] of this.entityStates) {
       if (state.isStaggered && now >= state.staggerEndTime) {
         state.isStaggered = false;
 

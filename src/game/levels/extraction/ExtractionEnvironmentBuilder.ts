@@ -762,10 +762,7 @@ function getLampPosts(): Placement[] {
  * Very few, dim lights -- the LZ is barely illuminated.
  * This creates a desperate, isolated feeling.
  */
-function createNightLighting(
-  scene: Scene,
-  root: TransformNode
-): PointLight[] {
+function createNightLighting(scene: Scene, root: TransformNode): PointLight[] {
   const lights: PointLight[] = [];
 
   // --- Landing pad center light (faint overhead) ---
@@ -885,9 +882,12 @@ function getLandingPadPlacements(): Placement[] {
       // Calculate rotation for edge tiles to face outward
       let rotY = 0;
       if (isEdge) {
-        if (row === -2) rotY = 0; // South edge
-        else if (row === 2) rotY = Math.PI; // North edge
-        else if (col === -2) rotY = Math.PI / 2; // West edge
+        if (row === -2)
+          rotY = 0; // South edge
+        else if (row === 2)
+          rotY = Math.PI; // North edge
+        else if (col === -2)
+          rotY = Math.PI / 2; // West edge
         else if (col === 2) rotY = -Math.PI / 2; // East edge
       }
 
@@ -1253,8 +1253,7 @@ export async function buildExtractionEnvironment(
   await Promise.all(loadPromises);
 
   log.info(
-    `Loaded ${uniquePaths.size} unique assets, ` +
-      `placing ${allPlacements.length} instances`
+    `Loaded ${uniquePaths.size} unique assets, ` + `placing ${allPlacements.length} instances`
   );
 
   // ------------------------------------------------------------------
@@ -1266,9 +1265,18 @@ export async function buildExtractionEnvironment(
   // Track which placements produce cover objects (concrete blocks, crates,
   // bunker walls) so the level can use them for gameplay collision.
   const coverLabels = new Set([
-    'east_block_1', 'east_block_2', 'west_block_1', 'west_block_2',
-    'crate_e1', 'crate_e2', 'crate_w1', 'crate_w2', 'crate_ne', 'crate_nw',
-    'crate_long_sw', 'crate_long_se',
+    'east_block_1',
+    'east_block_2',
+    'west_block_1',
+    'west_block_2',
+    'crate_e1',
+    'crate_e2',
+    'crate_w1',
+    'crate_w2',
+    'crate_ne',
+    'crate_nw',
+    'crate_long_sw',
+    'crate_long_se',
   ]);
 
   for (let i = 0; i < allPlacements.length; i++) {
@@ -1306,9 +1314,7 @@ export async function buildExtractionEnvironment(
     placed++;
   }
 
-  log.info(
-    `Placed ${placed} GLB instances, skipped ${skipped}`
-  );
+  log.info(`Placed ${placed} GLB instances, skipped ${skipped}`);
 
   // ------------------------------------------------------------------
   // 4. Transient VFX and procedural elements

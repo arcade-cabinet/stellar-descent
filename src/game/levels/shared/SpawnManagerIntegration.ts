@@ -18,10 +18,10 @@
  *     return enemy.id;
  *   },
  *   onWaveStart: (waveNumber, label) => {
- *     this.callbacks.onNotification(`${label ?? 'WAVE ' + (waveNumber + 1)}`, 2000);
+ *     this.emitNotification(`${label ?? 'WAVE ' + (waveNumber + 1)}`, 2000);
  *   },
  *   onWaveComplete: (waveNumber) => {
- *     this.callbacks.onNotification('WAVE CLEARED', 1500);
+ *     this.emitNotification('WAVE CLEARED', 1500);
  *   },
  *   onAllWavesComplete: () => {
  *     this.onCombatCleared();
@@ -43,9 +43,9 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 
 import { getEventBus } from '../../core/EventBus';
 import { getLogger } from '../../core/Logger';
-import { SpawnManager, type SpawnManagerCallbacks } from './SpawnManager';
-import type { EnemyStatOverrides, LevelSpawnConfig } from './SpawnConfig';
 import { LEVEL_SPAWN_CONFIGS } from './LevelSpawnConfigs';
+import type { EnemyStatOverrides, LevelSpawnConfig } from './SpawnConfig';
+import { SpawnManager, type SpawnManagerCallbacks } from './SpawnManager';
 
 const log = getLogger('SpawnManagerIntegration');
 
@@ -112,7 +112,13 @@ export function createLevelSpawnManager(
           position: { x: position.x, y: position.y, z: position.z },
           facingAngle,
         });
-        callbacks.onEventEmit?.('ENEMY_SPAWNED', { levelId, speciesId, entityId, position, facingAngle });
+        callbacks.onEventEmit?.('ENEMY_SPAWNED', {
+          levelId,
+          speciesId,
+          entityId,
+          position,
+          facingAngle,
+        });
       }
 
       return entityId;
@@ -176,10 +182,9 @@ export function positionToVector3(pos: { x: number; y: number; z: number }): Vec
  * @param overrides - Optional overrides from spawn config
  * @returns Modified stats with overrides applied
  */
-export function applyStatOverrides<T extends { health: number; damage: number; speed: number; scale?: number }>(
-  baseStats: T,
-  overrides: Partial<EnemyStatOverrides> | null
-): T {
+export function applyStatOverrides<
+  T extends { health: number; damage: number; speed: number; scale?: number },
+>(baseStats: T, overrides: Partial<EnemyStatOverrides> | null): T {
   if (!overrides) return baseStats;
 
   return {

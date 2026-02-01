@@ -13,7 +13,7 @@
  * - Animated open/close transitions
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { COMMAND_INFO, type SquadCommand } from '../../game/ai/SquadCommandSystem';
 import styles from './CommandWheel.module.css';
 
@@ -26,15 +26,15 @@ interface CommandWheelProps {
 
 // Command arrangement (clockwise from top)
 const COMMAND_ORDER: SquadCommand[] = [
-  'FOLLOW_ME',       // Top (270 degrees)
-  'ATTACK_TARGET',   // Top-right (342 degrees)
+  'FOLLOW_ME', // Top (270 degrees)
+  'ATTACK_TARGET', // Top-right (342 degrees)
   'SUPPRESSING_FIRE', // Bottom-right (54 degrees)
-  'REGROUP',         // Bottom-left (126 degrees)
-  'HOLD_POSITION',   // Top-left (198 degrees)
+  'REGROUP', // Bottom-left (126 degrees)
+  'HOLD_POSITION', // Top-left (198 degrees)
 ];
 
 // Calculate segment angles
-const SEGMENT_ANGLE = (Math.PI * 2) / 5; // 72 degrees per segment
+const _SEGMENT_ANGLE = (Math.PI * 2) / 5; // 72 degrees per segment
 
 export function CommandWheel({
   isOpen,
@@ -112,10 +112,7 @@ export function CommandWheel({
       role="menu"
       aria-label="Squad Command Wheel"
     >
-      <div
-        ref={wheelRef}
-        className={`${styles.wheel} ${showWheel ? styles.open : ''}`}
-      >
+      <div ref={wheelRef} className={`${styles.wheel} ${showWheel ? styles.open : ''}`}>
         {/* Center indicator */}
         <div className={styles.centerHub}>
           <span className={styles.centerLabel}>COMMAND</span>
@@ -128,7 +125,7 @@ export function CommandWheel({
 
           // Calculate segment position
           // Start from top (-90 degrees) and go clockwise
-          const baseAngle = -90 + (index * 72); // degrees
+          const baseAngle = -90 + index * 72; // degrees
           const angleRad = (baseAngle * Math.PI) / 180;
 
           // Position at segment center (radius ~100px from center)
@@ -156,7 +153,7 @@ export function CommandWheel({
 
         {/* Segment divider lines */}
         {[0, 1, 2, 3, 4].map((index) => {
-          const angle = -90 + 36 + (index * 72); // Start at segment boundary
+          const angle = -90 + 36 + index * 72; // Start at segment boundary
           return (
             <div
               key={`divider-${index}`}
@@ -172,17 +169,14 @@ export function CommandWheel({
         <svg className={styles.selectionRing} viewBox="0 0 300 300">
           {COMMAND_ORDER.map((command, index) => {
             const isSelected = selectedCommand === command;
-            const startAngle = -90 + (index * 72) - 36;
+            const startAngle = -90 + index * 72 - 36;
             const endAngle = startAngle + 72;
 
             // Convert to SVG arc
             const start = polarToCartesian(150, 150, 140, startAngle);
             const end = polarToCartesian(150, 150, 140, endAngle);
 
-            const d = [
-              'M', start.x, start.y,
-              'A', 140, 140, 0, 0, 1, end.x, end.y,
-            ].join(' ');
+            const d = ['M', start.x, start.y, 'A', 140, 140, 0, 0, 1, end.x, end.y].join(' ');
 
             return (
               <path
@@ -201,7 +195,9 @@ export function CommandWheel({
           {selectedCommand ? (
             <>
               <span className={styles.selectedName}>{COMMAND_INFO[selectedCommand].label}</span>
-              <span className={styles.selectedDesc}>{COMMAND_INFO[selectedCommand].description}</span>
+              <span className={styles.selectedDesc}>
+                {COMMAND_INFO[selectedCommand].description}
+              </span>
             </>
           ) : (
             <span className={styles.hint}>Move mouse to select</span>

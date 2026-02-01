@@ -32,7 +32,6 @@
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -45,21 +44,27 @@ import { getAudioManager } from '../../core/AudioManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('CanyonRun');
+
 import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
+import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';
+import { GyroscopeManager } from '../../weapons/VehicleYoke';
 import { SurfaceLevel } from '../SurfaceLevel';
 import { buildFloraFromPlacements, getCanyonRunFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getCanyonRunCollectibles } from '../shared/CollectiblePlacer';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getCanyonRunCollectibles,
+} from '../shared/CollectiblePlacer';
 import {
   createDynamicTerrain,
   ROCK_TERRAIN,
   type TerrainResult,
 } from '../shared/SurfaceTerrainFactory';
-import type { LevelCallbacks, LevelConfig, LevelState } from '../types';
+import type { LevelConfig, LevelState } from '../types';
 import {
   BRIDGE_Z,
-  type BridgeStructure,
   CANYON_HALF_WIDTH,
   CANYON_LENGTH,
   type CanyonEnvironment,
@@ -67,15 +72,12 @@ import {
   createCanyonEnvironment,
   disposeRockslide,
   EXTRACTION_Z,
-  type ObjectiveMarker,
   type RockslideRock,
   sampleTerrainHeight,
   spawnRockslide,
   updateRockslide,
 } from './environment';
 import { VehicleController } from './VehicleController';
-import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';
-import { GyroscopeManager } from '../../weapons/VehicleYoke';
 
 // ============================================================================
 // TYPES
@@ -253,9 +255,6 @@ export class CanyonRunLevel extends SurfaceLevel {
   private commsPlayed = new Set<string>();
   private wraithsSpawned = false;
   private finalWraithsSpawned = false;
-
-  // Player stats
-  private playerHealth = 100;
   private kills = 0;
 
   // Objective tracking
@@ -296,12 +295,14 @@ export class CanyonRunLevel extends SurfaceLevel {
   private chaseMusicIntensity = 0;
 
   // Mouse state for turret control
-  private mouseState: {
-    movementX: number;
-    movementY: number;
-    leftButton: boolean;
-    rightButton: boolean;
-  } | undefined = undefined;
+  private mouseState:
+    | {
+        movementX: number;
+        movementY: number;
+        leftButton: boolean;
+        rightButton: boolean;
+      }
+    | undefined = undefined;
 
   // Mouse event handlers (for cleanup)
   private boundMouseMoveHandler: ((e: MouseEvent) => void) | null = null;
@@ -314,13 +315,8 @@ export class CanyonRunLevel extends SurfaceLevel {
   // Flag for vehicle yoke mode
   private vehicleYokeActive = false;
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks, {
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
+    super(engine, canvas, config, {
       terrainSize: CANYON_LENGTH,
       heightScale: 5,
       timeOfDay: 0.4,
@@ -411,10 +407,18 @@ export class CanyonRunLevel extends SurfaceLevel {
 
     // Build collectibles
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getCanyonRunCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getCanyonRunCollectibles(),
+      collectibleRoot
+    );
 
     // Register vehicle-specific dynamic keybindings
-    registerDynamicActions('canyon_run', ['vehicleBoost', 'vehicleBrake', 'vehicleEject'], 'vehicle');
+    registerDynamicActions(
+      'canyon_run',
+      ['vehicleBoost', 'vehicleBrake', 'vehicleEject'],
+      'vehicle'
+    );
 
     // [FIX #1] Initialize checkpoint system
     this.initCheckpoints();
@@ -511,7 +515,7 @@ export class CanyonRunLevel extends SurfaceLevel {
         cp.reached = true;
         cp.saveData = this.getState();
         this.lastCheckpointIndex = i;
-        this.callbacks.onNotification(`${cp.label} - CHECKPOINT SAVED`, 2500);
+        this.emitNotification(`${cp.label} - CHECKPOINT SAVED`, 2500);
         // Play checkpoint sound
         this.playSound('door_open');
       }
@@ -614,7 +618,9 @@ export class CanyonRunLevel extends SurfaceLevel {
     this.cleanupMouseInput();
 
     // Dispose flora
-    for (const node of this.floraNodes) { node.dispose(false, true); }
+    for (const node of this.floraNodes) {
+      node.dispose(false, true);
+    }
     this.floraNodes = [];
     // Dispose collectibles
     this.collectibleSystem?.dispose();
@@ -677,7 +683,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     this.removeAudioZone('canyon_extraction');
 
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
+    this.emitActionHandlerRegistered(null);
 
     // Unregister vehicle-specific dynamic keybindings
     unregisterDynamicActions('canyon_run');
@@ -694,20 +700,17 @@ export class CanyonRunLevel extends SurfaceLevel {
     this.phase = 'intro';
     this.phaseTime = 0;
 
-    this.callbacks.onChapterChange(this.config.chapter);
-    this.callbacks.onObjectiveUpdate(
-      'REACH FOB DELTA',
-      'Board the vehicle and drive through the canyon.'
-    );
+    this.emitChapterChanged(this.config.chapter);
+    this.emitObjectiveUpdate('REACH FOB DELTA', 'Board the vehicle and drive through the canyon.');
 
     // Intro comms
     this.sendComms('intro', COMMS.intro);
 
     // Cinematic start
-    this.callbacks.onCinematicStart?.();
+    this.emitCinematicStart();
   }
 
-  private updateIntro(deltaTime: number): void {
+  private updateIntro(_deltaTime: number): void {
     // Pan camera toward vehicle during intro
     if (this.phaseTime < 3.0) {
       const t = this.phaseTime / 3.0;
@@ -719,7 +722,7 @@ export class CanyonRunLevel extends SurfaceLevel {
       this.sendComms('vehicleReady', COMMS.vehicleReady);
 
       // Transition to driving
-      this.callbacks.onCinematicEnd?.();
+      this.emitCinematicEnd();
       this.transitionToPhase('canyon_approach');
 
       // Enter vehicle mode - show yoke instead of weapon
@@ -741,7 +744,7 @@ export class CanyonRunLevel extends SurfaceLevel {
   // PHASE: CANYON APPROACH
   // ==========================================================================
 
-  private updateCanyonApproach(deltaTime: number): void {
+  private updateCanyonApproach(_deltaTime: number): void {
     if (!this.vehicle) return;
 
     const playerZ = this.vehicle.getPosition().z;
@@ -771,7 +774,7 @@ export class CanyonRunLevel extends SurfaceLevel {
   // PHASE: BRIDGE CROSSING
   // ==========================================================================
 
-  private updateBridgeCrossing(deltaTime: number): void {
+  private updateBridgeCrossing(_deltaTime: number): void {
     if (!this.vehicle) return;
 
     const playerZ = this.vehicle.getPosition().z;
@@ -812,7 +815,7 @@ export class CanyonRunLevel extends SurfaceLevel {
   // PHASE: FINAL STRETCH
   // ==========================================================================
 
-  private updateFinalStretch(deltaTime: number): void {
+  private updateFinalStretch(_deltaTime: number): void {
     if (!this.vehicle) return;
 
     const playerZ = this.vehicle.getPosition().z;
@@ -851,16 +854,16 @@ export class CanyonRunLevel extends SurfaceLevel {
   // PHASE: EXTRACTION
   // ==========================================================================
 
-  private updateExtraction(deltaTime: number): void {
+  private updateExtraction(_deltaTime: number): void {
     if (this.extractionReached) return;
     this.extractionReached = true;
 
     this.sendComms('extracted', COMMS.extracted);
     this.setCombatState(false);
 
-    this.callbacks.onObjectiveUpdate('EXTRACTION COMPLETE', 'Proceed to FOB Delta.');
+    this.emitObjectiveUpdate('EXTRACTION COMPLETE', 'Proceed to FOB Delta.');
 
-    this.callbacks.onNotification('EXTRACTION POINT REACHED', 3000);
+    this.emitNotification('EXTRACTION POINT REACHED', 3000);
 
     // Complete level after a short delay
     setTimeout(() => {
@@ -880,19 +883,16 @@ export class CanyonRunLevel extends SurfaceLevel {
 
     switch (newPhase) {
       case 'canyon_approach':
-        this.callbacks.onObjectiveUpdate(
+        this.emitObjectiveUpdate(
           'REACH THE BRIDGE',
           'Drive through the canyon. Watch for obstacles.'
         );
         break;
       case 'bridge_crossing':
-        this.callbacks.onObjectiveUpdate(
-          'CROSS THE BRIDGE',
-          'The bridge is unstable - get across fast!'
-        );
+        this.emitObjectiveUpdate('CROSS THE BRIDGE', 'The bridge is unstable - get across fast!');
         break;
       case 'final_stretch':
-        this.callbacks.onObjectiveUpdate(
+        this.emitObjectiveUpdate(
           'REACH EXTRACTION',
           'Enemy pursuit! Boost to the extraction point!'
         );
@@ -918,11 +918,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     if (!this.vehicle) return;
 
     // Build input with mouse state for turret control
-    let input = VehicleController.buildInput(
-      this.keys,
-      this.touchInput,
-      this.mouseState
-    );
+    let input = VehicleController.buildInput(this.keys, this.touchInput, this.mouseState);
 
     // Override with gyroscope input on mobile if available
     if (this.gyroscopeManager?.isEnabled()) {
@@ -1003,7 +999,7 @@ export class CanyonRunLevel extends SurfaceLevel {
 
     // Note: In a full implementation, this would transition to on-foot gameplay
     // For Canyon Run, we don't allow exiting during the chase
-    this.callbacks.onNotification('STAY IN THE VEHICLE!', 1500);
+    this.emitNotification('STAY IN THE VEHICLE!', 1500);
   }
 
   private updateVehicleDamageFeedback(): void {
@@ -1013,7 +1009,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     const healthPct = this.vehicle.getHealthNormalized();
 
     // Update HUD health
-    this.callbacks.onHealthChange(health);
+    this.emitHealthChanged(health);
     this.updatePlayerHealthVisual(health);
 
     // Damage warning at 50%
@@ -1031,7 +1027,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     // Vehicle destroyed
     if (this.vehicle.isDead()) {
       this.onPlayerDeath();
-      this.callbacks.onHealthChange(0);
+      this.emitHealthChanged(0);
     }
   }
 
@@ -1067,7 +1063,8 @@ export class CanyonRunLevel extends SurfaceLevel {
       true,
       'vehicle'
     );
-    const body: TransformNode = bodyNode ?? new TransformNode(`wraith_body_fallback_${index}`, this.scene);
+    const body: TransformNode =
+      bodyNode ?? new TransformNode(`wraith_body_fallback_${index}`, this.scene);
     body.parent = rootNode;
     body.position.y = 0;
     body.scaling.setAll(2.0);
@@ -1230,10 +1227,10 @@ export class CanyonRunLevel extends SurfaceLevel {
         if (dist < PROJECTILE_BLAST_RADIUS) {
           this.detonateProjectile(proj, i);
           // Damage vehicle
-          const destroyed = this.vehicle.applyDamage(proj.damage);
+          const _destroyed = this.vehicle.applyDamage(proj.damage);
           this.triggerDamageFlash(0.5);
           this.triggerShake(3);
-          this.callbacks.onDamage();
+          this.emitDamageRegistered();
           this.trackPlayerDamage(proj.damage);
         }
       }
@@ -1279,11 +1276,7 @@ export class CanyonRunLevel extends SurfaceLevel {
         explosion.scaling.setAll(scale);
         explosionMat.alpha = Math.max(0, alpha);
         // Shift color from orange to gray
-        explosionMat.emissiveColor = new Color3(
-          1.0 - scale * 0.1,
-          0.5 - scale * 0.05,
-          0.1
-        );
+        explosionMat.emissiveColor = new Color3(1.0 - scale * 0.1, 0.5 - scale * 0.05, 0.1);
 
         if (alpha > 0) {
           requestAnimationFrame(animate);
@@ -1336,7 +1329,7 @@ export class CanyonRunLevel extends SurfaceLevel {
             this.vehicle.applyDamage(10);
             this.triggerDamageFlash(0.3);
             this.triggerShake(2);
-            this.callbacks.onDamage();
+            this.emitDamageRegistered();
             this.trackPlayerDamage(10);
             rock.lifetime = 0; // Prevent double-hit
             rock.mesh.dispose();
@@ -1376,7 +1369,7 @@ export class CanyonRunLevel extends SurfaceLevel {
         this.triggerDamageFlash(0.2);
         this.triggerShake(2);
         this.playSound('player_damage');
-        this.callbacks.onDamage();
+        this.emitDamageRegistered();
         this.trackPlayerDamage(8);
       }
     }
@@ -1400,7 +1393,7 @@ export class CanyonRunLevel extends SurfaceLevel {
         this.currentObjectiveIndex = i + 1;
 
         // Notification
-        this.callbacks.onNotification(`${marker.label} REACHED`, 2000);
+        this.emitNotification(`${marker.label} REACHED`, 2000);
 
         // Dim the reached marker
         marker.mesh.isVisible = false;
@@ -1448,17 +1441,17 @@ export class CanyonRunLevel extends SurfaceLevel {
       ],
     };
 
-    this.callbacks.onActionGroupsChange([vehicleGroup]);
+    this.emitActionGroupsChanged([vehicleGroup]);
 
     // Register action handler
     this.actionCallback = (actionId: string) => {
       if (actionId === 'boost') {
         // Boost is handled continuously via keyboard/touch
         // This callback is for the button press event
-        this.callbacks.onNotification('BOOST ENGAGED', 1000);
+        this.emitNotification('BOOST ENGAGED', 1000);
       }
     };
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
   }
 
   // ==========================================================================
@@ -1477,7 +1470,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     if (this.commsPlayed.has(id)) return;
     this.commsPlayed.add(id);
 
-    this.callbacks.onCommsMessage({
+    this.emitCommsMessage({
       sender: message.sender,
       callsign: message.callsign,
       portrait: message.portrait,
@@ -1543,9 +1536,9 @@ export class CanyonRunLevel extends SurfaceLevel {
     const state = this.vehicle.getState();
 
     // Update boost meter
-    const boostPct = Math.round(state.boostFuel / state.boostFuelMax * 100);
+    const boostPct = Math.round((state.boostFuel / state.boostFuelMax) * 100);
     if (boostPct <= 20 && state.isBoosting) {
-      this.callbacks.onNotification('BOOST LOW', 500);
+      this.emitNotification('BOOST LOW', 500);
     }
 
     // Boost cooldown notification
@@ -1555,7 +1548,7 @@ export class CanyonRunLevel extends SurfaceLevel {
 
     // Turret heat warning
     if (state.turretHeat > 0.8 && !state.turretOverheated) {
-      this.callbacks.onNotification('TURRET HEAT WARNING', 300);
+      this.emitNotification('TURRET HEAT WARNING', 300);
     }
 
     // Turret overheated
@@ -1579,7 +1572,7 @@ export class CanyonRunLevel extends SurfaceLevel {
     // Handbrake indicator
     const handbrakeStatus = state.isHandbraking ? ' [DRIFT]' : '';
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       this.getPhaseObjective(),
       `${speedMPH} MPH${boostStatus}${handbrakeStatus}${turretStatus}`
     );

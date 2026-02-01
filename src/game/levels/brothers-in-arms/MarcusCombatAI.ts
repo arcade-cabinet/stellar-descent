@@ -29,13 +29,13 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
-import type { SquadCommandData } from '../../ai/SquadCommandSystem';
 import {
   MarcusSteeringAI,
   type SteeringMode,
   type SteeringResult,
   type TargetCallout,
 } from '../../ai/MarcusSteeringAI';
+import type { SquadCommandData } from '../../ai/SquadCommandSystem';
 import type { Entity } from '../../core/ecs';
 import { createEntity, removeEntity } from '../../core/ecs';
 import type { CommsMessage } from '../../types';
@@ -318,9 +318,6 @@ export class MarcusCombatAI {
   private isReloading: boolean = false;
   private reloadEndTime: number = 0;
   private reloadDuration: number = 2000; // 2 seconds to reload
-
-  // Downed state tracking
-  private downedStartTime: number = 0;
   private downedDuration: number = 15000; // 15 seconds to auto-recover
   private downedRecoveryProgress: number = 0;
   private playerAssistRange: number = 15; // Player within this range speeds up recovery
@@ -335,7 +332,6 @@ export class MarcusCombatAI {
 
   // Statistics
   private killCount: number = 0;
-  private damageDealt: number = 0;
   private assistCount: number = 0;
 
   // YukaAI Steering System
@@ -1042,11 +1038,7 @@ export class MarcusCombatAI {
     }
 
     // Update steering AI with current state
-    this.steeringAI.updatePlayerState(
-      this.playerPosition,
-      this.playerForward,
-      this.playerVelocity
-    );
+    this.steeringAI.updatePlayerState(this.playerPosition, this.playerForward, this.playerVelocity);
     this.steeringAI.setPosition(this.position);
 
     // Update target selection
@@ -1399,105 +1391,6 @@ export class MarcusCombatAI {
     }
   }
 
-  private fireWeapons(): void {
-    if (!this.currentTarget) return;
-
-    const arms = [this.leftArm, this.rightArm];
-    const targetPos =
-      this.state === 'suppression' && this.activeCoordinatedAttack
-        ? this.activeCoordinatedAttack.targetPosition
-        : this.currentTarget.mesh.position;
-
-    for (const arm of arms) {
-      // Get arm world position
-      const startPos = arm.absolutePosition.clone();
-      startPos.y -= 2;
-
-      // Add some inaccuracy for suppression fire
-      const finalTarget = targetPos.clone();
-      if (this.state === 'suppression') {
-        finalTarget.x += (Math.random() - 0.5) * 5;
-        finalTarget.z += (Math.random() - 0.5) * 5;
-      }
-
-      const direction = finalTarget.subtract(startPos).normalize();
-      const velocity = direction.scale(60);
-
-      // Create projectile
-      const projectile = MeshBuilder.CreateSphere(
-        `marcusProjectile_${Date.now()}`,
-        { diameter: 0.6 },
-        this.scene
-      );
-      projectile.position = startPos;
-
-      const projMat = new StandardMaterial('marcusProjMat', this.scene);
-      projMat.emissiveColor = Color3.FromHexString(tokens.colors.accent.brass);
-      projMat.disableLighting = true;
-      projectile.material = projMat;
-
-      // Arm recoil animation
-      const recoilZ = arm.position.x < 0 ? 0.15 : -0.15;
-      const restZ = arm.position.x < 0 ? 0.3 : -0.3;
-      arm.rotation.z += recoilZ;
-      setTimeout(() => {
-        arm.rotation.z = restZ;
-      }, 100);
-
-      // Create projectile entity
-      const projEntity = createEntity({
-        transform: {
-          position: startPos.clone(),
-          rotation: Vector3.Zero(),
-          scale: new Vector3(1, 1, 1),
-        },
-        velocity: {
-          linear: velocity,
-          angular: Vector3.Zero(),
-          maxSpeed: 60,
-        },
-        renderable: {
-          mesh: projectile,
-          visible: true,
-        },
-        tags: {
-          projectile: true,
-          ally: true,
-        },
-        lifetime: {
-          remaining: 3000,
-          onExpire: () => {
-            projectile.material?.dispose();
-            projectile.dispose();
-          },
-        },
-      });
-
-      // Simple collision check after travel time
-      const travelTime = Vector3.Distance(startPos, finalTarget) / 60;
-      setTimeout(
-        () => {
-          if (!this.currentTarget || this.currentTarget.mesh.isDisposed()) {
-            projectile.material?.dispose();
-            projectile.dispose();
-            removeEntity(projEntity);
-            return;
-          }
-
-          const dist = Vector3.Distance(projectile.position, this.currentTarget.mesh.position);
-          if (dist < 2) {
-            // Hit - the level handles actual damage application
-          }
-
-          projectile.material?.dispose();
-          projectile.dispose();
-          removeEntity(projEntity);
-        },
-        Math.max(100, travelTime * 1000)
-      );
-    }
-  }
-
   // ============================================================================
   // PRIVATE METHODS - REPAIR
   // ============================================================================
@@ -1589,11 +1482,7 @@ export class MarcusCombatAI {
     if (!this.steeringAI) return null;
 
     // Update steering AI with latest player state
-    this.steeringAI.updatePlayerState(
-      this.playerPosition,
-      this.playerForward,
-      this.playerVelocity
-    );
+    this.steeringAI.updatePlayerState(this.playerPosition, this.playerForward, this.playerVelocity);
 
     // Update steering AI position
     this.steeringAI.setPosition(this.position);

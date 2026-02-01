@@ -544,7 +544,7 @@
   .criticalIndicator,
   .warningText,
   .warningIcon {
-    animation: none !important;
+    animation: none;
   }
 
   .damageVignette {

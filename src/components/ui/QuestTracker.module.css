@@ -13,7 +13,7 @@
   border: 1px solid rgba(100, 200, 255, 0.3);
   border-left: 3px solid rgba(100, 200, 255, 0.8);
   padding: 12px 16px;
-  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
   color: rgba(200, 220, 255, 0.95);
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.5),
@@ -55,7 +55,8 @@
 }
 
 @keyframes nearCompletePulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -85,13 +86,13 @@
 
 .questType.main {
   background: rgba(255, 180, 0, 0.25);
-  color: #FFD54F;
+  color: #ffd54f;
   border: 1px solid rgba(255, 180, 0, 0.4);
 }
 
 .questType.optional {
   background: rgba(100, 200, 255, 0.2);
-  color: #64B5F6;
+  color: #64b5f6;
   border: 1px solid rgba(100, 200, 255, 0.3);
 }
 
@@ -190,26 +191,27 @@
 .timerValue {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'Orbitron', 'Courier New', monospace;
+  font-family: "Orbitron", "Courier New", monospace;
   letter-spacing: 0.1em;
   color: rgba(200, 230, 255, 0.95);
   text-shadow: 0 0 8px rgba(100, 200, 255, 0.4);
 }
 
 .timer.timerWarning .timerValue {
-  color: #FFB74D;
+  color: #ffb74d;
   text-shadow: 0 0 12px rgba(255, 183, 77, 0.6);
   animation: timerPulse 1s infinite;
 }
 
 .timer.timerCritical .timerValue {
-  color: #EF5350;
+  color: #ef5350;
   text-shadow: 0 0 12px rgba(239, 83, 80, 0.8);
   animation: timerPulse 0.5s infinite;
 }
 
 @keyframes timerPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

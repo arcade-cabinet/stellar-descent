@@ -6,23 +6,18 @@
  * Integrates with the existing CinematicSystem for playback.
  */
 
-import { getLogger } from '../core/Logger';
+import { CINEMATIC_ASSETS, getAssetsForLevel, PORTRAIT_ASSETS } from '../ai/AssetManifest';
 import { getGeminiGenerator } from '../ai/GeminiAssetGenerator';
-import {
-  CINEMATIC_ASSETS,
-  PORTRAIT_ASSETS,
-  QUEST_IMAGES,
-  getAssetsForLevel,
-} from '../ai/AssetManifest';
 import type {
+  CachedAsset,
   CinematicAssetDef,
-  PortraitAssetDef,
-  QuestImageDef,
+  CinematicLoadStatus,
   LoadedCinematic,
   LoadedPortrait,
-  CinematicLoadStatus,
-  CachedAsset,
+  PortraitAssetDef,
+  QuestImageDef,
 } from '../ai/types';
+import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
 
 const log = getLogger('CinematicAssetLoader');
@@ -32,7 +27,8 @@ const log = getLogger('CinematicAssetLoader');
 // ============================================================================
 
 /** Default fallback video (black with static noise) */
-const FALLBACK_VIDEO_DATA_URI = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAA';
+const _FALLBACK_VIDEO_DATA_URI =
+  'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAA';
 
 /** Default fallback image (dark placeholder) */
 const FALLBACK_IMAGE_DATA_URI =
@@ -60,8 +56,6 @@ export class CinematicAssetLoader {
 
   /** Whether the loader has been initialized */
   private initialized = false;
-
-  constructor() {}
 
   /**
    * Initialize the loader and warm up the generator
@@ -218,7 +212,7 @@ export class CinematicAssetLoader {
    * Load all character portraits
    */
   async loadAllPortraits(): Promise<Map<string, LoadedPortrait>> {
-    const generator = getGeminiGenerator();
+    const _generator = getGeminiGenerator();
 
     for (const def of PORTRAIT_ASSETS) {
       try {
@@ -344,7 +338,7 @@ export class CinematicAssetLoader {
    * Load a single quest image
    */
   private async loadQuestImage(
-    def: QuestImageDef,
+    _def: QuestImageDef,
     cached: CachedAsset
   ): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {

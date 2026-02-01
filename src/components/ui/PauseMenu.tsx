@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getCollectionProgress } from '../../game/collectibles';
+import { getCollectiblesProgress } from '../../game/collectibles';
+import { getAudioManager } from '../../game/core/AudioManager';
+import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
   ACTION_LABELS,
   type BindableAction,
   getKeyDisplayName,
   useKeybindings,
-} from '../../game/context/KeybindingsContext';
-import { getAudioManager } from '../../game/core/AudioManager';
-import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
+} from '../../game/stores/useKeybindingsStore';
 import { AudioLogCollection } from './AudioLogCollection';
 import { MilitaryButton } from './MilitaryButton';
 import styles from './PauseMenu.module.css';
@@ -103,8 +103,28 @@ export function PauseMenu({
     return CAMPAIGN_LEVELS[currentLevelId];
   }, [currentLevelId]);
 
-  // Get audio log collection progress for badge display
-  const audioLogProgress = useMemo(() => getCollectionProgress(), []);
+  // Get audio log collection progress for badge display (async)
+  const [audioLogProgress, setAudioLogProgress] = useState<{
+    total: number;
+    discovered: number;
+    played: number;
+    percentage: number;
+  }>({ total: 0, discovered: 0, played: 0, percentage: 0 });
+
+  useEffect(() => {
+    const collectiblesProgress = getCollectiblesProgress();
+    setAudioLogProgress({
+      total: collectiblesProgress.audioLogs.total,
+      discovered: collectiblesProgress.audioLogs.found,
+      played: collectiblesProgress.audioLogs.played,
+      percentage:
+        collectiblesProgress.audioLogs.total > 0
+          ? Math.round(
+              (collectiblesProgress.audioLogs.found / collectiblesProgress.audioLogs.total) * 100
+            )
+          : 0,
+    });
+  }, []);
 
   // Main menu buttons configuration
   const mainMenuButtons = useMemo(

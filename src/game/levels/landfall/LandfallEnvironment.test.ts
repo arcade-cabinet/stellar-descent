@@ -8,16 +8,15 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildLandfallEnvironment,
-  setEnvironmentVisible,
   disposeEnvironment,
+  type LandfallEnvironmentNodes,
+  setEnvironmentVisible,
   updateEnvironmentLOD,
   updateOrbitalStation,
-  type LandfallEnvironmentNodes,
 } from './LandfallEnvironment';
 
 // ---------------------------------------------------------------------------
@@ -41,7 +40,7 @@ const { MockTransformNode, MockPointLight } = vi.hoisted(() => {
     getChildMeshes = vi.fn(() => []);
     isDisposed = vi.fn(() => false);
 
-    constructor(name: string, scene: any) {
+    constructor(name: string, _scene: any) {
       this.name = name;
     }
   }
@@ -56,7 +55,7 @@ const { MockTransformNode, MockPointLight } = vi.hoisted(() => {
     parent: any = null;
     dispose = vi.fn();
 
-    constructor(name: string, position: any, scene: any) {
+    constructor(name: string, position: any, _scene: any) {
       this.name = name;
       this.position = position;
     }
@@ -77,7 +76,7 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
 vi.mock('../../core/AssetManager', () => ({
   AssetManager: {
     loadAssetByPath: vi.fn().mockResolvedValue(true),
-    createInstanceByPath: vi.fn((path: string, name: string, scene: any) => {
+    createInstanceByPath: vi.fn((_path: string, name: string, _scene: any) => {
       const node = {
         name,
         position: new Vector3(0, 0, 0),
@@ -640,9 +639,9 @@ describe('Environment Integration', () => {
 
     // Simulate camera movement during gameplay
     const cameraPositions = [
-      new Vector3(0, 1.7, 0),      // At LZ
-      new Vector3(50, 1.7, 30),    // Moving towards wreckage
-      new Vector3(-30, 1.7, -20),  // Near storage tank
+      new Vector3(0, 1.7, 0), // At LZ
+      new Vector3(50, 1.7, 30), // Moving towards wreckage
+      new Vector3(-30, 1.7, -20), // Near storage tank
     ];
 
     for (const pos of cameraPositions) {

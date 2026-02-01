@@ -274,10 +274,7 @@ export class BulletTrailManager {
 
     // Create a simple line mesh (will be updated with actual points later)
     const points = [Vector3.Zero(), Vector3.Zero()];
-    const colors = [
-      new Color4(1, 1, 1, 1),
-      new Color4(1, 1, 1, 0),
-    ];
+    const colors = [new Color4(1, 1, 1, 1), new Color4(1, 1, 1, 0)];
 
     const mesh = MeshBuilder.CreateLines(
       `bulletTrail_${this.trailPool.length}`,
@@ -403,8 +400,7 @@ export class BulletTrailManager {
     this.shotCounters.set(counterKey, currentCount);
 
     // Determine if this should be a tracer
-    const isTracer =
-      config.tracerFrequency > 0 && currentCount % config.tracerFrequency === 0;
+    const isTracer = config.tracerFrequency > 0 && currentCount % config.tracerFrequency === 0;
 
     if (isTracer) {
       this.createTracer(start, end, config.tracerColor, config.tracerDuration);
@@ -484,13 +480,13 @@ export class BulletTrailManager {
 
       // Fade out the trail
       const alpha = trail.startOpacity * (1 - progress);
-      const color = (trail as PooledTrail & { _color?: Color3 })._color ?? new Color3(1, 0.85, 0.3);
+      const _color =
+        (trail as PooledTrail & { _color?: Color3 })._color ?? new Color3(1, 0.85, 0.3);
 
       // Update visibility based on alpha threshold
       if (alpha < 0.05) {
         trail.mesh.isVisible = false;
         trail.inUse = false;
-        continue;
       }
 
       // Note: Line alpha is set at creation time and can't be updated per-frame

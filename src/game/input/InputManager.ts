@@ -11,30 +11,26 @@
  * the game responds to KeyF instead.
  */
 
+import { getLogger } from '../core/Logger';
 import type {
   BindableAction,
   DynamicAction,
+  DynamicBindings,
   GamepadBindings,
   GamepadButton,
   Keybindings,
-  DynamicBindings,
   KeybindingValue,
-} from '../context/KeybindingsContext';
+} from '../stores/useKeybindingsStore';
 import {
-  DEFAULT_KEYBINDINGS,
-  DEFAULT_DYNAMIC_BINDINGS,
-  DEFAULT_GAMEPAD_BINDINGS,
   GAMEPAD_BUTTON_INDEX,
+  getDynamicBindings as getDynamicBindingsFromStore,
+  getGamepadBindings as getGamepadBindingsFromStore,
+  getKeybindings as getKeybindingsFromStore,
   getKeysForAction,
-} from '../context/KeybindingsContext';
-import { getLogger } from '../core/Logger';
+  subscribeToKeybindings,
+} from '../stores/useKeybindingsStore';
 
 const log = getLogger('InputManager');
-
-// Storage keys for persisted bindings
-const KEYBINDINGS_STORAGE_KEY = 'stellar-descent-keybindings';
-const DYNAMIC_BINDINGS_STORAGE_KEY = 'stellar-descent-dynamic-keybindings';
-const GAMEPAD_BINDINGS_STORAGE_KEY = 'stellar-descent-gamepad-bindings';
 
 // Gamepad analog stick deadzone
 const STICK_DEADZONE = 0.15;
@@ -123,7 +119,7 @@ export class InputManager {
   // Current input state
   private state: InputState;
 
-  // Keybindings loaded from localStorage/context
+  // Keybindings loaded from Zustand store
   private keybindings: Keybindings;
   private dynamicBindings: DynamicBindings;
   private gamepadBindings: GamepadBindings;
@@ -139,7 +135,6 @@ export class InputManager {
 
   // Track gamepad state
   private connectedGamepadIndex: number | null = null;
-  private lastButtonStates: boolean[] = [];
 
   // Track last input source for UI hints
   private lastInputSource: InputSource = 'keyboard';
@@ -152,6 +147,9 @@ export class InputManager {
   // Mouse movement accumulator (for look input)
   private mouseMovementX = 0;
   private mouseMovementY = 0;
+
+  // Subscription cleanup for keybindings store
+  private keybindingsUnsubscribe: (() => void) | null = null;
 
   constructor() {
     // Initialize state
@@ -172,10 +170,16 @@ export class InputManager {
       gamepadName: null,
     };
 
-    // Load keybindings
-    this.keybindings = this.loadKeybindings();
-    this.dynamicBindings = this.loadDynamicBindings();
-    this.gamepadBindings = this.loadGamepadBindings();
+    // Load keybindings from store
+    this.keybindings = getKeybindingsFromStore();
+    this.dynamicBindings = getDynamicBindingsFromStore();
+    this.gamepadBindings = getGamepadBindingsFromStore();
+
+    // Subscribe to keybinding changes
+    this.keybindingsUnsubscribe = subscribeToKeybindings((keybindings) => {
+      this.keybindings = keybindings;
+      log.debug('Keybindings updated from store');
+    });
 
     // Bind event handlers
     this.keydownHandler = this.handleKeyDown.bind(this);
@@ -224,6 +228,12 @@ export class InputManager {
     window.removeEventListener('gamepaddisconnected', this.gamepadDisconnectedHandler);
     window.removeEventListener('blur', this.blurHandler);
 
+    // Unsubscribe from keybindings store
+    if (this.keybindingsUnsubscribe) {
+      this.keybindingsUnsubscribe();
+      this.keybindingsUnsubscribe = null;
+    }
+
     this.state.keysPressed.clear();
     this.state.mouseButtons.clear();
     this.actionsJustPressed.clear();
@@ -237,54 +247,15 @@ export class InputManager {
   // KEYBINDING LOADING
   // ============================================================================
 
-  private loadKeybindings(): Keybindings {
-    try {
-      const stored = localStorage.getItem(KEYBINDINGS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return { ...DEFAULT_KEYBINDINGS, ...parsed };
-      }
-    } catch (e) {
-      log.warn('Failed to load keybindings from localStorage', e);
-    }
-    return { ...DEFAULT_KEYBINDINGS };
-  }
-
-  private loadDynamicBindings(): DynamicBindings {
-    try {
-      const stored = localStorage.getItem(DYNAMIC_BINDINGS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return { ...DEFAULT_DYNAMIC_BINDINGS, ...parsed };
-      }
-    } catch (e) {
-      log.warn('Failed to load dynamic bindings from localStorage', e);
-    }
-    return { ...DEFAULT_DYNAMIC_BINDINGS };
-  }
-
-  private loadGamepadBindings(): GamepadBindings {
-    try {
-      const stored = localStorage.getItem(GAMEPAD_BINDINGS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return { ...DEFAULT_GAMEPAD_BINDINGS, ...parsed };
-      }
-    } catch (e) {
-      log.warn('Failed to load gamepad bindings from localStorage', e);
-    }
-    return { ...DEFAULT_GAMEPAD_BINDINGS };
-  }
-
   /**
-   * Refresh all keybindings from localStorage.
-   * Call this when returning from settings menu.
+   * Refresh all keybindings from the store.
+   * Note: With store subscription, this is mostly for manual refresh if needed.
    */
   refreshKeybindings(): void {
-    this.keybindings = this.loadKeybindings();
-    this.dynamicBindings = this.loadDynamicBindings();
-    this.gamepadBindings = this.loadGamepadBindings();
-    log.info('Keybindings refreshed');
+    this.keybindings = getKeybindingsFromStore();
+    this.dynamicBindings = getDynamicBindingsFromStore();
+    this.gamepadBindings = getGamepadBindingsFromStore();
+    log.info('Keybindings refreshed from store');
   }
 
   // ============================================================================

@@ -146,9 +146,7 @@ export const anchorStationTrainingConfig: LevelSpawnConfig = {
       label: 'STATIC TARGETS',
       trigger: 'objective',
       triggerValue: 'training_start',
-      units: [
-        { species: 'drone', count: 3, spawnPoint: 'target_mid', delay: 0, spread: 8 },
-      ],
+      units: [{ species: 'drone', count: 3, spawnPoint: 'target_mid', delay: 0, spread: 8 }],
       onComplete: 'training_moving',
       spawnInterval: 1.0,
     },

@@ -13,9 +13,10 @@
  */
 
 import type { DifficultyLevel } from '../core/DifficultySettings';
+import { type GameEventListener, getEventBus } from '../core/EventBus';
 import { getLogger } from '../core/Logger';
 import { capacitorDb } from '../db/database';
-import type { LevelId } from '../levels/types';
+import type { LevelId, LevelStats } from '../levels/types';
 import {
   LEADERBOARD_INFO,
   type LeaderboardEntry,
@@ -35,9 +36,13 @@ const log = getLogger('LeaderboardSystem');
 // Maximum entries per leaderboard category
 const MAX_ENTRIES_PER_CATEGORY = 100;
 
-// Local storage key for player ID
-const PLAYER_ID_KEY = 'stellar_descent_player_id';
-const PLAYER_NAME_KEY = 'stellar_descent_player_name';
+// Database table for player settings
+const TABLE_PLAYER_SETTINGS = 'leaderboard_player_settings';
+
+// In-memory cache for player settings (loaded from DB on init)
+let cachedPlayerId: string | null = null;
+let cachedPlayerName: string | null = null;
+let playerSettingsLoaded = false;
 
 /**
  * Generate a unique player ID
@@ -47,29 +52,81 @@ function generatePlayerId(): string {
 }
 
 /**
+ * Load player settings from SQLite (internal)
+ */
+async function loadPlayerSettings(): Promise<void> {
+  if (playerSettingsLoaded) return;
+
+  try {
+    await capacitorDb.execute(`
+      CREATE TABLE IF NOT EXISTS ${TABLE_PLAYER_SETTINGS} (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
+
+    const rows = await capacitorDb.query<{ key: string; value: string }>(
+      `SELECT key, value FROM ${TABLE_PLAYER_SETTINGS}`
+    );
+
+    for (const row of rows) {
+      if (row.key === 'player_id') {
+        cachedPlayerId = row.value;
+      } else if (row.key === 'player_name') {
+        cachedPlayerName = row.value;
+      }
+    }
+
+    // Generate new player ID if none exists
+    if (!cachedPlayerId) {
+      cachedPlayerId = generatePlayerId();
+      await capacitorDb.run(
+        `INSERT OR REPLACE INTO ${TABLE_PLAYER_SETTINGS} (key, value) VALUES (?, ?)`,
+        ['player_id', cachedPlayerId]
+      );
+    }
+
+    playerSettingsLoaded = true;
+  } catch (error) {
+    log.error('Failed to load player settings:', error);
+    // Fallback to generated values
+    if (!cachedPlayerId) {
+      cachedPlayerId = generatePlayerId();
+    }
+    playerSettingsLoaded = true;
+  }
+}
+
+/**
  * Get or create the local player ID
  */
 function getPlayerId(): string {
-  let playerId = localStorage.getItem(PLAYER_ID_KEY);
-  if (!playerId) {
-    playerId = generatePlayerId();
-    localStorage.setItem(PLAYER_ID_KEY, playerId);
-  }
-  return playerId;
+  // Return cached value if available, or generate a temporary one
+  // The real value is loaded during initialize()
+  return cachedPlayerId ?? generatePlayerId();
 }
 
 /**
  * Get the local player name
  */
 function getPlayerName(): string {
-  return localStorage.getItem(PLAYER_NAME_KEY) || 'MARINE';
+  return cachedPlayerName ?? 'MARINE';
 }
 
 /**
  * Set the local player name
  */
 function setPlayerName(name: string): void {
-  localStorage.setItem(PLAYER_NAME_KEY, name.toUpperCase().substring(0, 16));
+  cachedPlayerName = name.toUpperCase().substring(0, 16);
+  // Fire and forget save
+  capacitorDb
+    .run(`INSERT OR REPLACE INTO ${TABLE_PLAYER_SETTINGS} (key, value) VALUES (?, ?)`, [
+      'player_name',
+      cachedPlayerName,
+    ])
+    .catch((error) => {
+      log.error('Failed to save player name:', error);
+    });
 }
 
 /**
@@ -101,6 +158,7 @@ class LeaderboardSystem {
   private initialized = false;
   private listeners: Set<LeaderboardListener> = new Set();
   private static initPromise: Promise<void> | null = null;
+  private eventBusUnsubscribers: (() => void)[] = [];
 
   /**
    * Initialize the leaderboard system.
@@ -129,8 +187,116 @@ class LeaderboardSystem {
   private async doInitialize(): Promise<void> {
     await capacitorDb.init();
     await this.createTables();
+    await loadPlayerSettings();
+    this.subscribeToEventBus();
     this.initialized = true;
     log.info('Initialized successfully');
+  }
+
+  /**
+   * Subscribe to EventBus events for cross-system communication.
+   * Listens to LEVEL_COMPLETE to automatically record scores.
+   */
+  private subscribeToEventBus(): void {
+    const eventBus = getEventBus();
+
+    // Subscribe to LEVEL_COMPLETE to automatically record scores
+    const levelCompleteHandler: GameEventListener<'LEVEL_COMPLETE'> = (event) => {
+      if (event.levelId && event.stats) {
+        this.handleLevelComplete(event.levelId, event.stats);
+      }
+    };
+
+    this.eventBusUnsubscribers.push(eventBus.on('LEVEL_COMPLETE', levelCompleteHandler));
+
+    log.debug('Subscribed to EventBus events');
+  }
+
+  /**
+   * Handle LEVEL_COMPLETE event by submitting the score to leaderboards.
+   */
+  private async handleLevelComplete(levelId: LevelId, stats: LevelStats): Promise<void> {
+    try {
+      // Calculate total score from stats
+      const totalScore = this.calculateTotalScore(stats);
+
+      // Calculate performance rating
+      const rating = this.calculateRating(stats, totalScore);
+
+      // Get current difficulty from global settings
+      const { loadDifficultySetting } = await import('../core/DifficultySettings');
+      const difficulty = loadDifficultySetting();
+
+      const submission: LeaderboardSubmission = {
+        levelId,
+        playerName: getPlayerName(),
+        completionTime: stats.timeSpent,
+        difficulty,
+        accuracy: stats.accuracy ?? 0,
+        enemiesKilled: stats.kills,
+        damageDealt: stats.damageDealt ?? 0,
+        damageTaken: stats.damageTaken ?? 0,
+        deaths: stats.deaths,
+        headshots: stats.headshots ?? 0,
+        secretsFound: stats.secretsFound,
+        totalSecrets: stats.totalSecrets ?? 0,
+        rating,
+        totalScore,
+      };
+
+      await this.submitScore(submission);
+      log.info(`Auto-recorded score for level ${levelId}: ${totalScore} points`);
+    } catch (error) {
+      log.error(`Failed to auto-record score for level ${levelId}:`, error);
+    }
+  }
+
+  /**
+   * Calculate total score from level stats.
+   * Score formula: kills * 100 + accuracy bonus + secret bonus - death penalty
+   */
+  private calculateTotalScore(stats: LevelStats): number {
+    const killScore = stats.kills * 100;
+    const accuracyBonus = Math.round((stats.accuracy ?? 0) * 10);
+    const secretBonus = stats.secretsFound * 500;
+    const headShotBonus = (stats.headshots ?? 0) * 50;
+    const deathPenalty = stats.deaths * 200;
+
+    // Time bonus: faster completion = more points
+    const parTime = stats.parTime ?? 300; // Default 5 minutes
+    const timeBonus = Math.max(0, Math.round((parTime - stats.timeSpent) * 5));
+
+    return Math.max(
+      0,
+      killScore + accuracyBonus + secretBonus + headShotBonus + timeBonus - deathPenalty
+    );
+  }
+
+  /**
+   * Calculate performance rating from stats.
+   */
+  private calculateRating(stats: LevelStats, totalScore: number): string {
+    const accuracy = stats.accuracy ?? 0;
+    const deaths = stats.deaths;
+
+    // S rank: No deaths, 90%+ accuracy, high score
+    if (deaths === 0 && accuracy >= 90 && totalScore >= 5000) {
+      return 'S';
+    }
+    // A rank: 0-1 deaths, 75%+ accuracy
+    if (deaths <= 1 && accuracy >= 75 && totalScore >= 3000) {
+      return 'A';
+    }
+    // B rank: 0-2 deaths, 60%+ accuracy
+    if (deaths <= 2 && accuracy >= 60 && totalScore >= 1500) {
+      return 'B';
+    }
+    // C rank: 0-3 deaths, 40%+ accuracy
+    if (deaths <= 3 && accuracy >= 40) {
+      return 'C';
+    }
+    // D rank: everything else
+    return 'D';
   }
 
   /**
@@ -433,7 +599,6 @@ class LeaderboardSystem {
         orderColumn = 'enemies_killed';
         orderDirection = 'DESC';
         break;
-      case 'score':
       default:
         orderColumn = 'score';
         orderDirection = 'DESC';
@@ -627,7 +792,10 @@ class LeaderboardSystem {
   /**
    * Get player's entries for a level
    */
-  async getPlayerEntries(levelId: LevelId | 'campaign', limit: number = 10): Promise<LeaderboardEntry[]> {
+  async getPlayerEntries(
+    levelId: LevelId | 'campaign',
+    limit: number = 10
+  ): Promise<LeaderboardEntry[]> {
     if (!this.initialized) {
       await this.initialize();
     }
@@ -762,6 +930,25 @@ class LeaderboardSystem {
    */
   async persist(): Promise<void> {
     await capacitorDb.persist();
+  }
+
+  /**
+   * Dispose the leaderboard system.
+   * Unsubscribes from all EventBus events and clears listeners.
+   */
+  dispose(): void {
+    // Unsubscribe from all EventBus events
+    for (const unsubscribe of this.eventBusUnsubscribers) {
+      unsubscribe();
+    }
+    this.eventBusUnsubscribers = [];
+
+    // Clear internal listeners
+    this.listeners.clear();
+
+    this.initialized = false;
+    LeaderboardSystem.initPromise = null;
+    log.info('Disposed');
   }
 }
 

@@ -20,9 +20,8 @@
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
@@ -112,7 +111,6 @@ export class GyroscopeManager {
   };
 
   private orientationHandler: ((e: DeviceOrientationEvent) => void) | null = null;
-  private permissionGranted = false;
 
   private constructor() {
     // Check for gyroscope availability
@@ -559,12 +557,14 @@ export class VehicleYokeController {
 
     // Smooth steering animation
     const targetAngle = -input.steerInput * MAX_YOKE_ROTATION;
-    this.currentSteerAngle += (targetAngle - this.currentSteerAngle) * Math.min(1, YOKE_ROTATION_LERP * dt);
+    this.currentSteerAngle +=
+      (targetAngle - this.currentSteerAngle) * Math.min(1, YOKE_ROTATION_LERP * dt);
     this.root.rotation.z = this.currentSteerAngle;
 
     // Smooth throttle indicator
     const targetThrottle = input.brakeInput > 0.1 ? -input.brakeInput : input.throttleInput;
-    this.currentThrottle += (targetThrottle - this.currentThrottle) * Math.min(1, THROTTLE_LERP * dt);
+    this.currentThrottle +=
+      (targetThrottle - this.currentThrottle) * Math.min(1, THROTTLE_LERP * dt);
     this.updateThrottleLEDs();
 
     // Update health display
@@ -633,7 +633,7 @@ export class VehicleYokeController {
     this.healthDisplay.position.x = -0.025 * (1 - this.currentHealth);
   }
 
-  private updateBoostMeter(isBoosting: boolean, dt: number): void {
+  private updateBoostMeter(isBoosting: boolean, _dt: number): void {
     const boostMat = this.boostMeter.material as StandardMaterial;
 
     // Scale height based on boost fuel
@@ -708,8 +708,6 @@ export class VehicleYokeController {
  */
 export class VehicleYokeSystem {
   private static instance: VehicleYokeSystem | null = null;
-
-  private scene: Scene | null = null;
   private yoke: VehicleYokeController | null = null;
   private gyroscope: GyroscopeManager;
 

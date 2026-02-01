@@ -26,25 +26,21 @@
  * Extends StationLevel for interior space station rendering.
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import {
+  type CinematicCallbacks,
   CinematicSystem,
   createAnchorStationIntroCinematic,
-  type CinematicCallbacks,
 } from '../../cinematics';
-import {
-  bindableActionParams,
-  formatKeyForDisplay,
-  levelActionParams,
-} from '../../input/InputBridge';
+import { getLogger } from '../../core/Logger';
+import { bindableActionParams, formatKeyForDisplay } from '../../input/InputBridge';
 import type { ActionButtonGroup } from '../../types/actions';
 import { StationLevel } from '../StationLevel';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import type { LevelId } from '../types';
 import styles from './AnchorStationLevel.module.css';
 import { MODULAR_ROOM_POSITIONS } from './ModularStationBuilder';
 // Use modular GLB-based station (replaces legacy procedural generation)
@@ -54,7 +50,6 @@ import {
 } from './ModularStationEnvironment';
 import { TutorialManager } from './TutorialManager';
 import type { HUDUnlockState, TutorialPhase } from './tutorialSteps';
-import { getLogger } from '../../core/Logger';
 
 const log = getLogger('AnchorStationLevel');
 
@@ -78,12 +73,6 @@ export class AnchorStationLevel extends StationLevel {
   // Interaction prompt (HTML overlay)
   private interactionPrompt: HTMLDivElement | null = null;
   private showingPrompt = false;
-
-  // Note: touchInput is inherited from BaseLevel (protected)
-
-  // Tutorial state
-  private suitEquipped = false;
-  private weaponAcquired = false;
   private targetsHit = 0;
   private totalTargets = 5;
 
@@ -98,18 +87,6 @@ export class AnchorStationLevel extends StationLevel {
     lookEnabled: false,
     fireEnabled: false,
   };
-
-  // Current tutorial phase
-  private currentPhase: TutorialPhase = 0;
-
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks);
-  }
 
   protected override getBackgroundColor(): Color4 {
     // Dark station interior
@@ -143,12 +120,36 @@ export class AnchorStationLevel extends StationLevel {
 
     // CORRIDOR A (extends from z=-4 to z=-24)
     this.addStationLight('corridor1', new Vector3(0, 2.8, -8), new Color3(0.8, 0.85, 1.0), 0.5, 15);
-    this.addStationLight('corridor2', new Vector3(0, 2.8, -14), new Color3(0.8, 0.85, 1.0), 0.5, 15);
-    this.addStationLight('corridor3', new Vector3(0, 2.8, -20), new Color3(0.8, 0.85, 1.0), 0.5, 15);
+    this.addStationLight(
+      'corridor2',
+      new Vector3(0, 2.8, -14),
+      new Color3(0.8, 0.85, 1.0),
+      0.5,
+      15
+    );
+    this.addStationLight(
+      'corridor3',
+      new Vector3(0, 2.8, -20),
+      new Color3(0.8, 0.85, 1.0),
+      0.5,
+      15
+    );
 
     // EQUIPMENT BAY (at -10, -16)
-    this.addStationLight('equipBay1', new Vector3(-10, 3.5, -16), new Color3(0.7, 0.8, 0.7), 0.6, 15);
-    this.addStationLight('equipBay2', new Vector3(-14, 3.5, -16), new Color3(0.7, 0.8, 0.7), 0.5, 12);
+    this.addStationLight(
+      'equipBay1',
+      new Vector3(-10, 3.5, -16),
+      new Color3(0.7, 0.8, 0.7),
+      0.6,
+      15
+    );
+    this.addStationLight(
+      'equipBay2',
+      new Vector3(-14, 3.5, -16),
+      new Color3(0.7, 0.8, 0.7),
+      0.5,
+      12
+    );
 
     // ARMORY (at 10, -16)
     this.addStationLight('armory1', new Vector3(10, 3.5, -16), new Color3(0.8, 0.6, 0.5), 0.6, 15);
@@ -209,27 +210,32 @@ export class AnchorStationLevel extends StationLevel {
   private initializeCinematicSystem(): void {
     const cinematicCallbacks: CinematicCallbacks = {
       onCommsMessage: (message) => {
-        this.callbacks.onCommsMessage({
+        this.emitCommsMessage({
           sender: message.sender,
           callsign: message.callsign ?? '',
-          portrait: (message.portrait ?? 'ai') as 'commander' | 'ai' | 'marcus' | 'armory' | 'player',
+          portrait: (message.portrait ?? 'ai') as
+            | 'commander'
+            | 'ai'
+            | 'marcus'
+            | 'armory'
+            | 'player',
           text: message.text,
         });
       },
       onNotification: (text, duration) => {
-        this.callbacks.onNotification(text, duration ?? 3000);
+        this.emitNotification(text, duration ?? 3000);
       },
       onObjectiveUpdate: (title, instructions) => {
-        this.callbacks.onObjectiveUpdate(title, instructions);
+        this.emitObjectiveUpdate(title, instructions);
       },
       onShakeCamera: (intensity) => {
         this.triggerShake(intensity);
       },
       onCinematicStart: () => {
-        this.callbacks.onCinematicStart?.();
+        this.emitCinematicStart();
       },
       onCinematicEnd: () => {
-        this.callbacks.onCinematicEnd?.();
+        this.emitCinematicEnd();
       },
     };
 
@@ -249,13 +255,10 @@ export class AnchorStationLevel extends StationLevel {
     // Player spawn position for the intro cinematic
     const playerSpawnPosition = new Vector3(0, 1.7, 2);
 
-    const sequence = createAnchorStationIntroCinematic(
-      () => {
-        // Cinematic complete - start the tutorial
-        this.startTutorial();
-      },
-      playerSpawnPosition
-    );
+    const sequence = createAnchorStationIntroCinematic(() => {
+      // Cinematic complete - start the tutorial
+      this.startTutorial();
+    }, playerSpawnPosition);
 
     this.cinematicSystem.play(sequence);
   }
@@ -360,41 +363,26 @@ export class AnchorStationLevel extends StationLevel {
       isIndoor: true,
       intensity: 0.2,
     });
-    this.addAudioZone(
-      'zone_equipment',
-      'station',
-      { x: eqBay.x, y: 0, z: eqBay.z },
-      12,
-      { isIndoor: true, intensity: 0.35 }
-    );
-    this.addAudioZone(
-      'zone_armory',
-      'station',
-      { x: armory.x, y: 0, z: armory.z },
-      12,
-      { isIndoor: true, intensity: 0.3 }
-    );
-    this.addAudioZone(
-      'zone_holodeck',
-      'station',
-      { x: holodeck.x, y: 0, z: holodeck.z },
-      18,
-      { isIndoor: true, intensity: 0.2 }
-    );
-    this.addAudioZone(
-      'zone_range',
-      'station',
-      { x: range.x, y: 0, z: range.z },
-      15,
-      { isIndoor: true, intensity: 0.35 }
-    );
-    this.addAudioZone(
-      'zone_hangar',
-      'station',
-      { x: hangar.x, y: 0, z: hangar.z },
-      30,
-      { isIndoor: true, intensity: 0.5 }
-    );
+    this.addAudioZone('zone_equipment', 'station', { x: eqBay.x, y: 0, z: eqBay.z }, 12, {
+      isIndoor: true,
+      intensity: 0.35,
+    });
+    this.addAudioZone('zone_armory', 'station', { x: armory.x, y: 0, z: armory.z }, 12, {
+      isIndoor: true,
+      intensity: 0.3,
+    });
+    this.addAudioZone('zone_holodeck', 'station', { x: holodeck.x, y: 0, z: holodeck.z }, 18, {
+      isIndoor: true,
+      intensity: 0.2,
+    });
+    this.addAudioZone('zone_range', 'station', { x: range.x, y: 0, z: range.z }, 15, {
+      isIndoor: true,
+      intensity: 0.35,
+    });
+    this.addAudioZone('zone_hangar', 'station', { x: hangar.x, y: 0, z: hangar.z }, 30, {
+      isIndoor: true,
+      intensity: 0.5,
+    });
   }
 
   private createObjectiveMarker(): void {
@@ -494,11 +482,8 @@ export class AnchorStationLevel extends StationLevel {
         this.handlePhaseChange(phase);
       },
       onCommsMessage: (message) => {
-        log.debug(
-          'onCommsMessage callback received:',
-          message.text.substring(0, 40)
-        );
-        this.callbacks.onCommsMessage({
+        log.debug('onCommsMessage callback received:', message.text.substring(0, 40));
+        this.emitCommsMessage({
           sender: message.sender,
           callsign: message.callsign,
           portrait: message.portrait,
@@ -508,7 +493,7 @@ export class AnchorStationLevel extends StationLevel {
       onObjectiveUpdate: (title, instructions) => {
         // Only show objective if missionText is unlocked
         if (this.currentHUDState.missionText) {
-          this.callbacks.onObjectiveUpdate(title, instructions);
+          this.emitObjectiveUpdate(title, instructions);
         }
       },
       onActionButtonsChange: (buttons) => {
@@ -533,9 +518,9 @@ export class AnchorStationLevel extends StationLevel {
               };
             }),
           };
-          this.callbacks.onActionGroupsChange([actionGroup]);
+          this.emitActionGroupsChanged([actionGroup]);
         } else {
-          this.callbacks.onActionGroupsChange([]);
+          this.emitActionGroupsChanged([]);
         }
       },
       onTriggerSequence: (sequence) => {
@@ -547,7 +532,7 @@ export class AnchorStationLevel extends StationLevel {
       },
     });
 
-    this.callbacks.onNotification('ANCHOR STATION PROMETHEUS', 3000);
+    this.emitNotification('ANCHOR STATION PROMETHEUS', 3000);
   }
 
   /**
@@ -584,16 +569,16 @@ export class AnchorStationLevel extends StationLevel {
     // Show notification for major unlocks
     switch (phase) {
       case 1:
-        this.callbacks.onNotification('MOVEMENT CONTROLS ONLINE', 2000);
+        this.emitNotification('MOVEMENT CONTROLS ONLINE', 2000);
         break;
       case 2:
-        this.callbacks.onNotification('TARGETING SYSTEMS ONLINE', 2000);
+        this.emitNotification('TARGETING SYSTEMS ONLINE', 2000);
         break;
       case 3:
-        this.callbacks.onNotification('WEAPONS SYSTEMS ONLINE', 2000);
+        this.emitNotification('WEAPONS SYSTEMS ONLINE', 2000);
         break;
       case 4:
-        this.callbacks.onNotification('ALL SYSTEMS NOMINAL', 2000);
+        this.emitNotification('ALL SYSTEMS NOMINAL', 2000);
         break;
     }
   }
@@ -605,13 +590,13 @@ export class AnchorStationLevel extends StationLevel {
       case 'equip_suit':
         this.suitEquipped = true;
         this.stationEnvironment.playEquipSuit(() => {
-          this.callbacks.onNotification('EVA SUIT EQUIPPED', 2000);
+          this.emitNotification('EVA SUIT EQUIPPED', 2000);
         });
         break;
 
       case 'pickup_weapon':
         this.weaponAcquired = true;
-        this.callbacks.onNotification('M7 RIFLE ACQUIRED', 2000);
+        this.emitNotification('M7 RIFLE ACQUIRED', 2000);
         break;
 
       case 'depressurize':
@@ -622,7 +607,7 @@ export class AnchorStationLevel extends StationLevel {
 
       case 'open_bay_doors':
         this.stationEnvironment.playOpenBayDoors(() => {
-          this.callbacks.onNotification('BAY DOORS OPEN', 2000);
+          this.emitNotification('BAY DOORS OPEN', 2000);
         });
         break;
 
@@ -647,14 +632,14 @@ export class AnchorStationLevel extends StationLevel {
         this.stationEnvironment.startCalibration({
           onTargetHit: (_targetIndex) => {
             this.targetsHit++;
-            this.callbacks.onNotification(`TARGET ${this.targetsHit}/${this.totalTargets}`, 800);
+            this.emitNotification(`TARGET ${this.targetsHit}/${this.totalTargets}`, 800);
             // Trigger hit confirmation visual feedback
             this.triggerHitConfirmation();
             // Update kill streak for progressive visual feedback
             this.updateKillStreak(this.targetsHit);
           },
           onAllTargetsHit: () => {
-            this.callbacks.onNotification('CALIBRATION COMPLETE', 1500);
+            this.emitNotification('CALIBRATION COMPLETE', 1500);
             this.tutorialManager?.onShootingRangeComplete();
           },
         });
@@ -800,9 +785,9 @@ export class AnchorStationLevel extends StationLevel {
     // Station extends from briefing (z=2) to drop pod (z=-76)
     // Width varies: main corridor is narrow, rooms extend to x=-15/+15
     const minX = -18; // Equipment bay and observation deck extend left
-    const maxX = 18;  // Armory and engine room extend right
+    const maxX = 18; // Armory and engine room extend right
     const minZ = -80; // Beyond drop pod for launch sequence
-    const maxZ = 8;   // Behind briefing room
+    const maxZ = 8; // Behind briefing room
     this.camera.position.x = Math.max(minX, Math.min(maxX, this.camera.position.x));
     this.camera.position.z = Math.max(minZ, Math.min(maxZ, this.camera.position.z));
 
@@ -906,7 +891,7 @@ export class AnchorStationLevel extends StationLevel {
     this.interactionPrompt = null;
 
     // Clear action buttons
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionGroupsChanged([]);
 
     // Call parent dispose
     super.disposeLevel();

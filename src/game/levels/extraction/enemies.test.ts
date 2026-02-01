@@ -63,7 +63,7 @@ vi.mock('../../entities/aliens', () => ({
     husk: { baseHealth: 25, moveSpeed: 9 },
     broodmother: { baseHealth: 150, moveSpeed: 3 },
   },
-  createAlienMesh: vi.fn().mockImplementation((scene, species, id) => ({
+  createAlienMesh: vi.fn().mockImplementation((_scene, _species, _id) => ({
     position: { x: 0, y: 0, z: 0, set: vi.fn() },
     rotation: { y: 0 },
     setEnabled: vi.fn(),
@@ -79,17 +79,17 @@ vi.mock('../../effects/ParticleManager', () => ({
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import {
-  spawnEnemy,
-  calculateSpawnPosition,
-  updateEnemies,
-  updateCollapseEnemies,
-  mechFireAtEnemy,
-  killEnemy,
-  clearAllEnemies,
   applyGrenadeDamage,
+  calculateSpawnPosition,
   checkMeleeHit,
+  clearAllEnemies,
+  killEnemy,
+  mechFireAtEnemy,
   prepareWaveSpawnQueue,
   spawnCollapseStraggler,
+  spawnEnemy,
+  updateCollapseEnemies,
+  updateEnemies,
 } from './enemies';
 import type { Enemy } from './types';
 
@@ -152,9 +152,7 @@ describe('Enemy Management', () => {
       new Vector3(0, 0, 50),
       new Vector3(0, 0, -50),
     ];
-    const breachHoles = [
-      { position: new Vector3(100, 0, 100) } as any,
-    ];
+    const breachHoles = [{ position: new Vector3(100, 0, 100) } as any];
     const lzPosition = new Vector3(0, 0, -500);
 
     it('should spawn broodmothers at breach holes', () => {
@@ -186,25 +184,13 @@ describe('Enemy Management', () => {
     });
 
     it('should fall back to breach holes when no spawn points', () => {
-      const { position } = calculateSpawnPosition(
-        'lurker',
-        [],
-        breachHoles,
-        lzPosition,
-        0
-      );
+      const { position } = calculateSpawnPosition('lurker', [], breachHoles, lzPosition, 0);
 
       expect(position.y).toBe(0);
     });
 
     it('should fall back to random LZ position when no spawn points or breach holes', () => {
-      const { position } = calculateSpawnPosition(
-        'skitterer',
-        [],
-        [],
-        lzPosition,
-        0
-      );
+      const { position } = calculateSpawnPosition('skitterer', [], [], lzPosition, 0);
 
       // Should be within reasonable distance of LZ
       const dist = Vector3.Distance(position, lzPosition);
@@ -358,11 +344,7 @@ describe('Enemy Management', () => {
 
   describe('clearAllEnemies', () => {
     it('should kill all active enemies and return count', () => {
-      const enemies = [
-        createMockEnemy(),
-        createMockEnemy(),
-        createMockEnemy({ isActive: false }),
-      ];
+      const enemies = [createMockEnemy(), createMockEnemy(), createMockEnemy({ isActive: false })];
 
       const killCount = clearAllEnemies(enemies);
 
@@ -372,9 +354,7 @@ describe('Enemy Management', () => {
     });
 
     it('should return 0 when no active enemies', () => {
-      const enemies = [
-        createMockEnemy({ isActive: false }),
-      ];
+      const enemies = [createMockEnemy({ isActive: false })];
 
       const killCount = clearAllEnemies(enemies);
 
@@ -397,9 +377,7 @@ describe('Enemy Management', () => {
     });
 
     it('should return kill count and killed enemy list', () => {
-      const enemies = [
-        createMockEnemy({ position: new Vector3(2, 0, 0), health: 20 }),
-      ];
+      const enemies = [createMockEnemy({ position: new Vector3(2, 0, 0), health: 20 })];
       const grenadePos = new Vector3(0, 0, 0);
 
       const { kills, killedEnemies } = applyGrenadeDamage(enemies, grenadePos, 15);
@@ -410,9 +388,7 @@ describe('Enemy Management', () => {
     });
 
     it('should skip inactive enemies', () => {
-      const enemies = [
-        createMockEnemy({ position: new Vector3(2, 0, 0), isActive: false }),
-      ];
+      const enemies = [createMockEnemy({ position: new Vector3(2, 0, 0), isActive: false })];
       const grenadePos = new Vector3(0, 0, 0);
 
       const { kills } = applyGrenadeDamage(enemies, grenadePos, 15);
@@ -436,9 +412,7 @@ describe('Enemy Management', () => {
 
   describe('checkMeleeHit', () => {
     it('should return hit enemy within range', () => {
-      const enemies = [
-        createMockEnemy({ position: new Vector3(2, 0, 0), health: 100 }),
-      ];
+      const enemies = [createMockEnemy({ position: new Vector3(2, 0, 0), health: 100 })];
       const playerPos = new Vector3(0, 0, 0);
 
       const hit = checkMeleeHit(enemies, playerPos, 3, 50);
@@ -448,9 +422,7 @@ describe('Enemy Management', () => {
     });
 
     it('should kill enemy when damage exceeds health', () => {
-      const enemies = [
-        createMockEnemy({ position: new Vector3(2, 0, 0), health: 30 }),
-      ];
+      const enemies = [createMockEnemy({ position: new Vector3(2, 0, 0), health: 30 })];
       const playerPos = new Vector3(0, 0, 0);
 
       const hit = checkMeleeHit(enemies, playerPos, 3, 50);
@@ -460,9 +432,7 @@ describe('Enemy Management', () => {
     });
 
     it('should return null when no enemies in range', () => {
-      const enemies = [
-        createMockEnemy({ position: new Vector3(10, 0, 0) }),
-      ];
+      const enemies = [createMockEnemy({ position: new Vector3(10, 0, 0) })];
       const playerPos = new Vector3(0, 0, 0);
 
       const hit = checkMeleeHit(enemies, playerPos, 3, 50);
@@ -471,9 +441,7 @@ describe('Enemy Management', () => {
     });
 
     it('should skip inactive enemies', () => {
-      const enemies = [
-        createMockEnemy({ position: new Vector3(2, 0, 0), isActive: false }),
-      ];
+      const enemies = [createMockEnemy({ position: new Vector3(2, 0, 0), isActive: false })];
       const playerPos = new Vector3(0, 0, 0);
 
       const hit = checkMeleeHit(enemies, playerPos, 3, 50);
@@ -487,7 +455,7 @@ describe('Enemy Management', () => {
       const queue = prepareWaveSpawnQueue(6, 4, 2, 1, 3);
 
       // Should have entries for each enemy type
-      const species = queue.map(g => g.species);
+      const species = queue.map((g) => g.species);
       expect(species).toContain('skitterer');
       expect(species).toContain('lurker');
       expect(species).toContain('spewer');
@@ -499,17 +467,17 @@ describe('Enemy Management', () => {
       const queue = prepareWaveSpawnQueue(9, 0, 0, 0, 0);
 
       // 9 skitterers should be split into 3 groups of 3
-      const skittererGroups = queue.filter(g => g.species === 'skitterer');
+      const skittererGroups = queue.filter((g) => g.species === 'skitterer');
       expect(skittererGroups.length).toBe(3);
-      expect(skittererGroups.every(g => g.count === 3)).toBe(true);
+      expect(skittererGroups.every((g) => g.count === 3)).toBe(true);
     });
 
     it('should spawn brutes one at a time', () => {
       const queue = prepareWaveSpawnQueue(0, 0, 0, 3, 0);
 
-      const bruteGroups = queue.filter(g => g.species === 'broodmother');
+      const bruteGroups = queue.filter((g) => g.species === 'broodmother');
       expect(bruteGroups.length).toBe(3);
-      expect(bruteGroups.every(g => g.count === 1)).toBe(true);
+      expect(bruteGroups.every((g) => g.count === 1)).toBe(true);
     });
 
     it('should shuffle the spawn order for variety', () => {
@@ -517,7 +485,7 @@ describe('Enemy Management', () => {
       const orders: string[] = [];
       for (let i = 0; i < 5; i++) {
         const queue = prepareWaveSpawnQueue(3, 3, 3, 0, 0);
-        orders.push(queue.map(g => g.species).join(','));
+        orders.push(queue.map((g) => g.species).join(','));
       }
 
       // Not all orders should be identical (shuffling)
@@ -535,7 +503,7 @@ describe('Enemy Management', () => {
     it('should handle partial enemy types', () => {
       const queue = prepareWaveSpawnQueue(3, 0, 2, 0, 0);
 
-      const species = queue.map(g => g.species);
+      const species = queue.map((g) => g.species);
       expect(species).toContain('skitterer');
       expect(species).toContain('spewer');
       expect(species).not.toContain('lurker');

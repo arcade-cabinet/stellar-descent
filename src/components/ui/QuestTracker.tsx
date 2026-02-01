@@ -9,13 +9,16 @@
  * - Waypoint distance integration
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { QuestTrackerData } from '../../game/campaign/QuestTrackerTypes';
 import { useGame } from '../../game/context/GameContext';
-import type { QuestTrackerData, OptionalObjectiveData } from '../../game/campaign/QuestTrackerTypes';
 import styles from './QuestTracker.module.css';
 
 // Re-export types for convenience
-export type { QuestTrackerData, OptionalObjectiveData } from '../../game/campaign/QuestTrackerTypes';
+export type {
+  OptionalObjectiveData,
+  QuestTrackerData,
+} from '../../game/campaign/QuestTrackerTypes';
 
 interface QuestTrackerProps {
   /** Quest data to display */
@@ -56,7 +59,6 @@ function getObjectiveIcon(type: QuestTrackerData['objectiveType']): string {
       return '\u2694'; // Shield (using swords as fallback)
     case 'vehicle':
       return '\u26C6'; // Vehicle indicator (using a car-like symbol)
-    case 'custom':
     default:
       return '!';
   }
@@ -105,13 +107,17 @@ export function QuestTracker({ data, visible = true, compact = false }: QuestTra
     compact ? styles.compact : '',
     completedAnimation ? styles.completed : '',
     pulseAnimation ? styles.pulse : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const timerClasses = [
     styles.timer,
     isTimerCritical ? styles.timerCritical : '',
     isTimerWarning ? styles.timerWarning : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={containerClasses} role="region" aria-label="Quest Tracker">
@@ -129,9 +135,7 @@ export function QuestTracker({ data, visible = true, compact = false }: QuestTra
           {getObjectiveIcon(data.objectiveType)}
         </span>
         <div className={styles.objectiveContent}>
-          <span className={styles.objectiveText}>
-            {data.objectiveDescription}
-          </span>
+          <span className={styles.objectiveText}>{data.objectiveDescription}</span>
 
           {/* Progress bar */}
           {hasProgress && (
@@ -165,8 +169,14 @@ export function QuestTracker({ data, visible = true, compact = false }: QuestTra
 
       {/* Timer for timed objectives */}
       {hasTimer && (
-        <div className={timerClasses} role="timer" aria-label={`Time remaining: ${formatTime(data.timeRemaining!)}`}>
-          <span className={styles.timerIcon} aria-hidden="true">{'\u23F1'}</span>
+        <div
+          className={timerClasses}
+          role="timer"
+          aria-label={`Time remaining: ${formatTime(data.timeRemaining!)}`}
+        >
+          <span className={styles.timerIcon} aria-hidden="true">
+            {'\u23F1'}
+          </span>
           <span className={styles.timerValue}>{formatTime(data.timeRemaining!)}</span>
         </div>
       )}
@@ -180,14 +190,13 @@ export function QuestTracker({ data, visible = true, compact = false }: QuestTra
               key={opt.id}
               className={`${styles.optionalObjective} ${opt.completed ? styles.optionalCompleted : ''}`}
             >
-              <span className={styles.optionalCheckbox}>
-                {opt.completed ? '\u2713' : '\u25CB'}
-              </span>
+              <span className={styles.optionalCheckbox}>{opt.completed ? '\u2713' : '\u25CB'}</span>
               <span className={styles.optionalText}>
                 {opt.description}
                 {opt.required !== undefined && opt.current !== undefined && !opt.completed && (
                   <span className={styles.optionalProgress}>
-                    {' '}({opt.current}/{opt.required})
+                    {' '}
+                    ({opt.current}/{opt.required})
                   </span>
                 )}
               </span>

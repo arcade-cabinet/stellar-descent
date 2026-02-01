@@ -13,12 +13,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DifficultyLevel } from '../../game/core/DifficultySettings';
 import { getAudioManager } from '../../game/core/AudioManager';
+import type { DifficultyLevel } from '../../game/core/DifficultySettings';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
-  leaderboardSystem,
   getPlayerName,
+  leaderboardSystem,
   setPlayerName as setPlayerNameStorage,
 } from '../../game/social/LeaderboardSystem';
 import {
@@ -159,12 +159,19 @@ export function LeaderboardScreen({
 
       const info = LEADERBOARD_INFO[activeType];
       return matching.reduce((best, current) =>
-        info.higherIsBetter ? (current.value > best.value ? current : best) : (current.value < best.value ? current : best)
+        info.higherIsBetter
+          ? current.value > best.value
+            ? current
+            : best
+          : current.value < best.value
+            ? current
+            : best
       );
     }
-    return personalBests.find(
-      (pb) => pb.type === activeType && pb.difficulty === selectedDifficulty
-    ) || null;
+    return (
+      personalBests.find((pb) => pb.type === activeType && pb.difficulty === selectedDifficulty) ||
+      null
+    );
   }, [personalBests, activeType, selectedDifficulty]);
 
   // Play click sound
@@ -322,7 +329,6 @@ export function LeaderboardScreen({
                   onKeyDown={handleNameKeyDown}
                   className={styles.nameInput}
                   maxLength={16}
-                  autoFocus
                 />
                 <button type="button" className={styles.nameButton} onClick={handleSaveName}>
                   {'\u2713'}

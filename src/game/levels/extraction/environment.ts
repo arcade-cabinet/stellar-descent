@@ -5,7 +5,6 @@
  * Uses GLB assets for all static geometry; MeshBuilder only for VFX beacons.
  */
 
-import type { Scene } from '@babylonjs/core/scene';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
@@ -13,16 +12,24 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 import { HiveEnvironmentBuilder } from '../shared/HiveEnvironmentBuilder';
 
 const log = getLogger('ExtractionEnvironment');
-import { createDynamicTerrain, SAND_TERRAIN, type TerrainResult } from '../shared/SurfaceTerrainFactory';
-import { buildExtractionEnvironment, type ExtractionEnvironmentResult } from './ExtractionEnvironmentBuilder';
 
+import {
+  createDynamicTerrain,
+  SAND_TERRAIN,
+  type TerrainResult,
+} from '../shared/SurfaceTerrainFactory';
 import * as C from './constants';
+import {
+  buildExtractionEnvironment,
+  type ExtractionEnvironmentResult,
+} from './ExtractionEnvironmentBuilder';
 
 // ============================================================================
 // GLB ASSET PATHS FOR ENVIRONMENT
@@ -169,11 +176,15 @@ export function createEscapeTunnel(scene: Scene): TunnelEnvironment {
     collapseMat.diffuseColor = new Color3(0.25, 0.12, 0.08);
     collapseMat.emissiveColor = new Color3(0.4, 0.2, 0.08);
 
-    collapseWall = MeshBuilder.CreateCylinder('collapseWall', {
-      height: 12,
-      diameter: 10,
-      tessellation: 12,
-    }, scene);
+    collapseWall = MeshBuilder.CreateCylinder(
+      'collapseWall',
+      {
+        height: 12,
+        diameter: 10,
+        tessellation: 12,
+      },
+      scene
+    );
     collapseWall.material = collapseMat;
     collapseWall.position.z = 30;
     collapseWall.position.y = 0;
@@ -222,7 +233,9 @@ export function createSurfaceEnvironment(scene: Scene): SurfaceEnvironment {
 // LZ CREATION
 // ============================================================================
 
-export async function buildLZEnvironment(scene: Scene): Promise<ExtractionEnvironmentResult | null> {
+export async function buildLZEnvironment(
+  scene: Scene
+): Promise<ExtractionEnvironmentResult | null> {
   try {
     return await buildExtractionEnvironment(scene);
   } catch (err) {
@@ -248,11 +261,13 @@ export function setupHoldoutArena(): Vector3[] {
   // Perimeter spawn points
   for (let i = 0; i < 8; i++) {
     const angle = (i / 8) * Math.PI * 2;
-    spawnPoints.push(new Vector3(
-      C.LZ_POSITION.x + Math.cos(angle) * spawnRadius,
-      0,
-      C.LZ_POSITION.z + Math.sin(angle) * spawnRadius
-    ));
+    spawnPoints.push(
+      new Vector3(
+        C.LZ_POSITION.x + Math.cos(angle) * spawnRadius,
+        0,
+        C.LZ_POSITION.z + Math.sin(angle) * spawnRadius
+      )
+    );
   }
 
   // North gap spawn points
@@ -279,7 +294,13 @@ export function setupHoldoutArena(): Vector3[] {
 // ============================================================================
 
 export function createMarcusMech(scene: Scene): MechAssets {
-  const mechNode = AssetManager.createInstanceByPath(C.GLB_MECH, 'marcusMech', scene, true, 'vehicle');
+  const mechNode = AssetManager.createInstanceByPath(
+    C.GLB_MECH,
+    'marcusMech',
+    scene,
+    true,
+    'vehicle'
+  );
   const mechMesh = mechNode ?? new TransformNode('marcusMech', scene);
 
   const mechGunLight = new PointLight('mechGunLight', new Vector3(0, 5, -3), scene);
@@ -306,7 +327,13 @@ export function createDropship(scene: Scene): DropshipAssets {
   const dropship = new TransformNode('dropship', scene);
 
   // Load hull GLB
-  const hullNode = AssetManager.createInstanceByPath(C.GLB_DROPSHIP, 'dropshipHull', scene, true, 'vehicle');
+  const hullNode = AssetManager.createInstanceByPath(
+    C.GLB_DROPSHIP,
+    'dropshipHull',
+    scene,
+    true,
+    'vehicle'
+  );
   if (hullNode) hullNode.parent = dropship;
 
   // Create ramp using GLB floor tile asset
@@ -333,7 +360,11 @@ export function createDropship(scene: Scene): DropshipAssets {
     rampMat.diffuseColor = new Color3(0.35, 0.35, 0.4);
     rampMat.specularColor = new Color3(0.2, 0.2, 0.2);
 
-    dropshipRamp = MeshBuilder.CreateBox('dropshipRamp', { width: 4, height: 0.2, depth: 6 }, scene);
+    dropshipRamp = MeshBuilder.CreateBox(
+      'dropshipRamp',
+      { width: 4, height: 0.2, depth: 6 },
+      scene
+    );
     dropshipRamp.material = rampMat;
     dropshipRamp.position.set(0, -2, 7.5);
     dropshipRamp.setPivotPoint(new Vector3(0, 0, -3));

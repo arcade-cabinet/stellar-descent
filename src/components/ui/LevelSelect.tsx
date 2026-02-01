@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { getAudioManager } from '../../game/core/AudioManager';
 import { BUILD_FLAGS } from '../../game/core/BuildConfig';
 import { devMode } from '../../game/core/DevMode';
-import { getAudioManager } from '../../game/core/AudioManager';
 import { worldDb } from '../../game/db/worldDatabase';
-import {
-  CAMPAIGN_LEVELS,
-  iterateLevels,
-  type LevelConfig,
-  type LevelId,
-} from '../../game/levels/types';
+import { iterateLevels, type LevelConfig, type LevelId } from '../../game/levels/types';
 import styles from './LevelSelect.module.css';
 
 interface LevelSelectProps {
@@ -38,7 +33,7 @@ export function LevelSelect({ isOpen, onClose, onSelectLevel }: LevelSelectProps
 
     const loadCompletionState = async () => {
       await worldDb.init();
-      const completedLevels = await worldDb.getCompletedLevels() as LevelId[];
+      const completedLevels = (await worldDb.getCompletedLevels()) as LevelId[];
       const completed = new Set<LevelId>(completedLevels);
 
       // Calculate unlocked levels based on completion

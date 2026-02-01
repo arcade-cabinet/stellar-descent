@@ -1,19 +1,20 @@
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { CombatProvider, useCombat } from './CombatContext';
 import { MissionProvider, useMission } from './MissionContext';
 import { PlayerProvider, usePlayer } from './PlayerContext';
 
-// Re-export all types and constants from sub-contexts for backward compatibility
-export type { HUDVisibility } from './PlayerContext';
-export { DEFAULT_HUD_VISIBILITY, TUTORIAL_START_HUD_VISIBILITY } from './PlayerContext';
-export type { PlayerContextType } from './PlayerContext';
-export { usePlayer } from './PlayerContext';
-
 export type { CombatContextType } from './CombatContext';
 export { useCombat } from './CombatContext';
-
-export type { CompassData, MissionContextType, ObjectiveMarker, ScreenSpaceObjective } from './MissionContext';
+export type {
+  CompassData,
+  MissionContextType,
+  ObjectiveMarker,
+  ScreenSpaceObjective,
+} from './MissionContext';
 export { useMission } from './MissionContext';
+// Re-export all types and constants from sub-contexts for backward compatibility
+export type { HUDVisibility, PlayerContextType } from './PlayerContext';
+export { DEFAULT_HUD_VISIBILITY, TUTORIAL_START_HUD_VISIBILITY, usePlayer } from './PlayerContext';
 
 /**
  * Facade hook that combines all three contexts for backward compatibility.
@@ -51,9 +52,7 @@ export function GameProvider({ children }: GameProviderProps) {
   return (
     <PlayerProvider>
       <MissionProvider>
-        <CombatBridge>
-          {children}
-        </CombatBridge>
+        <CombatBridge>{children}</CombatBridge>
       </MissionProvider>
     </PlayerProvider>
   );
@@ -65,9 +64,5 @@ export function GameProvider({ children }: GameProviderProps) {
  */
 function CombatBridge({ children }: { children: ReactNode }) {
   const { currentChapter } = useMission();
-  return (
-    <CombatProvider currentChapter={currentChapter}>
-      {children}
-    </CombatProvider>
-  );
+  return <CombatProvider currentChapter={currentChapter}>{children}</CombatProvider>;
 }

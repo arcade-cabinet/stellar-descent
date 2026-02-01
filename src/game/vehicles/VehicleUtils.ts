@@ -16,7 +16,6 @@ import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
@@ -144,16 +143,11 @@ const VEHICLE_STATS: Record<VehicleType, { health: number; speed: number }> = {
  * Preload vehicle GLB assets for the specified types.
  * Call this before spawning vehicles to ensure smooth loading.
  */
-export async function preloadVehicleAssets(
-  scene: Scene,
-  types: VehicleType[]
-): Promise<void> {
+export async function preloadVehicleAssets(scene: Scene, types: VehicleType[]): Promise<void> {
   const paths = types.map((t) => VEHICLE_GLB_PATHS[t]).filter(Boolean);
   const unique = [...new Set(paths)];
 
-  await Promise.all(
-    unique.map((path) => AssetManager.loadAssetByPath(path, scene))
-  );
+  await Promise.all(unique.map((path) => AssetManager.loadAssetByPath(path, scene)));
 
   log.info(`Preloaded ${unique.length} vehicle GLBs`);
 }
@@ -257,10 +251,7 @@ export function disposeVehicle(vehicle: SpawnedVehicle): void {
  * Apply damage to a vehicle.
  * Returns the damage result with updated health and state flags.
  */
-export function applyVehicleDamage(
-  vehicle: SpawnedVehicle,
-  amount: number
-): VehicleDamageResult {
+export function applyVehicleDamage(vehicle: SpawnedVehicle, amount: number): VehicleDamageResult {
   const previousHealth = vehicle.health;
   vehicle.health = Math.max(0, vehicle.health - amount);
 
@@ -290,10 +281,7 @@ export function healVehicle(vehicle: SpawnedVehicle, amount: number): number {
 /**
  * Create a vehicle destruction effect (explosion, debris).
  */
-export function createVehicleDestructionEffect(
-  scene: Scene,
-  position: Vector3
-): void {
+export function createVehicleDestructionEffect(scene: Scene, position: Vector3): void {
   // Explosion flash
   const explosion = MeshBuilder.CreateSphere(
     'vehicle_explosion',
@@ -404,7 +392,7 @@ export function createVehicleDestructionEffect(
  */
 export function updateVehicleDamageVisuals(
   vehicle: SpawnedVehicle,
-  deltaTime: number,
+  _deltaTime: number,
   time: number
 ): void {
   if (vehicle.isDestroyed) return;
@@ -413,9 +401,8 @@ export function updateVehicleDamageVisuals(
 
   // Flicker headlights when damaged
   if (healthPercent < 0.5) {
-    const flicker = healthPercent < 0.25
-      ? Math.random() > 0.3 ? 5 : 0
-      : 5 - Math.sin(time * 10) * 2;
+    const flicker =
+      healthPercent < 0.25 ? (Math.random() > 0.3 ? 5 : 0) : 5 - Math.sin(time * 10) * 2;
 
     for (const light of vehicle.headlights) {
       light.intensity = flicker;
@@ -442,7 +429,7 @@ export function updateVehicleDamageVisuals(
  * Create a transition handler for vehicle entry/exit.
  */
 export function createTransitionHandler(
-  scene: Scene,
+  _scene: Scene,
   camera: UniversalCamera,
   config: Partial<TransitionConfig> = {}
 ): {
@@ -457,7 +444,7 @@ export function createTransitionHandler(
 
   let state: TransitionState = 'idle';
   let progress = 0;
-  let activeVehicle: SpawnedVehicle | null = null;
+  let _activeVehicle: SpawnedVehicle | null = null;
   let startPos = Vector3.Zero();
   let endPos = Vector3.Zero();
   let startHeight = 0;
@@ -475,7 +462,7 @@ export function createTransitionHandler(
       if (state !== 'idle') return;
       state = 'entering';
       progress = 0;
-      activeVehicle = vehicle;
+      _activeVehicle = vehicle;
 
       startPos = camera.position.clone();
       endPos = vehicle.rootNode.position.add(fullConfig.cameraOffset);
@@ -493,7 +480,7 @@ export function createTransitionHandler(
       if (state !== 'in_vehicle') return;
       state = 'exiting';
       progress = 0;
-      activeVehicle = vehicle;
+      _activeVehicle = vehicle;
 
       startPos = camera.position.clone();
       endPos = exitPosition.clone();
@@ -528,7 +515,7 @@ export function createTransitionHandler(
           log.info('Player entered vehicle');
         } else if (state === 'exiting') {
           state = 'idle';
-          activeVehicle = null;
+          _activeVehicle = null;
           log.info('Player exited vehicle');
         }
         return true; // Transition complete
@@ -614,8 +601,7 @@ export function getVehicleExitPosition(vehicle: SpawnedVehicle): Vector3 {
   const exitOffset = new Vector3(4, 0, 0); // Exit to the right
   return vehicle.rootNode.position.add(
     exitOffset.rotateByQuaternionToRef(
-      vehicle.rootNode.rotationQuaternion ??
-      vehicle.rootNode.rotation.toQuaternion(),
+      vehicle.rootNode.rotationQuaternion ?? vehicle.rootNode.rotation.toQuaternion(),
       new Vector3()
     )
   );

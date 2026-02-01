@@ -7,34 +7,6 @@
  * - Challenge Mode (daily/weekly/permanent challenges)
  */
 
-// New Game Plus System
-export {
-  getNewGamePlusSystem,
-  initNewGamePlus,
-  MAX_NG_PLUS_TIER,
-  NG_PLUS_BASE_MODIFIERS,
-  NG_PLUS_EXCLUSIVE_SKULLS,
-  NG_PLUS_START_WEAPONS,
-  NG_PLUS_TIER_REWARDS,
-  NG_PLUS_TIER_WEAPONS,
-  type NewGamePlusModifier,
-  type NewGamePlusModifiers,
-  type NewGamePlusState,
-  type NewGamePlusSystem,
-  type NewGamePlusTierReward,
-} from './NewGamePlus';
-
-// Game Mode Manager
-export {
-  type CombinedGameModifiers,
-  type GameMode,
-  getGameModeManager,
-  type GameModeManager,
-  type GameSessionState,
-  initGameModeManager,
-  type PlayerStartConfig,
-} from './GameModeManager';
-
 // Challenge Mode - Core types and generation
 export {
   type Challenge,
@@ -44,8 +16,6 @@ export {
   type ChallengeState,
   type ChallengeType,
   type DifficultyModifier,
-  type ObjectiveType,
-  type RewardType,
   formatTimeRemaining,
   generateDailyChallenges,
   generateWeeklyChallenges,
@@ -58,9 +28,10 @@ export {
   isChallengeExpired,
   LEVEL_DISPLAY_NAMES,
   loadChallengeState,
+  type ObjectiveType,
+  type RewardType,
   saveChallengeState,
 } from './ChallengeMode';
-
 // Daily Challenge Manager
 export {
   type ChallengeEvent,
@@ -70,3 +41,29 @@ export {
   getChallengeManager,
   initChallenges,
 } from './DailyChallenge';
+// Game Mode Manager
+export {
+  type CombinedGameModifiers,
+  type GameMode,
+  type GameModeManager,
+  type GameSessionState,
+  getGameModeManager,
+  initGameModeManager,
+  type PlayerStartConfig,
+} from './GameModeManager';
+// New Game Plus System
+export {
+  getNewGamePlusSystem,
+  initNewGamePlus,
+  MAX_NG_PLUS_TIER,
+  type NewGamePlusModifier,
+  type NewGamePlusModifiers,
+  type NewGamePlusState,
+  type NewGamePlusSystem,
+  type NewGamePlusTierReward,
+  NG_PLUS_BASE_MODIFIERS,
+  NG_PLUS_EXCLUSIVE_SKULLS,
+  NG_PLUS_START_WEAPONS,
+  NG_PLUS_TIER_REWARDS,
+  NG_PLUS_TIER_WEAPONS,
+} from './NewGamePlus';

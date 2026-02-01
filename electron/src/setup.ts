@@ -1,16 +1,16 @@
+import { join } from 'node:path';
 import type { CapacitorElectronConfig } from '@capacitor-community/electron';
 import {
-  CapElectronEventEmitter,
   CapacitorSplashScreen,
+  CapElectronEventEmitter,
   setupCapacitorElectronPlugins,
 } from '@capacitor-community/electron';
 import chokidar from 'chokidar';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, BrowserWindow, Menu, MenuItem, nativeImage, Tray, session } from 'electron';
+import { app, BrowserWindow, Menu, MenuItem, nativeImage, session, Tray } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import electronServe from 'electron-serve';
 import windowStateKeeper from 'electron-window-state';
-import { join } from 'path';
 
 // Define components for a watcher to detect when the webapp is changed so we can reload in Dev mode.
 const reloadWatcher = {
@@ -130,7 +130,10 @@ export class ElectronCapacitorApp {
 
     // If we close the main window with the splashscreen enabled we need to destory the ref.
     this.MainWindow.on('closed', () => {
-      if (this.SplashScreen?.getSplashWindow() && !this.SplashScreen.getSplashWindow().isDestroyed()) {
+      if (
+        this.SplashScreen?.getSplashWindow() &&
+        !this.SplashScreen.getSplashWindow().isDestroyed()
+      ) {
         this.SplashScreen.getSplashWindow().close();
       }
     });

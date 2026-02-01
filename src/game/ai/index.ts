@@ -2,23 +2,34 @@
  * AI Systems - Squad commands, companion AI, pathfinding, and asset generation
  */
 
-// Gemini AI Asset Generation
-export {
-  GeminiAssetGenerator,
-  getGeminiGenerator,
-  initializeGeminiGenerator,
-} from './GeminiAssetGenerator';
-
 export {
   ASSET_MANIFEST,
   CINEMATIC_ASSETS,
+  getAssetById,
+  getAssetsForLevel,
+  getCinematicsByPriority,
   PORTRAIT_ASSETS,
   QUEST_IMAGES,
   TEXT_CONTENT,
-  getAssetsForLevel,
-  getAssetById,
-  getCinematicsByPriority,
 } from './AssetManifest';
+export {
+  ALL_AUDIO_ASSETS,
+  AMBIENCE_SFX,
+  AUDIO_ASSET_MANIFEST,
+  COLLECTIBLE_SFX,
+  ENEMY_SFX,
+  ENVIRONMENT_SFX,
+  getAudioAssetById,
+  getAudioAssetCount,
+  getAudioAssetsByCategory,
+  getAudioAssetsByType,
+  getCC0AudioAssets,
+  MUSIC_STINGERS,
+  PLAYER_SFX,
+  UI_SFX,
+  VEHICLE_SFX,
+  WEAPON_SFX,
+} from './AudioAssetManifest';
 
 // Freesound Audio Asset Generation
 export {
@@ -26,112 +37,12 @@ export {
   getFreesoundClient,
   initializeFreesoundClient,
 } from './FreesoundClient';
-
+// Gemini AI Asset Generation
 export {
-  AUDIO_ASSET_MANIFEST,
-  ALL_AUDIO_ASSETS,
-  WEAPON_SFX,
-  ENEMY_SFX,
-  AMBIENCE_SFX,
-  UI_SFX,
-  PLAYER_SFX,
-  VEHICLE_SFX,
-  MUSIC_STINGERS,
-  COLLECTIBLE_SFX,
-  ENVIRONMENT_SFX,
-  getAudioAssetsByType,
-  getAudioAssetById,
-  getCC0AudioAssets,
-  getAudioAssetsByCategory,
-  getAudioAssetCount,
-} from './AudioAssetManifest';
-
-export type {
-  // Gemini/Visual Asset Types
-  AspectRatio,
-  ImageResolution,
-  VisualStyle,
-  CinematicAssetDef,
-  PortraitAssetDef,
-  QuestImageDef,
-  TextContentDef,
-  AssetManifest,
-  VideoGenerationResult,
-  ImageGenerationResult,
-  TextGenerationResult,
-  CachedAsset,
-  CacheMetadata,
-  GeminiGeneratorOptions,
-  ProgressCallback,
-  GenerationProgress,
-  LoadedCinematic,
-  LoadedPortrait,
-  CinematicLoadStatus,
-  // Freesound/Audio Asset Types
-  FreesoundLicense,
-  AudioAssetType,
-  FreesoundSound,
-  FreesoundSoundPreview,
-  FreesoundSearchResult,
-  FreesoundSearchOptions,
-  AudioProcessingOptions,
-  AudioAssetDef,
-  AudioAssetManifest,
-  FreesoundDownloadResult,
-  CachedAudioAsset,
-  FreesoundClientOptions,
-  AudioDownloadProgress,
-  AudioProgressCallback,
-} from './types';
-
-// Squad Command System
-export {
-  SquadCommandSystem,
-  type SquadCommand,
-  type SquadCommandData,
-  type SquadCommandConfig,
-  type SquadCommandCallbacks,
-  COMMAND_INFO,
-  COMMAND_ACKNOWLEDGMENTS,
-} from './SquadCommandSystem';
-
-// Marcus Steering AI
-export {
-  MarcusSteeringAI,
-  type MarcusSteeringConfig,
-  type SteeringMode,
-  type SteeringResult,
-  type FlankingState,
-  type PathfindingState,
-  type TargetCallout,
-} from './MarcusSteeringAI';
-
-// NavMesh Builder
-export {
-  NavMeshBuilder,
-  type NavMeshConfig,
-  type NavMeshObstacle,
-  type NavMeshRegionData,
-  type NavMeshBuildResult,
-  type VerticalConnection,
-  type EnvironmentType,
-  NAV_FLAGS,
-  createBrothersNavMesh,
-  createStationNavMesh,
-  createHiveNavMesh,
-} from './NavMeshBuilder';
-
-// Scouting System
-export {
-  ScoutingSystem,
-  type ScoutingState,
-  type ScoutWaypoint,
-  type IntelReport,
-  type IntelType,
-  type ScoutingCallbacks,
-  type ScoutingConfig,
-} from './ScoutingSystem';
-
+  GeminiAssetGenerator,
+  getGeminiGenerator,
+  initializeGeminiGenerator,
+} from './GeminiAssetGenerator';
 // Level NavMesh Data
 export {
   buildLevelNavMesh,
@@ -140,9 +51,90 @@ export {
   LEVEL_NAVMESH_DEFINITIONS,
   type LevelNavMeshDefinition,
 } from './LevelNavMeshData';
-
+// Marcus Steering AI
+export {
+  type FlankingState,
+  MarcusSteeringAI,
+  type MarcusSteeringConfig,
+  type PathfindingState,
+  type SteeringMode,
+  type SteeringResult,
+  type TargetCallout,
+} from './MarcusSteeringAI';
+// NavMesh Builder
+export {
+  createBrothersNavMesh,
+  createHiveNavMesh,
+  createStationNavMesh,
+  type EnvironmentType,
+  NAV_FLAGS,
+  NavMeshBuilder,
+  type NavMeshBuildResult,
+  type NavMeshConfig,
+  type NavMeshObstacle,
+  type NavMeshRegionData,
+  type VerticalConnection,
+} from './NavMeshBuilder';
 // Path Visualizer
 export {
   PathVisualizer,
   type PathVisualizerConfig,
 } from './PathVisualizer';
+
+// Scouting System
+export {
+  type IntelReport,
+  type IntelType,
+  type ScoutingCallbacks,
+  type ScoutingConfig,
+  type ScoutingState,
+  ScoutingSystem,
+  type ScoutWaypoint,
+} from './ScoutingSystem';
+// Squad Command System
+export {
+  COMMAND_ACKNOWLEDGMENTS,
+  COMMAND_INFO,
+  type SquadCommand,
+  type SquadCommandCallbacks,
+  type SquadCommandConfig,
+  type SquadCommandData,
+  SquadCommandSystem,
+} from './SquadCommandSystem';
+export type {
+  // Gemini/Visual Asset Types
+  AspectRatio,
+  AssetManifest,
+  AudioAssetDef,
+  AudioAssetManifest,
+  AudioAssetType,
+  AudioDownloadProgress,
+  AudioProcessingOptions,
+  AudioProgressCallback,
+  CachedAsset,
+  CachedAudioAsset,
+  CacheMetadata,
+  CinematicAssetDef,
+  CinematicLoadStatus,
+  FreesoundClientOptions,
+  FreesoundDownloadResult,
+  // Freesound/Audio Asset Types
+  FreesoundLicense,
+  FreesoundSearchOptions,
+  FreesoundSearchResult,
+  FreesoundSound,
+  FreesoundSoundPreview,
+  GeminiGeneratorOptions,
+  GenerationProgress,
+  ImageGenerationResult,
+  ImageResolution,
+  LoadedCinematic,
+  LoadedPortrait,
+  PortraitAssetDef,
+  ProgressCallback,
+  QuestImageDef,
+  TextContentDef,
+  TextGenerationResult,
+  VideoGenerationResult,
+  VisualStyle,
+} from './types';

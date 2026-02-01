@@ -189,7 +189,9 @@
   flex-direction: column;
   pointer-events: auto;
   transform: translateX(0);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
   opacity: 1;
 }
 

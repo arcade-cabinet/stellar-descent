@@ -8,7 +8,7 @@
  * - Ready/Recharging/Cooldown states
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getJetpackSystem, type JetpackState } from '../../game/movement';
 import styles from './JetpackGauge.module.css';
 

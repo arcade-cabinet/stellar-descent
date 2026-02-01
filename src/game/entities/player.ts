@@ -10,24 +10,20 @@ import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getMeleeSystem } from '../combat';
 import { getCurrentWeaponDef } from '../context/useWeaponActions';
-import { getVerticalMovement, getJetpackSystem, getMantleSystem } from '../movement';
-import { firstPersonWeapons } from '../weapons/FirstPersonWeapons';
-import { STARTER_WEAPON } from './weapons';
-import { getAudioManager } from '../core/AudioManager';
 import { AssetManager } from '../core/AssetManager';
-import { getLogger } from '../core/Logger';
-import {
-  type DifficultyLevel,
-  getDifficultyModifiers,
-  loadDifficultySetting,
-} from '../core/DifficultySettings';
+import { getAudioManager } from '../core/AudioManager';
+import { getDifficultyModifiers, loadDifficultySetting } from '../core/DifficultySettings';
 import { createEntity, type Entity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
 import { getInputManager, type InputManager } from '../input';
+import { getJetpackSystem, getVerticalMovement } from '../movement';
 import type { TouchInput } from '../types';
 import { tokens } from '../utils/designTokens';
 import { getScreenInfo, vibrate } from '../utils/responsive';
+import { firstPersonWeapons } from '../weapons/FirstPersonWeapons';
+import { STARTER_WEAPON } from './weapons';
 
 const log = getLogger('Player');
 
@@ -35,7 +31,7 @@ const log = getLogger('Player');
 const PLAYER_MODEL_PATH = '/assets/models/npcs/marine/marine_soldier.glb';
 
 // Sun direction for optimal visuals - sun should be top-right when facing forward
-const SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
+const _SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
 // Player should face so sun is top-right (roughly northeast facing southwest)
 const OPTIMAL_SPAWN_ROTATION_Y = Math.PI * 0.75; // Face southwest, sun top-right
 
@@ -50,16 +46,12 @@ export class Player {
 
   private scene: Scene;
   private canvas: HTMLCanvasElement;
-  private engine: Engine;
 
   // Third-person model root (loaded from GLB, follows collision capsule)
   private playerModelRoot: TransformNode | null = null;
 
   // First-person weapon view
   private weaponContainer: TransformNode;
-  private weaponMesh: Mesh | null = null;
-  private handsMesh: Mesh | null = null;
-  private muzzleFlashMesh: Mesh | null = null;
   private weaponBobTime = 0;
   private weaponRecoilOffset = 0;
 
@@ -100,7 +92,6 @@ export class Player {
   // Input manager for keybinding-aware input handling
   private inputManager: InputManager;
   private keysPressed: Set<string> = new Set();
-  private mouseDown = false;
   private lastFireTime = 0;
   private fireRate = 8;
 
@@ -221,9 +212,7 @@ export class Player {
       throw new Error(`[Player] Failed to load player GLB model from ${PLAYER_MODEL_PATH}`);
     }
 
-    log.info(
-      `GLB loaded: ${asset.meshes.length} meshes in ${asset.loadTime.toFixed(0)}ms`
-    );
+    log.info(`GLB loaded: ${asset.meshes.length} meshes in ${asset.loadTime.toFixed(0)}ms`);
 
     // ----- Third-person body (follows collision capsule) -----
     this.playerModelRoot = this.createThirdPersonModel(asset.meshes);
@@ -243,7 +232,9 @@ export class Player {
    * The model is invisible in first-person but casts shadows and is visible
    * in third-person spectating / reflections.
    */
-  private createThirdPersonModel(sourceMeshes: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh[]): TransformNode {
+  private createThirdPersonModel(
+    sourceMeshes: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh[]
+  ): TransformNode {
     const root = new TransformNode('playerModel', this.scene);
 
     // Clone every mesh with geometry into the third-person root
@@ -267,76 +258,6 @@ export class Player {
     root.parent = this.mesh;
 
     return root;
-  }
-
-  /**
-   * Populate the first-person weapon container with cloned meshes from the GLB.
-   * Tries to pick out arm/weapon sub-meshes by name; falls back to using the
-   * full model scaled into FPS view position.
-   */
-  private createFirstPersonWeapon(sourceMeshes: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh[]): void {
-    // Collect meshes that look like arms/hands/weapon
-    const armPatterns = [/arm/i, /hand/i, /glove/i, /wrist/i, /sleeve/i, /finger/i];
-    const weaponPatterns = [/gun/i, /weapon/i, /rifle/i, /barrel/i, /magazine/i, /stock/i, /trigger/i, /scope/i, /sight/i];
-
-    const armMeshes: Mesh[] = [];
-    const weaponMeshes: Mesh[] = [];
-    const allMeshes: Mesh[] = [];
-
-    for (const mesh of sourceMeshes) {
-      if (!(mesh instanceof Mesh) || mesh.getTotalVertices() === 0) continue;
-      allMeshes.push(mesh);
-
-      const name = mesh.name.toLowerCase();
-      if (armPatterns.some((p) => p.test(name))) {
-        armMeshes.push(mesh);
-      } else if (weaponPatterns.some((p) => p.test(name))) {
-        weaponMeshes.push(mesh);
-      }
-    }
-
-    // If we found specific sub-meshes, use them; otherwise use everything
-    const meshesToClone = armMeshes.length > 0 || weaponMeshes.length > 0
-      ? [...armMeshes, ...weaponMeshes]
-      : allMeshes;
-
-    let firstWeapon: Mesh | null = null;
-    let firstHands: Mesh | null = null;
-
-    for (const mesh of meshesToClone) {
-      const clone = mesh.clone(`fpView_${mesh.name}`, this.weaponContainer);
-      if (!clone) continue;
-
-      clone.isVisible = true;
-      clone.isPickable = false;
-
-      // Track references for animation
-      const name = mesh.name.toLowerCase();
-      if (!firstWeapon && weaponPatterns.some((p) => p.test(name))) {
-        firstWeapon = clone;
-      }
-      if (!firstHands && armPatterns.some((p) => p.test(name))) {
-        firstHands = clone;
-      }
-    }
-
-    // If no specific matches, use the first cloned mesh as the weapon reference
-    if (!firstWeapon && this.weaponContainer.getChildMeshes().length > 0) {
-      firstWeapon = this.weaponContainer.getChildMeshes()[0] as Mesh;
-    }
-
-    this.weaponMesh = firstWeapon;
-    this.handsMesh = firstHands;
-
-    // Scale the FPS view to fit the lower-right viewport area.
-    // The container is already positioned at (0.35, -0.25, 0.5) by createWeaponContainer.
-    // Adjust scale so the GLB model looks right relative to the camera.
-    this.weaponContainer.scaling.setAll(0.005);
-
-    log.info(
-      `First-person weapon view: ${meshesToClone.length} meshes cloned ` +
-      `(arms: ${armMeshes.length}, weapon: ${weaponMeshes.length})`
-    );
   }
 
   // ---------------------------------------------------------------------------
@@ -416,9 +337,9 @@ export class Player {
     // Track previous action states for edge detection
     // (The InputManager handles this internally, but we need local tracking for
     // actions that trigger once on press rather than while held)
-    let wasJumpPressed = false;
-    let wasCrouchPressed = false;
-    let wasMeleePressed = false;
+    const _wasJumpPressed = false;
+    const _wasCrouchPressed = false;
+    const _wasMeleePressed = false;
 
     // Keyboard controls - we still track raw keys for the keysPressed set
     // but use InputManager for action-based queries
@@ -848,7 +769,7 @@ export class Player {
     this.camera.rotation.y = this.rotationY;
 
     // Sprint state (uses keybindings via InputManager)
-    const wasSprinting = this.isSprinting;
+    const _wasSprinting = this.isSprinting;
     this.isSprinting = this.inputManager.isActionPressed('sprint');
 
     // Crouch state (uses keybindings via InputManager)
@@ -953,15 +874,11 @@ export class Player {
       if (Math.abs(movementInput.x) > 0.01 || Math.abs(movementInput.y) > 0.01) {
         // Forward/backward
         if (movementInput.y !== 0) {
-          moveDir.addInPlace(
-            this.camera.getDirection(Vector3.Forward()).scale(movementInput.y)
-          );
+          moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movementInput.y));
         }
         // Left/right strafe
         if (movementInput.x !== 0) {
-          moveDir.addInPlace(
-            this.camera.getDirection(Vector3.Right()).scale(movementInput.x)
-          );
+          moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movementInput.x));
         }
       }
     }
@@ -978,8 +895,8 @@ export class Player {
     }
 
     // Get base camera height from vertical movement
-    const verticalState = vertical.getState();
-    let baseHeight = this.getTargetCameraHeight();
+    const _verticalState = vertical.getState();
+    const baseHeight = this.getTargetCameraHeight();
 
     // Smoothly interpolate camera height based on crouch/slide state
     // Faster lerp on touch devices for more responsive feel (0.15s vs 0.3s)
@@ -1009,7 +926,8 @@ export class Player {
       if (this.entity.health.current < this.entity.health.max && !this.isDead) {
         const difficulty = loadDifficultySetting();
         const modifiers = getDifficultyModifiers(difficulty);
-        const scaledRegenRate = this.entity.health.regenRate * modifiers.playerHealthRegenMultiplier;
+        const scaledRegenRate =
+          this.entity.health.regenRate * modifiers.playerHealthRegenMultiplier;
         this.entity.health.current = Math.min(
           this.entity.health.max,
           this.entity.health.current + scaledRegenRate * deltaTime
@@ -1064,7 +982,7 @@ export class Player {
 
     // Smooth recoil recovery - use proper exponential decay
     // 0.05^deltaTime gives ~2-3 frames to recover at 60fps
-    const recoilDecay = Math.pow(0.05, deltaTime);
+    const recoilDecay = 0.05 ** deltaTime;
     this.weaponRecoilOffset *= recoilDecay;
     if (this.weaponRecoilOffset < 0.01) this.weaponRecoilOffset = 0;
 
@@ -1098,11 +1016,8 @@ export class Player {
       // Tilt weapon forward during mantle
       mantleRotation = 0.15;
     }
-    this.weaponContainer.rotation.x = -this.weaponRecoilOffset * 0.3 + slideRotation + mantleRotation + (landingBob * 0.3);
-  }
-
-  private triggerWeaponRecoil(): void {
-    this.weaponRecoilOffset = 1.0;
+    this.weaponContainer.rotation.x =
+      -this.weaponRecoilOffset * 0.3 + slideRotation + mantleRotation + landingBob * 0.3;
   }
 
   /**
@@ -1118,7 +1033,7 @@ export class Player {
     const movementInput = this.inputManager.getMovementInput();
     const forward = this.camera.getDirection(Vector3.Forward());
     const right = this.camera.getDirection(Vector3.Right());
-    let moveDir = Vector3.Zero();
+    const moveDir = Vector3.Zero();
 
     // Apply movement relative to camera direction
     if (Math.abs(movementInput.x) > 0.1 || Math.abs(movementInput.y) > 0.1) {
@@ -1547,7 +1462,7 @@ export class Player {
       const progress = Math.min(elapsed / fallDuration, 1);
 
       // Ease out fall
-      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const easeOut = 1 - (1 - progress) ** 3;
       this.camera.position.y = startY - easeOut * 1.3;
 
       // Tilt camera

@@ -85,7 +85,7 @@ const { createMockVector3, createMockMesh } = vi.hoisted(() => {
     getVerticesData: () => new Float32Array(300),
     updateVerticesData: () => {},
     createNormals: () => {},
-    clone: () => createMockMesh(name + '_clone'),
+    clone: () => createMockMesh(`${name}_clone`),
     getChildMeshes: () => [],
     getBoundingInfo: () => ({
       boundingBox: {
@@ -104,7 +104,6 @@ vi.mock('@babylonjs/core/Lights/directionalLight', () => ({
     intensity = 1;
     diffuse = {};
     dispose = () => {};
-    constructor() {}
   },
 }));
 
@@ -115,7 +114,6 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
     range = 10;
     position = createMockVector3(0, 0, 0);
     dispose = () => {};
-    constructor() {}
   },
 }));
 
@@ -156,7 +154,6 @@ vi.mock('@babylonjs/core/Materials/standardMaterial', () => ({
     alpha = 1;
     disableLighting = false;
     dispose = vi.fn();
-    constructor() {}
   },
 }));
 
@@ -308,7 +305,6 @@ vi.mock('../../core/SkyboxManager', () => ({
       material: { dispose: () => {} },
       dispose: () => {},
     });
-    constructor() {}
   },
 }));
 
@@ -326,18 +322,17 @@ vi.mock('../shared/PBRTerrainMaterials', () => ({
 // Import after mocks
 import {
   BRIDGE_Z,
+  type BridgeStructure,
   CANYON_HALF_WIDTH,
   CANYON_LENGTH,
-  EXTRACTION_Z,
   collapseBridge,
   createCanyonEnvironment,
   disposeRockslide,
+  EXTRACTION_Z,
   getCanyonSkyboxResult,
   sampleTerrainHeight,
   spawnRockslide,
   updateRockslide,
-  type BridgeStructure,
-  type RockslideRock,
 } from './environment';
 
 describe('Canyon Environment Constants', () => {
@@ -843,7 +838,7 @@ describe('Boulders', () => {
 
     // All boulders should be outside the bridge exclusion zone
     env.boulders.forEach((boulder) => {
-      const distFromBridge = Math.abs(boulder.position.z - BRIDGE_Z);
+      const _distFromBridge = Math.abs(boulder.position.z - BRIDGE_Z);
       // Boulders are excluded within 60 units of bridge
       // This may not be testable if positions are mocked
     });
@@ -1030,7 +1025,7 @@ describe('Bridge Segments', () => {
     const env = await createCanyonEnvironment(mockScene);
     const collapsibleBridge = env.bridges.find((b) => b.isCollapsible);
 
-    if (collapsibleBridge && collapsibleBridge.segments) {
+    if (collapsibleBridge?.segments) {
       expect(collapsibleBridge.segments.length).toBeGreaterThan(1);
     }
   });
@@ -1039,7 +1034,7 @@ describe('Bridge Segments', () => {
     const env = await createCanyonEnvironment(mockScene);
     const intactBridge = env.bridges.find((b) => !b.isCollapsible);
 
-    if (intactBridge && intactBridge.segments) {
+    if (intactBridge?.segments) {
       expect(intactBridge.segments.length).toBe(1);
     }
   });

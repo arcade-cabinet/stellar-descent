@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const cp = require('child_process');
+const cp = require('node:child_process');
 const chokidar = require('chokidar');
 const electron = require('electron');
 
@@ -16,7 +16,7 @@ const reloadWatcher = {
 ///*
 function runBuild() {
   return new Promise((resolve, _reject) => {
-    let tempChild = cp.spawn(npmCmd, ['run', 'build']);
+    const tempChild = cp.spawn(npmCmd, ['run', 'build']);
     tempChild.once('exit', () => {
       resolve();
     });

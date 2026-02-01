@@ -260,7 +260,11 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
 
   // Create a Mesh wrapper for the suit body to enable animations
   // The GLB provides the visual, this mesh provides animation target
-  const suitBody = MeshBuilder.CreateBox('suitBody', { width: 0.6, height: 1.4, depth: 0.6 }, scene);
+  const suitBody = MeshBuilder.CreateBox(
+    'suitBody',
+    { width: 0.6, height: 1.4, depth: 0.6 },
+    scene
+  );
   suitBody.position = lockerPos.clone();
   suitBody.position.y = 0.9;
   suitBody.position.z += 0.5;
@@ -378,11 +382,7 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
   );
 
   // Animation wrapper mesh for drop pod (invisible, enables position animation)
-  const dropPod = MeshBuilder.CreateBox(
-    'dropPod',
-    { width: 2, height: 3, depth: 2 },
-    scene
-  );
+  const dropPod = MeshBuilder.CreateBox('dropPod', { width: 2, height: 3, depth: 2 }, scene);
   dropPod.position = podPos.clone();
   dropPod.position.y = 1.5;
   dropPod.isVisible = false; // GLB provides visual

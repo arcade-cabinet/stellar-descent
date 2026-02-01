@@ -84,13 +84,13 @@ function createMockCallbacks() {
 // ============================================================================
 
 describe('MarineSquadAI', () => {
-  let mockScene: ReturnType<typeof createMockScene>;
-  let mockCallbacks: ReturnType<typeof createMockCallbacks>;
+  let _mockScene: ReturnType<typeof createMockScene>;
+  let _mockCallbacks: ReturnType<typeof createMockCallbacks>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    mockScene = createMockScene();
-    mockCallbacks = createMockCallbacks();
+    _mockScene = createMockScene();
+    _mockCallbacks = createMockCallbacks();
   });
 
   afterEach(() => {
@@ -116,7 +116,15 @@ describe('MarineSquadAI', () => {
     });
 
     it('should define marine states', () => {
-      const states = ['idle', 'moving', 'combat', 'taking_cover', 'suppressing', 'downed', 'reviving'];
+      const states = [
+        'idle',
+        'moving',
+        'combat',
+        'taking_cover',
+        'suppressing',
+        'downed',
+        'reviving',
+      ];
       expect(states).toHaveLength(7);
     });
 
@@ -197,7 +205,7 @@ describe('MarineSquadAI', () => {
       ];
       expect(lineOffsets).toHaveLength(4);
       // All at same Z (abreast)
-      expect(lineOffsets.every(o => o.z === 0)).toBe(true);
+      expect(lineOffsets.every((o) => o.z === 0)).toBe(true);
     });
 
     it('should define cover formation with spread positions', () => {
@@ -240,9 +248,22 @@ describe('MarineSquadAI', () => {
   describe('Marine Names', () => {
     it('should have pool of unique names', () => {
       const names = [
-        'Rodriguez', 'Chen', 'Kowalski', 'Okafor', 'Singh',
-        'Petrov', 'Nakamura', 'Garcia', 'Kim', 'Adeyemi',
-        'Hansen', 'Torres', 'Yamamoto', 'Mensah', 'Johansson', 'Diallo',
+        'Rodriguez',
+        'Chen',
+        'Kowalski',
+        'Okafor',
+        'Singh',
+        'Petrov',
+        'Nakamura',
+        'Garcia',
+        'Kim',
+        'Adeyemi',
+        'Hansen',
+        'Torres',
+        'Yamamoto',
+        'Mensah',
+        'Johansson',
+        'Diallo',
       ];
       expect(names).toHaveLength(16);
     });
@@ -260,9 +281,9 @@ describe('MarineSquadAI', () => {
         return names[idx];
       };
 
-      const name1 = getUniqueName();
-      const name2 = getUniqueName();
-      const name3 = getUniqueName();
+      const _name1 = getUniqueName();
+      const _name2 = getUniqueName();
+      const _name3 = getUniqueName();
 
       expect(usedIndices.size).toBe(3);
     });
@@ -482,11 +503,11 @@ describe('MarineSquadAI', () => {
       const squads = [{ order: '' }, { order: '' }, { order: '' }];
 
       const issueGlobalOrder = (order: string) => {
-        squads.forEach(s => s.order = order);
+        squads.forEach((s) => (s.order = order));
       };
 
       issueGlobalOrder('hold_position');
-      expect(squads.every(s => s.order === 'hold_position')).toBe(true);
+      expect(squads.every((s) => s.order === 'hold_position')).toBe(true);
     });
   });
 
@@ -571,7 +592,7 @@ describe('MarineSquadAI', () => {
       ];
 
       let activeCount = 0;
-      marines.forEach(m => {
+      marines.forEach((m) => {
         if (m.isActive) {
           activeCount++;
         }
@@ -595,7 +616,7 @@ describe('MarineSquadAI', () => {
       ];
 
       const nearbyEnemies = enemies.filter(
-        e => Vector3.Distance(e.position, squadPosition) < attackRange * 1.5
+        (e) => Vector3.Distance(e.position, squadPosition) < attackRange * 1.5
       );
 
       expect(nearbyEnemies).toHaveLength(1);
@@ -611,7 +632,7 @@ describe('MarineSquadAI', () => {
       const marinePosition = new Vector3(0, 0, -100);
       const attackRange = 50;
 
-      let bestEnemy: typeof enemies[0] | null = null;
+      let bestEnemy: (typeof enemies)[0] | null = null;
       let bestScore = -Infinity;
 
       for (const enemy of enemies) {
@@ -627,7 +648,7 @@ describe('MarineSquadAI', () => {
           bestScore = score;
           bestEnemy = enemy;
         }
-      };
+      }
 
       expect(bestEnemy?.threatLevel).toBe('high');
     });
@@ -736,10 +757,7 @@ describe('MarineSquadAI', () => {
 
     it('should return null if no cover within radius', () => {
       const marinePosition = new Vector3(0, 0, -100);
-      const coverPositions = [
-        new Vector3(50, 0, -100),
-        new Vector3(-50, 0, -100),
-      ];
+      const coverPositions = [new Vector3(50, 0, -100), new Vector3(-50, 0, -100)];
       const coverSeekRadius = 15;
 
       let nearestCover: Vector3 | null = null;
@@ -771,7 +789,7 @@ describe('MarineSquadAI', () => {
     });
 
     it('should down marine at 0 health', () => {
-      let marine = { health: 20, isActive: true, state: 'combat' as string };
+      const marine = { health: 20, isActive: true, state: 'combat' as string };
       const damage = 25;
 
       marine.health -= damage;
@@ -813,7 +831,7 @@ describe('MarineSquadAI', () => {
         { isActive: true },
       ];
 
-      const activeCount = marines.filter(m => m.isActive).length;
+      const activeCount = marines.filter((m) => m.isActive).length;
       expect(activeCount).toBe(3);
     });
 
@@ -825,7 +843,7 @@ describe('MarineSquadAI', () => {
         { isActive: false },
       ];
 
-      const activeCount = marines.filter(m => m.isActive).length;
+      const activeCount = marines.filter((m) => m.isActive).length;
       const isWiped = activeCount === 0;
 
       expect(isWiped).toBe(true);
@@ -886,9 +904,10 @@ describe('MarineSquadAI', () => {
         { position: new Vector3(1, 0, -100), state: 'combat' },
       ];
 
-      const downedNearby = marines.filter(m =>
-        (m.state === 'downed' || m.state === 'reviving') &&
-        Vector3.Distance(m.position, playerPosition) <= reviveProximity
+      const downedNearby = marines.filter(
+        (m) =>
+          (m.state === 'downed' || m.state === 'reviving') &&
+          Vector3.Distance(m.position, playerPosition) <= reviveProximity
       );
 
       expect(downedNearby).toHaveLength(1);
@@ -939,7 +958,7 @@ describe('MarineSquadAI', () => {
     it('should send comms message with squad callsign', () => {
       const squadCallsign = 'BRAVO';
       const marineName = 'Rodriguez';
-      const text = 'Contact! Hostiles ahead!';
+      const _text = 'Contact! Hostiles ahead!';
 
       const sender = marineName ? `Pvt. ${marineName}` : `${squadCallsign} Lead`;
       expect(sender).toBe('Pvt. Rodriguez');
@@ -1015,13 +1034,13 @@ describe('MarineSquadAI', () => {
       ];
       const damagePerMarine = 40;
 
-      marines.forEach(m => {
+      marines.forEach((m) => {
         if (m.isActive) {
           m.health -= damagePerMarine;
         }
       });
 
-      expect(marines.every(m => m.health === 60)).toBe(true);
+      expect(marines.every((m) => m.health === 60)).toBe(true);
     });
 
     it('should set squad to overwhelmed state', () => {
@@ -1074,7 +1093,7 @@ describe('MarineSquadAI', () => {
         { marines: [{ isActive: true }, { isActive: true }] },
       ];
 
-      const activeMarines = squads.flatMap(s => s.marines.filter(m => m.isActive));
+      const activeMarines = squads.flatMap((s) => s.marines.filter((m) => m.isActive));
       expect(activeMarines).toHaveLength(3);
     });
 
@@ -1084,33 +1103,31 @@ describe('MarineSquadAI', () => {
         { marines: [{ isActive: true }, { isActive: true }] },
       ];
 
-      const allMarines = squads.flatMap(s => s.marines);
+      const allMarines = squads.flatMap((s) => s.marines);
       expect(allMarines).toHaveLength(4);
     });
 
     it('should get firing marines', () => {
       const marines = [
         { isActive: true, state: 'combat', fireCooldown: 0, targetEnemyPos: new Vector3(10, 0, 0) },
-        { isActive: true, state: 'combat', fireCooldown: 0.5, targetEnemyPos: new Vector3(10, 0, 0) },
+        {
+          isActive: true,
+          state: 'combat',
+          fireCooldown: 0.5,
+          targetEnemyPos: new Vector3(10, 0, 0),
+        },
         { isActive: true, state: 'idle', fireCooldown: 0, targetEnemyPos: null },
       ];
 
-      const firingMarines = marines.filter(m =>
-        m.isActive &&
-        m.state === 'combat' &&
-        m.fireCooldown <= 0 &&
-        m.targetEnemyPos
+      const firingMarines = marines.filter(
+        (m) => m.isActive && m.state === 'combat' && m.fireCooldown <= 0 && m.targetEnemyPos
       );
 
       expect(firingMarines).toHaveLength(1);
     });
 
     it('should get total active marine count', () => {
-      const squads = [
-        { activeCount: 3 },
-        { activeCount: 4 },
-        { activeCount: 2 },
-      ];
+      const squads = [{ activeCount: 3 }, { activeCount: 4 }, { activeCount: 2 }];
 
       const totalActive = squads.reduce((sum, s) => sum + s.activeCount, 0);
       expect(totalActive).toBe(9);
@@ -1129,11 +1146,21 @@ describe('MarineSquadAI', () => {
   describe('Disposal', () => {
     it('should dispose all marine meshes', () => {
       const marines = [
-        { rootNode: { dispose: vi.fn() }, bodyMesh: { dispose: vi.fn() }, helmetMesh: { dispose: vi.fn() }, weaponMesh: { dispose: vi.fn() } },
-        { rootNode: { dispose: vi.fn() }, bodyMesh: { dispose: vi.fn() }, helmetMesh: { dispose: vi.fn() }, weaponMesh: { dispose: vi.fn() } },
+        {
+          rootNode: { dispose: vi.fn() },
+          bodyMesh: { dispose: vi.fn() },
+          helmetMesh: { dispose: vi.fn() },
+          weaponMesh: { dispose: vi.fn() },
+        },
+        {
+          rootNode: { dispose: vi.fn() },
+          bodyMesh: { dispose: vi.fn() },
+          helmetMesh: { dispose: vi.fn() },
+          weaponMesh: { dispose: vi.fn() },
+        },
       ];
 
-      marines.forEach(m => {
+      marines.forEach((m) => {
         m.rootNode.dispose();
         m.bodyMesh.dispose();
         m.helmetMesh.dispose();

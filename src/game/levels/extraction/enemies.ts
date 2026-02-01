@@ -4,17 +4,15 @@
  * Contains enemy spawning, AI behavior, and combat logic.
  */
 
-import type { Scene } from '@babylonjs/core/scene';
 import type { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-
-import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
+import type { Scene } from '@babylonjs/core/scene';
 import { particleManager } from '../../effects/ParticleManager';
-
-import type { Enemy } from './types';
+import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { MAX_ENEMIES } from './constants';
+import type { Enemy } from './types';
 
 // ============================================================================
 // ENEMY SPAWNING
@@ -81,7 +79,8 @@ export function calculateSpawnPosition(
     spawnPos.z += (Math.random() - 0.5) * 5;
   } else if (spawnPoints.length > 0) {
     // Use rotating spawn points for variety
-    const spawnIndex = (currentSpawnPointIndex + Math.floor(Math.random() * 3)) % spawnPoints.length;
+    const spawnIndex =
+      (currentSpawnPointIndex + Math.floor(Math.random() * 3)) % spawnPoints.length;
     const basePos = spawnPoints[spawnIndex];
     spawnPos = basePos.clone();
     spawnPos.y = 0;
@@ -417,7 +416,7 @@ export async function spawnCollapseStraggler(
     playerPosition.z - 30 - Math.random() * 50
   );
 
-  const species = ALIEN_SPECIES['skitterer'];
+  const species = ALIEN_SPECIES.skitterer;
   const mesh = await createAlienMesh(scene, species, Date.now() + existingCount);
   mesh.position = spawnPos.clone();
 

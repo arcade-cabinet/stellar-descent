@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getLogger } from '../../game/core/Logger';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import styles from './InstallPrompt.module.css';
 
 /**

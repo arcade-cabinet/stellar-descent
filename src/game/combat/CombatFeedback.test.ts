@@ -20,7 +20,11 @@ import {
   TTK_TARGETS,
   WEAPON_BALANCE,
 } from '../balance/CombatBalanceConfig';
-import { DIFFICULTY_ORDER, getDifficultyModifiers, type DifficultyLevel } from '../core/DifficultySettings';
+import {
+  DIFFICULTY_ORDER,
+  type DifficultyLevel,
+  getDifficultyModifiers,
+} from '../core/DifficultySettings';
 import type { WeaponId } from '../entities/weapons';
 
 // ---------------------------------------------------------------------------
@@ -34,7 +38,7 @@ const CRITICAL_HIT_MULTIPLIER = 1.5;
 const HEAD_HIT_THRESHOLD = 0.7;
 
 /** Enemy projectile base damage */
-const ENEMY_PROJECTILE_BASE_DAMAGE = 10;
+const _ENEMY_PROJECTILE_BASE_DAMAGE = 10;
 
 /** Hit detection radius for projectile collision */
 const HIT_DETECTION_RADIUS = 1.5;
@@ -226,7 +230,10 @@ describe('Critical Hit Detection', () => {
       const weaponIds = Object.keys(WEAPON_BALANCE) as WeaponId[];
       for (const id of weaponIds) {
         const weapon = WEAPON_BALANCE[id];
-        expect(weapon?.critMultiplier, `${id} should have positive crit multiplier`).toBeGreaterThan(0);
+        expect(
+          weapon?.critMultiplier,
+          `${id} should have positive crit multiplier`
+        ).toBeGreaterThan(0);
       }
     });
 
@@ -295,7 +302,9 @@ describe('Hit Detection Logic', () => {
     });
 
     it('projectile without enemy tag defaults to player', () => {
-      const defaultProjectileTags: { projectile: boolean; enemy?: boolean; ally?: boolean } = { projectile: true };
+      const defaultProjectileTags: { projectile: boolean; enemy?: boolean; ally?: boolean } = {
+        projectile: true,
+      };
       const isPlayerProjectile = !defaultProjectileTags.enemy && !defaultProjectileTags.ally;
       expect(isPlayerProjectile).toBe(true);
     });
@@ -492,17 +501,17 @@ describe('Player Survivability', () => {
       // On hard, nightmare, and ultra_nightmare, certain enemies can one-shot the player - this is intentional
       // Ultra-Nightmare has 2.5x playerDamageReceivedMultiplier, so more enemies can one-shot
       const canOneShot: Record<string, DifficultyLevel[]> = {
-        skitterer: ['ultra_nightmare'],         // 30 base * 2.5 = 75, but rounding could push over
-        spitter: ['ultra_nightmare'],           // 45 base * 2.5 = 112.5 > 100 HP
-        warrior: ['ultra_nightmare'],           // 55 base * 2.5 = 137.5 > 100 HP
+        skitterer: ['ultra_nightmare'], // 30 base * 2.5 = 75, but rounding could push over
+        spitter: ['ultra_nightmare'], // 45 base * 2.5 = 112.5 > 100 HP
+        warrior: ['ultra_nightmare'], // 55 base * 2.5 = 137.5 > 100 HP
         heavy: ['nightmare', 'ultra_nightmare'], // 70 base * 2.0 = 140 > 100 HP, 90 base * 2.5 = 225 > 100 HP
-        stalker: ['ultra_nightmare'],           // 40 base * 2.5 = 100, borderline one-shot
+        stalker: ['ultra_nightmare'], // 40 base * 2.5 = 100, borderline one-shot
         broodmother: ['hard', 'nightmare', 'ultra_nightmare'], // Boss tier - high damage
-        queen: ['hard', 'nightmare', 'ultra_nightmare'],       // Boss tier - 75 damage on hard * 1.4 = 105 > 100 HP
+        queen: ['hard', 'nightmare', 'ultra_nightmare'], // Boss tier - 75 damage on hard * 1.4 = 105 > 100 HP
         // Legacy mappings
-        lurker: ['ultra_nightmare'],            // Same as stalker
-        spewer: ['ultra_nightmare'],            // Same as spitter
-        husk: ['ultra_nightmare'],              // Same as warrior
+        lurker: ['ultra_nightmare'], // Same as stalker
+        spewer: ['ultra_nightmare'], // Same as spitter
+        husk: ['ultra_nightmare'], // Same as warrior
       };
 
       for (const enemyId of Object.keys(ENEMY_BALANCE)) {
@@ -531,10 +540,9 @@ describe('Player Survivability', () => {
         const normalHits = calculatePlayerSurvivableHits(enemyId, 'normal');
         const nightmareHits = calculatePlayerSurvivableHits(enemyId, 'nightmare');
 
-        expect(
-          nightmareHits,
-          `${enemyId} nightmare hits <= normal`
-        ).toBeLessThanOrEqual(normalHits);
+        expect(nightmareHits, `${enemyId} nightmare hits <= normal`).toBeLessThanOrEqual(
+          normalHits
+        );
       }
     });
 

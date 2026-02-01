@@ -33,29 +33,29 @@ export type QuestType = 'main' | 'branch' | 'secret';
 
 /** What triggers a quest to become available */
 export type QuestTriggerType =
-  | 'level_enter'        // Auto-trigger when entering a level
-  | 'quest_complete'     // Trigger when another quest completes
-  | 'object_interact'    // Trigger from interacting with world object
-  | 'npc_dialogue'       // Trigger from talking to an NPC
-  | 'collectible_found'  // Trigger from finding a collectible
-  | 'area_enter'         // Trigger from entering a specific area
-  | 'enemy_killed'       // Trigger from killing specific enemy type
-  | 'manual';            // Triggered programmatically
+  | 'level_enter' // Auto-trigger when entering a level
+  | 'quest_complete' // Trigger when another quest completes
+  | 'object_interact' // Trigger from interacting with world object
+  | 'npc_dialogue' // Trigger from talking to an NPC
+  | 'collectible_found' // Trigger from finding a collectible
+  | 'area_enter' // Trigger from entering a specific area
+  | 'enemy_killed' // Trigger from killing specific enemy type
+  | 'manual'; // Triggered programmatically
 
 /** Objective types within a quest */
 export type ObjectiveType =
-  | 'reach_location'     // Go to waypoint
-  | 'interact'           // Use an object/terminal
-  | 'kill_enemies'       // Defeat enemies (count-based)
-  | 'kill_target'        // Defeat specific enemy
-  | 'survive'            // Survive for duration
-  | 'escort'             // Keep NPC alive
-  | 'collect'            // Find items
-  | 'defend'             // Protect location
-  | 'follow'             // Follow NPC/waypoints
-  | 'vehicle'            // Drive/fly to destination
-  | 'stealth'            // Avoid detection
-  | 'custom';            // Level-specific logic
+  | 'reach_location' // Go to waypoint
+  | 'interact' // Use an object/terminal
+  | 'kill_enemies' // Defeat enemies (count-based)
+  | 'kill_target' // Defeat specific enemy
+  | 'survive' // Survive for duration
+  | 'escort' // Keep NPC alive
+  | 'collect' // Find items
+  | 'defend' // Protect location
+  | 'follow' // Follow NPC/waypoints
+  | 'vehicle' // Drive/fly to destination
+  | 'stealth' // Avoid detection
+  | 'custom'; // Level-specific logic
 
 // ============================================================================
 // QUEST OBJECTIVE DEFINITION
@@ -68,28 +68,28 @@ export interface QuestObjective {
   description: string;
 
   // Progress tracking
-  required?: number;           // For count-based objectives (kill 5, collect 3)
-  current?: number;            // Current progress
+  required?: number; // For count-based objectives (kill 5, collect 3)
+  current?: number; // Current progress
 
   // Location data
   targetPosition?: { x: number; y: number; z: number };
-  targetRadius?: number;       // How close to get
+  targetRadius?: number; // How close to get
 
   // Timing
-  timeLimit?: number;          // Optional time limit in seconds
+  timeLimit?: number; // Optional time limit in seconds
 
   // Display
-  showMarker?: boolean;        // Show objective marker
-  markerLabel?: string;        // Label for marker
-  compassIcon?: string;        // Icon for compass
+  showMarker?: boolean; // Show objective marker
+  markerLabel?: string; // Label for marker
+  compassIcon?: string; // Icon for compass
 
   // Triggers
-  dialogueOnStart?: string;    // Dialogue trigger when objective starts
+  dialogueOnStart?: string; // Dialogue trigger when objective starts
   dialogueOnComplete?: string; // Dialogue trigger when objective completes
 
   // State
   status?: 'pending' | 'active' | 'completed' | 'failed';
-  completedAt?: number;        // Timestamp (game time microseconds)
+  completedAt?: number; // Timestamp (game time microseconds)
 }
 
 // ============================================================================
@@ -100,12 +100,12 @@ export interface QuestObjective {
 export interface QuestDefinition {
   id: string;
   type: QuestType;
-  levelId: LevelId;            // Which level this quest belongs to
+  levelId: LevelId; // Which level this quest belongs to
 
   // Display
   name: string;
   description: string;
-  briefDescription?: string;   // Short version for HUD
+  briefDescription?: string; // Short version for HUD
 
   // Objectives (ordered)
   objectives: QuestObjective[];
@@ -113,38 +113,38 @@ export interface QuestDefinition {
   // Triggers
   triggerType: QuestTriggerType;
   triggerData?: {
-    questId?: string;          // For quest_complete trigger
-    objectId?: string;         // For object_interact trigger
-    npcId?: string;            // For npc_dialogue trigger
-    collectibleId?: string;    // For collectible_found trigger
-    areaId?: string;           // For area_enter trigger
-    enemyType?: string;        // For enemy_killed trigger
+    questId?: string; // For quest_complete trigger
+    objectId?: string; // For object_interact trigger
+    npcId?: string; // For npc_dialogue trigger
+    collectibleId?: string; // For collectible_found trigger
+    areaId?: string; // For area_enter trigger
+    enemyType?: string; // For enemy_killed trigger
   };
 
   // Prerequisites
   prerequisites?: {
-    quests?: string[];         // Required completed quests
-    levels?: LevelId[];        // Required completed levels
-    items?: string[];          // Required inventory items
+    quests?: string[]; // Required completed quests
+    levels?: LevelId[]; // Required completed levels
+    items?: string[]; // Required inventory items
   };
 
   // Rewards
   rewards?: {
-    unlockArea?: string;       // Unlock a hidden area
-    unlockQuest?: string;      // Unlock another quest
-    giveItem?: string;         // Add item to inventory
-    achievement?: string;      // Trigger achievement
-    dialogue?: string;         // Play reward dialogue
+    unlockArea?: string; // Unlock a hidden area
+    unlockQuest?: string; // Unlock another quest
+    giveItem?: string; // Add item to inventory
+    achievement?: string; // Trigger achievement
+    dialogue?: string; // Play reward dialogue
   };
 
   // Branching
-  nextQuestId?: string;        // Main chain: next quest in sequence
-  branchQuests?: string[];     // Optional quests this unlocks
+  nextQuestId?: string; // Main chain: next quest in sequence
+  branchQuests?: string[]; // Optional quests this unlocks
 
   // Failure conditions
-  failOnDeath?: boolean;       // Fail if player dies
-  failOnTimer?: boolean;       // Fail if timer expires
-  canRetry?: boolean;          // Can restart after failure
+  failOnDeath?: boolean; // Fail if player dies
+  failOnTimer?: boolean; // Fail if timer expires
+  canRetry?: boolean; // Can restart after failure
 }
 
 // ============================================================================
@@ -156,11 +156,11 @@ export interface QuestState {
   questId: string;
   status: QuestStatus;
   currentObjectiveIndex: number;
-  objectiveProgress: Record<string, number>;  // objectiveId -> progress
+  objectiveProgress: Record<string, number>; // objectiveId -> progress
   objectiveStatus: Record<string, QuestObjective['status']>;
-  startedAt?: number;          // Game time microseconds
-  completedAt?: number;        // Game time microseconds
-  failedAt?: number;           // Game time microseconds
+  startedAt?: number; // Game time microseconds
+  completedAt?: number; // Game time microseconds
+  failedAt?: number; // Game time microseconds
   failReason?: string;
 }
 
@@ -181,7 +181,8 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
     type: 'main',
     levelId: 'anchor_station',
     name: 'Prep for Deployment',
-    description: 'Complete pre-mission briefing and board the drop pod for deployment to Kepler\'s Promise.',
+    description:
+      "Complete pre-mission briefing and board the drop pod for deployment to Kepler's Promise.",
     briefDescription: 'Report to Commander Reyes',
     triggerType: 'level_enter',
     objectives: [
@@ -246,7 +247,7 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
     type: 'main',
     levelId: 'landfall',
     name: 'Planetfall',
-    description: 'Survive the HALO drop and establish a foothold on Kepler\'s Promise surface.',
+    description: "Survive the HALO drop and establish a foothold on Kepler's Promise surface.",
     briefDescription: 'Survive the drop',
     triggerType: 'level_enter',
     objectives: [
@@ -302,7 +303,8 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
     type: 'main',
     levelId: 'canyon_run',
     name: 'Canyon Run',
-    description: 'Race through the canyon system to reach FOB Delta before hostile reinforcements arrive.',
+    description:
+      'Race through the canyon system to reach FOB Delta before hostile reinforcements arrive.',
     briefDescription: 'Reach FOB Delta',
     triggerType: 'level_enter',
     objectives: [
@@ -396,7 +398,7 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
       {
         id: 'fob_marcus_signal',
         type: 'custom',
-        description: 'Analyze distress beacon - it\'s Marcus!',
+        description: "Analyze distress beacon - it's Marcus!",
         dialogueOnComplete: 'marcus_signal_found',
       },
       {
@@ -420,14 +422,15 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
     type: 'main',
     levelId: 'brothers_in_arms',
     name: 'Brothers in Arms',
-    description: 'Reunite with your brother Marcus and fight together to push back the alien assault.',
+    description:
+      'Reunite with your brother Marcus and fight together to push back the alien assault.',
     briefDescription: 'Find Marcus',
     triggerType: 'level_enter',
     objectives: [
       {
         id: 'brothers_locate',
         type: 'reach_location',
-        description: 'Follow Marcus\'s beacon signal',
+        description: "Follow Marcus's beacon signal",
         dialogueOnStart: 'briefing_brothers',
         targetPosition: { x: 100, y: 1.7, z: 200 },
         targetRadius: 20,
@@ -444,13 +447,13 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
         id: 'brothers_defend',
         type: 'defend',
         description: 'Defend position while Marcus repairs his mech',
-        required: 60,  // 60 seconds
+        required: 60, // 60 seconds
         dialogueOnStart: 'hold_position',
       },
       {
         id: 'brothers_mech',
         type: 'escort',
-        description: 'Fight alongside Marcus\'s Atlas mech',
+        description: "Fight alongside Marcus's Atlas mech",
         dialogueOnStart: 'mech_online',
       },
       {
@@ -571,11 +574,11 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
       {
         id: 'breach_lair',
         type: 'reach_location',
-        description: 'Reach the Queen\'s chamber',
+        description: "Reach the Queen's chamber",
         targetPosition: { x: 0, y: -200, z: 500 },
         targetRadius: 30,
         showMarker: true,
-        markerLabel: 'QUEEN\'S LAIR',
+        markerLabel: "QUEEN'S LAIR",
         dialogueOnStart: 'queen_detected',
       },
       {
@@ -736,7 +739,7 @@ export const MAIN_QUEST_CHAIN: QuestDefinition[] = [
     type: 'main',
     levelId: 'final_escape',
     name: 'Final Escape',
-    description: 'Outrun the hive collapse and escape Kepler\'s Promise.',
+    description: "Outrun the hive collapse and escape Kepler's Promise.",
     briefDescription: 'Escape the planet',
     triggerType: 'level_enter',
     objectives: [
@@ -805,7 +808,7 @@ export const BRANCH_QUESTS: QuestDefinition[] = [
     id: 'branch_anchor_marcus_letter',
     type: 'branch',
     levelId: 'anchor_station',
-    name: 'Marcus\'s Letter',
+    name: "Marcus's Letter",
     description: 'You found a personal letter from your brother Marcus in your locker.',
     triggerType: 'object_interact',
     triggerData: { objectId: 'locker_personal' },
@@ -855,7 +858,8 @@ export const BRANCH_QUESTS: QuestDefinition[] = [
     type: 'branch',
     levelId: 'landfall',
     name: 'Downed Pilot',
-    description: 'You detected a faint UNSC distress signal nearby - another survivor from the drop.',
+    description:
+      'You detected a faint UNSC distress signal nearby - another survivor from the drop.',
     triggerType: 'area_enter',
     triggerData: { areaId: 'crash_site_secondary' },
     objectives: [
@@ -1071,7 +1075,7 @@ export const BRANCH_QUESTS: QuestDefinition[] = [
     id: 'branch_brothers_cache',
     type: 'branch',
     levelId: 'brothers_in_arms',
-    name: 'Marcus\'s Stash',
+    name: "Marcus's Stash",
     description: 'Marcus mentions he hid supplies nearby before linking up with you.',
     triggerType: 'npc_dialogue',
     triggerData: { npcId: 'marcus' },
@@ -1079,7 +1083,7 @@ export const BRANCH_QUESTS: QuestDefinition[] = [
       {
         id: 'stash_find',
         type: 'reach_location',
-        description: 'Find Marcus\'s supply stash',
+        description: "Find Marcus's supply stash",
         targetPosition: { x: -80, y: 1.7, z: 100 },
         targetRadius: 10,
         showMarker: true,
@@ -1138,7 +1142,8 @@ export const BRANCH_QUESTS: QuestDefinition[] = [
     type: 'branch',
     levelId: 'southern_ice',
     name: 'Research Station Zeta',
-    description: 'A buried research station appears on thermal scans - scientists might still be alive.',
+    description:
+      'A buried research station appears on thermal scans - scientists might still be alive.',
     triggerType: 'object_interact',
     triggerData: { objectId: 'thermal_scanner' },
     objectives: [
@@ -1175,7 +1180,7 @@ export const BRANCH_QUESTS: QuestDefinition[] = [
     type: 'branch',
     levelId: 'southern_ice',
     name: 'Ice Grave',
-    description: 'A frozen soldier\'s body is visible in the ice - VANGUARD insignia.',
+    description: "A frozen soldier's body is visible in the ice - VANGUARD insignia.",
     triggerType: 'area_enter',
     triggerData: { areaId: 'frozen_grave' },
     objectives: [

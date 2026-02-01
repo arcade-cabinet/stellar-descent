@@ -7,9 +7,9 @@
  * Requires: npm install sharp --save-dev
  */
 
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,9 +33,9 @@ const sizes = [
 function generateIconSVG(size) {
   const scale = size / 512;
   const strokeScale = Math.max(1, Math.round(4 * scale));
-  const fontSize = Math.round(48 * scale);
-  const smallFontSize = Math.round(36 * scale);
-  const tinyFontSize = Math.round(28 * scale);
+  const _fontSize = Math.round(48 * scale);
+  const _smallFontSize = Math.round(36 * scale);
+  const _tinyFontSize = Math.round(28 * scale);
 
   // For very small sizes, use a simplified icon
   if (size <= 64) {

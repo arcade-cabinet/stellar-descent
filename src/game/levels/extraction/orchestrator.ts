@@ -13,7 +13,6 @@
  * PHASE 5: VICTORY - Dropship boarding and epilogue
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import type { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -28,20 +27,30 @@ import { bindableActionParams, levelActionParams } from '../../input/InputBridge
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { BaseLevel } from '../BaseLevel';
 import { buildFloraFromPlacements, getExtractionFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getExtractionCollectibles } from '../shared/CollectiblePlacer';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getExtractionCollectibles,
+} from '../shared/CollectiblePlacer';
 import { updateBiolights } from '../shared/HiveEnvironmentBuilder';
-import type { TerrainResult } from '../shared/SurfaceTerrainFactory';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
-import type { ExtractionEnvironmentResult } from './ExtractionEnvironmentBuilder';
-
-// Import modular components
-import type { Enemy, DebrisChunk, FallingStalactite, HealthPickup, CrumblingWall, SupplyDrop, ExtractionPhase } from './types';
-import * as C from './constants';
+import type { LevelId } from '../types';
 import * as Comms from './comms';
-import * as Enemies from './enemies';
-import * as Phases from './phases';
+import * as C from './constants';
+import type { ExtractionEnvironmentResult } from './ExtractionEnvironmentBuilder';
 import * as Effects from './effects';
+import * as Enemies from './enemies';
 import * as Environment from './environment';
+import * as Phases from './phases';
+// Import modular components
+import type {
+  CrumblingWall,
+  DebrisChunk,
+  Enemy,
+  ExtractionPhase,
+  FallingStalactite,
+  HealthPickup,
+  SupplyDrop,
+} from './types';
 import * as Victory from './victory';
 
 export class ExtractionLevel extends BaseLevel {
@@ -115,10 +124,6 @@ export class ExtractionLevel extends BaseLevel {
   private grenadeCooldown = 0;
   private flareCooldown = 0;
 
-  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig, callbacks: LevelCallbacks) {
-    super(engine, canvas, config, callbacks);
-  }
-
   protected getBackgroundColor(): Color4 {
     return C.PHASE_COLORS[this.phaseState.phase] ?? C.PHASE_COLORS.escape;
   }
@@ -165,7 +170,11 @@ export class ExtractionLevel extends BaseLevel {
     this.floraNodes = await buildFloraFromPlacements(this.scene, getExtractionFlora(), floraRoot);
 
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getExtractionCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getExtractionCollectibles(),
+      collectibleRoot
+    );
 
     this.startEscape();
   }
@@ -176,8 +185,17 @@ export class ExtractionLevel extends BaseLevel {
 
   private setSurfaceVisible(visible: boolean): void {
     Environment.setSurfaceVisible(
-      this.terrain, this.extractionEnv, this.skyDome, this.lzPad, this.lzBeacon,
-      this.breachHoles, this.canyonWalls, this.barrierWalls, this.coverObjects, this.mechMesh, visible
+      this.terrain,
+      this.extractionEnv,
+      this.skyDome,
+      this.lzPad,
+      this.lzBeacon,
+      this.breachHoles,
+      this.canyonWalls,
+      this.barrierWalls,
+      this.coverObjects,
+      this.mechMesh,
+      visible
     );
   }
 
@@ -192,13 +210,13 @@ export class ExtractionLevel extends BaseLevel {
     this.phaseState.playerEscapeProgress = 0;
     this.phaseState.collapseDistance = -20;
 
-    this.callbacks.onCinematicStart?.();
-    this.callbacks.onNotification('THE HIVE IS COLLAPSING', 3000);
+    this.emitCinematicStart();
+    this.emitNotification('THE HIVE IS COLLAPSING', 3000);
 
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
 
-    setTimeout(() => this.callbacks.onCommsMessage(Comms.ESCAPE_START_COMMS), 1000);
+    setTimeout(() => this.emitCommsMessage(Comms.ESCAPE_START_COMMS), 1000);
     setTimeout(() => this.transitionToPhase('escape_tunnel'), 3000);
   }
 
@@ -213,15 +231,15 @@ export class ExtractionLevel extends BaseLevel {
 
     switch (newPhase) {
       case 'escape_tunnel':
-        this.callbacks.onObjectiveUpdate('ESCAPE THE HIVE', 'RUN! The collapse is right behind you!');
+        this.emitObjectiveUpdate('ESCAPE THE HIVE', 'RUN! The collapse is right behind you!');
         this.updateActionButtons('escape');
         this.setBaseShake(1.5);
-        this.callbacks.onCombatStateChange(true);
+        this.emitCombatStateChanged(true);
         break;
 
       case 'surface_run':
-        this.callbacks.onNotification('SURFACE REACHED', 2000);
-        this.callbacks.onCinematicEnd?.();
+        this.emitNotification('SURFACE REACHED', 2000);
+        this.emitCinematicEnd();
         this.setTunnelVisible(false);
         this.setSurfaceVisible(true);
         this.camera.position.set(0, 1.7, 0);
@@ -231,28 +249,32 @@ export class ExtractionLevel extends BaseLevel {
         this.scene.clearColor = new Color4(0.75, 0.5, 0.35, 1);
         this.setBaseShake(0.5);
         setTimeout(() => {
-          this.callbacks.onCommsMessage(Comms.SURFACE_REACHED_COMMS);
-          this.callbacks.onObjectiveUpdate('REACH LZ OMEGA', `Distance: ${this.phaseState.distanceToLZ.toFixed(0)}m`);
+          this.emitCommsMessage(Comms.SURFACE_REACHED_COMMS);
+          this.emitObjectiveUpdate(
+            'REACH LZ OMEGA',
+            `Distance: ${this.phaseState.distanceToLZ.toFixed(0)}m`
+          );
         }, 2000);
         break;
 
       case 'holdout':
-        this.callbacks.onNotification('DEFEND THE LZ', 3000);
+        this.emitNotification('DEFEND THE LZ', 3000);
         this.phaseState.dropshipETA = C.DROPSHIP_ETA_INITIAL;
         this.waveState = Phases.createWaveState();
         this.setBaseShake(0);
         this.camera.position.set(C.LZ_POSITION.x, 1.7, C.LZ_POSITION.z + 15);
-        setTimeout(() => this.callbacks.onCommsMessage(Comms.HOLDOUT_START_COMMS), 1500);
+        setTimeout(() => this.emitCommsMessage(Comms.HOLDOUT_START_COMMS), 1500);
         setTimeout(() => {
           this.waveState = Phases.startWaveIntermission(this.waveState, 1);
           const config = Phases.getWaveConfig(1);
           if (config) {
-            this.callbacks.onNotification(`INCOMING: ${config.waveTitle}`, 3000);
-            if (config.commsMessage) setTimeout(() => this.callbacks.onCommsMessage(config.commsMessage!), 1000);
+            this.emitNotification(`INCOMING: ${config.waveTitle}`, 3000);
+            if (config.commsMessage)
+              setTimeout(() => this.emitCommsMessage(config.commsMessage!), 1000);
           }
         }, 4000);
         this.updateActionButtons('holdout');
-        this.callbacks.onCombatStateChange(true);
+        this.emitCombatStateChanged(true);
         break;
 
       case 'hive_collapse':
@@ -260,12 +282,12 @@ export class ExtractionLevel extends BaseLevel {
         break;
 
       case 'victory':
-        this.callbacks.onNotification('DROPSHIP ARRIVING', 3000);
-        this.callbacks.onCombatStateChange(false);
+        this.emitNotification('DROPSHIP ARRIVING', 3000);
+        this.emitCombatStateChanged(false);
         this.updateActionButtons('none');
         if (this.noDeathBonus) {
           setTimeout(() => {
-            this.callbacks.onNotification('BONUS: FLAWLESS EXTRACTION - NO DEATHS', 4000);
+            this.emitNotification('BONUS: FLAWLESS EXTRACTION - NO DEATHS', 4000);
             getAchievementManager().onLevelComplete(this.id, false);
           }, 2000);
         }
@@ -284,7 +306,6 @@ export class ExtractionLevel extends BaseLevel {
     return {
       scene: this.scene,
       state: this.victoryState,
-      callbacks: this.callbacks,
       dropship: this.dropship,
       dropshipRamp: this.dropshipRamp,
       dropshipRampLight: this.dropshipRampLight,
@@ -299,22 +320,28 @@ export class ExtractionLevel extends BaseLevel {
       disposeCollapseResources: this.disposeCollapseResources.bind(this),
       onTransitionToEpilogue: () => this.transitionToPhase('epilogue'),
       completeLevel: this.completeLevel.bind(this),
-      setMechIntegrity: (v: number) => { this.mechIntegrity = v; },
+      setMechIntegrity: (v: number) => {
+        this.mechIntegrity = v;
+      },
     };
   }
 
   private handleAction(actionId: string): void {
     switch (actionId) {
       case 'grenade':
-        if (this.grenadeCooldown <= 0) { this.throwGrenade(); this.grenadeCooldown = C.GRENADE_COOLDOWN_TIME; }
-        else this.callbacks.onNotification('GRENADE ON COOLDOWN', 500);
+        if (this.grenadeCooldown <= 0) {
+          this.throwGrenade();
+          this.grenadeCooldown = C.GRENADE_COOLDOWN_TIME;
+        } else this.emitNotification('GRENADE ON COOLDOWN', 500);
         break;
       case 'melee':
         this.performMelee();
         break;
       case 'flare':
-        if (this.flareCooldown <= 0) { this.fireSignalFlare(); this.flareCooldown = C.FLARE_COOLDOWN_TIME; }
-        else this.callbacks.onNotification('FLARE ON COOLDOWN', 500);
+        if (this.flareCooldown <= 0) {
+          this.fireSignalFlare();
+          this.flareCooldown = C.FLARE_COOLDOWN_TIME;
+        } else this.emitNotification('FLARE ON COOLDOWN', 500);
         break;
       case 'reload':
         this.handleReload();
@@ -326,30 +353,40 @@ export class ExtractionLevel extends BaseLevel {
     const weaponActions = getWeaponActions();
     if (!weaponActions) return;
     const state = weaponActions.getState();
-    if (state.isReloading) return this.callbacks.onNotification('ALREADY RELOADING', 500);
-    if (state.currentAmmo >= state.maxMagazineSize) return this.callbacks.onNotification('MAGAZINE FULL', 500);
-    if (state.reserveAmmo <= 0) return this.callbacks.onNotification('NO RESERVE AMMO', 500);
+    if (state.isReloading) return this.emitNotification('ALREADY RELOADING', 500);
+    if (state.currentAmmo >= state.maxMagazineSize)
+      return this.emitNotification('MAGAZINE FULL', 500);
+    if (state.reserveAmmo <= 0) return this.emitNotification('NO RESERVE AMMO', 500);
     startReload();
-    this.callbacks.onNotification('RELOADING...', 1800);
+    this.emitNotification('RELOADING...', 1800);
   }
 
   private throwGrenade(): void {
-    this.callbacks.onNotification('GRENADE OUT', 1000);
+    this.emitNotification('GRENADE OUT', 1000);
     const grenadePos = this.camera.position.clone();
-    grenadePos.addInPlace(new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY)).scale(10));
+    grenadePos.addInPlace(
+      new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY)).scale(10)
+    );
     particleManager.emitSmallExplosion(grenadePos, 1.5);
     const { kills, killedEnemies } = Enemies.applyGrenadeDamage(this.enemies, grenadePos);
     this.kills += kills;
-    for (const e of killedEnemies) { this.waveState = Phases.recordWaveKill(this.waveState); this.callbacks.onKill(); }
-    if (kills > 0) this.callbacks.onNotification(`${kills} KILLS`, 1500);
+    for (const _e of killedEnemies) {
+      this.waveState = Phases.recordWaveKill(this.waveState);
+      this.recordKill();
+    }
+    if (kills > 0) this.emitNotification(`${kills} KILLS`, 1500);
     this.triggerShake(3);
   }
 
   private performMelee(): void {
     const hitEnemy = Enemies.checkMeleeHit(this.enemies, this.camera.position);
     if (hitEnemy) {
-      if (!hitEnemy.isActive) { this.waveState = Phases.recordWaveKill(this.waveState); this.kills++; this.callbacks.onKill(); }
-      this.callbacks.onNotification('MELEE HIT', 500);
+      if (!hitEnemy.isActive) {
+        this.waveState = Phases.recordWaveKill(this.waveState);
+        this.kills++;
+        this.recordKill();
+      }
+      this.emitNotification('MELEE HIT', 500);
       this.triggerShake(2);
 
       // FIX #19: Add melee visual feedback
@@ -358,14 +395,14 @@ export class ExtractionLevel extends BaseLevel {
       particleManager.emitDebris(hitPos, 0.5);
       getAudioManager().play('hit_marker', { volume: 0.6 });
     } else {
-      this.callbacks.onNotification('MISS', 300);
+      this.emitNotification('MISS', 300);
       getAudioManager().play('weapon_empty_click', { volume: 0.4 });
     }
   }
 
   private fireSignalFlare(): void {
-    this.callbacks.onNotification('SIGNAL FLARE DEPLOYED', 2000);
-    this.callbacks.onCommsMessage(Comms.SIGNAL_FLARE_COMMS);
+    this.emitNotification('SIGNAL FLARE DEPLOYED', 2000);
+    this.emitCommsMessage(Comms.SIGNAL_FLARE_COMMS);
     this.phaseState.dropshipETA = Math.max(30, this.phaseState.dropshipETA - 30);
 
     // FIX #18: Add visual flare effect
@@ -393,18 +430,51 @@ export class ExtractionLevel extends BaseLevel {
 
     switch (mode) {
       case 'escape':
-        groups = [{ id: 'escape', position: 'bottom', buttons: [createAction('sprint', 'SPRINT', sprint.key, { keyDisplay: sprint.keyDisplay, variant: 'danger', size: 'large', highlighted: true })] }];
+        groups = [
+          {
+            id: 'escape',
+            position: 'bottom',
+            buttons: [
+              createAction('sprint', 'SPRINT', sprint.key, {
+                keyDisplay: sprint.keyDisplay,
+                variant: 'danger',
+                size: 'large',
+                highlighted: true,
+              }),
+            ],
+          },
+        ];
         break;
       case 'holdout':
-        groups = [{ id: 'combat', position: 'right', buttons: [
-          createAction('reload', 'RELOAD', reload.key, { keyDisplay: reload.keyDisplay, variant: 'secondary' }),
-          createAction('grenade', 'GRENADE', grenade.key, { keyDisplay: grenade.keyDisplay, variant: 'danger', cooldown: C.GRENADE_COOLDOWN_TIME }),
-          createAction('melee', 'MELEE', melee.key, { keyDisplay: melee.keyDisplay, variant: 'primary' }),
-          createAction('flare', 'SIGNAL FLARE', flare.key, { keyDisplay: flare.keyDisplay, variant: 'warning', cooldown: C.FLARE_COOLDOWN_TIME }),
-        ] }];
+        groups = [
+          {
+            id: 'combat',
+            position: 'right',
+            buttons: [
+              createAction('reload', 'RELOAD', reload.key, {
+                keyDisplay: reload.keyDisplay,
+                variant: 'secondary',
+              }),
+              createAction('grenade', 'GRENADE', grenade.key, {
+                keyDisplay: grenade.keyDisplay,
+                variant: 'danger',
+                cooldown: C.GRENADE_COOLDOWN_TIME,
+              }),
+              createAction('melee', 'MELEE', melee.key, {
+                keyDisplay: melee.keyDisplay,
+                variant: 'primary',
+              }),
+              createAction('flare', 'SIGNAL FLARE', flare.key, {
+                keyDisplay: flare.keyDisplay,
+                variant: 'warning',
+                cooldown: C.FLARE_COOLDOWN_TIME,
+              }),
+            ],
+          },
+        ];
         break;
     }
-    this.callbacks.onActionGroupsChange(groups);
+    this.emitActionGroupsChanged(groups);
   }
 
   // ============================================================================
@@ -434,7 +504,11 @@ export class ExtractionLevel extends BaseLevel {
 
     if (this.dropship) {
       this.dropship.setEnabled(true);
-      this.dropship.position.set(C.DROPSHIP_COLLAPSE_POSITION.x, C.DROPSHIP_COLLAPSE_POSITION.y + 15, C.DROPSHIP_COLLAPSE_POSITION.z);
+      this.dropship.position.set(
+        C.DROPSHIP_COLLAPSE_POSITION.x,
+        C.DROPSHIP_COLLAPSE_POSITION.y + 15,
+        C.DROPSHIP_COLLAPSE_POSITION.z
+      );
     }
 
     this.updateActionButtons('escape');
@@ -445,26 +519,39 @@ export class ExtractionLevel extends BaseLevel {
     setTimeout(() => getAudioManager().play('alien_death_scream', { volume: 0.5 }), 500);
     setTimeout(() => getAudioManager().play('ground_crack', { volume: 0.5 }), 800);
 
-    this.callbacks.onNotification('THE HIVE IS COLLAPSING - GET TO THE DROPSHIP', 4000);
-    this.callbacks.onCombatStateChange(true);
+    this.emitNotification('THE HIVE IS COLLAPSING - GET TO THE DROPSHIP', 4000);
+    this.emitCombatStateChanged(true);
 
-    for (const item of Comms.COLLAPSE_START_SEQUENCE) setTimeout(() => this.callbacks.onCommsMessage(item.message), item.delay);
+    for (const item of Comms.COLLAPSE_START_SEQUENCE)
+      setTimeout(() => this.emitCommsMessage(item.message), item.delay);
     for (const item of Comms.COLLAPSE_PROGRESSION_SEQUENCE) {
-      setTimeout(() => { if (this.phaseState.phase === 'hive_collapse') { this.callbacks.onCommsMessage(item.message); this.triggerShake(5); } }, item.delay);
+      setTimeout(() => {
+        if (this.phaseState.phase === 'hive_collapse') {
+          this.emitCommsMessage(item.message);
+          this.triggerShake(5);
+        }
+      }, item.delay);
     }
   }
 
   private async spawnCollapseEnemies(): Promise<void> {
     const count = 2 + Math.floor(Math.random() * 3);
     for (let i = 0; i < count; i++) {
-      const enemy = await Enemies.spawnCollapseStraggler(this.scene, this.camera.position, this.collapseEnemies.length);
+      const enemy = await Enemies.spawnCollapseStraggler(
+        this.scene,
+        this.camera.position,
+        this.collapseEnemies.length
+      );
       if (enemy) this.collapseEnemies.push(enemy);
     }
   }
 
   private updateHiveCollapse(deltaTime: number): void {
     this.phaseState.hiveCollapseTimer -= deltaTime;
-    this.collapseIntensity = Math.min(1, 1 - this.phaseState.hiveCollapseTimer / C.HIVE_COLLAPSE_TIMER);
+    this.collapseIntensity = Math.min(
+      1,
+      1 - this.phaseState.hiveCollapseTimer / C.HIVE_COLLAPSE_TIMER
+    );
     this.setBaseShake(2 + this.collapseIntensity * 6);
 
     // Spawn debris and stalactites
@@ -473,82 +560,164 @@ export class ExtractionLevel extends BaseLevel {
     if (this.collapseDebrisTimer <= 0) {
       this.collapseDebrisTimer = debrisSpawnRate;
       this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position));
-      if (this.collapseIntensity > 0.5) this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position));
-      if (this.collapseIntensity > 0.8) { this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position)); this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position)); }
+      if (this.collapseIntensity > 0.5)
+        this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position));
+      if (this.collapseIntensity > 0.8) {
+        this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position));
+        this.debris.push(Effects.spawnCollapseDebris(this.scene, this.camera.position));
+      }
     }
 
     this.stalactiteSpawnTimer -= deltaTime;
     const stalactiteRate = C.STALACTITE_SPAWN_INTERVAL * (1.2 - this.collapseIntensity * 0.7);
     if (this.stalactiteSpawnTimer <= 0) {
       this.stalactiteSpawnTimer = stalactiteRate;
-      this.fallingStalactites.push(Effects.spawnFallingStalactite(this.scene, this.camera.position));
-      if (this.collapseIntensity > 0.7 && Math.random() < 0.4) setTimeout(() => this.fallingStalactites.push(Effects.spawnFallingStalactite(this.scene, this.camera.position)), 500);
+      this.fallingStalactites.push(
+        Effects.spawnFallingStalactite(this.scene, this.camera.position)
+      );
+      if (this.collapseIntensity > 0.7 && Math.random() < 0.4)
+        setTimeout(
+          () =>
+            this.fallingStalactites.push(
+              Effects.spawnFallingStalactite(this.scene, this.camera.position)
+            ),
+          500
+        );
     }
 
     // Update effects
     const debrisResult = Effects.updateDebris(this.debris, this.camera.position, deltaTime);
     this.debris = debrisResult.updatedDebris;
-    if (debrisResult.playerDamage > 0) { this.onPlayerDamaged(debrisResult.playerDamage); this.callbacks.onNotification('DEBRIS HIT', 500); }
+    if (debrisResult.playerDamage > 0) {
+      this.onPlayerDamaged(debrisResult.playerDamage);
+      this.emitNotification('DEBRIS HIT', 500);
+    }
 
-    const stalactiteResult = Effects.updateFallingStalactites(this.fallingStalactites, this.camera.position, deltaTime, this.triggerShake.bind(this));
+    const stalactiteResult = Effects.updateFallingStalactites(
+      this.fallingStalactites,
+      this.camera.position,
+      deltaTime,
+      this.triggerShake.bind(this)
+    );
     this.fallingStalactites = stalactiteResult.updatedStalactites;
     if (stalactiteResult.playerDamage > 0) this.onPlayerDamaged(stalactiteResult.playerDamage);
-    if (stalactiteResult.notificationMsg) this.callbacks.onNotification(stalactiteResult.notificationMsg, 1000);
+    if (stalactiteResult.notificationMsg)
+      this.emitNotification(stalactiteResult.notificationMsg, 1000);
 
-    const audioResult = Effects.updateCollapseAudio(this.collapseIntensity, this.collapseAudioTimer, this.structureGroanTimer, this.lastAlienScreamTime, deltaTime, C.COLLAPSE_RUMBLE_INTERVAL);
+    const audioResult = Effects.updateCollapseAudio(
+      this.collapseIntensity,
+      this.collapseAudioTimer,
+      this.structureGroanTimer,
+      this.lastAlienScreamTime,
+      deltaTime,
+      C.COLLAPSE_RUMBLE_INTERVAL
+    );
     this.collapseAudioTimer = audioResult.newAudioTimer;
     this.structureGroanTimer = audioResult.newGroanTimer;
     this.lastAlienScreamTime = audioResult.newScreamTime;
 
     const pickupResult = Effects.updateHealthPickups(this.healthPickups, this.camera.position);
-    if (pickupResult.healAmount > 0) { this.playerHealth = Math.min(100, this.playerHealth + pickupResult.healAmount); this.callbacks.onHealthChange(this.playerHealth); this.callbacks.onNotification(`+${pickupResult.healAmount} HEALTH`, 1000); }
+    if (pickupResult.healAmount > 0) {
+      this.playerHealth = Math.min(100, this.playerHealth + pickupResult.healAmount);
+      this.emitHealthChanged(this.playerHealth);
+      this.emitNotification(`+${pickupResult.healAmount} HEALTH`, 1000);
+    }
 
-    Effects.updateCrumblingWalls(this.crumblingWalls, this.collapseIntensity, deltaTime, this.triggerShake.bind(this));
+    Effects.updateCrumblingWalls(
+      this.crumblingWalls,
+      this.collapseIntensity,
+      deltaTime,
+      this.triggerShake.bind(this)
+    );
 
-    const enemyDamage = Enemies.updateCollapseEnemies(this.collapseEnemies, this.camera.position, deltaTime);
+    const enemyDamage = Enemies.updateCollapseEnemies(
+      this.collapseEnemies,
+      this.camera.position,
+      deltaTime
+    );
     if (enemyDamage > 0) this.onPlayerDamaged(enemyDamage);
 
-    if (this.objectiveMarker && this.objectiveBeacon) Effects.updateObjectiveMarker(this.objectiveMarker, this.objectiveBeacon);
+    if (this.objectiveMarker && this.objectiveBeacon)
+      Effects.updateObjectiveMarker(this.objectiveMarker, this.objectiveBeacon);
 
     const playerPos2D = new Vector3(this.camera.position.x, 0, this.camera.position.z);
-    const dropshipPos2D = new Vector3(C.DROPSHIP_COLLAPSE_POSITION.x, 0, C.DROPSHIP_COLLAPSE_POSITION.z);
+    const dropshipPos2D = new Vector3(
+      C.DROPSHIP_COLLAPSE_POSITION.x,
+      0,
+      C.DROPSHIP_COLLAPSE_POSITION.z
+    );
     this.phaseState.distanceToDropship = Vector3.Distance(playerPos2D, dropshipPos2D);
 
     Effects.updateGroundCracks(this.groundCracks, this.collapseIntensity);
     if (this.collapseLight) Effects.updateCollapseLight(this.collapseLight, this.collapseIntensity);
 
-    const hud = Phases.getCollapseHUDDisplay(this.phaseState.hiveCollapseTimer, this.phaseState.distanceToDropship);
-    this.callbacks.onObjectiveUpdate(hud.title, hud.description);
+    const hud = Phases.getCollapseHUDDisplay(
+      this.phaseState.hiveCollapseTimer,
+      this.phaseState.distanceToDropship
+    );
+    this.emitObjectiveUpdate(hud.title, hud.description);
 
-    if (this.phaseState.distanceToDropship < 20) { this.callbacks.onNotification('BOARDING DROPSHIP', 2000); this.disposeCollapseResources(); this.transitionToPhase('victory'); return; }
-    if (this.phaseState.hiveCollapseTimer <= 0) { this.onCollapseFailure(); return; }
+    if (this.phaseState.distanceToDropship < 20) {
+      this.emitNotification('BOARDING DROPSHIP', 2000);
+      this.disposeCollapseResources();
+      this.transitionToPhase('victory');
+      return;
+    }
+    if (this.phaseState.hiveCollapseTimer <= 0) {
+      this.onCollapseFailure();
+      return;
+    }
 
     // Distance-based comms
-    if (this.phaseState.distanceToDropship < 100 && !this.collapseCommsPlayed.has('almost')) { this.collapseCommsPlayed.add('almost'); this.callbacks.onCommsMessage(Comms.DISTANCE_COMMS.almost); }
-    if (this.phaseState.distanceToDropship < 50 && !this.collapseCommsPlayed.has('soClose')) { this.collapseCommsPlayed.add('soClose'); this.callbacks.onCommsMessage(Comms.DISTANCE_COMMS.soClose); }
-    if (this.playerHealth < 30 && !this.collapseCommsPlayed.has('lowHealth')) { this.collapseCommsPlayed.add('lowHealth'); this.callbacks.onCommsMessage(Comms.DISTANCE_COMMS.lowHealth); }
+    if (this.phaseState.distanceToDropship < 100 && !this.collapseCommsPlayed.has('almost')) {
+      this.collapseCommsPlayed.add('almost');
+      this.emitCommsMessage(Comms.DISTANCE_COMMS.almost);
+    }
+    if (this.phaseState.distanceToDropship < 50 && !this.collapseCommsPlayed.has('soClose')) {
+      this.collapseCommsPlayed.add('soClose');
+      this.emitCommsMessage(Comms.DISTANCE_COMMS.soClose);
+    }
+    if (this.playerHealth < 30 && !this.collapseCommsPlayed.has('lowHealth')) {
+      this.collapseCommsPlayed.add('lowHealth');
+      this.emitCommsMessage(Comms.DISTANCE_COMMS.lowHealth);
+    }
 
     const timerInt = Math.ceil(Math.max(0, this.phaseState.hiveCollapseTimer));
-    if (timerInt === 60 && !this.collapseCommsPlayed.has('60s')) { this.collapseCommsPlayed.add('60s'); this.callbacks.onNotification('60 SECONDS REMAINING', 1500); }
-    else if (timerInt === 30 && !this.collapseCommsPlayed.has('30s')) { this.collapseCommsPlayed.add('30s'); this.callbacks.onNotification('30 SECONDS - SPRINT!', 2000); this.triggerShake(4); }
-    else if (timerInt === 20 && !this.collapseCommsPlayed.has('20s')) { this.collapseCommsPlayed.add('20s'); this.callbacks.onNotification('20 SECONDS REMAINING', 1500); this.triggerShake(5); }
-    else if (timerInt === 10 && !this.collapseCommsPlayed.has('10s')) { this.collapseCommsPlayed.add('10s'); this.callbacks.onNotification('10 SECONDS - MOVE IT!', 1500); this.triggerShake(6); }
-    else if (timerInt === 5 && !this.collapseCommsPlayed.has('5s')) { this.collapseCommsPlayed.add('5s'); this.callbacks.onNotification('5 SECONDS!', 1000); this.triggerShake(7); }
+    if (timerInt === 60 && !this.collapseCommsPlayed.has('60s')) {
+      this.collapseCommsPlayed.add('60s');
+      this.emitNotification('60 SECONDS REMAINING', 1500);
+    } else if (timerInt === 30 && !this.collapseCommsPlayed.has('30s')) {
+      this.collapseCommsPlayed.add('30s');
+      this.emitNotification('30 SECONDS - SPRINT!', 2000);
+      this.triggerShake(4);
+    } else if (timerInt === 20 && !this.collapseCommsPlayed.has('20s')) {
+      this.collapseCommsPlayed.add('20s');
+      this.emitNotification('20 SECONDS REMAINING', 1500);
+      this.triggerShake(5);
+    } else if (timerInt === 10 && !this.collapseCommsPlayed.has('10s')) {
+      this.collapseCommsPlayed.add('10s');
+      this.emitNotification('10 SECONDS - MOVE IT!', 1500);
+      this.triggerShake(6);
+    } else if (timerInt === 5 && !this.collapseCommsPlayed.has('5s')) {
+      this.collapseCommsPlayed.add('5s');
+      this.emitNotification('5 SECONDS!', 1000);
+      this.triggerShake(7);
+    }
   }
 
   private onCollapseFailure(): void {
-    this.callbacks.onNotification('COLLAPSE - KIA', 3000);
+    this.emitNotification('COLLAPSE - KIA', 3000);
     this.triggerShake(10);
     this.setBaseShake(8);
     setTimeout(() => {
-      this.callbacks.onCommsMessage(Comms.COLLAPSE_FAILURE_COMMS);
+      this.emitCommsMessage(Comms.COLLAPSE_FAILURE_COMMS);
       this.phaseState.hiveCollapseTimer = 20; // FIX #21: More time to reach dropship
       const newPos = C.DROPSHIP_COLLAPSE_POSITION.clone();
       newPos.z += C.COLLAPSE_RESPAWN_DISTANCE; // FIX #21: Proper respawn distance
       this.camera.position.set(newPos.x, 1.7, newPos.z);
       this.playerHealth = 50; // FIX: Restore some health on respawn
-      this.callbacks.onHealthChange(this.playerHealth);
-      this.callbacks.onNotification('MARCUS IS COVERING YOU - MOVE', 2000);
+      this.emitHealthChanged(this.playerHealth);
+      this.emitNotification('MARCUS IS COVERING YOU - MOVE', 2000);
     }, 2000);
   }
 
@@ -559,7 +728,10 @@ export class ExtractionLevel extends BaseLevel {
     this.crumblingWalls = [];
     for (const e of this.collapseEnemies) e.mesh.dispose();
     this.collapseEnemies = [];
-    for (const s of this.fallingStalactites) { s.mesh.dispose(); s.shadowMarker?.dispose(); }
+    for (const s of this.fallingStalactites) {
+      s.mesh.dispose();
+      s.shadowMarker?.dispose();
+    }
     this.fallingStalactites = [];
     this.objectiveMarker?.dispose();
     this.objectiveMarker = null;
@@ -587,11 +759,24 @@ export class ExtractionLevel extends BaseLevel {
     const forward = new Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
     const right = new Vector3(Math.cos(this.rotationY), 0, -Math.sin(this.rotationY));
 
-    let dx = 0, dz = 0;
-    if (this.inputTracker.isActionActive('moveForward')) { dx += forward.x; dz += forward.z; }
-    if (this.inputTracker.isActionActive('moveBackward')) { dx -= forward.x; dz -= forward.z; }
-    if (this.inputTracker.isActionActive('moveLeft')) { dx -= right.x; dz -= right.z; }
-    if (this.inputTracker.isActionActive('moveRight')) { dx += right.x; dz += right.z; }
+    let dx = 0,
+      dz = 0;
+    if (this.inputTracker.isActionActive('moveForward')) {
+      dx += forward.x;
+      dz += forward.z;
+    }
+    if (this.inputTracker.isActionActive('moveBackward')) {
+      dx -= forward.x;
+      dz -= forward.z;
+    }
+    if (this.inputTracker.isActionActive('moveLeft')) {
+      dx -= right.x;
+      dz -= right.z;
+    }
+    if (this.inputTracker.isActionActive('moveRight')) {
+      dx += right.x;
+      dz += right.z;
+    }
 
     if (dx !== 0 || dz !== 0) {
       const len = Math.sqrt(dx * dx + dz * dz);
@@ -602,9 +787,12 @@ export class ExtractionLevel extends BaseLevel {
     }
 
     if (this.phaseState.phase === 'escape_tunnel') {
-      this.phaseState.playerEscapeProgress = Math.abs(this.camera.position.z) / C.ESCAPE_TUNNEL_LENGTH;
+      this.phaseState.playerEscapeProgress =
+        Math.abs(this.camera.position.z) / C.ESCAPE_TUNNEL_LENGTH;
       const tunnelRadius = 3.5;
-      const distFromCenter = Math.sqrt(this.camera.position.x ** 2 + (this.camera.position.y - 1.7) ** 2);
+      const distFromCenter = Math.sqrt(
+        this.camera.position.x ** 2 + (this.camera.position.y - 1.7) ** 2
+      );
       if (distFromCenter > tunnelRadius) {
         const scale = tunnelRadius / distFromCenter;
         this.camera.position.x *= scale;
@@ -613,13 +801,19 @@ export class ExtractionLevel extends BaseLevel {
   }
 
   protected override getMoveSpeed(): number {
-    return (this.phaseState.phase === 'escape_tunnel' || this.phaseState.phase === 'hive_collapse') ? 8 : 5;
+    return this.phaseState.phase === 'escape_tunnel' || this.phaseState.phase === 'hive_collapse'
+      ? 8
+      : 5;
   }
 
   protected override handleKeyDown(e: KeyboardEvent): void {
     super.handleKeyDown(e);
     const reloadKeys = this.inputTracker.getAllKeysForAction('reload');
-    if (reloadKeys.includes(e.code) && (this.phaseState.phase === 'holdout' || this.phaseState.phase === 'surface_run')) this.handleReload();
+    if (
+      reloadKeys.includes(e.code) &&
+      (this.phaseState.phase === 'holdout' || this.phaseState.phase === 'surface_run')
+    )
+      this.handleReload();
   }
 
   protected updateLevel(deltaTime: number): void {
@@ -633,15 +827,26 @@ export class ExtractionLevel extends BaseLevel {
     this.grenadeCooldown = Math.max(0, this.grenadeCooldown - deltaTime * 1000);
     this.flareCooldown = Math.max(0, this.flareCooldown - deltaTime * 1000);
 
-    if (this.tunnelEnv && (this.phaseState.phase === 'escape_start' || this.phaseState.phase === 'escape_tunnel')) {
+    if (
+      this.tunnelEnv &&
+      (this.phaseState.phase === 'escape_start' || this.phaseState.phase === 'escape_tunnel')
+    ) {
       updateBiolights(this.tunnelEnv.hiveBuilder.getBiolights(), this.phaseState.phaseTime);
     }
 
     switch (this.phaseState.phase) {
-      case 'escape_tunnel': this.updateEscapeTunnel(deltaTime); break;
-      case 'surface_run': this.updateSurfaceRun(deltaTime); break;
-      case 'holdout': this.updateHoldout(deltaTime); break;
-      case 'hive_collapse': this.updateHiveCollapse(deltaTime); break;
+      case 'escape_tunnel':
+        this.updateEscapeTunnel(deltaTime);
+        break;
+      case 'surface_run':
+        this.updateSurfaceRun(deltaTime);
+        break;
+      case 'holdout':
+        this.updateHoldout(deltaTime);
+        break;
+      case 'hive_collapse':
+        this.updateHiveCollapse(deltaTime);
+        break;
     }
   }
 
@@ -651,33 +856,51 @@ export class ExtractionLevel extends BaseLevel {
     this.phaseState.collapseDistance += collapseSpeed * deltaTime;
     if (this.tunnelEnv) this.tunnelEnv.collapseWall.position.z = -this.phaseState.collapseDistance;
 
-    if (Math.random() < 0.3) this.debris.push(Effects.spawnTunnelDebris(this.scene, this.camera.position.z));
+    if (Math.random() < 0.3)
+      this.debris.push(Effects.spawnTunnelDebris(this.scene, this.camera.position.z));
 
     const debrisResult = Effects.updateDebris(this.debris, this.camera.position, deltaTime);
     this.debris = debrisResult.updatedDebris;
-    if (debrisResult.playerDamage > 0) { this.onPlayerDamaged(debrisResult.playerDamage); this.callbacks.onNotification('DEBRIS HIT', 500); }
+    if (debrisResult.playerDamage > 0) {
+      this.onPlayerDamaged(debrisResult.playerDamage);
+      this.emitNotification('DEBRIS HIT', 500);
+    }
 
     const playerZ = Math.abs(this.camera.position.z);
     if (this.phaseState.collapseDistance > playerZ + 5) {
       this.onPlayerDamaged(25);
-      this.callbacks.onNotification('COLLAPSE DAMAGE', 1000);
+      this.emitNotification('COLLAPSE DAMAGE', 1000);
       this.phaseState.collapseDistance = playerZ - 10;
     }
 
     if (this.phaseState.playerEscapeProgress >= 0.95) this.transitionToPhase('surface_run');
-    this.callbacks.onObjectiveUpdate('ESCAPE THE HIVE', `TIME: ${Math.ceil(this.phaseState.escapeTimer)}s | PROGRESS: ${Math.floor(this.phaseState.playerEscapeProgress * 100)}%`);
+    this.emitObjectiveUpdate(
+      'ESCAPE THE HIVE',
+      `TIME: ${Math.ceil(this.phaseState.escapeTimer)}s | PROGRESS: ${Math.floor(this.phaseState.playerEscapeProgress * 100)}%`
+    );
   }
 
   private updateSurfaceRun(deltaTime: number): void {
     const playerPos2D = new Vector3(this.camera.position.x, 0, this.camera.position.z);
     const lzPos2D = new Vector3(C.LZ_POSITION.x, 0, C.LZ_POSITION.z);
     this.phaseState.distanceToLZ = Vector3.Distance(playerPos2D, lzPos2D);
-    this.callbacks.onObjectiveUpdate('REACH LZ OMEGA', `Distance: ${this.phaseState.distanceToLZ.toFixed(0)}m`);
+    this.emitObjectiveUpdate(
+      'REACH LZ OMEGA',
+      `Distance: ${this.phaseState.distanceToLZ.toFixed(0)}m`
+    );
 
     if (Math.random() < 0.02 && this.enemies.length < 10) {
       const species = Math.random() < 0.7 ? 'skitterer' : 'lurker';
-      const { position } = Enemies.calculateSpawnPosition(species, this.spawnPoints, this.breachHoles, C.LZ_POSITION, this.waveState.currentSpawnPointIndex);
-      Enemies.spawnEnemy(this.scene, species, position, 1, this.enemies.length).then(enemy => { if (enemy) this.enemies.push(enemy); });
+      const { position } = Enemies.calculateSpawnPosition(
+        species,
+        this.spawnPoints,
+        this.breachHoles,
+        C.LZ_POSITION,
+        this.waveState.currentSpawnPointIndex
+      );
+      Enemies.spawnEnemy(this.scene, species, position, 1, this.enemies.length).then((enemy) => {
+        if (enemy) this.enemies.push(enemy);
+      });
     }
 
     const playerDamage = Enemies.updateEnemies(this.enemies, this.camera.position, deltaTime);
@@ -702,7 +925,11 @@ export class ExtractionLevel extends BaseLevel {
 
         if (result.shouldTransition) {
           const config = Phases.getWaveConfig(this.waveState.currentWave);
-          if (config) { this.callbacks.onNotification(config.waveTitle, 2500); this.callbacks.onObjectiveUpdate(config.waveTitle, config.waveDescription); this.triggerShake(2); }
+          if (config) {
+            this.emitNotification(config.waveTitle, 2500);
+            this.emitObjectiveUpdate(config.waveTitle, config.waveDescription);
+            this.triggerShake(2);
+          }
         }
         break;
       }
@@ -712,10 +939,15 @@ export class ExtractionLevel extends BaseLevel {
         if (result.shouldTransition) {
           getAudioManager().enterCombat();
           if (this.waveState.currentWave === C.TOTAL_WAVES) {
-            this.callbacks.onNotification('FINAL WAVE - HOLD THE LINE', 3000);
-            setTimeout(() => { if (this.phaseState.phase === 'holdout') this.transitionToPhase('hive_collapse'); }, 50000);
+            this.emitNotification('FINAL WAVE - HOLD THE LINE', 3000);
+            setTimeout(() => {
+              if (this.phaseState.phase === 'holdout') this.transitionToPhase('hive_collapse');
+            }, 50000);
           }
-          this.mechIntegrity = Math.min(this.mechIntegrity, Phases.getMechIntegrityCapForWave(this.waveState.currentWave));
+          this.mechIntegrity = Math.min(
+            this.mechIntegrity,
+            Phases.getMechIntegrityCapForWave(this.waveState.currentWave)
+          );
         }
         break;
       }
@@ -723,9 +955,23 @@ export class ExtractionLevel extends BaseLevel {
         const spawnResult = Phases.updateActiveWaveSpawning(this.waveState, deltaTime);
         this.waveState = spawnResult.newState;
         if (spawnResult.spawnSpecies) {
-          const { position, newSpawnPointIndex } = Enemies.calculateSpawnPosition(spawnResult.spawnSpecies, this.spawnPoints, this.breachHoles, C.LZ_POSITION, this.waveState.currentSpawnPointIndex);
+          const { position, newSpawnPointIndex } = Enemies.calculateSpawnPosition(
+            spawnResult.spawnSpecies,
+            this.spawnPoints,
+            this.breachHoles,
+            C.LZ_POSITION,
+            this.waveState.currentSpawnPointIndex
+          );
           this.waveState.currentSpawnPointIndex = newSpawnPointIndex;
-          Enemies.spawnEnemy(this.scene, spawnResult.spawnSpecies, position, this.waveState.currentWave, this.enemies.length).then(enemy => { if (enemy) this.enemies.push(enemy); });
+          Enemies.spawnEnemy(
+            this.scene,
+            spawnResult.spawnSpecies,
+            position,
+            this.waveState.currentWave,
+            this.enemies.length
+          ).then((enemy) => {
+            if (enemy) this.enemies.push(enemy);
+          });
         }
         break;
       }
@@ -739,10 +985,20 @@ export class ExtractionLevel extends BaseLevel {
       this.mechFireTimer -= deltaTime;
       if (this.mechFireTimer <= 0) {
         this.mechFireTimer = C.MECH_FIRE_RATE;
-        const { enemy, damage } = Enemies.mechFireAtEnemy(this.mechMesh, this.mechGunLight, this.enemies, this.mechIntegrity);
+        const { enemy, damage } = Enemies.mechFireAtEnemy(
+          this.mechMesh,
+          this.mechGunLight,
+          this.enemies,
+          this.mechIntegrity
+        );
         if (enemy) {
           enemy.health -= damage;
-          if (enemy.health <= 0) { Enemies.killEnemy(enemy); this.waveState = Phases.recordWaveKill(this.waveState); this.kills++; this.callbacks.onKill(); }
+          if (enemy.health <= 0) {
+            Enemies.killEnemy(enemy);
+            this.waveState = Phases.recordWaveKill(this.waveState);
+            this.kills++;
+            this.recordKill();
+          }
         }
       }
     }
@@ -766,11 +1022,14 @@ export class ExtractionLevel extends BaseLevel {
 
     if (Phases.isWaveComplete(this.waveState)) {
       this.waveState = Phases.completeWave(this.waveState);
-      this.callbacks.onNotification(`WAVE ${this.waveState.currentWave} CLEAR - ${this.waveState.waveEnemiesKilled} KILLS`, 3000);
+      this.emitNotification(
+        `WAVE ${this.waveState.currentWave} CLEAR - ${this.waveState.waveEnemiesKilled} KILLS`,
+        3000
+      );
       getAudioManager().exitCombat(500);
 
       const comms = Comms.WAVE_COMPLETE_COMMS[this.waveState.currentWave];
-      if (comms) setTimeout(() => this.callbacks.onCommsMessage(comms), 1500);
+      if (comms) setTimeout(() => this.emitCommsMessage(comms), 1500);
 
       // FIX #1, #11: Spawn supply drops after certain waves
       if (Phases.shouldSpawnSupplyDrop(this.waveState.currentWave)) {
@@ -781,18 +1040,27 @@ export class ExtractionLevel extends BaseLevel {
           // Spawn ammo drop
           const ammoDrop = await Effects.spawnSupplyDrop(this.scene, 'ammo');
           if (ammoDrop) this.supplyDrops.push(ammoDrop);
-          this.callbacks.onNotification('SUPPLY DROP INBOUND', 2000);
-          this.callbacks.onCommsMessage(Comms.SUPPLY_DROP_COMMS);
+          this.emitNotification('SUPPLY DROP INBOUND', 2000);
+          this.emitCommsMessage(Comms.SUPPLY_DROP_COMMS);
         }, C.SUPPLY_DROP_DELAY * 1000);
       }
 
       if (this.waveState.currentWave >= C.TOTAL_WAVES) {
-        setTimeout(() => { if (this.phaseState.phase === 'holdout') this.transitionToPhase('hive_collapse'); }, 2000);
+        setTimeout(() => {
+          if (this.phaseState.phase === 'holdout') this.transitionToPhase('hive_collapse');
+        }, 2000);
       } else if (this.waveState.currentWave < C.TOTAL_WAVES) {
         setTimeout(() => {
-          this.waveState = Phases.startWaveIntermission(this.waveState, this.waveState.currentWave + 1);
+          this.waveState = Phases.startWaveIntermission(
+            this.waveState,
+            this.waveState.currentWave + 1
+          );
           const config = Phases.getWaveConfig(this.waveState.currentWave);
-          if (config) { this.callbacks.onNotification(`INCOMING: ${config.waveTitle}`, 3000); if (config.commsMessage) setTimeout(() => this.callbacks.onCommsMessage(config.commsMessage!), 1000); }
+          if (config) {
+            this.emitNotification(`INCOMING: ${config.waveTitle}`, 3000);
+            if (config.commsMessage)
+              setTimeout(() => this.emitCommsMessage(config.commsMessage!), 1000);
+          }
         }, 2000);
       }
     }
@@ -803,35 +1071,42 @@ export class ExtractionLevel extends BaseLevel {
       const dropResult = Effects.updateSupplyDrops(this.supplyDrops, this.camera.position);
       if (dropResult.healthRestore > 0) {
         this.playerHealth = Math.min(100, this.playerHealth + dropResult.healthRestore);
-        this.callbacks.onHealthChange(this.playerHealth);
-        this.callbacks.onNotification(`+${dropResult.healthRestore} HEALTH`, 1500);
+        this.emitHealthChanged(this.playerHealth);
+        this.emitNotification(`+${dropResult.healthRestore} HEALTH`, 1500);
       }
       if (dropResult.ammoRestore > 0) {
         const weaponActions = getWeaponActions();
         if (weaponActions) {
           weaponActions.addAmmo(dropResult.ammoRestore);
-          this.callbacks.onNotification(`+${dropResult.ammoRestore} AMMO`, 1500);
+          this.emitNotification(`+${dropResult.ammoRestore} AMMO`, 1500);
         }
       }
     }
 
-    const hud = Phases.getWaveHUDDisplay(this.waveState, this.phaseState.dropshipETA, this.kills, this.mechIntegrity, this.enemies.filter(e => e.isActive).length);
-    this.callbacks.onObjectiveUpdate(hud.title, hud.description);
+    const hud = Phases.getWaveHUDDisplay(
+      this.waveState,
+      this.phaseState.dropshipETA,
+      this.kills,
+      this.mechIntegrity,
+      this.enemies.filter((e) => e.isActive).length
+    );
+    this.emitObjectiveUpdate(hud.title, hud.description);
 
-    if (this.phaseState.dropshipETA <= 0 && this.phaseState.phase === 'holdout') this.transitionToPhase('victory');
+    if (this.phaseState.dropshipETA <= 0 && this.phaseState.phase === 'holdout')
+      this.transitionToPhase('victory');
   }
 
   private onPlayerDamaged(damage: number): void {
     this.playerHealth -= damage;
-    this.callbacks.onHealthChange(this.playerHealth);
-    this.callbacks.onDamage();
+    this.emitHealthChanged(this.playerHealth);
+    this.emitDamageRegistered();
     this.triggerDamageShake(damage);
     this.trackPlayerDamage(damage);
 
     if (this.playerHealth <= 0) {
       this.noDeathBonus = false;
       this.onPlayerDeath();
-      this.callbacks.onNotification('KIA', 3000);
+      this.emitNotification('KIA', 3000);
     }
   }
 
@@ -839,37 +1114,46 @@ export class ExtractionLevel extends BaseLevel {
   // LIFECYCLE
   // ============================================================================
 
-  override canTransitionTo(levelId: LevelId): boolean { return false; }
+  override canTransitionTo(_levelId: LevelId): boolean {
+    return false;
+  }
 
   protected disposeLevel(): void {
     for (const node of this.floraNodes) node.dispose(false, true);
     this.floraNodes = [];
     this.collectibleSystem?.dispose();
     this.collectibleSystem = null;
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
     Victory.disposeVictoryState(this.victoryState);
     this.tunnelEnv?.hiveBuilder.dispose();
     this.tunnelEnv = null;
-    this.debris.forEach(d => d.mesh.dispose());
+    this.debris.forEach((d) => d.mesh.dispose());
     this.disposeCollapseResources();
-    if (this.surfaceEnv) { this.surfaceEnv.terrain.dispose(); this.surfaceEnv.surfaceTerrain.material.dispose(); this.surfaceEnv = null; this.terrain = null; } else { this.terrain?.dispose(); }
+    if (this.surfaceEnv) {
+      this.surfaceEnv.terrain.dispose();
+      this.surfaceEnv.surfaceTerrain.material.dispose();
+      this.surfaceEnv = null;
+      this.terrain = null;
+    } else {
+      this.terrain?.dispose();
+    }
     this.extractionEnv?.dispose();
     this.extractionEnv = null;
     this.skyDome?.dispose();
     this.lzPad?.dispose();
     this.lzBeacon?.dispose();
-    this.breachHoles.forEach(h => h.dispose());
-    this.canyonWalls.forEach(w => w.dispose());
-    this.barrierWalls.forEach(b => b.dispose());
-    this.coverObjects.forEach(c => c.dispose());
+    this.breachHoles.forEach((h) => h.dispose());
+    this.canyonWalls.forEach((w) => w.dispose());
+    this.barrierWalls.forEach((b) => b.dispose());
+    this.coverObjects.forEach((c) => c.dispose());
     this.coverObjects = [];
-    this.supplyDrops.forEach(d => d.mesh.dispose());
+    this.supplyDrops.forEach((d) => d.mesh.dispose());
     this.supplyDrops = [];
     this.spawnPoints = [];
     this.mechMesh?.dispose();
     this.mechGunLight?.dispose();
     this.dropship?.dispose();
-    this.enemies.forEach(e => e.mesh.dispose());
+    this.enemies.forEach((e) => e.mesh.dispose());
   }
 }

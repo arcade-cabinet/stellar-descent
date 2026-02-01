@@ -10,14 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ACHIEVEMENTS,
-  type Achievement,
-  type AchievementId,
-  type AchievementProgress,
-  type AchievementState,
-  getAchievementManager,
-} from '../../game/achievements/AchievementManager';
+import { type AchievementWithState, getAchievementManager } from '../../game/achievements';
 import { getAudioManager } from '../../game/core/AudioManager';
 import styles from './AchievementsPanel.module.css';
 
@@ -27,14 +20,6 @@ interface AchievementsPanelProps {
 }
 
 type TabFilter = 'all' | 'story' | 'combat' | 'exploration' | 'challenge';
-
-interface AchievementWithState {
-  achievement: Achievement;
-  state: AchievementState;
-  progress?: number; // Current progress for progressive achievements (0-100)
-  progressCurrent?: number; // Current value
-  progressTarget?: number; // Target value
-}
 
 export function AchievementsPanel({ isOpen, onClose }: AchievementsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
@@ -47,28 +32,8 @@ export function AchievementsPanel({ isOpen, onClose }: AchievementsPanelProps) {
     if (!isOpen) return;
 
     const manager = getAchievementManager();
-    const allAchievementsRaw = manager.getAllAchievements();
-    const progress = manager.getProgress();
-
-    // Enrich achievements with progress data
-    const enrichedAchievements: AchievementWithState[] = allAchievementsRaw.map(
-      ({ achievement, state }) => {
-        const result: AchievementWithState = { achievement, state };
-
-        // Calculate progress for progressive achievements
-        if (achievement.progressTarget && achievement.progressKey) {
-          const currentValue = (progress[achievement.progressKey] as number) ?? 0;
-          const target = achievement.progressTarget;
-          result.progressCurrent = currentValue;
-          result.progressTarget = target;
-          result.progress = Math.min(100, Math.round((currentValue / target) * 100));
-        }
-
-        return result;
-      }
-    );
-
-    setAchievements(enrichedAchievements);
+    // getAllAchievements() now returns enriched data with progress already calculated
+    setAchievements(manager.getAllAchievements());
     setUnlockedCount(manager.getUnlockedCount());
     setTotalCount(manager.getTotalCount());
   }, [isOpen]);

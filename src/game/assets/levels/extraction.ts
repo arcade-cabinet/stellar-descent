@@ -359,12 +359,7 @@ export const EXTRACTION_ASSETS: AssetEntry[] = [
 export const EXTRACTION_MANIFEST: LevelManifest = {
   levelId: 'extraction',
 
-  required: [
-    'enemy/spider',
-    'enemy/scout',
-    'enemy/soldier',
-    'vehicle/phantom',
-  ],
+  required: ['enemy/spider', 'enemy/scout', 'enemy/soldier', 'vehicle/phantom'],
 
   preload: [
     // Enemies

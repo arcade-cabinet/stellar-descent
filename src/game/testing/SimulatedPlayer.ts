@@ -12,13 +12,11 @@
  * - Completionist: Do everything
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type {
-  HeadlessGameRunner,
-  SimulatedInput,
   EnemyState,
   GameState,
-  ObjectiveState,
+  HeadlessGameRunner,
+  SimulatedInput,
 } from './HeadlessGameRunner';
 
 // ============================================================================
@@ -38,7 +36,12 @@ export type MovementStrategy = 'direct' | 'strafing' | 'flanking' | 'retreating'
 /**
  * Combat strategy
  */
-export type CombatStrategy = 'sustained_fire' | 'burst_fire' | 'melee_focus' | 'grenade_spam' | 'mixed';
+export type CombatStrategy =
+  | 'sustained_fire'
+  | 'burst_fire'
+  | 'melee_focus'
+  | 'grenade_spam'
+  | 'mixed';
 
 /**
  * Waypoint for pathfinding
@@ -79,18 +82,10 @@ export class SimulatedPlayer {
   private aggressionLevel: number;
   private dodgeSkill: number;
   private objectiveFocus: number;
-
-  // Internal state
-  private currentTarget: EnemyState | null = null;
-  private currentWaypoint: Waypoint | null = null;
-  private waypointQueue: Waypoint[] = [];
-  private lastActionTime = 0;
   private strafeDirection = 1;
   private burstCount = 0;
-  private reloadNeeded = false;
   private grenadeCount = 3;
   private isAutonomous = false;
-  private autonomousUpdateInterval: number | null = null;
 
   constructor(runner: HeadlessGameRunner, options: SimulatedPlayerOptions = {}) {
     this.runner = runner;
@@ -197,8 +192,8 @@ export class SimulatedPlayer {
     }
 
     // Calculate perpendicular movement
-    const perpX = -dz / distance * this.strafeDirection;
-    const perpZ = dx / distance * this.strafeDirection;
+    const perpX = (-dz / distance) * this.strafeDirection;
+    const perpZ = (dx / distance) * this.strafeDirection;
 
     // Look at target
     const targetAngle = Math.atan2(dx, dz);
@@ -244,7 +239,7 @@ export class SimulatedPlayer {
     const currentPitch = state.player.rotation.x;
 
     let yawDiff = targetYaw - currentYaw;
-    let pitchDiff = targetPitch - currentPitch;
+    const pitchDiff = targetPitch - currentPitch;
 
     while (yawDiff > Math.PI) yawDiff -= 2 * Math.PI;
     while (yawDiff < -Math.PI) yawDiff += 2 * Math.PI;
@@ -564,7 +559,7 @@ export class SimulatedPlayer {
     }
   }
 
-  private updateDefensive(state: GameState): void {
+  private updateDefensive(_state: GameState): void {
     const healthPercent = this.getHealthPercent();
     const enemy = this.findNearestEnemy();
 
@@ -692,9 +687,7 @@ export class SimulatedPlayer {
       // Enemies cleared - find collectibles then complete objectives
       const stats = this.runner.getLevelStats();
       const collectiblesFound =
-        (stats?.secretsFound ?? 0) +
-        (stats?.audioLogsFound ?? 0) +
-        (stats?.skullsFound ?? 0);
+        (stats?.secretsFound ?? 0) + (stats?.audioLogsFound ?? 0) + (stats?.skullsFound ?? 0);
 
       if (collectiblesFound < 3) {
         this.updateExplorer(state);
@@ -723,9 +716,9 @@ export class SimulatedPlayer {
       return;
     }
 
-    const bossHealth = state.bossHealth ?? 1;
+    const _bossHealth = state.bossHealth ?? 1;
     const bossPhase = state.bossPhase ?? 1;
-    const playerHealth = this.getHealthPercent();
+    const _playerHealth = this.getHealthPercent();
 
     // Phase-specific strategies
     if (bossPhase === 3) {
@@ -740,7 +733,7 @@ export class SimulatedPlayer {
     }
   }
 
-  private bossPhase1Strategy(state: GameState): void {
+  private bossPhase1Strategy(_state: GameState): void {
     const bossPos = { x: 0, y: -150, z: 180 }; // Queen position
 
     // Strafe around boss while firing
@@ -760,7 +753,7 @@ export class SimulatedPlayer {
     }
   }
 
-  private bossPhase2Strategy(state: GameState): void {
+  private bossPhase2Strategy(_state: GameState): void {
     const bossPos = { x: 0, y: -150, z: 180 };
     const playerHealth = this.getHealthPercent();
 
@@ -811,7 +804,7 @@ export class SimulatedPlayer {
    * Drive vehicle in canyon run style
    */
   driveVehicle(): void {
-    const state = this.runner.getState();
+    const _state = this.runner.getState();
 
     // Simple forward driving with dodging
     const time = this.runner.getFrameCount() * 0.02;

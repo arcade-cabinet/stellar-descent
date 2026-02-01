@@ -107,11 +107,11 @@ function createMockScene() {
 // ============================================================================
 
 describe('HiveAssault Environment', () => {
-  let mockScene: ReturnType<typeof createMockScene>;
+  let _mockScene: ReturnType<typeof createMockScene>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    mockScene = createMockScene();
+    _mockScene = createMockScene();
   });
 
   afterEach(() => {
@@ -287,8 +287,8 @@ describe('HiveAssault Environment', () => {
       const stagingProps = {
         vehicleBay: createMockMesh('vehicleBay'),
         briefingPlatform: createMockMesh('briefingPlatform'),
-        sandbags: [] as typeof createMockMesh[],
-        crates: [] as typeof createMockMesh[],
+        sandbags: [] as (typeof createMockMesh)[],
+        crates: [] as (typeof createMockMesh)[],
         lights: [],
       };
       expect(stagingProps.vehicleBay).toBeDefined();
@@ -783,8 +783,8 @@ describe('HiveAssault Environment', () => {
         { side: 1, x: 30 },
       ];
 
-      const leftBarriers = barriers.filter(b => b.side === -1);
-      const rightBarriers = barriers.filter(b => b.side === 1);
+      const leftBarriers = barriers.filter((b) => b.side === -1);
+      const rightBarriers = barriers.filter((b) => b.side === 1);
 
       expect(leftBarriers.length).toBe(rightBarriers.length);
     });
@@ -908,7 +908,8 @@ describe('HiveAssault Environment', () => {
       const flickerSpeed = 2;
       const flickerAmount = 0.3;
 
-      const intensity = baseIntensity * (1 + Math.sin(time * flickerSpeed + flickerPhase) * flickerAmount);
+      const intensity =
+        baseIntensity * (1 + Math.sin(time * flickerSpeed + flickerPhase) * flickerAmount);
 
       expect(intensity).toBeGreaterThan(0);
       expect(intensity).toBeLessThan(baseIntensity * 1.5);
@@ -946,30 +947,21 @@ describe('HiveAssault Environment', () => {
     });
 
     it('should dispose all meshes', () => {
-      const meshes = [
-        { dispose: vi.fn() },
-        { dispose: vi.fn() },
-      ];
-      meshes.forEach(m => m.dispose());
+      const meshes = [{ dispose: vi.fn() }, { dispose: vi.fn() }];
+      meshes.forEach((m) => m.dispose());
       expect(meshes[0].dispose).toHaveBeenCalled();
       expect(meshes[1].dispose).toHaveBeenCalled();
     });
 
     it('should dispose all lights', () => {
-      const lights = [
-        { dispose: vi.fn() },
-        { dispose: vi.fn() },
-      ];
-      lights.forEach(l => l.dispose());
+      const lights = [{ dispose: vi.fn() }, { dispose: vi.fn() }];
+      lights.forEach((l) => l.dispose());
       expect(lights[0].dispose).toHaveBeenCalled();
     });
 
     it('should dispose all transform nodes', () => {
-      const nodes = [
-        { dispose: vi.fn() },
-        { dispose: vi.fn() },
-      ];
-      nodes.forEach(n => n.dispose());
+      const nodes = [{ dispose: vi.fn() }, { dispose: vi.fn() }];
+      nodes.forEach((n) => n.dispose());
       expect(nodes[0].dispose).toHaveBeenCalled();
     });
 

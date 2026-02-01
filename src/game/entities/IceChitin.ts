@@ -28,6 +28,7 @@ import { AssetManager } from '../core/AssetManager';
 import { getLogger } from '../core/Logger';
 
 const log = getLogger('IceChitin');
+
 import type { AlienSpecies, LootEntry } from './aliens';
 
 // ============================================================================

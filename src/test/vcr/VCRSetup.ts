@@ -5,10 +5,10 @@
  * Recordings are stored in __recordings__/ for deterministic tests.
  */
 
-import { Polly, type PollyConfig } from '@pollyjs/core';
+import * as path from 'node:path';
 import NodeHttpAdapter from '@pollyjs/adapter-node-http';
+import { Polly, type PollyConfig } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
-import * as path from 'path';
 
 // Register adapters and persisters
 Polly.register(NodeHttpAdapter);
@@ -64,11 +64,8 @@ export interface VCRContext {
 /**
  * Create a VCR context for a test suite
  */
-export function createVCRContext(
-  name: string,
-  options: Partial<PollyConfig> = {}
-): VCRContext {
-  const mode = process.env.VCR_MODE as 'record' | 'replay' | 'passthrough' || 'replay';
+export function createVCRContext(name: string, options: Partial<PollyConfig> = {}): VCRContext {
+  const mode = (process.env.VCR_MODE as 'record' | 'replay' | 'passthrough') || 'replay';
 
   const config: PollyConfig = {
     ...DEFAULT_POLLY_CONFIG,
@@ -79,19 +76,16 @@ export function createVCRContext(
   const polly = new Polly(name, config);
 
   // Add request/response hooks for sanitization
-  polly.server.any().on('beforePersist', (req, recording) => {
+  polly.server.any().on('beforePersist', (_req, recording) => {
     // Sanitize API keys from request URLs
     if (recording.request?.url) {
-      recording.request.url = recording.request.url.replace(
-        /key=[^&]+/g,
-        'key=REDACTED'
-      );
+      recording.request.url = recording.request.url.replace(/key=[^&]+/g, 'key=REDACTED');
     }
 
     // Sanitize API keys from request headers
     if (recording.request?.headers) {
       delete recording.request.headers['x-goog-api-key'];
-      delete recording.request.headers['authorization'];
+      delete recording.request.headers.authorization;
     }
   });
 
@@ -101,7 +95,7 @@ export function createVCRContext(
 /**
  * Start VCR recording/replay
  */
-export async function startVCR(context: VCRContext): Promise<void> {
+export async function startVCR(_context: VCRContext): Promise<void> {
   // Polly starts automatically on creation
 }
 

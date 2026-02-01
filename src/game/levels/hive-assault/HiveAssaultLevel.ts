@@ -39,41 +39,37 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
+import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager } from '../../core/AssetManager';
-import { getAudioManager } from '../../core/AudioManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
 import { buildFloraFromPlacements, getHiveAssaultFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getHiveAssaultCollectibles } from '../shared/CollectiblePlacer';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
-import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
-import type { TerrainResult } from '../shared/SurfaceTerrainFactory';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getHiveAssaultCollectibles,
+} from '../shared/CollectiblePlacer';
 import { HiveEnvironmentBuilder, updateBiolights } from '../shared/HiveEnvironmentBuilder';
+import type { TerrainResult } from '../shared/SurfaceTerrainFactory';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
+import type { LevelConfig } from '../types';
 import {
   type AATurret,
   AssaultEnvironmentBuilder,
-  type DestroyedVehicle,
   type Fortification,
   type HiveEntrance,
-  type StagingAreaProps,
 } from './environment';
-import {
-  type EnemyTarget,
-  type Marine,
-  type MarineSquad,
-  MarineSquadManager,
-} from './MarineSquadAI';
+import { type EnemyTarget, type Marine, MarineSquadManager } from './MarineSquadAI';
 
 import '@babylonjs/core/Animations/animatable';
 
@@ -163,7 +159,7 @@ const PLAYER_VEHICLE_HEALTH = 500;
 const VEHICLE_SPEED = 25;
 const VEHICLE_FIRE_RATE = 3; // shots per second
 const VEHICLE_DAMAGE = 40;
-const VEHICLE_TURN_SPEED = 2.0; // radians per second
+const _VEHICLE_TURN_SPEED = 2.0; // radians per second
 
 const MARCUS_MECH_HEALTH = 800;
 const MARCUS_FIRE_RATE = 2;
@@ -174,16 +170,16 @@ const MARCUS_FOLLOW_DISTANCE = 12; // meters behind player
 const AA_TURRET_FIRE_RATE = 1.5;
 const AA_TURRET_DAMAGE = 15;
 const AA_TURRET_RANGE = 80;
-const AA_TURRET_HEALTH = 200;
+const _AA_TURRET_HEALTH = 200;
 
 // Objective marker update intervals
 const OBJECTIVE_UPDATE_INTERVAL = 2.0; // seconds
-const WAYPOINT_PROXIMITY = 15; // meters to consider waypoint reached
+const _WAYPOINT_PROXIMITY = 15; // meters to consider waypoint reached
 
 // Performance optimization constants
 const ENEMY_UPDATE_DISTANCE = 150; // only update enemies within this range
 const ENEMY_LOD_DISTANCE = 80; // distance for enemy LOD switching
-const MARINE_UPDATE_DISTANCE = 120; // only update marines within this range
+const _MARINE_UPDATE_DISTANCE = 120; // only update marines within this range
 
 const ENEMY_CONFIGS: Record<
   EnemyClass,
@@ -372,18 +368,15 @@ export class HiveAssaultLevel extends SurfaceLevel {
   // Phase management
   private phase: AssaultPhase = 'staging';
   private phaseTime = 0;
-  private phaseStarted = false;
 
   // Environment
   private envBuilder: AssaultEnvironmentBuilder | null = null;
   private surfaceTerrain: TerrainResult | null = null;
   private hiveBuilder: HiveEnvironmentBuilder | null = null;
-  private stagingArea: StagingAreaProps | null = null;
   private aaTurrets: AATurret[] = [];
   private fieldCover: Fortification[] = [];
   private breachFortifications: Fortification[] = [];
   private hiveEntrance: HiveEntrance | null = null;
-  private destroyedVehicles: DestroyedVehicle[] = [];
 
   // Player
   private playerHealth = PLAYER_MAX_HEALTH;
@@ -446,13 +439,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
   private extractionZonePosition = new Vector3(0, 0, -660);
   private extractionZoneRadius = 15;
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks, {
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
+    super(engine, canvas, config, {
       terrainSize: 700,
       heightScale: 5,
       timeOfDay: 0.55,
@@ -507,7 +495,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.destroyedVehicles = this.envBuilder.createDestroyedVehicles();
     this.aaTurrets = this.envBuilder.createAATurrets();
 
-    const hazards = this.envBuilder.createHazards();
+    const _hazards = this.envBuilder.createHazards();
     this.hiveEntrance = this.envBuilder.createHiveEntrance();
 
     // --- Surface terrain (open field combat area, phases 1-3) ---
@@ -527,11 +515,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     // Build the hive entrance corridor tunnels (z: -600 to -650)
     for (let i = 0; i < 6; i++) {
-      this.hiveBuilder.createTunnelSegment(
-        new Vector3(0, -2, -600 - i * 8),
-        0,
-        'upper'
-      );
+      this.hiveBuilder.createTunnelSegment(new Vector3(0, -2, -600 - i * 8), 0, 'upper');
     }
 
     // Place bioluminescent lights along the entrance corridor
@@ -555,7 +539,9 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Preload level-specific GLBs (mech, marines)
     await Promise.all(
       Object.values(LEVEL_GLB).map((p) =>
-        AssetManager.isPathCached(p) ? Promise.resolve(null) : AssetManager.loadAssetByPath(p, this.scene)
+        AssetManager.isPathCached(p)
+          ? Promise.resolve(null)
+          : AssetManager.loadAssetByPath(p, this.scene)
       )
     );
 
@@ -564,13 +550,13 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     // Create marine squads
     this.marineManager = new MarineSquadManager(this.scene, {
-      onCommsMessage: (msg) => this.callbacks.onCommsMessage(msg),
-      onNotification: (text, duration) => this.callbacks.onNotification(text, duration),
+      onCommsMessage: (msg) => this.emitCommsMessage(msg),
+      onNotification: (text, duration) => this.emitNotification(text, duration),
       onMarineRevived: (marine) => {
-        this.callbacks.onNotification(`${marine.name} revived!`, 3000);
+        this.emitNotification(`${marine.name} revived!`, 3000);
       },
       onSquadWiped: (squad) => {
-        this.callbacks.onNotification(`${squad.callsign} squad is down!`, 5000);
+        this.emitNotification(`${squad.callsign} squad is down!`, 5000);
       },
     });
 
@@ -616,10 +602,18 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     // Build collectibles
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getHiveAssaultCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getHiveAssaultCollectibles(),
+      collectibleRoot
+    );
 
     // Register dynamic actions for squad commands and vehicle controls
-    registerDynamicActions('hive_assault', ['squadFollow', 'squadHold', 'squadAttack', 'vehicleBoost', 'vehicleBrake'], 'squad');
+    registerDynamicActions(
+      'hive_assault',
+      ['squadFollow', 'squadHold', 'squadAttack', 'vehicleBoost', 'vehicleBrake'],
+      'squad'
+    );
 
     // Start staging phase
     this.startStagingPhase();
@@ -636,7 +630,11 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Load GLB model for the mech
     if (AssetManager.isPathCached(LEVEL_GLB.marcusMech)) {
       const mechModel = AssetManager.createInstanceByPath(
-        LEVEL_GLB.marcusMech, 'marcus_mech_model', this.scene, true, 'vehicle'
+        LEVEL_GLB.marcusMech,
+        'marcus_mech_model',
+        this.scene,
+        true,
+        'vehicle'
       );
       if (mechModel) {
         mechModel.scaling.setAll(2.0);
@@ -645,22 +643,38 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
 
     // Invisible proxy meshes to satisfy MarcusMech interface (body, arms, legs)
-    const body = MeshBuilder.CreateBox('mechBody_proxy', { width: 3, height: 4, depth: 2.5 }, this.scene);
+    const body = MeshBuilder.CreateBox(
+      'mechBody_proxy',
+      { width: 3, height: 4, depth: 2.5 },
+      this.scene
+    );
     body.position.y = 5;
     body.parent = rootNode;
     body.isVisible = false;
 
-    const leftArm = MeshBuilder.CreateBox('mechLeftArm_proxy', { width: 1, height: 3.5, depth: 1 }, this.scene);
+    const leftArm = MeshBuilder.CreateBox(
+      'mechLeftArm_proxy',
+      { width: 1, height: 3.5, depth: 1 },
+      this.scene
+    );
     leftArm.position.set(-2.2, 5, 0);
     leftArm.parent = rootNode;
     leftArm.isVisible = false;
 
-    const rightArm = MeshBuilder.CreateBox('mechRightArm_proxy', { width: 1, height: 3.5, depth: 1 }, this.scene);
+    const rightArm = MeshBuilder.CreateBox(
+      'mechRightArm_proxy',
+      { width: 1, height: 3.5, depth: 1 },
+      this.scene
+    );
     rightArm.position.set(2.2, 5, 0);
     rightArm.parent = rootNode;
     rightArm.isVisible = false;
 
-    const legs = MeshBuilder.CreateBox('mechLegs_proxy', { width: 2.5, height: 3, depth: 2 }, this.scene);
+    const legs = MeshBuilder.CreateBox(
+      'mechLegs_proxy',
+      { width: 2.5, height: 3, depth: 2 },
+      this.scene
+    );
     legs.position.y = 1.5;
     legs.parent = rootNode;
     legs.isVisible = false;
@@ -699,7 +713,11 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Load GLB model for the player vehicle
     if (AssetManager.isPathCached(LEVEL_GLB.playerVehicle)) {
       const vehicleModel = AssetManager.createInstanceByPath(
-        LEVEL_GLB.playerVehicle, 'playerVehicle_model', this.scene, true, 'vehicle'
+        LEVEL_GLB.playerVehicle,
+        'playerVehicle_model',
+        this.scene,
+        true,
+        'vehicle'
       );
       if (vehicleModel) {
         vehicleModel.scaling.setAll(0.8);
@@ -750,26 +768,23 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.phaseTime = 0;
     this.phaseStarted = true;
 
-    this.callbacks.onChapterChange(this.config.chapter);
-    this.callbacks.onObjectiveUpdate(
-      'STAGING AREA',
-      'Attend briefing and board your vehicle when ready.'
-    );
+    this.emitChapterChanged(this.config.chapter);
+    this.emitObjectiveUpdate('STAGING AREA', 'Attend briefing and board your vehicle when ready.');
 
     // Set initial objective marker at vehicle
     this.currentObjectiveMarker = new Vector3(15, 0, -10);
-    this.callbacks.onObjectiveMarker?.(this.currentObjectiveMarker);
+    this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
 
     // Register action buttons
     this.registerStagingActions();
 
     // Delayed comms sequence
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.BRIEFING), 2000);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.ATHENA_BRIEFING), 8000);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.MARCUS_RALLY), 14000);
+    setTimeout(() => this.emitCommsMessage(COMMS.BRIEFING), 2000);
+    setTimeout(() => this.emitCommsMessage(COMMS.ATHENA_BRIEFING), 8000);
+    setTimeout(() => this.emitCommsMessage(COMMS.MARCUS_RALLY), 14000);
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.BOARD_VEHICLE);
-      this.callbacks.onNotification('Board your vehicle to begin the assault', 5000);
+      this.emitCommsMessage(COMMS.BOARD_VEHICLE);
+      this.emitNotification('Board your vehicle to begin the assault', 5000);
     }, 20000);
   }
 
@@ -782,7 +797,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.waveIndex = 0;
     this.turretsDestroyed = 0;
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'OPEN FIELD ASSAULT',
       `Destroy AA turrets (0/${this.totalTurrets}) and advance to hive entrance.`
     );
@@ -790,11 +805,11 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Set objective marker to first AA turret
     if (this.aaTurrets.length > 0) {
       this.currentObjectiveMarker = this.aaTurrets[0].position.clone();
-      this.callbacks.onObjectiveMarker?.(this.currentObjectiveMarker);
+      this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
     }
 
     this.registerCombatActions();
-    this.callbacks.onCommsMessage(COMMS.ASSAULT_BEGIN);
+    this.emitCommsMessage(COMMS.ASSAULT_BEGIN);
 
     // Marcus follows the assault
     if (this.marcus) {
@@ -809,7 +824,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Spawn first wave
     this.spawnWave(FIELD_WAVES[0]);
 
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.MARCUS_FIELD), 5000);
+    setTimeout(() => this.emitCommsMessage(COMMS.MARCUS_FIELD), 5000);
 
     this.setCombatState(true);
   }
@@ -836,14 +851,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
       this.playSound('explosion');
     }
 
-    this.callbacks.onObjectiveUpdate('BREACH POINT', 'Clear the hive entrance. Fight on foot.');
+    this.emitObjectiveUpdate('BREACH POINT', 'Clear the hive entrance. Fight on foot.');
 
     // Set objective marker to hive entrance
     this.currentObjectiveMarker = new Vector3(0, 0, -550);
-    this.callbacks.onObjectiveMarker?.(this.currentObjectiveMarker);
+    this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
 
-    this.callbacks.onCommsMessage(COMMS.DISMOUNT);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.BREACH_COMBAT), 3000);
+    this.emitCommsMessage(COMMS.DISMOUNT);
+    setTimeout(() => this.emitCommsMessage(COMMS.BREACH_COMBAT), 3000);
 
     // Squads push to breach with line formation for maximum firepower
     this.marineManager?.issueGlobalOrder('advance', new Vector3(0, 0, -500));
@@ -864,17 +879,17 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.waveIndex = 0;
     this.beachheadProgress = 0;
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'ENTRY PUSH',
       'Push into the hive entrance and establish a beachhead.'
     );
 
     // Set objective marker to extraction/beachhead zone
     this.currentObjectiveMarker = this.extractionZonePosition.clone();
-    this.callbacks.onObjectiveMarker?.(this.currentObjectiveMarker);
+    this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
 
-    this.callbacks.onCommsMessage(COMMS.ENTRY_BEGIN);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.ENTRY_COMBAT), 4000);
+    this.emitCommsMessage(COMMS.ENTRY_BEGIN);
+    setTimeout(() => this.emitCommsMessage(COMMS.ENTRY_COMBAT), 4000);
 
     // Marcus holds the entrance - provide covering fire
     if (this.marcus) {
@@ -932,7 +947,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     // Update marine squads (with distance-based optimization)
     this.marineUpdateAccumulator += deltaTime;
-    if (this.marineUpdateAccumulator >= 0.05) { // 20Hz update for marines
+    if (this.marineUpdateAccumulator >= 0.05) {
+      // 20Hz update for marines
       this.marineUpdateAccumulator = 0;
       const enemyTargets = this.getEnemyTargets();
       this.marineManager?.update(0.05, this.camera.position, enemyTargets, this.coverPositions);
@@ -946,7 +962,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     // Update enemies (with performance optimization)
     this.enemyUpdateAccumulator += deltaTime;
-    if (this.enemyUpdateAccumulator >= 0.033) { // 30Hz update for enemies
+    if (this.enemyUpdateAccumulator >= 0.033) {
+      // 30Hz update for enemies
       this.enemyUpdateAccumulator = 0;
       this.updateEnemies(0.033);
     }
@@ -989,7 +1006,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.updatePlayerHealthVisual(this.playerHealth);
 
     // Update HUD
-    this.callbacks.onHealthChange(this.playerHealth);
+    this.emitHealthChanged(this.playerHealth);
 
     // Check for squad rescue opportunity
     if (this.squadOverwhelmedTriggered) {
@@ -1004,7 +1021,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     switch (this.phase) {
       case 'field_assault': {
         // Point to next undestroyed AA turret
-        const nextTurret = this.aaTurrets.find(t => !t.destroyed);
+        const nextTurret = this.aaTurrets.find((t) => !t.destroyed);
         if (nextTurret) {
           this.currentObjectiveMarker = nextTurret.position.clone();
         } else {
@@ -1024,7 +1041,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
 
     if (this.currentObjectiveMarker) {
-      this.callbacks.onObjectiveMarker?.(this.currentObjectiveMarker);
+      this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
     }
   }
 
@@ -1062,7 +1079,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         setTimeout(() => {
           if (this.phase === 'field_assault') {
             this.spawnWave(FIELD_WAVES[this.waveIndex]);
-            this.callbacks.onNotification(`Wave ${this.waveIndex + 1} incoming!`, 3000);
+            this.emitNotification(`Wave ${this.waveIndex + 1} incoming!`, 3000);
           }
         }, 2000);
       }
@@ -1074,9 +1091,12 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
 
     // Alert for flying chitin first appearance
-    if (!this.flyingChitinAlerted && this.enemies.some(e => e.enemyClass === 'flying' && e.isActive)) {
+    if (
+      !this.flyingChitinAlerted &&
+      this.enemies.some((e) => e.enemyClass === 'flying' && e.isActive)
+    ) {
       this.flyingChitinAlerted = true;
-      this.callbacks.onCommsMessage(COMMS.FLYING_CHITIN);
+      this.emitCommsMessage(COMMS.FLYING_CHITIN);
     }
 
     // Transition to breach point when all turrets destroyed and player is close
@@ -1085,12 +1105,12 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
 
     // Update objective with more detail
-    const nearestTurret = this.aaTurrets.find(t => !t.destroyed);
+    const nearestTurret = this.aaTurrets.find((t) => !t.destroyed);
     const turretDistance = nearestTurret
       ? Math.floor(Vector3.Distance(this.camera.position, nearestTurret.position))
       : 0;
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'OPEN FIELD ASSAULT',
       `Destroy AA turrets (${this.turretsDestroyed}/${this.totalTurrets})${nearestTurret ? ` - ${turretDistance}m to next target` : ' - Advance!'}`
     );
@@ -1104,24 +1124,24 @@ export class HiveAssaultLevel extends SurfaceLevel {
         setTimeout(() => {
           if (this.phase === 'breach_point') {
             this.spawnWave(BREACH_WAVES[this.waveIndex]);
-            this.callbacks.onNotification(`Wave ${this.waveIndex + 1} - Hold the line!`, 3000);
+            this.emitNotification(`Wave ${this.waveIndex + 1} - Hold the line!`, 3000);
           }
         }, 1500);
       }
     }
 
     // Alert for armored chitin first appearance
-    if (!this.armoredChitinAlerted && this.enemies.some(e => e.enemyClass === 'armored' && e.isActive)) {
+    if (
+      !this.armoredChitinAlerted &&
+      this.enemies.some((e) => e.enemyClass === 'armored' && e.isActive)
+    ) {
       this.armoredChitinAlerted = true;
-      this.callbacks.onCommsMessage(COMMS.ARMORED_CHITIN);
+      this.emitCommsMessage(COMMS.ARMORED_CHITIN);
     }
 
     // Update objective with distance to gate
-    const distToGate = Math.floor(Math.abs(this.camera.position.z - (-560)));
-    this.callbacks.onObjectiveUpdate(
-      'BREACH POINT',
-      `Clear the entrance - ${distToGate}m to gate`
-    );
+    const distToGate = Math.floor(Math.abs(this.camera.position.z - -560));
+    this.emitObjectiveUpdate('BREACH POINT', `Clear the entrance - ${distToGate}m to gate`);
 
     // Transition to entry push when player reaches the gate
     if (
@@ -1141,15 +1161,20 @@ export class HiveAssaultLevel extends SurfaceLevel {
         setTimeout(() => {
           if (this.phase === 'entry_push') {
             this.spawnWave(ENTRY_WAVES[this.waveIndex]);
-            this.callbacks.onNotification('More hostiles incoming!', 2000);
+            this.emitNotification('More hostiles incoming!', 2000);
           }
         }, 1000);
       }
     }
 
     // Track beachhead progress with detailed feedback
-    const progressPercent = Math.min(100, Math.floor((this.beachheadProgress / this.beachheadRequired) * 100));
-    const distToZone = Math.floor(Vector3.Distance(this.camera.position, this.extractionZonePosition));
+    const progressPercent = Math.min(
+      100,
+      Math.floor((this.beachheadProgress / this.beachheadRequired) * 100)
+    );
+    const distToZone = Math.floor(
+      Vector3.Distance(this.camera.position, this.extractionZonePosition)
+    );
 
     let statusText = `Secure the beachhead (${progressPercent}%)`;
     if (progressPercent >= 100) {
@@ -1160,7 +1185,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
       statusText = `Halfway secure (${progressPercent}%) - Hold the line!`;
     }
 
-    this.callbacks.onObjectiveUpdate('ENTRY PUSH', statusText);
+    this.emitObjectiveUpdate('ENTRY PUSH', statusText);
   }
 
   // ============================================================================
@@ -1221,7 +1246,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Determine spawn position based on phase with better distribution
     let spawnPos: Vector3;
     const playerZ = this.camera.position.z;
-    const playerX = this.camera.position.x;
+    const _playerX = this.camera.position.x;
 
     switch (this.phase) {
       case 'field_assault': {
@@ -1280,11 +1305,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
       }
       case 'entry_push':
         // Spawn from deeper in the hive (corridor spawns)
-        spawnPos = new Vector3(
-          (Math.random() - 0.5) * 25,
-          0,
-          -630 - Math.random() * 25
-        );
+        spawnPos = new Vector3((Math.random() - 0.5) * 25, 0, -630 - Math.random() * 25);
         break;
       default:
         spawnPos = new Vector3(0, 0, -100);
@@ -1340,11 +1361,11 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Alert callouts for new enemy types
     if (enemyClass === 'flying' && !this.flyingChitinAlerted) {
       this.flyingChitinAlerted = true;
-      this.callbacks.onCommsMessage(COMMS.FLYING_CHITIN);
+      this.emitCommsMessage(COMMS.FLYING_CHITIN);
     }
     if (enemyClass === 'armored' && !this.armoredChitinAlerted) {
       this.armoredChitinAlerted = true;
-      this.callbacks.onCommsMessage(COMMS.ARMORED_CHITIN);
+      this.emitCommsMessage(COMMS.ARMORED_CHITIN);
     }
   }
 
@@ -1413,7 +1434,10 @@ export class HiveAssaultLevel extends SurfaceLevel {
         if (enemy.enemyClass === 'flying') {
           // Flying enemies maintain altitude and bob
           const targetAltitude = 12 + Math.sin(this.phaseTime * 0.5 + enemy.position.x * 0.1) * 5;
-          enemy.position.y = Math.max(8, enemy.position.y + (targetAltitude - enemy.position.y) * 0.1);
+          enemy.position.y = Math.max(
+            8,
+            enemy.position.y + (targetAltitude - enemy.position.y) * 0.1
+          );
           // Add strafing motion
           enemy.position.x += Math.sin(this.phaseTime * 3 + enemy.position.z * 0.1) * 0.2;
         } else if (enemy.enemyClass === 'ground') {
@@ -1486,7 +1510,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     this.enemiesRemaining--;
     this.kills++;
-    this.callbacks.onKill();
+    this.recordKill();
 
     // Beachhead progress in entry push
     if (this.phase === 'entry_push') {
@@ -1615,9 +1639,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
         }, 150);
 
         // Deal damage to enemy (Marcus deals extra damage to armored)
-        const damage = nearestEnemy.enemyClass === 'armored'
-          ? this.marcus.damage * 1.5
-          : this.marcus.damage;
+        const damage =
+          nearestEnemy.enemyClass === 'armored' ? this.marcus.damage * 1.5 : this.marcus.damage;
         nearestEnemy.health -= damage;
 
         if (nearestEnemy.health <= 0) {
@@ -1673,7 +1696,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         mat.emissiveColor = new Color3(0.3, 0.1, 0.05);
       }
 
-      this.callbacks.onCommsMessage(COMMS.AA_DESTROYED(this.turretsDestroyed, this.totalTurrets));
+      this.emitCommsMessage(COMMS.AA_DESTROYED(this.turretsDestroyed, this.totalTurrets));
       this.triggerShake(4);
       this.playSound('explosion');
     }
@@ -1690,14 +1713,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.isInVehicle = true;
     this.camera.position.y = 2.5; // Higher camera in vehicle
 
-    this.callbacks.onNotification('Vehicle mounted. Use WASD to drive.', 3000);
+    this.emitNotification('Vehicle mounted. Use WASD to drive.', 3000);
   }
 
   private dismountVehicle(): void {
     this.isInVehicle = false;
     this.camera.position.y = 1.7;
 
-    this.callbacks.onNotification('Dismounted from vehicle.', 2000);
+    this.emitNotification('Dismounted from vehicle.', 2000);
   }
 
   private updateVehicle(deltaTime: number): void {
@@ -1798,7 +1821,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         enemy.health -= damage;
 
         this.triggerHitConfirmation();
-        this.callbacks.onHitMarker?.(damage, false);
+        this.emitHitMarker(damage, false);
 
         if (enemy.health <= 0) {
           this.killEnemy(enemy);
@@ -1860,15 +1883,15 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
   private damagePlayer(damage: number): void {
     this.playerHealth -= damage;
-    this.callbacks.onHealthChange(this.playerHealth);
-    this.callbacks.onDamage();
+    this.emitHealthChanged(this.playerHealth);
+    this.emitDamageRegistered();
     this.triggerDamageFlash(damage / 50);
     this.triggerDamageShake(damage);
     this.trackPlayerDamage(damage);
 
     // Directional damage indicator
     // (Simplified: assumes damage comes from in front)
-    this.callbacks.onDirectionalDamage?.(0, damage);
+    this.emitDirectionalDamage(0, damage);
 
     if (this.playerHealth <= 0) {
       this.playerHealth = 0;
@@ -1913,7 +1936,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         this.marineManager.startRevive(marine);
 
         const progress = Math.floor((marine.reviveProgress / marine.reviveTime) * 100);
-        this.callbacks.onNotification(`Reviving ${marine.name}... ${progress}%`, 500);
+        this.emitNotification(`Reviving ${marine.name}... ${progress}%`, 500);
       } else {
         this.marineManager.cancelRevive(marine);
       }
@@ -1932,7 +1955,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const alphaSquad = this.marineManager?.getSquad(0);
     if (alphaSquad) {
       this.marineManager?.simulateSquadUnderFire(0, 40);
-      this.callbacks.onCommsMessage(COMMS.AMBUSH_ALERT);
+      this.emitCommsMessage(COMMS.AMBUSH_ALERT);
     }
 
     // Spawn enemies around alpha squad
@@ -1951,7 +1974,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const bravoSquad = this.marineManager?.getSquad(1);
     if (bravoSquad) {
       this.marineManager?.setSquadOverwhelmed(1);
-      this.callbacks.onCommsMessage(COMMS.SQUAD_OVERWHELMED);
+      this.emitCommsMessage(COMMS.SQUAD_OVERWHELMED);
     }
 
     // Spawn enemies around bravo squad
@@ -1975,7 +1998,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     if (playerDist < 20 && nearbyEnemies.length < 3) {
       this.marineManager?.triggerRescueCallout(bravoSquad);
-      this.callbacks.onCommsMessage(COMMS.SQUAD_SAVED);
+      this.emitCommsMessage(COMMS.SQUAD_SAVED);
 
       // Restore squad orders
       this.marineManager?.issueOrder(bravoSquad, 'follow_player');
@@ -1984,10 +2007,10 @@ export class HiveAssaultLevel extends SurfaceLevel {
   }
 
   private triggerLevelComplete(): void {
-    this.callbacks.onCommsMessage(COMMS.BEACHHEAD_SECURED);
+    this.emitCommsMessage(COMMS.BEACHHEAD_SECURED);
 
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.MARCUS_FAREWELL);
+      this.emitCommsMessage(COMMS.MARCUS_FAREWELL);
     }, 5000);
 
     setTimeout(() => {
@@ -2023,8 +2046,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
       }
     };
 
-    this.callbacks.onActionGroupsChange(groups);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionGroupsChanged(groups);
+    this.emitActionHandlerRegistered(this.actionCallback);
   }
 
   private registerCombatActions(): void {
@@ -2097,8 +2120,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
       }
     };
 
-    this.callbacks.onActionGroupsChange(groups);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionGroupsChanged(groups);
+    this.emitActionHandlerRegistered(this.actionCallback);
   }
 
   /**
@@ -2115,26 +2138,25 @@ export class HiveAssaultLevel extends SurfaceLevel {
     switch (command) {
       case 'follow':
         this.marineManager?.issueGlobalOrder('follow_player');
-        this.callbacks.onNotification('Squad: Following your lead', 2000);
+        this.emitNotification('Squad: Following your lead', 2000);
         break;
       case 'hold':
         this.marineManager?.issueGlobalOrder('hold_position');
         this.marineManager?.getSquads().forEach((s) => {
           this.marineManager?.setFormation(s, 'cover');
         });
-        this.callbacks.onNotification('Squad: Holding position', 2000);
+        this.emitNotification('Squad: Holding position', 2000);
         break;
-      case 'advance':
+      case 'advance': {
         // Advance to a position ahead of player
-        const advanceTarget = this.camera.position.add(
-          new Vector3(0, 0, -50)
-        );
+        const advanceTarget = this.camera.position.add(new Vector3(0, 0, -50));
         this.marineManager?.issueGlobalOrder('advance', advanceTarget);
         this.marineManager?.getSquads().forEach((s) => {
           this.marineManager?.setFormation(s, 'line');
         });
-        this.callbacks.onNotification('Squad: Advancing!', 2000);
+        this.emitNotification('Squad: Advancing!', 2000);
         break;
+      }
     }
 
     // Update action button highlights
@@ -2204,7 +2226,9 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
   protected override disposeLevel(): void {
     // Dispose flora
-    for (const node of this.floraNodes) { node.dispose(false, true); }
+    for (const node of this.floraNodes) {
+      node.dispose(false, true);
+    }
     this.floraNodes = [];
     // Dispose collectibles
     this.collectibleSystem?.dispose();
@@ -2250,8 +2274,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.hiveBuilder = null;
 
     // Unregister actions
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
     this.actionCallback = null;
 
     // Unregister dynamic actions

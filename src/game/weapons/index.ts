@@ -21,7 +21,7 @@ export {
 
 export {
   getRecoilProfile,
+  type WeaponRecoilProfile,
   WeaponRecoilSystem,
   weaponRecoilSystem,
-  type WeaponRecoilProfile,
 } from './WeaponRecoilSystem';

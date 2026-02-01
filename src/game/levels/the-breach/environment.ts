@@ -870,11 +870,7 @@ const CORROSION_PATCH_GLBS = [
  */
 function addCorrosionOverlay(scene: Scene, detailNode: TransformNode, index: number): void {
   // Add a point light for eerie glow from corroded tech
-  const glowLight = new PointLight(
-    `corrosion_glow_${index}`,
-    detailNode.position.clone(),
-    scene
-  );
+  const glowLight = new PointLight(`corrosion_glow_${index}`, detailNode.position.clone(), scene);
   glowLight.diffuse = Color3.FromHexString('#2A8888');
   glowLight.intensity = 0.08 + Math.random() * 0.06;
   glowLight.range = 3;
@@ -904,11 +900,7 @@ function addCorrosionOverlay(scene: Scene, detailNode: TransformNode, index: num
   const scale = 0.08 + Math.random() * 0.06;
   patch.scaling.setAll(scale);
 
-  patch.position.set(
-    (Math.random() - 0.5) * 0.3,
-    (Math.random() - 0.5) * 0.3,
-    0.05
-  );
+  patch.position.set((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, 0.05);
   patch.rotation.set(
     (Math.random() - 0.5) * 0.3,
     Math.random() * Math.PI * 2,

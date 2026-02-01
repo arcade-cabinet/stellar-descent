@@ -50,10 +50,6 @@ export class AmbientSoundscapes {
   // Active layers
   private layers: Map<string, AmbientLayer> = new Map();
 
-  constructor() {
-    // Deferred initialization
-  }
-
   // ============================================================================
   // INITIALIZATION
   // ============================================================================

@@ -9,13 +9,11 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { getLogger } from './game/core/Logger';
 import { GameFlow, isGamePhase } from './components/GameFlow';
-import { LandingFlow, isLandingPhase } from './components/LandingFlow';
+import { isLandingPhase, LandingFlow } from './components/LandingFlow';
 import { AchievementPopup } from './components/ui/AchievementPopup';
 import { CreditsSequence } from './components/ui/CreditsSequence';
 import { DevMenu } from './components/ui/DevMenu';
-import { BUILD_FLAGS } from './game/core/BuildConfig';
 import { InstallPrompt, useInstallPrompt } from './components/ui/InstallPrompt';
 import { LandscapeEnforcer } from './components/ui/LandscapeEnforcer';
 import { OfflineIndicator } from './components/ui/OfflineIndicator';
@@ -25,14 +23,16 @@ import { initAchievements } from './game/achievements';
 import { getCampaignDirector } from './game/campaign/CampaignDirector';
 import type { CampaignPhase } from './game/campaign/types';
 import { useCampaign } from './game/campaign/useCampaign';
-import { GameProvider, useGame } from './game/context/GameContext';
-import { KeybindingsProvider, useKeybindings } from './game/context/KeybindingsContext';
-import { SettingsProvider } from './game/context/SettingsContext';
+import { GameProvider } from './game/context/GameContext';
 import { SubtitleProvider } from './game/context/SubtitleContext';
 import { WeaponProvider } from './game/context/WeaponContext';
+import { BUILD_FLAGS } from './game/core/BuildConfig';
+import { getLogger } from './game/core/Logger';
 import { useCommsSubtitles } from './game/hooks/useCommsSubtitles';
-import { CAMPAIGN_LEVELS } from './game/levels/types';
 import type { LevelId } from './game/levels/types';
+import { CAMPAIGN_LEVELS } from './game/levels/types';
+import { useKeybindings } from './game/stores/useKeybindingsStore';
+import { usePlayerStore } from './game/stores/usePlayerStore';
 import { shouldShowTouchControls } from './game/utils/PlatformDetector';
 import { usePWA } from './hooks/usePWA';
 import { useSavePersistence } from './hooks/useSavePersistence';
@@ -91,8 +91,12 @@ function GameUI() {
 
   // PWA state
   const {
-    isOffline, isOfflineReady, needsUpdate,
-    updateServiceWorker, dismissOfflineReady, dismissUpdate,
+    isOffline,
+    isOfflineReady,
+    needsUpdate,
+    updateServiceWorker,
+    dismissOfflineReady,
+    dismissUpdate,
   } = usePWA();
   useSavePersistence();
 
@@ -102,10 +106,9 @@ function GameUI() {
     resetTrigger: resetInstallPromptTrigger,
   } = useInstallPrompt();
 
-  // Game context for death detection and player state
-  const {
-    isPlayerDead, resetPlayerHealth, setOnPlayerDeath,
-  } = useGame();
+  // Player state from Zustand store (migrated from GameContext)
+  const isPlayerDead = usePlayerStore((state) => state.isDead);
+  const resetPlayerHealth = usePlayerStore((state) => state.reset);
 
   const { isKeyBound } = useKeybindings();
   useCommsSubtitles();
@@ -146,14 +149,7 @@ function GameUI() {
   }, []);
 
   // ---- Player death -> dispatch PLAYER_DIED ----
-  useEffect(() => {
-    setOnPlayerDeath(() => {
-      dispatch({ type: 'PLAYER_DIED' });
-    });
-    return () => setOnPlayerDeath(null);
-  }, [setOnPlayerDeath, dispatch]);
-
-  // Backup death detection
+  // Watch for isDead state changes in the player store
   useEffect(() => {
     if (isPlayerDead && phase !== 'gameover' && phase !== 'menu') {
       dispatch({ type: 'PLAYER_DIED' });
@@ -166,9 +162,17 @@ function GameUI() {
       if (!isKeyBound(e.code, 'pause')) return;
       // Non-pausable phases
       const nonPausable: CampaignPhase[] = [
-        'idle', 'splash', 'title', 'menu', 'briefing',
-        'introBriefing', 'intro', 'loading', 'gameover',
-        'levelComplete', 'credits',
+        'idle',
+        'splash',
+        'title',
+        'menu',
+        'briefing',
+        'introBriefing',
+        'intro',
+        'loading',
+        'gameover',
+        'levelComplete',
+        'credits',
       ];
       if (nonPausable.includes(phase)) return;
       if (phase !== 'paused') {
@@ -203,7 +207,10 @@ function GameUI() {
     if (phase === 'menu' && prev !== 'menu') {
       resetPlayerHealth();
     }
-    if (phase === 'loading' && (prev === 'gameover' || prev === 'levelComplete' || prev === 'paused')) {
+    if (
+      phase === 'loading' &&
+      (prev === 'gameover' || prev === 'levelComplete' || prev === 'paused')
+    ) {
       resetPlayerHealth();
     }
   }, [phase, resetPlayerHealth]);
@@ -217,11 +224,7 @@ function GameUI() {
 
       {/* Game Flow: briefing, loading, playing, paused, death, completion */}
       {isGamePhase(phase) && (
-        <GameFlow
-          snapshot={snapshot}
-          dispatch={dispatch}
-          isTouchDevice={isTouchDevice}
-        />
+        <GameFlow snapshot={snapshot} dispatch={dispatch} isTouchDevice={isTouchDevice} />
       )}
 
       {/* Credits */}
@@ -258,16 +261,12 @@ function GameUI() {
 
 export function App() {
   return (
-    <SettingsProvider>
-      <KeybindingsProvider>
-        <SubtitleProvider>
-          <GameProvider>
-            <WeaponProvider>
-              <GameUI />
-            </WeaponProvider>
-          </GameProvider>
-        </SubtitleProvider>
-      </KeybindingsProvider>
-    </SettingsProvider>
+    <SubtitleProvider>
+      <GameProvider>
+        <WeaponProvider>
+          <GameUI />
+        </WeaponProvider>
+      </GameProvider>
+    </SubtitleProvider>
   );
 }

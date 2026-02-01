@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ACHIEVEMENTS,
-  type Achievement,
-  type AchievementId,
-  getAchievementManager,
-} from '../../game/achievements';
+import { ACHIEVEMENTS, type Achievement, getAchievementManager } from '../../game/achievements';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { GAME_SUBTITLE, GAME_TITLE } from '../../game/core/lore';
 import { WEAPONS, type WeaponId } from '../../game/entities/weapons';
@@ -58,10 +53,7 @@ interface LevelStatEntry {
  * Calculate total secrets across all campaign levels
  */
 function calculateTotalSecrets(): number {
-  return Object.values(CAMPAIGN_LEVELS).reduce(
-    (sum, level) => sum + (level.totalSecrets ?? 0),
-    0
-  );
+  return Object.values(CAMPAIGN_LEVELS).reduce((sum, level) => sum + (level.totalSecrets ?? 0), 0);
 }
 
 /**
@@ -669,7 +661,6 @@ export function CreditsSequence({
             type="button"
             className={`${styles.endButton} ${styles.primaryEndButton}`}
             onClick={handleReturnToMenu}
-            autoFocus
           >
             {'\u25C0'} RETURN TO MENU
           </button>

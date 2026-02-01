@@ -3,6 +3,9 @@
  */
 
 export { CampaignDirector, disposeCampaignDirector, getCampaignDirector } from './CampaignDirector';
+export type { LevelDesignDocument, TensionPoint } from './LevelDesignData';
+export { LEVEL_DESIGN_DOCUMENTS } from './LevelDesignDocuments';
+export type { BonusLevelDefinition } from './MissionDefinitions';
 export {
   BONUS_LEVELS,
   getMissionDefinition,
@@ -11,7 +14,60 @@ export {
   getTotalSkullCount,
   MISSION_DEFINITIONS,
 } from './MissionDefinitions';
-export type { BonusLevelDefinition } from './MissionDefinitions';
+export type {
+  ObjectiveType,
+  QuestDefinition,
+  QuestTriggerType,
+  QuestType,
+} from './QuestChain';
+// Quest Chain definitions
+export {
+  BRANCH_QUESTS,
+  canStartQuest,
+  createQuestState,
+  getAllQuestsForLevel,
+  getBranchQuestsForLevel,
+  getMainQuestForLevel,
+  getNextMainQuest,
+  MAIN_QUEST_CHAIN,
+  QUEST_REGISTRY,
+} from './QuestChain';
+export type { QuestObjective, QuestState, QuestStatus } from './QuestManager';
+// Quest system exports
+export {
+  activateQuest,
+  completeObjective,
+  completeQuest,
+  failQuest,
+  getActiveMainQuest,
+  getActiveQuests,
+  getCurrentObjective,
+  getObjectiveProgress,
+  getObjectiveTimeRemaining,
+  getQuestDefinition,
+  getQuestStateForSave,
+  // HUD data
+  getQuestTrackerData,
+  // Quest Manager runtime API
+  initializeQuestManager,
+  isQuestCompleted,
+  loadQuestState,
+  onAreaEnter,
+  onCollectibleFound,
+  onEnemyKilled,
+  onLevelEnter,
+  onLevelExit,
+  onNPCDialogue,
+  onObjectInteract,
+  onPlayerDeath,
+  onPlayerReachLocation,
+  progressObjective,
+  resetQuestManager,
+  // Timed objective handling
+  updateTimedObjectives,
+} from './QuestManager';
+// Quest Tracker types for HUD components
+export type { OptionalObjectiveData, QuestTrackerData } from './QuestTrackerTypes';
 export type {
   CampaignCommand,
   CampaignPhase,
@@ -21,80 +77,18 @@ export type {
   MissionObjective,
 } from './types';
 export { useCampaign } from './useCampaign';
-export { LEVEL_DESIGN_DOCUMENTS } from './LevelDesignDocuments';
-export type { LevelDesignDocument, TensionPoint } from './LevelDesignData';
-
-// Quest system exports
-export {
-  // Quest Manager runtime API
-  initializeQuestManager,
-  loadQuestState,
-  getQuestStateForSave,
-  onLevelEnter,
-  onLevelExit,
-  activateQuest,
-  progressObjective,
-  completeObjective,
-  completeQuest,
-  failQuest,
-  onObjectInteract,
-  onNPCDialogue,
-  onAreaEnter,
-  onPlayerReachLocation,
-  onEnemyKilled,
-  onCollectibleFound,
-  onPlayerDeath,
-  getActiveMainQuest,
-  getActiveQuests,
-  isQuestCompleted,
-  getCurrentObjective,
-  getQuestDefinition,
-  resetQuestManager,
-  // Timed objective handling
-  updateTimedObjectives,
-  getObjectiveTimeRemaining,
-  // HUD data
-  getQuestTrackerData,
-  getObjectiveProgress,
-} from './QuestManager';
-
-export type { QuestState, QuestStatus, QuestObjective } from './QuestManager';
-
-// Quest Chain definitions
-export {
-  MAIN_QUEST_CHAIN,
-  BRANCH_QUESTS,
-  QUEST_REGISTRY,
-  getMainQuestForLevel,
-  getBranchQuestsForLevel,
-  getAllQuestsForLevel,
-  getNextMainQuest,
-  canStartQuest,
-  createQuestState,
-} from './QuestChain';
-
-export type {
-  QuestDefinition,
-  QuestType,
-  QuestTriggerType,
-  ObjectiveType,
-} from './QuestChain';
-
-// Quest Tracker hook for HUD integration
-export {
-  useQuestTracker,
-  useObjectiveProgress,
-  useIsQuestActive,
-  updateQuestTrackerState,
-  markObjectiveCompleted,
-  updateObjectiveDistance,
-  startQuestTimerTick,
-  stopQuestTimerTick,
-  pauseQuestTimerTick,
-  resumeQuestTimerTick,
-} from './useQuestTracker';
 
 export type { UseQuestTrackerResult } from './useQuestTracker';
-
-// Quest Tracker types for HUD components
-export type { QuestTrackerData, OptionalObjectiveData } from './QuestTrackerTypes';
+// Quest Tracker hook for HUD integration
+export {
+  markObjectiveCompleted,
+  pauseQuestTimerTick,
+  resumeQuestTimerTick,
+  startQuestTimerTick,
+  stopQuestTimerTick,
+  updateObjectiveDistance,
+  updateQuestTrackerState,
+  useIsQuestActive,
+  useObjectiveProgress,
+  useQuestTracker,
+} from './useQuestTracker';

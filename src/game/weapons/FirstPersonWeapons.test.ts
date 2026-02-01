@@ -64,15 +64,17 @@ vi.mock('./WeaponAnimations', () => {
   return { WeaponAnimationController: MockWeaponAnimationController };
 });
 vi.mock('./WeaponRecoilSystem', () => ({
-  WeaponRecoilSystem: { getInstance: vi.fn().mockReturnValue({
-    init: vi.fn(),
-    setWeapon: vi.fn(),
-    update: vi.fn().mockReturnValue({ chromaticIntensity: 0 }),
-    triggerFire: vi.fn(),
-    setADSBlend: vi.fn(),
-    shakeOffset: { x: 0, y: 0, z: 0 },
-    dispose: vi.fn(),
-  }) },
+  WeaponRecoilSystem: {
+    getInstance: vi.fn().mockReturnValue({
+      init: vi.fn(),
+      setWeapon: vi.fn(),
+      update: vi.fn().mockReturnValue({ chromaticIntensity: 0 }),
+      triggerFire: vi.fn(),
+      setADSBlend: vi.fn(),
+      shakeOffset: { x: 0, y: 0, z: 0 },
+      dispose: vi.fn(),
+    }),
+  },
 }));
 vi.mock('../effects/MuzzleFlash', () => ({
   MuzzleFlashManager: { getInstance: vi.fn().mockReturnValue({ emit: vi.fn() }) },
@@ -92,17 +94,19 @@ vi.mock('../core/WeaponSoundManager', () => ({
   weaponSoundManager: { playImpact: vi.fn() },
 }));
 vi.mock('./VehicleYoke', () => ({
-  VehicleYokeSystem: { getInstance: vi.fn().mockReturnValue({
-    init: vi.fn(),
-    getYoke: vi.fn().mockReturnValue({
-      getRoot: vi.fn().mockReturnValue({ parent: null }),
-      getMeshes: vi.fn().mockReturnValue([]),
-      show: vi.fn(),
-      hide: vi.fn(),
+  VehicleYokeSystem: {
+    getInstance: vi.fn().mockReturnValue({
+      init: vi.fn(),
+      getYoke: vi.fn().mockReturnValue({
+        getRoot: vi.fn().mockReturnValue({ parent: null }),
+        getMeshes: vi.fn().mockReturnValue([]),
+        show: vi.fn(),
+        hide: vi.fn(),
+      }),
+      update: vi.fn(),
+      dispose: vi.fn(),
     }),
-    update: vi.fn(),
-    dispose: vi.fn(),
-  }) },
+  },
 }));
 
 let FirstPersonWeaponSystem: any;
@@ -123,9 +127,21 @@ describe('FirstPersonWeaponSystem', () => {
       getEngine: vi.fn().mockReturnValue({ getDeltaTime: vi.fn().mockReturnValue(16) }),
     };
     mockCamera = {
-      position: { x: 0, y: 0, z: 0, clone: vi.fn().mockReturnThis(), subtract: vi.fn().mockReturnValue({ scale: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0 }) }) },
-      getForwardRay: vi.fn().mockReturnValue({ direction: { normalize: vi.fn().mockReturnThis() } }),
-      getDirection: vi.fn().mockReturnValue({ normalize: vi.fn().mockReturnThis(), add: vi.fn().mockReturnThis(), scale: vi.fn().mockReturnThis() }),
+      position: {
+        x: 0,
+        y: 0,
+        z: 0,
+        clone: vi.fn().mockReturnThis(),
+        subtract: vi.fn().mockReturnValue({ scale: vi.fn().mockReturnValue({ x: 0, y: 0, z: 0 }) }),
+      },
+      getForwardRay: vi
+        .fn()
+        .mockReturnValue({ direction: { normalize: vi.fn().mockReturnThis() } }),
+      getDirection: vi.fn().mockReturnValue({
+        normalize: vi.fn().mockReturnThis(),
+        add: vi.fn().mockReturnThis(),
+        scale: vi.fn().mockReturnThis(),
+      }),
     };
     system = FirstPersonWeaponSystem.getInstance();
   });

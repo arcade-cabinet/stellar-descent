@@ -10,14 +10,15 @@
  * - Keyboard hint display
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { getAudioManager } from '../../game/core/AudioManager';
 import {
   getPhotoMode,
   type PhotoFilter,
   type PhotoMetadata,
   type PhotoModeSettings,
 } from '../../game/modes/PhotoMode';
-import { getAudioManager } from '../../game/core/AudioManager';
 import styles from './PhotoModeUI.module.css';
 
 // ============================================================================
@@ -445,9 +446,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
             <div className={styles.sliderRow}>
               <div className={styles.sliderHeader}>
                 <span className={styles.sliderLabel}>Vignette</span>
-                <span className={styles.sliderValue}>
-                  {(settings.vignette * 100).toFixed(0)}%
-                </span>
+                <span className={styles.sliderValue}>{(settings.vignette * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -463,9 +462,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
             <div className={styles.sliderRow}>
               <div className={styles.sliderHeader}>
                 <span className={styles.sliderLabel}>Film Grain</span>
-                <span className={styles.sliderValue}>
-                  {(settings.filmGrain * 100).toFixed(0)}%
-                </span>
+                <span className={styles.sliderValue}>{(settings.filmGrain * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -503,9 +500,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
               <span className={styles.toggleLabel}>Letterbox</span>
               <button
                 type="button"
-                className={`${styles.toggleButton} ${
-                  settings.showLetterbox ? styles.active : ''
-                }`}
+                className={`${styles.toggleButton} ${settings.showLetterbox ? styles.active : ''}`}
                 onClick={() => updateSetting('showLetterbox', !settings.showLetterbox)}
                 aria-pressed={settings.showLetterbox}
               />
@@ -548,11 +543,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
             aria-label="Capture photo"
           />
 
-          <button
-            type="button"
-            className={styles.controlButton}
-            onClick={handleOpenGallery}
-          >
+          <button type="button" className={styles.controlButton} onClick={handleOpenGallery}>
             <span className={styles.buttonIcon}>&#9633;</span>
             <span className={styles.buttonLabel}>Gallery</span>
           </button>
@@ -643,12 +634,8 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
                       <div className={styles.galleryThumbnail} />
                     )}
                     <div className={styles.galleryItemOverlay}>
-                      <span className={styles.galleryItemDate}>
-                        {formatDate(photo.timestamp)}
-                      </span>
-                      <span className={styles.galleryItemFilter}>
-                        {FILTER_NAMES[photo.filter]}
-                      </span>
+                      <span className={styles.galleryItemDate}>{formatDate(photo.timestamp)}</span>
+                      <span className={styles.galleryItemFilter}>{FILTER_NAMES[photo.filter]}</span>
                     </div>
                     <div className={styles.galleryActions}>
                       <button
@@ -696,11 +683,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
               className={styles.previewImage}
             />
             <div className={styles.previewActions}>
-              <button
-                type="button"
-                className={styles.controlButton}
-                onClick={handleSharePhoto}
-              >
+              <button type="button" className={styles.controlButton} onClick={handleSharePhoto}>
                 <span className={styles.buttonIcon}>&#8599;</span>
                 <span className={styles.buttonLabel}>Share/Download</span>
               </button>

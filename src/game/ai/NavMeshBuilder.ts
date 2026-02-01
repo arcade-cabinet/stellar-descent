@@ -21,12 +21,7 @@
 import { Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
-import {
-  CellSpacePartitioning,
-  NavMesh,
-  NavMeshLoader,
-  Vector3 as YukaVector3,
-} from 'yuka';
+import { CellSpacePartitioning, NavMesh, NavMeshLoader, Vector3 as YukaVector3 } from 'yuka';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -140,7 +135,6 @@ function toBabylonVector(v: YukaVector3): BabylonVector3 {
 // ============================================================================
 
 export class NavMeshBuilder {
-  private scene: Scene;
   private config: NavMeshConfig;
   private obstacles: Map<string, NavMeshObstacle> = new Map();
   private verticalConnections: VerticalConnection[] = [];
@@ -205,19 +199,22 @@ export class NavMeshBuilder {
     const loader = new NavMeshLoader();
 
     return new Promise((resolve, reject) => {
-      loader.load(url).then((navMesh) => {
-        this.navMesh = navMesh;
-        this.createSpatialIndex();
+      loader
+        .load(url)
+        .then((navMesh) => {
+          this.navMesh = navMesh;
+          this.createSpatialIndex();
 
-        const buildTime = performance.now() - startTime;
+          const buildTime = performance.now() - startTime;
 
-        resolve({
-          navMesh: this.navMesh,
-          spatialIndex: this.spatialIndex,
-          regionCount: this.navMesh.regions.length,
-          buildTimeMs: buildTime,
-        });
-      }).catch(reject);
+          resolve({
+            navMesh: this.navMesh,
+            spatialIndex: this.spatialIndex,
+            regionCount: this.navMesh.regions.length,
+            buildTimeMs: buildTime,
+          });
+        })
+        .catch(reject);
     });
   }
 
@@ -318,7 +315,7 @@ export class NavMeshBuilder {
    */
   updateObstacle(id: string, position: BabylonVector3): void {
     const obstacle = this.obstacles.get(id);
-    if (obstacle && obstacle.isDynamic) {
+    if (obstacle?.isDynamic) {
       obstacle.position = position.clone();
     }
   }
@@ -432,7 +429,7 @@ export class NavMeshBuilder {
   getRegionData(): NavMeshRegionData[] {
     if (!this.navMesh) return [];
 
-    return this.navMesh.regions.map((region, index) => {
+    return this.navMesh.regions.map((region, _index) => {
       const vertices = region.contour.map((v) => toBabylonVector(v));
       const neighbors: number[] = [];
 
@@ -598,14 +595,7 @@ export class NavMeshBuilder {
     const cellsY = Math.ceil(height / this.config.cellSize) || 1;
     const cellsZ = Math.ceil(depth / this.config.cellSize);
 
-    this.spatialIndex = new CellSpacePartitioning(
-      width,
-      height,
-      depth,
-      cellsX,
-      cellsY,
-      cellsZ
-    );
+    this.spatialIndex = new CellSpacePartitioning(width, height, depth, cellsX, cellsY, cellsZ);
   }
 
   // ============================================================================

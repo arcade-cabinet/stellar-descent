@@ -18,18 +18,20 @@
  */
 
 import type { Camera } from '@babylonjs/core/Cameras/camera';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
-import { getLogger } from '../core/Logger';
 import { getWeaponActions } from '../context/useWeaponActions';
-import { MuzzleFlashManager, createMuzzleFlashConfigFromWeapon } from '../effects/MuzzleFlash';
-import { shellCasings, categoryToCasingType } from '../effects/ShellCasings';
+import { getLogger } from '../core/Logger';
+import { getPostProcessManager } from '../core/PostProcessManager';
+import { weaponSoundManager } from '../core/WeaponSoundManager';
+import { createMuzzleFlashConfigFromWeapon, MuzzleFlashManager } from '../effects/MuzzleFlash';
+import { categoryToCasingType, shellCasings } from '../effects/ShellCasings';
 import { WeaponEffects, type WeaponType } from '../effects/WeaponEffects';
 import {
   categoryToEffectType,
@@ -37,11 +39,9 @@ import {
   WEAPONS,
   type WeaponId,
 } from '../entities/weapons';
+import { type VehicleYokeInput, VehicleYokeSystem } from './VehicleYoke';
 import { WeaponAnimationController, type WeaponMovementInput } from './WeaponAnimations';
 import { WeaponRecoilSystem } from './WeaponRecoilSystem';
-import { getPostProcessManager } from '../core/PostProcessManager';
-import { weaponSoundManager } from '../core/WeaponSoundManager';
-import { VehicleYokeSystem, type VehicleYokeInput } from './VehicleYoke';
 
 const log = getLogger('FirstPersonWeapons');
 
@@ -130,10 +130,10 @@ const VIEW_TRANSFORMS: Partial<Record<WeaponId, Partial<WeaponViewTransform>>> =
     muzzleOffset: new Vector3(0, 0.003, 0.28),
   },
   smg_mp5: {
-    muzzleOffset: new Vector3(0, 0.003, 0.30),
+    muzzleOffset: new Vector3(0, 0.003, 0.3),
   },
   smg_ump: {
-    muzzleOffset: new Vector3(0, 0.003, 0.30),
+    muzzleOffset: new Vector3(0, 0.003, 0.3),
   },
   assault_rifle: {
     muzzleOffset: new Vector3(0, 0.005, 0.46),
@@ -145,7 +145,7 @@ const VIEW_TRANSFORMS: Partial<Record<WeaponId, Partial<WeaponViewTransform>>> =
     muzzleOffset: new Vector3(0, 0.005, 0.42),
   },
   dmr: {
-    muzzleOffset: new Vector3(0, 0.005, 0.50),
+    muzzleOffset: new Vector3(0, 0.005, 0.5),
   },
   sniper_rifle: {
     muzzleOffset: new Vector3(0, 0.005, 0.55),
@@ -161,11 +161,11 @@ const VIEW_TRANSFORMS: Partial<Record<WeaponId, Partial<WeaponViewTransform>>> =
   },
   heavy_lmg: {
     position: new Vector3(0, -0.02, 0),
-    muzzleOffset: new Vector3(0, 0.005, 0.50),
+    muzzleOffset: new Vector3(0, 0.005, 0.5),
   },
   saw_lmg: {
     position: new Vector3(0, -0.02, 0),
-    muzzleOffset: new Vector3(0, 0.005, 0.50),
+    muzzleOffset: new Vector3(0, 0.005, 0.5),
   },
   vehicle_yoke: {
     position: new Vector3(0, -0.15, 0.35), // Centered, close to camera
@@ -305,11 +305,7 @@ export class FirstPersonWeaponSystem {
    * @param startingWeapons  Optional list of weapons to start with.
    *                         Defaults to ['assault_rifle'].
    */
-  async init(
-    scene: Scene,
-    camera: Camera,
-    startingWeapons?: WeaponId[]
-  ): Promise<void> {
+  async init(scene: Scene, camera: Camera, startingWeapons?: WeaponId[]): Promise<void> {
     this.scene = scene;
     this.camera = camera;
 
@@ -355,7 +351,7 @@ export class FirstPersonWeaponSystem {
     this.recoilSystem.setWeapon(startId);
 
     // Initialize shell casing system with impact sound callback
-    shellCasings.init(scene, (position, velocity) => {
+    shellCasings.init(scene, (_position, velocity) => {
       // Play casing impact sound based on velocity
       const volume = Math.min(0.3, velocity * 0.05);
       weaponSoundManager.playImpact('metal', volume);
@@ -928,11 +924,16 @@ export class FirstPersonWeaponSystem {
     const ejectionPort = muzzleWorldPos.add(right.scale(0.08)).add(back.scale(0.1));
 
     // Ejection direction: right with slight backward and upward components
-    const ejectionDir = right.add(back.scale(0.3)).add(new Vector3(0, 0.2, 0)).normalize();
+    const ejectionDir = right
+      .add(back.scale(0.3))
+      .add(new Vector3(0, 0.2, 0))
+      .normalize();
 
     // Get player velocity from camera movement
     const playerVelocity = this.lastCameraPos
-      ? this.camera.position.subtract(this.lastCameraPos).scale(60) // Approximate velocity
+      ? this.camera.position
+          .subtract(this.lastCameraPos)
+          .scale(60) // Approximate velocity
       : Vector3.Zero();
 
     // Eject the casing

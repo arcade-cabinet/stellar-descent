@@ -182,7 +182,10 @@ export function isPermadeathActive(difficulty: DifficultyLevel, toggleEnabled: b
 }
 
 /** Get effective XP multiplier including permadeath bonus */
-export function getEffectiveXPMultiplier(difficulty: DifficultyLevel, permadeathEnabled: boolean): number {
+export function getEffectiveXPMultiplier(
+  difficulty: DifficultyLevel,
+  permadeathEnabled: boolean
+): number {
   const base = DIFFICULTY_REGISTRY[difficulty].modifiers.xpMultiplier;
   const active = isPermadeathActive(difficulty, permadeathEnabled);
   const forced = DIFFICULTY_REGISTRY[difficulty].modifiers.forcesPermadeath;
@@ -252,7 +255,10 @@ export function migrateDifficulty(oldValue: string): DifficultyLevel {
  * Scale enemy health based on difficulty.
  * Use this when spawning enemies (pass difficulty from store).
  */
-export function scaleEnemyHealthByDifficulty(baseHealth: number, difficulty: DifficultyLevel): number {
+export function scaleEnemyHealthByDifficulty(
+  baseHealth: number,
+  difficulty: DifficultyLevel
+): number {
   return Math.round(baseHealth * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyHealthMultiplier);
 }
 
@@ -260,28 +266,42 @@ export function scaleEnemyHealthByDifficulty(baseHealth: number, difficulty: Dif
  * Scale enemy damage based on difficulty.
  * Use this when spawning enemies (pass difficulty from store).
  */
-export function scaleEnemyDamageByDifficulty(baseDamage: number, difficulty: DifficultyLevel): number {
+export function scaleEnemyDamageByDifficulty(
+  baseDamage: number,
+  difficulty: DifficultyLevel
+): number {
   return Math.round(baseDamage * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyDamageMultiplier);
 }
 
 /**
  * Scale player damage received based on difficulty.
  */
-export function scalePlayerDamageReceivedByDifficulty(baseDamage: number, difficulty: DifficultyLevel): number {
-  return Math.round(baseDamage * DIFFICULTY_REGISTRY[difficulty].modifiers.playerDamageReceivedMultiplier);
+export function scalePlayerDamageReceivedByDifficulty(
+  baseDamage: number,
+  difficulty: DifficultyLevel
+): number {
+  return Math.round(
+    baseDamage * DIFFICULTY_REGISTRY[difficulty].modifiers.playerDamageReceivedMultiplier
+  );
 }
 
 /**
  * Scale enemy fire rate based on difficulty.
  */
-export function scaleEnemyFireRateByDifficulty(baseFireRate: number, difficulty: DifficultyLevel): number {
+export function scaleEnemyFireRateByDifficulty(
+  baseFireRate: number,
+  difficulty: DifficultyLevel
+): number {
   return baseFireRate * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyFireRateMultiplier;
 }
 
 /**
  * Scale detection range based on difficulty.
  */
-export function scaleDetectionRangeByDifficulty(baseRange: number, difficulty: DifficultyLevel): number {
+export function scaleDetectionRangeByDifficulty(
+  baseRange: number,
+  difficulty: DifficultyLevel
+): number {
   return baseRange * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyDetectionMultiplier;
 }
 
@@ -295,13 +315,19 @@ export function scaleXPRewardByDifficulty(baseXP: number, difficulty: Difficulty
 /**
  * Scale spawn count based on difficulty.
  */
-export function scaleSpawnCountByDifficulty(baseCount: number, difficulty: DifficultyLevel): number {
+export function scaleSpawnCountByDifficulty(
+  baseCount: number,
+  difficulty: DifficultyLevel
+): number {
   return Math.round(baseCount * DIFFICULTY_REGISTRY[difficulty].modifiers.spawnRateMultiplier);
 }
 
 /**
  * Scale resource drop chance based on difficulty.
  */
-export function scaleResourceDropChanceByDifficulty(baseChance: number, difficulty: DifficultyLevel): number {
+export function scaleResourceDropChanceByDifficulty(
+  baseChance: number,
+  difficulty: DifficultyLevel
+): number {
   return Math.min(1, baseChance * DIFFICULTY_REGISTRY[difficulty].modifiers.resourceDropMultiplier);
 }

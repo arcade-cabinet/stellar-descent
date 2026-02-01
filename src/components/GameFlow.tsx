@@ -14,6 +14,12 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { getAchievementManager } from '../game/achievements';
+import type { CampaignCommand, CampaignPhase, CampaignSnapshot } from '../game/campaign/types';
+import { useGame } from '../game/context/GameContext';
+import { CAMPAIGN_LEVELS, type LevelId } from '../game/levels/types';
+import { saveSystem } from '../game/persistence';
+import { getLevelCinematicPath } from '../game/utils/cinematics';
 import { GameCanvas } from './GameCanvas';
 import { CinematicPlayer } from './ui/CinematicPlayer';
 import { CommsDisplay } from './ui/CommsDisplay';
@@ -28,12 +34,6 @@ import { MissionBriefing } from './ui/MissionBriefing';
 import { MobileTutorial } from './ui/MobileTutorial';
 import { PauseMenu } from './ui/PauseMenu';
 import { TouchControls } from './ui/TouchControls';
-import { getAchievementManager } from '../game/achievements';
-import type { CampaignCommand, CampaignPhase, CampaignSnapshot } from '../game/campaign/types';
-import { useGame } from '../game/context/GameContext';
-import { CAMPAIGN_LEVELS, type LevelId } from '../game/levels/types';
-import { saveSystem } from '../game/persistence';
-import { getLevelCinematicPath } from '../game/utils/cinematics';
 
 interface GameFlowProps {
   snapshot: CampaignSnapshot;
@@ -45,16 +45,28 @@ interface GameFlowProps {
  * Phases that require the 3D canvas to be mounted
  */
 const PHASES_NEEDING_3D: Set<CampaignPhase> = new Set([
-  'loading', 'tutorial', 'dropping', 'playing', 'paused',
+  'loading',
+  'tutorial',
+  'dropping',
+  'playing',
+  'paused',
 ]);
 
 /**
  * Game flow phases that this component handles
  */
 const GAME_PHASES: Set<CampaignPhase> = new Set([
-  'introBriefing', 'cinematic', 'briefing', 'intro', 'loading',
-  'tutorial', 'dropping', 'playing', 'paused',
-  'gameover', 'levelComplete',
+  'introBriefing',
+  'cinematic',
+  'briefing',
+  'intro',
+  'loading',
+  'tutorial',
+  'dropping',
+  'playing',
+  'paused',
+  'gameover',
+  'levelComplete',
 ]);
 
 export function isGamePhase(phase: CampaignPhase): boolean {
@@ -76,10 +88,18 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
 
   // Game context for HUD data
   const {
-    playerHealth, maxHealth, kills, missionText,
-    objectiveTitle, objectiveInstructions,
-    setTouchInput, currentComms, hideComms,
-    isCalibrating, tutorialPhase, isTutorialActive,
+    playerHealth,
+    maxHealth,
+    kills,
+    missionText,
+    objectiveTitle,
+    objectiveInstructions,
+    setTouchInput,
+    currentComms,
+    hideComms,
+    isCalibrating,
+    tutorialPhase,
+    isTutorialActive,
   } = useGame();
 
   // Show mobile tutorial when entering tutorial phase on touch devices
@@ -120,9 +140,10 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
             const levelStats = getAchievementManager().getLevelStats();
             const levelConfig = CAMPAIGN_LEVELS[currentLevelId];
             // Issue #82: Include all required LevelStats fields
-            const accuracy = levelStats.shotsFired > 0
-              ? Math.round((levelStats.shotsHit / levelStats.shotsFired) * 100)
-              : 0;
+            const accuracy =
+              levelStats.shotsFired > 0
+                ? Math.round((levelStats.shotsHit / levelStats.shotsFired) * 100)
+                : 0;
             dispatch({
               type: 'LEVEL_COMPLETE',
               stats: {
@@ -148,16 +169,17 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
       )}
 
       {/* Level Intro Cinematic (video) */}
-      {phase === 'cinematic' && (() => {
-        const cinematicPath = getLevelCinematicPath(currentLevelId);
-        return cinematicPath ? (
-          <CinematicPlayer
-            src={cinematicPath}
-            onComplete={() => dispatch({ type: 'CINEMATIC_COMPLETE' })}
-            skippable={true}
-          />
-        ) : null;
-      })()}
+      {phase === 'cinematic' &&
+        (() => {
+          const cinematicPath = getLevelCinematicPath(currentLevelId);
+          return cinematicPath ? (
+            <CinematicPlayer
+              src={cinematicPath}
+              onComplete={() => dispatch({ type: 'CINEMATIC_COMPLETE' })}
+              skippable={true}
+            />
+          ) : null;
+        })()}
 
       {/* Mission Briefing */}
       {phase === 'briefing' && (
@@ -234,7 +256,12 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
       {/* Combat HUD */}
       {showCombatHUD && (
         <>
-          <HUD health={playerHealth} maxHealth={maxHealth} kills={kills} missionText={missionText} />
+          <HUD
+            health={playerHealth}
+            maxHealth={maxHealth}
+            kills={kills}
+            missionText={missionText}
+          />
           {isTouchDevice && <TouchControls onInput={setTouchInput} onPause={handlePause} />}
         </>
       )}

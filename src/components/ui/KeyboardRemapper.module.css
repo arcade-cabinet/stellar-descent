@@ -23,7 +23,7 @@
 }
 
 .actionLabel {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1.5rem;
   font-weight: bold;
   color: #00ff88;
@@ -33,14 +33,14 @@
 }
 
 .currentKey {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1.1rem;
   color: #888;
   text-transform: uppercase;
 }
 
 .instruction {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1rem;
   color: #ffcc00;
   text-transform: uppercase;
@@ -50,8 +50,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .keyboardContainer {
@@ -75,7 +80,7 @@
   background: linear-gradient(180deg, #2a2a4a 0%, #1a1a2e 100%);
   border: 1px solid #444;
   color: #ccc;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-weight: bold;
   text-transform: uppercase;
   border-radius: 4px;
@@ -100,23 +105,23 @@
 
 /* WASD highlight */
 .highlightWasd {
-  background: linear-gradient(180deg, #3a3a6a 0%, #2a2a4a 100%) !important;
-  border-color: #00aaff !important;
-  color: #00aaff !important;
+  background: linear-gradient(180deg, #3a3a6a 0%, #2a2a4a 100%);
+  border-color: #00aaff;
+  color: #00aaff;
 }
 
 /* Action keys highlight */
 .highlightAction {
-  background: linear-gradient(180deg, #4a3a3a 0%, #3a2a2a 100%) !important;
-  border-color: #ff6600 !important;
-  color: #ff6600 !important;
+  background: linear-gradient(180deg, #4a3a3a 0%, #3a2a2a 100%);
+  border-color: #ff6600;
+  color: #ff6600;
 }
 
 /* Modifier keys highlight */
 .highlightModifier {
-  background: linear-gradient(180deg, #3a4a3a 0%, #2a3a2a 100%) !important;
-  border-color: #88ff00 !important;
-  color: #88ff00 !important;
+  background: linear-gradient(180deg, #3a4a3a 0%, #2a3a2a 100%);
+  border-color: #88ff00;
+  color: #88ff00;
 }
 
 /* Desktop listening mode */
@@ -168,7 +173,7 @@
 }
 
 .listeningText {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1.5rem;
   font-weight: bold;
   color: #00ff88;
@@ -178,7 +183,7 @@
 }
 
 .listeningHint {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 0.9rem;
   color: #666;
   text-transform: uppercase;
@@ -187,7 +192,7 @@
 /* Buttons */
 .rebindButton,
 .cancelButton {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 1rem;
   font-weight: bold;
   text-transform: uppercase;

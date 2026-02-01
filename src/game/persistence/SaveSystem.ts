@@ -19,9 +19,50 @@ import {
   migrateDifficulty,
   saveDifficultySetting,
 } from '../core/DifficultySettings';
+import { type GameEventListener, getEventBus } from '../core/EventBus';
 import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
 import type { LevelId } from '../levels/types';
+
+// ============================================================================
+// TABLE ABSTRACTION FOR ZUSTAND STORES
+// ============================================================================
+
+/**
+ * Configuration for a store table
+ */
+export interface TableConfig<T> {
+  /** Table name (used as key prefix) */
+  name: string;
+  /** Schema version for migrations */
+  schemaVersion: number;
+  /** Custom serializer (default: JSON.stringify) */
+  serialize?: (data: T) => string;
+  /** Custom deserializer (default: JSON.parse) */
+  deserialize?: (data: string) => T;
+  /** Migration function for older schema versions */
+  migrate?: (data: unknown, fromVersion: number) => T;
+}
+
+/**
+ * Stored table data wrapper with version info
+ */
+interface StoredTableData<T> {
+  version: number;
+  data: T;
+  timestamp: number;
+}
+
+/**
+ * Registry of table configurations
+ */
+const tableRegistry = new Map<string, TableConfig<unknown>>();
+
+/**
+ * Storage key prefix for store tables
+ */
+const STORE_TABLE_PREFIX = 'store_';
+
 import {
   createNewSave,
   extractSaveMetadata,
@@ -89,6 +130,7 @@ class SaveSystem {
   private listeners: Set<SaveSystemListener> = new Set();
   private autoSaveEnabled = true;
   private initialized = false;
+  private eventBusUnsubscribers: (() => void)[] = [];
 
   // Quick save/load key bindings
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -133,8 +175,45 @@ class SaveSystem {
   private async doInitialize(): Promise<void> {
     await worldDb.init();
     this.setupKeyBindings();
+    this.subscribeToEventBus();
     this.initialized = true;
     log.info('Initialized successfully');
+  }
+
+  /**
+   * Subscribe to EventBus events for cross-system communication.
+   * Listens to:
+   * - LEVEL_COMPLETE: triggers auto-save
+   * - CHECKPOINT_REACHED: triggers checkpoint save
+   */
+  private subscribeToEventBus(): void {
+    const eventBus = getEventBus();
+
+    // Subscribe to LEVEL_COMPLETE for auto-save
+    const levelCompleteHandler: GameEventListener<'LEVEL_COMPLETE'> = (event) => {
+      if (event.levelId) {
+        log.debug(`EventBus: LEVEL_COMPLETE received for ${event.levelId}, triggering auto-save`);
+        this.autoSave();
+      }
+    };
+
+    // Subscribe to CHECKPOINT_REACHED for checkpoint saves
+    const checkpointHandler: GameEventListener<'CHECKPOINT_REACHED'> = (event) => {
+      if (this.currentSave) {
+        log.debug(
+          `EventBus: CHECKPOINT_REACHED received (${event.checkpointId}), saving checkpoint`
+        );
+        // Get current position from the event or use defaults
+        const position = this.currentSave.playerPosition ?? { x: 0, y: 1.7, z: 0 };
+        const rotation = this.currentSave.playerRotation ?? 0;
+        this.saveCheckpoint(position, rotation);
+      }
+    };
+
+    this.eventBusUnsubscribers.push(eventBus.on('LEVEL_COMPLETE', levelCompleteHandler));
+    this.eventBusUnsubscribers.push(eventBus.on('CHECKPOINT_REACHED', checkpointHandler));
+
+    log.debug('Subscribed to EventBus events (LEVEL_COMPLETE, CHECKPOINT_REACHED)');
   }
 
   /**
@@ -322,7 +401,11 @@ class SaveSystem {
     // Persist the new save to autosave slot
     await this.persistSave(save, SAVE_SLOT_AUTOSAVE);
 
-    this.emit({ type: 'save_created', save: extractSaveMetadata(save), slotNumber: SAVE_SLOT_AUTOSAVE });
+    this.emit({
+      type: 'save_created',
+      save: extractSaveMetadata(save),
+      slotNumber: SAVE_SLOT_AUTOSAVE,
+    });
     log.info(`New game created with difficulty: ${gameDifficulty}`);
 
     return save;
@@ -515,7 +598,10 @@ class SaveSystem {
   /**
    * Save at checkpoint (mid-level save point)
    */
-  async saveCheckpoint(position: { x: number; y: number; z: number }, rotation: number): Promise<void> {
+  async saveCheckpoint(
+    position: { x: number; y: number; z: number },
+    rotation: number
+  ): Promise<void> {
     if (!this.currentSave) {
       log.warn('No active save for checkpoint');
       return;
@@ -640,12 +726,17 @@ class SaveSystem {
   /**
    * Get grenade stats from current save
    */
-  getGrenadeStats(): { pickedUp: { frag: number; plasma: number; emp: number }; used: { frag: number; plasma: number; emp: number } } | null {
+  getGrenadeStats(): {
+    pickedUp: { frag: number; plasma: number; emp: number };
+    used: { frag: number; plasma: number; emp: number };
+  } | null {
     if (!this.currentSave) return null;
-    return this.currentSave.grenadeStats ?? {
-      pickedUp: { frag: 0, plasma: 0, emp: 0 },
-      used: { frag: 0, plasma: 0, emp: 0 },
-    };
+    return (
+      this.currentSave.grenadeStats ?? {
+        pickedUp: { frag: 0, plasma: 0, emp: 0 },
+        used: { frag: 0, plasma: 0, emp: 0 },
+      }
+    );
   }
 
   /**
@@ -1032,7 +1123,11 @@ class SaveSystem {
     // Persist the new save
     await this.persistSave(save, SAVE_SLOT_AUTOSAVE);
 
-    this.emit({ type: 'save_created', save: extractSaveMetadata(save), slotNumber: SAVE_SLOT_AUTOSAVE });
+    this.emit({
+      type: 'save_created',
+      save: extractSaveMetadata(save),
+      slotNumber: SAVE_SLOT_AUTOSAVE,
+    });
     log.info(`New Game Plus Tier ${tier} started with difficulty: ${gameDifficulty}`);
 
     return save;
@@ -1335,7 +1430,10 @@ class SaveSystem {
       return true;
     } catch (error) {
       log.error('Failed to import database:', error);
-      this.emit({ type: 'error', message: `Failed to import save: ${error instanceof Error ? error.message : String(error)}` });
+      this.emit({
+        type: 'error',
+        message: `Failed to import save: ${error instanceof Error ? error.message : String(error)}`,
+      });
       return false;
     }
   }
@@ -1456,7 +1554,169 @@ class SaveSystem {
    */
   dispose(): void {
     this.cleanupKeyBindings();
+
+    // Unsubscribe from all EventBus events
+    for (const unsubscribe of this.eventBusUnsubscribers) {
+      unsubscribe();
+    }
+    this.eventBusUnsubscribers = [];
+
     this.listeners.clear();
+    this.initialized = false;
+    SaveSystem.initPromise = null;
+    log.info('Disposed');
+  }
+
+  // ============================================================================
+  // TABLE ABSTRACTION FOR ZUSTAND STORES
+  // ============================================================================
+
+  /**
+   * Register a table configuration for a Zustand store
+   *
+   * @param config - Table configuration
+   */
+  registerTable<T>(config: TableConfig<T>): void {
+    if (tableRegistry.has(config.name)) {
+      log.warn(`Table "${config.name}" is already registered, overwriting`);
+    }
+    tableRegistry.set(config.name, config as TableConfig<unknown>);
+    log.debug(`Registered table "${config.name}" (v${config.schemaVersion})`);
+  }
+
+  /**
+   * Unregister a table configuration
+   *
+   * @param tableName - Name of the table to unregister
+   */
+  unregisterTable(tableName: string): void {
+    tableRegistry.delete(tableName);
+    log.debug(`Unregistered table "${tableName}"`);
+  }
+
+  /**
+   * Check if a table is registered
+   *
+   * @param tableName - Name of the table to check
+   */
+  isTableRegistered(tableName: string): boolean {
+    return tableRegistry.has(tableName);
+  }
+
+  /**
+   * Load data from a store table
+   *
+   * @param tableName - Name of the table to load from
+   * @returns The stored data, or null if not found
+   */
+  async loadTable<T>(tableName: string): Promise<T | null> {
+    const key = `${STORE_TABLE_PREFIX}${tableName}`;
+
+    try {
+      const rawData = await worldDb.getChunkData(key);
+
+      if (!rawData) {
+        log.debug(`No data found for table "${tableName}"`);
+        return null;
+      }
+
+      // Parse the wrapper
+      const wrapper = JSON.parse(rawData) as StoredTableData<T>;
+      const config = tableRegistry.get(tableName);
+
+      // Check if migration is needed
+      if (config && wrapper.version < config.schemaVersion && config.migrate) {
+        log.info(
+          `Migrating table "${tableName}" from v${wrapper.version} to v${config.schemaVersion}`
+        );
+        const migratedData = config.migrate(wrapper.data, wrapper.version);
+        // Re-save with new version
+        await this.saveTable(tableName, migratedData as T);
+        return migratedData as T;
+      }
+
+      // Use custom deserializer if provided
+      if (config?.deserialize && typeof wrapper.data === 'string') {
+        return config.deserialize(wrapper.data as string) as T;
+      }
+
+      return wrapper.data;
+    } catch (error) {
+      log.error(`Failed to load table "${tableName}":`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Save data to a store table
+   *
+   * @param tableName - Name of the table to save to
+   * @param data - The data to save
+   */
+  async saveTable<T>(tableName: string, data: T): Promise<void> {
+    const key = `${STORE_TABLE_PREFIX}${tableName}`;
+    const config = tableRegistry.get(tableName);
+
+    try {
+      // Serialize the data
+      let serializedData: T | string = data;
+      if (config?.serialize) {
+        serializedData = config.serialize(data);
+      }
+
+      // Wrap with version info
+      const wrapper: StoredTableData<T | string> = {
+        version: config?.schemaVersion ?? 1,
+        data: serializedData,
+        timestamp: Date.now(),
+      };
+
+      await worldDb.setChunkData(key, JSON.stringify(wrapper));
+      // Trigger persistence to IndexedDB for PWA offline support
+      worldDb.persistToIndexedDB();
+
+      log.debug(`Saved table "${tableName}"`);
+    } catch (error) {
+      log.error(`Failed to save table "${tableName}":`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a store table's data
+   *
+   * @param tableName - Name of the table to delete
+   */
+  async deleteTable(tableName: string): Promise<void> {
+    const key = `${STORE_TABLE_PREFIX}${tableName}`;
+
+    try {
+      await worldDb.deleteChunkData(key);
+      log.debug(`Deleted table "${tableName}"`);
+    } catch (error) {
+      log.error(`Failed to delete table "${tableName}":`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all registered table names
+   */
+  getRegisteredTables(): string[] {
+    return Array.from(tableRegistry.keys());
+  }
+
+  /**
+   * Clear all store tables (useful for testing or full reset)
+   */
+  async clearAllTables(): Promise<void> {
+    const tables = this.getRegisteredTables();
+
+    for (const tableName of tables) {
+      await this.deleteTable(tableName);
+    }
+
+    log.info(`Cleared all ${tables.length} store tables`);
   }
 }
 

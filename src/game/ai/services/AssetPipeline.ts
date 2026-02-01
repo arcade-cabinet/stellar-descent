@@ -7,27 +7,17 @@
  */
 
 import 'dotenv/config';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'fs';
-import * as path from 'path';
+import { CINEMATIC_ASSETS, PORTRAIT_ASSETS, QUEST_IMAGES } from '../AssetManifest';
 import {
-  CINEMATIC_ASSETS,
-  PORTRAIT_ASSETS,
-  QUEST_IMAGES,
-  TEXT_CONTENT,
-} from '../AssetManifest';
-import type {
-  CinematicAssetDef,
-  PortraitAssetDef,
-  QuestImageDef,
-  TextContentDef,
-} from '../types';
-import {
-  type VideoAssetMetadata,
   type ImageAssetMetadata,
-  VideoAssetMetadataSchema,
   ImageAssetMetadataSchema,
+  type VideoAssetMetadata,
+  VideoAssetMetadataSchema,
 } from '../schemas/AssetManifestSchemas';
+import type { CinematicAssetDef, PortraitAssetDef, QuestImageDef } from '../types';
 import { getManifestService } from './ManifestUpdateService';
 
 // ============================================================================
@@ -108,9 +98,10 @@ function enhancePortraitPrompt(def: PortraitAssetDef): string {
     branding.push(LORE_BRANDING.rankInsignia[rankMap[charId]]);
   }
 
-  const brandingText = branding.length > 0
-    ? `\n\nMilitary details: ${branding.join('. ')}.\n${LORE_BRANDING.aesthetic}`
-    : '';
+  const brandingText =
+    branding.length > 0
+      ? `\n\nMilitary details: ${branding.join('. ')}.\n${LORE_BRANDING.aesthetic}`
+      : '';
 
   return `${def.prompt}${brandingText}`;
 }
@@ -123,14 +114,14 @@ function hashPrompt(prompt: string): string {
   let hash = 0;
   for (let i = 0; i < prompt.length; i++) {
     const char = prompt.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return hash.toString(16);
 }
 
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function ensureDir(dir: string): void {
@@ -197,7 +188,7 @@ export class AssetPipeline {
     if (typeof idOrIndex === 'number') {
       return CINEMATIC_ASSETS[idOrIndex];
     }
-    return CINEMATIC_ASSETS.find(c => c.id === idOrIndex);
+    return CINEMATIC_ASSETS.find((c) => c.id === idOrIndex);
   }
 
   /**
@@ -207,7 +198,7 @@ export class AssetPipeline {
     if (typeof idOrIndex === 'number') {
       return PORTRAIT_ASSETS[idOrIndex];
     }
-    return PORTRAIT_ASSETS.find(p => p.id === idOrIndex);
+    return PORTRAIT_ASSETS.find((p) => p.id === idOrIndex);
   }
 
   /**
@@ -217,7 +208,7 @@ export class AssetPipeline {
     if (typeof idOrIndex === 'number') {
       return QUEST_IMAGES[idOrIndex];
     }
-    return QUEST_IMAGES.find(q => q.id === idOrIndex);
+    return QUEST_IMAGES.find((q) => q.id === idOrIndex);
   }
 
   /**
@@ -396,9 +387,8 @@ export class AssetPipeline {
       // Enhance prompt with lore branding
       const enhancedPrompt = enhancePortraitPrompt(def);
 
-      const model = def.resolution === '4K' || def.resolution === '2K'
-        ? MODELS.imageHighQuality
-        : MODELS.image;
+      const model =
+        def.resolution === '4K' || def.resolution === '2K' ? MODELS.imageHighQuality : MODELS.image;
 
       const response = await this.ai.models.generateContent({
         model,
@@ -493,7 +483,7 @@ export class AssetPipeline {
 export async function runPipeline(args: string[]): Promise<void> {
   const pipeline = new AssetPipeline({ verbose: true });
 
-  if (!await pipeline.initialize()) {
+  if (!(await pipeline.initialize())) {
     process.exit(1);
   }
 
@@ -505,7 +495,7 @@ export async function runPipeline(args: string[]): Promise<void> {
       if (target === 'all') {
         await pipeline.generateAllPortraits();
       } else {
-        const idOrIndex = isNaN(Number(target)) ? target : Number(target);
+        const idOrIndex = Number.isNaN(Number(target)) ? target : Number(target);
         await pipeline.generatePortrait(idOrIndex);
       }
       break;
@@ -514,7 +504,7 @@ export async function runPipeline(args: string[]): Promise<void> {
       if (target === 'all') {
         await pipeline.generateAllCinematics();
       } else {
-        const idOrIndex = isNaN(Number(target)) ? target : Number(target);
+        const idOrIndex = Number.isNaN(Number(target)) ? target : Number(target);
         await pipeline.generateCinematic(idOrIndex);
       }
       break;
@@ -525,11 +515,11 @@ export async function runPipeline(args: string[]): Promise<void> {
 
     case 'list':
       console.log('\nPortraits:');
-      pipeline.getAllPortraits().forEach((p, i) =>
-        console.log(`  [${i}] ${p.id} - ${p.characterId}/${p.emotion}`));
+      pipeline
+        .getAllPortraits()
+        .forEach((p, i) => console.log(`  [${i}] ${p.id} - ${p.characterId}/${p.emotion}`));
       console.log('\nCinematics:');
-      pipeline.getAllCinematics().forEach((c, i) =>
-        console.log(`  [${i}] ${c.id} - ${c.level}`));
+      pipeline.getAllCinematics().forEach((c, i) => console.log(`  [${i}] ${c.id} - ${c.level}`));
       break;
 
     default:

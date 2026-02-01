@@ -16,7 +16,7 @@ import { Capacitor } from '@capacitor/core';
 import {
   CapacitorSQLite,
   SQLiteConnection,
-  SQLiteDBConnection,
+  type SQLiteDBConnection,
 } from '@capacitor-community/sqlite';
 import { getLogger } from '../core/Logger';
 
@@ -199,7 +199,7 @@ export class CapacitorDatabase {
         log.info('initWebPlatform: store ready from element initialization');
         break;
       }
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
     // Now initialize the SQLiteConnection's web store handler
@@ -224,7 +224,7 @@ export class CapacitorDatabase {
         log.info('initWebPlatform: store ready (extended wait)');
         return;
       }
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
     throw new Error('Web store failed to open after initialization');

@@ -12,7 +12,7 @@ import type { LevelId } from '../levels/types';
 import type { AssetEntry, LevelManifest } from './types';
 
 // Re-export types for consumers
-export type { AssetEntry, AssetCategory, LevelManifest } from './types';
+export type { AssetCategory, AssetEntry, LevelManifest } from './types';
 
 // ---------------------------------------------------------------------------
 // Shared assets (enemies, NPCs, vehicles)
@@ -24,31 +24,16 @@ import { ALL_SHARED_ASSETS } from './shared';
 // Per-level asset definitions
 // ---------------------------------------------------------------------------
 
-import {
-  ANCHOR_STATION_ASSETS,
-  ANCHOR_STATION_MANIFEST,
-} from './levels/anchor-station';
-import { LANDFALL_ASSETS, LANDFALL_MANIFEST } from './levels/landfall';
+import { ANCHOR_STATION_ASSETS, ANCHOR_STATION_MANIFEST } from './levels/anchor-station';
+import { BROTHERS_IN_ARMS_ASSETS, BROTHERS_IN_ARMS_MANIFEST } from './levels/brothers-in-arms';
 import { CANYON_RUN_ASSETS, CANYON_RUN_MANIFEST } from './levels/canyon-run';
-import { FOB_DELTA_ASSETS, FOB_DELTA_MANIFEST } from './levels/fob-delta';
-import {
-  BROTHERS_IN_ARMS_ASSETS,
-  BROTHERS_IN_ARMS_MANIFEST,
-} from './levels/brothers-in-arms';
-import {
-  SOUTHERN_ICE_ASSETS,
-  SOUTHERN_ICE_MANIFEST,
-} from './levels/southern-ice';
-import { THE_BREACH_ASSETS, THE_BREACH_MANIFEST } from './levels/the-breach';
-import {
-  HIVE_ASSAULT_ASSETS,
-  HIVE_ASSAULT_MANIFEST,
-} from './levels/hive-assault';
 import { EXTRACTION_ASSETS, EXTRACTION_MANIFEST } from './levels/extraction';
-import {
-  FINAL_ESCAPE_ASSETS,
-  FINAL_ESCAPE_MANIFEST,
-} from './levels/final-escape';
+import { FINAL_ESCAPE_ASSETS, FINAL_ESCAPE_MANIFEST } from './levels/final-escape';
+import { FOB_DELTA_ASSETS, FOB_DELTA_MANIFEST } from './levels/fob-delta';
+import { HIVE_ASSAULT_ASSETS, HIVE_ASSAULT_MANIFEST } from './levels/hive-assault';
+import { LANDFALL_ASSETS, LANDFALL_MANIFEST } from './levels/landfall';
+import { SOUTHERN_ICE_ASSETS, SOUTHERN_ICE_MANIFEST } from './levels/southern-ice';
+import { THE_BREACH_ASSETS, THE_BREACH_MANIFEST } from './levels/the-breach';
 
 // ---------------------------------------------------------------------------
 // Composed SHARED_ASSETS (all per-level + shared combined for the asset index)
@@ -140,10 +125,7 @@ export function getNextLevelId(currentLevelId: LevelId): LevelId | null {
 /**
  * Compute the set of asset ids shared between two levels.
  */
-export function getSharedAssetIds(
-  levelA: LevelId,
-  levelB: LevelId
-): Set<string> {
+export function getSharedAssetIds(levelA: LevelId, levelB: LevelId): Set<string> {
   const idsA = new Set(getAllLevelAssetIds(levelA));
   const idsB = getAllLevelAssetIds(levelB);
   const shared = new Set<string>();

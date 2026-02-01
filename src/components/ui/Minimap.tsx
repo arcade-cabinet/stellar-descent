@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './Minimap.module.css';
 
 /**
@@ -137,9 +137,9 @@ export function Minimap({
       }
 
       // Scale to canvas coordinates (center is player)
-      const scale = (canvasSize / 2) / mapRange;
-      const canvasX = (canvasSize / 2) + dx * scale;
-      const canvasY = (canvasSize / 2) - dz * scale; // Invert Z for screen Y
+      const scale = canvasSize / 2 / mapRange;
+      const canvasX = canvasSize / 2 + dx * scale;
+      const canvasY = canvasSize / 2 - dz * scale; // Invert Z for screen Y
 
       // Check if within circular range
       const distance = Math.sqrt(dx * dx + dz * dz);
@@ -170,14 +170,7 @@ export function Minimap({
     ctx.clip();
 
     // Background with gradient
-    const bgGradient = ctx.createRadialGradient(
-      centerX,
-      centerY,
-      0,
-      centerX,
-      centerY,
-      radius
-    );
+    const bgGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
     bgGradient.addColorStop(0, 'rgba(20, 25, 15, 0.9)');
     bgGradient.addColorStop(0.7, 'rgba(28, 32, 22, 0.85)');
     bgGradient.addColorStop(1, 'rgba(35, 40, 28, 0.8)');
@@ -203,11 +196,7 @@ export function Minimap({
 
     // Sweep line effect (radar sweep)
     const sweepAngle = (Date.now() / 2000) * Math.PI * 2;
-    const sweepGradient = ctx.createConicGradient(
-      sweepAngle,
-      centerX,
-      centerY
-    );
+    const sweepGradient = ctx.createConicGradient(sweepAngle, centerX, centerY);
     sweepGradient.addColorStop(0, 'rgba(74, 93, 35, 0.4)');
     sweepGradient.addColorStop(0.1, 'rgba(74, 93, 35, 0.1)');
     sweepGradient.addColorStop(0.15, 'rgba(74, 93, 35, 0)');
@@ -368,9 +357,7 @@ export function Minimap({
       // Alerted enemies pulse
       const alertPulse = enemy.isAlerted ? 0.7 + Math.sin(Date.now() / 200) * 0.3 : 1;
 
-      ctx.fillStyle = enemy.isAlerted
-        ? `rgba(255, 80, 80, ${alertPulse})`
-        : '#CC3333';
+      ctx.fillStyle = enemy.isAlerted ? `rgba(255, 80, 80, ${alertPulse})` : '#CC3333';
 
       if (isBoss) {
         // Triangle for boss enemies
@@ -441,12 +428,7 @@ export function Minimap({
         const y = centerY - Math.cos(angle) * cardinalOffset;
 
         // Only draw if visible in quadrant
-        if (
-          x >= -10 &&
-          x <= effectiveSize + 10 &&
-          y >= -10 &&
-          y <= effectiveSize + 10
-        ) {
+        if (x >= -10 && x <= effectiveSize + 10 && y >= -10 && y <= effectiveSize + 10) {
           ctx.fillStyle = label === 'N' ? '#FFD700' : '#e8e8e8';
           ctx.fillText(label, x, y);
         }
@@ -527,9 +509,7 @@ export function Minimap({
       </div>
       {/* Expand hint on mobile */}
       {allowExpand && (
-        <div className={styles.expandHint}>
-          {isExpanded ? 'TAP TO SHRINK' : 'TAP TO EXPAND'}
-        </div>
+        <div className={styles.expandHint}>{isExpanded ? 'TAP TO SHRINK' : 'TAP TO EXPAND'}</div>
       )}
     </div>
   );

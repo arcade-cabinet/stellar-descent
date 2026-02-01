@@ -19,33 +19,32 @@ vi.mock('./enemies', () => ({
   ]),
 }));
 
+import { TOTAL_WAVES, WAVE_ANNOUNCEMENT_DURATION, WAVE_INTERMISSION_DURATION } from './constants';
 // Import after mocks
 import {
+  areAllWavesComplete,
+  completeWave,
   createPhaseState,
   createWaveState,
-  getWaveConfig,
-  getTotalWaves,
-  getWaveEnemyCount,
-  startWaveIntermission,
-  startWaveAnnouncement,
-  startWave,
-  completeWave,
-  isWaveComplete,
-  areAllWavesComplete,
-  updateWaveIntermission,
-  updateWaveAnnouncement,
-  updateActiveWaveSpawning,
-  recordWaveKill,
+  formatTime,
+  getCollapseHUDDisplay,
   getMechIntegrityCapForWave,
   getScaledWaveConfig,
-  shouldSpawnSupplyDrop,
-  formatTime,
+  getTotalWaves,
+  getWaveConfig,
+  getWaveEnemyCount,
   getWaveHUDDisplay,
-  getCollapseHUDDisplay,
-  type PhaseState,
+  isWaveComplete,
+  recordWaveKill,
+  shouldSpawnSupplyDrop,
+  startWave,
+  startWaveAnnouncement,
+  startWaveIntermission,
+  updateActiveWaveSpawning,
+  updateWaveAnnouncement,
+  updateWaveIntermission,
   type WaveState,
 } from './phases';
-import { TOTAL_WAVES, WAVE_INTERMISSION_DURATION, WAVE_ANNOUNCEMENT_DURATION } from './constants';
 
 describe('Phase State Machine', () => {
   describe('createPhaseState', () => {

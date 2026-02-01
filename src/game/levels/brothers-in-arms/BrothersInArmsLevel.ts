@@ -15,7 +15,6 @@
  * - Orange-red sunset lighting
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
@@ -32,25 +31,30 @@ import { getLogger } from '../../core/Logger';
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 
 const log = getLogger('BrothersInArms');
+
+import { type SquadCommand, SquadCommandSystem } from '../../ai/SquadCommandSystem';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { tokens } from '../../utils/designTokens';
 import { BaseLevel } from '../BaseLevel';
 import { buildFloraFromPlacements, getBrothersFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getBrothersCollectibles } from '../shared/CollectiblePlacer';
-import { createDynamicTerrain, CANYON_TERRAIN } from '../shared/SurfaceTerrainFactory';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
 import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getBrothersCollectibles,
+} from '../shared/CollectiblePlacer';
+import { CANYON_TERRAIN, createDynamicTerrain } from '../shared/SurfaceTerrainFactory';
+import type { LevelId } from '../types';
+import {
+  type BattlefieldResult,
   buildBattlefieldEnvironment,
   updateBattlefieldLights,
-  type BattlefieldResult,
 } from './BattlefieldEnvironment';
 import { COMMS, NOTIFICATIONS, OBJECTIVES, ReunionCinematic } from './cinematics';
 import { MarcusCombatAI, type MarcusCombatState } from './MarcusCombatAI';
 import type { CoordinationCombatState } from './MarcusCombatCoordinator';
 import { createMarcusBanterManager, type MarcusBanterManager } from './marcusBanter';
-import { SquadCommandSystem, type SquadCommand } from '../../ai/SquadCommandSystem';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -272,7 +276,6 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   // Phase management
   private phase: LevelPhase = 'reunion';
-  private phaseTime = 0;
 
   // Marcus AI ally
   private marcus: MarcusMech | null = null;
@@ -295,7 +298,6 @@ export class BrothersInArmsLevel extends BaseLevel {
   private battlefield: BattlefieldResult | null = null;
   private breachMesh: Mesh | null = null;
   private breachGlow: PointLight | null = null;
-  private skyDome: Mesh | null = null;
   private skyboxResult: SkyboxResult | null = null;
 
   // Combat
@@ -305,7 +307,6 @@ export class BrothersInArmsLevel extends BaseLevel {
   private grenadeCooldown = 0;
   private flankCooldown = 0;
   private focusFireCooldown = 0;
-  private lastMarcusDamageTime = 0;
 
   // Marcus coordination state
   private marcusCoordinationState: CoordinationCombatState = 'support';
@@ -338,21 +339,6 @@ export class BrothersInArmsLevel extends BaseLevel {
   private waveStartEnemyCount = 0;
   private hasSeenBreach = false;
   private hasTriggeredDefendingPosition = false;
-  private cinematicSkipped = false; // Allow skipping cinematic
-
-  // Performance tracking
-  private enemyUpdateInterval = 0;
-  private lastEnemyBatchUpdate = 0;
-  private readonly ENEMY_BATCH_UPDATE_INTERVAL = 50; // Update enemies in batches every 50ms
-
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks);
-  }
 
   protected getBackgroundColor(): Color4 {
     // Orange-red sunset sky
@@ -398,7 +384,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Setup action handler
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
 
     // Build alien flora
     const floraRoot = new TransformNode('flora_root', this.scene);
@@ -406,10 +392,18 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Build collectibles
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getBrothersCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getBrothersCollectibles(),
+      collectibleRoot
+    );
 
     // Register dynamic actions for squad commands and coordination with Marcus
-    registerDynamicActions('brothers_in_arms', ['squadFollow', 'squadHold', 'squadAttack', 'squadRegroup'], 'squad');
+    registerDynamicActions(
+      'brothers_in_arms',
+      ['squadFollow', 'squadHold', 'squadAttack', 'squadRegroup'],
+      'squad'
+    );
 
     // Start reunion phase
     this.startReunionPhase();
@@ -446,7 +440,11 @@ export class BrothersInArmsLevel extends BaseLevel {
     ambientFill.diffuse = new Color3(0.45, 0.35, 0.4); // Purple-warm ambient for dusk
 
     // Add subtle rim light from opposite direction for mech visibility
-    const rimLight = new DirectionalLight('rimLight', new Vector3(-0.5, -0.2, 0.5).normalize(), this.scene);
+    const rimLight = new DirectionalLight(
+      'rimLight',
+      new Vector3(-0.5, -0.2, 0.5).normalize(),
+      this.scene
+    );
     rimLight.intensity = 0.6;
     rimLight.diffuse = Color3.FromHexString('#4A3060'); // Cool purple rim light
     rimLight.specular = Color3.FromHexString('#2A1040');
@@ -475,9 +473,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     await Promise.all(loadPromises);
 
     const loaded = uniquePaths.filter((p) => AssetManager.isPathCached(p)).length;
-    log.info(
-      `Preloaded ${loaded}/${uniquePaths.length} enemy models`
-    );
+    log.info(`Preloaded ${loaded}/${uniquePaths.length} enemy models`);
   }
 
   private createTerrain(): void {
@@ -518,7 +514,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (!longLoaded && !shortLoaded) {
       throw new Error(
         '[BrothersInArms] FATAL: Canyon wall GLBs failed to load. ' +
-        `Tried: ${CANYON_WALL_PATHS.wall_long}, ${CANYON_WALL_PATHS.wall_short}`
+          `Tried: ${CANYON_WALL_PATHS.wall_long}, ${CANYON_WALL_PATHS.wall_short}`
       );
     }
 
@@ -537,7 +533,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       centerX: number,
       centerZ: number,
       rotY: number,
-      isEW: boolean,
+      isEW: boolean
     ) => {
       const count = Math.ceil(totalLength / segmentWidth) + 1;
       const startOffset = -(count * segmentWidth) / 2;
@@ -695,7 +691,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     const skyboxManager = new SkyboxManager(this.scene);
 
     // Try to load HDRI first for best quality
-    const hdriPath = '/assets/textures/hdri/dusk_canyon.exr';
+    const _hdriPath = '/assets/textures/hdri/dusk_canyon.exr';
 
     // Create fallback dusk skybox - will be replaced if HDRI loads successfully
     this.skyboxResult = skyboxManager.createFallbackSkybox({
@@ -742,15 +738,17 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.spawnPoints.push(new Vector3(-ARENA_WIDTH / 2 + 30, 0, ARENA_DEPTH / 2 - 40));
 
     // Breach edge spawn points (for later waves emerging from the pit)
-    const breachAngleStep = Math.PI * 2 / 8;
+    const breachAngleStep = (Math.PI * 2) / 8;
     for (let i = 0; i < 8; i++) {
       const angle = i * breachAngleStep;
       const radius = BREACH_DIAMETER / 2 + 10;
-      this.spawnPoints.push(new Vector3(
-        BREACH_POSITION.x + Math.cos(angle) * radius,
-        0,
-        BREACH_POSITION.z + Math.sin(angle) * radius
-      ));
+      this.spawnPoints.push(
+        new Vector3(
+          BREACH_POSITION.x + Math.cos(angle) * radius,
+          0,
+          BREACH_POSITION.z + Math.sin(angle) * radius
+        )
+      );
     }
 
     // Assign spawn points to waves - shuffle for variety
@@ -782,7 +780,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (!AssetManager.isPathCached(MECH_GLB_PATH)) {
       throw new Error(
         `[BrothersInArms] FATAL: Failed to load marcus_mech.glb from ${MECH_GLB_PATH}. ` +
-        `Ensure the asset exists and is accessible.`
+          `Ensure the asset exists and is accessible.`
       );
     }
 
@@ -797,7 +795,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (!mechModel) {
       throw new Error(
         `[BrothersInArms] FATAL: Failed to create instance of marcus_mech.glb. ` +
-        `Asset was cached but instance creation failed.`
+          `Asset was cached but instance creation failed.`
       );
     }
 
@@ -826,27 +824,43 @@ export class BrothersInArmsLevel extends BaseLevel {
     // the correct offsets on the root TransformNode.
 
     // Body proxy (torso center -- used only for disposal/structure)
-    const body = MeshBuilder.CreateBox('mechBody', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    const body = MeshBuilder.CreateBox(
+      'mechBody',
+      { width: 0.1, height: 0.1, depth: 0.1 },
+      this.scene
+    );
     body.visibility = 0;
     body.parent = root;
     body.position.y = 6;
 
     // Left arm proxy (projectile spawn + recoil)
-    const leftArm = MeshBuilder.CreateBox('mechLeftArm', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    const leftArm = MeshBuilder.CreateBox(
+      'mechLeftArm',
+      { width: 0.1, height: 0.1, depth: 0.1 },
+      this.scene
+    );
     leftArm.visibility = 0;
     leftArm.parent = root;
     leftArm.position.set(-3, 5.5, 0);
     leftArm.rotation.z = 0.3;
 
     // Right arm proxy (projectile spawn + recoil)
-    const rightArm = MeshBuilder.CreateBox('mechRightArm', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    const rightArm = MeshBuilder.CreateBox(
+      'mechRightArm',
+      { width: 0.1, height: 0.1, depth: 0.1 },
+      this.scene
+    );
     rightArm.visibility = 0;
     rightArm.parent = root;
     rightArm.position.set(3, 5.5, 0);
     rightArm.rotation.z = -0.3;
 
     // Legs proxy (walking animation target)
-    const legs = MeshBuilder.CreateBox('mechLegs', { width: 0.1, height: 0.1, depth: 0.1 }, this.scene);
+    const legs = MeshBuilder.CreateBox(
+      'mechLegs',
+      { width: 0.1, height: 0.1, depth: 0.1 },
+      this.scene
+    );
     legs.visibility = 0;
     legs.parent = root;
     legs.position.y = 3;
@@ -875,7 +889,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       leftArm,
       rightArm,
       {
-        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
+        onCommsMessage: (message) => this.emitCommsMessage(message),
         onMarcusHealthChange: (health, maxHealth) => {
           this.updateMarcusHealthBar(health, maxHealth);
           if (this.marcus) {
@@ -895,7 +909,7 @@ export class BrothersInArmsLevel extends BaseLevel {
           this.onCoordinatedAttackStarted(attack);
         },
         onNotification: (text, duration) => {
-          this.callbacks.onNotification(text, duration);
+          this.emitNotification(text, duration);
         },
         onMarcusDowned: () => {
           this.onMarcusDowned();
@@ -922,7 +936,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Initialize the Marcus banter system for situation-aware dialogue
     this.marcusBanterManager = createMarcusBanterManager(
-      (message) => this.callbacks.onCommsMessage(message),
+      (message) => this.emitCommsMessage(message),
       {
         globalCooldown: 4000, // 4 seconds between dialogue to not overwhelm
         banterChance: 0.35, // 35% chance for optional banter
@@ -934,8 +948,8 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.squadCommandSystem = new SquadCommandSystem(
       this.scene,
       {
-        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
-        onNotification: (text, duration) => this.callbacks.onNotification(text, duration),
+        onCommsMessage: (message) => this.emitCommsMessage(message),
+        onNotification: (text, duration) => this.emitNotification(text, duration),
         onCommandIssued: (command) => this.onSquadCommandIssued(command),
         onCommandExpired: (command) => this.onSquadCommandExpired(command),
       },
@@ -1062,7 +1076,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     }
 
     // Update objective to show Marcus is down
-    this.callbacks.onObjectiveUpdate('HAMMER DOWN', 'Stay close to Marcus to help him recover!');
+    this.emitObjectiveUpdate('HAMMER DOWN', 'Stay close to Marcus to help him recover!');
   }
 
   /**
@@ -1077,7 +1091,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Restore objective
     const aliveEnemies = this.waveEnemies.filter((e) => e.state !== 'dead').length;
     if (aliveEnemies > 0) {
-      this.callbacks.onObjectiveUpdate(
+      this.emitObjectiveUpdate(
         OBJECTIVES.WAVE_COMBAT.getTitle(this.currentWave + 1, WAVES.length),
         OBJECTIVES.WAVE_COMBAT.getDescription(this.totalKills)
       );
@@ -1187,15 +1201,15 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Show notification for significant state changes
     if (newState === 'repairing') {
-      this.callbacks.onNotification('HAMMER REPAIRING', 2000);
+      this.emitNotification('HAMMER REPAIRING', 2000);
     } else if (newState === 'downed') {
-      this.callbacks.onNotification('HAMMER IS DOWN!', 3000);
+      this.emitNotification('HAMMER IS DOWN!', 3000);
     } else if (oldState === 'repairing') {
       // Exited repairing state (newState is guaranteed to not be 'repairing' in this branch)
-      this.callbacks.onNotification('HAMMER BACK ONLINE', 2000);
+      this.emitNotification('HAMMER BACK ONLINE', 2000);
     } else if (oldState === 'downed') {
       // Recovered from downed state
-      this.callbacks.onNotification('HAMMER BACK ONLINE!', 2000);
+      this.emitNotification('HAMMER BACK ONLINE!', 2000);
     }
   }
 
@@ -1206,16 +1220,16 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Visual indicator for coordinated attacks
     switch (attack.type) {
       case 'focus_fire':
-        this.callbacks.onNotification('FOCUS FIRE', 1500);
+        this.emitNotification('FOCUS FIRE', 1500);
         break;
       case 'flank':
-        this.callbacks.onNotification('FLANKING MANEUVER', 1500);
+        this.emitNotification('FLANKING MANEUVER', 1500);
         break;
       case 'suppress':
-        this.callbacks.onNotification('SUPPRESSION FIRE', 1500);
+        this.emitNotification('SUPPRESSION FIRE', 1500);
         break;
       case 'cover_player':
-        this.callbacks.onNotification('COVERING FIRE', 1500);
+        this.emitNotification('COVERING FIRE', 1500);
         break;
     }
   }
@@ -1539,7 +1553,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     } else {
       throw new Error(
         `[BrothersInArms] FATAL: Enemy GLB not cached: ${glbPath}. ` +
-        `Ensure preloadEnemyModels() completed successfully.`
+          `Ensure preloadEnemyModels() completed successfully.`
       );
     }
 
@@ -1674,12 +1688,12 @@ export class BrothersInArmsLevel extends BaseLevel {
             } else {
               // Melee attack - direct damage
               this.playerHealth -= enemy.damage;
-              this.callbacks.onHealthChange(this.playerHealth);
-              this.callbacks.onDamage();
+              this.emitHealthChanged(this.playerHealth);
+              this.emitDamageRegistered();
               this.triggerDamageShake(enemy.damage);
 
               if (this.playerHealth <= 0) {
-                this.callbacks.onNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
+                this.emitNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
               }
             }
           }
@@ -1824,11 +1838,12 @@ export class BrothersInArmsLevel extends BaseLevel {
       lastTime = now;
 
       const dist = Vector3.Distance(projectile.position, this.camera.position);
-      if (dist < 1.8) { // Slightly larger hitbox for fairness
+      if (dist < 1.8) {
+        // Slightly larger hitbox for fairness
         this.playerHealth -= enemy.damage;
         this.playerHealth = Math.max(0, this.playerHealth); // Clamp to 0
-        this.callbacks.onHealthChange(this.playerHealth);
-        this.callbacks.onDamage();
+        this.emitHealthChanged(this.playerHealth);
+        this.emitDamageRegistered();
         this.triggerDamageShake(enemy.damage);
         projectile.material?.dispose();
         projectile.dispose();
@@ -1836,7 +1851,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
         // Check for player death
         if (this.playerHealth <= 0) {
-          this.callbacks.onNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
+          this.emitNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
           // Note: Death handling is done via health reaching 0
           // The game loop monitors health and triggers death screen
         }
@@ -1847,7 +1862,11 @@ export class BrothersInArmsLevel extends BaseLevel {
       projectile.position.addInPlace(velocity.scale(dt));
 
       // Check if projectile is out of bounds
-      if (projectile.position.y < -10 || Math.abs(projectile.position.x) > ARENA_WIDTH || Math.abs(projectile.position.z) > ARENA_DEPTH) {
+      if (
+        projectile.position.y < -10 ||
+        Math.abs(projectile.position.x) > ARENA_WIDTH ||
+        Math.abs(projectile.position.z) > ARENA_DEPTH
+      ) {
         projectile.material?.dispose();
         projectile.dispose();
         removeEntity(projEntity);
@@ -1866,7 +1885,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     enemy.state = 'dead';
     this.totalKills++;
-    this.callbacks.onKill();
+    this.recordKill();
 
     // Trigger banter for the kill
     if (this.marcusBanterManager) {
@@ -1920,11 +1939,11 @@ export class BrothersInArmsLevel extends BaseLevel {
       COMMS.WAVE_4_START,
     ];
     if (waveIndex < waveComms.length) {
-      this.callbacks.onCommsMessage(waveComms[waveIndex]);
+      this.emitCommsMessage(waveComms[waveIndex]);
     }
 
-    this.callbacks.onNotification(NOTIFICATIONS.WAVE_INCOMING(wave.id), 2000);
-    this.callbacks.onObjectiveUpdate(
+    this.emitNotification(NOTIFICATIONS.WAVE_INCOMING(wave.id), 2000);
+    this.emitObjectiveUpdate(
       OBJECTIVES.WAVE_COMBAT.getTitle(wave.id, WAVES.length),
       OBJECTIVES.WAVE_COMBAT.getDescription(this.totalKills)
     );
@@ -1955,7 +1974,7 @@ export class BrothersInArmsLevel extends BaseLevel {
         // Stagger spawns
         const spawnDelay = spawnIndex * 200;
         setTimeout(() => {
-          const spawnedEnemy = this.spawnEnemy(type, position);
+          const _spawnedEnemy = this.spawnEnemy(type, position);
 
           // Trigger banter for special enemy types when they first spawn
           if (this.marcusBanterManager && i === 0) {
@@ -1996,16 +2015,15 @@ export class BrothersInArmsLevel extends BaseLevel {
       this.scene,
       this.camera,
       {
-        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
-        onNotification: (text, duration) => this.callbacks.onNotification(text, duration),
-        onObjectiveUpdate: (title, instructions) =>
-          this.callbacks.onObjectiveUpdate(title, instructions),
+        onCommsMessage: (message) => this.emitCommsMessage(message),
+        onNotification: (text, duration) => this.emitNotification(text, duration),
+        onObjectiveUpdate: (title, instructions) => this.emitObjectiveUpdate(title, instructions),
         onCinematicStart: () => {
-          this.callbacks.onCinematicStart?.();
+          this.emitCinematicStart();
           this.cinematicInProgress = true;
         },
         onCinematicEnd: () => {
-          this.callbacks.onCinematicEnd?.();
+          this.emitCinematicEnd();
           this.cinematicInProgress = false;
           // Transition to wave combat after cinematic
           this.startWaveCombatPhase();
@@ -2034,7 +2052,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.updateActionButtons('combat');
 
     // Notify gameplay transition
-    this.callbacks.onNotification('COMBAT INITIATED', 2000);
+    this.emitNotification('COMBAT INITIATED', 2000);
 
     // Start first wave after short delay
     setTimeout(() => {
@@ -2046,17 +2064,14 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.phase = 'breach_battle';
     this.phaseTime = 0;
 
-    this.callbacks.onNotification(NOTIFICATIONS.THE_BREACH, 3000);
-    this.callbacks.onObjectiveUpdate(
-      OBJECTIVES.BREACH_BATTLE.title,
-      OBJECTIVES.BREACH_BATTLE.description
-    );
+    this.emitNotification(NOTIFICATIONS.THE_BREACH, 3000);
+    this.emitObjectiveUpdate(OBJECTIVES.BREACH_BATTLE.title, OBJECTIVES.BREACH_BATTLE.description);
 
-    this.callbacks.onCommsMessage(COMMS.BREACH_APPROACH);
+    this.emitCommsMessage(COMMS.BREACH_APPROACH);
 
     // Final wave already completed - now player must enter breach
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.BREACH_CLEARED);
+      this.emitCommsMessage(COMMS.BREACH_CLEARED);
     }, 3000);
 
     setTimeout(() => {
@@ -2069,29 +2084,26 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.phaseTime = 0;
     this.cinematicInProgress = true;
 
-    this.callbacks.onCinematicStart?.();
-    this.callbacks.onObjectiveUpdate(
-      OBJECTIVES.ENTER_BREACH.title,
-      OBJECTIVES.ENTER_BREACH.description
-    );
+    this.emitCinematicStart();
+    this.emitObjectiveUpdate(OBJECTIVES.ENTER_BREACH.title, OBJECTIVES.ENTER_BREACH.description);
 
     // Marcus dialogue about not being able to follow
-    this.callbacks.onCommsMessage(COMMS.TRANSITION_START);
+    this.emitCommsMessage(COMMS.TRANSITION_START);
 
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.TRANSITION_FAREWELL);
+      this.emitCommsMessage(COMMS.TRANSITION_FAREWELL);
     }, 4000);
 
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.TRANSITION_FINAL);
+      this.emitCommsMessage(COMMS.TRANSITION_FINAL);
     }, 8000);
 
     setTimeout(() => {
-      this.callbacks.onCinematicEnd?.();
+      this.emitCinematicEnd();
       this.cinematicInProgress = false;
 
       // Update objective to enter breach
-      this.callbacks.onNotification(NOTIFICATIONS.ENTER_THE_BREACH, 2000);
+      this.emitNotification(NOTIFICATIONS.ENTER_THE_BREACH, 2000);
     }, 12000);
   }
 
@@ -2117,13 +2129,13 @@ export class BrothersInArmsLevel extends BaseLevel {
 
       case 'call_marcus':
         if (this.marcusCombatAI?.isDowned()) {
-          this.callbacks.onNotification('MARCUS IS DOWN - CANNOT PROVIDE SUPPORT', 2000);
+          this.emitNotification('MARCUS IS DOWN - CANNOT PROVIDE SUPPORT', 2000);
         } else if (this.fireSuportCooldown <= 0 && this.marcus) {
           this.callFireSupport();
           this.fireSuportCooldown = 25000; // 25 seconds cooldown
         } else if (this.fireSuportCooldown > 0) {
           const secondsLeft = Math.ceil(this.fireSuportCooldown / 1000);
-          this.callbacks.onNotification(`FIRE SUPPORT ON COOLDOWN: ${secondsLeft}s`, 1500);
+          this.emitNotification(`FIRE SUPPORT ON COOLDOWN: ${secondsLeft}s`, 1500);
         }
         break;
 
@@ -2178,7 +2190,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (this.isCommandWheelOpen || !this.squadCommandSystem) return;
     if (this.cinematicInProgress) return;
     if (this.marcusCombatAI?.isDowned()) {
-      this.callbacks.onNotification('MARCUS IS DOWN - COMMANDS UNAVAILABLE', 1500);
+      this.emitNotification('MARCUS IS DOWN - COMMANDS UNAVAILABLE', 1500);
       return;
     }
 
@@ -2186,7 +2198,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.squadCommandSystem.openCommandWheel();
 
     // Notify UI to show command wheel
-    this.callbacks.onSquadCommandWheelChange?.(true, null);
+    this.emitSquadCommandWheelChanged(true, null);
   }
 
   /**
@@ -2207,7 +2219,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     }
 
     // Notify UI to hide command wheel
-    this.callbacks.onSquadCommandWheelChange?.(false, selectedCommand);
+    this.emitSquadCommandWheelChanged(false, selectedCommand);
   }
 
   /**
@@ -2220,7 +2232,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Notify UI of selection change
     const selectedCommand = this.squadCommandSystem.getSelectedCommand();
-    this.callbacks.onSquadCommandWheelChange?.(true, selectedCommand);
+    this.emitSquadCommandWheelChanged(true, selectedCommand);
   }
 
   /**
@@ -2260,7 +2272,7 @@ export class BrothersInArmsLevel extends BaseLevel {
         bestTarget.mesh.position
       );
     } else {
-      this.callbacks.onNotification('NO TARGET IN CROSSHAIRS', 1000);
+      this.emitNotification('NO TARGET IN CROSSHAIRS', 1000);
     }
   }
 
@@ -2333,10 +2345,10 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (bestTarget) {
       const request = this.marcusCombatAI.requestFocusFire(bestTarget.entity);
       if (request) {
-        this.callbacks.onNotification('FOCUS FIRE REQUESTED', 1500);
+        this.emitNotification('FOCUS FIRE REQUESTED', 1500);
       }
     } else {
-      this.callbacks.onNotification('NO TARGET IN SIGHT', 1000);
+      this.emitNotification('NO TARGET IN SIGHT', 1000);
     }
   }
 
@@ -2367,7 +2379,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       threatCenter.scaleInPlace(1 / threatCount);
       const request = this.marcusCombatAI.requestFlank(threatCenter);
       if (request) {
-        this.callbacks.onNotification('FLANKING MANEUVER', 1500);
+        this.emitNotification('FLANKING MANEUVER', 1500);
       }
     }
   }
@@ -2388,11 +2400,11 @@ export class BrothersInArmsLevel extends BaseLevel {
       support: 'SUPPORT',
       damaged: 'DAMAGED',
     };
-    this.callbacks.onNotification(`MARCUS: ${stateNames[state]} MODE`, 1500);
+    this.emitNotification(`MARCUS: ${stateNames[state]} MODE`, 1500);
   }
 
   private throwGrenade(): void {
-    this.callbacks.onNotification(NOTIFICATIONS.GRENADE_OUT, 1000);
+    this.emitNotification(NOTIFICATIONS.GRENADE_OUT, 1000);
 
     // Create grenade projectile
     const startPos = this.camera.position.clone();
@@ -2492,7 +2504,7 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   private meleeAttack(): void {
-    this.callbacks.onNotification(NOTIFICATIONS.MELEE, 500);
+    this.emitNotification(NOTIFICATIONS.MELEE, 500);
 
     // Check for enemies in melee range
     const playerPos = this.camera.position.clone();
@@ -2523,9 +2535,9 @@ export class BrothersInArmsLevel extends BaseLevel {
   private callFireSupport(): void {
     if (!this.marcus) return;
 
-    this.callbacks.onNotification(NOTIFICATIONS.FIRE_SUPPORT_CALLED, 2000);
+    this.emitNotification(NOTIFICATIONS.FIRE_SUPPORT_CALLED, 2000);
 
-    this.callbacks.onCommsMessage({
+    this.emitCommsMessage({
       ...COMMS.WAVE_1_START,
       text: 'Covering fire! Get down!',
     });
@@ -2643,7 +2655,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       ];
     }
 
-    this.callbacks.onActionGroupsChange(groups);
+    this.emitActionGroupsChanged(groups);
   }
 
   // ============================================================================
@@ -2707,7 +2719,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
           if (this.currentWave < WAVES.length - 1) {
             // Wave complete, start rest period
-            this.callbacks.onNotification(NOTIFICATIONS.WAVE_CLEARED(this.currentWave + 1), 2000);
+            this.emitNotification(NOTIFICATIONS.WAVE_CLEARED(this.currentWave + 1), 2000);
             this.waveRestTimer = WAVE_REST_DURATION;
 
             // Wave completion dialogue using COMMS module
@@ -2718,13 +2730,13 @@ export class BrothersInArmsLevel extends BaseLevel {
               COMMS.WAVE_4_COMPLETE,
             ];
             if (this.currentWave < waveCompleteComms.length) {
-              this.callbacks.onCommsMessage(waveCompleteComms[this.currentWave]);
+              this.emitCommsMessage(waveCompleteComms[this.currentWave]);
             }
           } else {
             // All waves complete
             this.allWavesComplete = true;
-            this.callbacks.onNotification(NOTIFICATIONS.ALL_WAVES_CLEARED, 3000);
-            this.callbacks.onCommsMessage(COMMS.WAVE_4_COMPLETE);
+            this.emitNotification(NOTIFICATIONS.ALL_WAVES_CLEARED, 3000);
+            this.emitCommsMessage(COMMS.WAVE_4_COMPLETE);
 
             // Trigger banter for all waves complete
             if (this.marcusBanterManager) {
@@ -2744,7 +2756,7 @@ export class BrothersInArmsLevel extends BaseLevel {
           } else {
             const secondsLeft = Math.ceil(this.waveRestTimer / 1000);
             if (secondsLeft % 10 === 0 || secondsLeft <= 5) {
-              this.callbacks.onObjectiveUpdate(
+              this.emitObjectiveUpdate(
                 OBJECTIVES.NEXT_WAVE.getTitle(secondsLeft),
                 OBJECTIVES.NEXT_WAVE.getDescription(this.totalKills)
               );
@@ -2786,7 +2798,7 @@ export class BrothersInArmsLevel extends BaseLevel {
   /**
    * Update Marcus banter system with situation awareness
    */
-  private updateMarcusBanter(deltaTime: number): void {
+  private updateMarcusBanter(_deltaTime: number): void {
     if (!this.marcusBanterManager || this.cinematicInProgress) return;
 
     const now = performance.now();
@@ -2806,7 +2818,10 @@ export class BrothersInArmsLevel extends BaseLevel {
     }
 
     // Check for close call - player was critical and survived
-    if (this.previousPlayerHealth <= this.maxPlayerHealth * 0.15 && this.playerHealth > this.maxPlayerHealth * 0.3) {
+    if (
+      this.previousPlayerHealth <= this.maxPlayerHealth * 0.15 &&
+      this.playerHealth > this.maxPlayerHealth * 0.3
+    ) {
       this.marcusBanterManager.onPlayerCloseCall();
     }
 
@@ -2953,8 +2968,8 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.collectibleSystem = null;
 
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
 
     // Unregister dynamic actions
     unregisterDynamicActions('brothers_in_arms');

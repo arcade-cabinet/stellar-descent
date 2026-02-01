@@ -21,7 +21,7 @@ const BPM_PHASE_2 = 130; // Intense combat
 const BPM_PHASE_3 = 160; // Frantic finale
 
 // Key: D minor (dark, dramatic)
-const SCALE_D_MINOR = ['D', 'E', 'F', 'G', 'A', 'Bb', 'C'];
+const _SCALE_D_MINOR = ['D', 'E', 'F', 'G', 'A', 'Bb', 'C'];
 const BASS_NOTES_PHASE_1 = ['D1', 'A1', 'F1', 'G1'];
 const BASS_NOTES_PHASE_2 = ['D1', 'D2', 'A1', 'Bb1', 'G1', 'F1'];
 const BASS_NOTES_PHASE_3 = ['D1', 'D2', 'A1', 'A2', 'F1', 'E1', 'D1', 'C1'];
@@ -113,10 +113,6 @@ export class BossMusicManager {
   private melodyIndex = 0;
   private melodyNoteIndex = 0;
   private arpIndex = 0;
-
-  constructor() {
-    // Synths are created on demand to avoid blocking
-  }
 
   /**
    * Initialize all synthesizers and effects
@@ -539,7 +535,7 @@ export class BossMusicManager {
     chord.forEach((note) => {
       const match = note.match(/([A-G][b#]?)(\d)/);
       if (match) {
-        extended.push(`${match[1]}${parseInt(match[2]) + 1}`);
+        extended.push(`${match[1]}${parseInt(match[2], 10) + 1}`);
       }
     });
     return extended;
@@ -594,7 +590,7 @@ export class BossMusicManager {
     this.melodyLoop.start('1m'); // Start after one measure
 
     // Kick drum loop
-    const kickPattern =
+    const _kickPattern =
       this.currentPhase === 3
         ? [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875] // 8th notes
         : this.currentPhase === 2

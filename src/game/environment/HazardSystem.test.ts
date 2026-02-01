@@ -10,7 +10,7 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { HAZARD_PRESETS, type HazardCallbacks, type HazardType } from './HazardSystem';
 
@@ -82,7 +82,7 @@ describe('HazardSystem Types', () => {
 
   describe('Hazard Preset Screen Effects', () => {
     it('should have screen effect colors for all presets', () => {
-      for (const [type, preset] of Object.entries(HAZARD_PRESETS)) {
+      for (const [_type, preset] of Object.entries(HAZARD_PRESETS)) {
         expect(preset.screenEffectColor).toBeDefined();
         expect(preset.screenEffectColor.r).toBeGreaterThanOrEqual(0);
         expect(preset.screenEffectColor.g).toBeGreaterThanOrEqual(0);
@@ -175,9 +175,7 @@ describe('Vector3 Distance Calculations', () => {
     const zonePos = new Vector3(15, 0, 20);
 
     // 2D distance ignoring Y
-    const distance = Math.sqrt(
-      (playerPos.x - zonePos.x) ** 2 + (playerPos.z - zonePos.z) ** 2
-    );
+    const distance = Math.sqrt((playerPos.x - zonePos.x) ** 2 + (playerPos.z - zonePos.z) ** 2);
 
     expect(distance).toBe(5);
   });
@@ -187,9 +185,7 @@ describe('Vector3 Distance Calculations', () => {
     const zonePos = new Vector3(10, 0, 20);
     const radius = 5;
 
-    const distance = Math.sqrt(
-      (playerPos.x - zonePos.x) ** 2 + (playerPos.z - zonePos.z) ** 2
-    );
+    const distance = Math.sqrt((playerPos.x - zonePos.x) ** 2 + (playerPos.z - zonePos.z) ** 2);
 
     expect(distance).toBeLessThan(radius);
   });
@@ -199,9 +195,7 @@ describe('Vector3 Distance Calculations', () => {
     const zonePos = new Vector3(10, 0, 20);
     const radius = 5;
 
-    const distance = Math.sqrt(
-      (playerPos.x - zonePos.x) ** 2 + (playerPos.z - zonePos.z) ** 2
-    );
+    const distance = Math.sqrt((playerPos.x - zonePos.x) ** 2 + (playerPos.z - zonePos.z) ** 2);
 
     expect(distance).toBeGreaterThan(radius);
   });

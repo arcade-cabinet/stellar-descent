@@ -16,31 +16,30 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getAudioManager } from '../../game/core/AudioManager';
 import {
   ACTION_LABELS,
   type BindableAction,
-  type GamepadButton,
-  DEFAULT_KEYBINDINGS,
   DEFAULT_GAMEPAD_BINDINGS,
+  DEFAULT_KEYBINDINGS,
+  type GamepadButton,
+  getGamepadButtonLabel,
   getKeyDisplayName,
   getKeysForAction,
   getPrimaryKey,
-  getGamepadButtonLabel,
   useKeybindings,
-} from '../../game/context/KeybindingsContext';
-import { getAudioManager } from '../../game/core/AudioManager';
+} from '../../game/stores/useKeybindingsStore';
 import {
-  shouldShowKeyboardSettings,
-  shouldShowGamepadSettings,
-  onPhysicalKeyboardChange,
-  onGamepadChange,
-  hasGamepad,
-  getConnectedGamepads,
   type GamepadInfo,
+  getConnectedGamepads,
+  hasGamepad,
+  onGamepadChange,
+  onPhysicalKeyboardChange,
+  shouldShowKeyboardSettings,
 } from '../../game/utils/PlatformDetector';
-import { KeyboardRemapper } from './KeyboardRemapper';
 import { GamepadRemapper } from './GamepadRemapper';
 import styles from './KeybindingsSettings.module.css';
+import { KeyboardRemapper } from './KeyboardRemapper';
 
 /**
  * Settings tab type
@@ -155,7 +154,9 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
   const [activeTab, setActiveTab] = useState<SettingsTab>('keyboard');
 
   // Track if keyboard settings should be shown (mobile needs physical keyboard)
-  const [showKeyboardSettings, setShowKeyboardSettings] = useState(() => shouldShowKeyboardSettings());
+  const [showKeyboardSettings, setShowKeyboardSettings] = useState(() =>
+    shouldShowKeyboardSettings()
+  );
 
   // Track if gamepad is connected
   const [gamepadConnected, setGamepadConnected] = useState(() => hasGamepad());
@@ -388,7 +389,9 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
       <div className={styles.overlay} role="dialog" aria-modal="true">
         <div className={styles.noKeyboardContainer}>
           <div className={styles.noKeyboardIcon}>
-            <span role="img" aria-label="keyboard">&#x2328;&#xFE0F;</span>
+            <span role="img" aria-label="keyboard">
+              &#x2328;&#xFE0F;
+            </span>
           </div>
           <h3 className={styles.noKeyboardTitle}>NO INPUT DEVICES DETECTED</h3>
           <p className={styles.noKeyboardText}>
@@ -441,7 +444,13 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
 
           {/* Conflict warning */}
           {conflict && (
-            <div className={styles.conflictWarning} title={`Conflicts with: ${conflict.actions.filter((a) => a !== action).map((a) => ACTION_LABELS[a]).join(', ')}`}>
+            <div
+              className={styles.conflictWarning}
+              title={`Conflicts with: ${conflict.actions
+                .filter((a) => a !== action)
+                .map((a) => ACTION_LABELS[a])
+                .join(', ')}`}
+            >
               !
             </div>
           )}
@@ -487,7 +496,13 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
 
           {/* Conflict warning */}
           {conflict && (
-            <div className={styles.conflictWarning} title={`Conflicts with: ${conflict.actions.filter((a) => a !== action).map((a) => ACTION_LABELS[a]).join(', ')}`}>
+            <div
+              className={styles.conflictWarning}
+              title={`Conflicts with: ${conflict.actions
+                .filter((a) => a !== action)
+                .map((a) => ACTION_LABELS[a])
+                .join(', ')}`}
+            >
               !
             </div>
           )}
@@ -509,7 +524,9 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
   // Category renderer for keyboard
   const renderKeyboardCategory = (category: KeybindingCategory) => {
     const isExpanded = expandedCategories.has(category.id);
-    const categoryConflicts = category.actions.filter((a) => getKeyboardConflictForAction(a)).length;
+    const categoryConflicts = category.actions.filter((a) =>
+      getKeyboardConflictForAction(a)
+    ).length;
 
     return (
       <div key={category.id} className={styles.category}>
@@ -523,16 +540,16 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
             <span className={styles.expandIcon}>{isExpanded ? '\u25BC' : '\u25B6'}</span>
             <span className={styles.categoryTitle}>{category.title}</span>
             {categoryConflicts > 0 && (
-              <span className={styles.categoryConflictBadge}>{categoryConflicts} CONFLICT{categoryConflicts > 1 ? 'S' : ''}</span>
+              <span className={styles.categoryConflictBadge}>
+                {categoryConflicts} CONFLICT{categoryConflicts > 1 ? 'S' : ''}
+              </span>
             )}
           </div>
           <span className={styles.categoryDescription}>{category.description}</span>
         </button>
 
         {isExpanded && (
-          <div className={styles.categoryContent}>
-            {category.actions.map(renderKeybindingRow)}
-          </div>
+          <div className={styles.categoryContent}>{category.actions.map(renderKeybindingRow)}</div>
         )}
       </div>
     );
@@ -555,7 +572,9 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
             <span className={styles.expandIcon}>{isExpanded ? '\u25BC' : '\u25B6'}</span>
             <span className={styles.categoryTitle}>{category.title}</span>
             {categoryConflicts > 0 && (
-              <span className={styles.categoryConflictBadge}>{categoryConflicts} CONFLICT{categoryConflicts > 1 ? 'S' : ''}</span>
+              <span className={styles.categoryConflictBadge}>
+                {categoryConflicts} CONFLICT{categoryConflicts > 1 ? 'S' : ''}
+              </span>
             )}
           </div>
           <span className={styles.categoryDescription}>{category.description}</span>
@@ -571,7 +590,12 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
   };
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="keybindings-title">
+    <div
+      className={styles.overlay}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="keybindings-title"
+    >
       <div className={styles.container}>
         {/* Corner decorations */}
         <div className={styles.cornerTL} aria-hidden="true" />
@@ -632,8 +656,8 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
                 <div className={styles.conflictText}>
                   <strong>KEY CONFLICTS DETECTED</strong>
                   <p>
-                    {keyboardConflicts.length} key{keyboardConflicts.length > 1 ? 's are' : ' is'} bound to multiple actions.
-                    This may cause unexpected behavior.
+                    {keyboardConflicts.length} key{keyboardConflicts.length > 1 ? 's are' : ' is'}{' '}
+                    bound to multiple actions. This may cause unexpected behavior.
                   </p>
                 </div>
               </div>
@@ -697,8 +721,8 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
                 <div className={styles.conflictText}>
                   <strong>BUTTON CONFLICTS DETECTED</strong>
                   <p>
-                    {gamepadConflicts.length} button{gamepadConflicts.length > 1 ? 's are' : ' is'} bound to multiple actions.
-                    This may cause unexpected behavior.
+                    {gamepadConflicts.length} button{gamepadConflicts.length > 1 ? 's are' : ' is'}{' '}
+                    bound to multiple actions. This may cause unexpected behavior.
                   </p>
                 </div>
               </div>

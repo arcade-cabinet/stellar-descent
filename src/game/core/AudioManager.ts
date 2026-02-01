@@ -19,14 +19,18 @@ import { getLogger } from './Logger';
 
 const log = getLogger('AudioManager');
 
-// Storage keys for volume persistence
-const STORAGE_KEYS = {
-  masterVolume: 'stellar_descent_master_volume',
-  musicVolume: 'stellar_descent_music_volume',
-  sfxVolume: 'stellar_descent_sfx_volume',
-  voiceVolume: 'stellar_descent_voice_volume',
-  ambientVolume: 'stellar_descent_ambient_volume',
-} as const;
+// Import modular audio components
+import {
+  type AudioLoopHandle,
+  COMBAT_EXIT_DELAY_MS,
+  DEFAULT_VOLUMES,
+  LEVEL_AUDIO_CONFIGS,
+  type LevelAudioConfig,
+  type MusicTrack,
+  type SoundEffect,
+} from './audio';
+import { MusicPlayer } from './audio/music';
+import { ProceduralAmbientGenerator, SoundDispatcher } from './audio/SoundDispatcher';
 import {
   type AudioZone,
   disposeEnvironmentalAudioManager,
@@ -34,30 +38,16 @@ import {
   type SpatialSoundSource,
 } from './EnvironmentalAudioManager';
 import { hitAudioManager } from './HitAudioManager';
-import { disposeProceduralMusicEngine, getProceduralMusicEngine } from './ProceduralMusicEngine';
+import { getProceduralMusicEngine } from './ProceduralMusicEngine';
 import { type EnvironmentType, type ImpactSurface, weaponSoundManager } from './WeaponSoundManager';
 
-// Import modular audio components
-import {
-  type SoundEffect,
-  type MusicTrack,
-  type LevelAudioConfig,
-  type AudioLoopHandle,
-  LEVEL_AUDIO_CONFIGS,
-  DEFAULT_VOLUMES,
-  COMBAT_EXIT_DELAY_MS,
-} from './audio';
-import { SoundDispatcher, ProceduralAmbientGenerator } from './audio/SoundDispatcher';
-import { MusicPlayer } from './audio/music';
-
 // Re-export types for external use
-export type { SoundEffect, MusicTrack, LevelAudioConfig } from './audio';
+export type { LevelAudioConfig, MusicTrack, SoundEffect } from './audio';
 
 /**
  * Main Audio Manager class - Coordinates all audio subsystems
  */
 export class AudioManager {
-  private scene: Scene | null = null;
   private sounds: Map<string, Sound> = new Map();
   private soundDispatcher: SoundDispatcher;
   private musicPlayer: MusicPlayer;
@@ -86,60 +76,11 @@ export class AudioManager {
     this.musicPlayer = new MusicPlayer();
     this.ambientGenerator = new ProceduralAmbientGenerator();
 
-    // Load saved volume settings
-    this.loadVolumeSettings();
-
+    // Initial volume setup - Settings Store will call setVolume methods after hydration
     this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
 
     // Setup tab visibility handling
     this.setupVisibilityHandling();
-  }
-
-  /**
-   * Load volume settings from localStorage
-   */
-  private loadVolumeSettings(): void {
-    this.masterVolume = this.loadVolumeFromStorage(
-      STORAGE_KEYS.masterVolume,
-      DEFAULT_VOLUMES.master
-    );
-    this.musicVolume = this.loadVolumeFromStorage(STORAGE_KEYS.musicVolume, DEFAULT_VOLUMES.music);
-    this.sfxVolume = this.loadVolumeFromStorage(STORAGE_KEYS.sfxVolume, DEFAULT_VOLUMES.sfx);
-    this.voiceVolume = this.loadVolumeFromStorage(STORAGE_KEYS.voiceVolume, DEFAULT_VOLUMES.voice);
-    this.ambientVolume = this.loadVolumeFromStorage(
-      STORAGE_KEYS.ambientVolume,
-      DEFAULT_VOLUMES.ambient
-    );
-    log.info('Loaded volume settings from storage');
-  }
-
-  /**
-   * Load a single volume value from localStorage
-   */
-  private loadVolumeFromStorage(key: string, defaultValue: number): number {
-    try {
-      const stored = localStorage.getItem(key);
-      if (stored !== null) {
-        const parsed = parseFloat(stored);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      log.warn('Failed to load volume from storage', e);
-    }
-    return defaultValue;
-  }
-
-  /**
-   * Save a volume value to localStorage
-   */
-  private saveVolumeToStorage(key: string, value: number): void {
-    try {
-      localStorage.setItem(key, value.toString());
-    } catch (e) {
-      log.warn('Failed to save volume to storage', e);
-    }
   }
 
   /**
@@ -196,10 +137,7 @@ export class AudioManager {
    * Play music with crossfade from splash audio
    * This handles the seamless transition from splash screen audio to menu music
    */
-  async playMusicWithCrossfadeFromSplash(
-    track: MusicTrack,
-    crossfadeDuration = 2
-  ): Promise<void> {
+  async playMusicWithCrossfadeFromSplash(track: MusicTrack, crossfadeDuration = 2): Promise<void> {
     if (this.isMuted) return;
 
     this.isCrossfadingFromSplash = true;
@@ -238,10 +176,7 @@ export class AudioManager {
 
   play(effect: SoundEffect, options?: { volume?: number; position?: Vector3 }): void {
     if (this.isMuted) return;
-    this.soundDispatcher.play(
-      effect,
-      (options?.volume ?? 1) * this.sfxVolume * this.masterVolume
-    );
+    this.soundDispatcher.play(effect, (options?.volume ?? 1) * this.sfxVolume * this.masterVolume);
   }
 
   // ===== Loop Controls =====
@@ -280,58 +215,68 @@ export class AudioManager {
 
   // ===== Volume Controls =====
 
-  setMasterVolume(volume: number, persist = true): void {
+  /**
+   * Set master volume. Persistence is handled by Settings Store.
+   * @param volume - Volume level (0-1)
+   * @param _persist - Deprecated parameter, kept for backward compatibility
+   */
+  setMasterVolume(volume: number, _persist = true): void {
     this.masterVolume = Math.max(0, Math.min(1, volume));
     this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
-    if (persist) {
-      this.saveVolumeToStorage(STORAGE_KEYS.masterVolume, this.masterVolume);
-    }
   }
 
   getMasterVolume(): number {
     return this.masterVolume;
   }
 
-  setSFXVolume(volume: number, persist = true): void {
+  /**
+   * Set SFX volume. Persistence is handled by Settings Store.
+   * @param volume - Volume level (0-1)
+   * @param _persist - Deprecated parameter, kept for backward compatibility
+   */
+  setSFXVolume(volume: number, _persist = true): void {
     this.sfxVolume = Math.max(0, Math.min(1, volume));
-    if (persist) {
-      this.saveVolumeToStorage(STORAGE_KEYS.sfxVolume, this.sfxVolume);
-    }
   }
 
   getSFXVolume(): number {
     return this.sfxVolume;
   }
 
-  setMusicVolume(volume: number, persist = true): void {
+  /**
+   * Set music volume. Persistence is handled by Settings Store.
+   * @param volume - Volume level (0-1)
+   * @param _persist - Deprecated parameter, kept for backward compatibility
+   */
+  setMusicVolume(volume: number, _persist = true): void {
     this.musicVolume = Math.max(0, Math.min(1, volume));
     this.musicPlayer.setVolume(this.musicVolume * this.masterVolume);
-    if (persist) {
-      this.saveVolumeToStorage(STORAGE_KEYS.musicVolume, this.musicVolume);
-    }
   }
 
   getMusicVolume(): number {
     return this.musicVolume;
   }
 
-  setAmbientVolume(volume: number, persist = true): void {
+  /**
+   * Set ambient volume. Persistence is handled by Settings Store.
+   * @param volume - Volume level (0-1)
+   * @param _persist - Deprecated parameter, kept for backward compatibility
+   */
+  setAmbientVolume(volume: number, _persist = true): void {
     this.ambientVolume = Math.max(0, Math.min(1, volume));
     this.updateAmbientVolume();
-    if (persist) {
-      this.saveVolumeToStorage(STORAGE_KEYS.ambientVolume, this.ambientVolume);
-    }
   }
 
   getAmbientVolume(): number {
     return this.ambientVolume;
   }
 
-  setVoiceVolume(volume: number, persist = true): void {
+  /**
+   * Set voice volume. Persistence is handled by Settings Store.
+   * @param volume - Volume level (0-1)
+   * @param _persist - Deprecated parameter, kept for backward compatibility
+   */
+  setVoiceVolume(volume: number, _persist = true): void {
     this.voiceVolume = Math.max(0, Math.min(1, volume));
-    if (persist) {
-      this.saveVolumeToStorage(STORAGE_KEYS.voiceVolume, this.voiceVolume);
-    }
   }
 
   getVoiceVolume(): number {
@@ -568,8 +513,7 @@ export class AudioManager {
   }
 
   playHeadshot(volume = 0.35): void {
-    if (!this.isMuted)
-      weaponSoundManager.playHeadshot(volume * this.sfxVolume * this.masterVolume);
+    if (!this.isMuted) weaponSoundManager.playHeadshot(volume * this.sfxVolume * this.masterVolume);
   }
 
   playKillConfirmation(volume = 0.4): void {
@@ -748,12 +692,12 @@ export type {
 
 // Re-export hit audio manager for direct access
 export {
+  type HitType,
   hitAudioManager,
+  playArmorBreakSound,
+  playEmptyClick,
   playHitSound,
   playKillSound,
   playLowAmmoWarning,
-  playEmptyClick,
   playMultiKillSound,
-  playArmorBreakSound,
-  type HitType,
 } from './HitAudioManager';

@@ -21,6 +21,7 @@ import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
 
 const log = getLogger('ECSChunkManager');
+
 import {
   ALL_ASSEMBLAGES,
   type AssemblageDefinition,

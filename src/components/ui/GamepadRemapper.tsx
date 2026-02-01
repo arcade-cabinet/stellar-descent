@@ -8,16 +8,16 @@
  * - Real-time button press detection
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  type BindableAction,
-  type DynamicAction,
-  type GamepadButton,
   ACTION_LABELS,
+  type BindableAction,
   DYNAMIC_ACTION_LABELS,
-  getGamepadButtonLabel,
+  type DynamicAction,
   GAMEPAD_INDEX_TO_BUTTON,
-} from '../../game/context/KeybindingsContext';
+  type GamepadButton,
+  getGamepadButtonLabel,
+} from '../../game/stores/useKeybindingsStore';
 import {
   type ControllerType,
   getConnectedGamepads,
@@ -39,7 +39,7 @@ interface GamepadRemapperProps {
 /**
  * All available gamepad buttons for selection
  */
-const ALL_GAMEPAD_BUTTONS: GamepadButton[] = [
+const _ALL_GAMEPAD_BUTTONS: GamepadButton[] = [
   'A',
   'B',
   'X',
@@ -83,7 +83,7 @@ export function GamepadRemapper({
 }: GamepadRemapperProps) {
   const [selectedButton, setSelectedButton] = useState<GamepadButton | null>(null);
   const [pressedButtons, setPressedButtons] = useState<Set<GamepadButton>>(new Set());
-  const [isListening, setIsListening] = useState(true);
+  const [isListening, _setIsListening] = useState(true);
   const [controllerType, setControllerType] = useState<ControllerType>('xbox');
   const pollingRef = useRef<number | null>(null);
   const previousButtonsRef = useRef<boolean[]>([]);
@@ -129,9 +129,7 @@ export function GamepadRemapper({
       });
 
       // Update previous button states
-      previousButtonsRef.current = gamepad.buttons.map(
-        (b) => b.pressed || b.value > 0.5
-      );
+      previousButtonsRef.current = gamepad.buttons.map((b) => b.pressed || b.value > 0.5);
 
       // Update pressed buttons for visual feedback
       setPressedButtons(newPressedButtons);
@@ -162,12 +160,9 @@ export function GamepadRemapper({
   }, [isListening, onButtonSelected, onCancel]);
 
   // Handle visual button click
-  const handleButtonClick = useCallback(
-    (button: GamepadButton) => {
-      setSelectedButton(button);
-    },
-    []
-  );
+  const handleButtonClick = useCallback((button: GamepadButton) => {
+    setSelectedButton(button);
+  }, []);
 
   // Confirm selection
   const handleConfirm = useCallback(() => {
@@ -232,9 +227,7 @@ export function GamepadRemapper({
         </span>
       </div>
 
-      <div className={styles.instruction}>
-        PRESS A BUTTON ON YOUR CONTROLLER
-      </div>
+      <div className={styles.instruction}>PRESS A BUTTON ON YOUR CONTROLLER</div>
 
       <div className={styles.gamepadContainer}>
         <div className={`${styles.gamepadVisual} ${styles[controllerType]}`}>

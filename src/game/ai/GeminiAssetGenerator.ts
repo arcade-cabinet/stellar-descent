@@ -8,22 +8,21 @@
  * Supports caching to IndexedDB and graceful fallbacks when API is unavailable.
  */
 
-import { GoogleGenAI, type GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 
 import { getLogger } from '../core/Logger';
 import type {
-  CinematicAssetDef,
-  PortraitAssetDef,
-  QuestImageDef,
-  TextContentDef,
-  VideoGenerationResult,
-  ImageGenerationResult,
-  TextGenerationResult,
   CachedAsset,
   CacheMetadata,
+  CinematicAssetDef,
   GeminiGeneratorOptions,
+  ImageGenerationResult,
+  PortraitAssetDef,
   ProgressCallback,
-  GenerationProgress,
+  QuestImageDef,
+  TextContentDef,
+  TextGenerationResult,
+  VideoGenerationResult,
 } from './types';
 
 const log = getLogger('GeminiAssetGenerator');
@@ -72,7 +71,7 @@ function hashPrompt(prompt: string): string {
   let hash = 0;
   for (let i = 0; i < prompt.length; i++) {
     const char = prompt.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash.toString(16);
@@ -211,7 +210,7 @@ async function getCacheMetadata(): Promise<CacheMetadata | null> {
 /**
  * Update cache metadata
  */
-async function updateCacheMetadata(metadata: CacheMetadata): Promise<void> {
+async function _updateCacheMetadata(metadata: CacheMetadata): Promise<void> {
   try {
     const db = await openCacheDB();
     return new Promise((resolve, reject) => {
@@ -454,9 +453,7 @@ export class GeminiAssetGenerator {
    */
   private buildVideoPrompt(def: CinematicAssetDef): string {
     const styleContext = this.getStyleContext(def.style);
-    const negativePrompt = def.negativePrompt
-      ? `\n\nAvoid: ${def.negativePrompt}`
-      : '';
+    const negativePrompt = def.negativePrompt ? `\n\nAvoid: ${def.negativePrompt}` : '';
 
     return `${styleContext}\n\n${def.prompt}${negativePrompt}`;
   }
@@ -468,9 +465,7 @@ export class GeminiAssetGenerator {
   /**
    * Generate an image using Imagen
    */
-  async generateImage(
-    def: PortraitAssetDef | QuestImageDef
-  ): Promise<ImageGenerationResult> {
+  async generateImage(def: PortraitAssetDef | QuestImageDef): Promise<ImageGenerationResult> {
     const startTime = performance.now();
 
     // Check cache first
@@ -498,9 +493,7 @@ export class GeminiAssetGenerator {
     try {
       // Use high quality model for larger resolutions
       const model =
-        def.resolution === '4K' || def.resolution === '2K'
-          ? MODELS.imageHighQuality
-          : MODELS.image;
+        def.resolution === '4K' || def.resolution === '2K' ? MODELS.imageHighQuality : MODELS.image;
 
       log.info(`Generating image: ${def.id} using ${model}`);
 
@@ -700,8 +693,7 @@ export class GeminiAssetGenerator {
       texts: [] as TextGenerationResult[],
     };
 
-    const total =
-      cinematics.length + portraits.length + questImages.length + textContent.length;
+    const total = cinematics.length + portraits.length + questImages.length + textContent.length;
     let completed = 0;
 
     const updateProgress = (assetId: string, type: 'video' | 'image' | 'text') => {
@@ -799,9 +791,7 @@ export class GeminiAssetGenerator {
       reader.onloadend = () => {
         const base64 = reader.result as string;
         // Remove data URL prefix if present
-        const base64Data = base64.includes(',')
-          ? base64.split(',')[1]
-          : base64;
+        const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
         resolve(base64Data);
       };
       reader.onerror = reject;
@@ -870,9 +860,7 @@ let generatorInstance: GeminiAssetGenerator | null = null;
 /**
  * Get or create the global GeminiAssetGenerator instance
  */
-export function getGeminiGenerator(
-  options?: GeminiGeneratorOptions
-): GeminiAssetGenerator {
+export function getGeminiGenerator(options?: GeminiGeneratorOptions): GeminiAssetGenerator {
   if (!generatorInstance) {
     generatorInstance = new GeminiAssetGenerator(options);
   }

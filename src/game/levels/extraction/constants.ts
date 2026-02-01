@@ -4,7 +4,7 @@
  * Contains all constant values for the extraction level.
  */
 
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { WaveConfig } from './types';
 

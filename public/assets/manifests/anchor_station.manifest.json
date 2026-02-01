@@ -13,11 +13,7 @@
     "generationTimeMs": 63127.08120900001,
     "fileSizeBytes": 4414652,
     "levelId": "anchor_station",
-    "tags": [
-      "cinematic",
-      "intro",
-      "anchor_station"
-    ],
+    "tags": ["cinematic", "intro", "anchor_station"],
     "durationSeconds": 8,
     "resolution": "720p",
     "aspectRatio": "16:9",

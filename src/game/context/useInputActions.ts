@@ -1,33 +1,30 @@
 /**
  * Input Actions Utility
  *
- * Provides a way to check if specific actions are active based on
- * the current keybindings. This is used by game levels to read player
- * input using the user-configurable keybindings.
+ * This module provides backwards compatibility for code that still imports from
+ * the context directory. All functionality is now in the useKeybindingsStore.
  *
- * For non-React contexts (like Babylon.js levels), we need to access
- * keybindings differently since we can't use hooks directly.
- *
- * This module also provides singleton accessors for dynamic action
- * registration, allowing BabylonJS levels to register context-specific
- * keybindings (e.g., vehicle controls, squad commands).
+ * For new code, import directly from '../stores/useKeybindingsStore'.
  */
 
-import type { BindableAction, DynamicAction, Keybindings } from './KeybindingsContext';
-import { DEFAULT_KEYBINDINGS, getKeysForAction, getPrimaryKey } from './KeybindingsContext';
-
-const STORAGE_KEY = 'stellar-descent-keybindings';
+import type { BindableAction, Keybindings } from '../stores/useKeybindingsStore';
+import {
+  clearAllDynamicActions as clearAllDynamicActionsFromStore,
+  type DynamicAction,
+  getActiveDynamicActions as getActiveDynamicActionsFromStore,
+  getKeybindings as getKeybindingsFromStore,
+  getKeysForAction,
+  getPrimaryKey,
+  registerDynamicActions as registerDynamicActionsFromStore,
+  unregisterDynamicActions as unregisterDynamicActionsFromStore,
+} from '../stores/useKeybindingsStore';
 
 /**
- * Load keybindings from localStorage (for use outside React)
+ * Load keybindings from the store (for use outside React)
+ * @deprecated Import getKeybindings from '../stores/useKeybindingsStore' instead
  */
 export function getKeybindings(): Keybindings {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    return { ...DEFAULT_KEYBINDINGS, ...parsed };
-  }
-  return { ...DEFAULT_KEYBINDINGS };
+  return getKeybindingsFromStore();
 }
 
 /**
@@ -35,6 +32,8 @@ export function getKeybindings(): Keybindings {
  *
  * This class tracks the current state of keyboard and mouse inputs
  * and maps them to game actions using the user's keybindings.
+ *
+ * @deprecated Use InputManager from '../input/InputManager' instead
  */
 export class InputTracker {
   private keysPressed: Set<string> = new Set();
@@ -47,7 +46,7 @@ export class InputTracker {
   private mouseupHandler: (e: MouseEvent) => void;
 
   constructor() {
-    this.keybindings = getKeybindings();
+    this.keybindings = getKeybindingsFromStore();
 
     this.keydownHandler = this.handleKeyDown.bind(this);
     this.keyupHandler = this.handleKeyUp.bind(this);
@@ -96,11 +95,11 @@ export class InputTracker {
   }
 
   /**
-   * Refresh keybindings from localStorage
+   * Refresh keybindings from the store
    * Call this when returning from settings menu
    */
   refreshKeybindings(): void {
-    this.keybindings = getKeybindings();
+    this.keybindings = getKeybindingsFromStore();
   }
 
   /**
@@ -167,6 +166,7 @@ export class InputTracker {
 /**
  * Singleton input tracker instance
  * Use this in game levels instead of creating multiple trackers
+ * @deprecated Use getInputManager() from '../input/InputManager' instead
  */
 let globalInputTracker: InputTracker | null = null;
 
@@ -186,113 +186,53 @@ export function disposeInputTracker(): void {
 
 // ============================================================================
 // DYNAMIC ACTION REGISTRATION (for non-React contexts)
+// Re-export from the store for backwards compatibility
 // ============================================================================
 
 /**
- * Registered dynamic action with metadata.
- * Mirrors the structure in KeybindingsContext.
- */
-interface RegisteredDynamicAction {
-  action: DynamicAction;
-  levelId: string;
-  category?: string;
-}
-
-/**
- * Registry for dynamic actions.
- * This is a simple in-memory store that levels can use to register/unregister
- * their context-specific actions. The React KeybindingsContext provider
- * observes this registry via the bridge functions below.
- */
-const dynamicActionsRegistry = new Map<string, RegisteredDynamicAction[]>();
-
-/**
- * Callbacks registered by the React KeybindingsProvider to sync state.
- * When levels register/unregister actions, these callbacks notify the
- * React context to update its state.
- */
-type RegistryChangeCallback = () => void;
-let registryChangeCallback: RegistryChangeCallback | null = null;
-
-/**
- * Set the callback that gets invoked when the registry changes.
- * This is called by the KeybindingsProvider to stay in sync.
- */
-export function setDynamicActionsRegistryCallback(callback: RegistryChangeCallback | null): void {
-  registryChangeCallback = callback;
-}
-
-/**
- * Get all currently registered dynamic actions.
- * Used by the React context to read the current state.
- */
-export function getRegisteredDynamicActions(): RegisteredDynamicAction[] {
-  const all: RegisteredDynamicAction[] = [];
-  dynamicActionsRegistry.forEach((levelActions) => {
-    all.push(...levelActions);
-  });
-  return all;
-}
-
-/**
- * Get the list of currently active dynamic action names.
+ * @deprecated Import from '../stores/useKeybindingsStore' instead
  */
 export function getActiveDynamicActions(): DynamicAction[] {
-  const actions: DynamicAction[] = [];
-  dynamicActionsRegistry.forEach((levelActions) => {
-    for (const reg of levelActions) {
-      if (!actions.includes(reg.action)) {
-        actions.push(reg.action);
-      }
-    }
-  });
-  return actions;
+  return getActiveDynamicActionsFromStore();
 }
 
 /**
- * Register dynamic actions for a level.
- * Call this in level initialize() to make context-specific keybindings active.
- *
- * @param levelId - Unique identifier for the level (e.g., 'canyon_run', 'final_escape')
- * @param actions - Array of dynamic actions to register
- * @param category - Optional category for grouping (e.g., 'vehicle', 'squad')
+ * @deprecated Import from '../stores/useKeybindingsStore' instead
  */
 export function registerDynamicActions(
   levelId: string,
   actions: DynamicAction[],
   category?: string
 ): void {
-  const registrations: RegisteredDynamicAction[] = actions.map((action) => ({
-    action,
-    levelId,
-    category,
-  }));
-  dynamicActionsRegistry.set(levelId, registrations);
-
-  // Notify React context of the change
-  registryChangeCallback?.();
+  registerDynamicActionsFromStore(levelId, actions, category);
 }
 
 /**
- * Unregister all dynamic actions for a level.
- * Call this in level dispose() to clean up context-specific keybindings.
- *
- * @param levelId - Unique identifier for the level
+ * @deprecated Import from '../stores/useKeybindingsStore' instead
  */
 export function unregisterDynamicActions(levelId: string): void {
-  dynamicActionsRegistry.delete(levelId);
-
-  // Notify React context of the change
-  registryChangeCallback?.();
+  unregisterDynamicActionsFromStore(levelId);
 }
 
 /**
- * Clear all registered dynamic actions.
- * Useful when resetting the game state.
+ * @deprecated Import from '../stores/useKeybindingsStore' instead
  */
 export function clearAllDynamicActions(): void {
-  dynamicActionsRegistry.clear();
+  clearAllDynamicActionsFromStore();
+}
 
-  // Notify React context of the change
-  registryChangeCallback?.();
+/**
+ * @deprecated This callback is no longer needed as the store handles synchronization
+ */
+export function setDynamicActionsRegistryCallback(_callback: (() => void) | null): void {
+  // No-op - the store handles synchronization internally
+}
+
+/**
+ * @deprecated Import from '../stores/useKeybindingsStore' instead
+ */
+export function getRegisteredDynamicActions() {
+  // Return from the store
+  const { useKeybindingsStore } = require('../stores/useKeybindingsStore');
+  return useKeybindingsStore.getState().getRegisteredDynamicActions();
 }

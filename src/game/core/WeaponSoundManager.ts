@@ -1264,7 +1264,7 @@ export class WeaponSoundManager {
   /**
    * Play reload start sound (beginning of reload animation)
    */
-  playReloadStart(weaponId: WeaponId, volume = 0.3): void {
+  playReloadStart(_weaponId: WeaponId, volume = 0.3): void {
     if (this.isMuted) return;
     const ctx = this.getContext();
     const now = ctx.currentTime;

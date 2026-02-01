@@ -11,15 +11,15 @@
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../core/AudioManager';
 import type { DifficultyLevel } from '../core/DifficultySettings';
-import { getLogger } from '../core/Logger';
 import { type Entity, getEntitiesInRadius } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { damageFeedback } from '../effects/DamageFeedback';
 import { particleManager } from '../effects/ParticleManager';
 
@@ -145,7 +145,10 @@ const SCREEN_SHAKE_RADIUS = 15; // Distance within which player feels screen sha
 /**
  * Default starting grenades per difficulty level
  */
-export const DEFAULT_GRENADES_BY_DIFFICULTY: Record<DifficultyLevel, { frag: number; plasma: number; emp: number }> = {
+export const DEFAULT_GRENADES_BY_DIFFICULTY: Record<
+  DifficultyLevel,
+  { frag: number; plasma: number; emp: number }
+> = {
   easy: { frag: 3, plasma: 2, emp: 2 },
   normal: { frag: 2, plasma: 1, emp: 1 },
   hard: { frag: 1, plasma: 1, emp: 0 },
@@ -198,9 +201,7 @@ export class GrenadeSystem {
     | null = null;
   private onScreenShakeCallback: ((intensity: number) => void) | null = null;
   private onInventoryChangeCallback: (() => void) | null = null;
-  private onGrenadePickupCallback:
-    | ((type: GrenadeType, count: number) => void)
-    | null = null;
+  private onGrenadePickupCallback: ((type: GrenadeType, count: number) => void) | null = null;
 
   // Throw animation state
   private isThrowAnimating = false;
@@ -392,11 +393,7 @@ export class GrenadeSystem {
   /**
    * Throw a grenade from the player's position
    */
-  throwGrenade(
-    position?: Vector3,
-    direction?: Vector3,
-    type?: GrenadeType
-  ): boolean {
+  throwGrenade(position?: Vector3, direction?: Vector3, type?: GrenadeType): boolean {
     if (!this.scene) return false;
 
     const grenadeType = type ?? this.selectedType;
@@ -465,11 +462,7 @@ export class GrenadeSystem {
       this.scene
     );
 
-    const top = MeshBuilder.CreateSphere(
-      `${id}_top`,
-      { diameter: 0.1, segments: 8 },
-      this.scene
-    );
+    const top = MeshBuilder.CreateSphere(`${id}_top`, { diameter: 0.1, segments: 8 }, this.scene);
     top.position.y = 0.12;
     top.parent = body;
 
@@ -789,11 +782,7 @@ export class GrenadeSystem {
   /**
    * Apply explosion damage to entities in radius
    */
-  private applyExplosionDamage(
-    position: Vector3,
-    config: GrenadeConfig,
-    type: GrenadeType
-  ): void {
+  private applyExplosionDamage(position: Vector3, config: GrenadeConfig, type: GrenadeType): void {
     const enemies = getEntitiesInRadius(position, config.radius, (e) => e.tags?.enemy === true);
 
     for (const enemy of enemies) {
@@ -886,7 +875,11 @@ export class GrenadeSystem {
       zone.material.alpha = pulse;
 
       // Apply damage to enemies in zone (once per second approximation)
-      const enemies = getEntitiesInRadius(zone.position, zone.radius, (e) => e.tags?.enemy === true);
+      const enemies = getEntitiesInRadius(
+        zone.position,
+        zone.radius,
+        (e) => e.tags?.enemy === true
+      );
       for (const enemy of enemies) {
         if (enemy.health) {
           const damage = zone.damagePerTick * deltaTime;

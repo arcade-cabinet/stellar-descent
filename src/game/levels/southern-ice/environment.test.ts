@@ -13,7 +13,7 @@
  * - Frost tint materials
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock BabylonJS dependencies
 vi.mock('@babylonjs/core/Lights/pointLight', () => ({
@@ -22,7 +22,14 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
     intensity: 1,
     diffuse: { r: 1, g: 1, b: 1 },
     range: 10,
-    position: { x: 0, y: 0, z: 0, set: vi.fn(), clone: vi.fn().mockReturnThis(), copyFrom: vi.fn() },
+    position: {
+      x: 0,
+      y: 0,
+      z: 0,
+      set: vi.fn(),
+      clone: vi.fn().mockReturnThis(),
+      copyFrom: vi.fn(),
+    },
     dispose: vi.fn(),
   })),
 }));
@@ -81,11 +88,7 @@ vi.mock('@babylonjs/core/Maths/math.color', () => {
       this.b = b;
     }
     static Lerp(a: any, b: any, t: number) {
-      return new MockColor3(
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t
-      );
+      return new MockColor3(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t);
     }
   }
   class MockColor4 {
@@ -442,7 +445,7 @@ describe('Southern Ice Environment', () => {
 
   describe('Blizzard Particle System', () => {
     it('should calculate particle emit rate based on intensity', () => {
-      const baseRate = 500;
+      const _baseRate = 500;
       const intensity = 0.7;
       const emitRate = Math.floor(2000 * intensity);
       expect(emitRate).toBe(1400);
@@ -941,10 +944,7 @@ describe('Southern Ice Environment', () => {
       const testPoint = { x: 250, z: 0 };
       const distFromCenter = Math.sqrt(testPoint.x ** 2 + testPoint.z ** 2);
 
-      const edgeFactor = Math.max(
-        0,
-        (distFromCenter - terrainSize * 0.35) / (terrainSize * 0.15)
-      );
+      const edgeFactor = Math.max(0, (distFromCenter - terrainSize * 0.35) / (terrainSize * 0.15));
       const heightBoost = edgeFactor * edgeFactor * 15;
 
       expect(heightBoost).toBeGreaterThan(0);
@@ -953,7 +953,7 @@ describe('Southern Ice Environment', () => {
 
   describe('Lake Surroundings', () => {
     it('should place research equipment near lake', () => {
-      const lakeCenter = new Vector3(0, 0, -160);
+      const _lakeCenter = new Vector3(0, 0, -160);
       const equipmentPlacements = [
         { name: 'lake_capsule', offset: new Vector3(50, 0, 20) },
         { name: 'lake_vessel', offset: new Vector3(-45, 0, 15) },

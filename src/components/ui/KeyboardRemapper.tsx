@@ -6,15 +6,15 @@
  * - Desktop: Uses "press any key" listening mode
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Keyboard from 'simple-keyboard';
 import 'simple-keyboard/build/css/index.css';
-import { shouldUseVisualKeyboard } from '../../game/utils/PlatformDetector';
 import {
-  type BindableAction,
   ACTION_LABELS,
+  type BindableAction,
   getKeyDisplayName,
-} from '../../game/context/KeybindingsContext';
+} from '../../game/stores/useKeybindingsStore';
+import { shouldUseVisualKeyboard } from '../../game/utils/PlatformDetector';
 import styles from './KeyboardRemapper.module.css';
 
 /**
@@ -127,7 +127,7 @@ export function KeyboardRemapper({
         default: [
           '{esc} ` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
           '{tab} q w e r t y u i o p [ ] \\',
-          '{lock} a s d f g h j k l ; \' {enter}',
+          "{lock} a s d f g h j k l ; ' {enter}",
           '{shift} z x c v b n m , . / {shift}',
           '{ctrl} {alt} {space} {alt} {ctrl}',
         ],

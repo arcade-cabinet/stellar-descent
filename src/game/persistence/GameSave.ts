@@ -11,10 +11,10 @@
  * - New Game Plus (NG+) state
  */
 
-import type { DifficultyLevel } from '../core/DifficultySettings';
-import type { LevelId } from '../levels/types';
-import type { WeaponId } from '../entities/weapons';
 import type { SkullId } from '../collectibles/SkullSystem';
+import type { DifficultyLevel } from '../core/DifficultySettings';
+import type { WeaponId } from '../entities/weapons';
+import type { LevelId } from '../levels/types';
 
 // ============================================================================
 // WEAPON STATE
@@ -221,15 +221,18 @@ export interface GameSave {
   completedQuests: string[];
 
   /** Active quest states (quest ID to state) */
-  activeQuests: Record<string, {
-    questId: string;
-    status: 'available' | 'active' | 'completed' | 'failed';
-    currentObjectiveIndex: number;
-    objectiveProgress: Record<string, number>;
-    objectiveStatus: Record<string, 'pending' | 'active' | 'completed' | 'failed'>;
-    startedAt?: number;
-    completedAt?: number;
-  }>;
+  activeQuests: Record<
+    string,
+    {
+      questId: string;
+      status: 'available' | 'active' | 'completed' | 'failed';
+      currentObjectiveIndex: number;
+      objectiveProgress: Record<string, number>;
+      objectiveStatus: Record<string, 'pending' | 'active' | 'completed' | 'failed'>;
+      startedAt?: number;
+      completedAt?: number;
+    }
+  >;
 
   /** Failed quest IDs */
   failedQuests: string[];
@@ -395,7 +398,7 @@ const DEFAULT_WEAPON_STATES: WeaponSaveState[] = [
 /**
  * Default grenade inventory (normal difficulty)
  */
-const DEFAULT_GRENADES = {
+const _DEFAULT_GRENADES = {
   frag: 2,
   plasma: 1,
   emp: 1,
@@ -404,7 +407,10 @@ const DEFAULT_GRENADES = {
 /**
  * Default grenade counts per difficulty
  */
-const GRENADES_BY_DIFFICULTY: Record<DifficultyLevel, { frag: number; plasma: number; emp: number }> = {
+const GRENADES_BY_DIFFICULTY: Record<
+  DifficultyLevel,
+  { frag: number; plasma: number; emp: number }
+> = {
   easy: { frag: 3, plasma: 2, emp: 2 },
   normal: { frag: 2, plasma: 1, emp: 1 },
   hard: { frag: 1, plasma: 1, emp: 0 },
@@ -483,7 +489,11 @@ export function createNewSave(
     weaponStates: [...DEFAULT_WEAPON_STATES],
     currentWeaponSlot: 0,
     grenades: { ...GRENADES_BY_DIFFICULTY[difficulty] },
-    grenadeStats: { ...DEFAULT_GRENADE_STATS, pickedUp: { frag: 0, plasma: 0, emp: 0 }, used: { frag: 0, plasma: 0, emp: 0 } },
+    grenadeStats: {
+      ...DEFAULT_GRENADE_STATS,
+      pickedUp: { frag: 0, plasma: 0, emp: 0 },
+      used: { frag: 0, plasma: 0, emp: 0 },
+    },
     collectedSkulls: [],
     discoveredAudioLogs: [],
     discoveredSecretAreas: [],
@@ -504,7 +514,9 @@ export function createNewSave(
 /**
  * Generate a default save name based on current date/time and save type
  */
-function generateSaveName(saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave' = 'manual'): string {
+function generateSaveName(
+  saveType: 'manual' | 'auto' | 'checkpoint' | 'quicksave' = 'manual'
+): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');

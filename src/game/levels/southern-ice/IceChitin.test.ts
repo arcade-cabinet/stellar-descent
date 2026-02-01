@@ -11,7 +11,7 @@
  * - Mesh creation and disposal
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // Mock BabylonJS dependencies
 vi.mock('@babylonjs/core/Materials/standardMaterial', () => ({
@@ -36,7 +36,7 @@ vi.mock('@babylonjs/core/Maths/math.color', () => ({
     scale: vi.fn().mockReturnThis(),
     clone: vi.fn().mockReturnThis(),
   })),
-  Color3Lerp: vi.fn().mockImplementation((a, b, t) => ({ r: 0.5, g: 0.5, b: 0.5 })),
+  Color3Lerp: vi.fn().mockImplementation((_a, _b, _t) => ({ r: 0.5, g: 0.5, b: 0.5 })),
 }));
 
 // Add Color3.Lerp static method
@@ -47,7 +47,7 @@ const Color3Mock = vi.fn().mockImplementation((r = 0, g = 0, b = 0) => ({
   scale: vi.fn().mockReturnThis(),
   clone: vi.fn().mockReturnThis(),
 }));
-(Color3Mock as any).Lerp = vi.fn().mockImplementation((a, b, t) => ({ r: 0.5, g: 0.5, b: 0.5 }));
+(Color3Mock as any).Lerp = vi.fn().mockImplementation((_a, _b, _t) => ({ r: 0.5, g: 0.5, b: 0.5 }));
 
 vi.mock('@babylonjs/core/Maths/math.vector', () => {
   class MockVector3 {
@@ -183,13 +183,13 @@ vi.mock('../../core/Logger', () => ({
 
 // Import after mocks
 import {
-  ICE_CHITIN_SPECIES,
-  ICE_CHITIN_RESISTANCES,
-  FROST_AURA,
-  ICE_SHARD_PROJECTILE,
   BURROW_CONFIG,
-  type IceChitinState,
+  FROST_AURA,
+  ICE_CHITIN_RESISTANCES,
+  ICE_CHITIN_SPECIES,
+  ICE_SHARD_PROJECTILE,
   type IceChitinInstance,
+  type IceChitinState,
 } from '../../entities/IceChitin';
 
 // ============================================================================
@@ -615,7 +615,7 @@ describe('IceChitin', () => {
 
     it('should transition from burrowing to underground after duration', () => {
       let state: IceChitinState = 'burrowing';
-      let stateTimer = BURROW_CONFIG.burrowDuration + 0.1;
+      const stateTimer = BURROW_CONFIG.burrowDuration + 0.1;
 
       if (stateTimer >= BURROW_CONFIG.burrowDuration && state === 'burrowing') {
         state = 'underground';
@@ -626,7 +626,7 @@ describe('IceChitin', () => {
 
     it('should transition from underground to emerging after duration', () => {
       let state: IceChitinState = 'underground';
-      let stateTimer = BURROW_CONFIG.undergroundDuration + 0.1;
+      const stateTimer = BURROW_CONFIG.undergroundDuration + 0.1;
 
       if (stateTimer >= BURROW_CONFIG.undergroundDuration && state === 'underground') {
         state = 'emerging';
@@ -637,7 +637,7 @@ describe('IceChitin', () => {
 
     it('should transition from emerging to chase after duration', () => {
       let state: IceChitinState = 'emerging';
-      let stateTimer = BURROW_CONFIG.emergeDuration + 0.1;
+      const stateTimer = BURROW_CONFIG.emergeDuration + 0.1;
 
       if (stateTimer >= BURROW_CONFIG.emergeDuration && state === 'emerging') {
         state = 'chase';
@@ -845,8 +845,8 @@ describe('IceChitin', () => {
         z: playerPos.z + Math.sin(angle) * distance,
       };
 
-      expect(emergePos.x).toBeCloseTo(55.30, 1);
-      expect(emergePos.z).toBeCloseTo(55.30, 1);
+      expect(emergePos.x).toBeCloseTo(55.3, 1);
+      expect(emergePos.z).toBeCloseTo(55.3, 1);
     });
 
     it('should calculate direction to player', () => {
@@ -858,8 +858,8 @@ describe('IceChitin', () => {
       const length = Math.sqrt(dx * dx + dz * dz);
       const direction = { x: dx / length, z: dz / length };
 
-      expect(direction.x).toBeCloseTo(0.707, 2);
-      expect(direction.z).toBeCloseTo(0.707, 2);
+      expect(direction.x).toBeCloseTo(Math.SQRT1_2, 2);
+      expect(direction.z).toBeCloseTo(Math.SQRT1_2, 2);
     });
 
     it('should calculate facing angle from direction', () => {
@@ -911,8 +911,8 @@ describe('IceChitin', () => {
     });
 
     it('should determine optimal burrow distance', () => {
-      const chitinPos = { x: 0, y: 0, z: 0 };
-      const playerPos = { x: 25, y: 0, z: 0 };
+      const _chitinPos = { x: 0, y: 0, z: 0 };
+      const _playerPos = { x: 25, y: 0, z: 0 };
       const distance = 25;
 
       // Good burrow range: 15-40 meters
@@ -999,9 +999,7 @@ describe('IceChitin', () => {
         z: origin.z + direction.z * t,
       };
 
-      const distance = Math.sqrt(
-        (hitPoint.x - chitinPos.x) ** 2 + (hitPoint.z - chitinPos.z) ** 2
-      );
+      const distance = Math.sqrt((hitPoint.x - chitinPos.x) ** 2 + (hitPoint.z - chitinPos.z) ** 2);
 
       expect(distance < hitRadius).toBe(true);
     });
@@ -1026,9 +1024,7 @@ describe('IceChitin', () => {
         z: origin.z + normDir.z * t,
       };
 
-      const distance = Math.sqrt(
-        (hitPoint.x - chitinPos.x) ** 2 + (hitPoint.z - chitinPos.z) ** 2
-      );
+      const distance = Math.sqrt((hitPoint.x - chitinPos.x) ** 2 + (hitPoint.z - chitinPos.z) ** 2);
 
       expect(distance < hitRadius).toBe(false);
     });

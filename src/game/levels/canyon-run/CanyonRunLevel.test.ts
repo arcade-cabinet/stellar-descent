@@ -100,7 +100,14 @@ vi.mock('@babylonjs/core/scene', () => ({
 
 vi.mock('@babylonjs/core/Cameras/universalCamera', () => ({
   UniversalCamera: vi.fn().mockImplementation(() => ({
-    position: { x: 0, y: 0, z: 0, clone: () => ({ x: 0, y: 0, z: 0 }), set: vi.fn(), copyFrom: vi.fn() },
+    position: {
+      x: 0,
+      y: 0,
+      z: 0,
+      clone: () => ({ x: 0, y: 0, z: 0 }),
+      set: vi.fn(),
+      copyFrom: vi.fn(),
+    },
     rotation: { x: 0, y: 0, z: 0, set: vi.fn() },
     fov: Math.PI / 4,
     attachControl: vi.fn(),
@@ -312,7 +319,15 @@ vi.mock('./environment', () => ({
     leftWalls: [],
     rightWalls: [],
     boulders: [],
-    bridges: [{ mesh: createMockMesh(), position: createMockVector3(0, 8, -1500), isCollapsible: true, collapsed: false, segments: [] }],
+    bridges: [
+      {
+        mesh: createMockMesh(),
+        position: createMockVector3(0, 8, -1500),
+        isCollapsible: true,
+        collapsed: false,
+        segments: [],
+      },
+    ],
     wrecks: [],
     vegetation: [],
     dustEmitters: [],
@@ -396,7 +411,14 @@ vi.mock('./VehicleController', () => ({
 
 // Mock SurfaceLevel base class
 vi.mock('../SurfaceLevel', () => ({
-  SurfaceLevel: vi.fn().mockImplementation(function (this: any, engine, canvas, config, callbacks, options) {
+  SurfaceLevel: vi.fn().mockImplementation(function (
+    this: any,
+    engine,
+    canvas,
+    config,
+    callbacks,
+    options
+  ) {
     this.engine = engine;
     this.canvas = canvas;
     this.config = config;
@@ -436,13 +458,12 @@ vi.mock('../SurfaceLevel', () => ({
   }),
 }));
 
+import type { LevelConfig } from '../types';
 // Import after mocks are set up
 import { CanyonRunLevel } from './CanyonRunLevel';
-import type { LevelCallbacks, LevelConfig } from '../types';
 
 describe('CanyonRunLevel', () => {
   let level: CanyonRunLevel;
-  let mockCallbacks: LevelCallbacks;
   let mockConfig: LevelConfig;
   let mockEngine: any;
   let mockCanvas: HTMLCanvasElement;
@@ -476,23 +497,20 @@ describe('CanyonRunLevel', () => {
       combatTrack: 'combat_vehicle',
     };
 
-    mockCallbacks = {
-      onChapterChange: vi.fn(),
-      onObjectiveUpdate: vi.fn(),
-      onHealthChange: vi.fn(),
-      onKill: vi.fn(),
-      onDamage: vi.fn(),
-      onNotification: vi.fn(),
-      onCommsMessage: vi.fn(),
-      onCinematicStart: vi.fn(),
-      onCinematicEnd: vi.fn(),
-      onCombatStateChange: vi.fn(),
-      onLevelComplete: vi.fn(),
-      onActionGroupsChange: vi.fn(),
-      onActionHandlerRegister: vi.fn(),
-    };
-
-    level = new CanyonRunLevel(mockEngine, mockCanvas, mockConfig, mockCallbacks);
+    level = new CanyonRunLevel(mockEngine, mockCanvas, mockConfig);
+    // Mock emit helper methods on the level instance
+    (level as any).emitNotification = vi.fn();
+    (level as any).emitObjectiveUpdate = vi.fn();
+    (level as any).emitCommsMessage = vi.fn();
+    (level as any).emitHealthChanged = vi.fn();
+    (level as any).emitCombatStateChanged = vi.fn();
+    (level as any).emitActionHandlerRegistered = vi.fn();
+    (level as any).emitActionGroupsChanged = vi.fn();
+    (level as any).emitCinematicStart = vi.fn();
+    (level as any).emitCinematicEnd = vi.fn();
+    (level as any).emitChapterChanged = vi.fn();
+    (level as any).recordKill = vi.fn();
+    (level as any).completeLevel = vi.fn();
   });
 
   afterEach(() => {
@@ -543,7 +561,7 @@ describe('CanyonRunLevel', () => {
       (level as any).transitionToPhase('canyon_approach');
       expect((level as any).phase).toBe('canyon_approach');
       expect((level as any).phaseTime).toBe(0);
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'REACH THE BRIDGE',
         'Drive through the canyon. Watch for obstacles.'
       );
@@ -552,7 +570,7 @@ describe('CanyonRunLevel', () => {
     it('should transition to bridge_crossing', () => {
       (level as any).transitionToPhase('bridge_crossing');
       expect((level as any).phase).toBe('bridge_crossing');
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'CROSS THE BRIDGE',
         'The bridge is unstable - get across fast!'
       );
@@ -561,7 +579,7 @@ describe('CanyonRunLevel', () => {
     it('should transition to final_stretch', () => {
       (level as any).transitionToPhase('final_stretch');
       expect((level as any).phase).toBe('final_stretch');
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'REACH EXTRACTION',
         'Enemy pursuit! Boost to the extraction point!'
       );
@@ -635,7 +653,7 @@ describe('CanyonRunLevel', () => {
 
       (level as any).sendComms('test_id', commsMessage);
       expect((level as any).commsPlayed.has('test_id')).toBe(true);
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith(commsMessage);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledWith(commsMessage);
     });
 
     it('should not send duplicate comms', () => {
@@ -649,7 +667,7 @@ describe('CanyonRunLevel', () => {
       (level as any).sendComms('test_id', commsMessage);
       (level as any).sendComms('test_id', commsMessage);
 
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledTimes(1);
+      expect((level as any).emitCommsMessage).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -801,12 +819,12 @@ describe('CanyonRunLevel', () => {
       (level as any).startIntro();
       expect((level as any).phase).toBe('intro');
       expect((level as any).phaseTime).toBe(0);
-      expect(mockCallbacks.onChapterChange).toHaveBeenCalledWith(3);
-      expect(mockCallbacks.onObjectiveUpdate).toHaveBeenCalledWith(
+      expect((level as any).emitChapterChanged).toHaveBeenCalledWith(3);
+      expect((level as any).emitObjectiveUpdate).toHaveBeenCalledWith(
         'REACH FOB DELTA',
         'Board the vehicle and drive through the canyon.'
       );
-      expect(mockCallbacks.onCinematicStart).toHaveBeenCalled();
+      expect((level as any).emitCinematicStart).toHaveBeenCalled();
     });
   });
 
@@ -819,7 +837,6 @@ describe('CanyonRunLevel', () => {
 
 describe('CanyonRunLevel Integration', () => {
   let level: CanyonRunLevel;
-  let mockCallbacks: LevelCallbacks;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -847,23 +864,19 @@ describe('CanyonRunLevel Integration', () => {
       combatTrack: 'combat_vehicle',
     };
 
-    mockCallbacks = {
-      onChapterChange: vi.fn(),
-      onObjectiveUpdate: vi.fn(),
-      onHealthChange: vi.fn(),
-      onKill: vi.fn(),
-      onDamage: vi.fn(),
-      onNotification: vi.fn(),
-      onCommsMessage: vi.fn(),
-      onCinematicStart: vi.fn(),
-      onCinematicEnd: vi.fn(),
-      onCombatStateChange: vi.fn(),
-      onLevelComplete: vi.fn(),
-      onActionGroupsChange: vi.fn(),
-      onActionHandlerRegister: vi.fn(),
-    };
-
-    level = new CanyonRunLevel(mockEngine as any, mockCanvas, mockConfig, mockCallbacks);
+    level = new CanyonRunLevel(mockEngine as any, mockCanvas, mockConfig);
+    // Mock emit helper methods on the level instance
+    (level as any).emitNotification = vi.fn();
+    (level as any).emitObjectiveUpdate = vi.fn();
+    (level as any).emitCommsMessage = vi.fn();
+    (level as any).emitHealthChanged = vi.fn();
+    (level as any).emitCombatStateChanged = vi.fn();
+    (level as any).emitActionHandlerRegistered = vi.fn();
+    (level as any).emitActionGroupsChanged = vi.fn();
+    (level as any).emitCinematicStart = vi.fn();
+    (level as any).emitCinematicEnd = vi.fn();
+    (level as any).recordKill = vi.fn();
+    (level as any).completeLevel = vi.fn();
   });
 
   describe('Level Flow', () => {
@@ -897,7 +910,7 @@ describe('CanyonRunLevel Integration', () => {
 
       (level as any).sendComms('test_comms', testComms);
 
-      expect(mockCallbacks.onCommsMessage).toHaveBeenCalledWith({
+      expect((level as any).emitCommsMessage).toHaveBeenCalledWith({
         sender: 'Lt. Commander Reyes',
         callsign: 'COMMAND',
         portrait: 'commander',

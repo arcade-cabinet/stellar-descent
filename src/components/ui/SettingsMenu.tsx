@@ -1,5 +1,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { getAudioManager } from '../../game/core/AudioManager';
+import { BUILD_FLAGS } from '../../game/core/BuildConfig';
 import {
   ACTION_LABELS,
   type BindableAction,
@@ -7,7 +9,7 @@ import {
   getKeyDisplayName,
   getPrimaryKey,
   useKeybindings,
-} from '../../game/context/KeybindingsContext';
+} from '../../game/stores/useKeybindingsStore';
 import {
   COLOR_BLIND_MODE_DESCRIPTIONS,
   COLOR_BLIND_MODE_LABELS,
@@ -22,13 +24,11 @@ import {
   SHADOW_QUALITY_OPTIONS,
   type ShadowQuality,
   useSettings,
-} from '../../game/context/SettingsContext';
-import { BUILD_FLAGS } from '../../game/core/BuildConfig';
-import { getAudioManager } from '../../game/core/AudioManager';
+} from '../../game/stores/useSettingsStore';
 import { DifficultySelector } from './DifficultySelector';
+import { KeybindingsSettings } from './KeybindingsSettings';
 import styles from './SettingsMenu.module.css';
 import { SubtitleSettings } from './SubtitleSettings';
-import { KeybindingsSettings } from './KeybindingsSettings';
 
 /**
  * Settings tab categories
@@ -410,8 +410,14 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     return (
       <div className={styles.settingRow}>
         <div className={styles.settingLabelGroup}>
-          <span id={toggleId} className={styles.settingLabel}>{label}</span>
-          {description && <span id={descId} className={styles.settingDescription}>{description}</span>}
+          <span id={toggleId} className={styles.settingLabel}>
+            {label}
+          </span>
+          {description && (
+            <span id={descId} className={styles.settingDescription}>
+              {description}
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -540,7 +546,9 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
         <div className={styles.advancedKeybindingsRow}>
           <div className={styles.keybindingsDescription}>
             <span className={styles.keybindingsLabel}>Advanced Key Binding Editor</span>
-            <span className={styles.keybindingsHint}>Full rebinding with conflict detection and alternative keys</span>
+            <span className={styles.keybindingsHint}>
+              Full rebinding with conflict detection and alternative keys
+            </span>
           </div>
           <button
             type="button"

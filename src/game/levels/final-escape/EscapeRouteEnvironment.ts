@@ -190,9 +190,7 @@ function seededRandom(seed: number): () => number {
  * Assets must be preloaded via AssetManager.preloadLevel('final_escape')
  * before calling this function. Missing assets are skipped with a warning.
  */
-export async function buildEscapeRouteEnvironment(
-  scene: Scene
-): Promise<EscapeRouteResult> {
+export async function buildEscapeRouteEnvironment(scene: Scene): Promise<EscapeRouteResult> {
   log.info('Building escape route environment...');
 
   const root = new TransformNode('EscapeRouteRoot', scene);
@@ -315,7 +313,7 @@ function buildSectionA(
     scale?: Vector3,
     name?: string
   ) => TransformNode | null,
-  proceduralMeshes: Mesh[],
+  _proceduralMeshes: Mesh[],
   lights: PointLight[],
   scene: Scene,
   root: TransformNode,
@@ -343,7 +341,13 @@ function buildSectionA(
   }
 
   // Column pairs along both sides of the tunnel
-  const columnPaths = [ASSETS.column1, ASSETS.column2, ASSETS.column3, ASSETS.columnSlim, ASSETS.columnB];
+  const columnPaths = [
+    ASSETS.column1,
+    ASSETS.column2,
+    ASSETS.column3,
+    ASSETS.columnSlim,
+    ASSETS.columnB,
+  ];
   for (let i = 0; i < numSegments; i++) {
     const z = -i * segmentSpacing;
     const colPath = columnPaths[i % columnPaths.length];
@@ -458,11 +462,7 @@ function buildSectionA(
   }
 
   // Collapse wall glow at tunnel entrance (chasing the player)
-  const collapseLight = new PointLight(
-    'tunnel_collapse_glow',
-    new Vector3(0, 3, 10),
-    scene
-  );
+  const collapseLight = new PointLight('tunnel_collapse_glow', new Vector3(0, 3, 10), scene);
   collapseLight.parent = root;
   collapseLight.diffuse = new Color3(1, 0.3, 0.05);
   collapseLight.intensity = 10;
@@ -484,7 +484,7 @@ function buildSectionB(
     scale?: Vector3,
     name?: string
   ) => TransformNode | null,
-  proceduralMeshes: Mesh[],
+  _proceduralMeshes: Mesh[],
   lights: PointLight[],
   scene: Scene,
   root: TransformNode,
@@ -582,11 +582,7 @@ function buildSectionB(
     placeAsset(
       fencePath,
       new Vector3(side * (18 + rng() * 8), 0, z),
-      new Vector3(
-        (rng() - 0.5) * 0.4,
-        rng() * Math.PI,
-        (rng() - 0.5) * 0.6
-      ),
+      new Vector3((rng() - 0.5) * 0.4, rng() * Math.PI, (rng() - 0.5) * 0.6),
       new Vector3(2, 2, 2),
       `surface_fence_${i}`
     );
@@ -624,7 +620,7 @@ function buildSectionC(
     scale?: Vector3,
     name?: string
   ) => TransformNode | null,
-  proceduralMeshes: Mesh[],
+  _proceduralMeshes: Mesh[],
   lights: PointLight[],
   scene: Scene,
   root: TransformNode,
@@ -816,7 +812,7 @@ function buildSectionD(
   lights: PointLight[],
   scene: Scene,
   root: TransformNode,
-  rng: () => number
+  _rng: () => number
 ): LaunchPadResult {
   const shuttleZ = ESCAPE_SECTIONS.shuttleZ;
 
@@ -868,7 +864,7 @@ function buildSectionD(
 
   // ------- Launch pad platform - use GLB platform asset -------
   // Place a large platform GLB as the landing pad (scaled to ~40m x 40m)
-  const launchPadNode = placeAsset(
+  const _launchPadNode = placeAsset(
     ASSETS.platformLarge,
     new Vector3(0, -0.75, shuttleZ),
     new Vector3(0, 0, 0),
@@ -956,11 +952,7 @@ function buildSectionD(
   // Engine glow lights
   const shuttleEngines: PointLight[] = [];
   for (let i = -1; i <= 1; i++) {
-    const engineLight = new PointLight(
-      `shuttle_engine_${i}`,
-      new Vector3(i * 2, 1.5, 9),
-      scene
-    );
+    const engineLight = new PointLight(`shuttle_engine_${i}`, new Vector3(i * 2, 1.5, 9), scene);
     engineLight.parent = shuttle;
     engineLight.diffuse = new Color3(0.5, 0.7, 1.0);
     engineLight.intensity = 0;
@@ -970,11 +962,7 @@ function buildSectionD(
   }
 
   // Shuttle navigation spotlight
-  const shuttleLight = new PointLight(
-    'shuttle_spotlight',
-    new Vector3(0, 8, shuttleZ),
-    scene
-  );
+  const shuttleLight = new PointLight('shuttle_spotlight', new Vector3(0, 8, shuttleZ), scene);
   shuttleLight.parent = root;
   shuttleLight.diffuse = new Color3(0.3, 0.5, 1.0);
   shuttleLight.intensity = 0;

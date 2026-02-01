@@ -19,7 +19,7 @@
 
 import type { Camera } from '@babylonjs/core/Cameras/camera';
 import { ImageProcessingConfiguration } from '@babylonjs/core/Materials/imageProcessingConfiguration';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector2 } from '@babylonjs/core/Maths/math.vector';
 import { DepthOfFieldEffectBlurLevel } from '@babylonjs/core/PostProcesses/depthOfFieldEffect';
 import { DefaultRenderingPipeline } from '@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline';
@@ -822,7 +822,8 @@ export class PostProcessManager {
     );
 
     // Calculate decay rate to reach base intensity over duration
-    this.effectState.explosionBloomDecay = (explosionBloomIntensity - this.baseBloomIntensity) / duration;
+    this.effectState.explosionBloomDecay =
+      (explosionBloomIntensity - this.baseBloomIntensity) / duration;
   }
 
   /**
@@ -889,7 +890,8 @@ export class PostProcessManager {
    * Per spec: Bloom intensity 1.5 during explosions, applies to muzzle flashes, plasma, explosions.
    */
   private updateExplosionBloom(deltaTime: number): void {
-    if (!this.effectState.explosionBloomActive || !this.pipeline || !this.config.bloomEnabled) return;
+    if (!this.effectState.explosionBloomActive || !this.pipeline || !this.config.bloomEnabled)
+      return;
 
     // Decay bloom back to base intensity
     if (this.effectState.explosionBloomIntensity > this.baseBloomIntensity) {
@@ -989,7 +991,7 @@ export class PostProcessManager {
     }
   }
 
-  private updateLowHealthWarning(deltaTime: number): void {
+  private updateLowHealthWarning(_deltaTime: number): void {
     if (this.effectState.lowHealthPulse > 0 && this.pipeline) {
       // Low health per spec:
       // - Pulsing dark vignette

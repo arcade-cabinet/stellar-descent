@@ -3,24 +3,24 @@
  * Surface enemy spawning, combat AI, and hazard management.
  */
 
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
 import { particleManager } from '../../effects/ParticleManager';
-import type { SurfaceEnemy } from './types';
 import {
-  SURFACE_ENEMY_SPECIES,
-  SURFACE_ENEMY_SCALE,
-  TERRAIN_BOUNDS,
   ACID_POOL_POSITIONS,
+  SURFACE_ENEMY_SCALE,
+  SURFACE_ENEMY_SPECIES,
+  TERRAIN_BOUNDS,
   UNSTABLE_TERRAIN_POSITIONS,
 } from './constants';
+import type { SurfaceEnemy } from './types';
 
 // ---------------------------------------------------------------------------
 // Enemy Spawning
@@ -29,13 +29,10 @@ import {
 /**
  * Calculates spawn points for surface enemies.
  */
-export function calculateSpawnPoints(
-  playerPos: Vector3,
-  count: number
-): Vector3[] {
+export function calculateSpawnPoints(playerPos: Vector3, count: number): Vector3[] {
   const spawnPoints: Vector3[] = [];
   const lzPos = new Vector3(0, 0, 0);
-  const towardsLZ = lzPos.subtract(playerPos).normalize();
+  const _towardsLZ = lzPos.subtract(playerPos).normalize();
 
   for (let i = 0; i < count; i++) {
     const angle = (i / count) * Math.PI - Math.PI / 2;
@@ -66,7 +63,9 @@ export function spawnSurfaceEnemy(
     throw new Error(`[Landfall] No asset mapping for species: ${SURFACE_ENEMY_SPECIES}`);
   }
   if (!preloaded) {
-    throw new Error(`[Landfall] Surface enemies not preloaded - assets must be loaded before spawning`);
+    throw new Error(
+      `[Landfall] Surface enemies not preloaded - assets must be loaded before spawning`
+    );
   }
 
   const enemyMesh = AssetManager.createInstance(
@@ -77,7 +76,9 @@ export function spawnSurfaceEnemy(
   );
 
   if (!enemyMesh) {
-    throw new Error(`[Landfall] Failed to create enemy GLB instance ${index} (${assetName}) - asset not loaded`);
+    throw new Error(
+      `[Landfall] Failed to create enemy GLB instance ${index} (${assetName}) - asset not loaded`
+    );
   }
 
   enemyMesh.scaling.setAll(SURFACE_ENEMY_SCALE);
@@ -140,7 +141,9 @@ export function spawnFirstEncounterEnemy(
     throw new Error(`[Landfall] No asset mapping for species: ${SURFACE_ENEMY_SPECIES}`);
   }
   if (!preloaded) {
-    throw new Error(`[Landfall] Surface enemies not preloaded - assets must be loaded before spawning`);
+    throw new Error(
+      `[Landfall] Surface enemies not preloaded - assets must be loaded before spawning`
+    );
   }
 
   const enemyMesh = AssetManager.createInstance(
@@ -151,7 +154,9 @@ export function spawnFirstEncounterEnemy(
   );
 
   if (!enemyMesh) {
-    throw new Error(`[Landfall] Failed to create first encounter enemy GLB instance ${index} (${assetName}) - asset not loaded`);
+    throw new Error(
+      `[Landfall] Failed to create first encounter enemy GLB instance ${index} (${assetName}) - asset not loaded`
+    );
   }
 
   enemyMesh.scaling.setAll(0.1);
@@ -273,8 +278,14 @@ export function updateEnemyAI(
   }
 
   // Clamp to terrain bounds
-  enemy.mesh.position.x = Math.max(-TERRAIN_BOUNDS + 5, Math.min(TERRAIN_BOUNDS - 5, enemy.mesh.position.x));
-  enemy.mesh.position.z = Math.max(-TERRAIN_BOUNDS + 5, Math.min(TERRAIN_BOUNDS - 5, enemy.mesh.position.z));
+  enemy.mesh.position.x = Math.max(
+    -TERRAIN_BOUNDS + 5,
+    Math.min(TERRAIN_BOUNDS - 5, enemy.mesh.position.x)
+  );
+  enemy.mesh.position.z = Math.max(
+    -TERRAIN_BOUNDS + 5,
+    Math.min(TERRAIN_BOUNDS - 5, enemy.mesh.position.z)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -489,11 +500,7 @@ export function updateAcidPoolVisuals(acidPools: Mesh[], time: number): void {
 export function updateUnstableTerrainVisuals(unstableTerrain: Mesh[], time: number): void {
   for (let i = 0; i < unstableTerrain.length; i++) {
     const terrain = unstableTerrain[i];
-    if (
-      terrain &&
-      terrain.material instanceof StandardMaterial &&
-      terrain.name.includes('crack')
-    ) {
+    if (terrain && terrain.material instanceof StandardMaterial && terrain.name.includes('crack')) {
       const pulse = 0.3 + Math.sin(time * 3 + i * 0.3) * 0.15;
       terrain.material.emissiveColor = new Color3(pulse, pulse * 0.5, pulse * 0.15);
     }

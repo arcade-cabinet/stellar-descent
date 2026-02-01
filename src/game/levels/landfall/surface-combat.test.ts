@@ -6,29 +6,24 @@
  * Target coverage: 95% line, 90% branch
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { ACID_POOL_POSITIONS, TERRAIN_BOUNDS, UNSTABLE_TERRAIN_POSITIONS } from './constants';
 import {
-  calculateSpawnPoints,
-  spawnSurfaceEnemy,
-  spawnFirstEncounterEnemy,
-  updateEnemyAI,
-  flashEnemyRed,
   animateEnemyDeath,
+  calculateSpawnPoints,
+  flashEnemyRed,
   isPlayerInAcidPool,
   isPlayerOnUnstableTerrain,
+  spawnFirstEncounterEnemy,
+  spawnSurfaceEnemy,
   updateAcidPoolVisuals,
+  updateEnemyAI,
   updateUnstableTerrainVisuals,
 } from './surface-combat';
-import {
-  TERRAIN_BOUNDS,
-  SURFACE_ENEMY_SCALE,
-  ACID_POOL_POSITIONS,
-  UNSTABLE_TERRAIN_POSITIONS,
-} from './constants';
-import type { SurfaceEnemy, EnemyState } from './types';
+import type { SurfaceEnemy } from './types';
+
 // ---------------------------------------------------------------------------
 // Mock Setup
 // ---------------------------------------------------------------------------
@@ -93,7 +88,7 @@ vi.mock('@babylonjs/core/Meshes/transformNode', () => ({
 
 vi.mock('../../core/AssetManager', () => ({
   AssetManager: {
-    createInstance: vi.fn((category, asset, name, scene) => ({
+    createInstance: vi.fn((_category, _asset, name, _scene) => ({
       name,
       position: { x: 0, y: 0, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
@@ -805,22 +800,14 @@ describe('isPlayerInAcidPool', () => {
 
   it('should return true when at edge of pool', () => {
     const firstPool = ACID_POOL_POSITIONS[0];
-    const playerPos = new Vector3(
-      firstPool.x + firstPool.radius - 0.1,
-      0,
-      firstPool.z
-    );
+    const playerPos = new Vector3(firstPool.x + firstPool.radius - 0.1, 0, firstPool.z);
 
     expect(isPlayerInAcidPool(playerPos)).toBe(true);
   });
 
   it('should return false when just outside pool', () => {
     const firstPool = ACID_POOL_POSITIONS[0];
-    const playerPos = new Vector3(
-      firstPool.x + firstPool.radius + 0.5,
-      0,
-      firstPool.z
-    );
+    const playerPos = new Vector3(firstPool.x + firstPool.radius + 0.5, 0, firstPool.z);
 
     expect(isPlayerInAcidPool(playerPos)).toBe(false);
   });
@@ -842,11 +829,7 @@ describe('isPlayerOnUnstableTerrain', () => {
 
   it('should return true when at edge of unstable zone', () => {
     const firstTerrain = UNSTABLE_TERRAIN_POSITIONS[0];
-    const playerPos = new Vector3(
-      firstTerrain.x + firstTerrain.size - 0.1,
-      0,
-      firstTerrain.z
-    );
+    const playerPos = new Vector3(firstTerrain.x + firstTerrain.size - 0.1, 0, firstTerrain.z);
 
     expect(isPlayerOnUnstableTerrain(playerPos)).toBe(true);
   });

@@ -31,11 +31,7 @@ type CinematicPhase = 'loading' | 'playing' | 'fadeOut' | 'complete' | 'error';
  * - Progress bar indicator
  * - Error handling for missing videos
  */
-export function CinematicPlayer({
-  src,
-  onComplete,
-  skippable = true,
-}: CinematicPlayerProps) {
+export function CinematicPlayer({ src, onComplete, skippable = true }: CinematicPlayerProps) {
   const [phase, setPhase] = useState<CinematicPhase>('loading');
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);

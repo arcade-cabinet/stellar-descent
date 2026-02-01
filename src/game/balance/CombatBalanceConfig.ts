@@ -303,8 +303,8 @@ export const ENEMY_HEALTH_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, 
   queen: { easy: 2000, normal: 3000, hard: 4000, nightmare: 6000, ultra_nightmare: 8000 },
   // Legacy mappings for backward compatibility
   lurker: { easy: 100, normal: 150, hard: 180, nightmare: 250, ultra_nightmare: 300 }, // Maps to Stalker
-  spewer: { easy: 80, normal: 120, hard: 150, nightmare: 200, ultra_nightmare: 240 },  // Maps to Spitter
-  husk: { easy: 150, normal: 200, hard: 250, nightmare: 350, ultra_nightmare: 400 },   // Maps to Warrior
+  spewer: { easy: 80, normal: 120, hard: 150, nightmare: 200, ultra_nightmare: 240 }, // Maps to Spitter
+  husk: { easy: 150, normal: 200, hard: 250, nightmare: 350, ultra_nightmare: 400 }, // Maps to Warrior
 };
 
 /**
@@ -337,13 +337,13 @@ export const ENEMY_DAMAGE_BY_DIFFICULTY: Record<string, Record<DifficultyLevel, 
  * Allows melee to be more effective against certain enemy types
  */
 export const MELEE_DAMAGE_MULTIPLIER: Record<string, number> = {
-  skitterer: 1.5,   // Dies in 1-2 melee hits (100 * 1.5 = 150 vs 80 HP)
-  spitter: 1.2,     // Medium vulnerability
-  warrior: 1.0,     // Standard damage
-  heavy: 0.8,       // Armored, takes reduced melee damage
-  stalker: 1.3,     // Agile but fragile
+  skitterer: 1.5, // Dies in 1-2 melee hits (100 * 1.5 = 150 vs 80 HP)
+  spitter: 1.2, // Medium vulnerability
+  warrior: 1.0, // Standard damage
+  heavy: 0.8, // Armored, takes reduced melee damage
+  stalker: 1.3, // Agile but fragile
   broodmother: 0.6, // Boss tier, heavily armored
-  queen: 0.5,       // Boss tier, extremely armored
+  queen: 0.5, // Boss tier, extremely armored
   // Legacy mappings
   lurker: 1.3,
   spewer: 1.2,
@@ -704,44 +704,44 @@ export interface TTKTargets {
 
 export const TTK_TARGETS: Record<DifficultyLevel, TTKTargets> = {
   easy: {
-    basicEnemy: [0.3, 0.8],      // Quick kills
-    mediumEnemy: [0.8, 2.0],     // Satisfying kills
-    heavyEnemy: [2.5, 4.0],      // Manageable tanks
-    bossEnemy: [30.0, 60.0],     // Forgiving boss fights
+    basicEnemy: [0.3, 0.8], // Quick kills
+    mediumEnemy: [0.8, 2.0], // Satisfying kills
+    heavyEnemy: [2.5, 4.0], // Manageable tanks
+    bossEnemy: [30.0, 60.0], // Forgiving boss fights
     playerSurvivesHits: [10, 15], // Very forgiving
-    playerTTD: [15, 20],         // Generous survival time
+    playerTTD: [15, 20], // Generous survival time
   },
   normal: {
-    basicEnemy: [0.5, 1.0],      // Skitterer: 0.5-1 second (satisfying quick kills)
-    mediumEnemy: [1.0, 2.0],     // Spitter: 1-2 seconds
-    heavyEnemy: [4.0, 6.0],      // Heavy: 4-6 seconds
-    bossEnemy: [60.0, 90.0],     // Queen: 60-90 seconds (with mechanics)
-    playerSurvivesHits: [8, 12],  // Full health to death: 8-12 seconds
-    playerTTD: [8, 12],          // Allows reaction time but punishes mistakes
+    basicEnemy: [0.5, 1.0], // Skitterer: 0.5-1 second (satisfying quick kills)
+    mediumEnemy: [1.0, 2.0], // Spitter: 1-2 seconds
+    heavyEnemy: [4.0, 6.0], // Heavy: 4-6 seconds
+    bossEnemy: [60.0, 90.0], // Queen: 60-90 seconds (with mechanics)
+    playerSurvivesHits: [8, 12], // Full health to death: 8-12 seconds
+    playerTTD: [8, 12], // Allows reaction time but punishes mistakes
   },
   hard: {
-    basicEnemy: [0.7, 1.3],      // Slightly tankier
-    mediumEnemy: [1.5, 2.5],     // More time required
-    heavyEnemy: [5.0, 8.0],      // Serious threat
-    bossEnemy: [75.0, 120.0],    // Extended boss fights
-    playerSurvivesHits: [5, 8],   // Less forgiving
-    playerTTD: [5, 8],           // Faster death if careless
+    basicEnemy: [0.7, 1.3], // Slightly tankier
+    mediumEnemy: [1.5, 2.5], // More time required
+    heavyEnemy: [5.0, 8.0], // Serious threat
+    bossEnemy: [75.0, 120.0], // Extended boss fights
+    playerSurvivesHits: [5, 8], // Less forgiving
+    playerTTD: [5, 8], // Faster death if careless
   },
   nightmare: {
-    basicEnemy: [1.0, 1.8],      // Even basic enemies are dangerous
-    mediumEnemy: [2.0, 3.5],     // Extended fights
-    heavyEnemy: [7.0, 12.0],     // Major threat
-    bossEnemy: [90.0, 150.0],    // Endurance battles
-    playerSurvivesHits: [3, 5],   // Punishing
-    playerTTD: [3, 5],           // Very fast death if mistakes are made
+    basicEnemy: [1.0, 1.8], // Even basic enemies are dangerous
+    mediumEnemy: [2.0, 3.5], // Extended fights
+    heavyEnemy: [7.0, 12.0], // Major threat
+    bossEnemy: [90.0, 150.0], // Endurance battles
+    playerSurvivesHits: [3, 5], // Punishing
+    playerTTD: [3, 5], // Very fast death if mistakes are made
   },
   ultra_nightmare: {
-    basicEnemy: [1.2, 2.0],      // Every enemy is a serious threat
-    mediumEnemy: [2.5, 4.0],     // Prolonged dangerous encounters
-    heavyEnemy: [8.0, 15.0],     // Massive threat
-    bossEnemy: [120.0, 180.0],   // Epic endurance battles
-    playerSurvivesHits: [2, 3],   // Extremely punishing - 2-3 hits and you're dead
-    playerTTD: [2, 3],           // Instant death territory
+    basicEnemy: [1.2, 2.0], // Every enemy is a serious threat
+    mediumEnemy: [2.5, 4.0], // Prolonged dangerous encounters
+    heavyEnemy: [8.0, 15.0], // Massive threat
+    bossEnemy: [120.0, 180.0], // Epic endurance battles
+    playerSurvivesHits: [2, 3], // Extremely punishing - 2-3 hits and you're dead
+    playerTTD: [2, 3], // Instant death territory
   },
 };
 
@@ -757,9 +757,9 @@ export function getEnemyTier(
     case 'spitter':
     case 'warrior':
     case 'stalker':
-    case 'lurker':  // Legacy
-    case 'husk':    // Legacy
-    case 'spewer':  // Legacy (maps to medium now)
+    case 'lurker': // Legacy
+    case 'husk': // Legacy
+    case 'spewer': // Legacy (maps to medium now)
       return 'mediumEnemy';
     case 'heavy':
       return 'heavyEnemy';
@@ -843,7 +843,10 @@ export function getMeleeDamageMultiplier(enemyId: string): number {
 /**
  * Calculate effective melee damage against an enemy type.
  */
-export function calculateMeleeDamage(enemyId: string, baseMeleeDamage: number = MELEE_BALANCE.baseDamage): number {
+export function calculateMeleeDamage(
+  enemyId: string,
+  baseMeleeDamage: number = MELEE_BALANCE.baseDamage
+): number {
   const multiplier = getMeleeDamageMultiplier(enemyId);
   return Math.round(baseMeleeDamage * multiplier);
 }

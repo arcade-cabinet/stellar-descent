@@ -13,7 +13,7 @@
  * - Flickering emergency lighting
  */
 
-import { AssetEntry, LevelManifest } from '../types';
+import type { AssetEntry, LevelManifest } from '../types';
 
 export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // ENVIRONMENT MODELS - Damaged Station Architecture
@@ -22,63 +22,54 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/environment/station/pillar_hr_1_broken.glb',
     category: 'model',
     sizeKB: 478,
-
   },
   {
     id: 'station/wall_hole_2',
     path: '/assets/models/environment/station/wall_hr_1_hole_2.glb',
     category: 'model',
     sizeKB: 1559,
-
   },
   {
     id: 'station/wall_15',
     path: '/assets/models/environment/station/wall_hr_15.glb',
     category: 'model',
     sizeKB: 858,
-
   },
   {
     id: 'station/floor_ceiling_2_hole',
     path: '/assets/models/environment/station/floor_ceiling_hr_2_hole.glb',
     category: 'model',
     sizeKB: 593,
-
   },
   {
     id: 'station/floor_ceiling_4',
     path: '/assets/models/environment/station/floor_ceiling_hr_4.glb',
     category: 'model',
     sizeKB: 1581,
-
   },
   {
     id: 'station/floor_ceiling_5',
     path: '/assets/models/environment/station/floor_ceiling_hr_5.glb',
     category: 'model',
     sizeKB: 561,
-
   },
   {
     id: 'station/floor_ceiling_6',
     path: '/assets/models/environment/station/floor_ceiling_hr_6.glb',
     category: 'model',
     sizeKB: 931,
-
   },
   {
     id: 'station/beam_rtx_2_pipes',
     path: '/assets/models/environment/station/beam_rtx_2_pipes.glb',
     category: 'model',
     sizeKB: 1400,
-
   },
   {
     id: 'station/doorway_2_wide',
     path: '/assets/models/environment/station/doorway_hr_2_wide.glb',
     category: 'model',
     sizeKB: 1532,
-
   },
 
   // INDUSTRIAL - Exposed Infrastructure
@@ -87,35 +78,30 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/environment/industrial/wires_hr_1.glb',
     category: 'model',
     sizeKB: 125,
-
   },
   {
     id: 'industrial/wires_2',
     path: '/assets/models/environment/industrial/wires_hr_2.glb',
     category: 'model',
     sizeKB: 130,
-
   },
   {
     id: 'industrial/wires_3',
     path: '/assets/models/environment/industrial/wires_hr_3.glb',
     category: 'model',
     sizeKB: 130,
-
   },
   {
     id: 'industrial/wires_holder_large',
     path: '/assets/models/environment/industrial/wires_holder_hr_large_1.glb',
     category: 'model',
     sizeKB: 160,
-
   },
   {
     id: 'industrial/wires_holder_small',
     path: '/assets/models/environment/industrial/wires_holder_hr_small_1.glb',
     category: 'model',
     sizeKB: 120,
-
   },
 
   // ATMOSPHERIC - Horror Elements
@@ -124,7 +110,6 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/atmospheric/hallway 2.glb',
     category: 'model',
     sizeKB: 3976,
-
   },
 
   // PROPS - Battle Damage & Debris
@@ -133,21 +118,18 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/debris/debris_bricks_mx_1.glb',
     category: 'model',
     sizeKB: 100,
-
   },
   {
     id: 'prop/debris_bricks_2',
     path: '/assets/models/props/debris/debris_bricks_mx_2.glb',
     category: 'model',
     sizeKB: 100,
-
   },
   {
     id: 'prop/gravel_1',
     path: '/assets/models/props/debris/gravel_pile_hr_1.glb',
     category: 'model',
     sizeKB: 150,
-
   },
 
   // PROPS - Evidence & Story Items
@@ -156,14 +138,12 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/weapons/flare_mx_1.glb',
     category: 'model',
     sizeKB: 50,
-
   },
   {
     id: 'prop/flare_used',
     path: '/assets/models/props/weapons/flare_mx_1_used.glb',
     category: 'model',
     sizeKB: 50,
-
   },
 
   // PROPS - Furniture & Interior
@@ -172,21 +152,18 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/furniture/shelf_mx_2.glb',
     category: 'model',
     sizeKB: 140,
-
   },
   {
     id: 'prop/shelf_3',
     path: '/assets/models/props/furniture/shelf_mx_3.glb',
     category: 'model',
     sizeKB: 140,
-
   },
   {
     id: 'prop/ladder',
     path: '/assets/models/props/furniture/ladder_hr_1_short.glb',
     category: 'model',
     sizeKB: 80,
-
   },
 
   // PROPS - Doors
@@ -195,14 +172,12 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/doors/door_hr_8.glb',
     category: 'model',
     sizeKB: 135,
-
   },
   {
     id: 'prop/door_14',
     path: '/assets/models/props/doors/door_hr_14.glb',
     category: 'model',
     sizeKB: 140,
-
   },
 
   // PROPS - Emergency Lighting
@@ -211,14 +186,12 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/electrical/lamp_mx_4_on.glb',
     category: 'model',
     sizeKB: 75,
-
   },
   {
     id: 'prop/lamp_4_off',
     path: '/assets/models/props/electrical/lamp_mx_4_off.glb',
     category: 'model',
     sizeKB: 75,
-
   },
 
   // TEXTURES - Rust & Decay
@@ -227,21 +200,18 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/textures/levels/fob-delta/Rust005_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/rust_normal',
     path: '/assets/textures/levels/fob-delta/Rust005_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/rust_roughness',
     path: '/assets/textures/levels/fob-delta/Rust005_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
 
   // TEXTURES - Concrete
@@ -250,21 +220,18 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/textures/levels/fob-delta/Concrete033_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/concrete_normal',
     path: '/assets/textures/levels/fob-delta/Concrete033_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/concrete_roughness',
     path: '/assets/textures/levels/fob-delta/Concrete033_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
 
   // TEXTURES - Painted Metal
@@ -273,21 +240,18 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/textures/levels/fob-delta/PaintedMetal009_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/painted_metal_normal',
     path: '/assets/textures/levels/fob-delta/PaintedMetal009_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/painted_metal_roughness',
     path: '/assets/textures/levels/fob-delta/PaintedMetal009_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
 
   // TEXTURES - Surface Damage
@@ -296,21 +260,18 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_Color.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/damage_normal',
     path: '/assets/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_NormalGL.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
   {
     id: 'tex/fob/damage_roughness',
     path: '/assets/textures/levels/fob-delta/SurfaceImperfections004_1K-JPG_Roughness.jpg',
     category: 'texture',
     sizeKB: 200,
-
   },
 
   // TEXTURES - Skybox
@@ -319,7 +280,6 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/textures/levels/fob-delta/skybox.exr',
     category: 'texture',
     sizeKB: 2000,
-
   },
 
   // QUATERNIUS MODULAR - Damaged/Abandoned Interiors
@@ -664,7 +624,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
     path: '/assets/models/props/doors/door_hr_12.glb',
     category: 'model',
     sizeKB: 130,
-  }
+  },
 ];
 
 export const FOB_DELTA_MANIFEST: LevelManifest = {
@@ -682,7 +642,7 @@ export const FOB_DELTA_MANIFEST: LevelManifest = {
     'prop/lamp_4_on',
     'prop/lamp_4_off',
     'tex/fob/rust',
-    'tex/fob/concrete'
+    'tex/fob/concrete',
   ],
 
   // Preload for smooth horror pacing and combat encounters
@@ -777,7 +737,7 @@ export const FOB_DELTA_MANIFEST: LevelManifest = {
     'decal/graffiti_5',
     'decal/poster_4',
     // Station external silhouette
-    'station-ext/station04'
+    'station-ext/station04',
   ],
 
   // Load on demand for later sections (textures only -- PBR maps)
@@ -790,8 +750,8 @@ export const FOB_DELTA_MANIFEST: LevelManifest = {
     'tex/fob/painted_metal_normal',
     'tex/fob/painted_metal_roughness',
     'tex/fob/damage_normal',
-    'tex/fob/damage_roughness'
-  ]
+    'tex/fob/damage_roughness',
+  ],
 };
 
 /**

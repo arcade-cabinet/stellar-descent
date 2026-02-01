@@ -250,24 +250,9 @@ const CALLOUTS = {
     'Copy that, changing formation!',
     'Moving to new positions!',
   ],
-  COVER: [
-    'Taking cover!',
-    'Getting to cover!',
-    'Find some cover!',
-    'Behind the barrier!',
-  ],
-  RELOAD: [
-    'Reloading!',
-    'Swapping mags!',
-    'Cover me, reloading!',
-    'Mag change!',
-  ],
-  KILL: [
-    'Target down!',
-    'Got one!',
-    'Hostile eliminated!',
-    'Tango down!',
-  ],
+  COVER: ['Taking cover!', 'Getting to cover!', 'Find some cover!', 'Behind the barrier!'],
+  RELOAD: ['Reloading!', 'Swapping mags!', 'Cover me, reloading!', 'Mag change!'],
+  KILL: ['Target down!', 'Got one!', 'Hostile eliminated!', 'Tango down!'],
 };
 
 // ============================================================================
@@ -329,7 +314,12 @@ export class MarineSquadManager {
   /**
    * Create a single marine mesh and data
    */
-  private createMarine(squadId: string, callsign: string, index: number, basePos: Vector3): Marine {
+  private createMarine(
+    squadId: string,
+    _callsign: string,
+    index: number,
+    basePos: Vector3
+  ): Marine {
     const name = this.getUniqueName();
     const marineId = `${squadId}_marine_${index}`;
 
@@ -340,7 +330,11 @@ export class MarineSquadManager {
     const glbPath = MARINE_GLBS[index % MARINE_GLBS.length];
     if (AssetManager.isPathCached(glbPath)) {
       const marineModel = AssetManager.createInstanceByPath(
-        glbPath, `${marineId}_model`, this.scene, true, 'npc'
+        glbPath,
+        `${marineId}_model`,
+        this.scene,
+        true,
+        'npc'
       );
       if (marineModel) {
         marineModel.scaling.setAll(1.0);
@@ -486,7 +480,7 @@ export class MarineSquadManager {
     const squadIndex = this.squads.indexOf(squad);
 
     switch (squad.order) {
-      case 'follow_player':
+      case 'follow_player': {
         // Follow behind player with squad-specific offset to prevent clumping
         const sideOffset = Math.sin((squadIndex * Math.PI) / 2) * MARINE_FOLLOW_DISTANCE;
         const behindOffset = MARINE_FOLLOW_DISTANCE + squadIndex * 3;
@@ -498,6 +492,7 @@ export class MarineSquadManager {
           moveSpeed = MARINE_SPRINT_SPEED;
         }
         break;
+      }
 
       case 'hold_position':
         targetPos = squad.waypointPosition;
@@ -630,7 +625,8 @@ export class MarineSquadManager {
         marine.fireCooldown = 1 / marine.fireRate;
 
         // Calculate hit chance based on morale and distance
-        const distanceFactor = 1 - (Vector3.Distance(marine.position, bestEnemy.position) / marine.attackRange) * 0.3;
+        const distanceFactor =
+          1 - (Vector3.Distance(marine.position, bestEnemy.position) / marine.attackRange) * 0.3;
         const moraleFactor = MARINE_ACCURACY_BASE + squad.morale * MARINE_ACCURACY_MORALE_BONUS;
         const hitChance = distanceFactor * moraleFactor;
 

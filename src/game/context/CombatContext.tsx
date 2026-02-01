@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   type ReactNode,
   useCallback,
@@ -160,7 +160,10 @@ export function CombatProvider({ children, currentChapter }: CombatProviderProps
   // Hit marker management
   const addHitMarker = useCallback((damage: number, isCritical = false, isKill = false) => {
     const id = hitMarkerIdRef.current++;
-    setHitMarkers((prev) => [...prev, { id, damage, isCritical, isKill, timestamp: performance.now() }]);
+    setHitMarkers((prev) => [
+      ...prev,
+      { id, damage, isCritical, isKill, timestamp: performance.now() },
+    ]);
   }, []);
 
   const removeHitMarker = useCallback((id: number) => {

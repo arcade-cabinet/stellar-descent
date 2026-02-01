@@ -503,10 +503,7 @@ export const LANDFALL_MANIFEST: LevelManifest = {
   levelId: 'landfall',
 
   // First enemies encountered on the surface
-  required: [
-    'enemy/spider',
-    'enemy/scout',
-  ],
+  required: ['enemy/spider', 'enemy/scout'],
 
   // Preload core environment and vehicles for dramatic entrance
   preload: [

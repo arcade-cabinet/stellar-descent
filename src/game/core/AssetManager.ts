@@ -16,11 +16,12 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
+import { getNextLevelId, LEVEL_MANIFESTS } from '../assets';
 import type { LevelId } from '../levels/types';
 import { getLogger } from './Logger';
-import { getNextLevelId, LEVEL_MANIFESTS } from '../assets';
 
 const log = getLogger('AssetManager');
+
 import { getAssetPipeline, type PipelineProgress, type ProgressCallback } from './AssetPipeline';
 import { LODManager } from './LODManager';
 
@@ -437,9 +438,7 @@ class AssetManagerClass {
   ): Promise<TransformNode | null> {
     const asset = await this.loadAsset(category, assetName, scene);
     if (!asset) {
-      log.warn(
-        `loadAndCreateInstance failed: could not load ${category}/${assetName}`
-      );
+      log.warn(`loadAndCreateInstance failed: could not load ${category}/${assetName}`);
       return null;
     }
     return this.createInstance(category, assetName, instanceName, scene);
@@ -608,9 +607,7 @@ class AssetManagerClass {
     const cached = this.cache.get(cacheKey);
 
     if (!cached) {
-      log.warn(
-        `Asset not loaded for path: ${path}. Call loadAssetByPath first.`
-      );
+      log.warn(`Asset not loaded for path: ${path}. Call loadAssetByPath first.`);
       return null;
     }
 

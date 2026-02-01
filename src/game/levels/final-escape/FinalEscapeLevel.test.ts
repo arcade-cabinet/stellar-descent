@@ -124,27 +124,27 @@ describe('Section Management', () => {
 
   describe('Section Display Names', () => {
     it('should have display name for hive_exit', () => {
-      expect(SECTION_DISPLAY_NAMES['hive_exit']).toBe('HIVE EXIT');
+      expect(SECTION_DISPLAY_NAMES.hive_exit).toBe('HIVE EXIT');
     });
 
     it('should have display name for surface_run', () => {
-      expect(SECTION_DISPLAY_NAMES['surface_run']).toBe('SURFACE RUN');
+      expect(SECTION_DISPLAY_NAMES.surface_run).toBe('SURFACE RUN');
     });
 
     it('should have display name for canyon_sprint', () => {
-      expect(SECTION_DISPLAY_NAMES['canyon_sprint']).toBe('CANYON SPRINT');
+      expect(SECTION_DISPLAY_NAMES.canyon_sprint).toBe('CANYON SPRINT');
     });
 
     it('should have display name for launch_pad', () => {
-      expect(SECTION_DISPLAY_NAMES['launch_pad']).toBe('LAUNCH PAD');
+      expect(SECTION_DISPLAY_NAMES.launch_pad).toBe('LAUNCH PAD');
     });
 
     it('should have display name for victory', () => {
-      expect(SECTION_DISPLAY_NAMES['victory']).toBe('ESCAPE SUCCESSFUL');
+      expect(SECTION_DISPLAY_NAMES.victory).toBe('ESCAPE SUCCESSFUL');
     });
 
     it('should have display name for game_over', () => {
-      expect(SECTION_DISPLAY_NAMES['game_over']).toBe('MISSION FAILED');
+      expect(SECTION_DISPLAY_NAMES.game_over).toBe('MISSION FAILED');
     });
   });
 
@@ -166,11 +166,11 @@ describe('Section Management', () => {
     });
 
     it('should have victory as positive ending', () => {
-      expect(SECTION_DISPLAY_NAMES['victory']).toContain('SUCCESSFUL');
+      expect(SECTION_DISPLAY_NAMES.victory).toContain('SUCCESSFUL');
     });
 
     it('should have game_over as negative ending', () => {
-      expect(SECTION_DISPLAY_NAMES['game_over']).toContain('FAILED');
+      expect(SECTION_DISPLAY_NAMES.game_over).toContain('FAILED');
     });
   });
 });
@@ -387,7 +387,7 @@ describe('Tunnel Collapse Logic', () => {
 
     it('should catch up to stationary player', () => {
       const playerZ = -100;
-      let collapseZ = 10;
+      const collapseZ = 10;
       const timeToReach = (collapseZ - playerZ) / TUNNEL_COLLAPSE_SPEED;
       // At 15 m/s, takes ~7.33 seconds to reach player at -100
       expect(timeToReach).toBeCloseTo(7.33, 1);

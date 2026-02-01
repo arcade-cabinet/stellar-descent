@@ -8,7 +8,7 @@
  * Fiery sky. Maximum intensity. Everything is falling apart.
  */
 
-import { AssetEntry, LevelManifest } from '../types';
+import type { AssetEntry, LevelManifest } from '../types';
 
 /**
  * Final Escape exclusive assets
@@ -253,13 +253,13 @@ export const FINAL_ESCAPE_MANIFEST: LevelManifest = {
 
   // Critical assets - must load before level starts
   required: [
-    'enemy/flyingalien',  // Chase enemies pursuing player vehicle
-    'vehicle/phantom',    // Player's escape vehicle
+    'enemy/flyingalien', // Chase enemies pursuing player vehicle
+    'vehicle/phantom', // Player's escape vehicle
   ],
 
   // High priority - load during initial screen
   preload: [
-    'enemy/spider',       // Ground threats during escape
+    'enemy/spider', // Ground threats during escape
 
     // Environment structures
     'env/column_b',

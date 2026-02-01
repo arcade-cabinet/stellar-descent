@@ -10,18 +10,18 @@
  * Permadeath toggle adds +50% XP to any difficulty when enabled
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
-import { useGame } from '../../game/context/GameContext';
+import { useCallback, useEffect, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
 import {
   DIFFICULTY_ORDER,
   DIFFICULTY_PRESETS,
   type DifficultyLevel,
-  PERMADEATH_XP_BONUS,
-  loadPermadeathSetting,
-  savePermadeathSetting,
   isPermadeathActive,
+  loadPermadeathSetting,
+  PERMADEATH_XP_BONUS,
+  savePermadeathSetting,
 } from '../../game/core/DifficultySettings';
+import { useDifficultyStore } from '../../game/difficulty';
 import styles from './DifficultySelector.module.css';
 
 interface DifficultySelectorProps {
@@ -33,8 +33,13 @@ interface DifficultySelectorProps {
   onPermadeathChange?: (enabled: boolean) => void;
 }
 
-export function DifficultySelector({ compact = false, onSelect, onPermadeathChange }: DifficultySelectorProps) {
-  const { difficulty, setDifficulty } = useGame();
+export function DifficultySelector({
+  compact = false,
+  onSelect,
+  onPermadeathChange,
+}: DifficultySelectorProps) {
+  const difficulty = useDifficultyStore((state) => state.difficulty);
+  const setDifficulty = useDifficultyStore((state) => state.setDifficulty);
   const [permadeathEnabled, setPermadeathEnabled] = useState(loadPermadeathSetting);
 
   // Load permadeath setting on mount
@@ -64,8 +69,12 @@ export function DifficultySelector({ compact = false, onSelect, onPermadeathChan
   }, [permadeathEnabled, playClickSound, onPermadeathChange]);
 
   // Split difficulties: top row (easy, normal, hard) and bottom row (nightmare, ultra_nightmare)
-  const topDifficulties = DIFFICULTY_ORDER.filter(d => !['nightmare', 'ultra_nightmare'].includes(d));
-  const bottomDifficulties = DIFFICULTY_ORDER.filter(d => ['nightmare', 'ultra_nightmare'].includes(d));
+  const topDifficulties = DIFFICULTY_ORDER.filter(
+    (d) => !['nightmare', 'ultra_nightmare'].includes(d)
+  );
+  const bottomDifficulties = DIFFICULTY_ORDER.filter((d) =>
+    ['nightmare', 'ultra_nightmare'].includes(d)
+  );
 
   if (compact) {
     // Compact mode: horizontal button row for settings menu
@@ -178,7 +187,9 @@ export function DifficultySelector({ compact = false, onSelect, onPermadeathChan
                 : 'OFF'}
           </div>
           {permadeathActive && !DIFFICULTY_PRESETS[difficulty].modifiers.forcesPermadeath && (
-            <div className={styles.permadeathBonus}>+{Math.round(PERMADEATH_XP_BONUS * 100)}% XP</div>
+            <div className={styles.permadeathBonus}>
+              +{Math.round(PERMADEATH_XP_BONUS * 100)}% XP
+            </div>
           )}
         </button>
 
@@ -202,7 +213,9 @@ export function DifficultySelector({ compact = false, onSelect, onPermadeathChan
               <div className={styles.cardModifiers}>
                 <ModifierBadge label="Enemy HP" value={info.modifiers.enemyHealthMultiplier} />
                 <ModifierBadge label="XP" value={info.modifiers.xpMultiplier} />
-                <span className={`${styles.badge} ${styles.badgeSkull}`}>{'\u2620'} PERMADEATH</span>
+                <span className={`${styles.badge} ${styles.badgeSkull}`}>
+                  {'\u2620'} PERMADEATH
+                </span>
               </div>
             </button>
           );

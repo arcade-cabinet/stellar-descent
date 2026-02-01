@@ -4,8 +4,8 @@
  */
 
 import * as Tone from 'tone';
-import type { MusicTrack } from './types';
 import { MUSIC_PATHS, TRACK_INFO } from './constants';
+import type { MusicTrack } from './types';
 
 /**
  * Music Player class

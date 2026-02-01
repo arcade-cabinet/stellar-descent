@@ -3,21 +3,20 @@
  */
 
 export {
-  getGameTimer,
-  disposeGameTimer,
-  formatTimeMMSS,
-  formatTimeHHMMSS,
-  formatPlayTimeDuration,
-  type TimerSnapshot,
-  type LevelBestTime,
-} from './GameTimer';
-
-export {
-  getGameChronometer,
+  type ChronometerSnapshot,
   disposeGameChronometer,
   GameChronometer,
-  type ChronometerSnapshot,
+  getGameChronometer,
   type LoreDate,
 } from './GameChronometer';
+export {
+  disposeGameTimer,
+  formatPlayTimeDuration,
+  formatTimeHHMMSS,
+  formatTimeMMSS,
+  getGameTimer,
+  type LevelBestTime,
+  type TimerSnapshot,
+} from './GameTimer';
 
 export { useGameTimer, useMissionTime, useTimerRunning } from './useGameTimer';

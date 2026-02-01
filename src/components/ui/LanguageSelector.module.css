@@ -6,7 +6,7 @@
 .container {
   position: relative;
   display: inline-block;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 /* Trigger button */
@@ -76,7 +76,9 @@
   min-width: 200px;
   background: rgba(0, 15, 0, 0.95);
   border: 1px solid var(--color-primary, #00ff00);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 0, 0.1);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 255, 0, 0.1);
   z-index: 1000;
   animation: dropdownFadeIn 0.15s ease;
 }

@@ -6,7 +6,7 @@
  * and interactive elements.
  */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@babylonjs/core/Loading/sceneLoader', () => ({
@@ -649,10 +649,10 @@ describe('Environment - StationEnvironment Interface', () => {
 
 describe('Environment - Shooting Range', () => {
   describe('Calibration System', () => {
-    let mockScene: ReturnType<typeof createMockScene>;
+    let _mockScene: ReturnType<typeof createMockScene>;
 
     beforeEach(() => {
-      mockScene = createMockScene();
+      _mockScene = createMockScene();
     });
 
     it('should start calibration with callbacks', () => {
@@ -821,7 +821,8 @@ describe('Environment - Platforming System', () => {
       };
 
       const checkCrouchZone = (playerPosition: Vector3, isCrouching: boolean) => {
-        const inZoneZ = playerPosition.z >= crouchZone.exit.z && playerPosition.z <= crouchZone.entry.z;
+        const inZoneZ =
+          playerPosition.z >= crouchZone.exit.z && playerPosition.z <= crouchZone.entry.z;
         const inZoneX = Math.abs(playerPosition.x - crouchZone.entry.x) <= crouchZone.width;
 
         return inZoneX && inZoneZ && isCrouching;
@@ -862,7 +863,7 @@ describe('Environment - Platforming System', () => {
 describe('Environment - Door System', () => {
   describe('Corridor Doors', () => {
     it('should open corridor start door', () => {
-      const corridorDoors = {
+      const _corridorDoors = {
         briefingToMovement: { start: createMockMesh('door_start'), end: null },
       };
 
@@ -999,8 +1000,12 @@ describe('Environment - Disposal', () => {
     const clearModelCache = () => {
       for (const [, cachedMeshes] of modelCache) {
         for (const mesh of cachedMeshes) {
-          if (typeof mesh === 'object' && 'dispose' in mesh && !('isDisposed' in mesh && (mesh as {isDisposed: () => boolean}).isDisposed())) {
-            (mesh as {dispose: () => void}).dispose();
+          if (
+            typeof mesh === 'object' &&
+            'dispose' in mesh &&
+            !('isDisposed' in mesh && (mesh as { isDisposed: () => boolean }).isDisposed())
+          ) {
+            (mesh as { dispose: () => void }).dispose();
           }
         }
       }

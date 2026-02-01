@@ -19,10 +19,11 @@
  * - AchievementManager: Tracks NG+ specific achievements
  */
 
+import type { SkullId } from '../collectibles/SkullSystem';
 import type { DifficultyModifiers } from '../core/DifficultySettings';
 import { getLogger } from '../core/Logger';
+import { capacitorDb } from '../db/database';
 import type { WeaponId } from '../entities/weapons';
-import type { SkullId } from '../collectibles/SkullSystem';
 import type { LevelId } from '../levels/types';
 
 const log = getLogger('NewGamePlus');
@@ -34,8 +35,8 @@ const log = getLogger('NewGamePlus');
 /** Maximum number of NG+ completions tracked */
 export const MAX_NG_PLUS_TIER = 7;
 
-/** Storage key for persisting NG+ state */
-const STORAGE_KEY = 'stellar_descent_ngplus';
+/** Database table for persisting NG+ state */
+const TABLE_NGPLUS = 'ngplus_state';
 
 // ============================================================================
 // TYPES
@@ -163,10 +164,7 @@ export const NG_PLUS_BASE_MODIFIERS = {
 /**
  * Starting weapons for NG+ (carried from a standard completion)
  */
-export const NG_PLUS_START_WEAPONS: WeaponId[] = [
-  'assault_rifle',
-  'auto_shotgun',
-];
+export const NG_PLUS_START_WEAPONS: WeaponId[] = ['assault_rifle', 'auto_shotgun'];
 
 /**
  * Additional weapons unlocked per NG+ tier
@@ -277,6 +275,7 @@ export const NG_PLUS_EXCLUSIVE_SKULLS = {
 class NewGamePlusSystemImpl {
   private state: NewGamePlusState;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private changeCallbacks: Set<() => void> = new Set();
 
   constructor() {
@@ -290,15 +289,36 @@ class NewGamePlusSystemImpl {
   /**
    * Initialize the NG+ system, loading persisted state
    */
-  init(): void {
+  async init(): Promise<void> {
     if (this.initialized) return;
-    this.loadFromStorage();
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = this.doInit();
+    return this.initPromise;
+  }
+
+  private async doInit(): Promise<void> {
+    await capacitorDb.init();
+    await this.ensureTable();
+    await this.loadFromStorage();
     this.initialized = true;
     log.info(
       `Initialized: unlocked=${this.state.unlocked}, ` +
         `completions=${this.state.completions}, ` +
         `currentTier=${this.state.currentTier}`
     );
+  }
+
+  /**
+   * Create database table if it doesn't exist
+   */
+  private async ensureTable(): Promise<void> {
+    await capacitorDb.execute(`
+      CREATE TABLE IF NOT EXISTS ${TABLE_NGPLUS} (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
   }
 
   /**
@@ -322,13 +342,16 @@ class NewGamePlusSystemImpl {
   }
 
   /**
-   * Load state from localStorage
+   * Load state from SQLite
    */
-  private loadFromStorage(): void {
+  private async loadFromStorage(): Promise<void> {
     try {
-      const json = localStorage.getItem(STORAGE_KEY);
-      if (json) {
-        const loaded = JSON.parse(json) as Partial<NewGamePlusState>;
+      const rows = await capacitorDb.query<{ key: string; value: string }>(
+        `SELECT key, value FROM ${TABLE_NGPLUS} WHERE key = ?`,
+        ['state']
+      );
+      if (rows.length > 0) {
+        const loaded = JSON.parse(rows[0].value) as Partial<NewGamePlusState>;
         this.state = { ...this.createDefaultState(), ...loaded };
       }
     } catch (error) {
@@ -338,14 +361,20 @@ class NewGamePlusSystemImpl {
   }
 
   /**
-   * Save state to localStorage
+   * Save state to SQLite
    */
   private saveToStorage(): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-    } catch (error) {
+    // Fire and forget - errors are logged but not blocking
+    this.persistToDb().catch((error) => {
       log.error('Failed to save NG+ state:', error);
-    }
+    });
+  }
+
+  private async persistToDb(): Promise<void> {
+    await capacitorDb.run(`INSERT OR REPLACE INTO ${TABLE_NGPLUS} (key, value) VALUES (?, ?)`, [
+      'state',
+      JSON.stringify(this.state),
+    ]);
   }
 
   /**
@@ -514,10 +543,7 @@ class NewGamePlusSystemImpl {
     // Check for NG+ exclusive skull unlocks
     const completedTier = this.state.currentTier;
     for (const [skullId, skull] of Object.entries(NG_PLUS_EXCLUSIVE_SKULLS)) {
-      if (
-        completedTier >= skull.tier &&
-        !this.state.ngPlusSkulls.includes(skullId)
-      ) {
+      if (completedTier >= skull.tier && !this.state.ngPlusSkulls.includes(skullId)) {
         this.state.ngPlusSkulls.push(skullId);
         log.info(`NG+ exclusive skull unlocked: ${skull.name}`);
       }
@@ -531,8 +557,7 @@ class NewGamePlusSystemImpl {
 
     this.persist();
     log.info(
-      `Campaign completed! Completions: ${this.state.completions}, ` +
-        `Tier: ${completedTier}`
+      `Campaign completed! Completions: ${this.state.completions}, ` + `Tier: ${completedTier}`
     );
 
     return reward;
@@ -553,10 +578,7 @@ class NewGamePlusSystemImpl {
     }
 
     // Calculate next tier (capped at MAX)
-    const nextTier = Math.min(
-      this.state.completions,
-      MAX_NG_PLUS_TIER
-    );
+    const nextTier = Math.min(this.state.completions, MAX_NG_PLUS_TIER);
 
     this.state.currentTier = nextTier;
     this.state.currentRunLevelsCompleted = [];
@@ -619,40 +641,16 @@ class NewGamePlusSystemImpl {
     }
 
     // Calculate multiplicative modifiers
-    const enemyHealthMult = Math.pow(
-      NG_PLUS_BASE_MODIFIERS.enemyHealthMultiplier,
-      t
-    );
-    const enemyDamageMult = Math.pow(
-      NG_PLUS_BASE_MODIFIERS.enemyDamageMultiplier,
-      t
-    );
-    const enemyFireRateMult = Math.pow(
-      NG_PLUS_BASE_MODIFIERS.enemyFireRateMultiplier,
-      t
-    );
-    const enemyDetectionMult = Math.pow(
-      NG_PLUS_BASE_MODIFIERS.enemyDetectionMultiplier,
-      t
-    );
-    const spawnRateMult = Math.pow(
-      NG_PLUS_BASE_MODIFIERS.spawnRateMultiplier,
-      t
-    );
-    const resourceDropMult = Math.pow(
-      NG_PLUS_BASE_MODIFIERS.resourceDropMultiplier,
-      t
-    );
+    const enemyHealthMult = NG_PLUS_BASE_MODIFIERS.enemyHealthMultiplier ** t;
+    const enemyDamageMult = NG_PLUS_BASE_MODIFIERS.enemyDamageMultiplier ** t;
+    const enemyFireRateMult = NG_PLUS_BASE_MODIFIERS.enemyFireRateMultiplier ** t;
+    const enemyDetectionMult = NG_PLUS_BASE_MODIFIERS.enemyDetectionMultiplier ** t;
+    const spawnRateMult = NG_PLUS_BASE_MODIFIERS.spawnRateMultiplier ** t;
+    const resourceDropMult = NG_PLUS_BASE_MODIFIERS.resourceDropMultiplier ** t;
 
     // Calculate additive bonuses (capped)
-    const healthBonus = Math.min(
-      NG_PLUS_BASE_MODIFIERS.playerStartHealthBonus * t,
-      150
-    );
-    const armorBonus = Math.min(
-      NG_PLUS_BASE_MODIFIERS.playerStartArmorBonus * t,
-      75
-    );
+    const healthBonus = Math.min(NG_PLUS_BASE_MODIFIERS.playerStartHealthBonus * t, 150);
+    const armorBonus = Math.min(NG_PLUS_BASE_MODIFIERS.playerStartArmorBonus * t, 75);
     const credits = NG_PLUS_BASE_MODIFIERS.bonusCredits * t;
     const scoreMult = 1.0 + NG_PLUS_BASE_MODIFIERS.scoreMultiplierBonus * t;
 
@@ -706,7 +704,7 @@ class NewGamePlusSystemImpl {
   } {
     const mods = this.getModifiers();
     const baseHealth = 100;
-    const baseArmor = 0;
+    const _baseArmor = 0;
     const baseMaxArmor = 100;
 
     return {
@@ -777,8 +775,8 @@ export function getNewGamePlusSystem(): NewGamePlusSystemImpl {
 /**
  * Initialize the NG+ system. Call once at app startup.
  */
-export function initNewGamePlus(): void {
-  getNewGamePlusSystem().init();
+export async function initNewGamePlus(): Promise<void> {
+  await getNewGamePlusSystem().init();
 }
 
 /**

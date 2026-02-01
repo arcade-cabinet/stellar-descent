@@ -10,14 +10,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  getLanguage,
-  setLanguage,
-  onLanguageChange,
-  t as translate,
-  type SupportedLanguage,
-  SUPPORTED_LANGUAGES,
   getCurrentLanguageInfo,
+  getLanguage,
   type LanguageInfo,
+  onLanguageChange,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+  setLanguage,
+  t as translate,
 } from './i18n';
 
 export interface UseTranslationResult {
@@ -72,7 +72,7 @@ export function useTranslation(): UseTranslationResult {
     },
     // Re-create when language changes to ensure fresh translations
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [language]
+    []
   );
 
   // Memoized language setter
@@ -109,4 +109,4 @@ export function useT(): (key: string, params?: Record<string, string | number>) 
 }
 
 // Re-export types and utilities for convenience
-export { type SupportedLanguage, SUPPORTED_LANGUAGES, type LanguageInfo } from './i18n';
+export { type LanguageInfo, SUPPORTED_LANGUAGES, type SupportedLanguage } from './i18n';

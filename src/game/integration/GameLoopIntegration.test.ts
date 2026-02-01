@@ -10,10 +10,10 @@
  * - Level completion conditions
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { createEntity, type Entity, world, queries, removeEntity } from '../core/ecs';
-import { EventBus, getEventBus, disposeEventBus } from '../core/EventBus';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { disposeEventBus, type EventBus, getEventBus } from '../core/EventBus';
+import { createEntity, type Entity, queries, removeEntity, world } from '../core/ecs';
 import { disposeInputManager, getInputManager } from '../input/InputManager';
 
 // Mock Three.js/Babylon.js rendering
@@ -481,7 +481,7 @@ describe('Game Loop Integration', () => {
       const initialProjectileCount = [...queries.projectiles].length;
 
       // Create a projectile
-      const projectile = createEntity({
+      const _projectile = createEntity({
         transform: {
           position: playerEntity.transform!.position.clone(),
           rotation: Vector3.Zero(),
@@ -526,9 +526,7 @@ describe('Game Loop Integration', () => {
       });
 
       const deltaTime = 0.016;
-      projectile.transform!.position.addInPlace(
-        projectile.velocity!.linear.scale(deltaTime)
-      );
+      projectile.transform!.position.addInPlace(projectile.velocity!.linear.scale(deltaTime));
 
       expect(projectile.transform!.position.z).toBeCloseTo(80 * 0.016, 2);
     });

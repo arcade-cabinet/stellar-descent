@@ -50,9 +50,9 @@ import '@babylonjs/core/Animations/animatable';
 
 import { getAchievementManager } from '../../achievements';
 import {
+  type CinematicCallbacks,
   CinematicSystem,
   createFinalEscapeIntroCinematic,
-  type CinematicCallbacks,
 } from '../../cinematics';
 import { AssetManager } from '../../core/AssetManager';
 import { getAudioManager } from '../../core/AudioManager';
@@ -60,22 +60,31 @@ import { getLogger } from '../../core/Logger';
 import { createVehicleDestructionEffect } from '../../vehicles/VehicleUtils';
 
 const log = getLogger('FinalEscapeLevel');
+
+import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
-import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
 import { levelActionParams } from '../../input/InputBridge';
 import { saveSystem } from '../../persistence/SaveSystem';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
-import { SurfaceLevel } from '../SurfaceLevel';
-import { buildFloraFromPlacements, getFinalEscapeFlora } from '../shared/AlienFloraBuilder';
-import { buildCollectibles, type CollectibleSystemResult, getFinalEscapeCollectibles } from '../shared/CollectiblePlacer';
-import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
-import { CollapsingTerrain } from './CollapsingTerrain';
-import { buildEscapeRouteEnvironment, ESCAPE_SECTIONS, type EscapeRouteResult } from './EscapeRouteEnvironment';
-import { EscapeTimer, type TimerUrgency } from './EscapeTimer';
 import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';
 import { GyroscopeManager, type VehicleYokeInput } from '../../weapons/VehicleYoke';
+import { SurfaceLevel } from '../SurfaceLevel';
+import { buildFloraFromPlacements, getFinalEscapeFlora } from '../shared/AlienFloraBuilder';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getFinalEscapeCollectibles,
+} from '../shared/CollectiblePlacer';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
+import type { LevelConfig, LevelId } from '../types';
+import { CollapsingTerrain } from './CollapsingTerrain';
+import {
+  buildEscapeRouteEnvironment,
+  ESCAPE_SECTIONS,
+  type EscapeRouteResult,
+} from './EscapeRouteEnvironment';
+import { EscapeTimer, type TimerUrgency } from './EscapeTimer';
 
 // ============================================================================
 // TYPES
@@ -109,10 +118,10 @@ interface DebrisChunk {
 // Section boundary Z positions (player starts at Z=0 and moves in -Z direction)
 // These match ESCAPE_SECTIONS from EscapeRouteEnvironment.ts
 const SECTION_BOUNDARIES = {
-  hiveExitEnd: ESCAPE_SECTIONS.tunnelEnd,       // -500
-  surfaceRunEnd: ESCAPE_SECTIONS.surfaceEnd,     // -1500
-  canyonSprintEnd: ESCAPE_SECTIONS.canyonEnd,    // -2500
-  launchPad: ESCAPE_SECTIONS.shuttleZ,           // -2900
+  hiveExitEnd: ESCAPE_SECTIONS.tunnelEnd, // -500
+  surfaceRunEnd: ESCAPE_SECTIONS.surfaceEnd, // -1500
+  canyonSprintEnd: ESCAPE_SECTIONS.canyonEnd, // -2500
+  launchPad: ESCAPE_SECTIONS.shuttleZ, // -2900
 } as const;
 
 // GLB paths for vehicle and mech - use available assets
@@ -201,11 +210,9 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
   // Player state
   private playerHealth = 100;
-  private kills = 0;
 
   // Visual effects state
   private screenShakeAccumulator = 0;
-  private environmentalShakeIntensity = 0;
   private skyColorShift = 0;
 
   // Action button callback reference
@@ -235,13 +242,8 @@ export class FinalEscapeLevel extends SurfaceLevel {
   // Flag for vehicle yoke mode
   private vehicleYokeActive = false;
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks, {
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
+    super(engine, canvas, config, {
       terrainSize: 3000,
       heightScale: 20,
       timeOfDay: 0.35, // Dawn - dramatic orange sky
@@ -359,9 +361,9 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Set up timer callbacks
     this.escapeTimer.setOnExpired(() => this.handleTimerExpired());
     this.escapeTimer.setOnUrgencyChange((urgency) => this.handleUrgencyChange(urgency));
-    this.escapeTimer.setOnCheckpoint((bonus, total) => {
+    this.escapeTimer.setOnCheckpoint((bonus, _total) => {
       // Visual checkpoint feedback
-      this.callbacks.onNotification(`>>> CHECKPOINT REACHED <<< +${bonus}s`, 3000);
+      this.emitNotification(`>>> CHECKPOINT REACHED <<< +${bonus}s`, 3000);
 
       // Brief green flash for positive feedback
       this.triggerCheckpointFlash();
@@ -379,10 +381,18 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Build collectibles
     const collectibleRoot = new TransformNode('collectible_root', this.scene);
-    this.collectibleSystem = await buildCollectibles(this.scene, getFinalEscapeCollectibles(), collectibleRoot);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getFinalEscapeCollectibles(),
+      collectibleRoot
+    );
 
     // Register vehicle-specific dynamic keybindings
-    registerDynamicActions('final_escape', ['vehicleBoost', 'vehicleBrake', 'vehicleEject'], 'vehicle');
+    registerDynamicActions(
+      'final_escape',
+      ['vehicleBoost', 'vehicleBrake', 'vehicleEject'],
+      'vehicle'
+    );
 
     // Initialize gyroscope manager for mobile
     this.gyroscopeManager = GyroscopeManager.getInstance();
@@ -457,7 +467,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
         throttleInput: this.vehicleSpeed / (VEHICLE_SPEED * VEHICLE_BOOST_MULTIPLIER),
         brakeInput: 0,
         healthNormalized: Math.max(0, this.playerHealth / 100),
-        boostNormalized: this.isBoosting ? 0.5 : (1 - this.boostCooldownTimer / BOOST_COOLDOWN),
+        boostNormalized: this.isBoosting ? 0.5 : 1 - this.boostCooldownTimer / BOOST_COOLDOWN,
         isBoosting: this.isBoosting,
         speedNormalized: this.vehicleSpeed / (VEHICLE_SPEED * VEHICLE_BOOST_MULTIPLIER),
         deltaTime,
@@ -482,15 +492,17 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.cinematicSystem = null;
 
     // Dispose flora
-    for (const node of this.floraNodes) { node.dispose(false, true); }
+    for (const node of this.floraNodes) {
+      node.dispose(false, true);
+    }
     this.floraNodes = [];
     // Dispose collectibles
     this.collectibleSystem?.dispose();
     this.collectibleSystem = null;
 
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
 
     // Unregister vehicle-specific dynamic keybindings
     unregisterDynamicActions('final_escape');
@@ -738,14 +750,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
     }
 
     // Opening comms
-    this.callbacks.onObjectiveUpdate(
-      'FINAL ESCAPE',
-      'DRIVE TO THE SHUTTLE - THE PLANET IS BREAKING APART'
-    );
+    this.emitObjectiveUpdate('FINAL ESCAPE', 'DRIVE TO THE SHUTTLE - THE PLANET IS BREAKING APART');
 
     // Check if we should play the full intro cinematic (only on first playthrough)
     const currentSave = saveSystem.getCurrentSave();
-    const hasSeenIntro = currentSave?.objectives['final_escape_intro_seen'] ?? false;
+    const hasSeenIntro = currentSave?.objectives.final_escape_intro_seen ?? false;
 
     if (!hasSeenIntro) {
       // Play the full intro cinematic
@@ -786,7 +795,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Start timer after intro
     const startTimeout = setTimeout(() => {
       this.escapeTimer.resume();
-      this.callbacks.onNotification('4:00 - ESCAPE TIMER STARTED', 3000);
+      this.emitNotification('4:00 - ESCAPE TIMER STARTED', 3000);
 
       // Set base camera shake for the entire level (rumbling planet)
       this.setBaseShake(0.5);
@@ -805,18 +814,19 @@ export class FinalEscapeLevel extends SurfaceLevel {
     const cinematicCallbacks: CinematicCallbacks = {
       onCommsMessage: (message) => {
         // Convert CinematicCallbacks message to LevelCallbacks CommsMessage format
-        this.callbacks.onCommsMessage({
+        this.emitCommsMessage({
           sender: message.sender,
           callsign: message.callsign ?? 'ATHENA',
-          portrait: (message.portrait as 'commander' | 'ai' | 'marcus' | 'armory' | 'player') ?? 'ai',
+          portrait:
+            (message.portrait as 'commander' | 'ai' | 'marcus' | 'armory' | 'player') ?? 'ai',
           text: message.text,
         });
       },
       onNotification: (text, duration) => {
-        this.callbacks.onNotification(text, duration ?? 3000);
+        this.emitNotification(text, duration ?? 3000);
       },
       onObjectiveUpdate: (title, instructions) => {
-        this.callbacks.onObjectiveUpdate(title, instructions);
+        this.emitObjectiveUpdate(title, instructions);
       },
       onShakeCamera: (intensity) => {
         this.triggerShake(intensity);
@@ -824,11 +834,11 @@ export class FinalEscapeLevel extends SurfaceLevel {
       onCinematicStart: () => {
         this.cinematicActive = true;
         this.escapeTimer.pause();
-        this.callbacks.onCinematicStart?.();
+        this.emitCinematicStart();
       },
       onCinematicEnd: () => {
         this.cinematicActive = false;
-        this.callbacks.onCinematicEnd?.();
+        this.emitCinematicEnd();
       },
     };
 
@@ -846,16 +856,13 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Create the intro cinematic sequence
     const playerStart = this.camera.position.clone();
-    const sequence = createFinalEscapeIntroCinematic(
-      () => {
-        // Cinematic complete - start the escape
-        this.cinematicActive = false;
-        this.escapeTimer.resume();
-        this.callbacks.onNotification('4:00 - ESCAPE TIMER STARTED', 3000);
-        this.setBaseShake(0.5);
-      },
-      playerStart
-    );
+    const sequence = createFinalEscapeIntroCinematic(() => {
+      // Cinematic complete - start the escape
+      this.cinematicActive = false;
+      this.escapeTimer.resume();
+      this.emitNotification('4:00 - ESCAPE TIMER STARTED', 3000);
+      this.setBaseShake(0.5);
+    }, playerStart);
 
     this.cinematicSystem!.play(sequence);
   }
@@ -883,7 +890,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
       ],
     };
 
-    this.callbacks.onActionGroupsChange([vehicleGroup]);
+    this.emitActionGroupsChanged([vehicleGroup]);
 
     // Register action handler
     this.actionCallback = (actionId: string) => {
@@ -893,7 +900,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
           break;
       }
     };
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
   }
 
   /**
@@ -919,14 +926,12 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Spawn boost particle effect at vehicle exhaust
     if (this.vehicleNode) {
-      particleManager.emit(
-        'explosion',
-        this.vehicleNode.position.add(new Vector3(0, 0.5, 2)),
-        { scale: 0.3 }
-      );
+      particleManager.emit('explosion', this.vehicleNode.position.add(new Vector3(0, 0.5, 2)), {
+        scale: 0.3,
+      });
     }
 
-    this.callbacks.onNotification('BOOST ACTIVE', 1000);
+    this.emitNotification('BOOST ACTIVE', 1000);
   }
 
   /**
@@ -1057,16 +1062,20 @@ export class FinalEscapeLevel extends SurfaceLevel {
    */
   private checkObstacleCollisions(_deltaTime: number): void {
     // Only check in outdoor sections where wreckage exists
-    if (this.section === 'hive_exit' || this.section === 'victory' || this.section === 'game_over') {
+    if (
+      this.section === 'hive_exit' ||
+      this.section === 'victory' ||
+      this.section === 'game_over'
+    ) {
       return;
     }
 
     // Check proximity to major wreckage positions (from EscapeRouteEnvironment)
     const wreckagePositions = [
-      { x: -15, z: -600, radius: 8 },   // Bob wreckage
-      { x: 10, z: -780, radius: 10 },   // Pancake wreckage
-      { x: -20, z: -1000, radius: 7 },  // Spitfire wreckage
-      { x: 5, z: -1200, radius: 12 },   // Zenith wreckage
+      { x: -15, z: -600, radius: 8 }, // Bob wreckage
+      { x: 10, z: -780, radius: 10 }, // Pancake wreckage
+      { x: -20, z: -1000, radius: 7 }, // Spitfire wreckage
+      { x: 5, z: -1200, radius: 12 }, // Zenith wreckage
     ];
 
     const playerX = this.camera.position.x;
@@ -1133,12 +1142,19 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.sectionTime = 0;
 
     // Save checkpoint on major section transitions
-    if (newSection === 'surface_run' || newSection === 'canyon_sprint' || newSection === 'launch_pad') {
+    if (
+      newSection === 'surface_run' ||
+      newSection === 'canyon_sprint' ||
+      newSection === 'launch_pad'
+    ) {
       this.saveCheckpoint(newSection);
     }
 
     // Debug logging (can be enabled via DevMode)
-    if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
+    if (
+      typeof window !== 'undefined' &&
+      (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE
+    ) {
       log.debug(`Section transition: ${previousSection} -> ${newSection}`);
     }
 
@@ -1173,7 +1189,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Checkpoint bonus
     this.escapeTimer.reachCheckpoint('Surface Run');
 
-    this.callbacks.onObjectiveUpdate('SURFACE RUN', 'RACE ACROSS THE SURFACE TO THE CANYON');
+    this.emitObjectiveUpdate('SURFACE RUN', 'RACE ACROSS THE SURFACE TO THE CANYON');
 
     this.queueComms(0.5, {
       sender: 'Corporal Marcus Cole',
@@ -1200,10 +1216,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Checkpoint bonus
     this.escapeTimer.reachCheckpoint('Canyon Sprint');
 
-    this.callbacks.onObjectiveUpdate(
-      'CANYON SPRINT',
-      'NAVIGATE THE CANYON - WATCH FOR FALLING ROCKS'
-    );
+    this.emitObjectiveUpdate('CANYON SPRINT', 'NAVIGATE THE CANYON - WATCH FOR FALLING ROCKS');
 
     this.queueComms(0.5, {
       sender: 'Corporal Marcus Cole',
@@ -1231,7 +1244,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     // Checkpoint bonus
     this.escapeTimer.reachCheckpoint('Launch Pad');
 
-    this.callbacks.onObjectiveUpdate('LAUNCH PAD', 'REACH THE SHUTTLE - ALMOST THERE');
+    this.emitObjectiveUpdate('LAUNCH PAD', 'REACH THE SHUTTLE - ALMOST THERE');
 
     this.queueComms(0.5, {
       sender: 'Corporal Marcus Cole',
@@ -1258,9 +1271,9 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.cinematicTimer = 0;
     this.escapeTimer.pause();
 
-    this.callbacks.onCinematicStart?.();
+    this.emitCinematicStart();
 
-    this.callbacks.onObjectiveUpdate('ESCAPE SUCCESSFUL', 'LAUNCHING TO ORBIT');
+    this.emitObjectiveUpdate('ESCAPE SUCCESSFUL', 'LAUNCHING TO ORBIT');
 
     // Comms
     this.queueComms(0, {
@@ -1299,7 +1312,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
 
     // Complete level after cinematic - trigger credits screen
     const completeTimeout = setTimeout(() => {
-      this.callbacks.onCinematicEnd?.();
+      this.emitCinematicEnd();
       this.state.completed = true;
 
       // Save campaign completion stats
@@ -1312,7 +1325,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
       };
 
       // Log completion stats (can be enabled via debug flag)
-      if (typeof window !== 'undefined' && (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE) {
+      if (
+        typeof window !== 'undefined' &&
+        (window as unknown as { DEBUG_ESCAPE?: boolean }).DEBUG_ESCAPE
+      ) {
         log.info('Campaign complete! Stats:', stats);
       }
 
@@ -1331,7 +1347,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private onEnterGameOver(): void {
     this.cinematicActive = true;
 
-    this.callbacks.onObjectiveUpdate('MISSION FAILED', 'THE PLANET HAS BEEN CONSUMED');
+    this.emitObjectiveUpdate('MISSION FAILED', 'THE PLANET HAS BEEN CONSUMED');
 
     this.queueComms(0, {
       sender: 'PROMETHEUS A.I.',
@@ -1454,7 +1470,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
    */
   private updateLaunchPad(deltaTime: number): void {
     // Maximum destruction
-    const timerState = this.escapeTimer.getState();
+    const _timerState = this.escapeTimer.getState();
     this.collapsingTerrain?.update(deltaTime, 0.9, this.camera.position);
 
     // Pulse shuttle beacon using cached material reference
@@ -1811,7 +1827,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
    */
   private applyDamage(amount: number): void {
     this.playerHealth -= amount;
-    this.callbacks.onHealthChange(Math.max(0, Math.round(this.playerHealth)));
+    this.emitHealthChanged(Math.max(0, Math.round(this.playerHealth)));
     this.updatePlayerHealthVisual(this.playerHealth);
 
     if (amount >= 3) {
@@ -1837,8 +1853,8 @@ export class FinalEscapeLevel extends SurfaceLevel {
     this.playerHealth = 50; // Respawn with half health
     this.escapeTimer.applyDeathPenalty();
 
-    this.callbacks.onHealthChange(50);
-    this.callbacks.onNotification('RESPAWNING - TIME PENALTY', 2000);
+    this.emitHealthChanged(50);
+    this.emitNotification('RESPAWNING - TIME PENALTY', 2000);
     this.triggerDamageFlash(1);
     this.triggerShake(5);
 
@@ -1866,10 +1882,10 @@ export class FinalEscapeLevel extends SurfaceLevel {
   private handleUrgencyChange(urgency: TimerUrgency): void {
     switch (urgency) {
       case 'warning':
-        this.callbacks.onNotification('2 MINUTES REMAINING', 2000);
+        this.emitNotification('2 MINUTES REMAINING', 2000);
         break;
       case 'critical':
-        this.callbacks.onNotification('1 MINUTE REMAINING - HURRY!', 3000);
+        this.emitNotification('1 MINUTE REMAINING - HURRY!', 3000);
         this.queueComms(0, {
           sender: 'PROMETHEUS A.I.',
           callsign: 'ATHENA',
@@ -1878,7 +1894,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
         });
         break;
       case 'final':
-        this.callbacks.onNotification('20 SECONDS!', 3000);
+        this.emitNotification('20 SECONDS!', 3000);
         this.queueComms(0, {
           sender: 'Corporal Marcus Cole',
           callsign: 'TITAN',
@@ -1993,7 +2009,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
     for (let i = toDeliver.length - 1; i >= 0; i--) {
       const idx = toDeliver[i];
       const msg = this.commsQueue[idx];
-      this.callbacks.onCommsMessage({
+      this.emitCommsMessage({
         sender: msg.sender,
         callsign: msg.callsign,
         portrait: msg.portrait,
@@ -2048,7 +2064,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
       boostStr = ' | BOOST: READY';
     }
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       `${urgencyPrefix}${sectionName} - ${timerDisplay}`,
       `SPEED: ${Math.round(this.vehicleSpeed)} m/s${distStr}${boostStr} | HP: ${Math.round(Math.max(0, this.playerHealth))}`
     );

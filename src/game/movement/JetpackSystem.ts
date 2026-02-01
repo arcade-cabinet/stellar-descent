@@ -12,11 +12,10 @@
  * making the player overpowered in combat scenarios.
  */
 
-import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { GPUParticleSystem } from '@babylonjs/core/Particles/gpuParticleSystem';
-import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
+import type { GPUParticleSystem } from '@babylonjs/core/Particles/gpuParticleSystem';
+import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../core/AudioManager';
 import { getLogger } from '../core/Logger';
@@ -87,7 +86,6 @@ interface ThrusterEffect {
  * JetpackSystem - Handles short vertical boost mechanics
  */
 export class JetpackSystem {
-  private scene: Scene | null = null;
   private config: JetpackConfig;
   private state: JetpackState = 'ready';
 
@@ -100,7 +98,6 @@ export class JetpackSystem {
   // Particle systems for thruster effects
   private leftThrusterParticles: ParticleSystem | GPUParticleSystem | null = null;
   private rightThrusterParticles: ParticleSystem | GPUParticleSystem | null = null;
-  private thrusterEmitter: TransformNode | null = null;
   private lastParticleTime = 0;
 
   // Audio loop handle

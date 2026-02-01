@@ -32,16 +32,16 @@
  * - Spatial partitioning for performance optimization
  */
 
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import type { Scene } from '@babylonjs/core/scene';
-import { getLogger } from '../core/Logger';
 import { getAudioManager } from '../core/AudioManager';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 
 const log = getLogger('HazardSystem');
@@ -474,9 +474,6 @@ export class HazardSystem {
     warningMessage: null,
   };
 
-  // Animation time tracking
-  private animationTime = 0;
-
   // Active hazards the player is currently in
   private activeInstantHazards: Set<string> = new Set();
 
@@ -779,7 +776,11 @@ export class HazardSystem {
     hazard.mesh = root;
 
     // Electric light (flickering)
-    const light = new PointLight(`electricity_light_${hazard.id}`, hazard.position.clone(), this.scene);
+    const light = new PointLight(
+      `electricity_light_${hazard.id}`,
+      hazard.position.clone(),
+      this.scene
+    );
     light.diffuse = preset.color;
     light.intensity = preset.glowIntensity;
     light.range = hazard.radius * 2.5;
@@ -841,7 +842,11 @@ export class HazardSystem {
     hazard.mesh = root;
 
     // Frost mist light
-    const light = new PointLight(`freezing_light_${hazard.id}`, hazard.position.clone(), this.scene);
+    const light = new PointLight(
+      `freezing_light_${hazard.id}`,
+      hazard.position.clone(),
+      this.scene
+    );
     light.diffuse = preset.color;
     light.intensity = preset.glowIntensity * 0.4;
     light.range = hazard.radius * 1.5;
@@ -965,7 +970,12 @@ export class HazardSystem {
   /**
    * Add an acid pool hazard
    */
-  addAcidPool(id: string, position: Vector3, radius: number = 2, damage: number = 5): InstantHazard {
+  addAcidPool(
+    id: string,
+    position: Vector3,
+    radius: number = 2,
+    damage: number = 5
+  ): InstantHazard {
     return this.addInstantHazard({
       id,
       type: 'acid_pool',
@@ -993,7 +1003,12 @@ export class HazardSystem {
   /**
    * Add an electricity hazard
    */
-  addElectricity(id: string, position: Vector3, radius: number = 3, damage: number = 15): InstantHazard {
+  addElectricity(
+    id: string,
+    position: Vector3,
+    radius: number = 3,
+    damage: number = 15
+  ): InstantHazard {
     return this.addInstantHazard({
       id,
       type: 'electricity',
@@ -1028,7 +1043,12 @@ export class HazardSystem {
   /**
    * Add a freezing zone hazard
    */
-  addFreezingZone(id: string, position: Vector3, radius: number = 5, damage: number = 2): InstantHazard {
+  addFreezingZone(
+    id: string,
+    position: Vector3,
+    radius: number = 5,
+    damage: number = 2
+  ): InstantHazard {
     return this.addInstantHazard({
       id,
       type: 'freezing',
@@ -1246,7 +1266,7 @@ export class HazardSystem {
     const activeZones: HazardZone[] = [];
     for (const id of nearbyZoneIds) {
       const zone = this.zones.get(id);
-      if (zone && zone.isActive) {
+      if (zone?.isActive) {
         activeZones.push(zone);
       }
     }
@@ -1262,30 +1282,6 @@ export class HazardSystem {
 
     // Update hazard animations
     this.updateHazardAnimations(deltaTime);
-  }
-
-  private getActiveZonesAtPosition(position: Vector3): HazardZone[] {
-    const result: HazardZone[] = [];
-
-    for (const zone of this.zones.values()) {
-      if (!zone.isActive) continue;
-
-      const distance = Vector3.Distance(
-        new Vector3(position.x, 0, position.z),
-        new Vector3(zone.position.x, 0, zone.position.z)
-      );
-
-      if (distance <= zone.radius) {
-        // Check height if specified
-        if (zone.height !== undefined) {
-          const heightDiff = Math.abs(position.y - zone.position.y);
-          if (heightDiff > zone.height / 2) continue;
-        }
-        result.push(zone);
-      }
-    }
-
-    return result;
   }
 
   private updateHazardState(
@@ -1463,7 +1459,7 @@ export class HazardSystem {
     return true;
   }
 
-  private handleInstantHazardDamage(hazard: InstantHazard, deltaTime: number, now: number): void {
+  private handleInstantHazardDamage(hazard: InstantHazard, _deltaTime: number, now: number): void {
     const preset = INSTANT_HAZARD_PRESETS[hazard.type];
     const interval = (hazard.damageInterval ?? preset.damageInterval) * 1000;
 

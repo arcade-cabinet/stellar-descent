@@ -44,6 +44,7 @@ import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('AssaultEnv');
+
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
 
 import '@babylonjs/core/Layers/effectLayerSceneComponent';
@@ -382,7 +383,12 @@ export class AssaultEnvironmentBuilder {
     }
 
     // Executioner -- slightly smaller, on the right
-    const executioner = glbInstance(GLB.executioner, 'fleet_executioner', this.scene, 'environment');
+    const executioner = glbInstance(
+      GLB.executioner,
+      'fleet_executioner',
+      this.scene,
+      'environment'
+    );
     if (executioner) {
       executioner.position.set(350, 280, -900);
       executioner.scaling.setAll(12);
@@ -423,7 +429,12 @@ export class AssaultEnvironmentBuilder {
     const bayTileScale = 2.5;
     for (let tx = 0; tx < 2; tx++) {
       for (let tz = 0; tz < 2; tz++) {
-        const tile = glbInstance(GLB.floorTileDouble, `vehicleBay_tile_${tx}_${tz}`, this.scene, 'environment');
+        const tile = glbInstance(
+          GLB.floorTileDouble,
+          `vehicleBay_tile_${tx}_${tz}`,
+          this.scene,
+          'environment'
+        );
         if (tile) {
           tile.position.set((tx - 0.5) * 5 * bayTileScale, 0, (tz - 0.5) * 3.75 * bayTileScale);
           tile.scaling.setAll(bayTileScale);
@@ -540,13 +551,29 @@ export class AssaultEnvironmentBuilder {
 
     // Front wall -- second segment is a door for access
     this.placeModular(GLB.wall5, 'cmd_frontwall_0', ox, 0, oz + 4 * scale, 0, scale);
-    this.placeModular(GLB.doorSglA, 'cmd_frontdoor', ox + 5.55 * scale, 0, oz + 4 * scale, 0, scale);
+    this.placeModular(
+      GLB.doorSglA,
+      'cmd_frontdoor',
+      ox + 5.55 * scale,
+      0,
+      oz + 4 * scale,
+      0,
+      scale
+    );
 
     // Corner columns
     this.placeModular(GLB.columnSlim, 'cmd_col_0', ox, 0, oz, 0, scale);
     this.placeModular(GLB.columnSlim, 'cmd_col_1', ox + 5.55 * scale * 2, 0, oz, 0, scale);
     this.placeModular(GLB.columnSlim, 'cmd_col_2', ox, 0, oz + 4 * scale, 0, scale);
-    this.placeModular(GLB.columnSlim, 'cmd_col_3', ox + 5.55 * scale * 2, 0, oz + 4 * scale, 0, scale);
+    this.placeModular(
+      GLB.columnSlim,
+      'cmd_col_3',
+      ox + 5.55 * scale * 2,
+      0,
+      oz + 4 * scale,
+      0,
+      scale
+    );
 
     // Roof tiles with pipes
     this.placeModular(GLB.roofCornerPipes, 'cmd_roof_0', ox, 3.09 * scale, oz, 0, scale);
@@ -555,18 +582,38 @@ export class AssaultEnvironmentBuilder {
 
     // Pipes along the exterior
     this.placeModular(GLB.pipes, 'cmd_pipes_0', ox - 0.5, 1.5, oz + 2 * scale, 0, scale * 0.8);
-    this.placeModular(GLB.pipes, 'cmd_pipes_1', ox + 5.55 * scale * 2 + 0.5, 1.5, oz + 2 * scale, Math.PI, scale * 0.8);
+    this.placeModular(
+      GLB.pipes,
+      'cmd_pipes_1',
+      ox + 5.55 * scale * 2 + 0.5,
+      1.5,
+      oz + 2 * scale,
+      Math.PI,
+      scale * 0.8
+    );
 
     // Detail outputs (exhaust vents)
-    this.placeModular(GLB.detailOutput, 'cmd_vent_0', ox - 0.3, 2.8, oz + 1, Math.PI / 2, scale * 0.6);
-    this.placeModular(GLB.detailOutputSm, 'cmd_vent_1', ox - 0.3, 2.0, oz + 3, Math.PI / 2, scale * 0.5);
+    this.placeModular(
+      GLB.detailOutput,
+      'cmd_vent_0',
+      ox - 0.3,
+      2.8,
+      oz + 1,
+      Math.PI / 2,
+      scale * 0.6
+    );
+    this.placeModular(
+      GLB.detailOutputSm,
+      'cmd_vent_1',
+      ox - 0.3,
+      2.0,
+      oz + 3,
+      Math.PI / 2,
+      scale * 0.5
+    );
 
     // Interior light
-    const cmdLight = new PointLight(
-      'cmdPostLight',
-      new Vector3(ox + 5, 3.5, oz + 2),
-      this.scene
-    );
+    const cmdLight = new PointLight('cmdPostLight', new Vector3(ox + 5, 3.5, oz + 2), this.scene);
     cmdLight.diffuse = new Color3(0.9, 0.85, 0.7);
     cmdLight.intensity = 4;
     cmdLight.range = 12;
@@ -590,12 +637,36 @@ export class AssaultEnvironmentBuilder {
 
     // Side walls
     this.placeModular(GLB.wall5, 'arm_leftwall', ox, 0, oz, Math.PI / 2, scale);
-    this.placeModular(GLB.doorSglB, 'arm_rightdoor', ox + 5.55 * scale * 3, 0, oz, Math.PI / 2, scale);
+    this.placeModular(
+      GLB.doorSglB,
+      'arm_rightdoor',
+      ox + 5.55 * scale * 3,
+      0,
+      oz,
+      Math.PI / 2,
+      scale
+    );
 
     // Front wall
     this.placeModular(GLB.wall5, 'arm_frontwall_0', ox, 0, oz + 4 * scale, 0, scale);
-    this.placeModular(GLB.doorSglLong, 'arm_frontdoor', ox + 5.55 * scale, 0, oz + 4 * scale, 0, scale);
-    this.placeModular(GLB.wall5, 'arm_frontwall_2', ox + 5.55 * scale * 2, 0, oz + 4 * scale, 0, scale);
+    this.placeModular(
+      GLB.doorSglLong,
+      'arm_frontdoor',
+      ox + 5.55 * scale,
+      0,
+      oz + 4 * scale,
+      0,
+      scale
+    );
+    this.placeModular(
+      GLB.wall5,
+      'arm_frontwall_2',
+      ox + 5.55 * scale * 2,
+      0,
+      oz + 4 * scale,
+      0,
+      scale
+    );
 
     // Columns at corners
     for (let c = 0; c < 4; c++) {
@@ -606,15 +677,27 @@ export class AssaultEnvironmentBuilder {
 
     // Roof - mix of pipe variants and orange vent
     this.placeModular(GLB.roofCornerPipes, 'arm_roof_0', ox, 3.09 * scale, oz, 0, scale);
-    this.placeModular(GLB.roofOrangeVent, 'arm_roof_1', ox + 5.55 * scale, 3.09 * scale, oz, 0, scale);
-    this.placeModular(GLB.roofInnerPipes, 'arm_roof_2', ox + 5.55 * scale * 2, 3.09 * scale, oz, 0, scale);
+    this.placeModular(
+      GLB.roofOrangeVent,
+      'arm_roof_1',
+      ox + 5.55 * scale,
+      3.09 * scale,
+      oz,
+      0,
+      scale
+    );
+    this.placeModular(
+      GLB.roofInnerPipes,
+      'arm_roof_2',
+      ox + 5.55 * scale * 2,
+      3.09 * scale,
+      oz,
+      0,
+      scale
+    );
 
     // Interior light
-    const armLight = new PointLight(
-      'armoryLight',
-      new Vector3(ox + 10, 3.5, oz + 2.5),
-      this.scene
-    );
+    const armLight = new PointLight('armoryLight', new Vector3(ox + 10, 3.5, oz + 2.5), this.scene);
     armLight.diffuse = new Color3(1.0, 0.85, 0.6);
     armLight.intensity = 5;
     armLight.range = 14;
@@ -643,18 +726,37 @@ export class AssaultEnvironmentBuilder {
 
     // Left perimeter wall
     for (let i = 0; i < 3; i++) {
-      this.placeModular(GLB.wall5, `perim_left_${i}`, -32, 0, -5 - i * 4 * scale, Math.PI / 2, scale);
+      this.placeModular(
+        GLB.wall5,
+        `perim_left_${i}`,
+        -32,
+        0,
+        -5 - i * 4 * scale,
+        Math.PI / 2,
+        scale
+      );
     }
 
     // Right perimeter wall
     for (let i = 0; i < 3; i++) {
-      this.placeModular(GLB.wall5, `perim_right_${i}`, 32, 0, -5 - i * 4 * scale, Math.PI / 2, scale);
+      this.placeModular(
+        GLB.wall5,
+        `perim_right_${i}`,
+        32,
+        0,
+        -5 - i * 4 * scale,
+        Math.PI / 2,
+        scale
+      );
     }
 
     // Barricade cover positions at the gate opening (GLB barricades)
     const barricadeGlbs = [
-      GLB.barricadeB1, GLB.barricadeB2, GLB.barricadeB3,
-      GLB.barricadeB4, GLB.barricadeB1,
+      GLB.barricadeB1,
+      GLB.barricadeB2,
+      GLB.barricadeB3,
+      GLB.barricadeB4,
+      GLB.barricadeB1,
     ];
 
     const sandbagPositions = [
@@ -667,7 +769,12 @@ export class AssaultEnvironmentBuilder {
 
     for (let i = 0; i < sandbagPositions.length; i++) {
       const pos = sandbagPositions[i];
-      const barricadeNode = glbInstance(barricadeGlbs[i], `sandbag_staging_${i}`, this.scene, 'prop');
+      const barricadeNode = glbInstance(
+        barricadeGlbs[i],
+        `sandbag_staging_${i}`,
+        this.scene,
+        'prop'
+      );
       if (barricadeNode) {
         barricadeNode.position.set(pos.x, 0, pos.z);
         barricadeNode.rotation.y = pos.rot;
@@ -765,13 +872,14 @@ export class AssaultEnvironmentBuilder {
     const crateGlbs = [GLB.woodenCrate1, GLB.woodenCrate2a, GLB.woodenCrate3];
 
     for (let i = 0; i < 6; i++) {
-      const crateNode = glbInstance(crateGlbs[i % crateGlbs.length], `crate_staging_${i}`, this.scene, 'prop');
+      const crateNode = glbInstance(
+        crateGlbs[i % crateGlbs.length],
+        `crate_staging_${i}`,
+        this.scene,
+        'prop'
+      );
       if (crateNode) {
-        crateNode.position.set(
-          -12 + Math.random() * 8,
-          0,
-          -15 - Math.random() * 10
-        );
+        crateNode.position.set(-12 + Math.random() * 8, 0, -15 - Math.random() * 10);
         crateNode.rotation.y = Math.random() * 0.3;
         crateNode.scaling.setAll(0.8 + Math.random() * 0.4);
         this.allNodes.push(crateNode);
@@ -857,12 +965,7 @@ export class AssaultEnvironmentBuilder {
     // -----------------------------------------------------------------------
     // Boulders -- alien rock GLBs for organic battlefield cover
     // -----------------------------------------------------------------------
-    const boulderGlbs = [
-      GLB.boulderPolyhaven,
-      GLB.rockMedium1,
-      GLB.rockMedium2,
-      GLB.rockMedium3,
-    ];
+    const boulderGlbs = [GLB.boulderPolyhaven, GLB.rockMedium1, GLB.rockMedium2, GLB.rockMedium3];
 
     const boulderPositions = [
       new Vector3(-40, 0, -100),
@@ -926,7 +1029,11 @@ export class AssaultEnvironmentBuilder {
 
         // Register as cover for marines
         fortifications.push({
-          mesh: MeshBuilder.CreateBox(`field_container_cover_${i}`, { width: 3, height: 2, depth: 5 }, this.scene),
+          mesh: MeshBuilder.CreateBox(
+            `field_container_cover_${i}`,
+            { width: 3, height: 2, depth: 5 },
+            this.scene
+          ),
           position: new Vector3(bp.x, 1, bp.z),
           type: 'crate',
           provideCover: true,
@@ -940,7 +1047,13 @@ export class AssaultEnvironmentBuilder {
     // -----------------------------------------------------------------------
     // Terrain ridges -- alien rock GLBs arranged as elongated cover ridges
     // -----------------------------------------------------------------------
-    const ridgeGlbs = [GLB.rockMedium1, GLB.rockMedium2, GLB.rockMedium3, GLB.boulderPolyhaven, GLB.rockMedium1];
+    const ridgeGlbs = [
+      GLB.rockMedium1,
+      GLB.rockMedium2,
+      GLB.rockMedium3,
+      GLB.boulderPolyhaven,
+      GLB.rockMedium1,
+    ];
 
     for (let i = 0; i < 5; i++) {
       const ridgeWidth = 15 + Math.random() * 10;
@@ -951,7 +1064,12 @@ export class AssaultEnvironmentBuilder {
 
       // Place 3 rock GLBs side-by-side to form the ridge line
       for (let r = 0; r < 3; r++) {
-        const rockNode = glbInstance(ridgeGlbs[(i + r) % ridgeGlbs.length], `ridge_rock_${i}_${r}`, this.scene, 'environment');
+        const rockNode = glbInstance(
+          ridgeGlbs[(i + r) % ridgeGlbs.length],
+          `ridge_rock_${i}_${r}`,
+          this.scene,
+          'environment'
+        );
         if (rockNode) {
           rockNode.position.set(
             ridgeX + (r - 1) * ridgeWidth * 0.3,
@@ -1082,7 +1200,7 @@ export class AssaultEnvironmentBuilder {
             (Math.random() - 0.5) * spread * 1.2
           );
           tireNode.rotation.set(
-            Math.PI / 2 * (Math.random() > 0.5 ? 1 : 0),
+            (Math.PI / 2) * (Math.random() > 0.5 ? 1 : 0),
             Math.random() * Math.PI * 2,
             0
           );
@@ -1128,7 +1246,12 @@ export class AssaultEnvironmentBuilder {
     createDebrisCluster('wreck_scorpion', scorpionPos.x, scorpionPos.z, 10, 8, 4, 2);
 
     // Add main hull debris pieces for scorpion
-    const scorpionDebris = glbInstance(GLB.debrisBricks1, 'wreck_scorpion_debris', this.scene, 'prop');
+    const scorpionDebris = glbInstance(
+      GLB.debrisBricks1,
+      'wreck_scorpion_debris',
+      this.scene,
+      'prop'
+    );
     if (scorpionDebris) {
       scorpionDebris.position.set(scorpionPos.x + 2, 0, scorpionPos.z);
       scorpionDebris.scaling.setAll(1.5);
@@ -1159,13 +1282,23 @@ export class AssaultEnvironmentBuilder {
     createDebrisCluster('wreck_pelican', pelicanPos.x, pelicanPos.z, 16, 12, 6, 4);
 
     // Add large gravel pile for crash impact crater
-    const pelicanGravel1 = glbInstance(GLB.gravelPile2, 'wreck_pelican_gravel1', this.scene, 'prop');
+    const pelicanGravel1 = glbInstance(
+      GLB.gravelPile2,
+      'wreck_pelican_gravel1',
+      this.scene,
+      'prop'
+    );
     if (pelicanGravel1) {
       pelicanGravel1.position.set(pelicanPos.x - 3, 0, pelicanPos.z);
       pelicanGravel1.scaling.setAll(1.0);
       this.allNodes.push(pelicanGravel1);
     }
-    const pelicanGravel2 = glbInstance(GLB.gravelPile1, 'wreck_pelican_gravel2', this.scene, 'prop');
+    const pelicanGravel2 = glbInstance(
+      GLB.gravelPile1,
+      'wreck_pelican_gravel2',
+      this.scene,
+      'prop'
+    );
     if (pelicanGravel2) {
       pelicanGravel2.position.set(pelicanPos.x + 4, 0, pelicanPos.z - 2);
       pelicanGravel2.scaling.setAll(0.8);
@@ -1234,8 +1367,14 @@ export class AssaultEnvironmentBuilder {
     const baseGlbs = [GLB.twistedTree1, GLB.twistedTree2, GLB.twistedTree3, GLB.twistedTree4];
     const barrelGlbs = [GLB.deadTree1, GLB.deadTree2, GLB.deadTree3];
     const growthGlbs = [
-      GLB.mushroom01, GLB.mushroom02, GLB.mushroom03, GLB.mushroom04,
-      GLB.mushroomBrown, GLB.mushroomRed, GLB.mushroom07, GLB.mushroom08,
+      GLB.mushroom01,
+      GLB.mushroom02,
+      GLB.mushroom03,
+      GLB.mushroom04,
+      GLB.mushroomBrown,
+      GLB.mushroomRed,
+      GLB.mushroom07,
+      GLB.mushroom08,
     ];
 
     for (let i = 0; i < turretPositions.length; i++) {
@@ -1244,7 +1383,12 @@ export class AssaultEnvironmentBuilder {
       this.allNodes.push(rootNode);
 
       // Organic base -- twisted tree GLB as the main structure
-      const baseNode = glbInstance(baseGlbs[i % baseGlbs.length], `turretBase_glb_${i}`, this.scene, 'environment');
+      const baseNode = glbInstance(
+        baseGlbs[i % baseGlbs.length],
+        `turretBase_glb_${i}`,
+        this.scene,
+        'environment'
+      );
       if (baseNode) {
         baseNode.position.y = 0;
         baseNode.scaling.setAll(0.8);
@@ -1264,7 +1408,12 @@ export class AssaultEnvironmentBuilder {
       this.allMeshes.push(base);
 
       // Barrel assembly -- dead tree GLB angled upward as the weapon
-      const barrelNode = glbInstance(barrelGlbs[i % barrelGlbs.length], `turretBarrel_glb_${i}`, this.scene, 'environment');
+      const barrelNode = glbInstance(
+        barrelGlbs[i % barrelGlbs.length],
+        `turretBarrel_glb_${i}`,
+        this.scene,
+        'environment'
+      );
       if (barrelNode) {
         barrelNode.position.set(0, 2.5, 0.5);
         barrelNode.scaling.set(0.3, 0.6, 0.3);
@@ -1287,7 +1436,12 @@ export class AssaultEnvironmentBuilder {
 
       // Organic growths around base (alien mushroom GLBs)
       for (let g = 0; g < 6; g++) {
-        const growthNode = glbInstance(growthGlbs[g % growthGlbs.length], `turretGrowth_${i}_${g}`, this.scene, 'prop');
+        const growthNode = glbInstance(
+          growthGlbs[g % growthGlbs.length],
+          `turretGrowth_${i}_${g}`,
+          this.scene,
+          'prop'
+        );
         if (growthNode) {
           const gAngle = (g / 6) * Math.PI * 2;
           const gRadius = 2.5 + Math.random() * 2;
@@ -1361,7 +1515,12 @@ export class AssaultEnvironmentBuilder {
       const barrierX = side * (20 + Math.random() * 10);
       const barrierRotY = side * 0.2 + (Math.random() - 0.5) * 0.3;
 
-      const barrierNode = glbInstance(barrierGlbs[i % barrierGlbs.length], `breachBarrier_${i}`, this.scene, 'environment');
+      const barrierNode = glbInstance(
+        barrierGlbs[i % barrierGlbs.length],
+        `breachBarrier_${i}`,
+        this.scene,
+        'environment'
+      );
       if (barrierNode) {
         barrierNode.position.set(barrierX, 0, depth);
         barrierNode.rotation.y = barrierRotY;
@@ -1416,11 +1575,20 @@ export class AssaultEnvironmentBuilder {
     ];
 
     const breachBarricadeGlbs = [
-      GLB.barricadeA1, GLB.barricadeA2, GLB.barricadeA3,
-      GLB.barricadeA1, GLB.barricadeA2, GLB.barricadeA3,
+      GLB.barricadeA1,
+      GLB.barricadeA2,
+      GLB.barricadeA3,
+      GLB.barricadeA1,
+      GLB.barricadeA2,
+      GLB.barricadeA3,
     ];
     for (let i = 0; i < coverPositions.length; i++) {
-      const barricadeNode = glbInstance(breachBarricadeGlbs[i], `breachSandbag_${i}`, this.scene, 'prop');
+      const barricadeNode = glbInstance(
+        breachBarricadeGlbs[i],
+        `breachSandbag_${i}`,
+        this.scene,
+        'prop'
+      );
       if (barricadeNode) {
         barricadeNode.position.set(coverPositions[i].x, 0, coverPositions[i].z);
         barricadeNode.scaling.setAll(1.6);
@@ -1554,13 +1722,28 @@ export class AssaultEnvironmentBuilder {
     const sporeVents: Mesh[] = [];
 
     // GLBs for massive organic gate structure
-    const pillarGlbs = [GLB.twistedTree1, GLB.twistedTree2, GLB.twistedTree3, GLB.twistedTree4, GLB.twistedTree5];
-    const archGlbs = [GLB.tree01, GLB.tree02, GLB.spruce01, GLB.spruce02];
+    const pillarGlbs = [
+      GLB.twistedTree1,
+      GLB.twistedTree2,
+      GLB.twistedTree3,
+      GLB.twistedTree4,
+      GLB.twistedTree5,
+    ];
+    const _archGlbs = [GLB.tree01, GLB.tree02, GLB.spruce01, GLB.spruce02];
     const hiveGrowthGlbs = [
-      GLB.mushroom01, GLB.mushroom02, GLB.mushroom03, GLB.mushroom04,
-      GLB.mushroom05, GLB.mushroom06, GLB.mushroom07, GLB.mushroom08,
-      GLB.mushroomBrown, GLB.mushroomRed, GLB.mushroomLaetiporus,
-      GLB.twistedTree1, GLB.twistedTree2,
+      GLB.mushroom01,
+      GLB.mushroom02,
+      GLB.mushroom03,
+      GLB.mushroom04,
+      GLB.mushroom05,
+      GLB.mushroom06,
+      GLB.mushroom07,
+      GLB.mushroom08,
+      GLB.mushroomBrown,
+      GLB.mushroomRed,
+      GLB.mushroomLaetiporus,
+      GLB.twistedTree1,
+      GLB.twistedTree2,
     ];
 
     // -----------------------------------------------------------------------
@@ -1580,11 +1763,7 @@ export class AssaultEnvironmentBuilder {
           'environment'
         );
         if (treeNode) {
-          treeNode.position.set(
-            -16 + col * 8,
-            row * 15,
-            0
-          );
+          treeNode.position.set(-16 + col * 8, row * 15, 0);
           treeNode.scaling.set(2.0, 3.0, 2.0);
           treeNode.rotation.y = (row + col) * 0.3;
           treeNode.parent = gateRoot;
@@ -1621,7 +1800,7 @@ export class AssaultEnvironmentBuilder {
       if (pillarTree) {
         pillarTree.position.y = h * 12;
         pillarTree.scaling.set(1.5, 3.5, 1.5);
-        pillarTree.rotation.y = h * Math.PI / 3;
+        pillarTree.rotation.y = (h * Math.PI) / 3;
         pillarTree.parent = archLeftRoot;
         this.allNodes.push(pillarTree);
       }
@@ -1666,7 +1845,7 @@ export class AssaultEnvironmentBuilder {
       if (pillarTree) {
         pillarTree.position.y = h * 12;
         pillarTree.scaling.set(1.5, 3.5, 1.5);
-        pillarTree.rotation.y = -h * Math.PI / 3;
+        pillarTree.rotation.y = (-h * Math.PI) / 3;
         pillarTree.parent = archRightRoot;
         this.allNodes.push(pillarTree);
       }
@@ -1732,7 +1911,12 @@ export class AssaultEnvironmentBuilder {
     }
 
     // Add ground-level mushroom clusters at the base of the gate
-    const groundMushroomGlbs = [GLB.mushroomTall, GLB.mushroomLaetiporus, GLB.mushroom05, GLB.mushroom06];
+    const groundMushroomGlbs = [
+      GLB.mushroomTall,
+      GLB.mushroomLaetiporus,
+      GLB.mushroom05,
+      GLB.mushroom06,
+    ];
     for (let i = 0; i < 12; i++) {
       const groundMushroom = glbInstance(
         groundMushroomGlbs[i % groundMushroomGlbs.length],
@@ -1809,12 +1993,23 @@ export class AssaultEnvironmentBuilder {
     // -----------------------------------------------------------------------
     // Spore vents at the base of the entrance (alien mushroom GLBs)
     // -----------------------------------------------------------------------
-    const entranceVentGlbs = [GLB.mushroomTall, GLB.mushroom03, GLB.mushroom05, GLB.mushroom04, GLB.mushroomLaetiporus];
+    const entranceVentGlbs = [
+      GLB.mushroomTall,
+      GLB.mushroom03,
+      GLB.mushroom05,
+      GLB.mushroom04,
+      GLB.mushroomLaetiporus,
+    ];
     for (let i = 0; i < 6; i++) {
       const ventX = (i % 2 === 0 ? -1 : 1) * (8 + (i / 2) * 4);
       const ventZ = -588 - Math.random() * 8;
 
-      const ventNode = glbInstance(entranceVentGlbs[i % entranceVentGlbs.length], `entranceVent_${i}`, this.scene, 'prop');
+      const ventNode = glbInstance(
+        entranceVentGlbs[i % entranceVentGlbs.length],
+        `entranceVent_${i}`,
+        this.scene,
+        'prop'
+      );
       if (ventNode) {
         ventNode.position.set(ventX, 0, ventZ);
         ventNode.scaling.setAll(0.8 + Math.random() * 0.5);
@@ -1870,7 +2065,7 @@ export class AssaultEnvironmentBuilder {
       baseName: string,
       centerX: number,
       centerZ: number,
-      isLeft: boolean
+      _isLeft: boolean
     ): void => {
       const segmentRoot = new TransformNode(`${baseName}_root`, this.scene);
       segmentRoot.position.set(centerX, 0, centerZ);

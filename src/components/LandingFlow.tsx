@@ -9,12 +9,12 @@
  * Returns control to parent when user starts a game.
  */
 
-import { MainMenu } from './ui/MainMenu';
-import { SplashScreen } from './ui/SplashScreen';
-import { TitleSequence } from './ui/TitleSequence';
 import type { CampaignCommand, CampaignPhase } from '../game/campaign/types';
 import type { DifficultyLevel } from '../game/core/DifficultySettings';
 import type { LevelId } from '../game/levels/types';
+import { MainMenu } from './ui/MainMenu';
+import { SplashScreen } from './ui/SplashScreen';
+import { TitleSequence } from './ui/TitleSequence';
 
 interface LandingFlowProps {
   phase: CampaignPhase;
@@ -25,9 +25,7 @@ interface LandingFlowProps {
 /**
  * Landing flow phases that this component handles
  */
-const LANDING_PHASES: Set<CampaignPhase> = new Set([
-  'idle', 'splash', 'title', 'menu',
-]);
+const LANDING_PHASES: Set<CampaignPhase> = new Set(['idle', 'splash', 'title', 'menu']);
 
 export function isLandingPhase(phase: CampaignPhase): boolean {
   return LANDING_PHASES.has(phase);

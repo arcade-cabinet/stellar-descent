@@ -25,12 +25,12 @@ import { getAchievementManager } from '../achievements';
 import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import { getLogger } from '../core/Logger';
-
-const log = getLogger('SecretAreaSystem');
 import type { LevelId } from '../levels/types';
-import { addDiscoveredSecret, getDiscoveredSecretIds } from './secretPersistence';
+import { getDiscoveredSecretIds, useCollectiblesStore } from '../stores/useCollectiblesStore';
 import type { SecretArea, SecretReward } from './secrets';
 import { getSecretsByLevel } from './secrets';
+
+const log = getLogger('SecretAreaSystem');
 
 // ============================================================================
 // Constants
@@ -107,7 +107,7 @@ export class SecretAreaSystem {
 
     // Get secrets for this level
     const secrets = getSecretsByLevel(this.levelId);
-    const discoveredIds = getDiscoveredSecretIds();
+    const discoveredIds = await getDiscoveredSecretIds();
 
     // Create pickups for undiscovered secrets
     for (const secret of secrets) {
@@ -116,9 +116,7 @@ export class SecretAreaSystem {
       }
     }
 
-    log.info(
-      `Initialized ${this.pickups.size} secret areas for level ${this.levelId}`
-    );
+    log.info(`Initialized ${this.pickups.size} secret areas for level ${this.levelId}`);
   }
 
   private createSecretPickup(secret: SecretArea): void {
@@ -337,8 +335,8 @@ export class SecretAreaSystem {
 
     pickup.isDiscovered = true;
 
-    // Save to persistence
-    addDiscoveredSecret(pickup.secret.id, this.levelId);
+    // Save to persistence via store
+    useCollectiblesStore.getState().addSecret(pickup.secret.id, this.levelId);
 
     // Track achievement progress
     getAchievementManager().onSecretFound();
@@ -500,8 +498,8 @@ export class SecretAreaSystem {
   /**
    * Reset all pickups (for level restart)
    */
-  reset(): void {
-    const discoveredIds = getDiscoveredSecretIds();
+  async reset(): Promise<void> {
+    const discoveredIds = await getDiscoveredSecretIds();
 
     for (const pickup of this.pickups.values()) {
       // Only reset if not already discovered in save

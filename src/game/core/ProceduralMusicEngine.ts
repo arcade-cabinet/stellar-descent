@@ -378,7 +378,7 @@ export class ProceduralMusicEngine {
   /**
    * Create bass drone layer - continuous low-frequency foundation
    */
-  private createDroneLayer(environment: MusicEnvironment, profile: EnvironmentProfile): void {
+  private createDroneLayer(_environment: MusicEnvironment, profile: EnvironmentProfile): void {
     const layerId = 'drone';
     const volume = new Tone.Gain(0.4);
     volume.connect(this.filter);
@@ -441,7 +441,7 @@ export class ProceduralMusicEngine {
   /**
    * Create atmospheric pad layer - slow-evolving chords
    */
-  private createPadLayer(environment: MusicEnvironment, profile: EnvironmentProfile): void {
+  private createPadLayer(_environment: MusicEnvironment, profile: EnvironmentProfile): void {
     const layerId = 'pad';
     const volume = new Tone.Gain(0.25);
     volume.connect(this.filter);
@@ -629,7 +629,7 @@ export class ProceduralMusicEngine {
   /**
    * Create percussion layer - subtle rhythmic texture
    */
-  private createPercussionLayer(environment: MusicEnvironment, profile: EnvironmentProfile): void {
+  private createPercussionLayer(environment: MusicEnvironment, _profile: EnvironmentProfile): void {
     const layerId = 'percussion';
     const volume = new Tone.Gain(0.2);
     volume.connect(this.filter);

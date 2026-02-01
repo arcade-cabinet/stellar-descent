@@ -22,7 +22,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Scene } from '@babylonjs/core/scene';
 import { SkyboxManager, type SkyboxResult } from '../core/SkyboxManager';
 import { BaseLevel } from './BaseLevel';
-import type { LevelCallbacks, LevelConfig } from './types';
+import type { LevelConfig } from './types';
 
 export abstract class StationLevel extends BaseLevel {
   // Space view elements (optional - visible through windows only)
@@ -33,13 +33,8 @@ export abstract class StationLevel extends BaseLevel {
   // Station lighting (primary light sources)
   protected stationLights: PointLight[] = [];
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks);
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
+    super(engine, canvas, config);
 
     // CRITICAL: Disable ALL fog for indoor station level
     this.disableFog();

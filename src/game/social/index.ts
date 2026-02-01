@@ -9,9 +9,9 @@
  */
 
 export {
-  leaderboardSystem,
   getPlayerId,
   getPlayerName,
+  leaderboardSystem,
   setPlayerName,
 } from './LeaderboardSystem';
 
@@ -30,17 +30,6 @@ export {
   type PersonalBest,
   type PersonalBestRow,
 } from './LeaderboardTypes';
-
-// Share system exports
-export {
-  getShareSystem,
-  initShareSystem,
-  type ShareSystem,
-  type ShareStats,
-  type ShareTrigger,
-  type ShareableStats,
-} from './ShareSystem';
-
 export {
   getScreenshotCapture,
   type ScreenshotCapture,
@@ -48,3 +37,12 @@ export {
   type ScreenshotOptions,
   type ScreenshotStats,
 } from './ScreenshotCapture';
+// Share system exports
+export {
+  getShareSystem,
+  initShareSystem,
+  type ShareableStats,
+  type ShareStats,
+  type ShareSystem,
+  type ShareTrigger,
+} from './ShareSystem';

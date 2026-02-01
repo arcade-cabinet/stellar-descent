@@ -16,8 +16,8 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { LevelType } from '../levels/types';
 import { getLogger } from './Logger';
 import {
-  PostProcessManager,
   type PostProcessConfig,
+  PostProcessManager,
   type PostProcessQuality,
 } from './PostProcessManager';
 
@@ -126,10 +126,7 @@ export interface EffectState {
 /**
  * Callback for screen shake integration with BaseLevel
  */
-export type ScreenShakeCallback = (
-  intensity: number,
-  additive?: boolean
-) => void;
+export type ScreenShakeCallback = (intensity: number, additive?: boolean) => void;
 
 // ============================================================================
 // EFFECTS COMPOSER
@@ -157,8 +154,6 @@ export type ScreenShakeCallback = (
  * ```
  */
 export class EffectsComposer {
-  private scene: Scene;
-  private camera: Camera;
   private postProcess: PostProcessManager;
 
   // State tracking
@@ -174,13 +169,11 @@ export class EffectsComposer {
 
   // Combat tracking for dynamic effects
   private combatTimer = 0;
-  private lastCombatTime = 0;
   private killStreak = 0;
   private killStreakDecayTimer = 0;
 
   // Explosion bloom tracking
   private explosionBloomTimer = 0;
-  private explosionBloomTarget = 0;
 
   // Time for pulsing effects
   private time = 0;
@@ -356,7 +349,8 @@ export class EffectsComposer {
     const shake = SHAKE_PRESETS[presetKey] || SHAKE_PRESETS.explosion_medium;
 
     // Calculate distance falloff (closer = stronger effect)
-    const maxDistance = size === 'massive' ? 100 : size === 'large' ? 60 : size === 'medium' ? 40 : 25;
+    const maxDistance =
+      size === 'massive' ? 100 : size === 'large' ? 60 : size === 'medium' ? 40 : 25;
     const falloff = Math.max(0, 1 - distance / maxDistance);
 
     if (falloff > 0) {
@@ -368,7 +362,9 @@ export class EffectsComposer {
       this.triggerScreenShake(scaledShake);
 
       // Bloom pulse for explosions (muzzle flash, plasma, fire glow)
-      const bloomIntensity = (size === 'massive' ? 1.5 : size === 'large' ? 1.2 : size === 'medium' ? 1.0 : 0.7) * falloff;
+      const bloomIntensity =
+        (size === 'massive' ? 1.5 : size === 'large' ? 1.2 : size === 'medium' ? 1.0 : 0.7) *
+        falloff;
       this.triggerBloomPulse(bloomIntensity, shake.duration);
 
       // Chromatic aberration pulse
@@ -665,7 +661,10 @@ export class EffectsComposer {
         this.effectState.combatIntensity = 0;
       } else {
         // Combat intensity ramps up quickly, decays slowly
-        this.effectState.combatIntensity = Math.min(1, this.effectState.combatIntensity + deltaTime * 2);
+        this.effectState.combatIntensity = Math.min(
+          1,
+          this.effectState.combatIntensity + deltaTime * 2
+        );
       }
     }
   }
@@ -692,7 +691,7 @@ export class EffectsComposer {
     }
   }
 
-  private updateLowHealthEffects(deltaTime: number): void {
+  private updateLowHealthEffects(_deltaTime: number): void {
     // Low health pulsing is handled by PostProcessManager and LowHealthFeedback
     // We just need to update the state
     if (this.effectState.isLowHealth && !this.reducedFlashing) {

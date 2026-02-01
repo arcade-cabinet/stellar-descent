@@ -12,7 +12,6 @@ import type { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
@@ -20,6 +19,7 @@ import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('HazardBuilder');
+
 import { COLORS } from './constants';
 import type { AcidPool, EggCluster, HiveZone, PheromoneCloud } from './types';
 
@@ -145,7 +145,9 @@ export class HazardBuilder {
     const index = this.eggClusters.length;
 
     if (!this.eggAssetsLoaded) {
-      throw new Error('[HiveHazards] Egg cluster assets not preloaded - call loadHazardAssets() first');
+      throw new Error(
+        '[HiveHazards] Egg cluster assets not preloaded - call loadHazardAssets() first'
+      );
     }
 
     // Create cluster root node

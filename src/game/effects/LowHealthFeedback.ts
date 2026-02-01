@@ -340,7 +340,7 @@ export class LowHealthFeedbackManager {
       // Critical severity (0 = at critical threshold, 1 = at 0 health)
       const criticalSeverity =
         1 -
-        (this.state.currentHealth / this.state.maxHealth) * 100 /
+        ((this.state.currentHealth / this.state.maxHealth) * 100) /
           this.config.criticalHealthThreshold;
       const tunnelAmount = Math.max(0, Math.min(1, criticalSeverity)) * 0.4;
       this.tunnelVisionCallback(tunnelAmount);
@@ -564,7 +564,7 @@ export class LowHealthFeedbackManager {
   private startBreathingLoop(): void {
     if (!this.audioContext || !this.masterGain) return;
 
-    const ctx = this.audioContext;
+    const _ctx = this.audioContext;
     let isRunning = true;
 
     // Create continuous breathing using filtered noise

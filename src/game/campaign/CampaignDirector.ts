@@ -5,6 +5,10 @@
  * a single dispatch(command) API. Manages campaign phase transitions,
  * owns LevelManager, wires achievements/dialogue/collectibles.
  *
+ * State is now backed by useCampaignStore (Zustand) for persistence
+ * and React integration. This class remains the facade for complex
+ * state transitions and external system integration.
+ *
  * React integration: subscribe() / getSnapshot() for useSyncExternalStore
  */
 
@@ -17,6 +21,7 @@ import {
 import { getLogger } from '../core/Logger';
 import { CAMPAIGN_LEVELS, type LevelId } from '../levels/types';
 import { saveSystem } from '../persistence';
+import { useCampaignStore } from '../stores/useCampaignStore';
 import { disposeGameTimer, getGameTimer } from '../timer';
 import { hasLevelCinematic } from '../utils/cinematics';
 import { BONUS_LEVELS } from './MissionDefinitions';
@@ -28,35 +33,45 @@ import {
   onLevelEnter,
   onLevelExit,
   onPlayerDeath,
-  resetQuestManager,
   type QuestState,
+  resetQuestManager,
 } from './QuestManager';
-import type { CampaignCommand, CampaignSnapshot, LevelStats } from './types';
-import type { CampaignPhase } from './types'; // Issue #71: Separate import for type used in array
+import type { CampaignCommand, CampaignPhase, CampaignSnapshot, LevelStats } from './types';
 
 const log = getLogger('CampaignDirector');
 
 // ============================================================================
-// Default snapshot
+// Snapshot builder (reads from store + local state)
 // ============================================================================
 
-function createDefaultSnapshot(): CampaignSnapshot {
+// Type for level config from registry
+type LevelConfigType = (typeof CAMPAIGN_LEVELS)[LevelId] | null;
+
+function buildSnapshot(
+  store: ReturnType<typeof useCampaignStore.getState>,
+  localState: {
+    currentLevelConfig: LevelConfigType;
+    prePausePhase: CampaignPhase | null;
+    restartCounter: number;
+    isBonusLevel: boolean;
+  }
+): CampaignSnapshot {
   return {
-    phase: 'idle',
-    currentLevelId: 'anchor_station',
-    currentLevelConfig: null,
-    isBonusLevel: false,
-    levelKills: 0,
-    levelStartTime: Date.now(),
-    completionStats: null,
-    needsIntroBriefing: false,
-    prePausePhase: null,
-    restartCounter: 0,
-    deathCount: 0, // Issue #8 fix
-    totalCampaignKills: 0, // Issue #9 fix
-    currentDifficulty: null, // Issue #10 fix
-    diedInCurrentLevel: false, // Issue #11 fix
-    levelDamageReceived: 0, // Issue #12 fix
+    phase: store.phase,
+    currentLevelId: store.currentLevel ?? 'anchor_station',
+    currentLevelConfig: localState.currentLevelConfig,
+    isBonusLevel: localState.isBonusLevel,
+    levelKills: store.levelKills,
+    levelStartTime: store.levelStartTime,
+    completionStats: store.completionStats,
+    needsIntroBriefing: store.needsIntroBriefing,
+    prePausePhase: localState.prePausePhase,
+    restartCounter: localState.restartCounter,
+    deathCount: store.totalDeaths,
+    totalCampaignKills: store.totalCampaignKills,
+    currentDifficulty: store.difficulty,
+    diedInCurrentLevel: store.diedInCurrentLevel,
+    levelDamageReceived: store.levelDamageReceived,
   };
 }
 
@@ -65,17 +80,33 @@ function createDefaultSnapshot(): CampaignSnapshot {
 // ============================================================================
 
 export class CampaignDirector {
-  private snapshot: CampaignSnapshot = createDefaultSnapshot();
+  // Local state not in store (runtime-only)
+  private currentLevelConfig: LevelConfigType = null;
+  private prePausePhase: CampaignPhase | null = null;
+  private restartCounter = 0;
+  private isBonusLevel = false;
+
   private listeners: Set<() => void> = new Set();
   private bonusReturnLevelId: LevelId | null = null;
   private skipTutorial = false;
   private lastHealthBracket: 'healthy' | 'low' | 'critical' = 'healthy';
   private questManagerInitialized = false;
+  private storeUnsubscribe: (() => void) | null = null;
 
   // Callbacks for external systems (MissionContext, HUD, etc.)
   private objectiveUpdateCallback?: (title: string, instructions: string) => void;
-  private objectiveMarkerCallback?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+  private objectiveMarkerCallback?: (
+    position: { x: number; y: number; z: number } | null,
+    label?: string
+  ) => void;
   private notificationCallback?: (text: string, duration?: number) => void;
+
+  constructor() {
+    // Subscribe to store changes to notify our listeners
+    this.storeUnsubscribe = useCampaignStore.subscribe(() => {
+      this.notify();
+    });
+  }
 
   // -----------------------------------------------------------------------
   // React integration (useSyncExternalStore compatible)
@@ -87,15 +118,27 @@ export class CampaignDirector {
   };
 
   getSnapshot = (): CampaignSnapshot => {
-    return this.snapshot;
+    const store = useCampaignStore.getState();
+    return buildSnapshot(store, {
+      currentLevelConfig: this.currentLevelConfig,
+      prePausePhase: this.prePausePhase,
+      restartCounter: this.restartCounter,
+      isBonusLevel: this.isBonusLevel,
+    });
   };
 
   private notify(): void {
-    // Create a new snapshot reference for React to detect changes
-    this.snapshot = { ...this.snapshot };
     for (const listener of this.listeners) {
       listener();
     }
+  }
+
+  // -----------------------------------------------------------------------
+  // Store accessors
+  // -----------------------------------------------------------------------
+
+  private get store() {
+    return useCampaignStore.getState();
   }
 
   // -----------------------------------------------------------------------
@@ -103,7 +146,7 @@ export class CampaignDirector {
   // -----------------------------------------------------------------------
 
   dispatch(command: CampaignCommand): void {
-    const prev = this.snapshot.phase;
+    const prev = this.store.phase;
 
     switch (command.type) {
       case 'NEW_GAME':
@@ -142,7 +185,7 @@ export class CampaignDirector {
         break;
 
       case 'INTRO_BRIEFING_COMPLETE':
-        this.snapshot.needsIntroBriefing = false;
+        this.store.setNeedsIntroBriefing(false);
         saveSystem.setSeenIntroBriefing();
         this.setPhase('briefing');
         break;
@@ -158,7 +201,7 @@ export class CampaignDirector {
 
       case 'DROP_COMPLETE':
         // HALO drop finished → surface gameplay
-        this.snapshot.levelStartTime = Date.now();
+        this.store.startLevelSession();
         this.setPhase('playing');
         break;
 
@@ -176,16 +219,16 @@ export class CampaignDirector {
 
       case 'PAUSE':
         if (prev === 'playing' || prev === 'tutorial' || prev === 'dropping') {
-          this.snapshot.prePausePhase = prev;
+          this.prePausePhase = prev;
           getGameTimer().pause();
           this.setPhase('paused');
         }
         break;
 
       case 'RESUME':
-        if (prev === 'paused' && this.snapshot.prePausePhase) {
-          const resume = this.snapshot.prePausePhase;
-          this.snapshot.prePausePhase = null;
+        if (prev === 'paused' && this.prePausePhase) {
+          const resume = this.prePausePhase;
+          this.prePausePhase = null;
           getGameTimer().resume();
           this.setPhase(resume);
         }
@@ -194,9 +237,8 @@ export class CampaignDirector {
       case 'PLAYER_DIED':
         getReyesDialogueManager().triggerDialogue('mission_failed');
         getGameTimer().pause();
-        // Issue #13: Track death count and level death flag
-        this.snapshot.deathCount++;
-        this.snapshot.diedInCurrentLevel = true;
+        // Track death in store
+        this.store.recordDeath();
         // Notify quest system of player death (may fail some quests)
         onPlayerDeath();
         this.setPhase('gameover');
@@ -223,7 +265,7 @@ export class CampaignDirector {
         break;
 
       default:
-        log.warn(`Unknown command: ${(command as any).type}`);
+        log.warn(`Unknown command: ${(command as CampaignCommand).type}`);
     }
   }
 
@@ -232,11 +274,11 @@ export class CampaignDirector {
   // -----------------------------------------------------------------------
 
   get phase(): CampaignPhase {
-    return this.snapshot.phase;
+    return this.store.phase;
   }
 
   get currentLevelId(): LevelId {
-    return this.snapshot.currentLevelId;
+    return this.store.currentLevel ?? 'anchor_station';
   }
 
   get shouldSkipTutorial(): boolean {
@@ -244,24 +286,24 @@ export class CampaignDirector {
   }
 
   /**
-   * Issue #93: Get current difficulty for game systems
+   * Get current difficulty for game systems
    */
   get difficulty(): string {
-    return this.snapshot.currentDifficulty ?? 'normal';
+    return this.store.difficulty;
   }
 
   /**
-   * Issue #94: Get total deaths in campaign
+   * Get total deaths in campaign
    */
   get deathCount(): number {
-    return this.snapshot.deathCount;
+    return this.store.totalDeaths;
   }
 
   /**
-   * Issue #95: Get total campaign kills
+   * Get total campaign kills
    */
   get totalKills(): number {
-    return this.snapshot.totalCampaignKills;
+    return this.store.totalCampaignKills;
   }
 
   // -----------------------------------------------------------------------
@@ -274,7 +316,10 @@ export class CampaignDirector {
    */
   initializeQuestSystem(callbacks: {
     onObjectiveUpdate?: (title: string, instructions: string) => void;
-    onObjectiveMarker?: (position: { x: number; y: number; z: number } | null, label?: string) => void;
+    onObjectiveMarker?: (
+      position: { x: number; y: number; z: number } | null,
+      label?: string
+    ) => void;
     onNotification?: (text: string, duration?: number) => void;
   }): void {
     if (this.questManagerInitialized) {
@@ -320,7 +365,9 @@ export class CampaignDirector {
     const failedQuests = saveSystem.getFailedQuests();
 
     loadQuestState(completedQuests, activeQuests, failedQuests);
-    log.debug(`Loaded quest state: ${completedQuests.length} completed, ${Object.keys(activeQuests).length} active`);
+    log.debug(
+      `Loaded quest state: ${completedQuests.length} completed, ${Object.keys(activeQuests).length} active`
+    );
   }
 
   /**
@@ -386,13 +433,12 @@ export class CampaignDirector {
   // -----------------------------------------------------------------------
 
   private setPhase(phase: CampaignPhase): void {
-    this.snapshot.phase = phase;
-    this.notify();
+    this.store.setPhase(phase);
   }
 
   private setLevelId(levelId: LevelId): void {
-    this.snapshot.currentLevelId = levelId;
-    this.snapshot.currentLevelConfig = CAMPAIGN_LEVELS[levelId] ?? null;
+    this.store.setCurrentLevel(levelId);
+    this.currentLevelConfig = CAMPAIGN_LEVELS[levelId] ?? null;
   }
 
   private handleNewGame(difficulty?: string, startLevel?: LevelId): void {
@@ -401,14 +447,11 @@ export class CampaignDirector {
     saveSystem.newGame(diff, levelId).then(() => {
       this.skipTutorial = levelId !== 'anchor_station';
       this.setLevelId(levelId);
-      this.snapshot.completionStats = null;
-      this.snapshot.isBonusLevel = false;
-      // Issue #14: Reset campaign-wide stats on new game
-      this.snapshot.deathCount = 0;
-      this.snapshot.totalCampaignKills = 0;
-      this.snapshot.currentDifficulty = diff as any;
-      this.snapshot.diedInCurrentLevel = false;
-      this.snapshot.levelDamageReceived = 0;
+      this.store.setCompletionStats(null);
+      this.isBonusLevel = false;
+
+      // Initialize store for new game
+      this.store.newGame(diff, levelId);
 
       // Reset quest manager for new game
       resetQuestManager();
@@ -425,7 +468,6 @@ export class CampaignDirector {
   private handleContinue(): void {
     saveSystem.loadGame().then((save) => {
       if (!save) {
-        // Issue #67: Handle case where save fails to load
         log.warn('No save found, starting new game');
         this.handleNewGame();
         return;
@@ -433,12 +475,10 @@ export class CampaignDirector {
       this.setLevelId(save.currentLevel);
       // Check if anchor_station is completed - no separate flag needed
       this.skipTutorial = save.levelsCompleted?.includes('anchor_station') ?? false;
-      this.snapshot.completionStats = null;
-      this.snapshot.isBonusLevel = false;
-      // Issue #68: Restore difficulty from save
-      this.snapshot.currentDifficulty = save.difficulty ?? 'normal';
-      // Issue #69: Restore campaign-wide stats from save
-      this.snapshot.totalCampaignKills = save.totalKills ?? 0;
+      this.store.setCompletionStats(null);
+      this.isBonusLevel = false;
+      // Restore difficulty from save
+      this.store.setDifficulty(save.difficulty ?? 'normal');
 
       // Load quest state from save
       this.loadQuestStateFromSave();
@@ -455,8 +495,8 @@ export class CampaignDirector {
   private handleSelectLevel(levelId: LevelId): void {
     this.setLevelId(levelId);
     this.skipTutorial = levelId !== 'anchor_station';
-    this.snapshot.completionStats = null;
-    this.snapshot.isBonusLevel = false;
+    this.store.setCompletionStats(null);
+    this.isBonusLevel = false;
     // Play cinematic if available, otherwise go to briefing
     if (hasLevelCinematic(levelId)) {
       this.setPhase('cinematic');
@@ -466,17 +506,13 @@ export class CampaignDirector {
   }
 
   private handleLoadingComplete(): void {
-    const levelId = this.snapshot.currentLevelId;
-    this.snapshot.levelStartTime = Date.now();
-    this.snapshot.levelKills = 0;
+    const levelId = this.store.currentLevel ?? 'anchor_station';
     this.lastHealthBracket = 'healthy';
-    // Issue #15: Reset level-specific tracking on load
-    this.snapshot.diedInCurrentLevel = false;
-    this.snapshot.levelDamageReceived = 0;
-    // Issue #99: Reset audio log counter
-    this.audioLogsFoundInLevel = 0;
 
-    // Issue #16: Initialize achievement level tracking
+    // Start level session in store
+    this.store.startLevelSession();
+
+    // Initialize achievement level tracking
     getAchievementManager().onLevelStart(levelId);
 
     // Start the mission timer
@@ -486,7 +522,7 @@ export class CampaignDirector {
     const reyes = getReyesDialogueManager();
     reyes.playBriefing(levelId);
 
-    // Issue #17: Update save system with current level
+    // Update save system with current level
     saveSystem.setCurrentLevel(levelId);
 
     // Trigger quest system level enter
@@ -508,7 +544,7 @@ export class CampaignDirector {
     const finalTime = timer.stopMission();
 
     // Check and save best time (both in timer system and save system)
-    const levelId = this.snapshot.currentLevelId;
+    const levelId = this.store.currentLevel ?? 'anchor_station';
     const isNewBest = timer.checkAndSaveBestTime(levelId, finalTime);
     saveSystem.recordLevelTime(levelId, finalTime);
 
@@ -518,36 +554,35 @@ export class CampaignDirector {
     // Save quest state before level completion
     this.saveQuestState();
 
-    // Issue #18: Get achievement stats to include in completion stats
-    const achievementStats = getAchievementManager().getLevelStats();
+    // Get achievement stats to include in completion stats
+    const _achievementStats = getAchievementManager().getLevelStats();
 
-    // Issue #19: Calculate accuracy properly
+    // Calculate accuracy properly
     const accuracy = stats.shotsFired > 0 ? (stats.shotsHit / stats.shotsFired) * 100 : 0;
 
     // Update stats with the accurate timer value and additional tracking
-    this.snapshot.completionStats = {
+    const completionStats: LevelStats = {
       ...stats,
       timeElapsed: finalTime,
-      // Issue #20: Include audio logs from achievement tracking if not in stats
       audioLogsFound: stats.audioLogsFound ?? 0,
       totalAudioLogs: stats.totalAudioLogs ?? 0,
-      damageReceived: this.snapshot.levelDamageReceived,
+      damageReceived: this.store.levelDamageReceived,
       accuracy: Math.round(accuracy),
     };
 
-    // Issue #21: Update total campaign kills
-    this.snapshot.totalCampaignKills += this.snapshot.levelKills;
+    // Complete level in store (updates progress, stats, etc.)
+    this.store.completeLevel(levelId, completionStats);
 
-    // Issue #22: Add kills to save system
-    for (let i = 0; i < this.snapshot.levelKills; i++) {
+    // Add kills to save system
+    for (let i = 0; i < this.store.levelKills; i++) {
       saveSystem.addKill();
     }
 
     saveSystem.completeLevel(levelId);
 
-    // Issue #23: Pass death flag and difficulty to achievement system
-    const difficulty = this.snapshot.currentDifficulty ?? 'normal';
-    getAchievementManager().onLevelComplete(levelId, this.snapshot.diedInCurrentLevel, difficulty);
+    // Pass death flag and difficulty to achievement system
+    const difficulty = this.store.difficulty;
+    getAchievementManager().onLevelComplete(levelId, this.store.diedInCurrentLevel, difficulty);
 
     // Trigger per-level achievements
     this.triggerLevelAchievements(levelId);
@@ -561,18 +596,15 @@ export class CampaignDirector {
   }
 
   private handleAdvance(): void {
-    const levelConfig = CAMPAIGN_LEVELS[this.snapshot.currentLevelId];
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    const levelConfig = CAMPAIGN_LEVELS[levelId];
     const nextId = levelConfig?.nextLevelId;
 
     if (nextId) {
       this.setLevelId(nextId);
-      this.snapshot.completionStats = null;
-      this.snapshot.levelStartTime = Date.now();
-      // Issue #74: Reset level-specific state for next level
-      this.snapshot.levelKills = 0;
-      this.snapshot.diedInCurrentLevel = false;
-      this.snapshot.levelDamageReceived = 0;
-      // Issue #75: Update chapter in save system
+      this.store.setCompletionStats(null);
+      this.store.startLevelSession();
+      // Update chapter in save system
       const nextConfig = CAMPAIGN_LEVELS[nextId];
       if (nextConfig) {
         saveSystem.setChapter(nextConfig.chapter);
@@ -585,33 +617,30 @@ export class CampaignDirector {
       }
     } else {
       // Final level complete - show credits
-      // Issue #76: Save final stats before credits
+      // Save final stats before credits
       saveSystem.autoSave();
       this.setPhase('credits');
     }
   }
 
   private handleRetry(): void {
-    this.snapshot.completionStats = null;
-    this.snapshot.levelStartTime = Date.now();
-    this.snapshot.restartCounter++;
-    // Issue #24: Reset level-specific state on retry
-    this.snapshot.levelKills = 0;
-    this.snapshot.diedInCurrentLevel = false;
-    this.snapshot.levelDamageReceived = 0;
+    this.store.setCompletionStats(null);
+    this.store.startLevelSession();
+    this.restartCounter++;
     getGameTimer().resetMission();
     this.setPhase('loading');
   }
 
   private handleMainMenu(): void {
     // Trigger level exit before going to menu
-    this.triggerQuestLevelExit(this.snapshot.currentLevelId);
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    this.triggerQuestLevelExit(levelId);
     // Save quest state
     this.saveQuestState();
 
-    this.snapshot.completionStats = null;
-    this.snapshot.prePausePhase = null;
-    this.snapshot.restartCounter++;
+    this.store.setCompletionStats(null);
+    this.prePausePhase = null;
+    this.restartCounter++;
     this.setLevelId('anchor_station');
     this.skipTutorial = false;
     getGameTimer().resetMission();
@@ -622,9 +651,9 @@ export class CampaignDirector {
   private handleDevJumpToLevel(levelId: LevelId): void {
     this.setLevelId(levelId);
     this.skipTutorial = true;
-    this.snapshot.completionStats = null;
-    this.snapshot.isBonusLevel = false;
-    this.snapshot.restartCounter++;
+    this.store.setCompletionStats(null);
+    this.isBonusLevel = false;
+    this.restartCounter++;
     // Skip briefing/intro entirely — go straight to loading
     this.setPhase('loading');
   }
@@ -635,34 +664,28 @@ export class CampaignDirector {
       log.warn(`Unknown bonus level: ${levelId}`);
       return;
     }
-    // Issue #32: Store current level as return point before entering bonus
-    this.bonusReturnLevelId = this.snapshot.currentLevelId;
-    this.snapshot.isBonusLevel = true;
-    // Issue #33: Reset level tracking for bonus level
-    this.snapshot.levelKills = 0;
-    this.snapshot.levelDamageReceived = 0;
-    this.snapshot.diedInCurrentLevel = false;
-    // Note: bonus levels don't go through the standard LevelId type
-    // The level system handles them separately
-    this.setPhase('bonusLevel'); // Issue #34: Use dedicated bonus level phase
-    // Issue #35: Then transition to loading
+    // Store current level as return point before entering bonus
+    this.bonusReturnLevelId = this.store.currentLevel ?? 'anchor_station';
+    this.isBonusLevel = true;
+    this.store.enterBonusLevel();
+    // Reset level tracking for bonus level
+    this.store.startLevelSession();
+    // Use dedicated bonus level phase then transition to loading
+    this.setPhase('bonusLevel');
     this.setPhase('loading');
   }
 
   private handleBonusComplete(): void {
-    this.snapshot.isBonusLevel = false;
-    // Issue #90: Update total kills from bonus level
-    this.snapshot.totalCampaignKills += this.snapshot.levelKills;
+    this.isBonusLevel = false;
+    this.store.exitBonusLevel();
 
     if (this.bonusReturnLevelId) {
-      // Issue #91: Save bonus level completion in save system
+      // Save bonus level completion in save system
       saveSystem.setLevelFlag(this.bonusReturnLevelId, 'bonus_completed', true);
       this.setLevelId(this.bonusReturnLevelId);
       this.bonusReturnLevelId = null;
-      // Issue #92: Reset level state for return
-      this.snapshot.levelKills = 0;
-      this.snapshot.levelDamageReceived = 0;
-      this.snapshot.diedInCurrentLevel = false;
+      // Reset level state for return
+      this.store.startLevelSession();
       this.setPhase('loading');
     } else {
       this.setPhase('menu');
@@ -678,7 +701,6 @@ export class CampaignDirector {
     switch (levelId) {
       case 'anchor_station':
         am.onTutorialComplete();
-        // Level completion handled by saveSystem.completeLevel() in handleLevelComplete
         break;
       case 'landfall':
         am.onHaloDropComplete();
@@ -688,21 +710,15 @@ export class CampaignDirector {
         am.onCanyonRunComplete();
         break;
       case 'fob_delta':
-        // Issue #26: FOB Delta was missing achievement triggers
-        if (!this.snapshot.diedInCurrentLevel) {
-          // Survivor achievement: complete FOB Delta without dying
-          // This is now handled by onLevelComplete with diedInCurrentLevel flag
-        }
+        // FOB Delta achievements handled by onLevelComplete with diedInCurrentLevel flag
         break;
-      case 'brothers_in_arms':
+      case 'brothers_in_arms': {
         am.onMarcusFound();
-        // Issue #27: Marcus down tracking should come from level, not hardcoded false
-        // The level should call onMarcusDown() when Marcus goes down
-        // We pass the marcusDownCount to determine if brothers_keeper is earned
-        const marcusWentDown = (am.getProgress().marcusDownCount ?? 0) > 0;
+        const marcusWentDown = am.getProgress().marcusWentDown;
         am.onBrothersInArmsComplete(marcusWentDown);
-        am.resetMarcusTracking(); // Reset for next playthrough
+        am.resetMarcusTracking();
         break;
+      }
       case 'southern_ice':
         am.onSouthernIceComplete();
         break;
@@ -716,8 +732,6 @@ export class CampaignDirector {
         am.onExtractionComplete();
         break;
       case 'final_escape':
-        // Issue #28: Flawless run tracking should come from level
-        // The level should track if player crashed
         am.onFinalEscapeComplete(false); // TODO: Get actual crash state from level
         am.onGameComplete();
         break;
@@ -733,7 +747,8 @@ export class CampaignDirector {
    * Tracks health bracket to avoid spamming dialogue triggers.
    */
   onHealthChange(health: number): void {
-    if (this.snapshot.phase !== 'playing' && this.snapshot.phase !== 'tutorial' && this.snapshot.phase !== 'dropping') return;
+    const phase = this.store.phase;
+    if (phase !== 'playing' && phase !== 'tutorial' && phase !== 'dropping') return;
 
     const reyes = getReyesDialogueManager();
     if (health <= 15 && this.lastHealthBracket !== 'critical') {
@@ -751,7 +766,8 @@ export class CampaignDirector {
    * Called by LevelCallbacks.onCombatStateChange to trigger hostiles dialogue.
    */
   onCombatStateChange(inCombat: boolean): void {
-    if (this.snapshot.phase !== 'playing' && this.snapshot.phase !== 'tutorial' && this.snapshot.phase !== 'dropping') return;
+    const phase = this.store.phase;
+    if (phase !== 'playing' && phase !== 'tutorial' && phase !== 'dropping') return;
 
     const reyes = getReyesDialogueManager();
     if (inCombat) {
@@ -763,20 +779,19 @@ export class CampaignDirector {
 
   /**
    * Called by levels for specific dialogue triggers (e.g. queen_detected).
-   * Issue #70: Allow dialogue during tutorial and dropping phases too
    */
   triggerDialogue(trigger: DialogueTrigger): void {
+    const phase = this.store.phase;
     const validPhases: CampaignPhase[] = ['playing', 'tutorial', 'dropping'];
-    if (!validPhases.includes(this.snapshot.phase)) return;
+    if (!validPhases.includes(phase)) return;
     getReyesDialogueManager().triggerDialogue(trigger);
   }
 
   /**
    * Called by LevelCallbacks.onKill to track kill count and trigger kill achievements.
-   * Issue #31: Accept health percent for last stand achievement
    */
   onKill(playerHealthPercent?: number, enemyType?: string): void {
-    this.snapshot.levelKills++;
+    this.store.recordKill();
     getAchievementManager().onKill(playerHealthPercent);
 
     // Notify quest system of enemy killed
@@ -785,13 +800,13 @@ export class CampaignDirector {
 
   /**
    * Called by LevelCallbacks.onDamage to track damage for achievements.
-   * Issue #29: Accept damage amount parameter for accurate tracking
    */
   onDamage(amount: number = 1): void {
     const am = getAchievementManager();
-    am.onDamageTaken(this.snapshot.currentLevelId, amount);
-    // Issue #30: Track damage in snapshot for level stats
-    this.snapshot.levelDamageReceived += amount;
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    am.onDamageTaken(levelId, amount);
+    // Track damage in store for level stats
+    this.store.recordDamage(amount);
   }
 
   // -----------------------------------------------------------------------
@@ -799,24 +814,20 @@ export class CampaignDirector {
   // -----------------------------------------------------------------------
 
   /**
-   * Issue #99: Track audio log count for level stats
-   */
-  private audioLogsFoundInLevel = 0;
-
-  /**
    * Called when a level reports an audio log was found.
    */
   onAudioLogFound(logId: string): void {
     getAchievementManager().onAudioLogFound();
-    saveSystem.setLevelFlag(this.snapshot.currentLevelId, `audiolog_${logId}`, true);
-    this.audioLogsFoundInLevel++;
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    saveSystem.setLevelFlag(levelId, `audiolog_${logId}`, true);
+    this.store.recordAudioLog();
   }
 
   /**
-   * Issue #100: Get audio logs found in current level
+   * Get audio logs found in current level
    */
   getAudioLogsFoundInLevel(): number {
-    return this.audioLogsFoundInLevel;
+    return this.store.audioLogsFoundInLevel;
   }
 
   /**
@@ -824,26 +835,28 @@ export class CampaignDirector {
    */
   onSecretFound(secretId: string): void {
     getAchievementManager().onSecretFound();
-    saveSystem.setLevelFlag(this.snapshot.currentLevelId, `secret_${secretId}`, true);
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    saveSystem.setLevelFlag(levelId, `secret_${secretId}`, true);
   }
 
   /**
    * Called when a level reports a skull was found.
-   * Issue #87: Add skull collection achievement tracking
    */
   onSkullFound(skullId: string): void {
-    saveSystem.setLevelFlag(this.snapshot.currentLevelId, `skull_${skullId}`, true);
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    saveSystem.setLevelFlag(levelId, `skull_${skullId}`, true);
     // Track skull in inventory for display
     saveSystem.setInventoryItem(`skull_${skullId}`, 1);
   }
 
   /**
-   * Issue #88: Get current level's collectible counts for UI
+   * Get current level's collectible counts for UI
    */
   getCurrentLevelCollectibles(): { secrets: number; audioLogs: number; hasSkull: boolean } {
-    const config = this.snapshot.currentLevelConfig;
+    const config = this.currentLevelConfig;
     const { getMissionDefinition } = require('./MissionDefinitions');
-    const mission = getMissionDefinition(this.snapshot.currentLevelId);
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    const mission = getMissionDefinition(levelId);
 
     return {
       secrets: config?.totalSecrets ?? mission?.secretCount ?? 0,
@@ -853,11 +866,12 @@ export class CampaignDirector {
   }
 
   /**
-   * Issue #89: Check if a collectible has been found in current level
+   * Check if a collectible has been found in current level
    */
   isCollectibleFound(type: 'secret' | 'audiolog' | 'skull', id: string): boolean {
     const prefix = type === 'audiolog' ? 'audiolog' : type;
-    return saveSystem.getLevelFlag(this.snapshot.currentLevelId, `${prefix}_${id}`);
+    const levelId = this.store.currentLevel ?? 'anchor_station';
+    return saveSystem.getLevelFlag(levelId, `${prefix}_${id}`);
   }
 
   /**
@@ -868,11 +882,40 @@ export class CampaignDirector {
   }
 
   // -----------------------------------------------------------------------
+  // Level unlock queries (delegated to store)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Check if a level is unlocked
+   */
+  isLevelUnlocked(levelId: LevelId): boolean {
+    return this.store.isLevelUnlocked(levelId);
+  }
+
+  /**
+   * Get progress for a level
+   */
+  getLevelProgress(levelId: LevelId) {
+    return this.store.getLevelProgress(levelId);
+  }
+
+  /**
+   * Get the next level in the campaign
+   */
+  getNextLevel(): LevelId | null {
+    return this.store.getNextLevel();
+  }
+
+  // -----------------------------------------------------------------------
   // Cleanup
   // -----------------------------------------------------------------------
 
   dispose(): void {
     this.listeners.clear();
+    if (this.storeUnsubscribe) {
+      this.storeUnsubscribe();
+      this.storeUnsubscribe = null;
+    }
     disposeReyesDialogueManager();
     disposeGameTimer();
   }

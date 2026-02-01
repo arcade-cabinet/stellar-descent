@@ -77,8 +77,12 @@ vi.mock('@babylonjs/core/Meshes/transformNode', () => {
     rotation = { x: 0, y: 0, z: 0 };
     scaling = { x: 1, y: 1, z: 1, setAll: vi.fn() };
     private _enabled = true;
-    setEnabled(value: boolean) { this._enabled = value; }
-    isEnabled() { return this._enabled; }
+    setEnabled(value: boolean) {
+      this._enabled = value;
+    }
+    isEnabled() {
+      return this._enabled;
+    }
     dispose = vi.fn();
   }
   return { TransformNode: MockTransformNode };
@@ -95,11 +99,11 @@ vi.mock('../core/Logger', () => ({
 
 // Import after mocks
 import {
+  buildVehicleYokeMesh,
   GyroscopeManager,
   VehicleYokeController,
-  VehicleYokeSystem,
-  buildVehicleYokeMesh,
   type VehicleYokeInput,
+  VehicleYokeSystem,
 } from './VehicleYoke';
 
 describe('VehicleYoke', () => {

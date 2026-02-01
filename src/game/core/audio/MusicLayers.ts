@@ -370,7 +370,8 @@ export function calculateCombatIntensity(state: CombatState): number {
   const damageIntensity = Math.min((state.recentDamageDealt + state.recentDamageTaken) / 100, 0.3);
 
   // Health urgency (low health increases intensity)
-  const healthUrgency = state.playerHealthPercent < 0.3 ? 0.2 : state.playerHealthPercent < 0.5 ? 0.1 : 0;
+  const healthUrgency =
+    state.playerHealthPercent < 0.3 ? 0.2 : state.playerHealthPercent < 0.5 ? 0.1 : 0;
 
   return Math.min(enemyIntensity + damageIntensity + healthUrgency, 1.0);
 }
@@ -752,9 +753,7 @@ export function createFrozenSynths(): LayerSynthSet {
 /**
  * Get synth factory for a given style
  */
-export function getSynthFactoryForStyle(
-  style: LevelMusicTheme['style']
-): () => LayerSynthSet {
+export function getSynthFactoryForStyle(style: LevelMusicTheme['style']): () => LayerSynthSet {
   switch (style) {
     case 'industrial':
       return createIndustrialSynths;
@@ -786,7 +785,7 @@ export function generateAmbientPattern(
   _tempo: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Tone.Sequence<any> {
-  const chords = CHORD_PROGRESSIONS[key] || CHORD_PROGRESSIONS['Dm'];
+  const chords = CHORD_PROGRESSIONS[key] || CHORD_PROGRESSIONS.Dm;
   const pattern: (number[] | null)[] = [];
 
   // Create slow chord progression (one chord every 4 bars)
@@ -824,26 +823,113 @@ export function generatePercussionPattern(
 
   switch (style) {
     case 'industrial':
-      kickHits = [true, false, false, false, false, false, false, false, true, false, false, false, false, false, true, false];
-      hihatVelocities = [0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4];
+      kickHits = [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+      ];
+      hihatVelocities = [
+        0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4,
+      ];
       break;
     case 'urgent':
-      kickHits = [true, false, false, true, false, false, true, false, true, false, false, true, false, false, true, false];
+      kickHits = [
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+      ];
       hihatVelocities = [1, 0.3, 0.5, 0.3, 1, 0.3, 0.5, 0.3, 1, 0.3, 0.5, 0.3, 1, 0.3, 0.7, 0.5];
       break;
     case 'organic':
-      kickHits = [true, false, false, false, false, false, true, false, false, false, false, false, true, false, false, false];
+      kickHits = [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+      ];
       hihatVelocities = [0, 0.5, 0, 0.3, 0.7, 0, 0.4, 0, 0, 0.6, 0, 0.3, 0.5, 0, 0.4, 0];
       break;
     case 'horror':
-      kickHits = [true, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false];
+      kickHits = [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ];
       hihatVelocities = [0, 0, 0.3, 0, 0, 0.2, 0, 0.4, 0, 0, 0.3, 0, 0, 0.2, 0, 0.5];
       break;
-    case 'frozen':
-    case 'desolate':
     default:
-      kickHits = [true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false];
-      hihatVelocities = [0.6, 0.3, 0.4, 0.3, 0.6, 0.3, 0.4, 0.3, 0.6, 0.3, 0.4, 0.3, 0.6, 0.3, 0.4, 0.3];
+      kickHits = [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ];
+      hihatVelocities = [
+        0.6, 0.3, 0.4, 0.3, 0.6, 0.3, 0.4, 0.3, 0.6, 0.3, 0.4, 0.3, 0.6, 0.3, 0.4, 0.3,
+      ];
       break;
   }
 
@@ -879,26 +965,109 @@ export function generateBassPattern(
   style: LevelMusicTheme['style']
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Tone.Sequence<any> {
-  const bassNotes = BASS_NOTES[key] || BASS_NOTES['Dm'];
+  const bassNotes = BASS_NOTES[key] || BASS_NOTES.Dm;
   let pattern: (number | null)[];
 
   switch (style) {
     case 'industrial':
-      pattern = [bassNotes[0], null, bassNotes[0], null, bassNotes[1], null, null, bassNotes[0], null, bassNotes[2], null, null, bassNotes[0], null, bassNotes[1], null];
+      pattern = [
+        bassNotes[0],
+        null,
+        bassNotes[0],
+        null,
+        bassNotes[1],
+        null,
+        null,
+        bassNotes[0],
+        null,
+        bassNotes[2],
+        null,
+        null,
+        bassNotes[0],
+        null,
+        bassNotes[1],
+        null,
+      ];
       break;
     case 'urgent':
-      pattern = [bassNotes[0], null, bassNotes[0], bassNotes[0], null, bassNotes[1], null, bassNotes[0], bassNotes[2], null, bassNotes[0], null, bassNotes[1], null, bassNotes[0], null];
+      pattern = [
+        bassNotes[0],
+        null,
+        bassNotes[0],
+        bassNotes[0],
+        null,
+        bassNotes[1],
+        null,
+        bassNotes[0],
+        bassNotes[2],
+        null,
+        bassNotes[0],
+        null,
+        bassNotes[1],
+        null,
+        bassNotes[0],
+        null,
+      ];
       break;
     case 'organic':
-      pattern = [bassNotes[0], null, null, null, bassNotes[1], null, null, null, bassNotes[0], null, null, bassNotes[2], null, null, null, null];
+      pattern = [
+        bassNotes[0],
+        null,
+        null,
+        null,
+        bassNotes[1],
+        null,
+        null,
+        null,
+        bassNotes[0],
+        null,
+        null,
+        bassNotes[2],
+        null,
+        null,
+        null,
+        null,
+      ];
       break;
     case 'horror':
-      pattern = [bassNotes[0], null, null, null, null, null, null, null, bassNotes[1], null, null, null, null, null, null, null];
+      pattern = [
+        bassNotes[0],
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        bassNotes[1],
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ];
       break;
-    case 'frozen':
-    case 'desolate':
     default:
-      pattern = [bassNotes[0], null, null, null, bassNotes[1], null, null, null, bassNotes[0], null, null, null, bassNotes[2], null, null, null];
+      pattern = [
+        bassNotes[0],
+        null,
+        null,
+        null,
+        bassNotes[1],
+        null,
+        null,
+        null,
+        bassNotes[0],
+        null,
+        null,
+        null,
+        bassNotes[2],
+        null,
+        null,
+        null,
+      ];
       break;
   }
 
@@ -922,41 +1091,89 @@ export function generateStabPattern(
   style: LevelMusicTheme['style']
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Tone.Sequence<any> {
-  const chords = CHORD_PROGRESSIONS[key] || CHORD_PROGRESSIONS['Dm'];
+  const chords = CHORD_PROGRESSIONS[key] || CHORD_PROGRESSIONS.Dm;
   let pattern: (number[] | null)[];
 
   switch (style) {
     case 'urgent':
       pattern = [
-        chords[0], null, chords[0], null,
-        null, chords[1], null, chords[1],
-        chords[2], null, null, chords[2],
-        null, chords[3], chords[3], null,
+        chords[0],
+        null,
+        chords[0],
+        null,
+        null,
+        chords[1],
+        null,
+        chords[1],
+        chords[2],
+        null,
+        null,
+        chords[2],
+        null,
+        chords[3],
+        chords[3],
+        null,
       ];
       break;
     case 'industrial':
       pattern = [
-        chords[0], null, null, null,
-        null, null, chords[1], null,
-        null, chords[0], null, null,
-        null, null, null, chords[2],
+        chords[0],
+        null,
+        null,
+        null,
+        null,
+        null,
+        chords[1],
+        null,
+        null,
+        chords[0],
+        null,
+        null,
+        null,
+        null,
+        null,
+        chords[2],
       ];
       break;
     case 'organic':
     case 'horror':
       pattern = [
-        chords[0], null, null, null,
-        null, null, null, null,
-        null, null, chords[1], null,
-        null, null, null, null,
+        chords[0],
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        chords[1],
+        null,
+        null,
+        null,
+        null,
+        null,
       ];
       break;
     default:
       pattern = [
-        chords[0], null, null, null,
-        null, chords[1], null, null,
-        null, null, chords[2], null,
-        null, null, null, chords[3],
+        chords[0],
+        null,
+        null,
+        null,
+        null,
+        chords[1],
+        null,
+        null,
+        null,
+        null,
+        chords[2],
+        null,
+        null,
+        null,
+        null,
+        chords[3],
       ];
       break;
   }
@@ -964,7 +1181,9 @@ export function generateStabPattern(
   return new Tone.Sequence(
     (time, chord) => {
       if (chord && Array.isArray(chord)) {
-        const frequencies = (chord as number[]).map((n) => Tone.Frequency(n + 12, 'midi').toFrequency()); // One octave up
+        const frequencies = (chord as number[]).map((n) =>
+          Tone.Frequency(n + 12, 'midi').toFrequency()
+        ); // One octave up
         synth.triggerAttackRelease(frequencies, '16n', time, 0.6);
       }
     },
@@ -982,57 +1201,128 @@ export function generateLeadPattern(
   style: LevelMusicTheme['style']
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Tone.Sequence<any> {
-  const scale = SCALES[key] || SCALES['Dm'];
+  const scale = SCALES[key] || SCALES.Dm;
   let pattern: (number | null)[];
 
   switch (style) {
     case 'urgent':
       pattern = [
-        scale[4], null, scale[3], null,
-        scale[2], null, scale[0], null,
-        scale[4], scale[5], null, scale[3],
-        null, scale[2], null, scale[0],
+        scale[4],
+        null,
+        scale[3],
+        null,
+        scale[2],
+        null,
+        scale[0],
+        null,
+        scale[4],
+        scale[5],
+        null,
+        scale[3],
+        null,
+        scale[2],
+        null,
+        scale[0],
       ];
       break;
     case 'industrial':
       pattern = [
-        scale[0], null, null, null,
-        scale[2], null, scale[1], null,
-        null, null, null, null,
-        scale[4], null, null, null,
+        scale[0],
+        null,
+        null,
+        null,
+        scale[2],
+        null,
+        scale[1],
+        null,
+        null,
+        null,
+        null,
+        null,
+        scale[4],
+        null,
+        null,
+        null,
       ];
       break;
     case 'organic':
       pattern = [
-        scale[0], null, null, scale[1],
-        null, null, null, scale[0] - 1, // chromatic
-        null, scale[0], null, null,
-        scale[2], null, null, null,
+        scale[0],
+        null,
+        null,
+        scale[1],
+        null,
+        null,
+        null,
+        scale[0] - 1, // chromatic
+        null,
+        scale[0],
+        null,
+        null,
+        scale[2],
+        null,
+        null,
+        null,
       ];
       break;
     case 'horror':
       pattern = [
-        scale[0], null, null, null,
-        null, null, scale[1], null,
-        null, null, null, null,
-        scale[0] - 1, null, null, null, // chromatic tension
+        scale[0],
+        null,
+        null,
+        null,
+        null,
+        null,
+        scale[1],
+        null,
+        null,
+        null,
+        null,
+        null,
+        scale[0] - 1,
+        null,
+        null,
+        null, // chromatic tension
       ];
       break;
     case 'frozen':
       pattern = [
-        scale[4], null, null, scale[2],
-        null, null, scale[0], null,
-        null, scale[2], null, null,
-        scale[4], null, scale[5], null,
+        scale[4],
+        null,
+        null,
+        scale[2],
+        null,
+        null,
+        scale[0],
+        null,
+        null,
+        scale[2],
+        null,
+        null,
+        scale[4],
+        null,
+        scale[5],
+        null,
       ];
       break;
-    case 'desolate':
     default:
       pattern = [
-        scale[0], null, null, null,
-        scale[2], null, null, null,
-        scale[4], null, null, null,
-        scale[2], null, null, null,
+        scale[0],
+        null,
+        null,
+        null,
+        scale[2],
+        null,
+        null,
+        null,
+        scale[4],
+        null,
+        null,
+        null,
+        scale[2],
+        null,
+        null,
+        null,
       ];
       break;
   }
@@ -1040,7 +1330,12 @@ export function generateLeadPattern(
   return new Tone.Sequence(
     (time, note) => {
       if (note !== null && typeof note === 'number') {
-        synth.triggerAttackRelease(Tone.Frequency(note + 12, 'midi').toFrequency(), '8n', time, 0.7);
+        synth.triggerAttackRelease(
+          Tone.Frequency(note + 12, 'midi').toFrequency(),
+          '8n',
+          time,
+          0.7
+        );
       }
     },
     pattern,

@@ -17,10 +17,8 @@ import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
 import {
   type Challenge,
-  type ChallengeProgress,
   type ChallengeState,
   type DifficultyModifier,
-  type ObjectiveType,
   generateDailyChallenges,
   generateWeeklyChallenges,
   getDateSeed,
@@ -31,6 +29,7 @@ import {
   isChallengeActive,
   isChallengeExpired,
   loadChallengeState,
+  type ObjectiveType,
   saveChallengeState,
 } from './ChallengeMode';
 
@@ -67,19 +66,41 @@ class ChallengeManagerImpl {
   private state: ChallengeState;
   private listeners: Set<ChallengeEventCallback> = new Set();
   private initialized: boolean = false;
+  private initPromise: Promise<void> | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    this.state = loadChallengeState();
+    this.state = this.createDefaultState();
+  }
+
+  /**
+   * Create default state
+   */
+  private createDefaultState(): ChallengeState {
+    return {
+      dailyChallenges: [],
+      weeklyChallenges: [],
+      permanentChallenges: [],
+      progress: {},
+      claimedRewards: [],
+      totalXP: 0,
+      streak: 0,
+    };
   }
 
   /**
    * Initialize the challenge manager
    */
-  init(): void {
+  async init(): Promise<void> {
     if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
 
-    this.state = loadChallengeState();
+    this.initPromise = this.doInit();
+    return this.initPromise;
+  }
+
+  private async doInit(): Promise<void> {
+    this.state = await loadChallengeState();
     this.refreshChallenges();
     this.setupRefreshTimer();
     this.initialized = true;
@@ -231,6 +252,7 @@ class ChallengeManagerImpl {
    * Save current state
    */
   private save(): void {
+    // Fire and forget - errors are logged by saveChallengeState
     saveChallengeState(this.state);
   }
 
@@ -481,7 +503,13 @@ class ChallengeManagerImpl {
   /**
    * Called when player kills an enemy
    */
-  onKill(options?: { levelId?: LevelId; weaponId?: string; isHeadshot?: boolean; isMelee?: boolean; isGrenade?: boolean }): void {
+  onKill(options?: {
+    levelId?: LevelId;
+    weaponId?: string;
+    isHeadshot?: boolean;
+    isMelee?: boolean;
+    isGrenade?: boolean;
+  }): void {
     this.updateProgress('kills', 1, options);
 
     if (options?.isHeadshot) {
@@ -574,7 +602,7 @@ class ChallengeManagerImpl {
   /**
    * Called when skulls are collected
    */
-  onSkullCollected(skullId: string): void {
+  onSkullCollected(_skullId: string): void {
     this.updateProgress('skullsCollected', 1);
   }
 
@@ -649,8 +677,8 @@ export function getChallengeManager(): ChallengeManagerImpl {
  * Initialize the challenge system
  * Should be called once at app startup
  */
-export function initChallenges(): void {
-  getChallengeManager().init();
+export async function initChallenges(): Promise<void> {
+  await getChallengeManager().init();
 }
 
 /**

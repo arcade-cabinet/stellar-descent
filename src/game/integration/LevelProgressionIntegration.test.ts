@@ -16,21 +16,20 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { disposeEventBus, type EventBus, getEventBus } from '../core/EventBus';
 import {
   CAMPAIGN_LEVELS,
   getFirstLevel,
+  getLevelIndex,
   getNextLevel,
   getPreviousLevel,
   getTotalLevels,
-  getLevelIndex,
   iterateLevels,
-  type LevelId,
   type LevelConfig,
+  type LevelId,
   type LevelState,
   type LevelStats,
 } from '../levels/types';
-import { EventBus, getEventBus, disposeEventBus } from '../core/EventBus';
 
 // Mock crypto
 vi.stubGlobal('crypto', {
@@ -61,7 +60,7 @@ function createLevelState(levelId: LevelId, overrides: Partial<LevelState> = {})
  */
 function checkVictoryConditions(
   levelId: LevelId,
-  state: LevelState,
+  _state: LevelState,
   flags: Record<string, boolean>
 ): boolean {
   switch (levelId) {

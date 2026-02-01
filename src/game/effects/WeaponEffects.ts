@@ -394,7 +394,7 @@ export class WeaponEffects {
   /**
    * Dirt/ground impact - dust and debris
    */
-  private emitDirtImpact(position: Vector3, normal?: Vector3, scale: number = 1): void {
+  private emitDirtImpact(position: Vector3, _normal?: Vector3, scale: number = 1): void {
     // Large dust cloud
     particleManager.emitDustImpact(position, scale * 1.5);
 

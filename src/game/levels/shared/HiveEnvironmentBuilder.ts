@@ -17,7 +17,7 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../../core/AssetManager';
 
@@ -320,7 +320,9 @@ export class HiveEnvironmentBuilder {
       if (instance) {
         tunnelNode = instance;
       } else {
-        throw new Error(`[HiveEnvironmentBuilder] Failed to create tunnel instance from cached GLB`);
+        throw new Error(
+          `[HiveEnvironmentBuilder] Failed to create tunnel instance from cached GLB`
+        );
       }
     } else {
       throw new Error(`[HiveEnvironmentBuilder] Tunnel GLB not preloaded`);
@@ -388,7 +390,9 @@ export class HiveEnvironmentBuilder {
         instance.parent = parent;
         return;
       } else {
-        throw new Error(`[HiveEnvironmentBuilder] Failed to create organic growth instance from cached GLB: ${glbPath}`);
+        throw new Error(
+          `[HiveEnvironmentBuilder] Failed to create organic growth instance from cached GLB: ${glbPath}`
+        );
       }
     } else {
       throw new Error(`[HiveEnvironmentBuilder] Organic growth GLB not preloaded: ${glbPath}`);
@@ -431,7 +435,9 @@ export class HiveEnvironmentBuilder {
         await this.createChamberBioPatches(instance, position, radius, zone);
         return;
       } else {
-        throw new Error(`[HiveEnvironmentBuilder] Failed to create chamber instance from cached GLB`);
+        throw new Error(
+          `[HiveEnvironmentBuilder] Failed to create chamber instance from cached GLB`
+        );
       }
     } else {
       throw new Error(`[HiveEnvironmentBuilder] Chamber GLB not preloaded`);
@@ -443,7 +449,7 @@ export class HiveEnvironmentBuilder {
    */
   private async createChamberBioPatches(
     parent: TransformNode,
-    center: Vector3,
+    _center: Vector3,
     radius: number,
     zone: HiveZone
   ): Promise<void> {
@@ -475,9 +481,10 @@ export class HiveEnvironmentBuilder {
             (Math.random() - 0.5) * 0.5
           );
           instance.parent = parent;
-          continue;
         } else {
-          throw new Error(`[HiveEnvironmentBuilder] Failed to create bio patch instance from cached GLB: ${glbPath}`);
+          throw new Error(
+            `[HiveEnvironmentBuilder] Failed to create bio patch instance from cached GLB: ${glbPath}`
+          );
         }
       } else {
         throw new Error(`[HiveEnvironmentBuilder] Bio patch GLB not preloaded: ${glbPath}`);

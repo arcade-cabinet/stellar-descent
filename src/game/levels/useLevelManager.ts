@@ -6,16 +6,18 @@
  * - State persistence
  * - React state synchronization
  * - Level transition handling
+ *
+ * Events are now handled via EventBus subscriptions.
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { getEventBus } from '../core/EventBus';
+import { getLogger } from '../core/Logger';
 import type { CommsMessage } from '../types';
 import type { ActionButtonGroup } from '../types/actions';
 import { LevelManager, type LevelManagerConfig } from './LevelManager';
-import type { ILevel, LevelCallbacks, LevelConfig, LevelFactoryRegistry, LevelId } from './types';
-
-import { getLogger } from '../core/Logger';
+import type { ILevel, LevelFactoryRegistry, LevelId } from './types';
 
 const log = getLogger('useLevelManager');
 
@@ -23,6 +25,7 @@ export interface UseLevelManagerOptions {
   engine: Engine | null;
   canvas: HTMLCanvasElement | null;
   levelFactories: Partial<LevelFactoryRegistry>;
+  // Event handlers - these subscribe to EventBus events
   onCommsMessage?: (message: CommsMessage) => void;
   onObjectiveUpdate?: (title: string, instructions: string) => void;
   onChapterChange?: (chapter: number) => void;
@@ -92,50 +95,144 @@ export function useLevelManager(
   // Manager ref
   const managerRef = useRef<LevelManager | null>(null);
 
-  // Create callbacks that update React state and forward to props
-  const callbacks: LevelCallbacks = {
-    onCommsMessage: (message) => {
-      onCommsMessage?.(message);
-    },
-    onObjectiveUpdate: (title, instructions) => {
-      onObjectiveUpdate?.(title, instructions);
-    },
-    onChapterChange: (chapter) => {
-      setState((prev) => ({ ...prev, chapter }));
-      onChapterChange?.(chapter);
-    },
-    onHealthChange: (health) => {
-      onHealthChange?.(health);
-    },
-    onKill: () => {
-      onKill?.();
-    },
-    onDamage: () => {
-      onDamage?.();
-    },
-    onNotification: (text, duration) => {
-      onNotification?.(text, duration);
-    },
-    onLevelComplete: (nextLevelId) => {
-      onLevelComplete?.(nextLevelId);
-    },
-    onCombatStateChange: (inCombat) => {
-      setState((prev) => ({ ...prev, inCombat }));
-      onCombatStateChange?.(inCombat);
-    },
-    onActionGroupsChange: (groups) => {
-      onActionGroupsChange?.(groups);
-    },
-    onActionHandlerRegister: (handler) => {
-      onActionHandlerRegister?.(handler);
-    },
-    onHitMarker: (damage, isCritical, isKill) => {
-      onHitMarker?.(damage, isCritical, isKill);
-    },
-    onDirectionalDamage: (angle, damage) => {
-      onDirectionalDamage?.(angle, damage);
-    },
-  };
+  // Subscribe to EventBus events and forward to callbacks
+  useEffect(() => {
+    const eventBus = getEventBus();
+    const unsubscribers: (() => void)[] = [];
+
+    // Subscribe to COMMS_MESSAGE events
+    if (onCommsMessage) {
+      unsubscribers.push(
+        eventBus.on('COMMS_MESSAGE', (event) => {
+          onCommsMessage(event.message);
+        })
+      );
+    }
+
+    // Subscribe to OBJECTIVE_UPDATED events
+    if (onObjectiveUpdate) {
+      unsubscribers.push(
+        eventBus.on('OBJECTIVE_UPDATED', (event) => {
+          onObjectiveUpdate(event.title, event.instructions);
+        })
+      );
+    }
+
+    // Subscribe to CHAPTER_CHANGED events
+    unsubscribers.push(
+      eventBus.on('CHAPTER_CHANGED', (event) => {
+        setState((prev) => ({ ...prev, chapter: event.chapter }));
+        onChapterChange?.(event.chapter);
+      })
+    );
+
+    // Subscribe to HEALTH_CHANGED events
+    if (onHealthChange) {
+      unsubscribers.push(
+        eventBus.on('HEALTH_CHANGED', (event) => {
+          onHealthChange(event.health);
+        })
+      );
+    }
+
+    // Subscribe to KILL_REGISTERED events
+    if (onKill) {
+      unsubscribers.push(
+        eventBus.on('KILL_REGISTERED', () => {
+          onKill();
+        })
+      );
+    }
+
+    // Subscribe to DAMAGE_REGISTERED events
+    if (onDamage) {
+      unsubscribers.push(
+        eventBus.on('DAMAGE_REGISTERED', () => {
+          onDamage();
+        })
+      );
+    }
+
+    // Subscribe to NOTIFICATION events
+    if (onNotification) {
+      unsubscribers.push(
+        eventBus.on('NOTIFICATION', (event) => {
+          onNotification(event.text, event.duration);
+        })
+      );
+    }
+
+    // Subscribe to LEVEL_COMPLETE events
+    if (onLevelComplete) {
+      unsubscribers.push(
+        eventBus.on('LEVEL_COMPLETE', (event) => {
+          onLevelComplete(event.nextLevelId);
+        })
+      );
+    }
+
+    // Subscribe to COMBAT_STATE_CHANGED events
+    unsubscribers.push(
+      eventBus.on('COMBAT_STATE_CHANGED', (event) => {
+        setState((prev) => ({ ...prev, inCombat: event.inCombat }));
+        onCombatStateChange?.(event.inCombat);
+      })
+    );
+
+    // Subscribe to ACTION_GROUPS_CHANGED events
+    if (onActionGroupsChange) {
+      unsubscribers.push(
+        eventBus.on('ACTION_GROUPS_CHANGED', (event) => {
+          onActionGroupsChange(event.groups);
+        })
+      );
+    }
+
+    // Subscribe to ACTION_HANDLER_REGISTERED events
+    if (onActionHandlerRegister) {
+      unsubscribers.push(
+        eventBus.on('ACTION_HANDLER_REGISTERED', (event) => {
+          onActionHandlerRegister(event.handler);
+        })
+      );
+    }
+
+    // Subscribe to HIT_MARKER events
+    if (onHitMarker) {
+      unsubscribers.push(
+        eventBus.on('HIT_MARKER', (event) => {
+          onHitMarker(event.damage, event.isCritical, event.isKill);
+        })
+      );
+    }
+
+    // Subscribe to DIRECTIONAL_DAMAGE events
+    if (onDirectionalDamage) {
+      unsubscribers.push(
+        eventBus.on('DIRECTIONAL_DAMAGE', (event) => {
+          onDirectionalDamage(event.angle, event.damage);
+        })
+      );
+    }
+
+    return () => {
+      unsubscribers.forEach((unsub) => unsub());
+    };
+  }, [
+    onCommsMessage,
+    onObjectiveUpdate,
+    onChapterChange,
+    onHealthChange,
+    onKill,
+    onDamage,
+    onNotification,
+    onLevelComplete,
+    onCombatStateChange,
+    onActionGroupsChange,
+    onActionHandlerRegister,
+    onHitMarker,
+    onDirectionalDamage,
+  ]);
 
   // Initialize manager when engine/canvas are ready
   useEffect(() => {
@@ -144,7 +241,6 @@ export function useLevelManager(
     const config: LevelManagerConfig = {
       engine,
       canvas,
-      callbacks,
       levelFactories,
     };
 
@@ -154,7 +250,7 @@ export function useLevelManager(
       managerRef.current?.dispose();
       managerRef.current = null;
     };
-  }, [engine, canvas]); // Note: callbacks and factories are stable
+  }, [engine, canvas, levelFactories]);
 
   // Actions
   const startLevel = useCallback(async (levelId: LevelId) => {

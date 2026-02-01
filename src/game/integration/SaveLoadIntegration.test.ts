@@ -14,16 +14,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createNewSave,
   extractSaveMetadata,
-  toSaveState,
   fromSaveState,
   type GameSave,
-  type SaveState,
   MAX_SAVE_SLOTS,
   SAVE_FORMAT_VERSION,
   SAVE_SLOT_AUTOSAVE,
   SAVE_SLOT_QUICKSAVE,
+  type SaveState,
+  toSaveState,
 } from '../persistence/GameSave';
-import type { LevelId } from '../levels/types';
 
 // Mock IndexedDB / worldDb
 const mockDatabase: Record<string, string> = {};
@@ -81,7 +80,13 @@ describe('Save/Load Integration', () => {
 
   describe('Save Creation', () => {
     it('should create a new save with default values', () => {
-      const save = createNewSave('test_save', 'normal', 'anchor_station', SAVE_SLOT_AUTOSAVE, 'auto');
+      const save = createNewSave(
+        'test_save',
+        'normal',
+        'anchor_station',
+        SAVE_SLOT_AUTOSAVE,
+        'auto'
+      );
 
       expect(save.id).toBe('test_save');
       expect(save.version).toBe(SAVE_FORMAT_VERSION);
@@ -98,7 +103,13 @@ describe('Save/Load Integration', () => {
 
     it('should create save with correct timestamp', () => {
       const before = Date.now();
-      const save = createNewSave('test_save', 'normal', 'anchor_station', SAVE_SLOT_AUTOSAVE, 'auto');
+      const save = createNewSave(
+        'test_save',
+        'normal',
+        'anchor_station',
+        SAVE_SLOT_AUTOSAVE,
+        'auto'
+      );
       const after = Date.now();
 
       expect(save.timestamp).toBeGreaterThanOrEqual(before);
@@ -134,14 +145,14 @@ describe('Save/Load Integration', () => {
       const slot3 = createNewSave('slot3', 'hard', 'canyon_run', 3, 'manual');
 
       // Simulate storing
-      mockDatabase['save_slot_1'] = JSON.stringify(slot1);
-      mockDatabase['save_slot_2'] = JSON.stringify(slot2);
-      mockDatabase['save_slot_3'] = JSON.stringify(slot3);
+      mockDatabase.save_slot_1 = JSON.stringify(slot1);
+      mockDatabase.save_slot_2 = JSON.stringify(slot2);
+      mockDatabase.save_slot_3 = JSON.stringify(slot3);
 
       // Verify independence
-      const loaded1 = JSON.parse(mockDatabase['save_slot_1']) as GameSave;
-      const loaded2 = JSON.parse(mockDatabase['save_slot_2']) as GameSave;
-      const loaded3 = JSON.parse(mockDatabase['save_slot_3']) as GameSave;
+      const loaded1 = JSON.parse(mockDatabase.save_slot_1) as GameSave;
+      const loaded2 = JSON.parse(mockDatabase.save_slot_2) as GameSave;
+      const loaded3 = JSON.parse(mockDatabase.save_slot_3) as GameSave;
 
       expect(loaded1.difficulty).toBe('easy');
       expect(loaded2.difficulty).toBe('normal');
@@ -158,8 +169,8 @@ describe('Save/Load Integration', () => {
       save.playerHealth = 75;
       save.maxPlayerHealth = 150;
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.playerHealth).toBe(75);
       expect(loaded.maxPlayerHealth).toBe(150);
@@ -170,8 +181,8 @@ describe('Save/Load Integration', () => {
       save.playerArmor = 50;
       save.maxPlayerArmor = 100;
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.playerArmor).toBe(50);
       expect(loaded.maxPlayerArmor).toBe(100);
@@ -182,8 +193,8 @@ describe('Save/Load Integration', () => {
       save.playerPosition = { x: 10, y: 5, z: 20 };
       save.playerRotation = 1.57;
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.playerPosition).toEqual({ x: 10, y: 5, z: 20 });
       expect(loaded.playerRotation).toBe(1.57);
@@ -198,8 +209,8 @@ describe('Save/Load Integration', () => {
       ];
       save.currentWeaponSlot = 1;
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.weaponStates).toHaveLength(3);
       expect(loaded.weaponStates[0].currentAmmo).toBe(20);
@@ -212,8 +223,8 @@ describe('Save/Load Integration', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.grenades = { frag: 3, plasma: 2, emp: 1 };
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.grenades).toEqual({ frag: 3, plasma: 2, emp: 1 });
     });
@@ -224,8 +235,8 @@ describe('Save/Load Integration', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.levelsVisited = ['anchor_station', 'landfall', 'canyon_run'];
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.levelsVisited).toContain('anchor_station');
       expect(loaded.levelsVisited).toContain('landfall');
@@ -237,8 +248,8 @@ describe('Save/Load Integration', () => {
       save.levelsCompleted = ['anchor_station', 'landfall'];
       save.currentLevel = 'canyon_run';
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.levelsCompleted).toContain('anchor_station');
       expect(loaded.levelsCompleted).toContain('landfall');
@@ -253,8 +264,8 @@ describe('Save/Load Integration', () => {
         landfall: 180.2,
       };
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.levelBestTimes?.anchor_station).toBe(120.5);
       expect(loaded.levelBestTimes?.landfall).toBe(180.2);
@@ -266,8 +277,8 @@ describe('Save/Load Integration', () => {
       save.levelFlags.anchor_station = { tutorial_complete: true, found_secret: true };
       save.levelFlags.landfall = { survived_halo_drop: true };
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.levelFlags.anchor_station?.tutorial_complete).toBe(true);
       expect(loaded.levelFlags.landfall?.survived_halo_drop).toBe(true);
@@ -279,8 +290,8 @@ describe('Save/Load Integration', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.collectedSkulls = ['skull_iron', 'skull_mythic', 'skull_famine'];
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.collectedSkulls).toHaveLength(3);
       expect(loaded.collectedSkulls).toContain('skull_iron');
@@ -291,8 +302,8 @@ describe('Save/Load Integration', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.discoveredAudioLogs = ['log_001', 'log_002', 'log_003'];
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.discoveredAudioLogs).toHaveLength(3);
       expect(loaded.discoveredAudioLogs).toContain('log_001');
@@ -302,8 +313,8 @@ describe('Save/Load Integration', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.discoveredSecretAreas = ['secret_armory', 'secret_cache'];
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.discoveredSecretAreas).toHaveLength(2);
       expect(loaded.discoveredSecretAreas).toContain('secret_armory');
@@ -313,8 +324,8 @@ describe('Save/Load Integration', () => {
       const save = createNewSave('test', 'normal', 'anchor_station', 1, 'manual');
       save.unlockedAchievements = ['first_blood', 'survivor', 'collector'];
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.unlockedAchievements).toHaveLength(3);
       expect(loaded.unlockedAchievements).toContain('first_blood');
@@ -330,8 +341,8 @@ describe('Save/Load Integration', () => {
         timestamp: Date.now(),
       };
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.checkpoint).not.toBeNull();
       expect(loaded.checkpoint?.position.x).toBe(100);
@@ -524,8 +535,8 @@ describe('Save/Load Integration', () => {
         showHitmarkers: true,
       };
 
-      mockDatabase['test_save'] = JSON.stringify(save);
-      const loaded = JSON.parse(mockDatabase['test_save']) as GameSave;
+      mockDatabase.test_save = JSON.stringify(save);
+      const loaded = JSON.parse(mockDatabase.test_save) as GameSave;
 
       expect(loaded.savedSettings?.masterVolume).toBe(0.8);
       expect(loaded.savedSettings?.invertMouseY).toBe(true);
@@ -537,8 +548,20 @@ describe('Save/Load Integration', () => {
     it('should distinguish save types', () => {
       const auto = createNewSave('auto', 'normal', 'anchor_station', SAVE_SLOT_AUTOSAVE, 'auto');
       const manual = createNewSave('manual', 'normal', 'anchor_station', 1, 'manual');
-      const checkpoint = createNewSave('checkpoint', 'normal', 'anchor_station', SAVE_SLOT_AUTOSAVE, 'checkpoint');
-      const quick = createNewSave('quick', 'normal', 'anchor_station', SAVE_SLOT_QUICKSAVE, 'quicksave');
+      const checkpoint = createNewSave(
+        'checkpoint',
+        'normal',
+        'anchor_station',
+        SAVE_SLOT_AUTOSAVE,
+        'checkpoint'
+      );
+      const quick = createNewSave(
+        'quick',
+        'normal',
+        'anchor_station',
+        SAVE_SLOT_QUICKSAVE,
+        'quicksave'
+      );
 
       expect(auto.saveType).toBe('auto');
       expect(manual.saveType).toBe('manual');

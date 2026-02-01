@@ -2,11 +2,11 @@
  * LowHealthFeedback Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  LowHealthFeedbackManager,
-  getLowHealthFeedback,
   disposeLowHealthFeedback,
+  getLowHealthFeedback,
+  type LowHealthFeedbackManager,
 } from './LowHealthFeedback';
 
 // Mock AudioContext as a class
@@ -28,7 +28,12 @@ class MockAudioContext {
   }));
 
   createGain = vi.fn(() => ({
-    gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), value: 1 },
+    gain: {
+      setValueAtTime: vi.fn(),
+      linearRampToValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
+      value: 1,
+    },
     connect: vi.fn(),
   }));
 

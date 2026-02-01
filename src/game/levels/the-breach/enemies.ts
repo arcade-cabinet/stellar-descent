@@ -6,13 +6,13 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 
 const log = getLogger('TheBreachEnemies');
+
 import {
   type DifficultyLevel,
   loadDifficultySetting,
@@ -100,7 +100,6 @@ export async function preloadEnemyModels(scene: Scene): Promise<void> {
 // ENEMY SPAWNING
 // ============================================================================
 
-
 /**
  * Try to create a GLB-based enemy mesh
  */
@@ -124,9 +123,7 @@ function createGLBEnemyMesh(scene: Scene, type: EnemyType, index: number): Trans
     // Apply appropriate scale for this enemy type
     const scale = ENEMY_GLB_SCALE[type];
     instance.scaling.setAll(scale);
-    log.info(
-      `Created GLB instance for ${type} (${assetName}), scale=${scale}`
-    );
+    log.info(`Created GLB instance for ${type} (${assetName}), scale=${scale}`);
   }
 
   return instance;

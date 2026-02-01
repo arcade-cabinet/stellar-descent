@@ -105,7 +105,6 @@ import {
   type AudioZone,
   disposeEnvironmentalAudioManager,
   EnvironmentalAudioManager,
-  type EnvironmentType,
   getEnvironmentalAudioManager,
   type SpatialSoundSource,
 } from './EnvironmentalAudioManager';

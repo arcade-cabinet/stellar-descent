@@ -160,7 +160,7 @@ export function MobileTutorial({ onComplete, forceShow = false }: MobileTutorial
         advanceToNextStep();
       }, 800);
     }
-  }, [touchInput, isVisible, currentStepIndex, stepCompleted]);
+  }, [touchInput, isVisible, currentStepIndex, stepCompleted, advanceToNextStep]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -190,7 +190,10 @@ export function MobileTutorial({ onComplete, forceShow = false }: MobileTutorial
       // Tutorial complete
       handleComplete();
     }
-  }, [currentStepIndex]);
+  }, [
+    currentStepIndex, // Tutorial complete
+    handleComplete,
+  ]);
 
   const handleComplete = useCallback(() => {
     // Save completion to localStorage

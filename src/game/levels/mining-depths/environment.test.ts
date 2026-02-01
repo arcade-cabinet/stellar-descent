@@ -12,16 +12,12 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  AUDIO_LOGS,
   createMiningEnvironment,
   createMiningMaterials,
-  preloadMiningAssets,
-  MINE_POSITIONS,
   HAZARD_ZONES,
-  AUDIO_LOGS,
-  type HazardZone,
-  type AudioLogPickup,
-  type MiningEnvironment,
-  type FlickerLightDef,
+  MINE_POSITIONS,
+  preloadMiningAssets,
 } from './environment';
 
 // ============================================================================
@@ -148,10 +144,10 @@ function createMockTransformNode(name = 'node') {
     rotation: { y: 0 },
     scaling: {
       setAll: vi.fn(),
-      clone: vi.fn(() => new Vector3(1, 1, 1))
+      clone: vi.fn(() => new Vector3(1, 1, 1)),
     },
     parent: null,
-    dispose: vi.fn((disposeChildren?: boolean, disposeMaterials?: boolean) => {}),
+    dispose: vi.fn((_disposeChildren?: boolean, _disposeMaterials?: boolean) => {}),
     isDisposed: () => false,
     setEnabled: vi.fn(),
   };
@@ -240,38 +236,38 @@ describe('Mining Depths Environment', () => {
     });
 
     it('should have gas vent hazards', () => {
-      const gasVents = HAZARD_ZONES.filter(h => h.type === 'gas_vent');
+      const gasVents = HAZARD_ZONES.filter((h) => h.type === 'gas_vent');
       expect(gasVents.length).toBe(2);
     });
 
     it('should have unstable ground hazards', () => {
-      const rockfalls = HAZARD_ZONES.filter(h => h.type === 'unstable_ground');
+      const rockfalls = HAZARD_ZONES.filter((h) => h.type === 'unstable_ground');
       expect(rockfalls.length).toBe(2);
     });
 
     it('should have flooded section', () => {
-      const flooded = HAZARD_ZONES.filter(h => h.type === 'flooded');
+      const flooded = HAZARD_ZONES.filter((h) => h.type === 'flooded');
       expect(flooded.length).toBe(1);
     });
 
     it('should have correct gas vent damage values', () => {
-      const gasVent1 = HAZARD_ZONES.find(h => h.id === 'gas_vent_1');
+      const gasVent1 = HAZARD_ZONES.find((h) => h.id === 'gas_vent_1');
       expect(gasVent1?.damage).toBe(5);
 
-      const gasVent2 = HAZARD_ZONES.find(h => h.id === 'gas_vent_2');
+      const gasVent2 = HAZARD_ZONES.find((h) => h.id === 'gas_vent_2');
       expect(gasVent2?.damage).toBe(8);
     });
 
     it('should have correct rockfall damage values', () => {
-      const rockfall1 = HAZARD_ZONES.find(h => h.id === 'rockfall_1');
+      const rockfall1 = HAZARD_ZONES.find((h) => h.id === 'rockfall_1');
       expect(rockfall1?.damage).toBe(15);
 
-      const rockfall2 = HAZARD_ZONES.find(h => h.id === 'rockfall_2');
+      const rockfall2 = HAZARD_ZONES.find((h) => h.id === 'rockfall_2');
       expect(rockfall2?.damage).toBe(12);
     });
 
     it('should have flooded section with no damage', () => {
-      const flooded = HAZARD_ZONES.find(h => h.id === 'flooded_section');
+      const flooded = HAZARD_ZONES.find((h) => h.id === 'flooded_section');
       expect(flooded?.damage).toBe(0);
     });
 
@@ -299,19 +295,19 @@ describe('Mining Depths Environment', () => {
     });
 
     it('should have foreman log first', () => {
-      const foremanLog = AUDIO_LOGS.find(l => l.id === 'log_foreman');
+      const foremanLog = AUDIO_LOGS.find((l) => l.id === 'log_foreman');
       expect(foremanLog).toBeDefined();
       expect(foremanLog?.title).toContain('FOREMAN VASQUEZ');
     });
 
     it('should have geologist log second', () => {
-      const geologistLog = AUDIO_LOGS.find(l => l.id === 'log_geologist');
+      const geologistLog = AUDIO_LOGS.find((l) => l.id === 'log_geologist');
       expect(geologistLog).toBeDefined();
       expect(geologistLog?.title).toContain('DR. CHEN');
     });
 
     it('should have survivor log third', () => {
-      const survivorLog = AUDIO_LOGS.find(l => l.id === 'log_survivor');
+      const survivorLog = AUDIO_LOGS.find((l) => l.id === 'log_survivor');
       expect(survivorLog).toBeDefined();
       expect(survivorLog?.title).toContain('UNKNOWN MINER');
     });
@@ -547,14 +543,14 @@ describe('Mining Depths Environment', () => {
 
   describe('HazardZone interface', () => {
     it('should have correct type values', () => {
-      const types = new Set(HAZARD_ZONES.map(h => h.type));
+      const types = new Set(HAZARD_ZONES.map((h) => h.type));
       expect(types.has('gas_vent')).toBe(true);
       expect(types.has('unstable_ground')).toBe(true);
       expect(types.has('flooded')).toBe(true);
     });
 
     it('should have unique IDs', () => {
-      const ids = HAZARD_ZONES.map(h => h.id);
+      const ids = HAZARD_ZONES.map((h) => h.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
@@ -572,7 +568,7 @@ describe('Mining Depths Environment', () => {
 
   describe('AudioLogPickup interface', () => {
     it('should have unique IDs', () => {
-      const ids = AUDIO_LOGS.map(l => l.id);
+      const ids = AUDIO_LOGS.map((l) => l.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
@@ -724,25 +720,25 @@ describe('Mining Depths Environment', () => {
   describe('environmental storytelling', () => {
     it('should have audio logs telling miner story', () => {
       // Day 12, 15, 18 - escalating timeline
-      const days = AUDIO_LOGS.map(l => {
+      const days = AUDIO_LOGS.map((l) => {
         const match = l.title.match(/DAY (\d+)/);
-        return match ? parseInt(match[1]) : 0;
+        return match ? parseInt(match[1], 10) : 0;
       });
       expect(days).toEqual([12, 15, 18]);
     });
 
     it('should have foreman log about crystal growths', () => {
-      const foremanLog = AUDIO_LOGS.find(l => l.id === 'log_foreman');
+      const foremanLog = AUDIO_LOGS.find((l) => l.id === 'log_foreman');
       expect(foremanLog?.text).toContain('crystal');
     });
 
     it('should have geologist log about biological nature', () => {
-      const geologistLog = AUDIO_LOGS.find(l => l.id === 'log_geologist');
+      const geologistLog = AUDIO_LOGS.find((l) => l.id === 'log_geologist');
       expect(geologistLog?.text).toContain('biological');
     });
 
     it('should have survivor log about attack', () => {
-      const survivorLog = AUDIO_LOGS.find(l => l.id === 'log_survivor');
+      const survivorLog = AUDIO_LOGS.find((l) => l.id === 'log_survivor');
       expect(survivorLog?.text).toContain('wall');
     });
   });
@@ -754,7 +750,7 @@ describe('Mining Depths Environment', () => {
   describe('dispose function', () => {
     it('should dispose all meshes', async () => {
       const env = await createMiningEnvironment(mockScene as any);
-      const meshCount = env.allMeshes.length;
+      const _meshCount = env.allMeshes.length;
 
       env.dispose();
 
@@ -809,16 +805,16 @@ describe('Mining Depths Environment', () => {
 
   describe('hazard placement', () => {
     it('should have gas vents in tunnel section', () => {
-      const gasVent1 = HAZARD_ZONES.find(h => h.id === 'gas_vent_1');
+      const gasVent1 = HAZARD_ZONES.find((h) => h.id === 'gas_vent_1');
       expect(gasVent1?.center.z).toBeLessThan(-50);
 
-      const gasVent2 = HAZARD_ZONES.find(h => h.id === 'gas_vent_2');
+      const gasVent2 = HAZARD_ZONES.find((h) => h.id === 'gas_vent_2');
       expect(gasVent2?.center.z).toBeLessThan(-70);
     });
 
     it('should have rockfalls at strategic choke points', () => {
-      const rockfall1 = HAZARD_ZONES.find(h => h.id === 'rockfall_1');
-      const rockfall2 = HAZARD_ZONES.find(h => h.id === 'rockfall_2');
+      const rockfall1 = HAZARD_ZONES.find((h) => h.id === 'rockfall_1');
+      const rockfall2 = HAZARD_ZONES.find((h) => h.id === 'rockfall_2');
 
       // Both should be in tunnel section
       expect(rockfall1?.center.z).toBeLessThan(-50);
@@ -826,7 +822,7 @@ describe('Mining Depths Environment', () => {
     });
 
     it('should have flooded section before shaft entry', () => {
-      const flooded = HAZARD_ZONES.find(h => h.id === 'flooded_section');
+      const flooded = HAZARD_ZONES.find((h) => h.id === 'flooded_section');
       expect(flooded?.center.z).toBeLessThan(-100);
       expect(flooded?.center.z).toBeGreaterThan(-110);
     });
@@ -838,18 +834,18 @@ describe('Mining Depths Environment', () => {
 
   describe('audio log placement', () => {
     it('should have first log in hub near machinery', () => {
-      const log1 = AUDIO_LOGS.find(l => l.id === 'log_foreman');
+      const log1 = AUDIO_LOGS.find((l) => l.id === 'log_foreman');
       expect(log1?.position.z).toBeGreaterThan(-30);
     });
 
     it('should have second log in tunnel mid-section', () => {
-      const log2 = AUDIO_LOGS.find(l => l.id === 'log_geologist');
+      const log2 = AUDIO_LOGS.find((l) => l.id === 'log_geologist');
       expect(log2?.position.z).toBeLessThan(-70);
       expect(log2?.position.z).toBeGreaterThan(-80);
     });
 
     it('should have third log in shaft near boss arena', () => {
-      const log3 = AUDIO_LOGS.find(l => l.id === 'log_survivor');
+      const log3 = AUDIO_LOGS.find((l) => l.id === 'log_survivor');
       expect(log3?.position.z).toBeLessThan(-110);
     });
   });

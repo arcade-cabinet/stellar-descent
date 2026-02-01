@@ -98,11 +98,7 @@
   bottom: 0;
   left: 0;
   height: 2px;
-  background: linear-gradient(
-    90deg,
-    rgba(74, 93, 35, 0.8) 0%,
-    rgba(181, 166, 66, 0.8) 100%
-  );
+  background: linear-gradient(90deg, rgba(74, 93, 35, 0.8) 0%, rgba(181, 166, 66, 0.8) 100%);
   transition: width 0.1s linear;
   z-index: 201;
 }

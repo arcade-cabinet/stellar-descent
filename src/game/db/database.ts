@@ -29,7 +29,10 @@ export interface IDatabase {
   isOpen(): Promise<boolean>;
   run(sql: string, params?: (string | number | null)[]): Promise<RunResult>;
   execute(sql: string): Promise<void>;
-  query<T = Record<string, unknown>>(sql: string, params?: (string | number | null)[]): Promise<T[]>;
+  query<T = Record<string, unknown>>(
+    sql: string,
+    params?: (string | number | null)[]
+  ): Promise<T[]>;
   tableExists(tableName: string): Promise<boolean>;
   persist(): Promise<void>;
   close(): Promise<void>;

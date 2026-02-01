@@ -3,9 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_HUD_VISIBILITY,
   GameProvider,
-  type HUDVisibility,
-  type ObjectiveMarker,
-  type ScreenSpaceObjective,
   TUTORIAL_START_HUD_VISIBILITY,
   useGame,
 } from './GameContext';

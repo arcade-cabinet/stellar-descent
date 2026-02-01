@@ -794,8 +794,14 @@ export function MissionBriefing({
               </div>
 
               {/* Mission Objectives */}
-              <div className={styles.objectivesSection} role="region" aria-labelledby="objectives-heading">
-                <h3 id="objectives-heading" className={styles.sectionTitle}>PRIMARY OBJECTIVES</h3>
+              <div
+                className={styles.objectivesSection}
+                role="region"
+                aria-labelledby="objectives-heading"
+              >
+                <h3 id="objectives-heading" className={styles.sectionTitle}>
+                  PRIMARY OBJECTIVES
+                </h3>
                 <ul className={styles.objectivesList} aria-label="Mission objectives">
                   {briefingData.objectives.map((objective, index) => (
                     <li key={`obj-${objective.slice(0, 20)}`} className={styles.objectiveItem}>
@@ -899,7 +905,9 @@ export function MissionBriefing({
 
           {activeTab === 'loadout' && (
             <div className={styles.loadoutContent}>
-              <h3 id="loadout-heading" className={styles.sectionTitle}>SUGGESTED LOADOUT</h3>
+              <h3 id="loadout-heading" className={styles.sectionTitle}>
+                SUGGESTED LOADOUT
+              </h3>
               <div className={styles.loadoutGrid} role="list" aria-labelledby="loadout-heading">
                 {briefingData.suggestedLoadout.map((item) => (
                   <div
@@ -908,7 +916,9 @@ export function MissionBriefing({
                     className={`${styles.loadoutItem} ${item.equipped ? styles.loadoutEquipped : ''}`}
                     aria-label={`${item.name}: ${item.description}. ${item.equipped ? 'Equipped' : 'Available'}`}
                   >
-                    <div className={styles.loadoutIcon} aria-hidden="true">{item.icon}</div>
+                    <div className={styles.loadoutIcon} aria-hidden="true">
+                      {item.icon}
+                    </div>
                     <div className={styles.loadoutInfo}>
                       <span className={styles.loadoutName}>{item.name}</span>
                       <span className={styles.loadoutDesc}>{item.description}</span>

@@ -2,7 +2,7 @@
  * aiSystem.test.ts - Unit tests for AI enemy shooting and behavior system
  */
 
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies before importing the module
 vi.mock('yuka', () => {
@@ -69,7 +69,13 @@ vi.mock('@babylonjs/core/Maths/math.vector', () => {
       this.y = y;
       this.z = z;
     }
-    subtract = vi.fn().mockReturnValue({ x: 0, y: 0, z: 0, normalize: vi.fn().mockReturnThis(), scale: vi.fn().mockReturnThis() });
+    subtract = vi.fn().mockReturnValue({
+      x: 0,
+      y: 0,
+      z: 0,
+      normalize: vi.fn().mockReturnThis(),
+      scale: vi.fn().mockReturnThis(),
+    });
     normalize = vi.fn().mockReturnThis();
     scale = vi.fn().mockReturnThis();
     clone = vi.fn().mockReturnThis();
@@ -154,10 +160,9 @@ vi.mock('../core/ecs', () => ({
   },
 }));
 
+import { getEnemySoundManager } from '../core/EnemySoundManager';
 // Import after mocks
 import { AISystem } from './aiSystem';
-import { getEnemySoundManager } from '../core/EnemySoundManager';
-import { getEventBus } from '../core/EventBus';
 
 describe('AISystem', () => {
   let aiSystem: AISystem;
@@ -260,7 +265,6 @@ describe('AISystem', () => {
       // Spewer has spreadAngle of Math.PI/36 (±5 degrees)
       // Stalker has tighter spread of Math.PI/30
       // Husk has wider spread of Math.PI/24 for twin shots
-
       // Spread is applied randomly within the configured angle
       // Each species should have unique spread characteristics
     });
@@ -295,7 +299,7 @@ describe('AISystem', () => {
         { id: 'husk-1', alienInfo: { speciesId: 'husk' } },
       ];
 
-      entities.forEach(e => {
+      entities.forEach((e) => {
         aiSystem.registerEntity(e as any);
       });
     });

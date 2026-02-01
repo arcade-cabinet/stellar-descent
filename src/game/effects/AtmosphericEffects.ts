@@ -20,7 +20,6 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
@@ -818,7 +817,7 @@ export class AtmosphericEffects {
   }
 
   private updateEmergencyLights(deltaTime: number): void {
-    const time = performance.now() * 0.001;
+    const _time = performance.now() * 0.001;
 
     for (const [_, emergency] of this.emergencyLights) {
       emergency.phase += deltaTime * (emergency.config.speed ?? 1);
@@ -867,7 +866,7 @@ export class AtmosphericEffects {
     }
   }
 
-  private updateSporeClouds(deltaTime: number): void {
+  private updateSporeClouds(_deltaTime: number): void {
     const time = performance.now() * 0.001;
 
     for (const [_, cloud] of this.sporeClouds) {
@@ -886,7 +885,7 @@ export class AtmosphericEffects {
     }
   }
 
-  private updateHeatHaze(deltaTime: number): void {
+  private updateHeatHaze(_deltaTime: number): void {
     if (!this.heatHazeMesh || this.heatHazeIntensity <= 0) return;
 
     const time = performance.now() * 0.001;

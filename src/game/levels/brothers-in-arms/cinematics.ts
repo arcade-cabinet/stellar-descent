@@ -18,7 +18,6 @@
 
 import { Animation } from '@babylonjs/core/Animations/animation';
 import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
-import type { Camera } from '@babylonjs/core/Cameras/camera';
 import type { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -274,14 +273,6 @@ export class ReunionCinematic {
   private coverRubble: Mesh[] = [];
   private dialogueTimeouts: ReturnType<typeof setTimeout>[] = [];
   private animationTimeouts: ReturnType<typeof setTimeout>[] = [];
-
-  // Original camera state (for restoration)
-  private originalCameraPosition: Vector3 = Vector3.Zero();
-  private originalCameraRotation: Vector3 = Vector3.Zero();
-  private originalFov: number = 1.2;
-
-  // Marcus emergence state
-  private marcusOriginalY: number = 0;
   private marcusHasEmerged: boolean = false;
 
   // Skip functionality
@@ -814,7 +805,7 @@ export class ReunionCinematic {
 
     for (let i = 0; i < REUNION_CAMERA_PATH.length; i++) {
       const keyframe = REUNION_CAMERA_PATH[i];
-      const prevKeyframe = i > 0 ? REUNION_CAMERA_PATH[i - 1] : keyframe;
+      const _prevKeyframe = i > 0 ? REUNION_CAMERA_PATH[i - 1] : keyframe;
 
       if (i === 0) {
         // Set initial position immediately

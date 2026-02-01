@@ -23,7 +23,6 @@ export interface TutorialCallbacks {
 
 // Manages the tutorial flow - story unfolds through comms as objectives complete
 export class TutorialManager {
-  private scene: Scene;
   private currentStepIndex = 0;
   private steps: TutorialStep[];
   private isActive = false;
@@ -38,7 +37,6 @@ export class TutorialManager {
 
   // Track if player can interact
   private canInteract = false;
-  private interactCallback: (() => void) | null = null;
 
   // Minimum delay between comms messages to prevent dialogue flood
   private static readonly MIN_COMMS_INTERVAL = 3000; // 3 seconds minimum

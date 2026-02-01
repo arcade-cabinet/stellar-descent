@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   type ReactNode,
   useCallback,
@@ -10,11 +10,7 @@ import React, {
 import { getAudioManager } from '../core/AudioManager';
 import { getEventBus } from '../core/EventBus';
 import { hitAudioManager } from '../core/HitAudioManager';
-import {
-  DEFAULT_WEAPON,
-  WEAPONS,
-  type WeaponId,
-} from '../entities/weapons';
+import { WEAPONS, type WeaponId } from '../entities/weapons';
 import {
   registerWeaponActions,
   type WeaponActions,
@@ -109,13 +105,13 @@ function createDefaultInventory(): WeaponInventoryState {
  * Default weapon configuration - starts with pistol
  */
 export const DEFAULT_WEAPON_STATE: WeaponState = {
-  currentAmmo: WEAPONS['sidearm'].magazineSize,
-  reserveAmmo: WEAPONS['sidearm'].reserveAmmo,
-  maxMagazineSize: WEAPONS['sidearm'].magazineSize,
-  maxReserveAmmo: WEAPONS['sidearm'].reserveAmmo,
+  currentAmmo: WEAPONS.sidearm.magazineSize,
+  reserveAmmo: WEAPONS.sidearm.reserveAmmo,
+  maxMagazineSize: WEAPONS.sidearm.magazineSize,
+  maxReserveAmmo: WEAPONS.sidearm.reserveAmmo,
   isReloading: false,
   isSwitching: false,
-  reloadTimeMs: WEAPONS['sidearm'].reloadTime,
+  reloadTimeMs: WEAPONS.sidearm.reloadTime,
   currentWeaponId: 'sidearm',
   currentWeaponSlot: 0,
   inventory: createDefaultInventory(),
@@ -265,7 +261,7 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
     });
 
     return true;
-  }, [weapon.currentAmmo, weapon.isReloading, weapon.isSwitching, weapon.currentWeaponId, weapon.maxMagazineSize]);
+  }, [weapon.currentAmmo, weapon.isReloading, weapon.isSwitching, weapon.currentWeaponId]);
 
   /**
    * Start the reload sequence
@@ -313,7 +309,9 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
     weapon.currentAmmo,
     weapon.maxMagazineSize,
     weapon.reserveAmmo,
-    weapon.reloadTimeMs,
+    weapon.reloadTimeMs, // Reload complete
+    completeReload,
+    weapon.currentWeaponId,
   ]);
 
   /**
@@ -456,50 +454,47 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
   /**
    * Internal: Actually perform the weapon swap (called at midpoint of switch animation)
    */
-  const performWeaponSwap = useCallback(
-    (slot: number, weaponId: WeaponId) => {
-      const weaponDef = WEAPONS[weaponId];
+  const performWeaponSwap = useCallback((slot: number, weaponId: WeaponId) => {
+    const weaponDef = WEAPONS[weaponId];
 
-      setWeapon((prev) => {
-        // Save current weapon's ammo state before switching
-        const updatedAmmo = { ...prev.inventory.ammo };
-        if (prev.currentWeaponId) {
-          updatedAmmo[prev.currentWeaponId] = {
-            currentAmmo: prev.currentAmmo,
-            reserveAmmo: prev.reserveAmmo,
-          };
-        }
-
-        // Get ammo for the new weapon
-        const newWeaponAmmo = updatedAmmo[weaponId] || createDefaultAmmoState(weaponId);
-
-        // Update inventory
-        const newInventory: WeaponInventoryState = {
-          ...prev.inventory,
-          ammo: updatedAmmo,
-          currentSlot: slot,
-          lastSlot: prev.inventory.currentSlot,
+    setWeapon((prev) => {
+      // Save current weapon's ammo state before switching
+      const updatedAmmo = { ...prev.inventory.ammo };
+      if (prev.currentWeaponId) {
+        updatedAmmo[prev.currentWeaponId] = {
+          currentAmmo: prev.currentAmmo,
+          reserveAmmo: prev.reserveAmmo,
         };
+      }
 
-        return {
-          ...prev,
-          currentWeaponId: weaponId,
-          currentWeaponSlot: slot,
-          maxMagazineSize: weaponDef.magazineSize,
-          maxReserveAmmo: weaponDef.reserveAmmo,
-          reloadTimeMs: weaponDef.reloadTime,
-          currentAmmo: newWeaponAmmo.currentAmmo,
-          reserveAmmo: newWeaponAmmo.reserveAmmo,
-          inventory: newInventory,
-        };
-      });
+      // Get ammo for the new weapon
+      const newWeaponAmmo = updatedAmmo[weaponId] || createDefaultAmmoState(weaponId);
 
-      // Emit weapon switched event for HUD
-      const eventBus = getEventBus();
-      eventBus.emit({ type: 'WEAPON_SWITCHED', weaponId });
-    },
-    []
-  );
+      // Update inventory
+      const newInventory: WeaponInventoryState = {
+        ...prev.inventory,
+        ammo: updatedAmmo,
+        currentSlot: slot,
+        lastSlot: prev.inventory.currentSlot,
+      };
+
+      return {
+        ...prev,
+        currentWeaponId: weaponId,
+        currentWeaponSlot: slot,
+        maxMagazineSize: weaponDef.magazineSize,
+        maxReserveAmmo: weaponDef.reserveAmmo,
+        reloadTimeMs: weaponDef.reloadTime,
+        currentAmmo: newWeaponAmmo.currentAmmo,
+        reserveAmmo: newWeaponAmmo.reserveAmmo,
+        inventory: newInventory,
+      };
+    });
+
+    // Emit weapon switched event for HUD
+    const eventBus = getEventBus();
+    eventBus.emit({ type: 'WEAPON_SWITCHED', weaponId });
+  }, []);
 
   /**
    * Complete the switch animation (called when raise animation finishes)
@@ -647,7 +642,13 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
     if (lastWeapon && lastSlot !== weapon.inventory.currentSlot) {
       switchWeapon(lastSlot);
     }
-  }, [weapon.isSwitching, weapon.inventory.lastSlot, weapon.inventory.slots, weapon.inventory.currentSlot, switchWeapon]);
+  }, [
+    weapon.isSwitching,
+    weapon.inventory.lastSlot,
+    weapon.inventory.slots,
+    weapon.inventory.currentSlot,
+    switchWeapon,
+  ]);
 
   /**
    * Grant a new weapon to the player (from pickup)
@@ -762,7 +763,20 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
     return () => {
       registerWeaponActions(null);
     };
-  }, [fire, startReload, cancelReload, addAmmo, resetWeapon, switchWeapon, switchToWeaponId, cycleWeapon, quickSwap, grantWeapon, hasWeapon, getOwnedWeapons]);
+  }, [
+    fire,
+    startReload,
+    cancelReload,
+    addAmmo,
+    resetWeapon,
+    switchWeapon,
+    switchToWeaponId,
+    cycleWeapon,
+    quickSwap,
+    grantWeapon,
+    hasWeapon,
+    getOwnedWeapons,
+  ]);
 
   const value: WeaponContextType = {
     weapon,

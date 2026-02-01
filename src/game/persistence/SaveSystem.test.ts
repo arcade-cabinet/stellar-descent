@@ -10,7 +10,6 @@ import {
   createNewSave,
   extractSaveMetadata,
   formatPlayTime,
-  type GameSave,
   generateSaveId,
   getLevelDisplayName,
   SAVE_FORMAT_VERSION,
@@ -529,7 +528,7 @@ describe('SaveSystem', () => {
       saveSystem.setActiveQuestState('quest_escort', { stage: 2, npcsAlive: 3 });
       const active = saveSystem.getActiveQuests();
 
-      expect(active['quest_escort']).toEqual({ stage: 2, npcsAlive: 3 });
+      expect(active.quest_escort).toEqual({ stage: 2, npcsAlive: 3 });
     });
 
     it('removes active quest on completion', () => {
@@ -537,7 +536,7 @@ describe('SaveSystem', () => {
       saveSystem.completeQuest('quest_escort');
       const active = saveSystem.getActiveQuests();
 
-      expect(active['quest_escort']).toBeUndefined();
+      expect(active.quest_escort).toBeUndefined();
     });
 
     it('removes active quest explicitly', () => {
@@ -545,7 +544,7 @@ describe('SaveSystem', () => {
       saveSystem.removeActiveQuest('quest_patrol');
       const active = saveSystem.getActiveQuests();
 
-      expect(active['quest_patrol']).toBeUndefined();
+      expect(active.quest_patrol).toBeUndefined();
     });
 
     it('fails quests and removes from active', () => {
@@ -555,7 +554,7 @@ describe('SaveSystem', () => {
       const active = saveSystem.getActiveQuests();
 
       expect(failed).toContain('quest_timed');
-      expect(active['quest_timed']).toBeUndefined();
+      expect(active.quest_timed).toBeUndefined();
     });
 
     it('fails quests without duplicates', () => {
@@ -604,8 +603,8 @@ describe('SaveSystem', () => {
       saveSystem.recordLevelTime('landfall', 150);
       const times = saveSystem.getAllLevelBestTimes();
 
-      expect(times['anchor_station']).toBe(100);
-      expect(times['landfall']).toBe(150);
+      expect(times.anchor_station).toBe(100);
+      expect(times.landfall).toBe(150);
     });
   });
 

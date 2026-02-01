@@ -3,7 +3,6 @@ import { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { Effect } from '@babylonjs/core/Materials/effect';
-import { ShaderMaterial } from '@babylonjs/core/Materials/shaderMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
@@ -11,7 +10,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Scene } from '@babylonjs/core/scene';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Side effect imports - need these for proper ES6 tree-shaking
 import '@babylonjs/core/Materials/standardMaterial';
@@ -22,18 +21,13 @@ import '@babylonjs/core/Shaders/default.vertex';
 import '@babylonjs/core/Shaders/default.fragment';
 
 import { useGame } from '../game/context/GameContext';
-import { getLogger } from '../game/core/Logger';
 import { AssetManager } from '../game/core/AssetManager';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
 import { GameManager } from '../game/core/GameManager';
+import { getLogger } from '../game/core/Logger';
 import { getPerformanceManager } from '../game/core/PerformanceManager';
 import { defaultLevelFactories } from '../game/levels/factories';
-import {
-  CAMPAIGN_LEVELS,
-  type ILevel,
-  type LevelCallbacks,
-  type LevelId,
-} from '../game/levels/types';
+import { CAMPAIGN_LEVELS, type ILevel, type LevelId } from '../game/levels/types';
 import { initShareSystem } from '../game/social';
 import styles from './GameCanvas.module.css';
 
@@ -318,7 +312,7 @@ export function GameCanvas({
     if (!canvas) return;
 
     let mounted = true;
-    let animationTime = 0;
+    let _animationTime = 0;
 
     async function initEngine() {
       if (!canvas || !mounted) return;
@@ -382,10 +376,10 @@ export function GameCanvas({
       }
 
       // Register shaders
-      Effect.ShadersStore['starfieldVertexShader'] = starfieldVertexShader;
-      Effect.ShadersStore['starfieldFragmentShader'] = starfieldFragmentShader;
-      Effect.ShadersStore['planetVertexShader'] = planetVertexShader;
-      Effect.ShadersStore['planetFragmentShader'] = planetFragmentShader;
+      Effect.ShadersStore.starfieldVertexShader = starfieldVertexShader;
+      Effect.ShadersStore.starfieldFragmentShader = starfieldFragmentShader;
+      Effect.ShadersStore.planetVertexShader = planetVertexShader;
+      Effect.ShadersStore.planetFragmentShader = planetFragmentShader;
 
       // Starfield skybox - temporarily using solid color to bypass shader error
       const skybox = MeshBuilder.CreateBox('skybox', { size: 10000 }, scene);
@@ -498,7 +492,7 @@ export function GameCanvas({
 
       // Render loop
       engine.runRenderLoop(() => {
-        animationTime += engine.getDeltaTime() / 1000;
+        _animationTime += engine.getDeltaTime() / 1000;
 
         // Update performance monitoring (dynamic resolution, FPS tracking)
         perfManager.update();
@@ -629,58 +623,16 @@ export function GameCanvas({
       setIsTutorialActive(true);
       setTutorialPhase(0);
 
-      // Build LevelCallbacks for the ILevel interface
-      const levelCallbacks: LevelCallbacks = {
-        onCommsMessage: (msg) => {
-          log.debug(
-            'onCommsMessage callback, showing comms:',
-            msg.text?.substring(0, 40)
-          );
-          showComms(msg);
-        },
-        onObjectiveUpdate: (title, instructions) => {
-          setObjective(title, instructions);
-        },
-        onChapterChange: (_chapter) => {
-          // Tutorial level is chapter 1
-        },
-        onHealthChange: setPlayerHealth,
-        onKill: addKill,
-        onDamage: onDamage,
-        onNotification: showNotification,
-        onLevelComplete: (_nextLevelId) => {
-          // Tutorial complete - transition to next state
-          setIsTutorialActive(false);
-          onTutorialComplete();
-        },
-        onCombatStateChange: (_inCombat) => {
-          // Tutorial doesn't track combat state
-        },
-        onActionGroupsChange: (_groups) => {
-          // Action buttons handled by level internally
-        },
-        onActionHandlerRegister: (_handler) => {
-          // Action handler registration
-        },
-        onHitMarker: (damage, isCritical, isKill) => {
-          addHitMarker(damage, isCritical, isKill);
-        },
-        onDirectionalDamage: (angle, damage) => {
-          addDamageIndicator(angle, damage);
-        },
-      };
-
       // Use factory system to create the tutorial level
+      // Callbacks are now handled via EventBus - no need to pass callbacks
       const levelConfig = CAMPAIGN_LEVELS.anchor_station;
       const factory = defaultLevelFactories[levelConfig.type];
       if (!factory) {
         log.error(`No factory found for level type: ${levelConfig.type}`);
         return;
       }
-      log.info(
-        `Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`
-      );
-      currentLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
+      log.info(`Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`);
+      currentLevelRef.current = factory(engine, canvas, levelConfig);
       log.debug('Calling initialize()');
       currentLevelRef.current
         .initialize()
@@ -746,28 +698,10 @@ export function GameCanvas({
           log.error(`No factory found for level type: ${levelConfig.type} (level: ${levelId})`);
           return;
         }
-        const levelCallbacks: LevelCallbacks = {
-          onCommsMessage: (msg) => showComms(msg),
-          onObjectiveUpdate: (title, instructions) => setObjective(title, instructions),
-          onChapterChange: (_chapter) => {},
-          onHealthChange: setPlayerHealth,
-          onKill: addKill,
-          onDamage: onDamage,
-          onNotification: showNotification,
-          onLevelComplete: (_nextLevelId) => {
-            onLevelComplete?.();
-          },
-          onCombatStateChange: (_inCombat) => {},
-          onActionGroupsChange: (_groups) => {},
-          onActionHandlerRegister: (_handler) => {},
-          onHitMarker: (damage, isCritical, isKill) => addHitMarker(damage, isCritical, isKill),
-          onDirectionalDamage: (angle, damage) => addDamageIndicator(angle, damage),
-        };
 
-        log.info(
-          `Creating level via factory: ${levelId} (type: ${levelConfig.type})`
-        );
-        currentLevelRef.current = factory(engine, canvas, levelConfig, levelCallbacks);
+        log.info(`Creating level via factory: ${levelId} (type: ${levelConfig.type})`);
+        // Callbacks are now handled via EventBus - no need to pass callbacks
+        currentLevelRef.current = factory(engine, canvas, levelConfig);
         currentLevelRef.current
           .initialize()
           .then(() => {
@@ -793,12 +727,8 @@ export function GameCanvas({
     addKill,
     onDamage,
     showNotification,
-    showComms,
     hideComms,
     setObjective,
-    onTutorialComplete,
-    onLevelComplete,
-    setIsCalibrating,
     onLevelChange,
     setCompassData,
     setTutorialPhase,

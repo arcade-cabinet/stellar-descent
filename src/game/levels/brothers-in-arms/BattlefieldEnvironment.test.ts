@@ -10,7 +10,7 @@
  * - Placement validation
  */
 
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock BabylonJS dependencies
 vi.mock('@babylonjs/core/Lights/pointLight', () => {
@@ -91,21 +91,31 @@ const mockAssetInstances: any[] = [];
 vi.mock('../../core/AssetManager', () => ({
   AssetManager: {
     loadAssetByPath: vi.fn().mockResolvedValue({}),
-    createInstanceByPath: vi.fn().mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
-      const instance = {
-        name,
-        path,
-        category: lodCategory,
-        position: { x: 0, y: 0, z: 0, set: vi.fn() },
-        rotation: { x: 0, y: 0, z: 0 },
-        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-        parent: null,
-        dispose: vi.fn(),
-        getChildren: vi.fn().mockReturnValue([]),
-      };
-      mockAssetInstances.push(instance);
-      return instance;
-    }),
+    createInstanceByPath: vi
+      .fn()
+      .mockImplementation(
+        (
+          path: string,
+          name: string,
+          _scene?: unknown,
+          _applyLOD?: boolean,
+          lodCategory?: string
+        ) => {
+          const instance = {
+            name,
+            path,
+            category: lodCategory,
+            position: { x: 0, y: 0, z: 0, set: vi.fn() },
+            rotation: { x: 0, y: 0, z: 0 },
+            scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+            parent: null,
+            dispose: vi.fn(),
+            getChildren: vi.fn().mockReturnValue([]),
+          };
+          mockAssetInstances.push(instance);
+          return instance;
+        }
+      ),
     isPathCached: vi.fn().mockReturnValue(true),
   },
 }));
@@ -119,9 +129,9 @@ vi.mock('../../core/Logger', () => ({
   }),
 }));
 
-// Import after mocks
-import { buildBattlefieldEnvironment, updateBattlefieldLights, type BattlefieldResult } from './BattlefieldEnvironment';
 import { AssetManager } from '../../core/AssetManager';
+// Import after mocks
+import { buildBattlefieldEnvironment, updateBattlefieldLights } from './BattlefieldEnvironment';
 
 describe('BattlefieldEnvironment', () => {
   let mockScene: any;
@@ -195,27 +205,21 @@ describe('BattlefieldEnvironment', () => {
     it('should place barricades', async () => {
       await buildBattlefieldEnvironment(mockScene);
 
-      const barricades = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('barricade')
-      );
+      const barricades = mockAssetInstances.filter((inst) => inst.path?.includes('barricade'));
       expect(barricades.length).toBeGreaterThan(0);
     });
 
     it('should place industrial structures', async () => {
       await buildBattlefieldEnvironment(mockScene);
 
-      const industrial = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('industrial')
-      );
+      const industrial = mockAssetInstances.filter((inst) => inst.path?.includes('industrial'));
       expect(industrial.length).toBeGreaterThan(0);
     });
 
     it('should place containers', async () => {
       await buildBattlefieldEnvironment(mockScene);
 
-      const containers = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('container')
-      );
+      const containers = mockAssetInstances.filter((inst) => inst.path?.includes('container'));
       expect(containers.length).toBeGreaterThan(0);
     });
 
@@ -231,27 +235,21 @@ describe('BattlefieldEnvironment', () => {
     it('should place crates', async () => {
       await buildBattlefieldEnvironment(mockScene);
 
-      const crates = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('crate')
-      );
+      const crates = mockAssetInstances.filter((inst) => inst.path?.includes('crate'));
       expect(crates.length).toBeGreaterThan(0);
     });
 
     it('should place fencing', async () => {
       await buildBattlefieldEnvironment(mockScene);
 
-      const fences = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('fence')
-      );
+      const fences = mockAssetInstances.filter((inst) => inst.path?.includes('fence'));
       expect(fences.length).toBeGreaterThan(0);
     });
 
     it('should place posters/decals', async () => {
       await buildBattlefieldEnvironment(mockScene);
 
-      const posters = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('poster')
-      );
+      const posters = mockAssetInstances.filter((inst) => inst.path?.includes('poster'));
       expect(posters.length).toBeGreaterThan(0);
     });
   });
@@ -275,8 +273,8 @@ describe('BattlefieldEnvironment', () => {
       await buildBattlefieldEnvironment(mockScene);
 
       // Mid cover includes shipping containers
-      const midPlacements = mockAssetInstances.filter(
-        (inst) => inst.path && inst.path.includes('shipping_container')
+      const midPlacements = mockAssetInstances.filter((inst) =>
+        inst.path?.includes('shipping_container')
       );
       expect(midPlacements.length).toBeGreaterThan(0);
     });
@@ -369,11 +367,9 @@ describe('updateBattlefieldLights', () => {
   });
 
   it('should create flickering effect', () => {
-    const mockLights = [
-      { intensity: 1, diffuse: {} },
-    ] as any[];
+    const mockLights = [{ intensity: 1, diffuse: {} }] as any[];
 
-    const initialIntensity = mockLights[0].intensity;
+    const _initialIntensity = mockLights[0].intensity;
 
     // Update multiple times to see flickering
     for (let i = 0; i < 100; i++) {
@@ -394,21 +390,23 @@ describe('BattlefieldEnvironment - Edge Cases', () => {
 
     // Reset mock implementations to defaults
     vi.mocked(AssetManager.isPathCached).mockReturnValue(true);
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
-      const instance = {
-        name,
-        path,
-        category: lodCategory,
-        position: { x: 0, y: 0, z: 0, set: vi.fn() },
-        rotation: { x: 0, y: 0, z: 0 },
-        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-        parent: null,
-        dispose: vi.fn(),
-        getChildren: vi.fn().mockReturnValue([]),
-      };
-      mockAssetInstances.push(instance);
-      return instance as any;
-    });
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation(
+      (path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
+        const instance = {
+          name,
+          path,
+          category: lodCategory,
+          position: { x: 0, y: 0, z: 0, set: vi.fn() },
+          rotation: { x: 0, y: 0, z: 0 },
+          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+          parent: null,
+          dispose: vi.fn(),
+          getChildren: vi.fn().mockReturnValue([]),
+        };
+        mockAssetInstances.push(instance);
+        return instance as any;
+      }
+    );
 
     mockScene = {
       getMeshByName: vi.fn(),
@@ -427,26 +425,28 @@ describe('BattlefieldEnvironment - Edge Cases', () => {
   it('should handle instance creation failures', async () => {
     // Only return null for some instances (not all - that would trigger the FATAL error)
     let callCount = 0;
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
-      callCount++;
-      // Return null for every 5th call to simulate occasional failures
-      if (callCount % 5 === 0) {
-        return null as any;
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation(
+      (path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
+        callCount++;
+        // Return null for every 5th call to simulate occasional failures
+        if (callCount % 5 === 0) {
+          return null as any;
+        }
+        const instance = {
+          name,
+          path,
+          category: lodCategory,
+          position: { x: 0, y: 0, z: 0, set: vi.fn() },
+          rotation: { x: 0, y: 0, z: 0 },
+          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+          parent: null,
+          dispose: vi.fn(),
+          getChildren: vi.fn().mockReturnValue([]),
+        };
+        mockAssetInstances.push(instance);
+        return instance as any;
       }
-      const instance = {
-        name,
-        path,
-        category: lodCategory,
-        position: { x: 0, y: 0, z: 0, set: vi.fn() },
-        rotation: { x: 0, y: 0, z: 0 },
-        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-        parent: null,
-        dispose: vi.fn(),
-        getChildren: vi.fn().mockReturnValue([]),
-      };
-      mockAssetInstances.push(instance);
-      return instance as any;
-    });
+    );
 
     // Should not throw even if some instances fail to create
     await expect(buildBattlefieldEnvironment(mockScene)).resolves.toBeDefined();
@@ -460,21 +460,23 @@ describe('BattlefieldEnvironment - Placement Validation', () => {
 
     // Reset mock implementations to defaults
     vi.mocked(AssetManager.isPathCached).mockReturnValue(true);
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
-      const instance = {
-        name,
-        path,
-        category: lodCategory,
-        position: { x: 0, y: 0, z: 0, set: vi.fn() },
-        rotation: { x: 0, y: 0, z: 0 },
-        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-        parent: null,
-        dispose: vi.fn(),
-        getChildren: vi.fn().mockReturnValue([]),
-      };
-      mockAssetInstances.push(instance);
-      return instance as any;
-    });
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation(
+      (path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
+        const instance = {
+          name,
+          path,
+          category: lodCategory,
+          position: { x: 0, y: 0, z: 0, set: vi.fn() },
+          rotation: { x: 0, y: 0, z: 0 },
+          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+          parent: null,
+          dispose: vi.fn(),
+          getChildren: vi.fn().mockReturnValue([]),
+        };
+        mockAssetInstances.push(instance);
+        return instance as any;
+      }
+    );
   });
 
   it('should ensure minimum spacing between placements', async () => {
@@ -515,21 +517,23 @@ describe('BattlefieldEnvironment - Asset Categories', () => {
 
     // Reset mock implementations to defaults
     vi.mocked(AssetManager.isPathCached).mockReturnValue(true);
-    vi.mocked(AssetManager.createInstanceByPath).mockImplementation((path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
-      const instance = {
-        name,
-        path,
-        category: lodCategory,
-        position: { x: 0, y: 0, z: 0, set: vi.fn() },
-        rotation: { x: 0, y: 0, z: 0 },
-        scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
-        parent: null,
-        dispose: vi.fn(),
-        getChildren: vi.fn().mockReturnValue([]),
-      };
-      mockAssetInstances.push(instance);
-      return instance as any;
-    });
+    vi.mocked(AssetManager.createInstanceByPath).mockImplementation(
+      (path: string, name: string, _scene?: unknown, _applyLOD?: boolean, lodCategory?: string) => {
+        const instance = {
+          name,
+          path,
+          category: lodCategory,
+          position: { x: 0, y: 0, z: 0, set: vi.fn() },
+          rotation: { x: 0, y: 0, z: 0 },
+          scaling: { x: 1, y: 1, z: 1, setAll: vi.fn() },
+          parent: null,
+          dispose: vi.fn(),
+          getChildren: vi.fn().mockReturnValue([]),
+        };
+        mockAssetInstances.push(instance);
+        return instance as any;
+      }
+    );
     mockAssetInstances.length = 0;
   });
 
@@ -538,9 +542,7 @@ describe('BattlefieldEnvironment - Asset Categories', () => {
 
     await buildBattlefieldEnvironment(mockScene);
 
-    const environmentAssets = mockAssetInstances.filter(
-      (inst) => inst.category === 'environment'
-    );
+    const environmentAssets = mockAssetInstances.filter((inst) => inst.category === 'environment');
 
     // Most assets should be tagged as environment
     expect(environmentAssets.length).toBeGreaterThan(0);

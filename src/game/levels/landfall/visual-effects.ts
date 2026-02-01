@@ -11,14 +11,14 @@
  * - Screen shake coordination
  */
 
+import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 
-import type { BindableAction } from '../../context/KeybindingsContext';
-import type { DropPhase } from './types';
+import type { BindableAction } from '../../stores/useKeybindingsStore';
 import { updateWindStreaks } from './halo-drop';
+import type { DropPhase } from './types';
 
 export interface DescentEffects {
   reentryParticles: ParticleSystem | null;
@@ -130,17 +130,16 @@ export function updateVisualEffects(
   }
 
   // Heat distortion effect during atmospheric entry
-  if (effects.heatDistortion?.material && (phase === 'freefall_belt' || phase === 'freefall_clear')) {
+  if (
+    effects.heatDistortion?.material &&
+    (phase === 'freefall_belt' || phase === 'freefall_clear')
+  ) {
     const heatMat = effects.heatDistortion.material as StandardMaterial;
     const heatIntensity = Math.max(0, (800 - state.altitude) / 400);
     heatMat.alpha = heatIntensity * 0.3;
     // Pulsing heat effect
     const pulse = Math.sin(performance.now() * 0.005) * 0.1;
-    heatMat.emissiveColor = new Color3(
-      1.0 + pulse,
-      0.4 - heatIntensity * 0.1,
-      0.1
-    );
+    heatMat.emissiveColor = new Color3(1.0 + pulse, 0.4 - heatIntensity * 0.1, 0.1);
     effects.heatDistortion.scaling.setAll(1 + heatIntensity * 0.5);
   }
 
@@ -151,8 +150,12 @@ export function updateVisualEffects(
  * Stop all descent-related particle effects
  */
 export function stopAllDescentEffects(effects: DescentEffects): void {
-  [effects.playerSmokeTrail, effects.atmosphereStreaks, effects.reentryParticles, effects.thrusterExhaustParticles]
-    .forEach((p) => p?.stop());
+  [
+    effects.playerSmokeTrail,
+    effects.atmosphereStreaks,
+    effects.reentryParticles,
+    effects.thrusterExhaustParticles,
+  ].forEach((p) => p?.stop());
 
   [effects.plasmaGlow, effects.heatDistortion].forEach((m) => {
     if (m) m.isVisible = false;
@@ -165,8 +168,12 @@ export function stopAllDescentEffects(effects: DescentEffects): void {
  * Dispose all descent effect resources
  */
 export function disposeDescentEffects(effects: DescentEffects): void {
-  [effects.reentryParticles, effects.playerSmokeTrail, effects.atmosphereStreaks, effects.thrusterExhaustParticles]
-    .forEach((p) => p?.dispose());
+  [
+    effects.reentryParticles,
+    effects.playerSmokeTrail,
+    effects.atmosphereStreaks,
+    effects.thrusterExhaustParticles,
+  ].forEach((p) => p?.dispose());
 
   effects.windStreaks.forEach((s) => s.dispose());
 }

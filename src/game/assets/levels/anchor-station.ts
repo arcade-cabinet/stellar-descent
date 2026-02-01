@@ -6,7 +6,7 @@
  * and professional military atmosphere.
  */
 
-import { AssetEntry, LevelManifest } from '../types';
+import type { AssetEntry, LevelManifest } from '../types';
 
 // ============================================================================
 // STATION STRUCTURE - Core architectural pieces

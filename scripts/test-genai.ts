@@ -7,9 +7,9 @@
  */
 
 import 'dotenv/config';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // Model IDs - January 2026
 const MODELS = {
@@ -39,7 +39,7 @@ async function testImageGeneration(ai: GoogleGenAI): Promise<boolean> {
     from the side. Dark background. High detail, cinematic quality. Style reference: Mass Effect,
     Starship Troopers. This is Sergeant James Cole, callsign "SPECTER".`;
 
-  console.log('Prompt:', prompt.slice(0, 100) + '...');
+  console.log('Prompt:', `${prompt.slice(0, 100)}...`);
   console.log('Generating...');
 
   try {
@@ -96,7 +96,7 @@ async function testVideoGeneration(ai: GoogleGenAI): Promise<boolean> {
     Dark metallic corridors with holographic displays. Dramatic lighting with lens flares.
     High-end CGI quality, Alien movie aesthetic, atmospheric tension. 8 seconds.`;
 
-  console.log('Prompt:', prompt.slice(0, 100) + '...');
+  console.log('Prompt:', `${prompt.slice(0, 100)}...`);
   console.log('Starting video generation (this may take several minutes)...');
 
   try {
@@ -124,7 +124,7 @@ async function testVideoGeneration(ai: GoogleGenAI): Promise<boolean> {
         return false;
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
       pollCount++;
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
       console.log(`   Polling... (${elapsed}s elapsed, poll #${pollCount})`);

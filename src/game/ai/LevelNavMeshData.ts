@@ -14,13 +14,13 @@
 
 import { Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
+import type { LevelId, LevelType } from '../levels/types';
 import {
-  NavMeshBuilder,
   type EnvironmentType,
+  NavMeshBuilder,
   type NavMeshBuildResult,
   type NavMeshConfig,
 } from './NavMeshBuilder';
-import type { LevelId, LevelType } from '../levels/types';
 
 // ============================================================================
 // TYPES

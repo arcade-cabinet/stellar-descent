@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { getAchievementManager } from '../../game/achievements/AchievementManager';
+import { getAchievementManager } from '../../game/achievements';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { worldDb } from '../../game/db/worldDatabase';
 import { WEAPONS, type WeaponId } from '../../game/entities/weapons';
@@ -60,7 +60,7 @@ const AVATARS = [
 
 // XP required per level (exponential growth)
 function getXpForLevel(level: number): number {
-  return Math.floor(100 * Math.pow(1.5, level - 1));
+  return Math.floor(100 * 1.5 ** (level - 1));
 }
 
 // Calculate level from total XP
@@ -208,7 +208,7 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
           const achievement = manager
             .getAllAchievements()
             .find((a) => a.achievement.id === loadedProfile.featuredAchievementId);
-          if (achievement && achievement.state.unlockedAt) {
+          if (achievement?.state.unlockedAt) {
             setFeaturedAchievement({
               name: achievement.achievement.name,
               icon: achievement.achievement.icon,
@@ -268,7 +268,7 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
   );
 
   // Handle featured achievement selection
-  const handleSelectFeaturedAchievement = useCallback(
+  const _handleSelectFeaturedAchievement = useCallback(
     (achievementId: string | null) => {
       const updatedProfile = { ...profile, featuredAchievementId: achievementId };
       setProfile(updatedProfile);
@@ -280,7 +280,7 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
         const achievement = manager
           .getAllAchievements()
           .find((a) => a.achievement.id === achievementId);
-        if (achievement && achievement.state.unlockedAt) {
+        if (achievement?.state.unlockedAt) {
           setFeaturedAchievement({
             name: achievement.achievement.name,
             icon: achievement.achievement.icon,
@@ -385,13 +385,8 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
                       onChange={(e) => setEditName(e.target.value.toUpperCase())}
                       maxLength={20}
                       className={styles.nameInput}
-                      autoFocus
                     />
-                    <button
-                      type="button"
-                      className={styles.saveButton}
-                      onClick={handleSaveName}
-                    >
+                    <button type="button" className={styles.saveButton} onClick={handleSaveName}>
                       Save
                     </button>
                   </div>
@@ -423,7 +418,8 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
               <div className={styles.xpInfo}>
                 <span className={styles.xpLabel}>Experience</span>
                 <span className={styles.xpValue}>
-                  {levelProgress.currentXp.toLocaleString()} / {levelProgress.xpToNext.toLocaleString()} XP
+                  {levelProgress.currentXp.toLocaleString()} /{' '}
+                  {levelProgress.xpToNext.toLocaleString()} XP
                 </span>
               </div>
               <div className={styles.xpBar}>
@@ -443,13 +439,13 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
                   <span className={styles.achievementIcon}>{featuredAchievement.icon}</span>
                   <div className={styles.achievementInfo}>
                     <span className={styles.achievementName}>{featuredAchievement.name}</span>
-                    <span className={styles.achievementDesc}>{featuredAchievement.description}</span>
+                    <span className={styles.achievementDesc}>
+                      {featuredAchievement.description}
+                    </span>
                   </div>
                 </div>
               ) : (
-                <div className={styles.noFeatured}>
-                  No achievement selected
-                </div>
+                <div className={styles.noFeatured}>No achievement selected</div>
               )}
             </div>
 

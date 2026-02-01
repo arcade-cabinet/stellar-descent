@@ -27,10 +27,15 @@ export interface TouchInput {
   isSliding?: boolean;
 }
 
+/**
+ * Portrait types for comms display character images
+ */
+export type PortraitType = 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
+
 export interface CommsMessage {
   sender: string;
   callsign: string;
-  portrait: 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
+  portrait: PortraitType;
   text: string;
 }
 

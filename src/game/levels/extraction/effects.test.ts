@@ -22,7 +22,11 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
     parent: unknown = null;
     dispose = vi.fn();
     setEnabled = vi.fn();
-    constructor(name: string, pos: { x: number; y: number; z: number } | undefined, _scene: unknown) {
+    constructor(
+      name: string,
+      pos: { x: number; y: number; z: number } | undefined,
+      _scene: unknown
+    ) {
       this.name = name;
       this.position = pos ?? { x: 0, y: 0, z: 0 };
     }
@@ -54,7 +58,7 @@ vi.mock('@babylonjs/core/Maths/math.color', () => {
       this.g = g;
       this.b = b;
     }
-    static FromHexString(hex: string) {
+    static FromHexString(_hex: string) {
       return new MockColor3(1, 0, 0);
     }
   }
@@ -192,30 +196,36 @@ vi.mock('../../core/AssetManager', () => ({
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import {
-  spawnTunnelDebris,
-  spawnCollapseDebris,
-  updateDebris,
-  spawnFallingStalactite,
-  updateFallingStalactites,
-  spawnHiveEruption,
-  createGroundCracks,
-  updateGroundCracks,
-  createCollapseLight,
-  updateCollapseLight,
-  createCollapseHealthPickups,
-  updateHealthPickups,
-  createCrumblingWalls,
-  updateCrumblingWalls,
-  createObjectiveMarker,
-  updateObjectiveMarker,
-  updateCollapseAudio,
-  spawnSupplyDrop,
-  updateSupplyDrops,
-  animateSupplyDrops,
-  emitLandingDust,
   animateFadeToBlack,
+  animateSupplyDrops,
+  createCollapseHealthPickups,
+  createCollapseLight,
+  createCrumblingWalls,
+  createGroundCracks,
+  createObjectiveMarker,
+  emitLandingDust,
+  spawnCollapseDebris,
+  spawnFallingStalactite,
+  spawnHiveEruption,
+  spawnSupplyDrop,
+  spawnTunnelDebris,
+  updateCollapseAudio,
+  updateCollapseLight,
+  updateCrumblingWalls,
+  updateDebris,
+  updateFallingStalactites,
+  updateGroundCracks,
+  updateHealthPickups,
+  updateObjectiveMarker,
+  updateSupplyDrops,
 } from './effects';
-import type { DebrisChunk, FallingStalactite, HealthPickup, CrumblingWall, SupplyDrop } from './types';
+import type {
+  CrumblingWall,
+  DebrisChunk,
+  FallingStalactite,
+  HealthPickup,
+  SupplyDrop,
+} from './types';
 
 describe('Visual Effects', () => {
   const mockScene = {
@@ -369,7 +379,10 @@ describe('Visual Effects', () => {
         const triggerShake = vi.fn();
 
         const { updatedStalactites, playerDamage } = updateFallingStalactites(
-          stalactites, playerPos, 0.1, triggerShake
+          stalactites,
+          playerPos,
+          0.1,
+          triggerShake
         );
 
         expect(updatedStalactites.length).toBe(1);
@@ -381,7 +394,13 @@ describe('Visual Effects', () => {
         const stalactites: FallingStalactite[] = [
           {
             mesh: {
-              position: { x: 0, y: 0.5, z: 0, addInPlace: vi.fn(), clone: () => new Vector3(0, 0.5, 0) },
+              position: {
+                x: 0,
+                y: 0.5,
+                z: 0,
+                addInPlace: vi.fn(),
+                clone: () => new Vector3(0, 0.5, 0),
+              },
               rotation: { addInPlace: vi.fn() },
               material: { alpha: 1 },
               dispose: vi.fn(),
@@ -399,7 +418,10 @@ describe('Visual Effects', () => {
         const playerPos = new Vector3(50, 0, 50);
 
         const { updatedStalactites } = updateFallingStalactites(
-          stalactites, playerPos, 0.1, triggerShake
+          stalactites,
+          playerPos,
+          0.1,
+          triggerShake
         );
 
         expect(updatedStalactites[0].hasImpacted).toBe(true);
@@ -411,7 +433,13 @@ describe('Visual Effects', () => {
         const stalactites: FallingStalactite[] = [
           {
             mesh: {
-              position: { x: 0, y: 0.5, z: 0, addInPlace: vi.fn(), clone: () => new Vector3(0, 0.5, 0) },
+              position: {
+                x: 0,
+                y: 0.5,
+                z: 0,
+                addInPlace: vi.fn(),
+                clone: () => new Vector3(0, 0.5, 0),
+              },
               rotation: { addInPlace: vi.fn() },
               material: { alpha: 1 },
               dispose: vi.fn(),
@@ -429,7 +457,10 @@ describe('Visual Effects', () => {
         const playerPos = new Vector3(1, 0, 1); // Close to stalactite
 
         const { playerDamage, notificationMsg } = updateFallingStalactites(
-          stalactites, playerPos, 0.1, triggerShake
+          stalactites,
+          playerPos,
+          0.1,
+          triggerShake
         );
 
         expect(playerDamage).toBe(25);
@@ -441,7 +472,13 @@ describe('Visual Effects', () => {
         const stalactites: FallingStalactite[] = [
           {
             mesh: {
-              position: { x: 0, y: 0.5, z: 0, addInPlace: vi.fn(), clone: () => new Vector3(0, 0.5, 0) },
+              position: {
+                x: 0,
+                y: 0.5,
+                z: 0,
+                addInPlace: vi.fn(),
+                clone: () => new Vector3(0, 0.5, 0),
+              },
               rotation: { addInPlace: vi.fn() },
               material: { alpha: 1 },
               dispose: vi.fn(),
@@ -459,7 +496,10 @@ describe('Visual Effects', () => {
         const playerPos = new Vector3(4, 0, 4); // Near but not direct hit
 
         const { playerDamage, notificationMsg } = updateFallingStalactites(
-          stalactites, playerPos, 0.1, triggerShake
+          stalactites,
+          playerPos,
+          0.1,
+          triggerShake
         );
 
         expect(playerDamage).toBe(10);
@@ -504,9 +544,7 @@ describe('Visual Effects', () => {
     describe('updateGroundCracks', () => {
       it('should update crack glow based on intensity', () => {
         const crackMaterial = { emissiveColor: { r: 0, g: 0, b: 0 } };
-        const cracks = [
-          { material: crackMaterial } as any,
-        ];
+        const cracks = [{ material: crackMaterial } as any];
 
         updateGroundCracks(cracks, 0.5);
 
@@ -542,7 +580,7 @@ describe('Visual Effects', () => {
         const pickups = createCollapseHealthPickups(mockScene);
 
         expect(pickups.length).toBeGreaterThan(0);
-        pickups.forEach(p => {
+        pickups.forEach((p) => {
           expect(p.collected).toBe(false);
           expect(p.healAmount).toBeGreaterThan(0);
         });
@@ -593,7 +631,7 @@ describe('Visual Effects', () => {
         const walls = createCrumblingWalls(mockScene);
 
         expect(walls.length).toBeGreaterThan(0);
-        walls.forEach(w => {
+        walls.forEach((w) => {
           expect(w.progress).toBe(0);
           expect(w.startY).toBeGreaterThan(0);
         });

@@ -467,7 +467,7 @@ export abstract class VehicleBase {
   // Damage
   // ------------------------------------------------------------------
 
-  public takeDamage(amount: number, source?: Vector3): void {
+  public takeDamage(amount: number, _source?: Vector3): void {
     // Shield absorbs first
     if (this.stats.shield > 0) {
       const absorbed = Math.min(this.stats.shield, amount);

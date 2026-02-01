@@ -295,8 +295,8 @@ function createMockMarineManager() {
     createSquad: vi.fn(() => squads[0]),
     getSquads: vi.fn(() => squads),
     getSquad: vi.fn((idx: number) => squads[idx]),
-    getActiveMarines: vi.fn(() => squads.flatMap(s => s.marines.filter(m => m.isActive))),
-    getAllMarines: vi.fn(() => squads.flatMap(s => s.marines)),
+    getActiveMarines: vi.fn(() => squads.flatMap((s) => s.marines.filter((m) => m.isActive))),
+    getAllMarines: vi.fn(() => squads.flatMap((s) => s.marines)),
     getFiringMarines: vi.fn(() => []),
     getActiveMarineCount: vi.fn(() => 16),
     getDownedMarinesNearPlayer: vi.fn(() => []),
@@ -396,11 +396,11 @@ function createMockCallbacks() {
 // ============================================================================
 
 describe('HiveAssaultLevel', () => {
-  let mockCallbacks: ReturnType<typeof createMockCallbacks>;
+  let _mockCallbacks: ReturnType<typeof createMockCallbacks>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    mockCallbacks = createMockCallbacks();
+    _mockCallbacks = createMockCallbacks();
     document.body.innerHTML = '';
   });
 
@@ -493,7 +493,7 @@ describe('HiveAssaultLevel', () => {
     it('should transition from staging to field_assault when vehicle boarded', () => {
       let phase = 'staging';
       let isInVehicle = false;
-      let phaseTime = 5; // After minimum time
+      const phaseTime = 5; // After minimum time
 
       const checkPhaseTransition = () => {
         if (phase === 'staging' && isInVehicle && phaseTime > 3) {
@@ -508,9 +508,9 @@ describe('HiveAssaultLevel', () => {
 
     it('should transition from field_assault to breach_point when turrets destroyed', () => {
       let phase = 'field_assault';
-      let turretsDestroyed = 4;
+      const turretsDestroyed = 4;
       const totalTurrets = 4;
-      let playerZ = -390;
+      const playerZ = -390;
 
       const checkFieldToBreachTransition = () => {
         if (phase === 'field_assault' && turretsDestroyed >= totalTurrets && playerZ < -380) {
@@ -524,9 +524,9 @@ describe('HiveAssaultLevel', () => {
 
     it('should transition from breach_point to entry_push at gate', () => {
       let phase = 'breach_point';
-      let playerZ = -570;
-      let waveIndex = 2;
-      let enemiesRemaining = 3;
+      const playerZ = -570;
+      const waveIndex = 2;
+      const enemiesRemaining = 3;
 
       const checkBreachToEntryTransition = () => {
         if (phase === 'breach_point' && playerZ < -560 && waveIndex >= 2 && enemiesRemaining <= 5) {
@@ -570,9 +570,7 @@ describe('HiveAssaultLevel', () => {
     });
 
     it('should register staging action buttons', () => {
-      const stagingActions = [
-        { id: 'board_vehicle', label: 'BOARD VEHICLE', key: 'E' },
-      ];
+      const stagingActions = [{ id: 'board_vehicle', label: 'BOARD VEHICLE', key: 'E' }];
       expect(stagingActions[0].id).toBe('board_vehicle');
     });
   });
@@ -616,7 +614,7 @@ describe('HiveAssaultLevel', () => {
       let flyingChitinAlerted = false;
       const enemies = [{ enemyClass: 'flying', isActive: true }];
 
-      if (!flyingChitinAlerted && enemies.some(e => e.enemyClass === 'flying' && e.isActive)) {
+      if (!flyingChitinAlerted && enemies.some((e) => e.enemyClass === 'flying' && e.isActive)) {
         flyingChitinAlerted = true;
       }
 
@@ -747,7 +745,7 @@ describe('HiveAssaultLevel', () => {
       let armoredChitinAlerted = false;
       const enemies = [{ enemyClass: 'armored', isActive: true }];
 
-      if (!armoredChitinAlerted && enemies.some(e => e.enemyClass === 'armored' && e.isActive)) {
+      if (!armoredChitinAlerted && enemies.some((e) => e.enemyClass === 'armored' && e.isActive)) {
         armoredChitinAlerted = true;
       }
 
@@ -867,10 +865,10 @@ describe('HiveAssaultLevel', () => {
 
     it('should adjust camera height when in vehicle', () => {
       let cameraY = 1.7;
-      let isInVehicle = false;
+      let _isInVehicle = false;
 
       const mountVehicle = () => {
-        isInVehicle = true;
+        _isInVehicle = true;
         cameraY = 2.5;
       };
 
@@ -880,10 +878,10 @@ describe('HiveAssaultLevel', () => {
 
     it('should reset camera height when dismounting', () => {
       let cameraY = 2.5;
-      let isInVehicle = true;
+      let _isInVehicle = true;
 
       const dismountVehicle = () => {
-        isInVehicle = false;
+        _isInVehicle = false;
         cameraY = 1.7;
       };
 
@@ -964,14 +962,14 @@ describe('HiveAssaultLevel', () => {
       ];
 
       // Score calculation
-      const scoreEnemy = (enemy: typeof enemies[0]) => {
+      const scoreEnemy = (enemy: (typeof enemies)[0]) => {
         let score = 100 - enemy.distToPlayer; // Closer is better
         if (enemy.distToPlayer < 30) score += 50; // Threat to player
         if (enemy.enemyClass === 'armored') score += 30;
         return score;
       };
 
-      const scores = enemies.map(e => ({ ...e, score: scoreEnemy(e) }));
+      const scores = enemies.map((e) => ({ ...e, score: scoreEnemy(e) }));
       const best = scores.sort((a, b) => b.score - a.score)[0];
 
       expect(best.distToPlayer).toBe(20); // Closest to player wins
@@ -1116,7 +1114,7 @@ describe('HiveAssaultLevel', () => {
 
     it('should have command cooldown of 1 second', () => {
       const commandCooldown = 1000; // milliseconds
-      let lastCommandTime = 0;
+      const lastCommandTime = 0;
       const now = 500;
 
       const canCommand = now - lastCommandTime >= commandCooldown;
@@ -1166,7 +1164,7 @@ describe('HiveAssaultLevel', () => {
         { position: new Vector3(10, 0, -100) }, // Outside radius
       ];
 
-      const damages = enemies.map(e => {
+      const damages = enemies.map((e) => {
         const dist = Vector3.Distance(e.position, impactPos);
         if (dist < blastRadius) {
           return Math.floor(baseDamage * (1 - dist / blastRadius));
@@ -1244,7 +1242,7 @@ describe('HiveAssaultLevel', () => {
         sender: 'Corporal Marcus Cole',
         callsign: 'HAMMER',
         portrait: 'marcus',
-        text: "You heard the Commander, James. Time to finish what we started.",
+        text: 'You heard the Commander, James. Time to finish what we started.',
       };
       expect(comms.callsign).toBe('HAMMER');
     });
@@ -1305,7 +1303,7 @@ describe('HiveAssaultLevel', () => {
 
       let markerPosition: Vector3 | null = null;
       if (phase === 'field_assault') {
-        const nextTurret = turrets.find(t => !t.destroyed);
+        const nextTurret = turrets.find((t) => !t.destroyed);
         if (nextTurret) {
           markerPosition = nextTurret.position;
         }
@@ -1424,7 +1422,7 @@ describe('HiveAssaultLevel', () => {
         { position: new Vector3(0, 0, -280) }, // 180m away - skip
       ];
 
-      const shouldUpdate = enemies.map(e => {
+      const shouldUpdate = enemies.map((e) => {
         const dist = Vector3.Distance(e.position, playerPosition);
         return dist <= enemyUpdateDistance;
       });
@@ -1583,7 +1581,7 @@ describe('HiveAssaultLevel', () => {
       const vehicleSpeed = 25;
       const walkSpeed = 8;
 
-      const getMoveSpeed = () => isInVehicle ? vehicleSpeed : walkSpeed;
+      const getMoveSpeed = () => (isInVehicle ? vehicleSpeed : walkSpeed);
       expect(getMoveSpeed()).toBe(25);
     });
 
@@ -1592,7 +1590,7 @@ describe('HiveAssaultLevel', () => {
       const vehicleSpeed = 25;
       const walkSpeed = 8;
 
-      const getMoveSpeed = () => isInVehicle ? vehicleSpeed : walkSpeed;
+      const getMoveSpeed = () => (isInVehicle ? vehicleSpeed : walkSpeed);
       expect(getMoveSpeed()).toBe(8);
     });
 
@@ -1601,7 +1599,7 @@ describe('HiveAssaultLevel', () => {
       const vehicleMultiplier = 1.3;
       const walkMultiplier = 1.5;
 
-      const getSprintMultiplier = () => isInVehicle ? vehicleMultiplier : walkMultiplier;
+      const getSprintMultiplier = () => (isInVehicle ? vehicleMultiplier : walkMultiplier);
       expect(getSprintMultiplier()).toBe(1.3);
     });
 
@@ -1610,7 +1608,7 @@ describe('HiveAssaultLevel', () => {
       const vehicleMultiplier = 1.3;
       const walkMultiplier = 1.5;
 
-      const getSprintMultiplier = () => isInVehicle ? vehicleMultiplier : walkMultiplier;
+      const getSprintMultiplier = () => (isInVehicle ? vehicleMultiplier : walkMultiplier);
       expect(getSprintMultiplier()).toBe(1.5);
     });
   });
@@ -1621,12 +1619,9 @@ describe('HiveAssaultLevel', () => {
 
   describe('Disposal', () => {
     it('should dispose all enemies', () => {
-      const enemies = [
-        { mesh: { dispose: vi.fn() } },
-        { mesh: { dispose: vi.fn() } },
-      ];
+      const enemies = [{ mesh: { dispose: vi.fn() } }, { mesh: { dispose: vi.fn() } }];
 
-      enemies.forEach(e => e.mesh.dispose());
+      enemies.forEach((e) => e.mesh.dispose());
 
       expect(enemies[0].mesh.dispose).toHaveBeenCalled();
       expect(enemies[1].mesh.dispose).toHaveBeenCalled();

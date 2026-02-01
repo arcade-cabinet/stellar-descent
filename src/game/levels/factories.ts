@@ -17,13 +17,7 @@ import { LandfallLevel } from './landfall';
 import { MiningDepthsLevel } from './mining-depths/MiningDepthsLevel';
 import { SouthernIceLevel } from './southern-ice/SouthernIceLevel';
 import { TheBreachLevel } from './the-breach/TheBreachLevel';
-import type {
-  ILevel,
-  LevelCallbacks,
-  LevelConfig,
-  LevelFactory,
-  LevelFactoryRegistry,
-} from './types';
+import type { ILevel, LevelConfig, LevelFactory, LevelFactoryRegistry } from './types';
 
 /**
  * Factory for station (interior) levels
@@ -31,10 +25,9 @@ import type {
 export const stationLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new AnchorStationLevel(engine, canvas, config, callbacks);
+  return new AnchorStationLevel(engine, canvas, config);
 };
 
 /**
@@ -43,10 +36,9 @@ export const stationLevelFactory: LevelFactory = (
 export const dropLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new LandfallLevel(engine, canvas, config, callbacks);
+  return new LandfallLevel(engine, canvas, config);
 };
 
 /**
@@ -57,11 +49,10 @@ export const dropLevelFactory: LevelFactory = (
 export const canyonLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
   // Generic canyon infantry level - uses CanyonRunLevel as fallback
-  return new CanyonRunLevel(engine, canvas, config, callbacks);
+  return new CanyonRunLevel(engine, canvas, config);
 };
 
 /**
@@ -71,10 +62,9 @@ export const canyonLevelFactory: LevelFactory = (
 export const mineLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new MiningDepthsLevel(engine, canvas, config, callbacks);
+  return new MiningDepthsLevel(engine, canvas, config);
 };
 
 /**
@@ -83,10 +73,9 @@ export const mineLevelFactory: LevelFactory = (
 export const baseLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new FOBDeltaLevel(engine, canvas, config, callbacks);
+  return new FOBDeltaLevel(engine, canvas, config);
 };
 
 /**
@@ -95,10 +84,9 @@ export const baseLevelFactory: LevelFactory = (
 export const brothersLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new BrothersInArmsLevel(engine, canvas, config, callbacks);
+  return new BrothersInArmsLevel(engine, canvas, config);
 };
 
 /**
@@ -108,10 +96,9 @@ export const brothersLevelFactory: LevelFactory = (
 export const hiveLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new TheBreachLevel(engine, canvas, config, callbacks);
+  return new TheBreachLevel(engine, canvas, config);
 };
 
 /**
@@ -121,10 +108,9 @@ export const hiveLevelFactory: LevelFactory = (
 export const bossLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new TheBreachLevel(engine, canvas, config, callbacks);
+  return new TheBreachLevel(engine, canvas, config);
 };
 
 /**
@@ -134,10 +120,9 @@ export const bossLevelFactory: LevelFactory = (
 export const extractionLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new ExtractionLevel(engine, canvas, config, callbacks);
+  return new ExtractionLevel(engine, canvas, config);
 };
 
 /**
@@ -147,10 +132,9 @@ export const extractionLevelFactory: LevelFactory = (
 export const vehicleLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new CanyonRunLevel(engine, canvas, config, callbacks);
+  return new CanyonRunLevel(engine, canvas, config);
 };
 
 /**
@@ -160,10 +144,9 @@ export const vehicleLevelFactory: LevelFactory = (
 export const iceLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new SouthernIceLevel(engine, canvas, config, callbacks);
+  return new SouthernIceLevel(engine, canvas, config);
 };
 
 /**
@@ -173,10 +156,9 @@ export const iceLevelFactory: LevelFactory = (
 export const assaultLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new HiveAssaultLevel(engine, canvas, config, callbacks);
+  return new HiveAssaultLevel(engine, canvas, config);
 };
 
 /**
@@ -186,10 +168,9 @@ export const assaultLevelFactory: LevelFactory = (
 export const combinedArmsLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new HiveAssaultLevel(engine, canvas, config, callbacks);
+  return new HiveAssaultLevel(engine, canvas, config);
 };
 
 /**
@@ -199,10 +180,9 @@ export const combinedArmsLevelFactory: LevelFactory = (
 export const escapeLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new FinalEscapeLevel(engine, canvas, config, callbacks);
+  return new FinalEscapeLevel(engine, canvas, config);
 };
 
 /**
@@ -212,10 +192,9 @@ export const escapeLevelFactory: LevelFactory = (
 export const finaleLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new FinalEscapeLevel(engine, canvas, config, callbacks);
+  return new FinalEscapeLevel(engine, canvas, config);
 };
 
 /**

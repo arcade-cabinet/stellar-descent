@@ -22,7 +22,11 @@ vi.mock('@babylonjs/core/Lights/pointLight', () => ({
     parent: unknown = null;
     dispose = vi.fn();
     setEnabled = vi.fn();
-    constructor(name: string, pos: { x: number; y: number; z: number } | undefined, _scene: unknown) {
+    constructor(
+      name: string,
+      pos: { x: number; y: number; z: number } | undefined,
+      _scene: unknown
+    ) {
       this.name = name;
       this.position = pos ?? { x: 0, y: 0, z: 0 };
     }
@@ -162,7 +166,6 @@ vi.mock('../shared/HiveEnvironmentBuilder', () => ({
     createChamber = vi.fn();
     getBiolights = vi.fn().mockReturnValue([]);
     dispose = vi.fn();
-    constructor(_scene: unknown, _options?: unknown) {}
   },
 }));
 
@@ -200,16 +203,16 @@ vi.mock('./constants', () => ({
 }));
 
 import {
-  createEscapeTunnel,
-  createSurfaceEnvironment,
   buildLZEnvironment,
-  createLZBeacon,
-  setupHoldoutArena,
-  createMarcusMech,
   createDropship,
-  setTunnelVisible,
-  setSurfaceVisible,
+  createEscapeTunnel,
+  createLZBeacon,
+  createMarcusMech,
+  createSurfaceEnvironment,
   preloadAssets,
+  setSurfaceVisible,
+  setTunnelVisible,
+  setupHoldoutArena,
   type TunnelEnvironment,
 } from './environment';
 
@@ -308,7 +311,9 @@ describe('Environment Creation', () => {
 
     it('should return null on error', async () => {
       const ExtractionEnvModule = await import('./ExtractionEnvironmentBuilder');
-      vi.mocked(ExtractionEnvModule.buildExtractionEnvironment).mockRejectedValueOnce(new Error('Build failed'));
+      vi.mocked(ExtractionEnvModule.buildExtractionEnvironment).mockRejectedValueOnce(
+        new Error('Build failed')
+      );
 
       const env = await buildLZEnvironment(mockScene);
 

@@ -25,16 +25,15 @@
  *   Generates AUDIO_CREDITS.md for attribution
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // Import types
 import type {
   AudioAssetDef,
-  FreesoundSound,
-  FreesoundSearchResult,
   FreesoundLicense,
-  AudioProcessingOptions,
+  FreesoundSearchResult,
+  FreesoundSound,
 } from '../src/game/ai/types';
 
 // ============================================================================
@@ -77,69 +76,303 @@ const DEFAULT_SEARCH_FIELDS = [
 
 // Audio asset definitions - duplicated from AudioAssetManifest.ts for Node.js compatibility
 const WEAPON_SFX: AudioAssetDef[] = [
-  { id: 'sfx_pistol_fire', type: 'sfx', searchQuery: 'pistol gunshot single', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true, fadeOut: 0.1 } },
-  { id: 'sfx_rifle_fire', type: 'sfx', searchQuery: 'assault rifle burst automatic', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true, fadeOut: 0.05 } },
-  { id: 'sfx_shotgun_fire', type: 'sfx', searchQuery: 'shotgun blast pump action', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true, fadeOut: 0.15 } },
-  { id: 'sfx_shotgun_pump', type: 'sfx', searchQuery: 'shotgun pump reload', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_plasma_fire', type: 'sfx', searchQuery: 'laser plasma energy weapon shot', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true, reverb: true } },
-  { id: 'sfx_grenade_explosion', type: 'sfx', searchQuery: 'grenade explosion blast', filters: { maxDuration: 4, license: 'cc0' }, processing: { normalize: true, reverb: true } },
-  { id: 'sfx_reload_magazine', type: 'sfx', searchQuery: 'gun reload magazine insert', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'sfx_pistol_fire',
+    type: 'sfx',
+    searchQuery: 'pistol gunshot single',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true, fadeOut: 0.1 },
+  },
+  {
+    id: 'sfx_rifle_fire',
+    type: 'sfx',
+    searchQuery: 'assault rifle burst automatic',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true, fadeOut: 0.05 },
+  },
+  {
+    id: 'sfx_shotgun_fire',
+    type: 'sfx',
+    searchQuery: 'shotgun blast pump action',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true, fadeOut: 0.15 },
+  },
+  {
+    id: 'sfx_shotgun_pump',
+    type: 'sfx',
+    searchQuery: 'shotgun pump reload',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_plasma_fire',
+    type: 'sfx',
+    searchQuery: 'laser plasma energy weapon shot',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true, reverb: true },
+  },
+  {
+    id: 'sfx_grenade_explosion',
+    type: 'sfx',
+    searchQuery: 'grenade explosion blast',
+    filters: { maxDuration: 4, license: 'cc0' },
+    processing: { normalize: true, reverb: true },
+  },
+  {
+    id: 'sfx_reload_magazine',
+    type: 'sfx',
+    searchQuery: 'gun reload magazine insert',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const ENEMY_SFX: AudioAssetDef[] = [
-  { id: 'sfx_alien_screech', type: 'sfx', searchQuery: 'alien creature screech monster', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true, pitchShift: -3, reverb: true } },
-  { id: 'sfx_alien_growl', type: 'sfx', searchQuery: 'monster growl aggressive creature', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true, pitchShift: -5 } },
-  { id: 'sfx_alien_death', type: 'sfx', searchQuery: 'monster death growl creature die', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true, pitchShift: -4, fadeOut: 0.3 } },
-  { id: 'sfx_alien_footstep', type: 'sfx', searchQuery: 'creature footstep claw', filters: { maxDuration: 1, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_queen_roar', type: 'sfx', searchQuery: 'monster roar deep massive creature', filters: { minDuration: 3, maxDuration: 8, license: 'cc0' }, processing: { normalize: true, pitchShift: -8, reverb: true } },
+  {
+    id: 'sfx_alien_screech',
+    type: 'sfx',
+    searchQuery: 'alien creature screech monster',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true, pitchShift: -3, reverb: true },
+  },
+  {
+    id: 'sfx_alien_growl',
+    type: 'sfx',
+    searchQuery: 'monster growl aggressive creature',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true, pitchShift: -5 },
+  },
+  {
+    id: 'sfx_alien_death',
+    type: 'sfx',
+    searchQuery: 'monster death growl creature die',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true, pitchShift: -4, fadeOut: 0.3 },
+  },
+  {
+    id: 'sfx_alien_footstep',
+    type: 'sfx',
+    searchQuery: 'creature footstep claw',
+    filters: { maxDuration: 1, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_queen_roar',
+    type: 'sfx',
+    searchQuery: 'monster roar deep massive creature',
+    filters: { minDuration: 3, maxDuration: 8, license: 'cc0' },
+    processing: { normalize: true, pitchShift: -8, reverb: true },
+  },
 ];
 
 const AMBIENCE_SFX: AudioAssetDef[] = [
-  { id: 'amb_station_hum', type: 'ambience', searchQuery: 'spaceship interior hum engine room', filters: { minDuration: 30, license: 'cc0' }, processing: { normalize: true, fadeIn: 2, fadeOut: 2 } },
-  { id: 'amb_wind', type: 'ambience', searchQuery: 'wind howling outdoor desert', filters: { minDuration: 30, license: 'cc0' }, processing: { normalize: true, fadeIn: 3, fadeOut: 3 } },
-  { id: 'amb_cave_drip', type: 'ambience', searchQuery: 'cave water dripping echo underground', filters: { minDuration: 20, license: 'cc0' }, processing: { normalize: true, reverb: true } },
-  { id: 'amb_ice_crack', type: 'sfx', searchQuery: 'ice cracking frozen crack', filters: { maxDuration: 5, license: 'cc0' }, processing: { normalize: true, reverb: true } },
-  { id: 'amb_blizzard', type: 'ambience', searchQuery: 'blizzard snowstorm arctic wind', filters: { minDuration: 30, license: 'cc0' }, processing: { normalize: true, fadeIn: 3, fadeOut: 3 } },
-  { id: 'amb_hive_organic', type: 'ambience', searchQuery: 'organic alien hive pulsing', filters: { minDuration: 20, license: 'cc0' }, processing: { normalize: true, pitchShift: -2, reverb: true } },
+  {
+    id: 'amb_station_hum',
+    type: 'ambience',
+    searchQuery: 'spaceship interior hum engine room',
+    filters: { minDuration: 30, license: 'cc0' },
+    processing: { normalize: true, fadeIn: 2, fadeOut: 2 },
+  },
+  {
+    id: 'amb_wind',
+    type: 'ambience',
+    searchQuery: 'wind howling outdoor desert',
+    filters: { minDuration: 30, license: 'cc0' },
+    processing: { normalize: true, fadeIn: 3, fadeOut: 3 },
+  },
+  {
+    id: 'amb_cave_drip',
+    type: 'ambience',
+    searchQuery: 'cave water dripping echo underground',
+    filters: { minDuration: 20, license: 'cc0' },
+    processing: { normalize: true, reverb: true },
+  },
+  {
+    id: 'amb_ice_crack',
+    type: 'sfx',
+    searchQuery: 'ice cracking frozen crack',
+    filters: { maxDuration: 5, license: 'cc0' },
+    processing: { normalize: true, reverb: true },
+  },
+  {
+    id: 'amb_blizzard',
+    type: 'ambience',
+    searchQuery: 'blizzard snowstorm arctic wind',
+    filters: { minDuration: 30, license: 'cc0' },
+    processing: { normalize: true, fadeIn: 3, fadeOut: 3 },
+  },
+  {
+    id: 'amb_hive_organic',
+    type: 'ambience',
+    searchQuery: 'organic alien hive pulsing',
+    filters: { minDuration: 20, license: 'cc0' },
+    processing: { normalize: true, pitchShift: -2, reverb: true },
+  },
 ];
 
 const UI_SFX: AudioAssetDef[] = [
-  { id: 'ui_select', type: 'sfx', searchQuery: 'ui click select interface', filters: { maxDuration: 1, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'ui_hover', type: 'sfx', searchQuery: 'ui hover soft subtle', filters: { maxDuration: 0.5, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'ui_confirm', type: 'sfx', searchQuery: 'success confirmation positive', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'ui_cancel', type: 'sfx', searchQuery: 'cancel back error negative', filters: { maxDuration: 1, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'ui_notification', type: 'sfx', searchQuery: 'notification alert ping', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'ui_select',
+    type: 'sfx',
+    searchQuery: 'ui click select interface',
+    filters: { maxDuration: 1, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'ui_hover',
+    type: 'sfx',
+    searchQuery: 'ui hover soft subtle',
+    filters: { maxDuration: 0.5, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'ui_confirm',
+    type: 'sfx',
+    searchQuery: 'success confirmation positive',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'ui_cancel',
+    type: 'sfx',
+    searchQuery: 'cancel back error negative',
+    filters: { maxDuration: 1, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'ui_notification',
+    type: 'sfx',
+    searchQuery: 'notification alert ping',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const PLAYER_SFX: AudioAssetDef[] = [
-  { id: 'sfx_footstep_metal', type: 'sfx', searchQuery: 'footstep metal boot military', filters: { maxDuration: 1, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_footstep_dirt', type: 'sfx', searchQuery: 'footstep dirt gravel outdoor', filters: { maxDuration: 1, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_player_hurt', type: 'sfx', searchQuery: 'male grunt pain impact', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_health_pickup', type: 'sfx', searchQuery: 'health powerup healing collect', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'sfx_footstep_metal',
+    type: 'sfx',
+    searchQuery: 'footstep metal boot military',
+    filters: { maxDuration: 1, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_footstep_dirt',
+    type: 'sfx',
+    searchQuery: 'footstep dirt gravel outdoor',
+    filters: { maxDuration: 1, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_player_hurt',
+    type: 'sfx',
+    searchQuery: 'male grunt pain impact',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_health_pickup',
+    type: 'sfx',
+    searchQuery: 'health powerup healing collect',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const VEHICLE_SFX: AudioAssetDef[] = [
-  { id: 'sfx_buggy_engine', type: 'sfx', searchQuery: 'offroad vehicle engine running loop', filters: { minDuration: 5, maxDuration: 20, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_mech_footstep', type: 'sfx', searchQuery: 'heavy metal footstep robot mech', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true, pitchShift: -2 } },
-  { id: 'sfx_dropship_engine', type: 'sfx', searchQuery: 'spacecraft engine thrust hover', filters: { minDuration: 5, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'sfx_buggy_engine',
+    type: 'sfx',
+    searchQuery: 'offroad vehicle engine running loop',
+    filters: { minDuration: 5, maxDuration: 20, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_mech_footstep',
+    type: 'sfx',
+    searchQuery: 'heavy metal footstep robot mech',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true, pitchShift: -2 },
+  },
+  {
+    id: 'sfx_dropship_engine',
+    type: 'sfx',
+    searchQuery: 'spacecraft engine thrust hover',
+    filters: { minDuration: 5, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const MUSIC_STINGERS: AudioAssetDef[] = [
-  { id: 'music_victory', type: 'music', searchQuery: 'victory fanfare orchestral triumphant', filters: { maxDuration: 10, license: 'cc0' }, processing: { normalize: true, fadeOut: 1 } },
-  { id: 'music_defeat', type: 'music', searchQuery: 'defeat sad orchestral somber', filters: { maxDuration: 8, license: 'cc0' }, processing: { normalize: true, fadeOut: 1 } },
-  { id: 'music_tension_rise', type: 'music', searchQuery: 'tension rising suspense horror', filters: { maxDuration: 10, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'music_victory',
+    type: 'music',
+    searchQuery: 'victory fanfare orchestral triumphant',
+    filters: { maxDuration: 10, license: 'cc0' },
+    processing: { normalize: true, fadeOut: 1 },
+  },
+  {
+    id: 'music_defeat',
+    type: 'music',
+    searchQuery: 'defeat sad orchestral somber',
+    filters: { maxDuration: 8, license: 'cc0' },
+    processing: { normalize: true, fadeOut: 1 },
+  },
+  {
+    id: 'music_tension_rise',
+    type: 'music',
+    searchQuery: 'tension rising suspense horror',
+    filters: { maxDuration: 10, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const COLLECTIBLE_SFX: AudioAssetDef[] = [
-  { id: 'sfx_skull_pickup', type: 'sfx', searchQuery: 'mystical pickup collect magical', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true, reverb: true } },
-  { id: 'sfx_secret_found', type: 'sfx', searchQuery: 'secret discover hidden reveal', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'sfx_skull_pickup',
+    type: 'sfx',
+    searchQuery: 'mystical pickup collect magical',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true, reverb: true },
+  },
+  {
+    id: 'sfx_secret_found',
+    type: 'sfx',
+    searchQuery: 'secret discover hidden reveal',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const ENVIRONMENT_SFX: AudioAssetDef[] = [
-  { id: 'sfx_door_open_metal', type: 'sfx', searchQuery: 'metal door open mechanical sci-fi', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_debris_fall', type: 'sfx', searchQuery: 'debris falling rocks rubble', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_glass_break', type: 'sfx', searchQuery: 'glass break shatter', filters: { maxDuration: 2, license: 'cc0' }, processing: { normalize: true } },
-  { id: 'sfx_steam_release', type: 'sfx', searchQuery: 'steam release hiss pipe', filters: { maxDuration: 3, license: 'cc0' }, processing: { normalize: true } },
+  {
+    id: 'sfx_door_open_metal',
+    type: 'sfx',
+    searchQuery: 'metal door open mechanical sci-fi',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_debris_fall',
+    type: 'sfx',
+    searchQuery: 'debris falling rocks rubble',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_glass_break',
+    type: 'sfx',
+    searchQuery: 'glass break shatter',
+    filters: { maxDuration: 2, license: 'cc0' },
+    processing: { normalize: true },
+  },
+  {
+    id: 'sfx_steam_release',
+    type: 'sfx',
+    searchQuery: 'steam release hiss pipe',
+    filters: { maxDuration: 3, license: 'cc0' },
+    processing: { normalize: true },
+  },
 ];
 
 const ALL_AUDIO_ASSETS: AudioAssetDef[] = [
@@ -408,11 +641,13 @@ async function downloadSound(
 ): Promise<boolean> {
   try {
     // Get preview URL (prefer high quality OGG)
-    const previews = sound.previews as {
-      'preview-hq-mp3'?: string;
-      'preview-hq-ogg'?: string;
-      'preview-lq-mp3'?: string;
-    } | undefined;
+    const previews = sound.previews as
+      | {
+          'preview-hq-mp3'?: string;
+          'preview-hq-ogg'?: string;
+          'preview-lq-mp3'?: string;
+        }
+      | undefined;
 
     let downloadUrl: string | undefined;
     let ext = 'mp3';
@@ -642,7 +877,8 @@ async function main(): Promise<void> {
       log(`  Found: "${sound.name}" by ${sound.username} (ID: ${sound.id})`);
 
       // Determine output path
-      const subdir = asset.type === 'ambience' ? 'ambience' : asset.type === 'music' ? 'music' : 'sfx';
+      const subdir =
+        asset.type === 'ambience' ? 'ambience' : asset.type === 'music' ? 'music' : 'sfx';
       const outputPath = path.join(OUTPUT_DIR, subdir, `${asset.id}.ogg`);
 
       // Download the sound
@@ -676,7 +912,7 @@ async function main(): Promise<void> {
   }
 
   // Print results
-  log('\n' + '='.repeat(60));
+  log(`\n${'='.repeat(60)}`);
   log('DOWNLOAD COMPLETE');
   log('='.repeat(60));
   log(`Success:   ${results.success}`);

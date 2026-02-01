@@ -19,25 +19,25 @@
 
 import * as Tone from 'tone';
 import type { LevelId } from '../levels/types';
-import { getLogger } from './Logger';
 import {
   type CombatState,
-  type LayerSynthSet,
-  type LevelMusicTheme,
-  MusicLayerType,
-  LAYER_VOLUMES,
-  LEVEL_MUSIC_THEMES,
-  TRANSITION_TIMING,
   calculateCombatIntensity,
+  generateAmbientPattern,
+  generateBassPattern,
+  generateLeadPattern,
+  generatePercussionPattern,
+  generateStabPattern,
   getActiveLayersForIntensity,
   getSynthFactoryForStyle,
-  generateAmbientPattern,
-  generatePercussionPattern,
-  generateBassPattern,
-  generateStabPattern,
-  generateLeadPattern,
+  LAYER_VOLUMES,
+  type LayerSynthSet,
+  LEVEL_MUSIC_THEMES,
+  type LevelMusicTheme,
+  MusicLayerType,
   scheduleAtNextBar,
+  TRANSITION_TIMING,
 } from './audio/MusicLayers';
+import { getLogger } from './Logger';
 
 const log = getLogger('CombatMusicManager');
 
@@ -97,9 +97,6 @@ export class CombatMusicManager {
     playerHealthPercent: 1.0,
     bossActive: false,
   };
-
-  // Combat exit handling
-  private lastEnemyTime = 0;
   private combatExitTimeout: ReturnType<typeof setTimeout> | null = null;
   private deescalationInterval: ReturnType<typeof setInterval> | null = null;
   private transitionTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -233,7 +230,9 @@ export class CombatMusicManager {
       Tone.getTransport().start();
     }
 
-    log.info(`Started combat music: ${this.currentTheme.style} @ ${this.currentTheme.tempo} BPM, intensity: ${initialIntensity}`);
+    log.info(
+      `Started combat music: ${this.currentTheme.style} @ ${this.currentTheme.tempo} BPM, intensity: ${initialIntensity}`
+    );
   }
 
   /**
@@ -249,15 +248,18 @@ export class CombatMusicManager {
     this.masterGain.gain.rampTo(0, fadeDuration);
 
     // Schedule cleanup
-    this.transitionTimeout = setTimeout(() => {
-      this.isPlaying = false;
-      this.stopAllPatterns();
-      this.resetAllLayerVolumes();
-      this.currentIntensity = 'none';
-      this.intensityValue = 0;
-      this.isBossMusicActive = false;
-      log.info('Combat music stopped');
-    }, fadeDuration * 1000 + 100);
+    this.transitionTimeout = setTimeout(
+      () => {
+        this.isPlaying = false;
+        this.stopAllPatterns();
+        this.resetAllLayerVolumes();
+        this.currentIntensity = 'none';
+        this.intensityValue = 0;
+        this.isBossMusicActive = false;
+        log.info('Combat music stopped');
+      },
+      fadeDuration * 1000 + 100
+    );
   }
 
   /**
@@ -300,10 +302,7 @@ export class CombatMusicManager {
    * Notify of damage dealt (triggers synth stabs)
    */
   onDamageDealt(amount: number): void {
-    this.combatState.recentDamageDealt = Math.min(
-      this.combatState.recentDamageDealt + amount,
-      100
-    );
+    this.combatState.recentDamageDealt = Math.min(this.combatState.recentDamageDealt + amount, 100);
     this.updateCombatState({});
   }
 
@@ -311,10 +310,7 @@ export class CombatMusicManager {
    * Notify of damage taken (triggers synth stabs, increases intensity)
    */
   onDamageTaken(amount: number): void {
-    this.combatState.recentDamageTaken = Math.min(
-      this.combatState.recentDamageTaken + amount,
-      100
-    );
+    this.combatState.recentDamageTaken = Math.min(this.combatState.recentDamageTaken + amount, 100);
     this.updateCombatState({});
   }
 
@@ -626,7 +622,11 @@ export class CombatMusicManager {
 
       if (shouldBeActive && !layerInfo.isActive) {
         this.activateLayer(layerType);
-      } else if (!shouldBeActive && layerInfo.isActive && layerType !== MusicLayerType.AMBIENT_PAD) {
+      } else if (
+        !shouldBeActive &&
+        layerInfo.isActive &&
+        layerType !== MusicLayerType.AMBIENT_PAD
+      ) {
         this.deactivateLayer(layerType);
       }
     }

@@ -1,4 +1,4 @@
-import { AssetEntry, LevelManifest } from '../types';
+import type { AssetEntry, LevelManifest } from '../types';
 
 /**
  * Canyon Run - High-speed vehicle chase through narrow alien canyons
@@ -18,14 +18,12 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/environment/industrial/shipping_container_mx_2.glb',
     sizeKB: 5000,
-
   },
   {
     id: 'industrial/cage',
     category: 'model',
     path: '/assets/models/environment/industrial/cage_mx_1.glb',
     sizeKB: 1145,
-
   },
 
   // =============================================================================
@@ -36,28 +34,24 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/props/modular/concrete_fence_hr_1.glb',
     sizeKB: 360,
-
   },
   {
     id: 'barrier/concrete_pillar',
     category: 'model',
     path: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1.glb',
     sizeKB: 357,
-
   },
   {
     id: 'barrier/concrete_corner',
     category: 'model',
     path: '/assets/models/props/modular/concrete_fence_hr_1_pillar_1_corner.glb',
     sizeKB: 358,
-
   },
   {
     id: 'barrier/concrete_fence_2',
     category: 'model',
     path: '/assets/models/props/modular/concrete_fence_hr_2.glb',
     sizeKB: 912,
-
   },
 
   // =============================================================================
@@ -68,42 +62,36 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/environment/station/asphalt_hr_2.glb',
     sizeKB: 560,
-
   },
   {
     id: 'station/asphalt_3',
     category: 'model',
     path: '/assets/models/environment/station/asphalt_hr_3.glb',
     sizeKB: 561,
-
   },
   {
     id: 'station/ramp_platform_slim',
     category: 'model',
     path: '/assets/models/environment/station/ramp_platform_slim_mx_1.glb',
     sizeKB: 844,
-
   },
   {
     id: 'station/ramp_platform_wide',
     category: 'model',
     path: '/assets/models/environment/station/ramp_platform_wide_mx_1.glb',
     sizeKB: 497,
-
   },
   {
     id: 'station/concrete_pipe_end',
     category: 'model',
     path: '/assets/models/environment/station/concrete_pipe_hm_1_end.glb',
     sizeKB: 586,
-
   },
   {
     id: 'station/concrete_pipe_mid',
     category: 'model',
     path: '/assets/models/environment/station/concrete_pipe_hm_1_middle.glb',
     sizeKB: 579,
-
   },
 
   // =============================================================================
@@ -114,7 +102,6 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/environment/station-external/station03.glb',
     sizeKB: 769,
-
   },
 
   // =============================================================================
@@ -125,14 +112,12 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/props/containers/metal_barrel_hr_3.glb',
     sizeKB: 400,
-
   },
   {
     id: 'prop/barrel_4',
     category: 'model',
     path: '/assets/models/props/containers/metal_barrel_hr_4.glb',
     sizeKB: 400,
-
   },
 
   // =============================================================================
@@ -143,14 +128,12 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/spaceships/Challenger.glb',
     sizeKB: 3500,
-
   },
   {
     id: 'spaceship/omen',
     category: 'model',
     path: '/assets/models/spaceships/Omen.glb',
     sizeKB: 3237,
-
   },
 
   // =============================================================================
@@ -161,84 +144,72 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Rock041_1K-JPG_Color.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/rock_normal',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Rock041_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/rock_roughness',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Rock041_1K-JPG_Roughness.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/ground',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Ground054_1K-JPG_Color.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/ground_normal',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Ground054_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/ground_roughness',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Ground054_1K-JPG_Roughness.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/rocks',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Rocks011_1K-JPG_Color.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/rocks_normal',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Rocks011_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/rocks_roughness',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/Rocks011_1K-JPG_Roughness.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/steel',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_Color.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/steel_normal',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_NormalGL.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/steel_roughness',
     category: 'texture',
     path: '/assets/textures/levels/canyon-run/CorrugatedSteel003_1K-JPG_Roughness.jpg',
     sizeKB: 200,
-
   },
   {
     id: 'tex/canyon/skybox',
@@ -303,7 +274,7 @@ export const CANYON_RUN_ASSETS: AssetEntry[] = [
     category: 'model',
     path: '/assets/models/environment/station/platform_b_handrail_1.glb',
     sizeKB: 300,
-  }
+  },
 ];
 
 export const CANYON_RUN_MANIFEST: LevelManifest = {
@@ -313,10 +284,7 @@ export const CANYON_RUN_MANIFEST: LevelManifest = {
    * REQUIRED: Assets that must be loaded before level starts
    * - Spider and Flying Alien enemies (primary threats during vehicle chase)
    */
-  required: [
-    'enemy/spider',
-    'enemy/flyingalien'
-  ],
+  required: ['enemy/spider', 'enemy/flyingalien'],
 
   /**
    * PRELOAD: Assets loaded during initial load screen
@@ -359,7 +327,7 @@ export const CANYON_RUN_MANIFEST: LevelManifest = {
     'tex/canyon/steel',
     'tex/canyon/steel_normal',
     'tex/canyon/steel_roughness',
-    'tex/canyon/skybox'
+    'tex/canyon/skybox',
   ],
 
   /**
@@ -375,8 +343,8 @@ export const CANYON_RUN_MANIFEST: LevelManifest = {
     'station/asphalt_3',
     'station/ramp_platform_wide',
     'station/concrete_pipe_end',
-    'station/concrete_pipe_mid'
-  ]
+    'station/concrete_pipe_mid',
+  ],
 };
 
 // =============================================================================

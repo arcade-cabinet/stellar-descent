@@ -133,7 +133,6 @@ export class AssetPipeline {
 
   // Background prefetch state
   private prefetchAbort: AbortController | null = null;
-  private isPrefetching = false;
 
   // Progress tracking for the current batch operation
   private batchTotal = 0;
@@ -436,7 +435,7 @@ export class AssetPipeline {
    */
   private async loadBand(
     assetIds: string[],
-    priority: AssetPriority,
+    _priority: AssetPriority,
     levelId: LevelId,
     signal?: AbortSignal
   ): Promise<void> {
@@ -616,9 +615,7 @@ export class AssetPipeline {
     this.currentMemoryKB += memoryCostKB;
 
     const elapsed = (performance.now() - startTime).toFixed(0);
-    log.info(
-      `Loaded model: ${entry.id} (${result.meshes.length} meshes, ${elapsed}ms)`
-    );
+    log.info(`Loaded model: ${entry.id} (${result.meshes.length} meshes, ${elapsed}ms)`);
 
     // Check budget after every load
     this.enforceMemoryBudget();

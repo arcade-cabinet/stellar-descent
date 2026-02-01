@@ -10,72 +10,69 @@
  * - All public APIs tested
  */
 
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { describe, expect, it } from 'vitest';
 
 // Import constants and types
 import {
+  ACID_SPRAY_PROJECTILE_COUNT,
+  ACID_SPRAY_SPREAD_ANGLE,
+  ARENA_PILLAR_COUNT,
+  ARENA_PILLAR_HEIGHT,
+  ARENA_PILLAR_RADIUS,
   COLORS,
-  PLAYER_MAX_HEALTH,
   DAMAGE_INVINCIBILITY_MS,
-  STARTING_GRENADES,
   GRENADE_COOLDOWN,
-  GRENADE_RADIUS,
   GRENADE_MAX_DAMAGE,
+  GRENADE_RADIUS,
+  INVINCIBILITY_SCALING,
   MELEE_COOLDOWN,
-  MELEE_RANGE,
   MELEE_DAMAGE,
+  MELEE_RANGE,
+  PLAYER_MAX_HEALTH,
+  QUEEN_ATTACK_DAMAGE,
+  QUEEN_ATTACK_RANGE,
+  QUEEN_ATTACK_TELEGRAPH,
+  QUEEN_CHARGE_RADIUS,
+  QUEEN_CHARGE_SPEED,
+  QUEEN_COOLDOWN_SCALING,
+  QUEEN_DAMAGE_SCALING,
+  QUEEN_DEATH_SLOWMO_DURATION,
+  QUEEN_DEATH_SLOWMO_SCALE,
+  QUEEN_DEATH_THROES_SPAWN_INTERVAL,
+  QUEEN_DEATH_THROES_THRESHOLD,
+  QUEEN_EGG_BURST_SPAWN_COUNT,
+  QUEEN_FRENZY_ATTACK_COUNT,
+  QUEEN_FRENZY_ATTACK_DELAY,
+  QUEEN_HEALTH_SCALING,
+  QUEEN_PHASE_COOLDOWNS,
+  QUEEN_PHASE_TRANSITION_DURATION,
+  QUEEN_POISON_CLOUD_DURATION,
+  QUEEN_SCREECH_SPAWN_COUNT,
+  QUEEN_STAGGER_DURATION,
+  QUEEN_WEAK_POINT_GLOW,
+  QUEEN_WEAK_POINT_HEALTH,
+  QUEEN_WEAK_POINT_MULTIPLIERS,
+  SCAN_COOLDOWN_SCALING,
+  STARTING_GRENADES,
   TUNNEL_DIAMETER,
   TUNNEL_SEGMENT_LENGTH,
   WEAK_POINT_COOLDOWN,
-  WEAK_POINT_DURATION,
   WEAK_POINT_DAMAGE_MULTIPLIER,
-  ARENA_PILLAR_COUNT,
-  ARENA_PILLAR_RADIUS,
-  ARENA_PILLAR_HEIGHT,
-  QUEEN_ATTACK_DAMAGE,
-  QUEEN_ATTACK_TELEGRAPH,
-  QUEEN_ATTACK_RANGE,
-  QUEEN_PHASE_COOLDOWNS,
-  QUEEN_STAGGER_DURATION,
-  QUEEN_PHASE_TRANSITION_DURATION,
-  QUEEN_DEATH_THROES_THRESHOLD,
-  QUEEN_DEATH_THROES_SPAWN_INTERVAL,
-  QUEEN_WEAK_POINT_HEALTH,
-  QUEEN_WEAK_POINT_MULTIPLIERS,
-  QUEEN_WEAK_POINT_GLOW,
-  ACID_SPRAY_PROJECTILE_COUNT,
-  ACID_SPRAY_SPREAD_ANGLE,
-  QUEEN_CHARGE_SPEED,
-  QUEEN_CHARGE_RADIUS,
-  QUEEN_SCREECH_SPAWN_COUNT,
-  QUEEN_POISON_CLOUD_DURATION,
-  QUEEN_FRENZY_ATTACK_COUNT,
-  QUEEN_FRENZY_ATTACK_DELAY,
-  QUEEN_EGG_BURST_SPAWN_COUNT,
-  QUEEN_DEATH_SLOWMO_DURATION,
-  QUEEN_DEATH_SLOWMO_SCALE,
-  QUEEN_HEALTH_SCALING,
-  QUEEN_DAMAGE_SCALING,
-  QUEEN_COOLDOWN_SCALING,
+  WEAK_POINT_DURATION,
   WEAK_POINT_DURATION_SCALING,
-  SCAN_COOLDOWN_SCALING,
-  INVINCIBILITY_SCALING,
 } from './constants';
 
 import type {
+  Enemy,
+  EnemyState,
+  EnemyType,
   HiveZone,
   LevelPhase,
-  QueenPhase,
   QueenAttackType,
-  Enemy,
-  EnemyType,
-  EnemyState,
-  Queen,
-  QueenWeakPoint,
+  QueenPhase,
   QueenWeakPointId,
-  QueenAIState,
 } from './types';
 
 // ============================================================================
@@ -355,7 +352,9 @@ describe('TheBreachLevel Constants', () => {
 
       // Less time on higher difficulty
       expect(WEAK_POINT_DURATION_SCALING.veteran).toBeLessThan(WEAK_POINT_DURATION_SCALING.normal);
-      expect(WEAK_POINT_DURATION_SCALING.legendary).toBeLessThan(WEAK_POINT_DURATION_SCALING.veteran);
+      expect(WEAK_POINT_DURATION_SCALING.legendary).toBeLessThan(
+        WEAK_POINT_DURATION_SCALING.veteran
+      );
     });
 
     it('should have scan cooldown scaling for all difficulties', () => {
@@ -543,7 +542,6 @@ describe('Depth Calculation', () => {
         return 100 + (playerZ - 100) * 0.5;
       case 'mid':
         return 50 + (playerZ - 50) * 0.8;
-      case 'upper':
       default:
         return playerZ * 0.7;
     }
@@ -840,7 +838,7 @@ describe('Level State Machine', () => {
 
   describe('Boss Fight Entry', () => {
     it('should despawn remaining enemies when boss fight starts', () => {
-      const enemies: Enemy[] = [
+      const _enemies: Enemy[] = [
         { type: 'drone', state: 'patrol' } as Enemy,
         { type: 'grunt', state: 'chase' } as Enemy,
       ];

@@ -12,21 +12,15 @@
  * - Conditions
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { NullEngine } from '@babylonjs/core/Engines/nullEngine';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
-import { NullEngine } from '@babylonjs/core/Engines/nullEngine';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  TriggerSystem,
-  createVolumeTrigger,
-  createInteractionTrigger,
   createCombatTrigger,
-  createLineOfSightTrigger,
-  type VolumeTriggerConfig,
-  type ProximityTriggerConfig,
-  type InteractionTriggerConfig,
-  type CombatTriggerConfig,
-  type CollectibleTriggerConfig,
+  createInteractionTrigger,
+  createVolumeTrigger,
+  TriggerSystem,
 } from './TriggerSystem';
 
 describe('TriggerSystem', () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { useCombatStore } from '../../game/stores/useCombatStore';
 import styles from './DeathScreen.module.css';
 import { MilitaryButton } from './MilitaryButton';
 
@@ -44,7 +44,7 @@ export function DeathScreen({
   deathReason = 'SPECTER DOWN - KIA',
   missionName = 'CURRENT MISSION',
 }: DeathScreenProps) {
-  const { kills } = useGame();
+  const kills = useCombatStore((state) => state.kills);
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const restartButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -128,7 +128,9 @@ export function DeathScreen({
         </h1>
 
         {/* Death reason */}
-        <p id="death-reason" className={styles.deathReason}>{deathReason}</p>
+        <p id="death-reason" className={styles.deathReason}>
+          {deathReason}
+        </p>
 
         {/* Divider */}
         <div className={styles.divider} aria-hidden="true">
@@ -138,12 +140,20 @@ export function DeathScreen({
         {/* Stats display */}
         <div className={styles.statsContainer} role="group" aria-label="Mission statistics">
           <div className={styles.statItem}>
-            <span className={styles.statLabel} id="kills-label">HOSTILES ELIMINATED</span>
-            <span className={styles.statValue} aria-labelledby="kills-label">{kills}</span>
+            <span className={styles.statLabel} id="kills-label">
+              HOSTILES ELIMINATED
+            </span>
+            <span className={styles.statValue} aria-labelledby="kills-label">
+              {kills}
+            </span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statLabel} id="status-label">MISSION STATUS</span>
-            <span className={styles.statValue} aria-labelledby="status-label">FAILED</span>
+            <span className={styles.statLabel} id="status-label">
+              MISSION STATUS
+            </span>
+            <span className={styles.statValue} aria-labelledby="status-label">
+              FAILED
+            </span>
           </div>
         </div>
 

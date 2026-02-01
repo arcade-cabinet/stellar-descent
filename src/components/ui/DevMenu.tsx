@@ -293,7 +293,7 @@ export function DevMenu() {
     (levelId: LevelId) => {
       dispatch({ type: 'DEV_JUMP_TO_LEVEL', levelId });
     },
-    [dispatch],
+    [dispatch]
   );
 
   // Skip phase handler
@@ -359,22 +359,12 @@ export function DevMenu() {
         <div style={S.sectionLabel}>Cheats</div>
 
         <label style={S.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={godMode}
-            onChange={toggleGodMode}
-            style={S.checkbox}
-          />
+          <input type="checkbox" checked={godMode} onChange={toggleGodMode} style={S.checkbox} />
           <span style={S.checkboxLabel}>God Mode</span>
         </label>
 
         <label style={S.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={noclip}
-            onChange={toggleNoclip}
-            style={S.checkbox}
-          />
+          <input type="checkbox" checked={noclip} onChange={toggleNoclip} style={S.checkbox} />
           <span style={S.checkboxLabel}>Noclip</span>
         </label>
 
@@ -399,12 +389,7 @@ export function DevMenu() {
         </label>
 
         <label style={S.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={showFPS}
-            onChange={toggleFPS}
-            style={S.checkbox}
-          />
+          <input type="checkbox" checked={showFPS} onChange={toggleFPS} style={S.checkbox} />
           <span style={S.checkboxLabel}>Show FPS</span>
         </label>
 

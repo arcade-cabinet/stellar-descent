@@ -15,14 +15,14 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
 import { getLogger } from '../core/Logger';
-import { getAdjustedParticleCount, getPerformanceManager } from '../core/PerformanceManager';
+import { getAdjustedParticleCount } from '../core/PerformanceManager';
 import { particleManager } from './ParticleManager';
 
 const log = getLogger('DeathEffects');
@@ -374,7 +374,7 @@ export class DeathEffects {
    */
   private addExplosionEffects(
     config: DeathEffectConfig,
-    systems: ParticleSystem[],
+    _systems: ParticleSystem[],
     lights: PointLight[],
     meshes: AbstractMesh[]
   ): void {
@@ -479,7 +479,7 @@ export class DeathEffects {
    */
   private addMechanicalEffects(
     config: DeathEffectConfig,
-    systems: ParticleSystem[],
+    _systems: ParticleSystem[],
     meshes: AbstractMesh[]
   ): void {
     if (!this.scene) return;
@@ -491,7 +491,9 @@ export class DeathEffects {
     const debrisCount = Math.min(8, Math.floor(4 * config.scale));
 
     if (!debrisAssetsReady) {
-      throw new Error('[DeathEffects] Debris assets not preloaded - call preloadDeathEffectAssets() first');
+      throw new Error(
+        '[DeathEffects] Debris assets not preloaded - call preloadDeathEffectAssets() first'
+      );
     }
 
     for (let i = 0; i < debrisCount; i++) {
@@ -517,11 +519,7 @@ export class DeathEffects {
       debrisNode.scaling.setAll(scale);
 
       debrisNode.position = config.position.add(
-        new Vector3(
-          (Math.random() - 0.5) * 0.5,
-          Math.random() * 0.5,
-          (Math.random() - 0.5) * 0.5
-        )
+        new Vector3((Math.random() - 0.5) * 0.5, Math.random() * 0.5, (Math.random() - 0.5) * 0.5)
       );
 
       // Get child meshes for tracking
@@ -769,52 +767,6 @@ export class DeathEffects {
       }
 
       material.alpha = 0.6 * (1 - progress);
-
-      requestAnimationFrame(animate);
-    };
-
-    requestAnimationFrame(animate);
-  }
-
-  /**
-   * Animate debris chunk physics
-   */
-  private animateDebris(mesh: Mesh, velocity: Vector3, angularVelocity: Vector3): void {
-    const startTime = performance.now();
-    const gravity = -15;
-
-    const animate = () => {
-      const elapsed = (performance.now() - startTime) / 1000;
-
-      if (elapsed > 3 || mesh.isDisposed()) {
-        return;
-      }
-
-      // Update velocity with gravity
-      velocity.y += gravity * (1 / 60);
-
-      // Update position
-      mesh.position.addInPlace(velocity.scale(1 / 60));
-
-      // Update rotation
-      mesh.rotation.addInPlace(angularVelocity.scale(1 / 60));
-
-      // Ground collision
-      if (mesh.position.y < 0.05) {
-        mesh.position.y = 0.05;
-        velocity.y *= -0.3;
-        velocity.x *= 0.7;
-        velocity.z *= 0.7;
-        angularVelocity.scaleInPlace(0.8);
-      }
-
-      // Fade out at end
-      if (elapsed > 2.5) {
-        const fadeProgress = (elapsed - 2.5) / 0.5;
-        if (mesh.material instanceof StandardMaterial) {
-          (mesh.material as StandardMaterial).alpha = 1 - fadeProgress;
-        }
-      }
 
       requestAnimationFrame(animate);
     };

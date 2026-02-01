@@ -129,8 +129,4 @@ export const VEHICLE_ASSETS: AssetEntry[] = [
 // All shared assets combined
 // ---------------------------------------------------------------------------
 
-export const ALL_SHARED_ASSETS: AssetEntry[] = [
-  ...ENEMY_ASSETS,
-  ...NPC_ASSETS,
-  ...VEHICLE_ASSETS,
-];
+export const ALL_SHARED_ASSETS: AssetEntry[] = [...ENEMY_ASSETS, ...NPC_ASSETS, ...VEHICLE_ASSETS];
