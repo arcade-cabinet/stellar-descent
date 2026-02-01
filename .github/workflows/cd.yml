@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-preview:
-    name: Deploy to Netlify (Preview)
+  deploy-production:
+    name: Deploy to Netlify (Production)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,9 +38,7 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Netlify
-        run: |
-          pnpm add -g netlify-cli
-          netlify deploy --prod --dir=dist --site=$NETLIFY_SITE_ID
+        run: pnpm exec netlify deploy --prod --dir=dist --site=$NETLIFY_SITE_ID
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: 1df7d7e0-b11c-4a74-8530-3b673b5b36ce
