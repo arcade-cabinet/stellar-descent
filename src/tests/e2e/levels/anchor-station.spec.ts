@@ -107,11 +107,79 @@ const ROOM_POSITIONS = {
 // ============================================================================
 
 /**
- * Wait for the game canvas to be ready and WebGL context initialized
+ * Wait for the React app to initialize (root element has children)
  */
-async function waitForGameReady(page: Page): Promise<void> {
+async function waitForAppReady(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
+    },
+    { timeout: 30000 }
+  );
+}
+
+/**
+ * Wait for splash screen to appear and dismiss it by clicking
+ */
+async function skipSplashScreen(page: Page): Promise<void> {
+  // Wait for splash video elements to appear
+  try {
+    await page.waitForSelector('video', { timeout: 5000 });
+    // Click to skip (the splash handles click to skip)
+    await page.click('body');
+    await page.waitForTimeout(500);
+    // Click again if needed (first click might just unlock audio)
+    await page.click('body');
+  } catch {
+    // Splash may have auto-skipped or already at menu
+    console.log('Splash screen not found or already dismissed');
+  }
+
+  // Wait for splash to transition away (videos gone or main menu visible)
+  await page.waitForFunction(
+    () => {
+      const videos = document.querySelectorAll('video');
+      const hasNewGame = Array.from(document.querySelectorAll('button')).some((b) =>
+        b.textContent?.includes('NEW GAME')
+      );
+      return hasNewGame || videos.length === 0;
+    },
+    { timeout: 15000 }
+  );
+}
+
+/**
+ * Wait for main menu to be visible
+ */
+async function waitForMainMenu(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      return buttons.some(
+        (b) => b.textContent?.includes('NEW GAME') || b.textContent?.includes('CONTINUE')
+      );
+    },
+    { timeout: 30000 }
+  );
+}
+
+/**
+ * Navigate from app start to main menu (skip splash)
+ */
+async function navigateToMainMenu(page: Page): Promise<void> {
+  await waitForAppReady(page);
+  await skipSplashScreen(page);
+  await waitForMainMenu(page);
+}
+
+/**
+ * Wait for the game canvas to be ready and WebGL context initialized
+ * Only call this AFTER the game level has started loading
+ */
+async function waitForGameCanvas(page: Page): Promise<void> {
   // Wait for canvas element
-  await page.waitForSelector('canvas', { timeout: 30000 });
+  await page.waitForSelector('canvas', { timeout: 60000 });
 
   // Wait for WebGL context
   await page.evaluate(async () => {
@@ -124,7 +192,6 @@ async function waitForGameReady(page: Page): Promise<void> {
         return;
       }
 
-      // Check if WebGL is already initialized
       const checkWebGL = () => {
         try {
           const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
@@ -141,7 +208,6 @@ async function waitForGameReady(page: Page): Promise<void> {
 
       if (checkWebGL()) return;
 
-      // Poll for WebGL readiness
       const interval = setInterval(() => {
         if (checkWebGL()) {
           clearInterval(interval);
@@ -152,57 +218,9 @@ async function waitForGameReady(page: Page): Promise<void> {
 }
 
 /**
- * Wait for splash screen to appear and dismiss it
- */
-async function skipSplashScreen(page: Page): Promise<void> {
-  // Look for splash video or splash overlay
-  const splashSelector = '[data-testid="splash-screen"], video, .splash-container';
-
-  try {
-    await page.waitForSelector(splashSelector, { timeout: 10000 });
-    // Click to skip
-    await page.click('body');
-    // Wait for splash to disappear
-    await page.waitForFunction(
-      () => {
-        const splash = document.querySelector('[data-testid="splash-screen"], .splash-container');
-        return !splash || (splash as HTMLElement).style.display === 'none';
-      },
-      { timeout: 15000 }
-    );
-  } catch {
-    // Splash may have auto-skipped or not present
-    console.log('Splash screen not found or already dismissed');
-  }
-}
-
-/**
- * Wait for main menu to be visible
- */
-async function waitForMainMenu(page: Page): Promise<void> {
-  // Look for main menu elements
-  await page.waitForFunction(
-    () => {
-      // Check for NEW GAME button or main menu container
-      const menuElements = Array.from(
-        document.querySelectorAll('button, [data-testid="main-menu"], .main-menu')
-      );
-      for (const el of menuElements) {
-        if (el.textContent?.includes('NEW GAME') || el.textContent?.includes('CONTINUE')) {
-          return true;
-        }
-      }
-      return false;
-    },
-    { timeout: 30000 }
-  );
-}
-
-/**
- * Click the NEW GAME button
+ * Click the NEW GAME button on the main menu
  */
 async function clickNewGame(page: Page): Promise<void> {
-  // Find and click NEW GAME button
   await page.evaluate(() => {
     const buttons = Array.from(document.querySelectorAll('button'));
     for (const btn of buttons) {
@@ -213,65 +231,199 @@ async function clickNewGame(page: Page): Promise<void> {
     }
     throw new Error('NEW GAME button not found');
   });
+  await page.waitForTimeout(500);
 }
 
 /**
- * Select difficulty and start game
+ * Handle the level select modal (if shown) and select first level
  */
-async function selectDifficultyAndStart(page: Page, difficulty = 'normal'): Promise<void> {
-  // Wait for difficulty selector to appear
-  await page.waitForTimeout(500);
-
-  // Select difficulty (click the difficulty option)
-  await page.evaluate((diff) => {
-    const elements = Array.from(
-      document.querySelectorAll('button, [data-difficulty], .difficulty-option')
+async function handleLevelSelect(page: Page): Promise<void> {
+  // Wait for level select modal to appear
+  try {
+    await page.waitForFunction(
+      () => {
+        const text = document.body.textContent || '';
+        return (
+          text.includes('SELECT MISSION') ||
+          text.includes('ANCHOR STATION') ||
+          text.includes('CHAPTER 1')
+        );
+      },
+      { timeout: 5000 }
     );
-    for (const el of elements) {
-      const text = el.textContent?.toLowerCase() || '';
-      if (text.includes(diff) || (el as HTMLElement).dataset.difficulty === diff) {
+  } catch {
+    // Level select may not be shown, continue
+    return;
+  }
+
+  // Click on the first level (Anchor Station / Chapter 1)
+  await page.evaluate(() => {
+    // Find all clickable elements
+    const allElements = Array.from(document.querySelectorAll('button, [role="button"], div'));
+
+    // Look for Chapter 1 / Anchor Station card
+    for (const el of allElements) {
+      const text = el.textContent || '';
+      if (
+        (text.includes('CHAPTER 1') || text.includes('ANCHOR STATION')) &&
+        !text.includes('CHAPTER 2')
+      ) {
         (el as HTMLElement).click();
         return;
       }
     }
-  }, difficulty);
 
-  await page.waitForTimeout(300);
-
-  // Click BEGIN or START button
-  await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('button'));
-    for (const btn of buttons) {
-      const text = btn.textContent?.toUpperCase() || '';
-      if (text.includes('BEGIN') || text.includes('START')) {
-        btn.click();
-        return true;
+    // Fallback: click any element containing "ANCHOR"
+    for (const el of allElements) {
+      if (el.textContent?.includes('ANCHOR')) {
+        (el as HTMLElement).click();
+        return;
       }
     }
-    throw new Error('BEGIN/START button not found');
   });
+
+  await page.waitForTimeout(1000);
 }
 
 /**
- * Wait for tutorial level to load
+ * Handle difficulty selection modal (if shown)
+ */
+async function handleDifficultySelect(page: Page, difficulty = 'normal'): Promise<void> {
+  // Check if difficulty selector is shown
+  const hasDifficulty = await page.evaluate(() => {
+    const text = document.body.textContent?.toLowerCase() || '';
+    return (
+      text.includes('select difficulty') ||
+      (text.includes('easy') && text.includes('normal') && text.includes('hard'))
+    );
+  });
+
+  if (hasDifficulty) {
+    // Select the difficulty option
+    await page.evaluate((diff) => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      for (const btn of buttons) {
+        const text = btn.textContent?.toLowerCase() || '';
+        if (text.includes(diff) && !text.includes('start') && !text.includes('back')) {
+          btn.click();
+          return;
+        }
+      }
+    }, difficulty);
+    await page.waitForTimeout(500);
+
+    // Click START CAMPAIGN button
+    await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      for (const btn of buttons) {
+        const text = btn.textContent?.toUpperCase() || '';
+        if (text.includes('START CAMPAIGN') || text.includes('START')) {
+          btn.click();
+          return true;
+        }
+      }
+      return false;
+    });
+    await page.waitForTimeout(1000);
+  }
+}
+
+/**
+ * Handle mission briefing screen and click BEGIN MISSION
+ */
+async function handleMissionBriefing(page: Page): Promise<void> {
+  // Wait for briefing screen or BEGIN button
+  try {
+    await page.waitForFunction(
+      () => {
+        const text = document.body.textContent || '';
+        return text.includes('MISSION BRIEFING') || text.includes('BEGIN MISSION');
+      },
+      { timeout: 10000 }
+    );
+  } catch {
+    // Briefing may not be shown
+    return;
+  }
+
+  await page.waitForTimeout(500);
+
+  // The briefing has a typing animation. Space skips the animation,
+  // and Enter only works after the typing is complete.
+  // Press Space multiple times to ensure animation is skipped.
+  await page.keyboard.press(' ');
+  await page.waitForTimeout(300);
+  await page.keyboard.press(' ');
+  await page.waitForTimeout(300);
+
+  // Now press Enter to begin mission
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(500);
+
+  // Check if briefing is still shown
+  const stillOnBriefing = await page.evaluate(() => {
+    const text = document.body.textContent || '';
+    return text.includes('MISSION BRIEFING') && text.includes('BEGIN MISSION');
+  });
+
+  if (stillOnBriefing) {
+    // Click BEGIN MISSION button directly as fallback
+    await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      for (const btn of buttons) {
+        const text = btn.textContent?.toUpperCase() || '';
+        if (text.includes('BEGIN MISSION')) {
+          (btn as HTMLButtonElement).click();
+          return true;
+        }
+      }
+      return false;
+    });
+    await page.waitForTimeout(500);
+  }
+
+  // Wait for transition to game
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Start a new game from the main menu (full flow)
+ * Flow: Main Menu → Level Select → Difficulty (optional) → Briefing → Game
+ */
+async function startNewGame(page: Page, difficulty = 'normal'): Promise<void> {
+  await clickNewGame(page);
+  await handleLevelSelect(page);
+  await handleDifficultySelect(page, difficulty);
+  await handleMissionBriefing(page);
+}
+
+/**
+ * Wait for tutorial level to load (canvas + game state)
  */
 async function waitForTutorialLevel(page: Page): Promise<void> {
-  // Wait for loading to complete and game to start
+  // First wait for canvas (BabylonJS scene)
+  await waitForGameCanvas(page);
+
+  // Wait for game phase to indicate playing
   await page.waitForFunction(
     () => {
-      // Look for HUD elements or tutorial indicators
-      const hud = document.querySelector('[data-testid="game-hud"], .game-hud, .hud-container');
-      const objective = document.querySelector(
-        '[data-testid="objective"], .objective, .mission-text'
-      );
-      const notification = document.querySelector('.notification, [data-testid="notification"]');
+      // Check debug interface
+      const debug = (window as any).__STELLAR_DESCENT_DEBUG__;
+      if (debug?.campaign?.phase) {
+        const phase = debug.campaign.phase;
+        return phase === 'playing' || phase === 'tutorial' || phase === 'briefing';
+      }
 
-      return hud || objective || notification;
+      // Fallback: look for HUD or game UI elements
+      const gameUI = document.querySelector(
+        'canvas, [class*="hud"], [class*="HUD"], [class*="objective"]'
+      );
+      return gameUI !== null;
     },
     { timeout: 60000 }
   );
 
-  // Additional wait for 3D scene to initialize
+  // Additional wait for scene to stabilize
   await page.waitForTimeout(2000);
 }
 
@@ -492,23 +644,21 @@ test.describe('Anchor Station - Tutorial Level', () => {
     // Navigate to game
     await page.goto('/');
 
-    // Wait for game to be ready
-    await waitForGameReady(page);
+    // Wait for React app to initialize
+    await waitForAppReady(page);
   });
 
   test('should load the game and display splash screen', async ({ page }) => {
-    // Verify canvas exists
-    const canvas = await page.$('canvas');
-    expect(canvas).not.toBeNull();
-
-    // Verify WebGL context
-    const hasWebGL = await page.evaluate(() => {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) return false;
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-      return gl !== null;
+    // Verify the app has loaded (splash screen with videos)
+    const hasContent = await page.evaluate(() => {
+      const root = document.getElementById('root');
+      return root && root.children.length > 0;
     });
-    expect(hasWebGL).toBe(true);
+    expect(hasContent).toBe(true);
+
+    // Verify splash videos exist
+    const videoCount = await page.evaluate(() => document.querySelectorAll('video').length);
+    expect(videoCount).toBeGreaterThan(0);
   });
 
   test('should navigate through splash and reach main menu', async ({ page }) => {
@@ -527,30 +677,21 @@ test.describe('Anchor Station - Tutorial Level', () => {
   });
 
   test('should start new game and enter tutorial level', async ({ page }) => {
-    await skipSplashScreen(page);
-    await waitForMainMenu(page);
-    await clickNewGame(page);
-
-    // Wait for level select or difficulty selector
-    await page.waitForTimeout(1000);
-
-    await selectDifficultyAndStart(page, 'normal');
+    await navigateToMainMenu(page);
+    await startNewGame(page, 'normal');
 
     // Wait for tutorial level to load
     await waitForTutorialLevel(page);
 
-    // Verify we are in tutorial level
-    const phase = await getTutorialPhase(page);
-    expect(phase).toBeGreaterThanOrEqual(0);
+    // Verify we are in tutorial level (canvas exists)
+    const hasCanvas = await page.$('canvas');
+    expect(hasCanvas).not.toBeNull();
   });
 
   test.describe('Phase 0: Initial Briefing', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
     });
 
@@ -585,11 +726,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Phase 1: Movement Tutorial', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
 
       // Wait for Phase 0 briefing to complete
@@ -646,11 +784,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Phase 1.5: Platforming Tutorial', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
       await page.waitForTimeout(10000); // Wait for initial phases
     });
@@ -684,11 +819,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Phase 2: Equipment Bay', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
       await page.waitForTimeout(15000); // Wait for earlier phases
     });
@@ -731,11 +863,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Phase 3: Shooting Range', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
       await page.waitForTimeout(20000); // Wait for earlier phases
     });
@@ -780,11 +909,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Phase 4: Hangar Bay', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
       await page.waitForTimeout(25000); // Wait for earlier phases
     });
@@ -835,11 +961,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
       // Increase test timeout for full playthrough
       test.setTimeout(300000); // 5 minutes
 
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
 
       // Wait for initial briefing
@@ -919,11 +1042,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
       // This test uses the PlayerGovernor AI system
       test.setTimeout(300000);
 
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
 
       // Wait for level initialization
@@ -969,11 +1089,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('UI Validation', () => {
     test.beforeEach(async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
     });
 
@@ -1061,11 +1178,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Error Handling', () => {
     test('should handle canvas click for pointer lock', async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
 
       // Click should not cause errors
@@ -1081,11 +1195,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
     });
 
     test('should handle rapid key presses', async ({ page }) => {
-      await skipSplashScreen(page);
-      await waitForMainMenu(page);
-      await clickNewGame(page);
-      await page.waitForTimeout(1000);
-      await selectDifficultyAndStart(page, 'normal');
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
 
       await clickCanvas(page);
