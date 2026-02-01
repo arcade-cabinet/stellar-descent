@@ -340,6 +340,15 @@ export class BrothersInArmsLevel extends BaseLevel {
   private hasSeenBreach = false;
   private hasTriggeredDefendingPosition = false;
 
+  // Phase timing
+  private phaseTime = 0;
+
+  // Last time Marcus took damage
+  private lastMarcusDamageTime = 0;
+
+  // Sky dome mesh reference
+  private skyDome: Mesh | null = null;
+
   protected getBackgroundColor(): Color4 {
     // Orange-red sunset sky
     return new Color4(0.85, 0.55, 0.35, 1);

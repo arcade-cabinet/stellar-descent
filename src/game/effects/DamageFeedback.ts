@@ -119,6 +119,9 @@ export class DamageFeedbackManager {
   // Screen shake callback (to be set by levels)
   private screenShakeCallback: ((intensity: number) => void) | null = null;
 
+  // Camera position for billboard orientation
+  private cameraPosition: Vector3 = Vector3.Zero();
+
   private constructor() {}
 
   /**

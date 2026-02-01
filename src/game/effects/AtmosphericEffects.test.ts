@@ -169,7 +169,7 @@ describe('AtmosphericEffects', () => {
       });
 
       // Light should be created
-      expect(effects.emergencyLights.has('test')).toBe(true);
+      expect((effects as any).emergencyLights.has('test')).toBe(true);
     });
 
     it('should create an emergency light with strobe pattern', () => {
@@ -179,7 +179,7 @@ describe('AtmosphericEffects', () => {
         speed: 2,
       });
 
-      expect(effects.emergencyLights.has('strobe1')).toBe(true);
+      expect((effects as any).emergencyLights.has('strobe1')).toBe(true);
     });
 
     it('should create an emergency light with custom color', () => {
@@ -189,7 +189,7 @@ describe('AtmosphericEffects', () => {
         pattern: 'alarm',
       });
 
-      const light = effects.emergencyLights.get('custom');
+      const light = (effects as any).emergencyLights.get('custom');
       expect(light).toBeDefined();
     });
 
@@ -203,8 +203,8 @@ describe('AtmosphericEffects', () => {
       );
 
       // Should create 5 lights
-      expect(effects.emergencyLights.has('corridor_0')).toBe(true);
-      expect(effects.emergencyLights.has('corridor_4')).toBe(true);
+      expect((effects as any).emergencyLights.has('corridor_0')).toBe(true);
+      expect((effects as any).emergencyLights.has('corridor_4')).toBe(true);
     });
 
     it('should remove an emergency light', () => {
@@ -213,11 +213,11 @@ describe('AtmosphericEffects', () => {
         pattern: 'pulse',
       });
 
-      expect(effects.emergencyLights.has('toRemove')).toBe(true);
+      expect((effects as any).emergencyLights.has('toRemove')).toBe(true);
 
       effects.removeEmergencyLight('toRemove');
 
-      expect(effects.emergencyLights.has('toRemove')).toBe(false);
+      expect((effects as any).emergencyLights.has('toRemove')).toBe(false);
     });
 
     it('should toggle emergency lights active state', () => {
@@ -242,9 +242,9 @@ describe('AtmosphericEffects', () => {
         visibility: 0.3,
       });
 
-      expect(effects.dustStormParticles).not.toBeNull();
-      expect(effects.windStreakParticles).not.toBeNull();
-      expect(effects.debrisParticles).not.toBeNull();
+      expect((effects as any).dustStormParticles).not.toBeNull();
+      expect((effects as any).windStreakParticles).not.toBeNull();
+      expect((effects as any).debrisParticles).not.toBeNull();
     });
 
     it('should update dust storm intensity', () => {
@@ -258,7 +258,7 @@ describe('AtmosphericEffects', () => {
 
       effects.setDustStormIntensity(1.0);
 
-      expect(effects.dustStormConfig?.intensity).toBe(1.0);
+      expect((effects as any).dustStormConfig?.intensity).toBe(1.0);
     });
 
     it('should stop dust storm', () => {
@@ -272,8 +272,8 @@ describe('AtmosphericEffects', () => {
 
       effects.stopDustStorm();
 
-      expect(effects.dustStormParticles).toBeNull();
-      expect(effects.dustStormConfig).toBeNull();
+      expect((effects as any).dustStormParticles).toBeNull();
+      expect((effects as any).dustStormConfig).toBeNull();
     });
   });
 
@@ -286,7 +286,7 @@ describe('AtmosphericEffects', () => {
         color: new Color4(0.4, 0.9, 0.5, 0.6),
       });
 
-      expect(effects.sporeClouds.has('hiveSpores')).toBe(true);
+      expect((effects as any).sporeClouds.has('hiveSpores')).toBe(true);
     });
 
     it('should create a pulsing spore cloud', () => {
@@ -298,7 +298,7 @@ describe('AtmosphericEffects', () => {
         pulsing: true,
       });
 
-      const cloud = effects.sporeClouds.get('pulsingSpores');
+      const cloud = (effects as any).sporeClouds.get('pulsingSpores');
       expect(cloud?.config.pulsing).toBe(true);
     });
 
@@ -306,7 +306,7 @@ describe('AtmosphericEffects', () => {
       const id = effects.createPheromoneCloud(new Vector3(5, 0, 5), 4);
 
       expect(id).toMatch(/^pheromone_/);
-      expect(effects.sporeClouds.has(id)).toBe(true);
+      expect((effects as any).sporeClouds.has(id)).toBe(true);
     });
 
     it('should remove a spore cloud', () => {
@@ -319,7 +319,7 @@ describe('AtmosphericEffects', () => {
 
       effects.removeSporeCloud('toRemove');
 
-      expect(effects.sporeClouds.has('toRemove')).toBe(false);
+      expect((effects as any).sporeClouds.has('toRemove')).toBe(false);
     });
   });
 
@@ -332,7 +332,7 @@ describe('AtmosphericEffects', () => {
         color: new Color3(0.2, 0.2, 0.3),
       });
 
-      expect(effects.fogZones.has('transitZone')).toBe(true);
+      expect((effects as any).fogZones.has('transitZone')).toBe(true);
     });
 
     it('should create a fog zone with custom height', () => {
@@ -344,7 +344,7 @@ describe('AtmosphericEffects', () => {
         height: 5,
       });
 
-      const zone = effects.fogZones.get('tallFog');
+      const zone = (effects as any).fogZones.get('tallFog');
       expect(zone?.config.height).toBe(5);
     });
 
@@ -358,7 +358,7 @@ describe('AtmosphericEffects', () => {
 
       effects.removeFogZone('toRemove');
 
-      expect(effects.fogZones.has('toRemove')).toBe(false);
+      expect((effects as any).fogZones.has('toRemove')).toBe(false);
     });
   });
 
@@ -366,21 +366,21 @@ describe('AtmosphericEffects', () => {
     it('should initialize heat haze', () => {
       effects.initializeHeatHaze();
 
-      expect(effects.heatHazeMesh).not.toBeNull();
+      expect((effects as any).heatHazeMesh).not.toBeNull();
     });
 
     it('should set heat haze intensity', () => {
       effects.initializeHeatHaze();
       effects.setHeatHazeIntensity(0.8);
 
-      expect(effects.heatHazeIntensity).toBe(0.8);
+      expect((effects as any).heatHazeIntensity).toBe(0.8);
     });
 
     it('should hide heat haze when intensity is zero', () => {
       effects.initializeHeatHaze();
       effects.setHeatHazeIntensity(0);
 
-      expect(effects.heatHazeMesh?.isVisible).toBe(false);
+      expect((effects as any).heatHazeMesh?.isVisible).toBe(false);
     });
   });
 
@@ -410,19 +410,19 @@ describe('AtmosphericEffects', () => {
         samples: 80,
       });
 
-      expect(effects.godRays.has('sunRays')).toBe(true);
+      expect((effects as any).godRays.has('sunRays')).toBe(true);
     });
 
     it('should create sun god rays', () => {
       effects.createSunGodRays(new Vector3(100, 200, -500), 0.8);
 
-      expect(effects.godRays.has('sun')).toBe(true);
+      expect((effects as any).godRays.has('sun')).toBe(true);
     });
 
     it('should create spotlight god rays', () => {
       effects.createSpotlightGodRays('window1', new Vector3(5, 3, 0));
 
-      expect(effects.godRays.has('window1')).toBe(true);
+      expect((effects as any).godRays.has('window1')).toBe(true);
     });
 
     it('should update god ray position', () => {
@@ -451,7 +451,7 @@ describe('AtmosphericEffects', () => {
 
       effects.removeGodRays('toRemove');
 
-      expect(effects.godRays.has('toRemove')).toBe(false);
+      expect((effects as any).godRays.has('toRemove')).toBe(false);
     });
   });
 
@@ -533,12 +533,12 @@ describe('AtmosphericEffects', () => {
       effects.dispose();
 
       // All collections should be empty
-      expect(effects.emergencyLights.size).toBe(0);
-      expect(effects.sporeClouds.size).toBe(0);
-      expect(effects.fogZones.size).toBe(0);
-      expect(effects.godRays.size).toBe(0);
-      expect(effects.dustStormParticles).toBeNull();
-      expect(effects.heatHazeMesh).toBeNull();
+      expect((effects as any).emergencyLights.size).toBe(0);
+      expect((effects as any).sporeClouds.size).toBe(0);
+      expect((effects as any).fogZones.size).toBe(0);
+      expect((effects as any).godRays.size).toBe(0);
+      expect((effects as any).dustStormParticles).toBeNull();
+      expect((effects as any).heatHazeMesh).toBeNull();
     });
   });
 

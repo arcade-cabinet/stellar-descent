@@ -150,6 +150,9 @@ export class VerticalMovement {
   private jumpRequested = false;
   private ignoredMeshes: Set<AbstractMesh> = new Set();
 
+  // Ground mesh reference
+  private groundMesh: AbstractMesh | null = null;
+
   // Ground info
   private groundInfo: GroundInfo = {
     isGrounded: true,

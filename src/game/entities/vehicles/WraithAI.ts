@@ -159,6 +159,8 @@ export class WraithAI {
 
   // State machine
   private _state: WraithState = 'patrol';
+  private stateTimer: number = 0;
+  private _modelLoaded: boolean = false;
 
   // Patrol
   private waypoints: WraithWaypoint[] = [];

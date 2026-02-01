@@ -137,6 +137,7 @@ export class SpawnManager {
 
   // Global counters
   private totalKills = 0;
+  private totalSpawned = 0;
   private elapsedTime = 0;
 
   // Objective flags (set by the hosting level)

@@ -173,6 +173,7 @@ const SCOUTING_DIALOGUE = {
 // ============================================================================
 
 export class ScoutingSystem {
+  private scene: Scene;
   private config: ScoutingConfig;
   private callbacks: ScoutingCallbacks;
 

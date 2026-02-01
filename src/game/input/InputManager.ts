@@ -135,6 +135,7 @@ export class InputManager {
 
   // Track gamepad state
   private connectedGamepadIndex: number | null = null;
+  private lastButtonStates: boolean[] = [];
 
   // Track last input source for UI hints
   private lastInputSource: InputSource = 'keyboard';

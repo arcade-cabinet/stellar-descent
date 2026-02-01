@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "updatedAt": "2026-02-01T03:33:41.248Z",
+  "updatedAt": "2026-02-01T05:39:05.774Z",
   "portraits": {
     "cole_james": [
       {
@@ -13,7 +13,11 @@
         "generatedAt": "2026-01-31T19:57:43.688Z",
         "generationTimeMs": 20102.477208,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -32,7 +36,11 @@
         "generatedAt": "2026-01-31T19:59:22.226Z",
         "generationTimeMs": 188.88691699999993,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -51,7 +59,11 @@
         "generatedAt": "2026-01-31T20:05:05.240Z",
         "generationTimeMs": 197.33233300000006,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -70,7 +82,11 @@
         "generatedAt": "2026-01-31T20:14:48.522Z",
         "generationTimeMs": 203.98233400000004,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -89,7 +105,11 @@
         "generatedAt": "2026-01-31T20:56:55.713Z",
         "generationTimeMs": 676.0361249999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -108,7 +128,11 @@
         "generatedAt": "2026-01-31T20:57:36.266Z",
         "generationTimeMs": 586.5083749999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -127,7 +151,11 @@
         "generatedAt": "2026-01-31T20:57:40.030Z",
         "generationTimeMs": 839.3199999999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -146,7 +174,11 @@
         "generatedAt": "2026-01-31T20:58:04.257Z",
         "generationTimeMs": 456.82299999999987,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -165,7 +197,11 @@
         "generatedAt": "2026-01-31T20:59:19.611Z",
         "generationTimeMs": 879.0255420000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -184,7 +220,11 @@
         "generatedAt": "2026-01-31T21:00:03.097Z",
         "generationTimeMs": 1225.660291,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -203,7 +243,11 @@
         "generatedAt": "2026-01-31T21:00:06.364Z",
         "generationTimeMs": 1468.3602500000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -222,7 +266,11 @@
         "generatedAt": "2026-01-31T21:00:27.159Z",
         "generationTimeMs": 1217.8463750000003,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -241,7 +289,11 @@
         "generatedAt": "2026-01-31T21:00:52.284Z",
         "generationTimeMs": 776.1479170000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -260,7 +312,11 @@
         "generatedAt": "2026-01-31T21:01:00.754Z",
         "generationTimeMs": 1533.179916,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -279,7 +335,11 @@
         "generatedAt": "2026-01-31T21:01:11.730Z",
         "generationTimeMs": 1379.029125,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -298,7 +358,11 @@
         "generatedAt": "2026-01-31T21:01:14.724Z",
         "generationTimeMs": 1898.331084,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -317,7 +381,11 @@
         "generatedAt": "2026-01-31T21:01:16.147Z",
         "generationTimeMs": 2530.414667,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -336,7 +404,11 @@
         "generatedAt": "2026-01-31T21:01:25.699Z",
         "generationTimeMs": 947.4613749999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -355,7 +427,11 @@
         "generatedAt": "2026-01-31T21:01:33.697Z",
         "generationTimeMs": 1190.7045830000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -374,7 +450,11 @@
         "generatedAt": "2026-01-31T21:01:39.674Z",
         "generationTimeMs": 848.4618330000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -393,7 +473,11 @@
         "generatedAt": "2026-01-31T21:01:56.639Z",
         "generationTimeMs": 1274.006333,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -412,7 +496,11 @@
         "generatedAt": "2026-01-31T21:01:57.011Z",
         "generationTimeMs": 1123.066667,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -431,7 +519,11 @@
         "generatedAt": "2026-01-31T21:03:14.988Z",
         "generationTimeMs": 619.3449579999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -450,7 +542,11 @@
         "generatedAt": "2026-01-31T21:03:36.601Z",
         "generationTimeMs": 790.383208,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -469,7 +565,11 @@
         "generatedAt": "2026-01-31T21:03:41.552Z",
         "generationTimeMs": 942.097542,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -488,7 +588,11 @@
         "generatedAt": "2026-01-31T21:04:15.624Z",
         "generationTimeMs": 509.092541,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -507,7 +611,11 @@
         "generatedAt": "2026-01-31T21:04:21.531Z",
         "generationTimeMs": 945.7706250000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -526,7 +634,11 @@
         "generatedAt": "2026-01-31T21:04:23.439Z",
         "generationTimeMs": 1418.8557499999997,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -545,7 +657,11 @@
         "generatedAt": "2026-01-31T21:04:41.406Z",
         "generationTimeMs": 672.8539170000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -564,7 +680,11 @@
         "generatedAt": "2026-01-31T21:06:48.698Z",
         "generationTimeMs": 422.330792,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -583,7 +703,11 @@
         "generatedAt": "2026-01-31T21:06:53.877Z",
         "generationTimeMs": 651.7847499999998,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -602,7 +726,11 @@
         "generatedAt": "2026-01-31T21:07:49.172Z",
         "generationTimeMs": 490.003334,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -621,7 +749,11 @@
         "generatedAt": "2026-01-31T21:10:20.204Z",
         "generationTimeMs": 534.2093749999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -640,7 +772,11 @@
         "generatedAt": "2026-01-31T21:23:49.528Z",
         "generationTimeMs": 585.99675,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -659,7 +795,11 @@
         "generatedAt": "2026-01-31T21:35:24.521Z",
         "generationTimeMs": 477.3179590000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -678,7 +818,11 @@
         "generatedAt": "2026-01-31T21:41:09.407Z",
         "generationTimeMs": 186.99695799999995,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -697,7 +841,11 @@
         "generatedAt": "2026-01-31T21:41:46.446Z",
         "generationTimeMs": 673.8852919999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -716,7 +864,11 @@
         "generatedAt": "2026-01-31T22:02:30.132Z",
         "generationTimeMs": 803.239208,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -735,7 +887,11 @@
         "generatedAt": "2026-01-31T22:30:42.583Z",
         "generationTimeMs": 610.6954579999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -754,7 +910,11 @@
         "generatedAt": "2026-01-31T22:31:21.275Z",
         "generationTimeMs": 912.3502919999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -773,7 +933,11 @@
         "generatedAt": "2026-01-31T22:31:43.457Z",
         "generationTimeMs": 603.4224579999998,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -792,7 +956,11 @@
         "generatedAt": "2026-01-31T23:53:23.797Z",
         "generationTimeMs": 1041.190541,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -811,7 +979,11 @@
         "generatedAt": "2026-01-31T23:53:46.127Z",
         "generationTimeMs": 608.9646670000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -830,7 +1002,11 @@
         "generatedAt": "2026-01-31T23:54:36.387Z",
         "generationTimeMs": 709.302209,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -849,7 +1025,11 @@
         "generatedAt": "2026-01-31T23:55:35.659Z",
         "generationTimeMs": 451.71891600000004,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -868,7 +1048,11 @@
         "generatedAt": "2026-02-01T00:45:54.022Z",
         "generationTimeMs": 658.6598329999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -887,7 +1071,11 @@
         "generatedAt": "2026-02-01T00:47:00.423Z",
         "generationTimeMs": 706.4565420000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -906,7 +1094,11 @@
         "generatedAt": "2026-02-01T00:47:14.388Z",
         "generationTimeMs": 558.7684999999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -925,7 +1117,11 @@
         "generatedAt": "2026-02-01T00:48:38.994Z",
         "generationTimeMs": 457.4130829999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -944,7 +1140,11 @@
         "generatedAt": "2026-02-01T00:49:56.192Z",
         "generationTimeMs": 627.259916,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -963,7 +1163,11 @@
         "generatedAt": "2026-02-01T01:15:28.811Z",
         "generationTimeMs": 999.7206249999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -982,7 +1186,11 @@
         "generatedAt": "2026-02-01T01:30:29.118Z",
         "generationTimeMs": 598.1270420000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1001,7 +1209,11 @@
         "generatedAt": "2026-02-01T01:37:44.911Z",
         "generationTimeMs": 849.1488340000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1020,7 +1232,11 @@
         "generatedAt": "2026-02-01T01:37:58.837Z",
         "generationTimeMs": 762.0186250000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1039,7 +1255,11 @@
         "generatedAt": "2026-02-01T01:38:12.432Z",
         "generationTimeMs": 801.160417,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1058,7 +1278,11 @@
         "generatedAt": "2026-02-01T01:45:33.078Z",
         "generationTimeMs": 530.7648330000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1077,7 +1301,11 @@
         "generatedAt": "2026-02-01T01:46:35.352Z",
         "generationTimeMs": 705.1551670000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1096,7 +1324,11 @@
         "generatedAt": "2026-02-01T01:47:33.262Z",
         "generationTimeMs": 742.3976250000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1115,7 +1347,11 @@
         "generatedAt": "2026-02-01T01:47:55.535Z",
         "generationTimeMs": 855.1020839999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1134,7 +1370,11 @@
         "generatedAt": "2026-02-01T01:48:15.877Z",
         "generationTimeMs": 1031.661917,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1153,7 +1393,11 @@
         "generatedAt": "2026-02-01T01:48:34.876Z",
         "generationTimeMs": 1039.9316669999998,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1172,7 +1416,11 @@
         "generatedAt": "2026-02-01T01:48:58.643Z",
         "generationTimeMs": 1216.582417,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1191,7 +1439,11 @@
         "generatedAt": "2026-02-01T01:49:18.062Z",
         "generationTimeMs": 967.7145420000002,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1210,7 +1462,11 @@
         "generatedAt": "2026-02-01T01:49:34.916Z",
         "generationTimeMs": 995.1929169999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1229,7 +1485,11 @@
         "generatedAt": "2026-02-01T01:50:34.343Z",
         "generationTimeMs": 759.2834579999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1248,7 +1508,11 @@
         "generatedAt": "2026-02-01T01:51:48.762Z",
         "generationTimeMs": 846.216625,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1267,7 +1531,11 @@
         "generatedAt": "2026-02-01T01:52:23.591Z",
         "generationTimeMs": 1027.306958,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1286,7 +1554,11 @@
         "generatedAt": "2026-02-01T01:53:03.020Z",
         "generationTimeMs": 798.9644579999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1305,7 +1577,11 @@
         "generatedAt": "2026-02-01T01:56:48.883Z",
         "generationTimeMs": 578.6274579999997,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1324,7 +1600,11 @@
         "generatedAt": "2026-02-01T02:00:20.463Z",
         "generationTimeMs": 675.527417,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1343,7 +1623,11 @@
         "generatedAt": "2026-02-01T02:00:25.519Z",
         "generationTimeMs": 1390.9067499999996,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1362,7 +1646,11 @@
         "generatedAt": "2026-02-01T02:02:12.736Z",
         "generationTimeMs": 621.051334,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1381,7 +1669,11 @@
         "generatedAt": "2026-02-01T02:02:26.113Z",
         "generationTimeMs": 604.0643339999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1400,7 +1692,11 @@
         "generatedAt": "2026-02-01T02:03:15.314Z",
         "generationTimeMs": 702.6594580000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1419,7 +1715,11 @@
         "generatedAt": "2026-02-01T02:03:52.819Z",
         "generationTimeMs": 999.9177089999998,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1438,7 +1738,11 @@
         "generatedAt": "2026-02-01T02:04:40.335Z",
         "generationTimeMs": 821.392625,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1457,7 +1761,11 @@
         "generatedAt": "2026-02-01T02:44:14.334Z",
         "generationTimeMs": 917.0832090000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1476,7 +1784,11 @@
         "generatedAt": "2026-02-01T02:45:33.419Z",
         "generationTimeMs": 584.1420410000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1495,7 +1807,11 @@
         "generatedAt": "2026-02-01T02:46:36.895Z",
         "generationTimeMs": 959.4150839999998,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1514,7 +1830,11 @@
         "generatedAt": "2026-02-01T02:47:36.518Z",
         "generationTimeMs": 709.2752089999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1533,7 +1853,11 @@
         "generatedAt": "2026-02-01T02:50:55.160Z",
         "generationTimeMs": 808.511125,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1552,7 +1876,11 @@
         "generatedAt": "2026-02-01T02:51:56.897Z",
         "generationTimeMs": 603.7141249999997,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1571,7 +1899,11 @@
         "generatedAt": "2026-02-01T02:53:46.133Z",
         "generationTimeMs": 980.4153330000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1590,7 +1922,11 @@
         "generatedAt": "2026-02-01T02:54:55.713Z",
         "generationTimeMs": 565.7471250000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1609,7 +1945,11 @@
         "generatedAt": "2026-02-01T02:55:44.095Z",
         "generationTimeMs": 689.496208,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1628,7 +1968,11 @@
         "generatedAt": "2026-02-01T02:56:29.611Z",
         "generationTimeMs": 727.0188330000001,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1647,7 +1991,11 @@
         "generatedAt": "2026-02-01T02:56:40.285Z",
         "generationTimeMs": 432.0274999999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1666,7 +2014,11 @@
         "generatedAt": "2026-02-01T02:57:31.745Z",
         "generationTimeMs": 553.840833,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1685,7 +2037,11 @@
         "generatedAt": "2026-02-01T02:58:52.382Z",
         "generationTimeMs": 807.5067079999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1704,7 +2060,11 @@
         "generatedAt": "2026-02-01T02:59:17.055Z",
         "generationTimeMs": 613.9862909999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1723,7 +2083,11 @@
         "generatedAt": "2026-02-01T02:59:33.481Z",
         "generationTimeMs": 551.400167,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1742,7 +2106,11 @@
         "generatedAt": "2026-02-01T03:00:24.934Z",
         "generationTimeMs": 682.1652919999999,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1761,7 +2129,11 @@
         "generatedAt": "2026-02-01T03:15:01.048Z",
         "generationTimeMs": 709.8462499999998,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1780,7 +2152,34 @@
         "generatedAt": "2026-02-01T03:33:40.810Z",
         "generationTimeMs": 478.77191700000003,
         "fileSizeBytes": 3637365,
-        "tags": ["portrait", "cole", "protagonist"],
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
+        "width": 2048,
+        "height": 2048,
+        "format": "jpg",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "cole_james",
+        "emotion": "neutral"
+      },
+      {
+        "id": "portrait_cole_neutral",
+        "type": "image",
+        "path": "images/portraits/cole_james/neutral.jpg",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "4277ead9",
+        "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
+        "generatedAt": "2026-02-01T05:39:05.384Z",
+        "generationTimeMs": 694.2072499999999,
+        "fileSizeBytes": 3637365,
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
         "width": 2048,
         "height": 2048,
         "format": "jpg",
@@ -1801,7 +2200,12 @@
         "generatedAt": "2026-01-31T20:04:39.934Z",
         "generationTimeMs": 17697.658125000016,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1820,7 +2224,12 @@
         "generatedAt": "2026-01-31T20:05:05.371Z",
         "generationTimeMs": 124.78200000000015,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1839,7 +2248,12 @@
         "generatedAt": "2026-01-31T20:14:48.652Z",
         "generationTimeMs": 123.88887499999998,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1858,7 +2272,12 @@
         "generatedAt": "2026-01-31T21:01:56.495Z",
         "generationTimeMs": 765.4672500000452,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1877,7 +2296,12 @@
         "generatedAt": "2026-01-31T21:02:36.408Z",
         "generationTimeMs": 126.72099999996135,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1896,7 +2320,12 @@
         "generatedAt": "2026-01-31T21:02:40.170Z",
         "generationTimeMs": 128.2935830000206,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1915,7 +2344,12 @@
         "generatedAt": "2026-01-31T21:03:04.398Z",
         "generationTimeMs": 127.38308300002245,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1934,7 +2368,12 @@
         "generatedAt": "2026-01-31T21:04:20.180Z",
         "generationTimeMs": 551.5389999999898,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1953,7 +2392,12 @@
         "generatedAt": "2026-01-31T21:05:03.240Z",
         "generationTimeMs": 127.10420800000429,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1972,7 +2416,12 @@
         "generatedAt": "2026-01-31T21:05:27.297Z",
         "generationTimeMs": 124.57633400004124,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -1991,7 +2440,12 @@
         "generatedAt": "2026-01-31T21:05:52.426Z",
         "generationTimeMs": 128.5246669999906,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2010,7 +2464,12 @@
         "generatedAt": "2026-01-31T21:06:00.897Z",
         "generationTimeMs": 127.64541699999245,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2029,7 +2488,12 @@
         "generatedAt": "2026-01-31T21:06:11.869Z",
         "generationTimeMs": 125.22816699999385,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2048,7 +2512,12 @@
         "generatedAt": "2026-01-31T21:06:14.863Z",
         "generationTimeMs": 126.93708399997558,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2067,7 +2536,12 @@
         "generatedAt": "2026-01-31T21:06:16.287Z",
         "generationTimeMs": 121.98550000000978,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2086,7 +2560,12 @@
         "generatedAt": "2026-01-31T21:06:25.846Z",
         "generationTimeMs": 131.89000000001397,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2105,7 +2584,12 @@
         "generatedAt": "2026-01-31T21:06:33.864Z",
         "generationTimeMs": 152.19066700001713,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2124,7 +2608,12 @@
         "generatedAt": "2026-01-31T21:06:39.817Z",
         "generationTimeMs": 130.74033300002338,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2143,7 +2632,12 @@
         "generatedAt": "2026-01-31T21:06:57.277Z",
         "generationTimeMs": 621.593709000037,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2162,7 +2656,12 @@
         "generatedAt": "2026-01-31T21:06:57.355Z",
         "generationTimeMs": 328.3351669999538,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2181,7 +2680,12 @@
         "generatedAt": "2026-01-31T21:08:15.122Z",
         "generationTimeMs": 121.13041699997848,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2200,7 +2704,12 @@
         "generatedAt": "2026-01-31T21:08:36.740Z",
         "generationTimeMs": 124.07079100003466,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2219,7 +2728,12 @@
         "generatedAt": "2026-01-31T21:08:41.690Z",
         "generationTimeMs": 124.24695800000336,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2238,7 +2752,12 @@
         "generatedAt": "2026-01-31T21:09:15.763Z",
         "generationTimeMs": 125.554124999966,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2257,7 +2776,12 @@
         "generatedAt": "2026-01-31T21:09:21.675Z",
         "generationTimeMs": 128.3051249999553,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2276,7 +2800,12 @@
         "generatedAt": "2026-01-31T21:09:23.581Z",
         "generationTimeMs": 128.2789590000175,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2295,7 +2824,12 @@
         "generatedAt": "2026-01-31T21:09:41.547Z",
         "generationTimeMs": 124.63508300000103,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2314,7 +2848,12 @@
         "generatedAt": "2026-01-31T21:11:48.830Z",
         "generationTimeMs": 119.64537500002189,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2333,7 +2872,12 @@
         "generatedAt": "2026-01-31T21:11:54.019Z",
         "generationTimeMs": 125.3899579999852,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2352,7 +2896,12 @@
         "generatedAt": "2026-01-31T21:12:49.313Z",
         "generationTimeMs": 126.44962499995017,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2371,7 +2920,12 @@
         "generatedAt": "2026-01-31T21:15:20.346Z",
         "generationTimeMs": 127.6450420000474,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2390,7 +2944,12 @@
         "generatedAt": "2026-01-31T21:28:49.666Z",
         "generationTimeMs": 125.26345799997216,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2409,7 +2968,12 @@
         "generatedAt": "2026-01-31T21:40:24.654Z",
         "generationTimeMs": 119.84720899997046,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2428,7 +2992,12 @@
         "generatedAt": "2026-01-31T21:41:09.529Z",
         "generationTimeMs": 112.60933299999988,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2447,7 +3016,12 @@
         "generatedAt": "2026-01-31T21:41:46.813Z",
         "generationTimeMs": 354.16595800000005,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2466,7 +3040,12 @@
         "generatedAt": "2026-01-31T22:02:30.816Z",
         "generationTimeMs": 662.3358749999998,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2485,7 +3064,12 @@
         "generatedAt": "2026-01-31T22:30:43.193Z",
         "generationTimeMs": 594.8680829999998,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2504,7 +3088,12 @@
         "generatedAt": "2026-01-31T22:31:21.785Z",
         "generationTimeMs": 498.174,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2523,7 +3112,12 @@
         "generatedAt": "2026-01-31T22:31:44.069Z",
         "generationTimeMs": 587.9334589999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2542,7 +3136,12 @@
         "generatedAt": "2026-01-31T23:53:23.991Z",
         "generationTimeMs": 182.7016249999997,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2561,7 +3160,12 @@
         "generatedAt": "2026-01-31T23:53:46.476Z",
         "generationTimeMs": 336.7306659999997,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2580,7 +3184,12 @@
         "generatedAt": "2026-01-31T23:54:36.864Z",
         "generationTimeMs": 465.27216599999974,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2599,7 +3208,12 @@
         "generatedAt": "2026-01-31T23:55:36.075Z",
         "generationTimeMs": 402.61079199999995,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2618,7 +3232,12 @@
         "generatedAt": "2026-02-01T00:45:54.479Z",
         "generationTimeMs": 441.07450000000017,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2637,7 +3256,12 @@
         "generatedAt": "2026-02-01T00:47:00.991Z",
         "generationTimeMs": 553.475334,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2656,7 +3280,12 @@
         "generatedAt": "2026-02-01T00:47:15.030Z",
         "generationTimeMs": 628.2370410000001,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2675,7 +3304,12 @@
         "generatedAt": "2026-02-01T00:48:39.492Z",
         "generationTimeMs": 489.01579200000015,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2694,7 +3328,12 @@
         "generatedAt": "2026-02-01T00:49:56.684Z",
         "generationTimeMs": 481.62579099999994,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2713,7 +3352,12 @@
         "generatedAt": "2026-02-01T01:15:29.359Z",
         "generationTimeMs": 527.8347079999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2732,7 +3376,12 @@
         "generatedAt": "2026-02-01T01:30:29.576Z",
         "generationTimeMs": 441.1165420000002,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2751,7 +3400,12 @@
         "generatedAt": "2026-02-01T01:37:45.361Z",
         "generationTimeMs": 434.4297499999998,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2770,7 +3424,12 @@
         "generatedAt": "2026-02-01T01:37:59.440Z",
         "generationTimeMs": 587.4821660000002,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2789,7 +3448,12 @@
         "generatedAt": "2026-02-01T01:38:12.879Z",
         "generationTimeMs": 432.08987499999967,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2808,7 +3472,12 @@
         "generatedAt": "2026-02-01T01:45:33.626Z",
         "generationTimeMs": 533.923417,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2827,7 +3496,12 @@
         "generatedAt": "2026-02-01T01:46:35.777Z",
         "generationTimeMs": 411.5605410000003,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2846,7 +3520,12 @@
         "generatedAt": "2026-02-01T01:47:34.138Z",
         "generationTimeMs": 856.22075,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2865,7 +3544,12 @@
         "generatedAt": "2026-02-01T01:47:56.004Z",
         "generationTimeMs": 450.5706250000003,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2884,7 +3568,12 @@
         "generatedAt": "2026-02-01T01:48:16.383Z",
         "generationTimeMs": 476.33933400000024,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2903,7 +3592,12 @@
         "generatedAt": "2026-02-01T01:48:35.454Z",
         "generationTimeMs": 560.1378749999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2922,7 +3616,12 @@
         "generatedAt": "2026-02-01T01:48:59.394Z",
         "generationTimeMs": 733.2416670000002,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2941,7 +3640,12 @@
         "generatedAt": "2026-02-01T01:49:18.615Z",
         "generationTimeMs": 536.4767919999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2960,7 +3664,12 @@
         "generatedAt": "2026-02-01T01:49:35.659Z",
         "generationTimeMs": 725.2203749999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2979,7 +3688,12 @@
         "generatedAt": "2026-02-01T01:50:34.821Z",
         "generationTimeMs": 451.4166250000003,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -2998,7 +3712,12 @@
         "generatedAt": "2026-02-01T01:51:49.536Z",
         "generationTimeMs": 751.2010419999997,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3017,7 +3736,12 @@
         "generatedAt": "2026-02-01T01:52:24.283Z",
         "generationTimeMs": 669.3871249999997,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3036,7 +3760,12 @@
         "generatedAt": "2026-02-01T01:53:03.636Z",
         "generationTimeMs": 596.490542,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3055,7 +3784,12 @@
         "generatedAt": "2026-02-01T01:56:49.381Z",
         "generationTimeMs": 480.9831250000002,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3074,7 +3808,12 @@
         "generatedAt": "2026-02-01T02:00:21.039Z",
         "generationTimeMs": 556.5100419999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3093,7 +3832,12 @@
         "generatedAt": "2026-02-01T02:00:26.168Z",
         "generationTimeMs": 634.6734160000005,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3112,7 +3856,12 @@
         "generatedAt": "2026-02-01T02:02:13.177Z",
         "generationTimeMs": 425.830334,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3131,7 +3880,12 @@
         "generatedAt": "2026-02-01T02:02:26.745Z",
         "generationTimeMs": 615.0547499999998,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3150,7 +3904,12 @@
         "generatedAt": "2026-02-01T02:03:15.730Z",
         "generationTimeMs": 405.1477500000001,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3169,7 +3928,12 @@
         "generatedAt": "2026-02-01T02:03:53.587Z",
         "generationTimeMs": 750.8340829999997,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3188,7 +3952,12 @@
         "generatedAt": "2026-02-01T02:04:41.031Z",
         "generationTimeMs": 672.193209,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3207,7 +3976,12 @@
         "generatedAt": "2026-02-01T02:44:15.022Z",
         "generationTimeMs": 667.356041,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3226,7 +4000,12 @@
         "generatedAt": "2026-02-01T02:45:33.954Z",
         "generationTimeMs": 520.1595830000001,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3245,7 +4024,12 @@
         "generatedAt": "2026-02-01T02:46:37.633Z",
         "generationTimeMs": 715.888042,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3264,7 +4048,12 @@
         "generatedAt": "2026-02-01T02:47:36.888Z",
         "generationTimeMs": 353.87458400000014,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3283,7 +4072,12 @@
         "generatedAt": "2026-02-01T02:50:55.831Z",
         "generationTimeMs": 645.5564170000002,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3302,7 +4096,12 @@
         "generatedAt": "2026-02-01T02:51:57.422Z",
         "generationTimeMs": 507.73458299999993,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3321,7 +4120,12 @@
         "generatedAt": "2026-02-01T02:53:46.583Z",
         "generationTimeMs": 428.32574999999997,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3340,7 +4144,12 @@
         "generatedAt": "2026-02-01T02:54:56.210Z",
         "generationTimeMs": 481.01579200000015,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3359,7 +4168,12 @@
         "generatedAt": "2026-02-01T02:55:44.537Z",
         "generationTimeMs": 413.287292,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3378,7 +4192,12 @@
         "generatedAt": "2026-02-01T02:56:30.371Z",
         "generationTimeMs": 738.0260840000001,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3397,7 +4216,12 @@
         "generatedAt": "2026-02-01T02:56:40.774Z",
         "generationTimeMs": 473.5314589999998,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3416,7 +4240,12 @@
         "generatedAt": "2026-02-01T02:57:32.326Z",
         "generationTimeMs": 563.4735830000002,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3435,7 +4264,12 @@
         "generatedAt": "2026-02-01T02:58:52.819Z",
         "generationTimeMs": 424.91166699999985,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3454,7 +4288,12 @@
         "generatedAt": "2026-02-01T02:59:17.520Z",
         "generationTimeMs": 451.10687499999995,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3473,7 +4312,12 @@
         "generatedAt": "2026-02-01T02:59:33.953Z",
         "generationTimeMs": 456.09849999999983,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3492,7 +4336,12 @@
         "generatedAt": "2026-02-01T03:00:25.479Z",
         "generationTimeMs": 528.2584589999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3511,7 +4360,12 @@
         "generatedAt": "2026-02-01T03:15:01.624Z",
         "generationTimeMs": 555.2314999999999,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",
@@ -3530,7 +4384,36 @@
         "generatedAt": "2026-02-01T03:33:41.245Z",
         "generationTimeMs": 413.19354099999987,
         "fileSizeBytes": 3033072,
-        "tags": ["portrait", "reyes", "commander", "npc"],
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
+        "width": 1024,
+        "height": 1024,
+        "format": "png",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "reyes_commander",
+        "emotion": "commanding"
+      },
+      {
+        "id": "portrait_reyes_commanding",
+        "type": "image",
+        "path": "images/portraits/reyes_commander/commanding.png",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "-62dd3e13",
+        "prompt": "Sci-fi military commander portrait, dramatic lighting",
+        "generatedAt": "2026-02-01T05:39:05.772Z",
+        "generationTimeMs": 369.61012500000015,
+        "fileSizeBytes": 3033072,
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
         "width": 1024,
         "height": 1024,
         "format": "png",

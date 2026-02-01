@@ -224,6 +224,10 @@ export class TheBreachLevel extends BaseLevel {
 
   // Screen effects
   private screenFlash = 0;
+  private screenFlashColor: Color3 = Color3.White();
+
+  // Phase timing
+  private phaseTimer = 0;
 
   // Action callback
   private actionCallback: ((actionId: string) => void) | null = null;

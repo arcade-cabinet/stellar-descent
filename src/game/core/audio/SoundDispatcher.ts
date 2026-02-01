@@ -59,6 +59,10 @@ export class SoundDispatcher {
   // Spatial audio components
   private audioContext: AudioContext | null = null;
   private listenerPosition: AudioPosition = { x: 0, y: 0, z: 0 };
+  private listenerOrientation: { forward: AudioPosition; up: AudioPosition } = {
+    forward: { x: 0, y: 0, z: -1 },
+    up: { x: 0, y: 1, z: 0 },
+  };
   private currentEnvironment: SpatialEnvironment = 'default';
   private reverbNode: ConvolverNode | null = null;
   private dryGain: GainNode | null = null;

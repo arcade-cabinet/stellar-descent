@@ -97,6 +97,9 @@ export class WraithTank extends VehicleBase {
   // GLB model node
   private glbNode: TransformNode | null = null;
 
+  // Model loading state
+  private _modelLoaded = false;
+
   constructor(scene: Scene, position: Vector3, patrolPoints?: Vector3[]) {
     super(scene, `wraith_${Date.now()}`, 'Wraith Tank', position, WRAITH_STATS, 0);
     this.weapons = this.initWeapons();

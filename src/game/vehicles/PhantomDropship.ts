@@ -104,6 +104,15 @@ export class PhantomDropship extends VehicleBase {
   private shieldMat: StandardMaterial | null = null;
   private hullGlowMat: StandardMaterial | null = null;
 
+  // Animated mesh part references (from GLB)
+  private rampMesh: AbstractMesh | null = null;
+  private leftEngineMesh: AbstractMesh | null = null;
+  private rightEngineMesh: AbstractMesh | null = null;
+  private turretMesh: AbstractMesh | null = null;
+
+  // Landing animation progress
+  private landingProgress = 0;
+
   constructor(scene: Scene, position: Vector3) {
     super(scene, 'phantom_dropship', 'Phantom Dropship', position, PHANTOM_STATS, 4);
     this.weapons = this.initWeapons();

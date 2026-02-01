@@ -46,6 +46,7 @@ export class Player {
 
   private scene: Scene;
   private canvas: HTMLCanvasElement;
+  private engine: Engine;
 
   // Third-person model root (loaded from GLB, follows collision capsule)
   private playerModelRoot: TransformNode | null = null;

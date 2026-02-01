@@ -280,6 +280,14 @@ export class ReunionCinematic {
   private skipPromptShown: boolean = false;
   private skipKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
+  // Original camera state for restoration
+  private originalCameraPosition: Vector3 = Vector3.Zero();
+  private originalCameraRotation: Vector3 = Vector3.Zero();
+  private originalFov: number = 0;
+
+  // Original Marcus Y position
+  private marcusOriginalY: number = 0;
+
   constructor(
     scene: Scene,
     camera: UniversalCamera,

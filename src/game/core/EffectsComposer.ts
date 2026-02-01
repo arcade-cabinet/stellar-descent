@@ -155,6 +155,8 @@ export type ScreenShakeCallback = (intensity: number, additive?: boolean) => voi
  */
 export class EffectsComposer {
   private postProcess: PostProcessManager;
+  private scene: Scene;
+  private camera: Camera;
 
   // State tracking
   private effectState: EffectState;
@@ -174,6 +176,10 @@ export class EffectsComposer {
 
   // Explosion bloom tracking
   private explosionBloomTimer = 0;
+  private explosionBloomTarget = 0;
+
+  // Combat tracking
+  private lastCombatTime = 0;
 
   // Time for pulsing effects
   private time = 0;

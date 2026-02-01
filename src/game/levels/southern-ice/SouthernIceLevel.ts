@@ -315,6 +315,9 @@ export class SouthernIceLevel extends SurfaceLevel {
   // Comms tracking (avoid duplicate messages)
   private sentComms = new Set<string>();
 
+  // Phase timing
+  private phaseTime = 0;
+
   constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
     const surfaceConfig: SurfaceConfig = {
       terrainSize: 600,

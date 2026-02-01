@@ -106,6 +106,7 @@ export class SpawnManagerZod {
   // Global state
   private elapsedTime = 0;
   private totalKills = 0;
+  private totalSpawned = 0;
   private active = true;
 
   // Objective flags for trigger evaluation
@@ -113,6 +114,9 @@ export class SpawnManagerZod {
 
   // Subscriptions for cleanup
   private eventSubscriptions: Array<() => void> = [];
+
+  // World reference
+  private world: World;
 
   constructor(
     config: LevelSpawnConfig,

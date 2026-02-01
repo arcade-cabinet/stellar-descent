@@ -364,6 +364,16 @@ export class FOBDeltaLevel extends BaseLevel {
   private readonly PRIMARY_FIRE_RANGE = 50;
   private readonly PRIMARY_FIRE_COOLDOWN = 150; // ms
 
+  // Phase timing
+  private phaseTime = 0;
+
+  // Current objective position
+  private currentObjective: Vector3 | null = null;
+
+  // Enemy tracking
+  private enemyCount = 0;
+  private killCount = 0;
+
   protected getBackgroundColor(): Color4 {
     // Very dark, almost black - horror atmosphere
     return new Color4(0.008, 0.008, 0.012, 1);

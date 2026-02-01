@@ -189,6 +189,10 @@ export class SquadCommandSystem {
   // Command wheel state
   private isCommandWheelOpen: boolean = false;
   private selectedCommand: SquadCommand | null = null;
+  private commandWheelOpenTime: number = 0;
+
+  // Command history
+  private previousCommand: SquadCommand | null = null;
 
   // Visual markers
   private holdPositionMarker: Mesh | null = null;

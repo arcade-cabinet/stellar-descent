@@ -70,6 +70,7 @@ export class AudioManager {
   private useProceduralMusic = true;
   private isCrossfadingFromSplash = false;
   private visibilityHandler: (() => void) | null = null;
+  private scene: Scene | null = null;
 
   constructor() {
     this.soundDispatcher = new SoundDispatcher();

@@ -193,6 +193,9 @@ export class EnvironmentalAudioManager {
   private timeoutIds: ReturnType<typeof setTimeout>[] = [];
   private animationFrameId: number | null = null;
 
+  // Time tracking
+  private time = 0;
+
   // ============================================================================
   // INITIALIZATION
   // ============================================================================

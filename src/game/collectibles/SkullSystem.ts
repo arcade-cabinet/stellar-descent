@@ -276,6 +276,7 @@ export const SKULL_ORDER: SkullId[] = [
 class SkullSystemImpl {
   private initialized = false;
   private changeCallbacks: Set<() => void> = new Set();
+  private unsubscribeStore: () => void;
 
   constructor() {
     // Subscribe to store changes to emit change callbacks

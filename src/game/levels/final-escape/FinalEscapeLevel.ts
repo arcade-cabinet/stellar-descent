@@ -214,6 +214,7 @@ export class FinalEscapeLevel extends SurfaceLevel {
   // Visual effects state
   private screenShakeAccumulator = 0;
   private skyColorShift = 0;
+  private environmentalShakeIntensity = 0;
 
   // Action button callback reference
   private actionCallback: ((actionId: string) => void) | null = null;

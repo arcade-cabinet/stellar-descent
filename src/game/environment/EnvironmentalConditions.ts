@@ -263,6 +263,7 @@ export const ENVIRONMENT_PRESETS: Record<EnvironmentType, Partial<EnvironmentCon
 // ============================================================================
 
 export class EnvironmentalConditionsManager {
+  private scene: Scene;
   private hazardSystem: HazardSystem;
   private weatherSystem: AdvancedWeatherSystem;
   private config: EnvironmentConfig;

@@ -129,6 +129,9 @@ export class MantleSystem {
   // Meshes to ignore (player, projectiles, etc.)
   private ignoredMeshes: Set<AbstractMesh> = new Set();
 
+  // Airborne time tracking
+  private airborneTime = 0;
+
   constructor(config: Partial<MantleConfig> = {}) {
     this.config = { ...DEFAULT_MANTLE_CONFIG, ...config };
   }

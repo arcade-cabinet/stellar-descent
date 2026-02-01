@@ -197,6 +197,13 @@ export class MarcusSteeringAI {
   // Scout/flank callback for state changes
   private onScoutStateChange: ((state: SteeringMode) => void) | null = null;
 
+  // Active command from SquadCommandSystem
+  private activeCommand: SquadCommandData | null = null;
+
+  // Additional behaviors (set to null in dispose for cleanup)
+  private arriveBehavior: ArriveBehavior | null = null;
+  private seekBehavior: SeekBehavior | null = null;
+
   constructor(initialPosition: BabylonVector3, config?: Partial<MarcusSteeringConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.position = initialPosition.clone();

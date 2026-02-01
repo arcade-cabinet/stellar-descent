@@ -135,6 +135,7 @@ function toBabylonVector(v: YukaVector3): BabylonVector3 {
 // ============================================================================
 
 export class NavMeshBuilder {
+  private scene: Scene;
   private config: NavMeshConfig;
   private obstacles: Map<string, NavMeshObstacle> = new Map();
   private verticalConnections: VerticalConnection[] = [];

@@ -42,6 +42,12 @@ export class TutorialManager {
   private static readonly MIN_COMMS_INTERVAL = 3000; // 3 seconds minimum
   private lastCommsTime = 0;
 
+  // Scene reference
+  private scene: Scene;
+
+  // Interaction callback
+  private interactCallback: (() => void) | null = null;
+
   constructor(scene: Scene) {
     this.scene = scene;
     this.steps = TUTORIAL_STEPS;

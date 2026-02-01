@@ -437,6 +437,19 @@ export class HiveAssaultLevel extends SurfaceLevel {
   // Level completion state
   private levelCompleteTriggered = false;
   private extractionZonePosition = new Vector3(0, 0, -660);
+
+  // Environment references
+  private stagingArea: {
+    vehicleBay: Mesh;
+    briefingPlatform: Mesh;
+    sandbags: Mesh[];
+    crates: Mesh[];
+    lights: PointLight[];
+  } | null = null;
+  private destroyedVehicles: { mesh: Mesh; position: Vector3; type: string }[] = [];
+
+  // Phase started flag
+  private phaseStarted = false;
   private extractionZoneRadius = 15;
 
   constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {

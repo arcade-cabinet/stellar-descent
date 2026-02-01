@@ -105,6 +105,9 @@ export class CombatMusicManager {
   private bossPhase: BossPhase = 1;
   private isBossMusicActive = false;
 
+  // Combat tracking
+  private lastEnemyTime = 0;
+
   // Scheduled events for cleanup
   private scheduledIds: number[] = [];
 

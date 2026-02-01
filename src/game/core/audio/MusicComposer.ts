@@ -212,6 +212,9 @@ export class MusicComposer {
     lead: null,
   };
   private combatStabIndex = 0;
+  private combatBassIndex = 0;
+  private combatLeadIndex = 0;
+  private combatLeadNoteIndex = 0;
 
   // ============================================================================
   // INITIALIZATION

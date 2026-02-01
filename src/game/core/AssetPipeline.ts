@@ -133,6 +133,7 @@ export class AssetPipeline {
 
   // Background prefetch state
   private prefetchAbort: AbortController | null = null;
+  private isPrefetching = false;
 
   // Progress tracking for the current batch operation
   private batchTotal = 0;

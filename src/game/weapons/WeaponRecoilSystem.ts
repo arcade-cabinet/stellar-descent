@@ -320,6 +320,12 @@ export class WeaponRecoilSystem {
   private static instance: WeaponRecoilSystem | null = null;
   private camera: FreeCamera | null = null;
 
+  // Scene reference
+  private scene: Scene | null = null;
+
+  // Current weapon tracking
+  private currentWeaponId: WeaponId | null = null;
+
   // State
   private recoilState: RecoilState = {
     verticalOffset: 0,

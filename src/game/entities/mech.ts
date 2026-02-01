@@ -338,6 +338,7 @@ export class MechWarrior {
 
   // Animation state
   private walkAnimTime = 0;
+  private isMoving = false;
 
   update(deltaTime: number): void {
     // Move towards target position

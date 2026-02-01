@@ -114,6 +114,7 @@ export class MeleeSystem {
   private lastAttackTime = 0;
   private isAttacking = false;
   private cameraPunchOffset = 0;
+  private attackProgress = 0;
 
   // Callbacks
   private onAttackCallback: ((result: MeleeAttackResult) => void) | null = null;

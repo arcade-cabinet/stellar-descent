@@ -111,6 +111,7 @@ export class GyroscopeManager {
   };
 
   private orientationHandler: ((e: DeviceOrientationEvent) => void) | null = null;
+  private permissionGranted = false;
 
   private constructor() {
     // Check for gyroscope availability
@@ -714,6 +715,9 @@ export class VehicleYokeSystem {
   // Weapon swap state
   private previousWeaponId: string | null = null;
   private isVehicleActive = false;
+
+  // Scene reference
+  private scene: Scene | null = null;
 
   private constructor() {
     this.gyroscope = GyroscopeManager.getInstance();

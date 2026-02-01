@@ -112,6 +112,10 @@ export class JetpackSystem {
   // Movement input for directional boost
   private movementInput: Vector3 = Vector3.Zero();
 
+  // Scene and emitter references
+  private scene: Scene | null = null;
+  private thrusterEmitter: TransformNode | null = null;
+
   constructor(config: Partial<JetpackConfig> = {}) {
     this.config = { ...DEFAULT_JETPACK_CONFIG, ...config };
     this.currentFuel = this.config.maxFuel;

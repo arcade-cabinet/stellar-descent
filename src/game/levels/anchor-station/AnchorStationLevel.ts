@@ -88,6 +88,13 @@ export class AnchorStationLevel extends StationLevel {
     fireEnabled: false,
   };
 
+  // Current tutorial phase
+  private currentPhase: TutorialPhase = 0;
+
+  // Equipment state
+  private suitEquipped = false;
+  private weaponAcquired = false;
+
   protected override getBackgroundColor(): Color4 {
     // Dark station interior
     return new Color4(0.01, 0.01, 0.02, 1);

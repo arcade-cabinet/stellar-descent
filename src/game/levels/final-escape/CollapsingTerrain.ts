@@ -177,6 +177,10 @@ export class CollapsingTerrain {
   private lavaMaterial: StandardMaterial | null = null;
   private rockMaterial: StandardMaterial | null = null;
   private crackMaterial: StandardMaterial | null = null;
+
+  // Preload tracking flags
+  private structuralGLBsPreloaded = false;
+  private debrisPreloaded = false;
   private chasmMaterial: StandardMaterial | null = null;
 
   // Terrain segments

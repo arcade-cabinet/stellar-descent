@@ -117,6 +117,9 @@ export class PlayerGovernor {
   // Tutorial step tracking
   private tutorialStepsCompleted: string[] = [];
 
+  // Current objective for follow_objective goal
+  private currentObjective: string = '';
+
   constructor(config: Partial<GovernorConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.entityManager = new EntityManager();

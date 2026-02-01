@@ -86,6 +86,7 @@ export class SimulatedPlayer {
   private burstCount = 0;
   private grenadeCount = 3;
   private isAutonomous = false;
+  private reloadNeeded = false;
 
   constructor(runner: HeadlessGameRunner, options: SimulatedPlayerOptions = {}) {
     this.runner = runner;

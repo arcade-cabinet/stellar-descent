@@ -477,6 +477,9 @@ export class HazardSystem {
   // Active hazards the player is currently in
   private activeInstantHazards: Set<string> = new Set();
 
+  // Animation time tracking
+  private animationTime: number = 0;
+
   constructor(scene: Scene) {
     this.scene = scene;
     this.spatialGrid = new SpatialGrid(20);

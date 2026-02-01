@@ -201,6 +201,9 @@ class LODManagerClass {
   private pendingSimplifications: Set<string> = new Set();
   private simplificationCallbacks: Map<string, () => void> = new Map();
 
+  // Triangle budget
+  private maxTrianglesPerFrame = 500000;
+
   /**
    * Initialize the LOD manager with scene and camera
    */

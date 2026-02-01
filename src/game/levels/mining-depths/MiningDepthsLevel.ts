@@ -202,6 +202,15 @@ export class MiningDepthsLevel extends BaseLevel {
   // Comms message flags
   private messageFlags: Set<string> = new Set();
 
+  // Phase timing
+  private phaseTime = 0;
+
+  // Player health
+  private playerHealth = 100;
+
+  // Current objective position
+  private currentObjective: Vector3 | null = null;
+
   protected getBackgroundColor(): Color4 {
     // Very dark underground - near black with slight blue tint
     return new Color4(0.002, 0.002, 0.005, 1);

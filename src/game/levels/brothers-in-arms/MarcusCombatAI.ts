@@ -333,6 +333,10 @@ export class MarcusCombatAI {
   // Statistics
   private killCount: number = 0;
   private assistCount: number = 0;
+  private damageDealt: number = 0;
+
+  // Downed state tracking
+  private downedStartTime: number = 0;
 
   // YukaAI Steering System
   private steeringAI: MarcusSteeringAI | null = null;
