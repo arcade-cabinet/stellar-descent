@@ -62,6 +62,22 @@ WEAPON_MAP = {
     "fps_plasma_cannon": "Bullpup_3",
 }
 
+# Attachments: target -> (source_dir, source_file)
+ATTACHMENT_MAP = {
+    "attachment_combat_scope": ("Accessories", "Scope_1"),
+    "attachment_sniper_sight": ("Accessories", "Scope_3"),
+    "attachment_diagonal_grip": ("Accessories", "Grip"),
+    "attachment_holo_sight": ("Accessories", "Scope_2"),
+}
+
+# Ammo boxes: target -> source GLB path (Kenney already has GLBs)
+AMMO_MAP = {
+    "ammo_box_556": "~/assets/Kenney/3D assets/Weapon Pack/Models/GLTF format/ammo_machinegun.glb",
+    "ammo_box_9mm": "~/assets/Kenney/3D assets/Weapon Pack/Models/GLTF format/ammo_uzi.glb",
+    "ammo_box_762": "~/assets/Kenney/3D assets/Weapon Pack/Models/GLTF format/ammo_sniper.glb",
+    "ammo_box_12gauge": "~/assets/Kenney/3D assets/Weapon Pack/Models/GLTF format/ammo_shotgun.glb",
+}
+
 # Paths
 SOURCE_DIR = os.path.expanduser("~/assets/Quaternius/FPS/Ultimate Gun Pack - July 2019/FBX")
 TARGET_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "public/assets/models/props/weapons")
@@ -116,6 +132,58 @@ def convert_weapon(target_name: str, source_name: str) -> bool:
         return False
 
 
+def convert_attachment(target_name: str, subdir: str, source_name: str) -> bool:
+    """Convert an attachment FBX to GLB."""
+    source_path = os.path.join(SOURCE_DIR, subdir, f"{source_name}.fbx")
+    target_path = os.path.join(TARGET_DIR, f"{target_name}.glb")
+
+    if not os.path.exists(source_path):
+        print(f"ERROR: Source not found: {source_path}")
+        return False
+
+    print(f"Converting: {subdir}/{source_name}.fbx -> {target_name}.glb")
+
+    clear_scene()
+    bpy.ops.import_scene.fbx(filepath=source_path)
+    bpy.ops.export_scene.gltf(
+        filepath=target_path,
+        export_format='GLB',
+        use_selection=False,
+        export_apply=True,
+    )
+
+    if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+        size = os.path.getsize(target_path)
+        print(f"  SUCCESS: {target_path} ({size:,} bytes)")
+        return True
+    else:
+        print(f"  FAILED: Output file empty or missing")
+        return False
+
+
+def copy_ammo(target_name: str, source_path: str) -> bool:
+    """Copy a GLB file directly (for Kenney assets that are already GLB)."""
+    import shutil
+    source_path = os.path.expanduser(source_path)
+    target_path = os.path.join(TARGET_DIR, f"{target_name}.glb")
+
+    if not os.path.exists(source_path):
+        print(f"ERROR: Source not found: {source_path}")
+        return False
+
+    print(f"Copying: {os.path.basename(source_path)} -> {target_name}.glb")
+
+    shutil.copy2(source_path, target_path)
+
+    if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
+        size = os.path.getsize(target_path)
+        print(f"  SUCCESS: {target_path} ({size:,} bytes)")
+        return True
+    else:
+        print(f"  FAILED: Copy failed")
+        return False
+
+
 def main():
     print("=" * 60)
     print("FPS Weapon Conversion")
@@ -134,8 +202,26 @@ def main():
     success = 0
     failed = 0
 
+    # Convert weapons
+    print("\n--- FPS Weapons ---")
     for target_name, source_name in WEAPON_MAP.items():
         if convert_weapon(target_name, source_name):
+            success += 1
+        else:
+            failed += 1
+
+    # Convert attachments
+    print("\n--- Attachments ---")
+    for target_name, (subdir, source_name) in ATTACHMENT_MAP.items():
+        if convert_attachment(target_name, subdir, source_name):
+            success += 1
+        else:
+            failed += 1
+
+    # Copy ammo boxes (already GLB)
+    print("\n--- Ammo Boxes ---")
+    for target_name, source_path in AMMO_MAP.items():
+        if copy_ammo(target_name, source_path):
             success += 1
         else:
             failed += 1
