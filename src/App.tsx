@@ -19,15 +19,14 @@ import { LandscapeEnforcer } from './components/ui/LandscapeEnforcer';
 import { OfflineIndicator } from './components/ui/OfflineIndicator';
 import { PWAUpdatePrompt } from './components/ui/PWAUpdatePrompt';
 import { SubtitleDisplay } from './components/ui/SubtitleDisplay';
-import { initAchievements } from './game/achievements';
 import { getCampaignDirector } from './game/campaign/CampaignDirector';
-import type { CampaignPhase } from './game/campaign/types';
+import type { CampaignCommand, CampaignPhase } from './game/campaign/types';
 import { useCampaign } from './game/campaign/useCampaign';
 import { GameProvider } from './game/context/GameContext';
 import { SubtitleProvider } from './game/context/SubtitleContext';
 import { WeaponProvider } from './game/context/WeaponContext';
 import { BUILD_FLAGS } from './game/core/BuildConfig';
-import { initializeDebugInterface } from './game/testing/DebugInterface';
+import { initializeDebugInterface, registerCampaignDirector } from './game/testing/DebugInterface';
 import { getLogger } from './game/core/Logger';
 import { useCommsSubtitles } from './game/hooks/useCommsSubtitles';
 import type { LevelId } from './game/levels/types';
@@ -75,8 +74,8 @@ function getInitialPhase(): CampaignPhase {
   return 'splash';
 }
 
-// Initialize achievement system
-initAchievements();
+// NOTE: Achievement system initialization is now handled in main.tsx
+// after database initialization to avoid race conditions
 
 // Initialize debug interface for E2E testing (only in dev mode)
 if (BUILD_FLAGS.DEV_MENU) {
@@ -127,6 +126,16 @@ function GameUI() {
 
     const director = getCampaignDirector();
     const initialPhase = getInitialPhase();
+
+    // Register director with debug interface for E2E testing
+    if (BUILD_FLAGS.DEV_MENU) {
+      registerCampaignDirector({
+        dispatch: (cmd) => director.dispatch(cmd as CampaignCommand),
+        getPhase: () => director.phase,
+        getCurrentLevelId: () => director.currentLevelId,
+        getDifficulty: () => director.difficulty as any,
+      });
+    }
 
     // Handle URL-based dev jump - takes priority
     const urlLevel = getStartLevelFromURL();

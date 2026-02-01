@@ -12,6 +12,7 @@
  */
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -58,15 +59,36 @@ export abstract class StationLevel extends BaseLevel {
 
   protected override setupBasicLighting(): void {
     // Override default outdoor lighting with interior station lighting
-    // NO sun light - indoor levels use point lights only
+    // This is a UEMC military installation - well-lit, professional, operational
+    //
+    // CRITICAL FOR PBR: GLB models use PBR materials which behave VERY differently
+    // from StandardMaterial. They need:
+    // 1. Strong directional/point lights for direct illumination
+    // 2. High ambient color for shadow fill
+    // 3. Environment texture (IBL) for proper reflections
+    //
+    // Without these, PBR materials appear almost BLACK.
 
-    // Low ambient fill - most light comes from point lights in the station
-    // Keep intensity low to maintain dramatic shadows and lighting contrast
+    // PRIMARY LIGHT: Strong directional "ceiling fluorescent" light
+    // This is the main illumination source - bright overhead lighting
+    this.sunLight = new DirectionalLight(
+      'ceilingLight',
+      new Vector3(0.1, -1, 0.1).normalize(), // Pointing down with slight angle
+      this.scene
+    );
+    this.sunLight.intensity = 5.0; // VERY bright for PBR
+    this.sunLight.diffuse = new Color3(0.95, 0.95, 1.0); // Clean white fluorescent
+    this.sunLight.specular = new Color3(0.8, 0.8, 0.85);
+
+    // SECONDARY: Hemispheric ambient fill - fills shadows
     this.ambientLight = new HemisphericLight('stationAmbient', new Vector3(0, 1, 0), this.scene);
-    this.ambientLight.intensity = 0.15; // Reduced from 0.3 for more dramatic indoor lighting
-    this.ambientLight.diffuse = new Color3(0.4, 0.45, 0.55); // Cool blue-white station lighting
-    this.ambientLight.groundColor = new Color3(0.08, 0.08, 0.12); // Very dark floor bounce
-    this.ambientLight.specular = Color3.Black(); // No specular from ambient
+    this.ambientLight.intensity = 2.5; // Strong ambient for PBR shadow fill
+    this.ambientLight.diffuse = new Color3(0.9, 0.9, 0.95); // Clean white
+    this.ambientLight.groundColor = new Color3(0.6, 0.6, 0.65); // Strong floor bounce
+    this.ambientLight.specular = new Color3(0.4, 0.4, 0.4);
+
+    // Scene ambient color - this affects PBR materials in shadow areas
+    this.scene.ambientColor = new Color3(0.4, 0.4, 0.45);
 
     // CRITICAL: Ensure fog stays completely disabled for indoor level
     this.disableFog();
@@ -90,7 +112,8 @@ export abstract class StationLevel extends BaseLevel {
 
     // Load indoor HDRI for proper PBR ambient lighting (async, fire-and-forget)
     // This provides neutral, soft reflections appropriate for indoor metal/plastic surfaces
-    void this.skyboxManager.loadIndoorEnvironment(0.35);
+    // HIGH intensity (1.5) because PBR materials NEED strong environment lighting
+    void this.skyboxManager.loadIndoorEnvironment(1.5);
 
     // Distant planet visible through windows (far away so it looks small)
     this.distantPlanet = MeshBuilder.CreateSphere(

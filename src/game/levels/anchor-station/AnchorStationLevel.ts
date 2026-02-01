@@ -43,6 +43,7 @@ import { StationLevel } from '../StationLevel';
 import type { LevelId } from '../types';
 import styles from './AnchorStationLevel.module.css';
 import { MODULAR_ROOM_POSITIONS } from './ModularStationBuilder';
+import { StationLightTubes } from './StationLightTubes';
 // Use modular GLB-based station (replaces legacy procedural generation)
 import {
   createModularStationEnvironment,
@@ -56,6 +57,9 @@ const log = getLogger('AnchorStationLevel');
 export class AnchorStationLevel extends StationLevel {
   // Station environment (modular GLB-based)
   private stationEnvironment: ModularStationEnv | null = null;
+
+  // Visible light tube fixtures along corridors
+  private lightTubes: StationLightTubes | null = null;
 
   // Cinematic system for intro sequence
   private cinematicSystem: CinematicSystem | null = null;
@@ -116,72 +120,165 @@ export class AnchorStationLevel extends StationLevel {
     this.stationEnvironment = await createModularStationEnvironment(this.scene);
     log.info('Station environment created');
 
-    // Add station-specific interior lights throughout the level
-    // These are the PRIMARY light sources for the indoor level
-    // Match positions to MODULAR_ROOM_POSITIONS layout
+    // ========================================================================
+    // VISIBLE LIGHT TUBE FIXTURES
+    // ========================================================================
+    // Every light in the station has a visible source - emissive fluorescent
+    // tubes mounted in ceiling tracks. This provides visual justification for
+    // all illumination and creates the proper military spacecraft aesthetic.
+    // ========================================================================
+    this.lightTubes = new StationLightTubes(this.scene, new Color3(0.95, 0.95, 1.0));
 
-    // BRIEFING ROOM (centered at 0, 0, 2)
-    this.addStationLight('briefing1', new Vector3(-5, 3.5, 2), new Color3(0.85, 0.9, 1.0), 0.6, 15);
-    this.addStationLight('briefing2', new Vector3(5, 3.5, 2), new Color3(0.85, 0.9, 1.0), 0.6, 15);
-    this.addStationLight('briefing3', new Vector3(0, 3.5, 2), new Color3(0.9, 0.95, 1.0), 0.7, 18);
-
-    // CORRIDOR A (extends from z=-4 to z=-24)
-    this.addStationLight('corridor1', new Vector3(0, 2.8, -8), new Color3(0.8, 0.85, 1.0), 0.5, 15);
-    this.addStationLight(
-      'corridor2',
-      new Vector3(0, 2.8, -14),
-      new Color3(0.8, 0.85, 1.0),
-      0.5,
-      15
-    );
-    this.addStationLight(
-      'corridor3',
-      new Vector3(0, 2.8, -20),
-      new Color3(0.8, 0.85, 1.0),
-      0.5,
-      15
+    // BRIEFING ROOM (centered at 0, 0, 2) - Well-lit command area
+    // Twin rows of ceiling tubes for even illumination during briefings
+    this.lightTubes.addCeilingLights(
+      'briefing',
+      new Vector3(0, 0, 2),  // Room center
+      10, // width
+      8,  // depth
+      3.5, // ceiling height
+      3,  // tubes per row
+      2,  // rows
+      { lightIntensity: 8.0, lightRange: 20 }
     );
 
-    // EQUIPMENT BAY (at -10, -16)
-    this.addStationLight(
-      'equipBay1',
-      new Vector3(-10, 3.5, -16),
-      new Color3(0.7, 0.8, 0.7),
-      0.6,
-      15
-    );
-    this.addStationLight(
-      'equipBay2',
-      new Vector3(-14, 3.5, -16),
-      new Color3(0.7, 0.8, 0.7),
-      0.5,
-      12
+    // CORRIDOR A (extends from z=-4 to z=-24) - Well-lit military corridors
+    // Single row of tubes running down the center of the corridor
+    this.lightTubes.addCorridorLights(
+      'corridorA',
+      new Vector3(0, 0, -4),   // Start
+      new Vector3(0, 0, -24),  // End
+      3.0,                      // Ceiling height
+      5,                        // Spacing (one every 5 meters)
+      { lightIntensity: 7.0, lightRange: 18, length: 1.5 }
     );
 
-    // ARMORY (at 10, -16)
-    this.addStationLight('armory1', new Vector3(10, 3.5, -16), new Color3(0.8, 0.6, 0.5), 0.6, 15);
-    this.addStationLight('armory2', new Vector3(14, 3.5, -16), new Color3(0.8, 0.6, 0.5), 0.5, 12);
+    // EQUIPMENT BAY (at -10, -16) - Bright work area
+    // Ceiling lights with slight green tint for utilitarian feel
+    this.lightTubes.addCeilingLights(
+      'equipBay',
+      new Vector3(-10, 0, -16),
+      10, // width
+      8,  // depth
+      3.5, // ceiling height
+      2,  // tubes per row
+      2,  // rows
+      { color: new Color3(0.9, 1.0, 0.9), lightIntensity: 8.0, lightRange: 20 }
+    );
 
-    // HOLODECK / PLATFORMING ROOM (at 0, -34)
-    this.addStationLight('holodeck1', new Vector3(-3, 4, -32), new Color3(0.5, 0.6, 1.0), 0.4, 12);
-    this.addStationLight('holodeck2', new Vector3(0, 4, -34), new Color3(0.5, 0.6, 1.0), 0.5, 15);
-    this.addStationLight('holodeck3', new Vector3(3, 4, -38), new Color3(0.5, 0.6, 1.0), 0.4, 12);
+    // ARMORY (at 10, -16) - Warm tactical lighting
+    // Slightly warmer color for serious, professional feel
+    this.lightTubes.addCeilingLights(
+      'armory',
+      new Vector3(10, 0, -16),
+      10, // width
+      8,  // depth
+      3.5, // ceiling height
+      2,  // tubes per row
+      2,  // rows
+      { color: new Color3(1.0, 0.95, 0.9), lightIntensity: 8.0, lightRange: 20 }
+    );
 
-    // SHOOTING RANGE (at 0, -52)
-    this.addStationLight('range1', new Vector3(0, 3.5, -48), new Color3(0.9, 0.85, 0.7), 0.7, 18);
-    this.addStationLight('range2', new Vector3(-6, 3.5, -52), new Color3(0.9, 0.85, 0.7), 0.5, 12);
-    this.addStationLight('range3', new Vector3(6, 3.5, -52), new Color3(0.9, 0.85, 0.7), 0.5, 12);
+    // HOLODECK / PLATFORMING ROOM (at 0, -34) - Blue-tinted training area
+    // VR training room with cool blue accent lighting
+    this.lightTubes.addCeilingLights(
+      'holodeck',
+      new Vector3(0, 0, -34),
+      12, // width
+      12, // depth
+      4.0, // ceiling height (taller room)
+      3,  // tubes per row
+      3,  // rows
+      { color: new Color3(0.8, 0.9, 1.0), lightIntensity: 7.0, lightRange: 18 }
+    );
 
-    // HANGAR BAY (at 0, -70)
-    this.addStationLight('hangar1', new Vector3(0, 10, -68), new Color3(0.5, 0.6, 0.8), 0.8, 25);
-    this.addStationLight('hangar2', new Vector3(-8, 6, -70), new Color3(0.5, 0.6, 0.8), 0.5, 15);
-    this.addStationLight('hangar3', new Vector3(8, 6, -70), new Color3(0.5, 0.6, 0.8), 0.5, 15);
+    // SHOOTING RANGE (at 0, -52) - Bright range lighting
+    // Very bright for accuracy - tubes running parallel to firing lanes
+    this.lightTubes.addCorridorLights(
+      'range_center',
+      new Vector3(0, 0, -44),
+      new Vector3(0, 0, -60),
+      3.5,
+      4, // Tight spacing for bright illumination
+      { lightIntensity: 10.0, lightRange: 25 }
+    );
+    // Side strips for even coverage
+    this.lightTubes.addCorridorLights(
+      'range_left',
+      new Vector3(-3, 0, -44),
+      new Vector3(-3, 0, -60),
+      3.5,
+      6,
+      { lightIntensity: 6.0, lightRange: 15 }
+    );
+    this.lightTubes.addCorridorLights(
+      'range_right',
+      new Vector3(3, 0, -44),
+      new Vector3(3, 0, -60),
+      3.5,
+      6,
+      { lightIntensity: 6.0, lightRange: 15 }
+    );
 
-    // EMERGENCY LIGHTS (red accent lighting for atmosphere)
-    this.addEmergencyLight('emergency1', new Vector3(-2, 2, -28), 0.25);
-    this.addEmergencyLight('emergency2', new Vector3(2, 2, -40), 0.25);
-    this.addEmergencyLight('emergency3', new Vector3(-4, 4, -64), 0.3);
-    this.addEmergencyLight('emergency4', new Vector3(4, 4, -64), 0.3);
+    // HANGAR BAY (at 0, -70) - Large industrial lighting
+    // Massive overhead tubes for the large hangar space
+    this.lightTubes.addCeilingLights(
+      'hangar',
+      new Vector3(0, 0, -70),
+      16, // width
+      12, // depth
+      8.0, // ceiling height (very tall)
+      4,   // tubes per row
+      3,   // rows
+      { lightIntensity: 12.0, lightRange: 35, length: 2.5 }
+    );
+
+    // EXPLORATION AREAS - Observation Deck
+    this.lightTubes.addCeilingLights(
+      'observation',
+      new Vector3(-12, 0, 4),
+      8, 8, 3.5, 2, 2,
+      { color: new Color3(0.7, 0.8, 1.0), lightIntensity: 4.0, lightRange: 15 }
+    );
+
+    // Engine Room - Warm industrial lighting
+    this.lightTubes.addCeilingLights(
+      'engine',
+      new Vector3(12, 0, 4),
+      8, 8, 3.5, 2, 2,
+      { color: new Color3(1.0, 0.9, 0.7), lightIntensity: 6.0, lightRange: 18 }
+    );
+
+    // Crew Quarters - Soft warm lighting
+    this.lightTubes.addCeilingLights(
+      'crewQuarters',
+      new Vector3(-12, 0, -8),
+      8, 8, 3.0, 2, 1,
+      { color: new Color3(1.0, 0.95, 0.85), lightIntensity: 5.0, lightRange: 15 }
+    );
+
+    // Medical Bay - Bright clinical lighting
+    this.lightTubes.addCeilingLights(
+      'medical',
+      new Vector3(12, 0, -8),
+      8, 8, 3.0, 2, 2,
+      { color: new Color3(0.95, 0.98, 1.0), lightIntensity: 9.0, lightRange: 20 }
+    );
+
+    // Biosphere - Green-tinted grow lights
+    this.lightTubes.addCeilingLights(
+      'biosphere',
+      new Vector3(-8, 0, -24),
+      6, 8, 3.5, 2, 2,
+      { color: new Color3(0.7, 1.0, 0.8), lightIntensity: 6.0, lightRange: 15 }
+    );
+
+    // EMERGENCY LIGHTS (red accent - subtle, not primary illumination)
+    // These remain as accent point lights - emergency strips
+    this.addEmergencyLight('emergency1', new Vector3(-2, 2, -28), 2.0);
+    this.addEmergencyLight('emergency2', new Vector3(2, 2, -40), 2.0);
+    this.addEmergencyLight('emergency3', new Vector3(-4, 4, -64), 2.5);
+    this.addEmergencyLight('emergency4', new Vector3(4, 4, -64), 2.5);
 
     // Create space view through windows (purely visual - no fog or environment lighting)
     this.createSpaceView();
@@ -878,6 +975,10 @@ export class AnchorStationLevel extends StationLevel {
     // Dispose tutorial manager
     this.tutorialManager?.dispose();
     this.tutorialManager = null;
+
+    // Dispose light tubes
+    this.lightTubes?.dispose();
+    this.lightTubes = null;
 
     // Dispose station environment
     this.stationEnvironment?.dispose();

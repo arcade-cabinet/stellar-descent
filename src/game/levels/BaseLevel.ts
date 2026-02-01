@@ -21,9 +21,11 @@ import { getAchievementManager } from '../achievements';
 import { getMeleeSystem } from '../combat';
 import { getInputTracker, type InputTracker } from '../context/useInputActions';
 import { getAudioManager } from '../core/AudioManager';
+import { devMode } from '../core/DevMode';
 import { getEventBus } from '../core/EventBus';
 import { createEntity, type Entity, removeEntity } from '../core/ecs';
 import { getLogger } from '../core/Logger';
+import { getPlayerGovernor, type PlayerGovernor } from '../systems/PlayerGovernor';
 import { PostProcessManager, type PostProcessQuality } from '../core/PostProcessManager';
 import {
   type AtmosphericEffects,
@@ -151,6 +153,9 @@ export abstract class BaseLevel implements ILevel {
 
   // Low health feedback system (vignette, heartbeat, breathing)
   protected lowHealthFeedback: LowHealthFeedbackManager | null = null;
+
+  // AI Controller (PlayerGovernor) - enabled via ?ai=true querystring
+  protected playerGovernor: PlayerGovernor | null = null;
 
   // Achievement tracking
   protected playerDiedInLevel = false;
@@ -308,11 +313,24 @@ export abstract class BaseLevel implements ILevel {
       chapter: this.config.chapter,
     });
 
+    // Initialize AI controller (PlayerGovernor) if enabled via ?ai=true querystring
+    if (devMode.aiController) {
+      this.playerGovernor = getPlayerGovernor({ logActions: true });
+      log.info('AI Controller (PlayerGovernor) enabled via ?ai=true querystring');
+      // Auto-start with follow objective goal
+      this.playerGovernor.setGoal({ type: 'follow_objective' });
+    }
+
     log.info(`Level ${this.id} initialized`);
   }
 
   update(deltaTime: number): void {
     if (!this.isInitialized) return;
+
+    // Update AI controller (PlayerGovernor) if enabled
+    if (this.playerGovernor) {
+      this.playerGovernor.update(deltaTime);
+    }
 
     // Process movement input
     this.processMovement(deltaTime);
@@ -379,6 +397,12 @@ export abstract class BaseLevel implements ILevel {
     // Stop low health feedback effects (but don't dispose singleton - other levels may use it)
     this.lowHealthFeedback?.stopLowHealthEffects();
     this.lowHealthFeedback = null;
+
+    // Clear PlayerGovernor reference (don't reset singleton - may be used between levels)
+    if (this.playerGovernor) {
+      this.playerGovernor.clearGoals();
+      this.playerGovernor = null;
+    }
 
     // Dispose level-specific resources
     this.disposeLevel();
@@ -497,17 +521,26 @@ export abstract class BaseLevel implements ILevel {
   }
 
   protected setupBasicLighting(): void {
-    // Sun light
+    // DEFAULT LIGHTING FOR PBR MATERIALS
+    // GLB models use PBR which requires MUCH higher light intensities
+    // Subclasses should override for level-type-specific lighting
+
+    // Sun/directional light - primary illumination
     const sunDir = new Vector3(0.4, -0.6, -0.5).normalize();
     this.sunLight = new DirectionalLight('sun', sunDir, this.scene);
-    this.sunLight.intensity = 2.0;
-    this.sunLight.diffuse = new Color3(1.0, 0.9, 0.8);
+    this.sunLight.intensity = 4.0; // HIGH for PBR
+    this.sunLight.diffuse = new Color3(1.0, 0.95, 0.9);
+    this.sunLight.specular = new Color3(0.8, 0.75, 0.7);
 
-    // Ambient fill
+    // Ambient fill - strong for PBR shadow areas
     this.ambientLight = new HemisphericLight('ambient', new Vector3(0, 1, 0), this.scene);
-    this.ambientLight.intensity = 0.4;
-    this.ambientLight.diffuse = new Color3(0.5, 0.5, 0.6);
-    this.ambientLight.groundColor = new Color3(0.2, 0.15, 0.1);
+    this.ambientLight.intensity = 1.5; // HIGH for PBR
+    this.ambientLight.diffuse = new Color3(0.7, 0.7, 0.75);
+    this.ambientLight.groundColor = new Color3(0.4, 0.35, 0.3);
+    this.ambientLight.specular = new Color3(0.3, 0.3, 0.3);
+
+    // Scene ambient color for PBR fill
+    this.scene.ambientColor = new Color3(0.25, 0.25, 0.3);
   }
 
   /**

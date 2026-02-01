@@ -632,15 +632,20 @@ export function GameCanvas({
         return;
       }
       log.info(`Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`);
-      currentLevelRef.current = factory(engine, canvas, levelConfig);
+      const level = factory(engine, canvas, levelConfig);
       log.debug('Calling initialize()');
-      currentLevelRef.current
+      level
         .initialize()
         .then(() => {
           log.info('initialize() completed');
+          // Only start rendering the level AFTER initialization completes.
+          // This prevents rendering an empty scene while assets load.
+          currentLevelRef.current = level;
         })
         .catch((e) => {
           log.error('initialize() failed:', e);
+          // Still set the level ref so user sees something rather than stuck loading
+          currentLevelRef.current = level;
         });
     }
 
@@ -701,14 +706,17 @@ export function GameCanvas({
 
         log.info(`Creating level via factory: ${levelId} (type: ${levelConfig.type})`);
         // Callbacks are now handled via EventBus - no need to pass callbacks
-        currentLevelRef.current = factory(engine, canvas, levelConfig);
-        currentLevelRef.current
+        const level = factory(engine, canvas, levelConfig);
+        level
           .initialize()
           .then(() => {
             log.info(`Level ${levelId} initialized`);
+            // Only start rendering after initialization completes
+            currentLevelRef.current = level;
           })
           .catch((e) => {
             log.error(`Level ${levelId} initialization failed:`, e);
+            currentLevelRef.current = level;
           });
       }
     }

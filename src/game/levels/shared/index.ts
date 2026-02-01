@@ -2,8 +2,25 @@
  * Shared level utilities and modules
  *
  * Re-exports commonly used shared modules for convenient importing.
+ *
+ * COMPOSABLE SYSTEMS (use composition over inheritance):
+ * - CameraShakeSystem - screen shake effects
+ * - LevelStatsTracker - kills, accuracy, secrets tracking
+ * - VictorySystem - objective tracking
+ * - CheckpointSystem - save points and respawning
+ * - EnvironmentalAudio - ambient sounds
+ * - LevelLighting - PBR-calibrated lighting
  */
 
+// Composable systems (extracted from BaseLevel)
+export * from './CameraShakeSystem';
+export * from './CheckpointSystem';
+export * from './EnvironmentalAudio';
+export * from './LevelLighting';
+export * from './LevelStatsTracker';
+export * from './VictorySystem';
+
+// Environment builders
 export * from './AlienFloraBuilder';
 export * from './CollectiblePlacer';
 export * from './HiveEnvironmentBuilder';

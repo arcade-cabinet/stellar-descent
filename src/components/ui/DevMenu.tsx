@@ -238,6 +238,7 @@ export function DevMenu() {
   const [showEntityCount, setShowEntityCount] = useState(devMode.showEntityCount);
   const [showFPS, setShowFPS] = useState(devMode.showFPS);
   const [allLevelsUnlocked, setAllLevelsUnlocked] = useState(devMode.allLevelsUnlocked);
+  const [aiController, setAiController] = useState(devMode.aiController);
 
   // Gate: only active when build flag is set
   const enabled = BUILD_FLAGS.DEV_MENU;
@@ -286,6 +287,11 @@ export function DevMenu() {
   const toggleAllLevelsUnlocked = useCallback(() => {
     devMode.allLevelsUnlocked = !devMode.allLevelsUnlocked;
     setAllLevelsUnlocked(devMode.allLevelsUnlocked);
+  }, []);
+
+  const toggleAiController = useCallback(() => {
+    devMode.aiController = !devMode.aiController;
+    setAiController(devMode.aiController);
   }, []);
 
   // Level jump handler
@@ -401,6 +407,16 @@ export function DevMenu() {
             style={S.checkbox}
           />
           <span style={S.checkboxLabel}>Player Governor (Unlock All)</span>
+        </label>
+
+        <label style={S.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={aiController}
+            onChange={toggleAiController}
+            style={S.checkbox}
+          />
+          <span style={S.checkboxLabel}>AI Controller (?ai=true)</span>
         </label>
       </div>
 

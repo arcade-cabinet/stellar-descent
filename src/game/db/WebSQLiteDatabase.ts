@@ -60,7 +60,7 @@ export class WebSQLiteDatabase {
   private SQL: SqlJsStatic | null = null;
   private db: SqlJsDatabase | null = null;
   private initialized = false;
-  private static initPromise: Promise<void> | null = null;
+  private initPromise: Promise<void> | null = null;
 
   /**
    * Load sql.js by dynamically creating a script tag
@@ -102,16 +102,16 @@ export class WebSQLiteDatabase {
   async init(): Promise<void> {
     if (this.initialized) return;
 
-    if (WebSQLiteDatabase.initPromise) {
-      return WebSQLiteDatabase.initPromise;
+    if (this.initPromise) {
+      return this.initPromise;
     }
 
-    WebSQLiteDatabase.initPromise = this.doInit();
+    this.initPromise = this.doInit();
 
     try {
-      await WebSQLiteDatabase.initPromise;
+      await this.initPromise;
     } catch (error) {
-      WebSQLiteDatabase.initPromise = null;
+      this.initPromise = null;
       throw error;
     }
   }

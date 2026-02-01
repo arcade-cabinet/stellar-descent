@@ -11,6 +11,16 @@
  * This module may be removed in a future version when DevMenu is fully replaced.
  */
 
+/**
+ * Check for AI controller querystring parameter
+ * Usage: ?ai=true to enable autonomous player control
+ */
+function checkAIControllerQuerystring(): boolean {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('ai') === 'true';
+}
+
 export const devMode = {
   /** Player takes no damage */
   godMode: false,
@@ -24,4 +34,10 @@ export const devMode = {
   showFPS: false,
   /** Player Governor: Unlock all levels for testing (runtime toggle) */
   allLevelsUnlocked: false,
+  /**
+   * AI Controller: Enable Yuka-based autonomous player control
+   * Set via ?ai=true querystring or toggle in DevMenu
+   * When enabled, PlayerGovernor controls player movement and actions
+   */
+  aiController: checkAIControllerQuerystring(),
 };

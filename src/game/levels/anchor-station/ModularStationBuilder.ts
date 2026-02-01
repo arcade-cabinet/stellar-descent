@@ -2,6 +2,7 @@ import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/loaders/glTF';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getLogger } from '../../core/Logger';
@@ -665,7 +666,14 @@ async function loadModel(
 }
 
 /**
- * Build the modular station from GLB segments
+ * Build the modular station from GLB segments using instanced containers.
+ *
+ * Optimization: loads each unique corridor type ONCE as an AssetContainer,
+ * then instances segments from that container. This reduces:
+ * - Network requests: 4 instead of 47
+ * - GLB parse operations: 4 instead of 47
+ * - Draw calls: shared materials enable GPU batching
+ * - CPU overhead: frozen world matrices skip per-frame recomputation
  */
 export async function buildModularStation(
   scene: Scene,
@@ -683,37 +691,91 @@ export async function buildModularStation(
     wide: MODELS.corridorWide,
   };
 
-  log.info('Loading', layout.segments.length, 'segments...');
-  // Load all segments
-  const loadPromises = layout.segments.map(async (segment) => {
-    const modelPath = typeToModel[segment.type];
-    try {
-      const meshes = await loadModel(
-        scene,
-        modelPath,
-        segment.position,
-        segment.rotation,
-        segment.name
-      );
-      allMeshes.push(...meshes);
-      return meshes;
-    } catch (error) {
-      log.warn(`Failed to load segment ${segment.name}:`, error);
-      return [];
+  // ─── Step 1: Load each unique corridor type ONCE as an AssetContainer ───
+  const uniqueTypes = [...new Set(layout.segments.map((s) => s.type))];
+  log.info(
+    `Loading ${uniqueTypes.length} unique corridor types (was ${layout.segments.length} individual imports)`
+  );
+
+  // Use a record keyed by type so we can look up containers efficiently
+  type Container = Awaited<ReturnType<typeof SceneLoader.LoadAssetContainerAsync>>;
+  const containers: Partial<Record<StationSegment['type'], Container>> = {};
+
+  await Promise.all(
+    uniqueTypes.map(async (type) => {
+      const modelPath = typeToModel[type];
+      try {
+        const container = await withTimeout(
+          SceneLoader.LoadAssetContainerAsync(modelPath, '', scene),
+          MODEL_LOAD_TIMEOUT_MS,
+          `container_${type}`
+        );
+        containers[type] = container;
+        log.info(`Loaded container for '${type}': ${container.meshes.length} meshes`);
+      } catch (error) {
+        log.error(`Failed to load container for '${type}':`, error);
+      }
+    })
+  );
+
+  // ─── Step 2: Instance each segment from its container ───
+  log.info(
+    `Instancing ${layout.segments.length} segments from ${Object.keys(containers).length} containers...`
+  );
+
+  for (const segment of layout.segments) {
+    const container = containers[segment.type];
+    if (!container) {
+      log.warn(`No container for segment '${segment.name}' (type: ${segment.type})`);
+      continue;
     }
-  });
 
-  log.info('Waiting for all segments to load...');
-  await Promise.all(loadPromises);
-  log.info('All segments loaded, total meshes:', allMeshes.length);
+    // instantiateModelsToScene clones meshes from the container.
+    // cloneMaterials=false shares materials across instances for draw call batching.
+    const entries = container.instantiateModelsToScene(
+      (name) => `${segment.name}_${name}`,
+      false // share materials across instances
+    );
 
-  // Parent all to root
-  for (const mesh of allMeshes) {
-    const parent = mesh.parent;
-    if (parent instanceof TransformNode && parent.name !== 'AnchorStation') {
-      parent.parent = root;
+    // Create parent transform for positioning
+    const parent = new TransformNode(segment.name, scene);
+    parent.position = segment.position;
+    parent.rotation.y = segment.rotation;
+    parent.parent = root;
+
+    // Parent instanced root nodes under the segment transform
+    for (const rootNode of entries.rootNodes) {
+      rootNode.parent = parent;
+    }
+
+    // Collect meshes and configure for collisions
+    for (const rootNode of entries.rootNodes) {
+      const meshes = rootNode.getChildMeshes(false);
+      for (const mesh of meshes) {
+        mesh.receiveShadows = true;
+        mesh.checkCollisions = true;
+        allMeshes.push(mesh);
+      }
     }
   }
+
+  // ─── Step 3: Freeze world matrices for static geometry ───
+  // This prevents BabylonJS from recomputing transforms every frame.
+  // Must be done AFTER setting all positions/rotations/parenting.
+  log.info(`Freezing world matrices on ${allMeshes.length} meshes...`);
+  for (const mesh of allMeshes) {
+    mesh.computeWorldMatrix(true);
+    mesh.freezeWorldMatrix();
+    // Disable bounding info updates for static meshes
+    if (mesh instanceof Mesh) {
+      mesh.doNotSyncBoundingInfo = true;
+    }
+  }
+
+  log.info(
+    `Station built: ${allMeshes.length} meshes from ${layout.segments.length} segments ` +
+      `(${Object.keys(containers).length} unique types loaded)`
+  );
 
   return {
     root,
@@ -722,6 +784,10 @@ export async function buildModularStation(
     dispose: () => {
       for (const mesh of allMeshes) {
         mesh.dispose();
+      }
+      // Dispose containers (template meshes held off-scene)
+      for (const container of Object.values(containers)) {
+        container?.dispose();
       }
       root.dispose();
     },

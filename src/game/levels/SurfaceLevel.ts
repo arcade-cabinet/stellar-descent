@@ -104,7 +104,8 @@ export abstract class SurfaceLevel extends BaseLevel {
   }
 
   protected override setupBasicLighting(): void {
-    // Sun directional light
+    // HARSH ALIEN SUN - Proxima Centauri b surface lighting
+    // PBR materials need MUCH higher intensities than StandardMaterial
     const sunAngle = this.timeOfDay * Math.PI * 2 - Math.PI / 2;
     const sunY = Math.sin(sunAngle);
     const sunZ = Math.cos(sunAngle);
@@ -116,22 +117,28 @@ export abstract class SurfaceLevel extends BaseLevel {
     );
     this.sunLight.intensity = this.getSunIntensity();
     this.sunLight.diffuse = this.getSunColor();
+    this.sunLight.specular = this.getSunColor().scale(0.8);
 
-    // Ambient sky light
+    // Ambient sky light - MUCH stronger for PBR fill
     this.skyLight = new HemisphericLight('sky', new Vector3(0, 1, 0), this.scene);
-    this.skyLight.intensity = 0.3;
-    this.skyLight.diffuse = new Color3(0.5, 0.4, 0.35);
-    this.skyLight.groundColor = new Color3(0.3, 0.2, 0.15);
+    this.skyLight.intensity = 1.5; // Strong ambient for PBR
+    this.skyLight.diffuse = new Color3(0.7, 0.6, 0.5); // Warm sky bounce
+    this.skyLight.groundColor = new Color3(0.5, 0.4, 0.35); // Strong ground bounce
+    this.skyLight.specular = new Color3(0.3, 0.25, 0.2);
+
+    // Scene ambient for PBR shadow fill
+    this.scene.ambientColor = new Color3(0.3, 0.25, 0.2);
   }
 
   /**
    * Get sun intensity based on time of day
+   * HIGH values for PBR materials - they absorb much more light
    */
   protected getSunIntensity(): number {
     const t = this.timeOfDay;
-    if (t < 0.2 || t > 0.8) return 0.1; // Night
-    if (t < 0.3 || t > 0.7) return 0.5; // Dawn/dusk
-    return 1.5; // Day
+    if (t < 0.2 || t > 0.8) return 0.5; // Night - dim but visible
+    if (t < 0.3 || t > 0.7) return 2.5; // Dawn/dusk - strong orange
+    return 5.0; // Day - HARSH alien sun, very bright
   }
 
   /**

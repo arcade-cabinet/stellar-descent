@@ -13,6 +13,38 @@
 
 ## Current Status (Phase 6 - Release)
 
+### Completed (Feb 1, 2026)
+
+#### Station Light Tube System ✅
+- **Visible light fixtures**: Emissive fluorescent tube meshes along station corridors
+- **Visual justification**: Every light source now has a visible fixture (not invisible point lights)
+- **Location**: `src/game/levels/anchor-station/StationLightTubes.ts`
+- **Integration**: `AnchorStationLevel.ts` uses light tubes for all corridor lighting
+- **Features**:
+  - `addLightTube()` - Single tube fixture
+  - `addLightTubeRun()` - Corridor lighting strip
+  - `addCeilingLights()` - Room ceiling grid
+  - `addCorridorLights()` - Automatic spacing along path
+  - `setEmergencyMode()` - Red alert lighting
+  - `flickerTube()` - Damage effects
+
+#### Composable Level Systems ✅
+- **Extracted from BaseLevel monolith** for composition over inheritance
+- **Location**: `src/game/levels/shared/`
+- **Systems created**:
+  - `CameraShakeSystem.ts` - Screen shake effects
+  - `LevelStatsTracker.ts` - Kills, accuracy, secrets, time tracking
+  - `VictorySystem.ts` - Objective tracking and victory conditions
+  - `CheckpointSystem.ts` - Save points and respawning
+  - `EnvironmentalAudio.ts` - Ambient audio wrapper
+  - `LevelLighting.ts` - PBR-calibrated lighting presets
+
+#### PBR Lighting Calibration ✅
+- **Station lighting**: Bright fluorescent (intensity 5-15 for PBR)
+- **Surface lighting**: Harsh alien sun
+- **Underground/Hive**: Bioluminescent effects
+- **Light presets**: station, surface, underground, hive, space
+
 ### Completed (Jan 31, 2026)
 
 #### Difficulty System Overhaul ✅

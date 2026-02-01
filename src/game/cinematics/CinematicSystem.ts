@@ -987,13 +987,15 @@ export function createAnchorStationIntroCinematic(
         duration: 3000,
         cameraPath: [
           {
-            position: new Vector3(50, 10, -50),
-            target: new Vector3(0, 0, 0),
+            // Start inside the station: hangar end looking north through corridors
+            position: new Vector3(0, 2.5, -64),
+            target: new Vector3(0, 2, -40),
             duration: 0,
             fov: 1.4,
           },
           {
-            position: new Vector3(20, 5, -30),
+            // Sweep through the corridor toward the briefing room
+            position: new Vector3(0, 2.5, -20),
             target: new Vector3(0, 2, 0),
             duration: 3000,
             fov: 1.2,
@@ -1039,8 +1041,9 @@ export function createAnchorStationIntroCinematic(
         duration: 3000,
         cameraPath: [
           {
+            // End looking SOUTH (-Z) into the station corridors, not north into space
             position: playerSpawnPosition.clone(),
-            target: playerSpawnPosition.add(new Vector3(0, 0, 5)),
+            target: playerSpawnPosition.add(new Vector3(0, 0, -5)),
             duration: 2000,
             fov: 1.2,
           },

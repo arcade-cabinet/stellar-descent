@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "updatedAt": "2026-02-01T06:54:46.459Z",
+  "updatedAt": "2026-02-01T10:05:26.969Z",
   "portraits": {
     "cole_james": [
       {
@@ -2243,6 +2243,29 @@
         "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
         "generatedAt": "2026-02-01T06:54:46.021Z",
         "generationTimeMs": 494.886833,
+        "fileSizeBytes": 3637365,
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
+        "width": 2048,
+        "height": 2048,
+        "format": "jpg",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "cole_james",
+        "emotion": "neutral"
+      },
+      {
+        "id": "portrait_cole_neutral",
+        "type": "image",
+        "path": "images/portraits/cole_james/neutral.jpg",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "4277ead9",
+        "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
+        "generatedAt": "2026-02-01T10:05:26.520Z",
+        "generationTimeMs": 483.3710000000001,
         "fileSizeBytes": 3637365,
         "tags": [
           "portrait",
@@ -4548,6 +4571,30 @@
         "prompt": "Sci-fi military commander portrait, dramatic lighting",
         "generatedAt": "2026-02-01T06:54:46.458Z",
         "generationTimeMs": 421.90924999999993,
+        "fileSizeBytes": 3033072,
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
+        "width": 1024,
+        "height": 1024,
+        "format": "png",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "reyes_commander",
+        "emotion": "commanding"
+      },
+      {
+        "id": "portrait_reyes_commanding",
+        "type": "image",
+        "path": "images/portraits/reyes_commander/commanding.png",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "-62dd3e13",
+        "prompt": "Sci-fi military commander portrait, dramatic lighting",
+        "generatedAt": "2026-02-01T10:05:26.968Z",
+        "generationTimeMs": 430.36408300000016,
         "fileSizeBytes": 3033072,
         "tags": [
           "portrait",
