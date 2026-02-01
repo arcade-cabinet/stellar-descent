@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { usePlayer } from '../../game/context/PlayerContext';
+import { usePlayer } from '../../game/context/GameContext';
 import { useCombatStore } from '../../game/stores/useCombatStore';
 import styles from './Crosshair.module.css';
 

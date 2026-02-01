@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCombatStore } from '../stores/useCombatStore';
 import { useMissionStore } from '../stores/useMissionStore';
+import { usePlayerStore } from '../stores/usePlayerStore';
 import {
   DEFAULT_HUD_VISIBILITY,
   GameProvider,
@@ -62,6 +63,7 @@ describe('GameContext', () => {
     // Reset shared Zustand store state between tests
     useCombatStore.getState().reset();
     useMissionStore.getState().reset();
+    usePlayerStore.getState().reset();
   });
 
   afterEach(() => {
@@ -412,16 +414,11 @@ describe('GameContext', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('should throw when useGame is used outside provider', () => {
-      // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      expect(() => {
-        render(<TestConsumer />);
-      }).toThrow('must be used within a');
-
-      consoleSpy.mockRestore();
+  describe('store-based state', () => {
+    it('should work without GameProvider since all state is in Zustand stores', () => {
+      // After migration to Zustand, useGame() works outside GameProvider
+      render(<TestConsumer />);
+      expect(screen.getByTestId('health').textContent).toBe('100');
     });
   });
 

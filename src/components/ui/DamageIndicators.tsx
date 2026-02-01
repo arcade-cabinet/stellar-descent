@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { usePlayer } from '../../game/context/PlayerContext';
+import { usePlayer } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { useSettings } from '../../game/stores/useSettingsStore';
 import { useGameEvent } from '../../hooks/useGameEvent';

@@ -190,12 +190,15 @@ export {
 } from './useKeybindingsStore';
 // Player store (non-persisted runtime state)
 export {
+  DEFAULT_HUD_VISIBILITY,
   getPlayerStore,
+  type HUDVisibility,
   type PlayerActions,
   // Types
   type PlayerState,
   type PlayerStoreState,
   subscribeToPlayerState,
+  TUTORIAL_START_HUD_VISIBILITY,
   usePlayerStore,
 } from './usePlayerStore';
 // Settings store
