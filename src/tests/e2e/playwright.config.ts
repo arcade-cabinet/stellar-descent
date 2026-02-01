@@ -48,7 +48,7 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for the dev server
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080',
 
     // Collect trace on failure for debugging
     trace: 'on-first-retry',
@@ -70,6 +70,9 @@ export default defineConfig({
 
     // Ignore HTTPS errors for local dev
     ignoreHTTPSErrors: true,
+
+    // Run with visible browser by default (use --headed on CLI to override)
+    headless: process.env.CI ? true : false,
 
     // Preserve WebGL context
     launchOptions: {
@@ -101,6 +104,8 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        // Explicitly set headless mode based on environment
+        headless: process.env.CI ? true : false,
         // Force hardware acceleration
         launchOptions: {
           args: [
@@ -155,10 +160,10 @@ export default defineConfig({
     },
   ],
 
-  // Web server configuration
+  // Web server configuration - Playwright manages the dev server
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
     cwd: process.env.PROJECT_ROOT || '../../../',

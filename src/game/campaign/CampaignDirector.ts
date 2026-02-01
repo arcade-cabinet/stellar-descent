@@ -93,6 +93,10 @@ export class CampaignDirector {
   private questManagerInitialized = false;
   private storeUnsubscribe: (() => void) | null = null;
 
+  // Cached snapshot for useSyncExternalStore (must return same reference when unchanged)
+  private cachedSnapshot: CampaignSnapshot | null = null;
+  private lastStoreState: ReturnType<typeof useCampaignStore.getState> | null = null;
+
   // Callbacks for external systems (MissionContext, HUD, etc.)
   private objectiveUpdateCallback?: (title: string, instructions: string) => void;
   private objectiveMarkerCallback?: (
@@ -119,15 +123,29 @@ export class CampaignDirector {
 
   getSnapshot = (): CampaignSnapshot => {
     const store = useCampaignStore.getState();
-    return buildSnapshot(store, {
+
+    // useSyncExternalStore requires getSnapshot to return the same reference
+    // when the data hasn't changed. Cache and only rebuild when necessary.
+    if (this.cachedSnapshot !== null && this.lastStoreState === store) {
+      return this.cachedSnapshot;
+    }
+
+    this.lastStoreState = store;
+    this.cachedSnapshot = buildSnapshot(store, {
       currentLevelConfig: this.currentLevelConfig,
       prePausePhase: this.prePausePhase,
       restartCounter: this.restartCounter,
       isBonusLevel: this.isBonusLevel,
     });
+
+    return this.cachedSnapshot;
   };
 
   private notify(): void {
+    // Invalidate cached snapshot when state changes
+    this.cachedSnapshot = null;
+    this.lastStoreState = null;
+
     for (const listener of this.listeners) {
       listener();
     }

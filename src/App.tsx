@@ -27,6 +27,7 @@ import { GameProvider } from './game/context/GameContext';
 import { SubtitleProvider } from './game/context/SubtitleContext';
 import { WeaponProvider } from './game/context/WeaponContext';
 import { BUILD_FLAGS } from './game/core/BuildConfig';
+import { initializeDebugInterface } from './game/testing/DebugInterface';
 import { getLogger } from './game/core/Logger';
 import { useCommsSubtitles } from './game/hooks/useCommsSubtitles';
 import type { LevelId } from './game/levels/types';
@@ -76,6 +77,11 @@ function getInitialPhase(): CampaignPhase {
 
 // Initialize achievement system
 initAchievements();
+
+// Initialize debug interface for E2E testing (only in dev mode)
+if (BUILD_FLAGS.DEV_MENU) {
+  initializeDebugInterface();
+}
 
 // ============================================================================
 // GameUI - Main UI component using campaign state
