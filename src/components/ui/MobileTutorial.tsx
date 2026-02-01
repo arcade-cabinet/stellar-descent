@@ -103,6 +103,50 @@ export function MobileTutorial({ onComplete, forceShow = false }: MobileTutorial
     setIsVisible(true);
   }, [screenInfo.isTouchDevice, forceShow, onComplete]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleComplete = useCallback(() => {
+    // Save completion to localStorage
+    localStorage.setItem(MOBILE_TUTORIAL_COMPLETED_KEY, 'true');
+    setIsVisible(false);
+    onComplete();
+  }, [onComplete]);
+
+  const advanceToNextStep = useCallback(() => {
+    // Reset input state for next step
+    inputStateRef.current = {
+      joystickMoved: false,
+      swipeDelta: { x: 0, y: 0 },
+      firePressed: false,
+      sprintHeld: false,
+      sprintHoldDuration: 0,
+    };
+    sprintStartTimeRef.current = null;
+    setStepCompleted(false);
+    setHoldProgress(0);
+
+    if (currentStepIndex < TUTORIAL_STEPS.length - 1) {
+      setCurrentStepIndex((prev) => prev + 1);
+    } else {
+      // Tutorial complete
+      handleComplete();
+    }
+  }, [currentStepIndex, handleComplete]);
+
+  const handleSkip = useCallback(() => {
+    if (completionTimeoutRef.current) {
+      clearTimeout(completionTimeoutRef.current);
+    }
+    handleComplete();
+  }, [handleComplete]);
+
   // Track touch input changes
   useEffect(() => {
     if (!touchInput || !isVisible) return;
@@ -161,53 +205,6 @@ export function MobileTutorial({ onComplete, forceShow = false }: MobileTutorial
       }, 800);
     }
   }, [touchInput, isVisible, currentStepIndex, stepCompleted, advanceToNextStep]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (completionTimeoutRef.current) {
-        clearTimeout(completionTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const advanceToNextStep = useCallback(() => {
-    // Reset input state for next step
-    inputStateRef.current = {
-      joystickMoved: false,
-      swipeDelta: { x: 0, y: 0 },
-      firePressed: false,
-      sprintHeld: false,
-      sprintHoldDuration: 0,
-    };
-    sprintStartTimeRef.current = null;
-    setStepCompleted(false);
-    setHoldProgress(0);
-
-    if (currentStepIndex < TUTORIAL_STEPS.length - 1) {
-      setCurrentStepIndex((prev) => prev + 1);
-    } else {
-      // Tutorial complete
-      handleComplete();
-    }
-  }, [
-    currentStepIndex, // Tutorial complete
-    handleComplete,
-  ]);
-
-  const handleComplete = useCallback(() => {
-    // Save completion to localStorage
-    localStorage.setItem(MOBILE_TUTORIAL_COMPLETED_KEY, 'true');
-    setIsVisible(false);
-    onComplete();
-  }, [onComplete]);
-
-  const handleSkip = useCallback(() => {
-    if (completionTimeoutRef.current) {
-      clearTimeout(completionTimeoutRef.current);
-    }
-    handleComplete();
-  }, [handleComplete]);
 
   if (!isVisible) {
     return null;

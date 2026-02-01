@@ -264,6 +264,46 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
   }, [weapon.currentAmmo, weapon.isReloading, weapon.isSwitching, weapon.currentWeaponId]);
 
   /**
+   * Complete the reload, moving ammo from reserve to magazine
+   */
+  const completeReload = useCallback(() => {
+    setWeapon((prev) => {
+      const ammoNeeded = prev.maxMagazineSize - prev.currentAmmo;
+      const ammoToAdd = Math.min(ammoNeeded, prev.reserveAmmo);
+      const newCurrentAmmo = prev.currentAmmo + ammoToAdd;
+      const newReserveAmmo = prev.reserveAmmo - ammoToAdd;
+
+      // Play reload complete sound
+      getAudioManager().playReloadComplete(prev.currentWeaponId, 0.4);
+
+      // Emit ammo changed event for HUD
+      const eventBus = getEventBus();
+      eventBus.emit({ type: 'AMMO_CHANGED', current: newCurrentAmmo, max: prev.maxMagazineSize });
+
+      // Update inventory ammo state
+      const updatedAmmo = { ...prev.inventory.ammo };
+      updatedAmmo[prev.currentWeaponId] = {
+        currentAmmo: newCurrentAmmo,
+        reserveAmmo: newReserveAmmo,
+      };
+
+      return {
+        ...prev,
+        currentAmmo: newCurrentAmmo,
+        reserveAmmo: newReserveAmmo,
+        isReloading: false,
+        inventory: {
+          ...prev.inventory,
+          ammo: updatedAmmo,
+        },
+      };
+    });
+
+    reloadStartTimeRef.current = null;
+    setReloadProgress(0);
+  }, []);
+
+  /**
    * Start the reload sequence
    */
   const startReload = useCallback(() => {
@@ -309,50 +349,10 @@ export function WeaponProvider({ children, initialConfig }: WeaponProviderProps)
     weapon.currentAmmo,
     weapon.maxMagazineSize,
     weapon.reserveAmmo,
-    weapon.reloadTimeMs, // Reload complete
+    weapon.reloadTimeMs,
     completeReload,
     weapon.currentWeaponId,
   ]);
-
-  /**
-   * Complete the reload, moving ammo from reserve to magazine
-   */
-  const completeReload = useCallback(() => {
-    setWeapon((prev) => {
-      const ammoNeeded = prev.maxMagazineSize - prev.currentAmmo;
-      const ammoToAdd = Math.min(ammoNeeded, prev.reserveAmmo);
-      const newCurrentAmmo = prev.currentAmmo + ammoToAdd;
-      const newReserveAmmo = prev.reserveAmmo - ammoToAdd;
-
-      // Play reload complete sound
-      getAudioManager().playReloadComplete(prev.currentWeaponId, 0.4);
-
-      // Emit ammo changed event for HUD
-      const eventBus = getEventBus();
-      eventBus.emit({ type: 'AMMO_CHANGED', current: newCurrentAmmo, max: prev.maxMagazineSize });
-
-      // Update inventory ammo state
-      const updatedAmmo = { ...prev.inventory.ammo };
-      updatedAmmo[prev.currentWeaponId] = {
-        currentAmmo: newCurrentAmmo,
-        reserveAmmo: newReserveAmmo,
-      };
-
-      return {
-        ...prev,
-        currentAmmo: newCurrentAmmo,
-        reserveAmmo: newReserveAmmo,
-        isReloading: false,
-        inventory: {
-          ...prev.inventory,
-          ammo: updatedAmmo,
-        },
-      };
-    });
-
-    reloadStartTimeRef.current = null;
-    setReloadProgress(0);
-  }, []);
 
   /**
    * Cancel an in-progress reload

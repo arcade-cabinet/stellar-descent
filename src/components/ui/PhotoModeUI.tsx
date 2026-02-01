@@ -627,7 +627,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
                     {photo.thumbnail ? (
                       <img
                         src={photo.thumbnail}
-                        alt={`Photo taken ${formatDate(photo.timestamp)}`}
+                        alt={`Screenshot from ${formatDate(photo.timestamp)}`}
                         className={styles.galleryThumbnail}
                       />
                     ) : (
@@ -679,7 +679,7 @@ export function PhotoModeUI({ isOpen, onClose }: PhotoModeUIProps) {
             </button>
             <img
               src={previewUrl}
-              alt={`Photo preview - ${formatDate(selectedPhoto.timestamp)}`}
+              alt={`Full size view - ${formatDate(selectedPhoto.timestamp)}`}
               className={styles.previewImage}
             />
             <div className={styles.previewActions}>

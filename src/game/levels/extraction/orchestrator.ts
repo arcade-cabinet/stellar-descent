@@ -353,10 +353,18 @@ export class ExtractionLevel extends BaseLevel {
     const weaponActions = getWeaponActions();
     if (!weaponActions) return;
     const state = weaponActions.getState();
-    if (state.isReloading) return this.emitNotification('ALREADY RELOADING', 500);
-    if (state.currentAmmo >= state.maxMagazineSize)
-      return this.emitNotification('MAGAZINE FULL', 500);
-    if (state.reserveAmmo <= 0) return this.emitNotification('NO RESERVE AMMO', 500);
+    if (state.isReloading) {
+      this.emitNotification('ALREADY RELOADING', 500);
+      return;
+    }
+    if (state.currentAmmo >= state.maxMagazineSize) {
+      this.emitNotification('MAGAZINE FULL', 500);
+      return;
+    }
+    if (state.reserveAmmo <= 0) {
+      this.emitNotification('NO RESERVE AMMO', 500);
+      return;
+    }
     startReload();
     this.emitNotification('RELOADING...', 1800);
   }
