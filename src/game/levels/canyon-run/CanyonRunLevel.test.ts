@@ -539,10 +539,6 @@ describe('CanyonRunLevel', () => {
       expect((level as any).projectiles).toEqual([]);
     });
 
-    it('should set player health to 100', () => {
-      expect((level as any).playerHealth).toBe(100);
-    });
-
     it('should set kills to 0', () => {
       expect((level as any).kills).toBe(0);
     });

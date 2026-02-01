@@ -583,17 +583,17 @@ async function main(): Promise<void> {
     log('\nAssets to generate:');
     if (generateVideos) {
       log('\nVideos:');
-      cinematics.forEach((c) => log(`  - ${c.id} (${c.level}, priority: ${c.priority ?? 0})`));
+      for (const c of cinematics) log(`  - ${c.id} (${c.level}, priority: ${c.priority ?? 0})`);
     }
     if (generateImages) {
       log('\nPortraits:');
-      portraits.forEach((p) => log(`  - ${p.id} (${p.characterId})`));
+      for (const p of portraits) log(`  - ${p.id} (${p.characterId})`);
       log('\nQuest Images:');
-      questImages.forEach((q) => log(`  - ${q.id} (${q.level}, ${q.purpose})`));
+      for (const q of questImages) log(`  - ${q.id} (${q.level}, ${q.purpose})`);
     }
     if (generateTexts) {
       log('\nText Content:');
-      textContent.forEach((t) => log(`  - ${t.id} (${t.category})`));
+      for (const t of textContent) log(`  - ${t.id} (${t.category})`);
     }
     log('\nDry run complete. Use without --dry-run to generate assets.');
     return;
