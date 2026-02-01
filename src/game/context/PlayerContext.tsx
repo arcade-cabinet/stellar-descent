@@ -8,13 +8,11 @@ import React, {
   useState,
 } from 'react';
 import {
-  DEFAULT_DIFFICULTY,
   type DifficultyLevel,
   type DifficultyModifiers,
   getDifficultyModifiers,
-  loadDifficultySetting,
-  saveDifficultySetting,
-} from '../core/DifficultySettings';
+  useDifficultyStore,
+} from '../difficulty';
 import { getLogger } from '../core/Logger';
 import { getLowHealthFeedback } from '../effects/LowHealthFeedback';
 import type { TutorialPhase } from '../levels/anchor-station/tutorialSteps';
@@ -120,11 +118,17 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
   const [isTutorialActive, setIsTutorialActive] = useState(false);
   const [hudVisibility, setHUDVisibilityState] = useState<HUDVisibility>(DEFAULT_HUD_VISIBILITY);
 
-  // Difficulty state - load from localStorage on mount
-  const [difficulty, setDifficultyState] = useState<DifficultyLevel>(() => loadDifficultySetting());
+  // Difficulty state - synced with Zustand store
+  const storeDifficulty = useDifficultyStore((state) => state.difficulty);
+  const storeSetDifficulty = useDifficultyStore((state) => state.setDifficulty);
   const [difficultyModifiers, setDifficultyModifiers] = useState<DifficultyModifiers>(() =>
-    getDifficultyModifiers(loadDifficultySetting())
+    getDifficultyModifiers(storeDifficulty)
   );
+
+  // Keep local modifiers in sync with store
+  useEffect(() => {
+    setDifficultyModifiers(getDifficultyModifiers(storeDifficulty));
+  }, [storeDifficulty]);
 
   // Clamped health setter that prevents negative health and detects death
   const setPlayerHealth = useCallback(
@@ -158,17 +162,15 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     playerDeathCallbackRef.current = callback;
   }, []);
 
-  // Difficulty setter - persists to localStorage, updates modifiers, and syncs with save system
+  // Difficulty setter - syncs with Zustand store (which handles persistence)
   const setDifficulty = useCallback((newDifficulty: DifficultyLevel) => {
-    setDifficultyState(newDifficulty);
-    setDifficultyModifiers(getDifficultyModifiers(newDifficulty));
-    saveDifficultySetting(newDifficulty);
+    storeSetDifficulty(newDifficulty);
     // Import dynamically to avoid circular dependency
     import('../persistence/SaveSystem').then(({ saveSystem }) => {
       saveSystem.setDifficulty(newDifficulty);
     });
     log.info(`Difficulty set to ${newDifficulty}`);
-  }, []);
+  }, [storeSetDifficulty]);
 
   // HUD visibility management - allows partial updates
   const setHUDVisibility = useCallback((visibility: Partial<HUDVisibility>) => {
@@ -220,7 +222,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     setTutorialPhase,
     isTutorialActive,
     setIsTutorialActive,
-    difficulty,
+    difficulty: storeDifficulty,
     setDifficulty,
     difficultyModifiers,
     hudVisibility,

@@ -196,3 +196,112 @@ export function* iterateDifficulties(): Generator<DifficultyEntry> {
     yield DIFFICULTY_REGISTRY[id];
   }
 }
+
+// ============================================================================
+// Backward Compatibility Aliases
+// ============================================================================
+
+/**
+ * @deprecated Use DIFFICULTY_REGISTRY instead
+ */
+export const DIFFICULTY_PRESETS = DIFFICULTY_REGISTRY;
+
+/**
+ * @deprecated Use DifficultyEntry instead
+ */
+export type DifficultyInfo = DifficultyEntry;
+
+/**
+ * @deprecated Use getModifiers instead
+ */
+export function getDifficultyModifiers(difficulty: DifficultyLevel): DifficultyModifiers {
+  return getModifiers(difficulty);
+}
+
+/**
+ * @deprecated Use getDifficulty instead
+ */
+export function getDifficultyInfo(difficulty: DifficultyLevel): DifficultyEntry {
+  return getDifficulty(difficulty);
+}
+
+/**
+ * @deprecated Use getDifficulty(id).name instead
+ */
+export function getDifficultyDisplayName(difficulty: DifficultyLevel): string {
+  return DIFFICULTY_REGISTRY[difficulty].name;
+}
+
+/**
+ * Migrate old difficulty values to new ones
+ * Maps: veteran -> hard, legendary -> nightmare
+ */
+export function migrateDifficulty(oldValue: string): DifficultyLevel {
+  const migrations: Record<string, DifficultyLevel> = {
+    veteran: 'hard',
+    legendary: 'nightmare',
+  };
+  return migrations[oldValue] ?? (isValidDifficulty(oldValue) ? oldValue : DEFAULT_DIFFICULTY);
+}
+
+// ============================================================================
+// Static Scaling Functions (take difficulty as parameter, for use during entity creation)
+// ============================================================================
+
+/**
+ * Scale enemy health based on difficulty.
+ * Use this when spawning enemies (pass difficulty from store).
+ */
+export function scaleEnemyHealthByDifficulty(baseHealth: number, difficulty: DifficultyLevel): number {
+  return Math.round(baseHealth * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyHealthMultiplier);
+}
+
+/**
+ * Scale enemy damage based on difficulty.
+ * Use this when spawning enemies (pass difficulty from store).
+ */
+export function scaleEnemyDamageByDifficulty(baseDamage: number, difficulty: DifficultyLevel): number {
+  return Math.round(baseDamage * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyDamageMultiplier);
+}
+
+/**
+ * Scale player damage received based on difficulty.
+ */
+export function scalePlayerDamageReceivedByDifficulty(baseDamage: number, difficulty: DifficultyLevel): number {
+  return Math.round(baseDamage * DIFFICULTY_REGISTRY[difficulty].modifiers.playerDamageReceivedMultiplier);
+}
+
+/**
+ * Scale enemy fire rate based on difficulty.
+ */
+export function scaleEnemyFireRateByDifficulty(baseFireRate: number, difficulty: DifficultyLevel): number {
+  return baseFireRate * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyFireRateMultiplier;
+}
+
+/**
+ * Scale detection range based on difficulty.
+ */
+export function scaleDetectionRangeByDifficulty(baseRange: number, difficulty: DifficultyLevel): number {
+  return baseRange * DIFFICULTY_REGISTRY[difficulty].modifiers.enemyDetectionMultiplier;
+}
+
+/**
+ * Scale XP reward based on difficulty.
+ */
+export function scaleXPRewardByDifficulty(baseXP: number, difficulty: DifficultyLevel): number {
+  return Math.round(baseXP * DIFFICULTY_REGISTRY[difficulty].modifiers.xpMultiplier);
+}
+
+/**
+ * Scale spawn count based on difficulty.
+ */
+export function scaleSpawnCountByDifficulty(baseCount: number, difficulty: DifficultyLevel): number {
+  return Math.round(baseCount * DIFFICULTY_REGISTRY[difficulty].modifiers.spawnRateMultiplier);
+}
+
+/**
+ * Scale resource drop chance based on difficulty.
+ */
+export function scaleResourceDropChanceByDifficulty(baseChance: number, difficulty: DifficultyLevel): number {
+  return Math.min(1, baseChance * DIFFICULTY_REGISTRY[difficulty].modifiers.resourceDropMultiplier);
+}

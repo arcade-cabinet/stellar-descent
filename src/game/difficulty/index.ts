@@ -9,7 +9,7 @@
  * - Non-React: getDifficultyLevel(), scaleEnemyHealth(), etc.
  */
 
-// Registry (static definitions)
+// Registry (static definitions and types)
 export {
   type DifficultyLevel,
   type DifficultyModifiers,
@@ -24,6 +24,22 @@ export {
   isPermadeathActive,
   getEffectiveXPMultiplier,
   iterateDifficulties,
+  // Backward compatibility aliases
+  DIFFICULTY_PRESETS,
+  type DifficultyInfo,
+  getDifficultyModifiers,
+  getDifficultyInfo,
+  getDifficultyDisplayName,
+  migrateDifficulty,
+  // Static scaling functions (take difficulty as parameter)
+  scaleEnemyHealthByDifficulty,
+  scaleEnemyDamageByDifficulty,
+  scalePlayerDamageReceivedByDifficulty,
+  scaleEnemyFireRateByDifficulty,
+  scaleDetectionRangeByDifficulty,
+  scaleXPRewardByDifficulty,
+  scaleSpawnCountByDifficulty,
+  scaleResourceDropChanceByDifficulty,
 } from './DifficultyRegistry';
 
 // Zustand store (runtime state)
@@ -32,11 +48,20 @@ export {
   selectDifficulty,
   selectPermadeath,
   selectInitialized,
-  // Non-React access
+  // Non-React access (uses current store state)
   getDifficultyLevel,
   getCurrentModifiers,
   scaleEnemyHealth,
   scaleEnemyDamage,
   scalePlayerDamage,
   scaleXP,
+  scaleEnemyFireRate,
+  scaleDetectionRange,
+  scaleSpawnCount,
+  scaleResourceDropChance,
+  // Backward compatibility (replaces localStorage functions)
+  loadDifficultySetting,
+  saveDifficultySetting,
+  loadPermadeathSetting,
+  savePermadeathSetting,
 } from './useDifficultyStore';

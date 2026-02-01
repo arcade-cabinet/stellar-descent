@@ -1,5 +1,10 @@
 /**
  * DifficultySettings Tests
+ *
+ * Tests the difficulty system which now uses:
+ * - DifficultyRegistry for static definitions
+ * - useDifficultyStore (Zustand) for runtime state
+ * - SQLite for persistence (mocked in tests)
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,9 +18,7 @@ import {
   getDifficultyModifiers,
   DifficultyManager,
   isValidDifficulty,
-  loadDifficultySetting,
   migrateDifficulty,
-  saveDifficultySetting,
   scaleDetectionRange,
   scaleEnemyDamage,
   scaleEnemyFireRate,
@@ -24,22 +27,16 @@ import {
   scaleResourceDropChance,
   scaleSpawnCount,
   scaleXPReward,
+  useDifficultyStore,
 } from './DifficultySettings';
 
 describe('DifficultySettings', () => {
-  // Mock localStorage
-  let localStorageMock: { [key: string]: string };
-
   beforeEach(() => {
-    localStorageMock = {};
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
-      (key) => localStorageMock[key] || null
-    );
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
-      localStorageMock[key] = value;
-    });
-    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
-      delete localStorageMock[key];
+    // Reset the Zustand store to default state before each test
+    useDifficultyStore.setState({
+      difficulty: 'normal',
+      permadeathEnabled: false,
+      initialized: true,
     });
     // Reset DifficultyManager singleton
     DifficultyManager.reset();
@@ -51,11 +48,12 @@ describe('DifficultySettings', () => {
   });
 
   describe('DIFFICULTY_PRESETS', () => {
-    it('should have all four difficulty levels', () => {
+    it('should have all five difficulty levels', () => {
       expect(DIFFICULTY_PRESETS).toHaveProperty('easy');
       expect(DIFFICULTY_PRESETS).toHaveProperty('normal');
       expect(DIFFICULTY_PRESETS).toHaveProperty('hard');
       expect(DIFFICULTY_PRESETS).toHaveProperty('nightmare');
+      expect(DIFFICULTY_PRESETS).toHaveProperty('ultra_nightmare');
     });
 
     it('should have easy difficulty with reduced multipliers', () => {
@@ -87,7 +85,7 @@ describe('DifficultySettings', () => {
       expect(hard.modifiers.resourceDropMultiplier).toBeLessThan(1.0); // Fewer resources
     });
 
-    it('should have nightmare difficulty with highest multipliers', () => {
+    it('should have nightmare difficulty with higher multipliers than hard', () => {
       const nightmare = DIFFICULTY_PRESETS.nightmare;
       expect(nightmare.modifiers.enemyHealthMultiplier).toBeGreaterThan(
         DIFFICULTY_PRESETS.hard.modifiers.enemyHealthMultiplier
@@ -97,6 +95,14 @@ describe('DifficultySettings', () => {
       );
       expect(nightmare.modifiers.xpMultiplier).toBeGreaterThan(
         DIFFICULTY_PRESETS.hard.modifiers.xpMultiplier
+      );
+    });
+
+    it('should have ultra_nightmare with forced permadeath', () => {
+      const ultraNightmare = DIFFICULTY_PRESETS.ultra_nightmare;
+      expect(ultraNightmare.modifiers.forcesPermadeath).toBe(true);
+      expect(ultraNightmare.modifiers.enemyHealthMultiplier).toBeGreaterThan(
+        DIFFICULTY_PRESETS.nightmare.modifiers.enemyHealthMultiplier
       );
     });
   });
@@ -146,6 +152,7 @@ describe('DifficultySettings', () => {
       expect(isValidDifficulty('normal')).toBe(true);
       expect(isValidDifficulty('hard')).toBe(true);
       expect(isValidDifficulty('nightmare')).toBe(true);
+      expect(isValidDifficulty('ultra_nightmare')).toBe(true);
     });
 
     it('should return false for old/invalid difficulty levels', () => {
@@ -166,42 +173,11 @@ describe('DifficultySettings', () => {
       expect(migrateDifficulty('normal')).toBe('normal');
       expect(migrateDifficulty('hard')).toBe('hard');
       expect(migrateDifficulty('nightmare')).toBe('nightmare');
+      expect(migrateDifficulty('ultra_nightmare')).toBe('ultra_nightmare');
     });
 
     it('should return default for invalid values', () => {
       expect(migrateDifficulty('invalid')).toBe('normal');
-    });
-  });
-
-  describe('loadDifficultySetting', () => {
-    it('should return default difficulty when no setting stored', () => {
-      const result = loadDifficultySetting();
-      expect(result).toBe(DEFAULT_DIFFICULTY);
-    });
-
-    it('should return stored difficulty', () => {
-      localStorageMock['stellar_descent_difficulty'] = 'hard';
-      const result = loadDifficultySetting();
-      expect(result).toBe('hard');
-    });
-
-    it('should migrate old difficulty values', () => {
-      localStorageMock['stellar_descent_difficulty'] = 'veteran';
-      const result = loadDifficultySetting();
-      expect(result).toBe('hard');
-    });
-
-    it('should return default for invalid stored value', () => {
-      localStorageMock['stellar_descent_difficulty'] = 'invalid';
-      const result = loadDifficultySetting();
-      expect(result).toBe(DEFAULT_DIFFICULTY);
-    });
-  });
-
-  describe('saveDifficultySetting', () => {
-    it('should save difficulty to localStorage', () => {
-      saveDifficultySetting('nightmare');
-      expect(localStorageMock['stellar_descent_difficulty']).toBe('nightmare');
     });
   });
 
@@ -319,26 +295,53 @@ describe('DifficultySettings', () => {
     });
   });
 
-  describe('DifficultyManager', () => {
+  describe('useDifficultyStore', () => {
+    it('should have default difficulty of normal', () => {
+      const { difficulty } = useDifficultyStore.getState();
+      expect(difficulty).toBe('normal');
+    });
+
+    it('should update difficulty via setDifficulty', () => {
+      useDifficultyStore.getState().setDifficulty('hard');
+      expect(useDifficultyStore.getState().difficulty).toBe('hard');
+    });
+
+    it('should track permadeath toggle', () => {
+      expect(useDifficultyStore.getState().permadeathEnabled).toBe(false);
+      useDifficultyStore.getState().setPermadeath(true);
+      expect(useDifficultyStore.getState().permadeathEnabled).toBe(true);
+    });
+
+    it('should provide scaling methods', () => {
+      useDifficultyStore.getState().setDifficulty('hard');
+      const store = useDifficultyStore.getState();
+      expect(store.scaleEnemyHealth(100)).toBeGreaterThan(100);
+      expect(store.scaleEnemyDamage(20)).toBeGreaterThan(20);
+    });
+  });
+
+  describe('DifficultyManager (legacy)', () => {
     it('should return singleton instance', () => {
       const manager1 = getDifficultyManager();
       const manager2 = getDifficultyManager();
       expect(manager1).toBe(manager2);
     });
 
-    it('should get current difficulty', () => {
+    it('should get current difficulty from store', () => {
+      useDifficultyStore.setState({ difficulty: 'normal' });
       const manager = getDifficultyManager();
       expect(manager.getDifficulty()).toBe('normal');
     });
 
-    it('should set and persist difficulty', () => {
+    it('should set difficulty via store', () => {
       const manager = getDifficultyManager();
       manager.setDifficulty('hard');
+      expect(useDifficultyStore.getState().difficulty).toBe('hard');
       expect(manager.getDifficulty()).toBe('hard');
-      expect(localStorageMock['stellar_descent_difficulty']).toBe('hard');
     });
 
     it('should notify listeners on difficulty change', () => {
+      useDifficultyStore.setState({ difficulty: 'normal' });
       const manager = getDifficultyManager();
       const listener = vi.fn();
       manager.addListener(listener);

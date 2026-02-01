@@ -220,3 +220,64 @@ export function scalePlayerDamage(base: number): number {
 export function scaleXP(base: number): number {
   return useDifficultyStore.getState().scaleXP(base);
 }
+
+// ============================================================================
+// Backward Compatibility (replaces localStorage functions)
+// ============================================================================
+
+/**
+ * Load difficulty setting from store.
+ * @deprecated Use useDifficultyStore() or getDifficultyLevel() instead
+ */
+export function loadDifficultySetting(): DifficultyLevel {
+  return useDifficultyStore.getState().difficulty;
+}
+
+/**
+ * Save difficulty setting to store.
+ * @deprecated Use useDifficultyStore().setDifficulty() instead
+ */
+export function saveDifficultySetting(difficulty: DifficultyLevel): void {
+  useDifficultyStore.getState().setDifficulty(difficulty);
+}
+
+/**
+ * Load permadeath setting from store.
+ * @deprecated Use useDifficultyStore().permadeathEnabled instead
+ */
+export function loadPermadeathSetting(): boolean {
+  return useDifficultyStore.getState().permadeathEnabled;
+}
+
+/**
+ * Save permadeath setting to store.
+ * @deprecated Use useDifficultyStore().setPermadeath() instead
+ */
+export function savePermadeathSetting(enabled: boolean): void {
+  useDifficultyStore.getState().setPermadeath(enabled);
+}
+
+// ============================================================================
+// Additional Scaling Functions (backward compatibility)
+// ============================================================================
+
+/** Scale enemy fire rate (non-reactive) */
+export function scaleEnemyFireRate(base: number): number {
+  return base * useDifficultyStore.getState().getModifiers().enemyFireRateMultiplier;
+}
+
+/** Scale detection range (non-reactive) */
+export function scaleDetectionRange(base: number): number {
+  return base * useDifficultyStore.getState().getModifiers().enemyDetectionMultiplier;
+}
+
+/** Scale spawn count (non-reactive) */
+export function scaleSpawnCount(base: number): number {
+  return Math.round(base * useDifficultyStore.getState().getModifiers().spawnRateMultiplier);
+}
+
+/** Scale resource drop chance (non-reactive) */
+export function scaleResourceDropChance(base: number): number {
+  const mod = useDifficultyStore.getState().getModifiers().resourceDropMultiplier;
+  return Math.min(1, base * mod);
+}
