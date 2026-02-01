@@ -142,6 +142,7 @@ export function CommandWheel({
               }}
               role="menuitem"
               aria-selected={isSelected}
+              tabIndex={0}
             >
               <div className={styles.segmentContent}>
                 <span className={styles.commandIcon}>{info.icon}</span>

@@ -162,6 +162,7 @@ export class MiningDepthsLevel extends BaseLevel {
 
   // Audio logs
   private audioLogs: AudioLogPickup[] = [];
+  public audioLogsCollected = 0;
 
   // Hazards
   private hazardZones: HazardZone[] = [];
