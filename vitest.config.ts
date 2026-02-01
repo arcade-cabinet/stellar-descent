@@ -15,6 +15,7 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts,jsx,tsx}'],
+    exclude: ['src/tests/e2e/**/*', 'node_modules'],
     pool: 'threads',
     coverage: {
       provider: 'v8',
