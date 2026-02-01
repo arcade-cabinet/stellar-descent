@@ -70,7 +70,7 @@ export function MainMenu({
   const [isNgPlusMode, setIsNgPlusMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const _difficulty = useDifficultyStore((state) => state.difficulty);
+  const storeDifficulty = useDifficultyStore((state) => state.difficulty);
 
   // Check if running on web platform (not native iOS/Android)
   const _isWebPlatform = !Capacitor.isNativePlatform();
@@ -191,9 +191,11 @@ export function MainMenu({
       playClickSound();
       setSelectedStartLevel(levelId);
       setShowCampaignSelect(false);
+      // Initialize selectedDifficulty with store value so button isn't disabled
+      setSelectedDifficulty(storeDifficulty);
       setShowDifficultySelect(true);
     },
-    [playClickSound]
+    [playClickSound, storeDifficulty]
   );
 
   const handleCancelCampaignSelect = useCallback(() => {
@@ -326,8 +328,10 @@ export function MainMenu({
     setIsNgPlusMode(true);
     // Show difficulty selection for NG+
     setSelectedStartLevel('anchor_station');
+    // Initialize selectedDifficulty with store value so button isn't disabled
+    setSelectedDifficulty(storeDifficulty);
     setShowDifficultySelect(true);
-  }, [playClickSound]);
+  }, [playClickSound, storeDifficulty]);
 
   // Modified start campaign to handle NG+ mode
   const handleStartCampaignOrNgPlus = useCallback(() => {
