@@ -166,3 +166,6 @@ dev-dist/
 
 # Vite dependency cache
 .vite/
+
+# Claude Code
+.claude/
