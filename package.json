@@ -17,7 +17,7 @@
     "build:android": "tsc && vite build && cap sync android",
     "build:all": "tsc && vite build && cap sync",
     "preview": "vite preview",
-    "lint": "biome check --write .",
+    "lint": "biome check --write --diagnostic-level=error .",
     "format": "biome format --write .",
     "test": "vitest",
     "test:ui": "vitest --ui",

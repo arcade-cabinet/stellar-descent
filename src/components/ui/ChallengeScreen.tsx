@@ -187,7 +187,6 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
   }
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
     <div
       className={styles.overlay}
       onClick={handleOverlayClick}
@@ -196,7 +195,6 @@ export function ChallengeScreen({ isOpen, onClose }: ChallengeScreenProps) {
       aria-modal="true"
       aria-labelledby="challenges-title"
     >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
       <div
         className={styles.panel}
         onClick={(e) => e.stopPropagation()}

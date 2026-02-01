@@ -117,7 +117,6 @@ export function AchievementsPanel({ isOpen, onClose }: AchievementsPanelProps) {
   }
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
     <div
       className={styles.overlay}
       onClick={handleOverlayClick}

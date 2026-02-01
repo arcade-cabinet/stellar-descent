@@ -141,7 +141,7 @@ export function CommandWheel({
                 transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
               }}
               role="menuitem"
-              aria-selected={isSelected}
+              aria-current={isSelected ? 'true' : undefined}
               tabIndex={0}
             >
               <div className={styles.segmentContent}>

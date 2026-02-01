@@ -117,7 +117,12 @@ function ActionButtonComponent({ button, onAction }: ActionButtonComponentProps)
     .join(' ');
 
   return (
-    <button className={classNames} onClick={handleClick} disabled={!enabled || isOnCooldown}>
+    <button
+      type="button"
+      className={classNames}
+      onClick={handleClick}
+      disabled={!enabled || isOnCooldown}
+    >
       {/* Cooldown overlay */}
       {isOnCooldown && (
         <div className={styles.cooldownOverlay} style={{ width: `${100 - cooldownPercent}%` }} />
