@@ -12,6 +12,7 @@ import { saveSystem } from './game/persistence';
 import { getLogger } from './game/core/Logger';
 import { initAchievements } from './game/achievements';
 import { useDifficultyStore } from './game/difficulty/useDifficultyStore';
+import { initializeGameStatsStore } from './game/stores/useGameStatsStore';
 
 const log = getLogger('Main');
 
@@ -39,6 +40,11 @@ async function initApp() {
     log.info('Initializing difficulty store...');
     await useDifficultyStore.getState().initialize();
     log.info('Difficulty store initialized successfully');
+
+    // Initialize game stats store AFTER database is ready
+    log.info('Initializing game stats store...');
+    await initializeGameStatsStore();
+    log.info('Game stats store initialized successfully');
   } catch (error) {
     log.error('Failed to initialize database or achievements:', error);
     // Continue anyway - stores will use defaults if database fails

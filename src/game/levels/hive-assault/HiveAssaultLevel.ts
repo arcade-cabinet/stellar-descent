@@ -45,7 +45,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
 import { AssetManager } from '../../core/AssetManager';
 import { particleManager } from '../../effects/ParticleManager';

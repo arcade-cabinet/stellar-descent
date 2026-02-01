@@ -45,7 +45,7 @@ import { getLogger } from '../../core/Logger';
 
 const log = getLogger('CanyonRun');
 
-import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';

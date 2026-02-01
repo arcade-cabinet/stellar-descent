@@ -109,6 +109,17 @@ export {
   type SkullEntry,
   useCollectiblesStore,
 } from './useCollectiblesStore';
+// Game stats store (death count, best times, level stats)
+export {
+  type BestTimeEntry,
+  type GameStatsActions,
+  type GameStatsState,
+  type GameStatsStoreState,
+  getGameStatsStore,
+  initializeGameStatsStore,
+  type LevelBestStatsData,
+  useGameStatsStore,
+} from './useGameStatsStore';
 // Combat store (non-persisted runtime stats)
 export {
   type CombatActions,

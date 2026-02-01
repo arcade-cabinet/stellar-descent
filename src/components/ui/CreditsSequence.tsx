@@ -10,6 +10,7 @@ import {
   getLevelDisplayName,
   saveSystem,
 } from '../../game/persistence';
+import { useGameStatsStore } from '../../game/stores/useGameStatsStore';
 import styles from './CreditsSequence.module.css';
 
 /**
@@ -73,65 +74,20 @@ const DEFAULT_STATS: CampaignStats = {
 };
 
 /**
- * Load best stats from localStorage for a level
+ * Load best stats from the game stats store for a level
  */
 function loadLevelBestStats(
   levelId: LevelId
 ): { time: number; kills: number; rating: string } | null {
-  try {
-    const stored = localStorage.getItem(`stellar_descent_best_${levelId}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        time: parsed.bestTime ?? 0,
-        kills: parsed.bestKills ?? 0,
-        rating: parsed.bestRating ?? 'C',
-      };
-    }
-  } catch {
-    // Ignore parse errors
+  const stats = useGameStatsStore.getState().getLevelBestStats(levelId);
+  if (stats) {
+    return {
+      time: stats.bestTime ?? 0,
+      kills: stats.bestKills ?? 0,
+      rating: stats.bestRating ?? 'C',
+    };
   }
   return null;
-}
-
-/**
- * Load weapon usage stats from localStorage
- */
-function loadWeaponUsageStats(): { favoriteWeapon: WeaponId | null } {
-  try {
-    const stored = localStorage.getItem('stellar_descent_weapon_usage');
-    if (stored) {
-      const parsed = JSON.parse(stored) as Record<WeaponId, number>;
-      // Find weapon with most kills
-      let maxKills = 0;
-      let favoriteWeapon: WeaponId | null = null;
-      for (const [weaponId, kills] of Object.entries(parsed)) {
-        if (kills > maxKills) {
-          maxKills = kills;
-          favoriteWeapon = weaponId as WeaponId;
-        }
-      }
-      return { favoriteWeapon };
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return { favoriteWeapon: 'assault_rifle' }; // Default
-}
-
-/**
- * Load death count from localStorage
- */
-function loadDeathCount(): number {
-  try {
-    const stored = localStorage.getItem('stellar_descent_death_count');
-    if (stored) {
-      return Number.parseInt(stored, 10) || 0;
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return 0;
 }
 
 /**
@@ -191,11 +147,11 @@ function calculateCampaignStats(save: GameSave | null): CampaignStats {
   const shotsHit = progress.shotsHit ?? 0;
   const overallAccuracy = shotsFired > 0 ? Math.round((shotsHit / shotsFired) * 100) : 0;
 
-  // Get death count
-  const deaths = loadDeathCount();
+  // Get death count from persisted store
+  const deaths = useGameStatsStore.getState().getDeathCount();
 
-  // Get favorite weapon
-  const { favoriteWeapon } = loadWeaponUsageStats();
+  // Default favorite weapon (weapon usage tracking not implemented)
+  const favoriteWeapon: WeaponId | null = 'assault_rifle';
 
   // Calculate total secrets from all level configs
   const totalSecrets = Object.values(CAMPAIGN_LEVELS).reduce(

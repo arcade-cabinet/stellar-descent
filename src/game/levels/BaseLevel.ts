@@ -19,7 +19,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getMeleeSystem } from '../combat';
-import { getInputTracker, type InputTracker } from '../context/useInputActions';
+import { getInputTracker, type InputTracker } from '../input';
 import { getAudioManager } from '../core/AudioManager';
 import { devMode } from '../core/DevMode';
 import { getEventBus } from '../core/EventBus';

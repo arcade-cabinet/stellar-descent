@@ -611,6 +611,15 @@ vi.mock('../../context/useInputActions', () => ({
   }),
 }));
 
+vi.mock('../../stores/useKeybindingsStore', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    registerDynamicActions: mockRegisterDynamicActions,
+    unregisterDynamicActions: mockUnregisterDynamicActions,
+  };
+});
+
 vi.mock('../../input/InputBridge', () => ({
   levelActionParams: vi.fn().mockReturnValue({ key: 'KeyG', keyDisplay: 'G' }),
   formatKeyForDisplay: vi.fn().mockImplementation((key: string) => key.replace('Key', '')),

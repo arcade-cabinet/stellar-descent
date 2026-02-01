@@ -6,6 +6,7 @@ import type { LevelId } from '../../game/levels/types';
 import { getPlayerName, leaderboardSystem } from '../../game/social';
 import type { LeaderboardSubmission } from '../../game/social/LeaderboardTypes';
 import { useCombatStore } from '../../game/stores/useCombatStore';
+import { useGameStatsStore } from '../../game/stores/useGameStatsStore';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import styles from './LevelCompletionScreen.module.css';
 import { MilitaryButton } from './MilitaryButton';
@@ -223,36 +224,17 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * Storage key for level best stats
- */
-function getBestStatsKey(levelId: LevelId): string {
-  return `stellar_descent_best_${levelId}`;
-}
-
-/**
- * Load best stats from localStorage
+ * Load best stats from the game stats store
  */
 function loadBestStats(levelId: LevelId): LevelBestStats | null {
-  try {
-    const stored = localStorage.getItem(getBestStatsKey(levelId));
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return null;
+  return useGameStatsStore.getState().getLevelBestStats(levelId);
 }
 
 /**
- * Save best stats to localStorage
+ * Save best stats to the game stats store (persisted to SQLite)
  */
 function saveBestStats(levelId: LevelId, stats: LevelBestStats): void {
-  try {
-    localStorage.setItem(getBestStatsKey(levelId), JSON.stringify(stats));
-  } catch {
-    // Ignore storage errors
-  }
+  useGameStatsStore.getState().saveLevelBestStats(levelId, stats);
 }
 
 /**

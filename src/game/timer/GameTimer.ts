@@ -10,6 +10,7 @@
 
 import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
+import { useGameStatsStore } from '../stores/useGameStatsStore';
 
 const log = getLogger('GameTimer');
 
@@ -35,12 +36,6 @@ export interface LevelBestTime {
   /** Date achieved */
   achievedAt: number;
 }
-
-// ============================================================================
-// Storage keys
-// ============================================================================
-
-const BEST_TIMES_STORAGE_KEY = 'stellar_descent_best_times';
 
 // ============================================================================
 // GameTimer class
@@ -202,52 +197,47 @@ class GameTimer {
    * Returns true if this is a new best time
    */
   checkAndSaveBestTime(levelId: LevelId, timeSeconds: number): boolean {
-    const bestTimes = this.loadBestTimes();
-    const existing = bestTimes[levelId];
-
-    if (!existing || timeSeconds < existing.bestTimeSeconds) {
-      bestTimes[levelId] = {
-        levelId,
-        bestTimeSeconds: timeSeconds,
-        achievedAt: Date.now(),
-      };
-      this.saveBestTimes(bestTimes);
-      log.info(`New best time for ${levelId}: ${timeSeconds.toFixed(2)}s`);
-      return true;
-    }
-
-    return false;
+    return useGameStatsStore.getState().checkAndSaveBestTime(levelId, timeSeconds);
   }
 
   /**
    * Get best time for a specific level
    */
   getBestTime(levelId: LevelId): number | null {
-    const bestTimes = this.loadBestTimes();
-    return bestTimes[levelId]?.bestTimeSeconds ?? null;
+    return useGameStatsStore.getState().getBestTime(levelId);
   }
 
   /**
    * Get all best times
    */
   getAllBestTimes(): Record<LevelId, LevelBestTime> {
-    return this.loadBestTimes();
+    const storeTimes = useGameStatsStore.getState().getAllBestTimes();
+    // Convert to GameTimer's LevelBestTime format
+    const result = {} as Record<LevelId, LevelBestTime>;
+    for (const [id, entry] of Object.entries(storeTimes)) {
+      if (entry) {
+        result[id as LevelId] = {
+          levelId: id as LevelId,
+          bestTimeSeconds: entry.bestTimeSeconds,
+          achievedAt: entry.achievedAt,
+        };
+      }
+    }
+    return result;
   }
 
   /**
    * Clear best time for a level (for dev/testing)
    */
   clearBestTime(levelId: LevelId): void {
-    const bestTimes = this.loadBestTimes();
-    delete bestTimes[levelId];
-    this.saveBestTimes(bestTimes);
+    useGameStatsStore.getState().clearBestTime(levelId);
   }
 
   /**
    * Clear all best times (for dev/testing)
    */
   clearAllBestTimes(): void {
-    this.saveBestTimes({} as Record<LevelId, LevelBestTime>);
+    useGameStatsStore.getState().clearAllBestTimes();
   }
 
   // ---- Private helpers ----
@@ -270,18 +260,6 @@ class GameTimer {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-  }
-
-  private loadBestTimes(): Record<LevelId, LevelBestTime> {
-    const stored = localStorage.getItem(BEST_TIMES_STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-    return {} as Record<LevelId, LevelBestTime>;
-  }
-
-  private saveBestTimes(bestTimes: Record<LevelId, LevelBestTime>): void {
-    localStorage.setItem(BEST_TIMES_STORAGE_KEY, JSON.stringify(bestTimes));
   }
 
   // ---- Cleanup ----

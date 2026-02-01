@@ -1,21 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
 import { useCombatStore } from '../../game/stores/useCombatStore';
+import { useGameStatsStore } from '../../game/stores/useGameStatsStore';
 import styles from './DeathScreen.module.css';
 import { MilitaryButton } from './MilitaryButton';
-
-/**
- * Increment death counter in localStorage for campaign stats
- */
-function incrementDeathCount(): void {
-  try {
-    const key = 'stellar_descent_death_count';
-    const current = Number.parseInt(localStorage.getItem(key) ?? '0', 10);
-    localStorage.setItem(key, String(current + 1));
-  } catch {
-    // Ignore storage errors
-  }
-}
 
 interface DeathScreenProps {
   /** Callback when restart mission button is clicked */
@@ -54,7 +42,7 @@ export function DeathScreen({
       // Play a somber/failure sound
       getAudioManager().playMusic('menu', 2); // Fade to menu music
       // Track death for campaign stats
-      incrementDeathCount();
+      useGameStatsStore.getState().incrementDeathCount();
       setHasPlayedSound(true);
     }
     // Focus restart button for accessibility

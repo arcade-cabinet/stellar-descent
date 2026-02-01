@@ -61,7 +61,7 @@ import { createVehicleDestructionEffect } from '../../vehicles/VehicleUtils';
 
 const log = getLogger('FinalEscapeLevel');
 
-import { registerDynamicActions, unregisterDynamicActions } from '../../context/useInputActions';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { levelActionParams } from '../../input/InputBridge';
