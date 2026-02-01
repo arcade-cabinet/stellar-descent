@@ -18,6 +18,7 @@ import { getAchievementManager } from '../game/achievements';
 import type { CampaignCommand, CampaignPhase, CampaignSnapshot } from '../game/campaign/types';
 import { useGame } from '../game/context/GameContext';
 import { CAMPAIGN_LEVELS, type LevelId } from '../game/levels/types';
+import { useCombatStore } from '../game/stores/useCombatStore';
 import { saveSystem } from '../game/persistence';
 import { getLevelCinematicPath } from '../game/utils/cinematics';
 import { GameCanvas } from './GameCanvas';
@@ -90,17 +91,19 @@ export function GameFlow({ snapshot, dispatch, isTouchDevice }: GameFlowProps) {
   const {
     playerHealth,
     maxHealth,
-    kills,
     missionText,
     objectiveTitle,
     objectiveInstructions,
     setTouchInput,
     currentComms,
     hideComms,
-    isCalibrating,
     tutorialPhase,
     isTutorialActive,
   } = useGame();
+
+  // Combat UI state from Zustand store
+  const kills = useCombatStore((s) => s.kills);
+  const isCalibrating = useCombatStore((s) => s.isCalibrating);
 
   // Show mobile tutorial when entering tutorial phase on touch devices
   useEffect(() => {

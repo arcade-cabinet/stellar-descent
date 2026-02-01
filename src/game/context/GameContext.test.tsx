@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useCombatStore } from '../stores/useCombatStore';
 import {
   DEFAULT_HUD_VISIBILITY,
   GameProvider,
@@ -50,9 +51,6 @@ function TestConsumer() {
       <button type="button" onClick={() => game.showNotification('Test notification')}>
         Show Notification
       </button>
-      <button type="button" onClick={() => game.onDamage()}>
-        Trigger Damage
-      </button>
     </div>
   );
 }
@@ -60,6 +58,8 @@ function TestConsumer() {
 describe('GameContext', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // Reset shared Zustand store state between tests
+    useCombatStore.getState().reset();
   });
 
   afterEach(() => {
@@ -407,43 +407,6 @@ describe('GameContext', () => {
       });
 
       expect(screen.getByTestId('notification').textContent).toBe('none');
-    });
-  });
-
-  describe('damage flash', () => {
-    it('should trigger damage flash', () => {
-      let damageFlash = false;
-
-      function DamageTestConsumer() {
-        const game = useGame();
-        damageFlash = game.damageFlash;
-        return (
-          <button type="button" onClick={() => game.onDamage()}>
-            Trigger Damage
-          </button>
-        );
-      }
-
-      render(
-        <GameProvider>
-          <DamageTestConsumer />
-        </GameProvider>
-      );
-
-      expect(damageFlash).toBe(false);
-
-      act(() => {
-        screen.getByText('Trigger Damage').click();
-      });
-
-      expect(damageFlash).toBe(true);
-
-      // Damage flash should clear after 300ms
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
-      expect(damageFlash).toBe(false);
     });
   });
 

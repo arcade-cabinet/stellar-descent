@@ -23,12 +23,14 @@ import '@babylonjs/core/Shaders/default.fragment';
 import { useGame } from '../game/context/GameContext';
 import { AssetManager } from '../game/core/AssetManager';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
+import { getEventBus } from '../game/core/EventBus';
 import { GameManager } from '../game/core/GameManager';
 import { getLogger } from '../game/core/Logger';
 import { getPerformanceManager } from '../game/core/PerformanceManager';
 import { defaultLevelFactories } from '../game/levels/factories';
 import { CAMPAIGN_LEVELS, type ILevel, type LevelId } from '../game/levels/types';
 import { initShareSystem } from '../game/social';
+import { getCombatStore } from '../game/stores/useCombatStore';
 import styles from './GameCanvas.module.css';
 
 // ---------------------------------------------------------------------------
@@ -269,19 +271,14 @@ export function GameCanvas({
   const {
     showNotification,
     setPlayerHealth,
-    addKill,
-    onDamage,
     touchInput,
     showComms,
     hideComms,
     setObjective,
     commsDismissedFlag,
-    setIsCalibrating,
     setCompassData,
     setTutorialPhase,
     setIsTutorialActive,
-    addHitMarker,
-    addDamageIndicator,
   } = useGame();
 
   // Track pause state via ref for render loop access
@@ -667,12 +664,37 @@ export function GameCanvas({
       if (!gameManagerRef.current) {
         gameManagerRef.current = new GameManager(scene, engine, canvas, {
           onHealthChange: setPlayerHealth,
-          onKill: addKill,
-          onDamage: onDamage,
+          onKill: () => {
+            getCombatStore().addKill();
+          },
+          onDamage: () => {
+            getEventBus().emit({ type: 'PLAYER_DAMAGED', amount: 0, source: 'combat' });
+          },
           onNotification: showNotification,
           onCompassUpdate: setCompassData,
-          onHitMarker: addHitMarker,
-          onDirectionalDamage: addDamageIndicator,
+          onHitMarker: (damage, isCritical, isKill) => {
+            if (isKill) {
+              getEventBus().emit({
+                type: 'ENEMY_KILLED',
+                position: Vector3.Zero(),
+                enemyType: 'unknown',
+              });
+            } else {
+              getEventBus().emit({
+                type: 'PROJECTILE_IMPACT',
+                position: Vector3.Zero(),
+                damage,
+                isCritical,
+              });
+            }
+          },
+          onDirectionalDamage: (angle, damage) => {
+            getEventBus().emit({
+              type: 'PLAYER_DAMAGED',
+              amount: damage,
+              direction: angle,
+            });
+          },
         });
         gameManagerRef.current.initialize();
       }
@@ -732,8 +754,6 @@ export function GameCanvas({
     gameState,
     startLevelId,
     setPlayerHealth,
-    addKill,
-    onDamage,
     showNotification,
     hideComms,
     setObjective,
@@ -741,8 +761,6 @@ export function GameCanvas({
     setCompassData,
     setTutorialPhase,
     setIsTutorialActive,
-    addHitMarker,
-    addDamageIndicator,
   ]);
 
   return (

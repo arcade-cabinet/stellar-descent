@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useCombat } from '../../game/context/CombatContext';
 import { useSettings } from '../../game/stores/useSettingsStore';
 import { useGameEvent } from '../../hooks/useGameEvent';
 import styles from './Hitmarker.module.css';
@@ -102,10 +101,9 @@ export function Hitmarker({ type, visible, onComplete }: HitmarkerProps) {
 
 /**
  * HitmarkerDisplay - Container component that manages multiple hitmarkers
- * Integrates with CombatContext and EventBus for automatic display
+ * Renders hitmarkers based on EventBus events.
  *
  * This component automatically renders hitmarkers based on:
- * - hitMarkers array from CombatContext
  * - PROJECTILE_IMPACT and ENEMY_KILLED events from EventBus
  *
  * It handles:
@@ -116,16 +114,15 @@ export function Hitmarker({ type, visible, onComplete }: HitmarkerProps) {
  * Can be toggled via the showHitmarkers setting.
  */
 export function HitmarkerDisplay() {
-  const { hitMarkers, removeHitMarker } = useCombat();
   const { settings } = useSettings();
 
-  // EventBus-driven state (supplements context for self-contained operation)
-  const [eventBusMarkers, setEventBusMarkers] = useState<EventBusHitMarker[]>([]);
-  const eventBusIdRef = useRef(0);
+  // All hit markers are EventBus-driven (CombatContext removed)
+  const [markers, setMarkers] = useState<EventBusHitMarker[]>([]);
+  const markerIdRef = useRef(0);
 
   // Subscribe to PROJECTILE_IMPACT events for hit markers
   useGameEvent('PROJECTILE_IMPACT', (event) => {
-    const id = eventBusIdRef.current++;
+    const id = markerIdRef.current++;
     const newMarker: EventBusHitMarker = {
       id,
       damage: event.damage,
@@ -133,12 +130,12 @@ export function HitmarkerDisplay() {
       isKill: false,
       timestamp: performance.now(),
     };
-    setEventBusMarkers((prev) => [...prev, newMarker]);
+    setMarkers((prev) => [...prev, newMarker]);
   });
 
   // Subscribe to ENEMY_KILLED events for kill markers
   useGameEvent('ENEMY_KILLED', () => {
-    const id = eventBusIdRef.current++;
+    const id = markerIdRef.current++;
     const newMarker: EventBusHitMarker = {
       id,
       damage: 0,
@@ -146,7 +143,7 @@ export function HitmarkerDisplay() {
       isKill: true,
       timestamp: performance.now(),
     };
-    setEventBusMarkers((prev) => [...prev, newMarker]);
+    setMarkers((prev) => [...prev, newMarker]);
   });
 
   // Determine if we should use reduced animations
@@ -155,32 +152,7 @@ export function HitmarkerDisplay() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches || settings.reduceMotion;
   }, [settings.reduceMotion]);
 
-  // Remove expired context hit markers
-  useEffect(() => {
-    const HIT_DURATION = 150;
-    const CRITICAL_DURATION = 200;
-    const KILL_DURATION = 300;
-
-    const interval = setInterval(() => {
-      const currentTime = performance.now();
-      hitMarkers.forEach((marker) => {
-        let duration = HIT_DURATION;
-        if (marker.isKill) {
-          duration = KILL_DURATION;
-        } else if (marker.isCritical) {
-          duration = CRITICAL_DURATION;
-        }
-
-        if (currentTime - marker.timestamp > duration) {
-          removeHitMarker(marker.id);
-        }
-      });
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [hitMarkers, removeHitMarker]);
-
-  // Remove expired EventBus hit markers
+  // Remove expired hit markers
   useEffect(() => {
     const HIT_DURATION = 150;
     const CRITICAL_DURATION = 200;
@@ -188,7 +160,7 @@ export function HitmarkerDisplay() {
 
     const interval = setInterval(() => {
       const now = performance.now();
-      setEventBusMarkers((prev) =>
+      setMarkers((prev) =>
         prev.filter((marker) => {
           let duration = HIT_DURATION;
           if (marker.isKill) duration = KILL_DURATION;
@@ -201,21 +173,18 @@ export function HitmarkerDisplay() {
     return () => clearInterval(interval);
   }, []);
 
-  // Combine context and EventBus markers
-  const effectiveMarkers = [...hitMarkers, ...eventBusMarkers];
-
   // Don't render if hitmarkers are disabled in settings
   if (!settings.showHitmarkers) {
     return null;
   }
 
-  if (effectiveMarkers.length === 0) {
+  if (markers.length === 0) {
     return null;
   }
 
   return (
     <div className={styles.hitmarkerContainer} aria-hidden="true">
-      {effectiveMarkers.map((marker) => {
+      {markers.map((marker) => {
         const type: HitmarkerType = marker.isKill ? 'kill' : marker.isCritical ? 'critical' : 'hit';
 
         return (

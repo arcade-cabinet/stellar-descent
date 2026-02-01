@@ -129,6 +129,7 @@ export {
   initializeCombatStoreEventHandlers,
   // Types
   type KillRecord,
+  playChapterMusic,
   // Selectors
   selectAccuracy,
   selectIsOnStreak,

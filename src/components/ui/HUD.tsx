@@ -80,7 +80,6 @@ const POINTS = {
 export function HUD({ health, maxHealth, kills, missionText }: HUDProps) {
   const {
     notification,
-    damageFlash,
     actionGroups,
     triggerAction,
     hudVisibility,
