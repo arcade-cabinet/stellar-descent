@@ -1,8 +1,8 @@
-# Game Loading tests
+# Game Loading tests - Full new game flow through mission briefing
 # Works on: Web, Android, iOS
 
 appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
-url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+url: "${PLATFORM == 'web' ? WEB_URL : null}"
 tags:
   - loading
   - gameplay
@@ -21,26 +21,76 @@ name: "Game Loading - New Campaign Flow"
 - tapOn:
     text: "NEW GAME"
 
-# Should see loading screen
+# Handle save overwrite confirmation if it appears
+- runFlow:
+    when:
+      visible: "START NEW"
+    commands:
+      - tapOn: "START NEW"
+
+# Should see mission select
 - extendedWaitUntil:
-    visible: "ANCHOR STATION PROMETHEUS"
+    visible: "SELECT MISSION"
     timeout: 10000
 
-- takeScreenshot: "loading-screen"
-
-# Wait for loading to complete
-- extendedWaitUntil:
-    visible: "SYSTEMS ONLINE"
-    timeout: 60000
-
-- takeScreenshot: "loading-complete"
-
-# Should see tutorial comms
-- extendedWaitUntil:
-    visible: "Good morning"
-    timeout: 30000
+# Verify campaign chapters are listed
+- assertVisible:
+    text: "ANCHOR STATION PROMETHEUS"
 
 - assertVisible:
-    text: "ATHENA"
+    text: "LANDFALL"
 
-- takeScreenshot: "tutorial-start"
+- assertVisible:
+    text: "CANYON RUN"
+
+- takeScreenshot: "mission-select"
+
+# Select Anchor Station
+- tapOn:
+    text: "ANCHOR STATION PROMETHEUS"
+
+# Should see difficulty selection
+- extendedWaitUntil:
+    visible: "SELECT DIFFICULTY"
+    timeout: 10000
+
+- assertVisible:
+    text: "EASY"
+
+- assertVisible:
+    text: "NORMAL"
+
+- assertVisible:
+    text: "HARD"
+
+- assertVisible:
+    text: "NIGHTMARE"
+
+- assertVisible:
+    text: "ULTRA-NIGHTMARE"
+
+- takeScreenshot: "difficulty-select"
+
+# Start campaign (text includes arrow: "START CAMPAIGN →")
+- tapOn:
+    text: "START CAMPAIGN.*"
+
+# Should see mission briefing
+- extendedWaitUntil:
+    visible: "MISSION BRIEFING"
+    timeout: 10000
+
+- assertVisible:
+    text: "ANCHOR STATION PROMETHEUS"
+
+- assertVisible:
+    text: "BEGIN MISSION"
+
+# Verify briefing objectives
+- assertVisible:
+    text: "Complete weapons familiarization"
+
+- assertVisible:
+    text: "Navigate to drop pod"
+
+- takeScreenshot: "mission-briefing"

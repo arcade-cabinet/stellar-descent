@@ -1,24 +1,40 @@
 # Smoke test - verify app loads and renders
-# Works on: Web
+# Works on: Web, Android, iOS
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? WEB_URL : null}"
 tags:
   - smoke
   - critical
 name: "Smoke Test - App Loads"
 
 ---
-# For web testing - navigate to the app
-- openLink: "http://localhost:8080"
+- launchApp
 
-# Wait for canvas to be ready (game renders to canvas)
+# Wait for main menu title
 - extendedWaitUntil:
-    visible: "canvas"
+    visible: "STELLAR DESCENT"
     timeout: 30000
 
-# Main menu should be visible
+# Verify all main menu buttons
 - assertVisible:
     text: "NEW GAME"
 
 - assertVisible:
+    text: "SETTINGS"
+
+- assertVisible:
     text: "HELP"
+
+- assertVisible:
+    text: "LOAD GAME"
+
+- assertVisible:
+    text: "CHALLENGES"
+
+- assertVisible:
+    text: "ACHIEVEMENTS"
+
+- assertVisible:
+    text: "LEADERBOARDS"
 
 - takeScreenshot: "smoke-main-menu"
