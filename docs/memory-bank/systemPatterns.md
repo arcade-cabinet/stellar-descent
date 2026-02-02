@@ -283,6 +283,55 @@ async init(): Promise<void> {
 }
 ```
 
+### Database Reset Lifecycle (Critical Pattern)
+When resetting the database (e.g., NEW GAME), three singletons must be cleared:
+1. **DatabaseProxy** (`database.ts`): `dbInstance` and `initPromise` must be nulled in both `close()` and `deleteDatabase()`, or `getDatabase()` returns a stale closed instance.
+2. **WorldDatabase** (`worldDatabase.ts`): `WorldDatabase.initPromise` must be nulled in `resetDatabase()`, or `init()` returns the stale resolved promise and skips `createTables()`.
+3. **WebSQLiteDatabase**: `close()` sets internal `db = null` — this is correct, but callers must not retain references.
+
+```typescript
+// DatabaseProxy.deleteDatabase() - MUST clear singleton
+async deleteDatabase(): Promise<void> {
+  const db = await this.getDb();
+  await db.deleteDatabase();
+  dbInstance = null;    // Clear so getDatabase() creates fresh instance
+  initPromise = null;
+}
+
+// WorldDatabase.resetDatabase() - MUST clear static promise
+async resetDatabase(): Promise<void> {
+  await capacitorDb.deleteDatabase();
+  this.initialized = false;
+  WorldDatabase.initPromise = null;  // Force init() to re-run doInit()
+  await this.init();
+}
+```
+
+### Audio Loading Safety Pattern
+Tone.js has a global `Tone.loaded()` promise that waits for ALL buffers. A single failed buffer poisons ALL subsequent `Tone.loaded()` calls. Two mitigations:
+
+1. **Pre-validate audio files** before creating Tone.Player:
+```typescript
+const headResp = await fetch(audioPath, { method: 'HEAD' });
+const contentType = headResp.headers.get('content-type') || '';
+if (!contentType.startsWith('audio/')) {
+  log.warn('Audio file not available', { path: audioPath, contentType });
+  return; // Don't create player - would poison Tone.loaded()
+}
+```
+
+2. **Per-player load promises** instead of global `Tone.loaded()`:
+```typescript
+const newPlayer = await new Promise<Tone.Player>((resolve, reject) => {
+  const player = new Tone.Player({
+    url: path, loop: true,
+    onload: () => resolve(player),
+    onerror: (err) => reject(err),
+  });
+});
+// NOT: await Tone.loaded(); // Poisoned by ANY failed buffer
+```
+
 ## Player Governor (Dev Mode)
 
 ### Autonomous Player Control

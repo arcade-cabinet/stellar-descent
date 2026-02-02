@@ -3,13 +3,60 @@
 ## Current Development Phase
 **Phase 6: Release Polish** (In Progress)
 
-## Session Summary (Feb 1, 2026 - Latest)
+## Session Summary (Feb 2, 2026 - Latest)
 
 ### Current Focus
-1. **Rendering Bug Fixes** - Fixed 3 root causes of black screen across all levels
-2. **Runtime Bug Fixes** - Fixed 5 gameplay bugs found via code audit
-3. **Cross-Project Hardening** - Applied PBR alpha=0 fix to infinite-headaches and otter-river-rush
-4. **Level Verification** - All 11 levels pass parallel Playwright rendering tests
+1. **Database Race Condition** - Fixed 3-part cascade bug in NEW GAME flow
+2. **Audio Decode Errors** - Fixed Tone.js global buffer poisoning from missing splash audio
+3. **Overexposed Lighting** - Reduced station light intensities ~4x for PBR-appropriate levels
+4. **LevelIntro Skip Bug** - Fixed skip guard preventing fadeOut transition
+5. **E2E Verification** - Browser-verified all fixes via Chrome automation + Maestro
+
+### Database Race Condition Fix (Critical - 3 cascading bugs)
+
+#### 1. DatabaseProxy Singleton Leak
+**Root cause**: `DatabaseProxy.close()` and `deleteDatabase()` didn't clear `dbInstance`/`initPromise` singleton. After `resetDatabase()`, `getDatabase()` returned the stale closed instance (with `db=null`), causing "Database not initialized" errors.
+**Fix**: Both methods now clear `dbInstance = null` and `initPromise = null` after operation.
+**Location**: `src/game/db/database.ts:155-170`
+
+#### 2. WorldDatabase initPromise Stale
+**Root cause**: `WorldDatabase.resetDatabase()` called `deleteDatabase()` then `init()`, but the static `initPromise` was still set from the original initialization. `init()` returned the stale resolved promise, skipping `createTables()` entirely. Fresh empty DB had no tables.
+**Fix**: `resetDatabase()` now clears `WorldDatabase.initPromise = null` before calling `init()`.
+**Location**: `src/game/db/worldDatabase.ts:349-355`
+
+#### 3. Error Chain
+`SaveSystem.newGame()` → `worldDb.resetDatabase()` → `capacitorDb.deleteDatabase()` → `WebSQLiteDatabase.close()` sets `db=null` → subsequent queries fail with "Database not initialized" and "no such table: chunk_data".
+
+### Audio Decode Error Fixes (2 root causes)
+
+#### 1. Splash Audio Missing Files
+**Root cause**: `/assets/audio/splash/splash-portrait.ogg` and `splash-landscape.ogg` don't exist on disk. Vite SPA fallback serves `index.html` (text/html) as response. Tone.js tries to decode HTML as audio → global `EncodingError`.
+**Fix**: `SplashAudioManager.startPlayback()` pre-validates with `fetch(audioPath, { method: 'HEAD' })` and checks content-type starts with 'audio/'.
+**Location**: `src/game/core/audio/SplashAudioManager.ts:265-274`
+
+#### 2. Global Tone.loaded() Poisoning
+**Root cause**: `MusicPlayer.play()` used global `Tone.loaded()` which waits for ALL buffers. A single failed buffer (splash audio) poisons all subsequent `Tone.loaded()` calls, preventing menu music from loading.
+**Fix**: Uses per-player `onload`/`onerror` callbacks wrapped in a Promise instead of global `Tone.loaded()`.
+**Location**: `src/game/core/audio/music.ts:68-79`
+
+### Overexposed Lighting Fix
+**Root cause**: Station lighting intensities were set for a non-PBR pipeline (intensity 6-12). With PBR materials and ambient + directional + point lights all contributing, surfaces were completely overexposed (white-washed).
+**Fix**: DirectionalLight 12→3, HemisphericLight 6→1.5, zone PointLights reduced ~4x (10→2.5, 8→2.0, 6→1.5, 12→3.0).
+**Locations**: `src/game/levels/StationLevel.ts:80,87`, `src/game/levels/anchor-station/AnchorStationLevel.ts:294-315`
+
+### LevelIntro Skip Bug Fix
+**Root cause**: `isSkipping` guard in phase progression useEffect prevented the fadeOut→complete transition from firing, leaving the level intro stuck.
+**Fix**: Only block non-fadeOut/complete phases when skipping.
+**Location**: `src/components/ui/LevelIntro.tsx:165-167`
+
+### E2E Verification Results
+- **5,459 unit tests passing** (96 test files)
+- **Maestro smoke test**: App loads, main menu visible (6 commands passed)
+- **Maestro full new game flow**: 35 assertions across menu→mission select→difficulty→briefing
+- **Maestro screen navigation**: 29 assertions across help, settings, achievements, leaderboards
+- **Chrome browser automation**: Zero console errors through full NEW GAME→START CAMPAIGN→BEGIN MISSION→3D scene flow
+
+### Previous Session (Feb 1, 2026)
 
 ### Rendering Fixes (Critical - 3 Root Causes)
 
@@ -95,12 +142,15 @@ Location: `src/game/systems/PlayerGovernor.ts`
 
 ### Build Status
 - **TypeScript**: Zero errors
-- **Production build**: Passes
-- **Tests**: 93 files pass, 4,763 tests passed, 604 skipped
+- **Production build**: Pending verification post-merge
+- **Tests**: 96 files pass, 5,459 tests passed, 604 skipped
 - **Level rendering**: 0 FAIL across all 11 levels (parallel Playwright test)
 - **Shader errors**: NONE
 - **PBR alpha=0 materials**: NONE
 - **Fade overlay blocking**: NONE
+- **Database errors on NEW GAME**: NONE (fixed)
+- **Audio decode errors**: NONE (fixed)
+- **Overexposed lighting**: NONE (fixed)
 
 ## Active Decisions
 - **Package Manager**: PNPM exclusively (never npm/npx)
@@ -120,6 +170,10 @@ Location: `src/game/systems/PlayerGovernor.ts`
 | `src/game/campaign/CampaignDirector.ts` | Phase transitions |
 | `src/components/GameCanvas.tsx` | Engine init, menu scene, local textures |
 | `vite.config.ts` | Shader guard plugin, COOP/COEP conditional |
+| `src/game/db/database.ts` | DatabaseProxy singleton lifecycle (close/delete must clear) |
+| `src/game/db/worldDatabase.ts` | WorldDatabase initPromise reset on deleteDatabase |
+| `src/game/core/audio/SplashAudioManager.ts` | Audio file pre-validation before Tone.js load |
+| `src/game/core/audio/music.ts` | Per-player load (not global Tone.loaded()) |
 
 ## Known Remaining Issues
 - **CampaignDirector race condition**: Rapid NEW_GAME + CONTINUE dispatches could overlap async `.then()` callbacks (low probability, menu interaction speed)
@@ -127,6 +181,8 @@ Location: `src/game/systems/PlayerGovernor.ts`
 - **require() in ESM context**: `CampaignDirector.ts:875` and `useInputActions.ts:236` use `require()` for lazy loading (works via Vite CJS compat)
 - **Player laser bolt material race**: One-frame window where materials dispose before mesh in rAF loop (cosmetic only)
 - **iron-frontier, neo-tokyo, protocol-silent-night**: HIGH risk for PBR alpha=0 bug (not yet fixed, lower priority Ionic projects)
+- **Missing splash audio files**: `splash-portrait.ogg` and `splash-landscape.ogg` don't exist yet (gracefully handled by pre-validation, no errors)
+- **Maestro flow files**: Hardcoded port 8080 and some outdated text assertions need updating
 
 ## Next Steps
 1. Address remaining known issues (CampaignDirector race condition is highest priority)

@@ -162,7 +162,10 @@ export function LevelIntro({ isOpen, levelId, onComplete }: LevelIntroProps) {
 
   // Phase progression
   useEffect(() => {
-    if (!isOpen || isSkipping) return;
+    if (!isOpen) return;
+
+    // When skipping, jump straight to fadeOut → complete transition
+    if (isSkipping && phase !== 'fadeOut' && phase !== 'complete') return;
 
     // Clear any existing timeout
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

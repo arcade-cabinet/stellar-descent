@@ -77,14 +77,14 @@ export abstract class StationLevel extends BaseLevel {
       new Vector3(0.1, -1, 0.1).normalize(), // Pointing down with slight angle
       this.scene
     );
-    this.sunLight.intensity = 12.0; // High for PBR without IBL
+    this.sunLight.intensity = 3.0; // PBR-appropriate for indoor station
     this.sunLight.diffuse = new Color3(0.95, 0.95, 1.0); // Clean white fluorescent
     this.sunLight.specular = new Color3(0.8, 0.8, 0.85);
 
     // SECONDARY: Hemispheric ambient fill - fills shadows
     // This is critical for PBR: without IBL, hemispheric is the only omnidirectional light
     this.ambientLight = new HemisphericLight('stationAmbient', new Vector3(0, 1, 0), this.scene);
-    this.ambientLight.intensity = 6.0; // Strong ambient for PBR shadow fill
+    this.ambientLight.intensity = 1.5; // Ambient fill for PBR shadow areas
     this.ambientLight.diffuse = new Color3(0.9, 0.9, 0.95); // Clean white
     this.ambientLight.groundColor = new Color3(0.7, 0.7, 0.75); // Strong floor bounce
     this.ambientLight.specular = new Color3(0.5, 0.5, 0.5);

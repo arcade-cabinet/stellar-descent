@@ -2,15 +2,14 @@
 # Cross-platform: Web, Android, iOS
 
 appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
-url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+url: "${PLATFORM == 'web' ? WEB_URL : null}"
 tags:
   - menu
   - settings
 name: "Settings Menu Navigation"
 
 ---
-- launchApp:
-    clearState: true
+- launchApp
 
 - extendedWaitUntil:
     visible: "SETTINGS"
@@ -19,23 +18,38 @@ name: "Settings Menu Navigation"
 - tapOn:
     text: "SETTINGS"
 
-# Verify settings modal opens
+# Verify settings tabs are visible
 - extendedWaitUntil:
-    visible: "SYSTEM PREFERENCES"
+    visible: "Gameplay"
     timeout: 5000
 
 - assertVisible:
     text: "Audio"
-    optional: true
+
+- assertVisible:
+    text: "Controls"
+
+- assertVisible:
+    text: "Graphics"
+
+- assertVisible:
+    text: "Accessibility"
 
 - takeScreenshot: "settings_menu"
 
-# Close settings
+# Close settings (button has aria-label="Close settings", text content is "X")
 - tapOn:
-    text: "CLOSE"
+    text: "Close settings"
+    optional: true
+- runFlow:
+    when:
+      visible: "X"
+    commands:
+      - tapOn:
+          text: "X"
 
 - extendedWaitUntil:
-    notVisible: "SYSTEM PREFERENCES"
+    visible: "NEW GAME"
     timeout: 5000
 
 - takeScreenshot: "back_to_menu"

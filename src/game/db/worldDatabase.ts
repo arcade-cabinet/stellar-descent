@@ -349,6 +349,9 @@ class WorldDatabase {
   async resetDatabase(): Promise<void> {
     await capacitorDb.deleteDatabase();
     this.initialized = false;
+    // Clear the static init promise so init() actually runs doInit() again
+    // (deleteDatabase() created a fresh empty DB that needs tables recreated)
+    WorldDatabase.initPromise = null;
     await this.init();
   }
 

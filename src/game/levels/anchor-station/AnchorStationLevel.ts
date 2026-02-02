@@ -103,6 +103,9 @@ export class AnchorStationLevel extends StationLevel {
   private suitEquipped = false;
   private weaponAcquired = false;
 
+  // Movement state for holodeck tutorial
+  private isCrouching = false;
+
   constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
     super(engine, canvas, config);
 
@@ -160,6 +163,18 @@ export class AnchorStationLevel extends StationLevel {
     // Copy collision-adjusted position back to camera
     this.camera.position.x = this.playerCollider.position.x;
     this.camera.position.z = this.playerCollider.position.z;
+  }
+
+  /**
+   * Track crouch state for holodeck tutorial.
+   * In the station, crouching lowers camera height to simulate ducking under obstacles.
+   */
+  protected override onCrouch(isCrouching: boolean): void {
+    this.isCrouching = isCrouching;
+    if (isCrouching) {
+      this.camera.position.y = 1.0; // Crouched eye height
+    }
+    // Standing height is enforced in updateLevel() every frame
   }
 
   protected override getBackgroundColor(): Color4 {
@@ -279,25 +294,25 @@ export class AnchorStationLevel extends StationLevel {
     // Global DirectionalLight + HemisphericLight handle base PBR illumination
     // ========================================================================
     this.addStationLight('zone_briefing', new Vector3(0, 3.0, 2),
-      new Color3(0.95, 0.95, 1.0), 10.0, 22);
+      new Color3(0.95, 0.95, 1.0), 2.5, 22);
     this.addStationLight('zone_equipment', new Vector3(-10, 3.0, -16),
-      new Color3(0.9, 1.0, 0.9), 8.0, 18);
+      new Color3(0.9, 1.0, 0.9), 2.0, 18);
     this.addStationLight('zone_armory', new Vector3(10, 3.0, -16),
-      new Color3(1.0, 0.95, 0.9), 8.0, 18);
+      new Color3(1.0, 0.95, 0.9), 2.0, 18);
     this.addStationLight('zone_holodeck', new Vector3(0, 3.5, -34),
-      new Color3(0.8, 0.9, 1.0), 8.0, 22);
+      new Color3(0.8, 0.9, 1.0), 2.0, 22);
     this.addStationLight('zone_range', new Vector3(0, 3.0, -52),
-      new Color3(0.95, 0.95, 1.0), 10.0, 28);
+      new Color3(0.95, 0.95, 1.0), 2.5, 28);
     this.addStationLight('zone_hangar', new Vector3(0, 6.0, -70),
-      new Color3(0.8, 0.85, 0.95), 12.0, 40);
+      new Color3(0.8, 0.85, 0.95), 3.0, 40);
     this.addStationLight('zone_corridor_a', new Vector3(0, 2.8, -10),
-      new Color3(0.9, 0.9, 1.0), 6.0, 20);
+      new Color3(0.9, 0.9, 1.0), 1.5, 20);
     this.addStationLight('zone_corridor_b', new Vector3(0, 2.8, -20),
-      new Color3(0.9, 0.9, 1.0), 6.0, 20);
+      new Color3(0.9, 0.9, 1.0), 1.5, 20);
     this.addStationLight('zone_engine', new Vector3(12, 3.0, 4),
-      new Color3(1.0, 0.9, 0.7), 6.0, 18);
+      new Color3(1.0, 0.9, 0.7), 1.5, 18);
     this.addStationLight('zone_observation', new Vector3(-12, 3.0, 4),
-      new Color3(0.7, 0.8, 1.0), 6.0, 18);
+      new Color3(0.7, 0.8, 1.0), 1.5, 18);
 
     // EMERGENCY LIGHTS (red accent - 4 small PointLights)
     this.addEmergencyLight('emergency1', new Vector3(-2, 2, -28), 3.0);
@@ -758,6 +773,23 @@ export class AnchorStationLevel extends StationLevel {
         });
         break;
 
+      case 'start_platforming':
+        this.stationEnvironment.startHolodeckTutorial({
+          onPhaseComplete: (_phase) => {
+            // Individual phases tracked via platform/crouch checks
+          },
+          onAllPhasesComplete: () => {
+            this.tutorialManager?.onPlatformingComplete();
+          },
+          onPlatformReached: (_platformId) => {
+            // Jump objective completion is handled in updateLevel via checkPlatformReached
+          },
+          onCrouchSuccess: () => {
+            // Crouch objective completion is handled in updateLevel via checkCrouchZone
+          },
+        });
+        break;
+
       case 'start_calibration':
         this.targetsHit = 0;
         this.stationEnvironment.startCalibration({
@@ -877,46 +909,49 @@ export class AnchorStationLevel extends StationLevel {
       }
     }
 
-    // Process touch input for movement/look (respecting HUD state)
+    // Touch look input (respecting HUD state)
+    // Note: Touch movement is handled by BaseLevel.processMovement() via setTouchInput(),
+    // which calls applyMovement() with collision detection. We only handle look here.
     if (this.touchInput) {
-      const movement = this.touchInput.movement;
-      if (
-        this.currentHUDState.movementEnabled &&
-        (Math.abs(movement.x) > 0.1 || Math.abs(movement.y) > 0.1)
-      ) {
-        const forward = this.camera.getDirection(Vector3.Forward());
-        const right = this.camera.getDirection(Vector3.Right());
-        forward.y = 0;
-        right.y = 0;
-        forward.normalize();
-        right.normalize();
-
-        const speed = this.getMoveSpeed() * deltaTime;
-        this.camera.position.addInPlace(forward.scale(movement.y * speed));
-        this.camera.position.addInPlace(right.scale(movement.x * speed));
-      }
-
       const look = this.touchInput.look;
       if (
         this.currentHUDState.lookEnabled &&
         (Math.abs(look.x) > 0.0001 || Math.abs(look.y) > 0.0001)
       ) {
-        this.rotationY += look.x;
-        this.rotationX -= look.y;
-        this.rotationX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.rotationX));
-        this.camera.rotation.x = this.rotationX;
-        this.camera.rotation.y = this.rotationY;
+        this.targetRotationY += look.x;
+        this.targetRotationX -= look.y;
+        this.targetRotationX = Math.max(
+          -Math.PI / 2.2,
+          Math.min(Math.PI / 2.2, this.targetRotationX)
+        );
       }
     }
 
-    // Keep at standing height (no gravity in station - mag boots)
+    // Keep at correct height (no gravity in station - mag boots)
     // Collision system handles X/Z wall detection; we just enforce Y.
-    this.camera.position.y = 1.7;
+    this.camera.position.y = this.isCrouching ? 1.0 : 1.7;
 
     // Check tutorial objectives
     if (this.tutorialManager) {
       const lookDir = this.camera.getDirection(Vector3.Forward());
       this.tutorialManager.checkObjective(this.camera.position, lookDir);
+
+      // Wire holodeck platform/crouch checks to tutorial manager
+      if (this.stationEnvironment?.isHolodeckActive()) {
+        // Check if player reached a platform (jump objective)
+        if (this.tutorialManager.isJumpTutorialStep()) {
+          if (this.stationEnvironment.checkPlatformReached(this.camera.position)) {
+            this.tutorialManager.onJumpComplete();
+          }
+        }
+
+        // Check if player successfully crouched through passage
+        if (this.tutorialManager.isCrouchTutorialStep()) {
+          if (this.stationEnvironment.checkCrouchZone(this.camera.position, this.isCrouching)) {
+            this.tutorialManager.onCrouchComplete();
+          }
+        }
+      }
 
       // Show/hide interaction prompt
       if (this.tutorialManager.canPlayerInteract(this.camera.position)) {

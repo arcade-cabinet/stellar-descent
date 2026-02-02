@@ -262,6 +262,20 @@ export class SplashAudioManager {
     log.info('Starting splash audio', { path: audioPath, orientation: this.orientation });
 
     try {
+      // Pre-validate the audio file exists and is actually audio
+      // Without this check, Vite's SPA fallback serves index.html for missing files,
+      // and Tone.js fails globally when trying to decode HTML as audio
+      const headResp = await fetch(audioPath, { method: 'HEAD' });
+      if (!headResp.ok) {
+        log.warn('Splash audio file not reachable', { path: audioPath, status: headResp.status });
+        return;
+      }
+      const contentType = headResp.headers.get('content-type') || '';
+      if (!contentType.startsWith('audio/')) {
+        log.warn('Splash audio file not available', { path: audioPath, contentType });
+        return;
+      }
+
       // Create player for splash audio
       this.player = new Tone.Player({
         url: audioPath,

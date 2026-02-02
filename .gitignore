@@ -166,3 +166,10 @@ dev-dist/
 
 # Vite dependency cache
 .vite/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# Maestro screenshots (generated at project root during ad-hoc runs)
+/*.png

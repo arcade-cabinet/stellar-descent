@@ -1,5 +1,7 @@
-# New Game Flow - Starts a new game and enters tutorial
-# Works on: Web
+# New Game Flow - Starts a new game through to BEGIN MISSION
+# Works on: Web, Android, iOS
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? WEB_URL : null}"
 tags:
   - gameplay
   - campaign
@@ -7,7 +9,7 @@ tags:
 name: "New Game Start - Campaign Entry"
 
 ---
-- openLink: "http://localhost:8080"
+- launchApp
 
 - extendedWaitUntil:
     visible: "NEW GAME"
@@ -16,33 +18,44 @@ name: "New Game Start - Campaign Entry"
 - tapOn:
     text: "NEW GAME"
 
-# Wait for difficulty selection or loading screen
-- extendedWaitUntil:
-    visible:
-      anyOf:
-        - "ROOKIE"
-        - "LOADING"
-        - "ANCHOR STATION"
-    timeout: 10000
-
-# If difficulty modal appears, select NORMAL
+# Handle save overwrite confirmation if it appears
 - runFlow:
     when:
-      visible: "NORMAL"
+      visible: "START NEW"
     commands:
-      - tapOn:
-          text: "NORMAL"
+      - tapOn: "START NEW"
 
-# Wait for loading screen to show level name
+# Wait for mission select
 - extendedWaitUntil:
-    visible: "ANCHOR STATION"
-    timeout: 30000
+    visible: "SELECT MISSION"
+    timeout: 10000
 
-- takeScreenshot: "loading_screen"
+# Select Anchor Station
+- tapOn:
+    text: "ANCHOR STATION PROMETHEUS"
 
-# Wait for gameplay to start - canvas should be present
+# Wait for difficulty screen (Normal is preselected by default)
 - extendedWaitUntil:
-    visible: "canvas"
-    timeout: 60000
+    visible: "SELECT DIFFICULTY"
+    timeout: 10000
 
-- takeScreenshot: "game_started"
+# Start campaign
+- tapOn:
+    text: "START CAMPAIGN.*"
+
+# Wait for mission briefing
+- extendedWaitUntil:
+    visible: "MISSION BRIEFING"
+    timeout: 10000
+
+- takeScreenshot: "mission-briefing"
+
+# Verify BEGIN MISSION button exists
+- assertVisible:
+    text: "BEGIN MISSION"
+
+- takeScreenshot: "mission-briefing-ready"
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"

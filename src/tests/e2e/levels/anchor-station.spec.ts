@@ -1049,41 +1049,38 @@ test.describe('Anchor Station - Tutorial Level', () => {
       // Wait for level initialization
       await page.waitForTimeout(5000);
 
-      // Check if PlayerGovernor is available
-      const hasGovernor = await page.evaluate(() => {
-        const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
-          .__STELLAR_DESCENT_DEBUG__;
-        return debug?.playerGovernor !== undefined;
-      });
-
-      if (hasGovernor) {
-        // Start automated tutorial playthrough
-        await page.evaluate(() => {
+      // Wait for debug interface to be available (may take a moment after page load)
+      await page.waitForFunction(
+        () => {
           const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
             .__STELLAR_DESCENT_DEBUG__;
-          debug?.playerGovernor?.runTutorialPlaythrough();
-        });
+          return debug?.playerGovernor !== undefined;
+        },
+        { timeout: 10_000 }
+      );
 
-        // Wait for tutorial to complete (with timeout)
-        await page.waitForFunction(
-          () => {
-            const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
-              .__STELLAR_DESCENT_DEBUG__;
-            return (
-              !debug?.tutorialManager?.isRunning() ||
-              (debug?.tutorialManager?.getProgress() ?? 0) >= 100
-            );
-          },
-          { timeout: 240000 }
-        );
+      // Start automated tutorial playthrough
+      await page.evaluate(() => {
+        const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
+          .__STELLAR_DESCENT_DEBUG__;
+        debug?.playerGovernor?.runTutorialPlaythrough();
+      });
 
-        const progress = await getTutorialProgress(page);
-        expect(progress).toBe(100);
-      } else {
-        // PlayerGovernor not exposed, skip test
-        console.log('PlayerGovernor not available in debug interface');
-        test.skip();
-      }
+      // Wait for tutorial to complete (with timeout)
+      await page.waitForFunction(
+        () => {
+          const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
+            .__STELLAR_DESCENT_DEBUG__;
+          return (
+            !debug?.tutorialManager?.isRunning() ||
+            (debug?.tutorialManager?.getProgress() ?? 0) >= 100
+          );
+        },
+        { timeout: 240000 }
+      );
+
+      const progress = await getTutorialProgress(page);
+      expect(progress).toBe(100);
     });
   });
 

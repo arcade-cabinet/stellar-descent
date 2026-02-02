@@ -1,8 +1,8 @@
-# Main Menu tests
+# Main Menu tests - Help modal open/close
 # Works on: Web, Android, iOS
 
 appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
-url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+url: "${PLATFORM == 'web' ? WEB_URL : null}"
 tags:
   - menu
 name: "Main Menu - Navigation and Controls"
@@ -16,16 +16,13 @@ name: "Main Menu - Navigation and Controls"
     visible: "NEW GAME"
     timeout: 30000
 
-# Test Help modal
+# ===== Test Help modal =====
 - tapOn:
     text: "HELP"
 
 - extendedWaitUntil:
-    visible: "OPERATIONS GUIDE"
+    visible: "CLOSE"
     timeout: 5000
-
-- assertVisible:
-    text: "OBJECTIVES"
 
 - takeScreenshot: "help-modal"
 
@@ -33,11 +30,84 @@ name: "Main Menu - Navigation and Controls"
 - tapOn:
     text: "CLOSE"
 
+# Verify we're back at main menu
 - extendedWaitUntil:
-    notVisible: "OPERATIONS GUIDE"
+    visible: "NEW GAME"
     timeout: 5000
 
+# ===== Test Settings modal =====
+- tapOn:
+    text: "SETTINGS"
+
+- extendedWaitUntil:
+    visible: "Gameplay"
+    timeout: 5000
+
+- assertVisible:
+    text: "Audio"
+
+- assertVisible:
+    text: "Controls"
+
+- assertVisible:
+    text: "Graphics"
+
+- assertVisible:
+    text: "Accessibility"
+
+- takeScreenshot: "settings-modal"
+
+# Close settings (button has aria-label="Close settings", text content is "X")
+- tapOn:
+    text: "Close settings"
+    optional: true
+- runFlow:
+    when:
+      visible: "X"
+    commands:
+      - tapOn:
+          text: "X"
+
 # Verify we're back at main menu
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 5000
+
+# ===== Test Achievements modal =====
+- tapOn:
+    text: "ACHIEVEMENTS"
+
+- extendedWaitUntil:
+    visible: "ACHIEVEMENTS"
+    timeout: 5000
+
+- takeScreenshot: "achievements-modal"
+
+- tapOn:
+    text: "CLOSE"
+
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 5000
+
+# ===== Test Leaderboards modal =====
+- tapOn:
+    text: "LEADERBOARDS"
+
+- extendedWaitUntil:
+    visible: "LEADERBOARDS"
+    timeout: 5000
+
+- takeScreenshot: "leaderboards-modal"
+
+- tapOn:
+    text: "CLOSE"
+
+# Final: verify main menu is intact
+- extendedWaitUntil:
+    visible: "STELLAR DESCENT"
+    timeout: 5000
+
 - assertVisible:
     text: "NEW GAME"
 
