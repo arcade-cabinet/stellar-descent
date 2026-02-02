@@ -48,7 +48,7 @@ export const BROTHERS_IN_ARMS_ASSETS: AssetEntry[] = [
   // Atmospheric (exclusive)
   {
     id: 'atmospheric/hallway_3',
-    path: '/assets/models/props/atmospheric/hallway 3.glb',
+    path: '/assets/models/props/atmospheric/hallway_3.glb',
     category: 'model',
     sizeKB: 4363,
   },

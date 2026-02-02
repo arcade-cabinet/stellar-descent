@@ -114,8 +114,8 @@ export const ICE_ENVIRONMENT_GLB_PATHS: readonly string[] = [
   '/assets/models/props/pipes/pipe_e_2.glb',
   // Atmospheric props (weather / environmental ambiance)
   '/assets/models/props/atmospheric/barrel.glb',
-  '/assets/models/props/atmospheric/hallway 1.glb',
-  '/assets/models/props/atmospheric/hallway 2.glb',
+  '/assets/models/props/atmospheric/hallway_1.glb',
+  '/assets/models/props/atmospheric/hallway_2.glb',
   // Ice plant (frozen vegetation)
   '/assets/models/environment/alien-flora/alien_iceplant.glb',
   // Station floor pieces (cave floor replacements)
@@ -246,8 +246,8 @@ const GLB = {
 
   // Atmospheric props (weather / environmental ambiance)
   atmosphericBarrel: '/assets/models/props/atmospheric/barrel.glb',
-  atmosphericHallway1: '/assets/models/props/atmospheric/hallway 1.glb',
-  atmosphericHallway2: '/assets/models/props/atmospheric/hallway 2.glb',
+  atmosphericHallway1: '/assets/models/props/atmospheric/hallway_1.glb',
+  atmosphericHallway2: '/assets/models/props/atmospheric/hallway_2.glb',
 
   // Ice plant (frozen vegetation)
   icePlant: '/assets/models/environment/alien-flora/alien_iceplant.glb',

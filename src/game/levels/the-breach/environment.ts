@@ -35,8 +35,8 @@ export { HiveEnvironmentBuilder, updateBiolights } from '../shared/HiveEnvironme
 
 /** Station beam GLB paths (path-based loading) */
 const STATION_BEAM_PATHS: Record<string, string> = {
-  beam_hc_h1: '/assets/models/environment/station/beam_hc_horizonatal_1.glb',
-  beam_hc_h2: '/assets/models/environment/station/beam_hc_horizonatal_2.glb',
+  beam_hc_h1: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
+  beam_hc_h2: '/assets/models/environment/station/beam_hc_horizontal_2.glb',
   beam_hc_v2: '/assets/models/environment/station/beam_hc_vertical_2.glb',
   beam_hl_1: '/assets/models/environment/station/beam_hl_1.glb',
 };

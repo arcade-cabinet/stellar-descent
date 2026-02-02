@@ -107,7 +107,7 @@ export const FOB_DELTA_ASSETS: AssetEntry[] = [
   // ATMOSPHERIC - Horror Elements
   {
     id: 'atmospheric/hallway_2',
-    path: '/assets/models/props/atmospheric/hallway 2.glb',
+    path: '/assets/models/props/atmospheric/hallway_2.glb',
     category: 'model',
     sizeKB: 3976,
   },

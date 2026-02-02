@@ -279,7 +279,7 @@ const ATMOSPHERIC_HALLWAY: AssetEntry[] = [
   {
     id: 'atmospheric/hallway_1',
     category: 'model',
-    path: '/assets/models/props/atmospheric/hallway 1.glb',
+    path: '/assets/models/props/atmospheric/hallway_1.glb',
     sizeKB: 7500,
   },
 ];

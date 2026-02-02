@@ -48,7 +48,7 @@ export const HIVE_ASSAULT_ASSETS: AssetEntry[] = [
   // ============================================================================
   {
     id: 'atmospheric/hallway_4',
-    path: '/assets/models/props/atmospheric/hallway 4.glb',
+    path: '/assets/models/props/atmospheric/hallway_4.glb',
     category: 'model',
     sizeKB: 4355,
   },

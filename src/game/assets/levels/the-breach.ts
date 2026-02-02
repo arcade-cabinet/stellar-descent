@@ -89,13 +89,13 @@ export const THE_BREACH_ASSETS: AssetEntry[] = [
   // STATION PIECES - Broken, consumed by hive
   {
     id: 'station/beam_hc_h1',
-    path: '/assets/models/environment/station/beam_hc_horizonatal_1.glb',
+    path: '/assets/models/environment/station/beam_hc_horizontal_1.glb',
     category: 'model',
     sizeKB: 470,
   },
   {
     id: 'station/beam_hc_h2',
-    path: '/assets/models/environment/station/beam_hc_horizonatal_2.glb',
+    path: '/assets/models/environment/station/beam_hc_horizontal_2.glb',
     category: 'model',
     sizeKB: 470,
   },
