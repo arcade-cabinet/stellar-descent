@@ -2,28 +2,41 @@
  * Global Teardown - Clean up browser processes after test run
  *
  * Playwright normally closes browsers when tests finish, but orphaned
- * Chromium processes can survive after Ctrl+C, crashes, or test timeouts.
- * This teardown ensures all Playwright-spawned browsers are terminated.
+ * Chromium processes can survive after Ctrl+C, crashes, or test timeouts —
+ * especially in headed (non-headless) mode where browser.close() can hang.
+ *
+ * This teardown finds and kills Playwright-spawned Chromium by matching the
+ * Playwright browser cache path in the process command line, which safely
+ * distinguishes it from the user's normal Chrome.
+ *
+ * Cache paths by platform:
+ *   macOS:  ~/Library/Caches/ms-playwright/chromium-*/
+ *   Linux:  ~/.cache/ms-playwright/chromium-*/
+ *   Win32:  %LOCALAPPDATA%\ms-playwright\chromium-*\
  */
 
 import { execSync } from 'node:child_process';
 
 export default async function globalTeardown() {
-  // Kill any Chromium processes spawned by Playwright that survived the test run.
-  // The --playwright flag in the process args distinguishes Playwright browsers
-  // from the user's normal Chrome instance.
   try {
     const platform = process.platform;
 
-    if (platform === 'darwin' || platform === 'linux') {
-      // Find Chromium processes whose command line contains the Playwright
-      // browser cache path. This avoids killing the user's Chrome.
+    if (platform === 'darwin') {
+      // macOS: Playwright stores browsers under ~/Library/Caches/ms-playwright/
+      // The binary is "Google Chrome for Testing" inside a .app bundle.
+      // Match the cache path in the full command line to avoid killing user Chrome.
       execSync(
-        "pkill -f '.cache/ms-playwright/chromium.*--type=' 2>/dev/null || true",
+        "pkill -f 'Library/Caches/ms-playwright/chromium' 2>/dev/null || true",
+        { stdio: 'ignore' },
+      );
+    } else if (platform === 'linux') {
+      // Linux: Playwright stores browsers under ~/.cache/ms-playwright/
+      execSync(
+        "pkill -f '.cache/ms-playwright/chromium' 2>/dev/null || true",
         { stdio: 'ignore' },
       );
     } else if (platform === 'win32') {
-      // On Windows, Playwright chromium lives under AppData
+      // Windows: Playwright stores browsers under %LOCALAPPDATA%\ms-playwright\
       execSync(
         'taskkill /F /FI "IMAGENAME eq chrome.exe" /FI "MODULES eq playwright" 2>nul || exit /b 0',
         { stdio: 'ignore', shell: 'cmd.exe' },

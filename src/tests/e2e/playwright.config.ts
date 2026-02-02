@@ -104,8 +104,7 @@ export default defineConfig({
     actionTimeout: 15_000,
     navigationTimeout: 60_000,
     ignoreHTTPSErrors: true,
-    // Default headless; use --headed flag for visible browser windows
-    headless: true,
+    headless: !!process.env.CI,
     contextOptions: {
       permissions: ['accelerometer', 'gyroscope'],
       locale: 'en-US',
