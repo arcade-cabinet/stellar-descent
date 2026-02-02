@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import type { DifficultyLevel } from '../../game/core/DifficultySettings';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
@@ -100,6 +101,8 @@ function getDisplayValue(entry: LeaderboardEntry, type: LeaderboardType): string
   }
 }
 
+const log = getLogger('LeaderboardScreen');
+
 export function LeaderboardScreen({
   isOpen,
   onClose,
@@ -141,7 +144,7 @@ export function LeaderboardScreen({
         const bests = await leaderboardSystem.getPersonalBests(selectedLevel);
         setPersonalBests(bests);
       } catch (error) {
-        console.error('Failed to load leaderboard:', error);
+        log.error('Failed to load leaderboard:', error);
       } finally {
         setIsLoading(false);
       }

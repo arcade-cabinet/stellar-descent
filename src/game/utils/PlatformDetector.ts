@@ -10,7 +10,10 @@
  */
 
 import { Capacitor } from '@capacitor/core';
+import { getLogger } from '../core/Logger';
 import { getScreenInfo } from './responsive';
+
+const log = getLogger('PlatformDetector');
 
 // ============================================================================
 // Physical Keyboard Detection State
@@ -287,7 +290,7 @@ export function initPhysicalKeyboardDetection(): void {
     if (!physicalKeyboardDetected && detectPhysicalKeyboard(event)) {
       physicalKeyboardDetected = true;
       notifyKeyboardChange(true);
-      console.log('[PlatformDetector] Physical keyboard detected');
+      log.info('Physical keyboard detected');
     }
   };
 
@@ -478,7 +481,7 @@ function updateGamepadState(): void {
       if (!connectedGamepads.has(gamepad.index)) {
         const type = detectControllerType(gamepad);
         const displayName = getControllerDisplayName(gamepad, type);
-        console.log(`[PlatformDetector] Gamepad connected: ${displayName}`);
+        log.info(`Gamepad connected: ${displayName}`);
       }
 
       const type = detectControllerType(gamepad);
@@ -493,7 +496,7 @@ function updateGamepadState(): void {
   // Check for disconnections
   for (const [index, info] of connectedGamepads) {
     if (!newConnected.has(index)) {
-      console.log(`[PlatformDetector] Gamepad disconnected: ${info.displayName}`);
+      log.info(`Gamepad disconnected: ${info.displayName}`);
     }
   }
 
@@ -520,7 +523,7 @@ export function initGamepadDetection(): void {
     const type = detectControllerType(gamepad);
     const displayName = getControllerDisplayName(gamepad, type);
 
-    console.log(`[PlatformDetector] Gamepad connected: ${displayName}`);
+    log.info(`Gamepad connected: ${displayName}`);
 
     connectedGamepads.set(gamepad.index, {
       gamepad,
@@ -535,7 +538,7 @@ export function initGamepadDetection(): void {
   const handleGamepadDisconnected = (event: GamepadEvent) => {
     const info = connectedGamepads.get(event.gamepad.index);
     if (info) {
-      console.log(`[PlatformDetector] Gamepad disconnected: ${info.displayName}`);
+      log.info(`Gamepad disconnected: ${info.displayName}`);
     }
 
     connectedGamepads.delete(event.gamepad.index);

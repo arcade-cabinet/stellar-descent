@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Achievement, getAchievementManager } from '../../game/achievements';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import { useDifficultyStore } from '../../game/difficulty';
 import type { LevelId } from '../../game/levels/types';
 import { getPlayerName, leaderboardSystem } from '../../game/social';
@@ -11,6 +12,8 @@ import { LeaderboardScreen } from './LeaderboardScreen';
 import styles from './LevelCompletionScreen.module.css';
 import { MilitaryButton } from './MilitaryButton';
 import { ShareDialog } from './ShareDialog';
+
+const log = getLogger('LevelCompletionScreen');
 
 /**
  * Stats collected during level gameplay
@@ -533,7 +536,7 @@ export function LevelCompletionScreen({
         await leaderboardSystem.submitScore(submission);
         setHasSubmittedScore(true);
       } catch (error) {
-        console.error('Failed to submit score to leaderboard:', error);
+        log.error('Failed to submit score to leaderboard:', error);
       }
     };
 

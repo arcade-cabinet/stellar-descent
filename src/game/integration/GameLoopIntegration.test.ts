@@ -71,7 +71,7 @@ vi.stubGlobal('navigator', {
 
 // Mock crypto for UUID generation
 vi.stubGlobal('crypto', {
-  randomUUID: () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  randomUUID: () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 });
 
 describe('Game Loop Integration', () => {

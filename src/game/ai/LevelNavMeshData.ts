@@ -14,6 +14,7 @@
 
 import { Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../core/Logger';
 import type { LevelId, LevelType } from '../levels/types';
 import {
   type EnvironmentType,
@@ -21,6 +22,8 @@ import {
   type NavMeshBuildResult,
   type NavMeshConfig,
 } from './NavMeshBuilder';
+
+const log = getLogger('LevelNavMeshData');
 
 // ============================================================================
 // TYPES
@@ -277,7 +280,7 @@ export async function buildLevelNavMesh(
 ): Promise<NavMeshBuildResult | null> {
   const definition = LEVEL_NAVMESH_DEFINITIONS[levelId];
   if (!definition) {
-    console.warn(`No NavMesh definition for level: ${levelId}`);
+    log.warn(`No NavMesh definition for level: ${levelId}`);
     return null;
   }
 
@@ -330,7 +333,7 @@ export async function buildLevelNavMesh(
     result = builder.buildFromGrid(width, depth, definition.cellSize, center);
   }
 
-  console.log(
+  log.info(
     `Built NavMesh for ${levelId}: ${result.regionCount} regions in ${result.buildTimeMs.toFixed(1)}ms`
   );
 

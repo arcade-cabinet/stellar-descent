@@ -10,6 +10,7 @@
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { getLogger } from '../core/Logger';
 import { capacitorDb } from '../db/database';
 import {
   DEFAULT_DIFFICULTY,
@@ -19,6 +20,8 @@ import {
   isPermadeathActive,
   PERMADEATH_XP_BONUS,
 } from './DifficultyRegistry';
+
+const log = getLogger('DifficultyStore');
 
 // ============================================================================
 // Types
@@ -101,7 +104,7 @@ async function saveToDb(key: string, value: string): Promise<void> {
       value,
     ]);
   } catch (err) {
-    console.error('[DifficultyStore] Failed to save:', err);
+    log.error('Failed to save:', err);
   }
 }
 

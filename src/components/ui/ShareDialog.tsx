@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import type { LevelId } from '../../game/levels/types';
 import type { ScreenshotData } from '../../game/social/ScreenshotCapture';
 import { getShareSystem, type ShareStats, type ShareTrigger } from '../../game/social/ShareSystem';
@@ -62,6 +63,8 @@ export interface ShareDialogProps {
   /** Boss name if sharing a boss defeat */
   bossName?: string;
 }
+
+const log = getLogger('ShareDialog');
 
 // Twitter character limit
 const TWITTER_CHAR_LIMIT = 280;
@@ -162,7 +165,7 @@ export function ShareDialog({
         );
         setScreenshotBlob(blob);
       } catch (error) {
-        console.error('Failed to capture screenshot:', error);
+        log.error('Failed to capture screenshot:', error);
         setStatusMessage('Failed to capture screenshot');
         setIsError(true);
       } finally {

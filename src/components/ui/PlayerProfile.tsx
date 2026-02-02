@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAchievementManager } from '../../game/achievements';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import { worldDb } from '../../game/db/worldDatabase';
 import { WEAPONS, type WeaponId } from '../../game/entities/weapons';
 import {
@@ -44,6 +45,8 @@ interface PlayerProfileData {
 }
 
 // Storage key for profile data
+const log = getLogger('PlayerProfile');
+
 const PROFILE_STORAGE_KEY = 'player_profile';
 
 // Available avatars (military ranks/icons)
@@ -217,7 +220,7 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
           }
         }
       } catch (error) {
-        console.error('Failed to load profile:', error);
+        log.error('Failed to load profile:', error);
       } finally {
         setLoading(false);
       }
@@ -232,7 +235,7 @@ export function PlayerProfile({ isOpen, onClose, compact = false }: PlayerProfil
       await worldDb.setChunkData(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
       worldDb.persistToIndexedDB();
     } catch (error) {
-      console.error('Failed to save profile:', error);
+      log.error('Failed to save profile:', error);
     }
   }, []);
 
@@ -552,7 +555,7 @@ export function usePlayerProfile(): {
         setProfile(createDefaultProfile());
       }
     } catch (error) {
-      console.error('Failed to load profile:', error);
+      log.error('Failed to load profile:', error);
       setProfile(createDefaultProfile());
     } finally {
       setLoading(false);
