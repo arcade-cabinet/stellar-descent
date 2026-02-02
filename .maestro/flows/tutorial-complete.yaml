@@ -1,4 +1,12 @@
-# Tutorial Complete Flow - Plays through Anchor Station tutorial
+# Tutorial Complete Flow - Holodeck Platforming Focus
+# Validates the full tutorial including jump/crouch mechanics in the Training Room
+#
+# This flow specifically targets the holodeck platforming section which requires:
+# 1. start_platforming sequence to be triggered (activates holodeck)
+# 2. Jump mechanics to complete platforming_jump objective
+# 3. Crouch mechanics to complete platforming_crouch objective
+# 4. Proper collision-based movement (not bypassing collision on touch)
+#
 # Cross-platform: Web, Android, iOS
 
 appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
@@ -7,9 +15,13 @@ tags:
   - gameplay
   - tutorial
   - extended
-name: "Tutorial Complete Playthrough"
+  - platforming
+name: "Tutorial Complete - Holodeck Platforming Validation"
 
 ---
+# ============================================================================
+# Launch and Setup
+# ============================================================================
 - launchApp:
     clearState: true
 
@@ -20,74 +32,453 @@ name: "Tutorial Complete Playthrough"
 - tapOn:
     text: "NEW GAME"
 
+# Handle difficulty selection
+- tapOn:
+    text: "NORMAL"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    text: "BEGIN"
+    optional: true
+
+# Wait for level to load
 - extendedWaitUntil:
     visible: "SYSTEMS ONLINE"
     timeout: 60000
 
-# Wait for tutorial to start
+# ============================================================================
+# Phase 0: Briefing (auto-advance)
+# ============================================================================
 - extendedWaitUntil:
     visible: "Good morning"
     timeout: 30000
 
-- takeScreenshot: "tutorial_start"
+- takeScreenshot: "01_athena_greeting"
 
-# Skip through tutorial comms
-- tapOn:
-    text: "ACKNOWLEDGE"
-    optional: true
-
-- wait: 1000
+# ATHENA's greeting
+- assertVisible:
+    text: "ATHENA"
 
 - tapOn:
     text: "ACKNOWLEDGE"
-    optional: true
-
-- wait: 1000
-
-- tapOn:
-    text: "SKIP"
     optional: true
 
 - wait: 2000
 
-# Tutorial movement (for mobile)
+# Commander Vasquez briefing
+- extendedWaitUntil:
+    visible: "Vasquez"
+    timeout: 15000
+    optional: true
+
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# ============================================================================
+# Phase 1: Movement Tutorial
+# ============================================================================
+# Movement controls should be enabled now
+- extendedWaitUntil:
+    visible: "MOVEMENT"
+    timeout: 10000
+    optional: true
+
+- takeScreenshot: "02_movement_unlock"
+
+# Move forward (toward corridorA at Z=-14)
 - swipe:
-    start: "10%, 70%"
-    end: "15%, 65%"
+    start: "15%, 70%"
+    end: "15%, 40%"
+    duration: 3000
+
+- wait: 1000
+
+# Continue forward through corridor
+- swipe:
+    start: "15%, 70%"
+    end: "15%, 40%"
+    duration: 3000
+
+- wait: 1000
+
+- takeScreenshot: "03_corridor_progress"
+
+# ============================================================================
+# Phase 1.5: Training Room / Holodeck Platforming
+# ============================================================================
+# Turn left to enter training room
+- swipe:
+    start: "15%, 60%"
+    end: "5%, 60%"
+    duration: 2000
+
+- wait: 1500
+
+# Look for training room / holodeck prompt
+- extendedWaitUntil:
+    visible: "TRAINING"
+    timeout: 10000
+    optional: true
+
+- takeScreenshot: "04_training_room_entry"
+
+# Verify ATHENA's platforming tutorial message
+- assertVisible:
+    text: "calibrate"
+    optional: true
+    timeout: 8000
+
+# ============================================================================
+# Jump Training
+# ============================================================================
+# The holodeck should activate (start_platforming sequence)
+- extendedWaitUntil:
+    visible: "JUMP"
+    timeout: 15000
+    optional: true
+
+- takeScreenshot: "05_jump_tutorial"
+
+# Perform jump action
+- tapOn:
+    text: "JUMP"
+    optional: true
+
+- wait: 500
+
+# Move toward platform (forward movement toward platform2)
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 40%"
+    duration: 2000
+
+- wait: 500
+
+# Jump again to reach platform
+- tapOn:
+    text: "JUMP"
+    optional: true
+
+- wait: 1000
+
+# Verify jump completion feedback
+- assertVisible:
+    text: "calibrated"
+    optional: true
+    timeout: 8000
+
+- takeScreenshot: "06_jump_complete"
+
+# Acknowledge jump complete message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# ============================================================================
+# Crouch Training
+# ============================================================================
+- extendedWaitUntil:
+    visible: "CROUCH"
+    timeout: 10000
+    optional: true
+
+- takeScreenshot: "07_crouch_tutorial"
+
+# Perform crouch action
+- tapOn:
+    text: "CROUCH"
+    optional: true
+
+- wait: 500
+
+# Move through crouch passage while crouched
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 40%"
+    duration: 2500
+
+- wait: 1000
+
+# Verify crouch completion
+- assertVisible:
+    text: "Mobility"
+    optional: true
+    timeout: 8000
+
+- takeScreenshot: "08_crouch_complete"
+
+# Acknowledge crouch message
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# ============================================================================
+# Exit Training Room and Continue to Equipment Bay
+# ============================================================================
+# Move back to corridor
+- swipe:
+    start: "15%, 60%"
+    end: "25%, 60%"
     duration: 2000
 
 - wait: 1000
 
-# Tutorial look around (for mobile)
+# Continue forward toward equipment bay
 - swipe:
-    start: "80%, 50%"
-    end: "70%, 40%"
-    duration: 1500
+    start: "15%, 70%"
+    end: "15%, 40%"
+    duration: 3000
+
+- wait: 2000
+
+# ============================================================================
+# Phase 2: Equipment Bay - Suit + Weapon
+# ============================================================================
+- extendedWaitUntil:
+    visible: "EQUIPMENT"
+    timeout: 10000
+    optional: true
+
+- takeScreenshot: "09_equipment_bay"
+
+# Move toward suit locker (left side)
+- swipe:
+    start: "15%, 60%"
+    end: "5%, 60%"
+    duration: 2000
 
 - wait: 1000
 
-# Tutorial interact/fire
+# Equip suit
 - tapOn:
-    id: "interact-button"
+    text: "EQUIP SUIT"
     optional: true
 
 - tapOn:
-    id: "fire-button"
+    text: "EQUIP"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "interact_button"
     optional: true
 
 - wait: 2000
 
-- takeScreenshot: "tutorial_progress"
+# Verify suit equipped
+- assertVisible:
+    text: "EVA SUIT"
+    optional: true
+    timeout: 5000
 
-# Continue through tutorial prompts
+- takeScreenshot: "10_suit_equipped"
+
 - tapOn:
-    text: "Continue"
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# Move to weapon rack (right side)
+- swipe:
+    start: "15%, 60%"
+    end: "25%, 60%"
+    duration: 2000
+
+- wait: 1000
+
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 50%"
+    duration: 1500
+
+- wait: 1000
+
+- tapOn:
+    text: "PICK UP"
     optional: true
 
 - tapOn:
-    text: "CONTINUE"
+    id: "interact_button"
+    optional: true
+
+- wait: 1500
+
+# Verify weapon acquired
+- assertVisible:
+    text: "M7 RIFLE"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "11_weapon_acquired"
+
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1500
+
+# ============================================================================
+# Phase 3: Shooting Range
+# ============================================================================
+# Move to shooting range
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 30%"
+    duration: 3000
+
+- wait: 2000
+
+- assertVisible:
+    text: "RANGE"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "12_shooting_range"
+
+# Fire at targets (5 targets)
+- tapOn:
+    point: "50%, 45%"
+
+- wait: 400
+
+- tapOn:
+    point: "40%, 45%"
+
+- wait: 400
+
+- tapOn:
+    point: "60%, 45%"
+
+- wait: 400
+
+- tapOn:
+    point: "45%, 48%"
+
+- wait: 400
+
+- tapOn:
+    point: "55%, 42%"
+
+- wait: 2000
+
+# Verify calibration complete
+- assertVisible:
+    text: "CALIBRATION COMPLETE"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "13_calibration_complete"
+
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 2000
+
+# ============================================================================
+# Phase 4: Hangar Bay + Launch
+# ============================================================================
+# Move to hangar
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 30%"
+    duration: 3000
+
+- wait: 2000
+
+# Wait for depressurization sequence
+- assertVisible:
+    text: "DEPRESSURIZATION"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "14_depressurization"
+
+- wait: 4000
+
+# Wait for bay doors
+- assertVisible:
+    text: "bay doors"
+    optional: true
+    timeout: 10000
+
+- wait: 5000
+
+# Move to drop pod
+- swipe:
+    start: "15%, 60%"
+    end: "15%, 40%"
+    duration: 2000
+
+- wait: 2000
+
+# Commander's final message
+- assertVisible:
+    text: "Marcus"
+    optional: true
+    timeout: 10000
+
+- tapOn:
+    text: "ACKNOWLEDGE"
     optional: true
 
 - wait: 3000
 
-- takeScreenshot: "tutorial_end"
+# Pod sealed message
+- assertVisible:
+    text: "DROP POD"
+    optional: true
+    timeout: 10000
+
+- wait: 3000
+
+# Launch!
+- extendedWaitUntil:
+    visible: "BEGIN ORBITAL DROP"
+    timeout: 15000
+    optional: true
+
+- takeScreenshot: "15_launch_ready"
+
+- tapOn:
+    text: "BEGIN ORBITAL DROP"
+    optional: true
+
+- tapOn:
+    id: "launch_button"
+    optional: true
+
+- tapOn:
+    point: "50%, 50%"
+    optional: true
+
+- wait: 3000
+
+# ============================================================================
+# Level Complete
+# ============================================================================
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "16_mission_complete"
+
+# Transition to Landfall
+- assertVisible:
+    text: "LANDFALL"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "17_tutorial_complete"

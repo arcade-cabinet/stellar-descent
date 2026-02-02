@@ -155,12 +155,18 @@ class DatabaseProxy implements IDatabase {
 
   async close(): Promise<void> {
     const db = await this.getDb();
-    return db.close();
+    await db.close();
+    // Clear singleton so next getDatabase() creates a fresh instance
+    dbInstance = null;
+    initPromise = null;
   }
 
   async deleteDatabase(): Promise<void> {
     const db = await this.getDb();
-    return db.deleteDatabase();
+    await db.deleteDatabase();
+    // Clear singleton so next getDatabase() creates a fresh instance
+    dbInstance = null;
+    initPromise = null;
   }
 
   async exportDatabase(): Promise<Uint8Array | null> {

@@ -65,15 +65,18 @@ export class MusicPlayer {
       }
 
       // Create new player for the incoming track
-      const newPlayer = new Tone.Player({
-        url: path,
-        loop: true,
-        fadeIn: 0.1,
-        fadeOut: 0.1,
+      // Use a per-player load promise instead of global Tone.loaded(),
+      // which can be poisoned by other failed buffers (e.g. missing splash audio)
+      const newPlayer = await new Promise<Tone.Player>((resolve, reject) => {
+        const player = new Tone.Player({
+          url: path,
+          loop: true,
+          fadeIn: 0.1,
+          fadeOut: 0.1,
+          onload: () => resolve(player),
+          onerror: (err) => reject(err),
+        });
       });
-
-      // Wait for the audio to load
-      await Tone.loaded();
 
       // Determine which player slot to use
       const targetPlayer = this.currentPlayer === 'A' ? 'B' : 'A';
