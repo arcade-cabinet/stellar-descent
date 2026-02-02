@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import {
   ACTION_LABELS,
   type BindableAction,
@@ -136,6 +137,8 @@ interface GamepadConflict {
   actions: BindableAction[];
 }
 
+const log = getLogger('KeybindingsSettings');
+
 export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProps) {
   const {
     keybindings,
@@ -170,7 +173,7 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
     const unsubscribe = onPhysicalKeyboardChange((detected) => {
       setShowKeyboardSettings(shouldShowKeyboardSettings());
       if (detected) {
-        console.log('[KeybindingsSettings] Physical keyboard detected, enabling settings');
+        log.info('Physical keyboard detected, enabling settings');
       }
     });
     return unsubscribe;
@@ -182,7 +185,7 @@ export function KeybindingsSettings({ isOpen, onClose }: KeybindingsSettingsProp
       setGamepadConnected(gamepads.length > 0);
       setConnectedGamepad(gamepads.length > 0 ? gamepads[0] : null);
       if (gamepads.length > 0) {
-        console.log('[KeybindingsSettings] Gamepad connected:', gamepads[0].displayName);
+        log.info('Gamepad connected:', gamepads[0].displayName);
       }
     });
     return unsubscribe;

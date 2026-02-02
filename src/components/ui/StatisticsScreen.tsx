@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import { WEAPONS, type WeaponId } from '../../game/entities/weapons';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
@@ -557,6 +558,8 @@ function getCategoryColor(category: string): string {
 // MAIN COMPONENT
 // ============================================================================
 
+const log = getLogger('StatisticsScreen');
+
 export function StatisticsScreen({ isOpen, onClose }: StatisticsScreenProps) {
   const [activeTab, setActiveTab] = useState<StatTab>('overview');
   const [stats, setStats] = useState<PlayerStats>(createDefaultStats());
@@ -576,7 +579,7 @@ export function StatisticsScreen({ isOpen, onClose }: StatisticsScreenProps) {
         setStats(currentStats);
         setDerived(calculateDerivedStats(currentStats));
       } catch (error) {
-        console.error('Failed to load stats:', error);
+        log.error('Failed to load stats:', error);
       } finally {
         setLoading(false);
       }

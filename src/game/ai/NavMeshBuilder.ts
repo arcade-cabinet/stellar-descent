@@ -22,6 +22,9 @@ import { Vector3 as BabylonVector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { Scene } from '@babylonjs/core/scene';
 import { CellSpacePartitioning, NavMesh, NavMeshLoader, Vector3 as YukaVector3 } from 'yuka';
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('NavMeshBuilder');
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -273,7 +276,7 @@ export class NavMeshBuilder {
     try {
       this.navMesh.fromPolygons(polygons);
     } catch (error) {
-      console.warn('Failed to build NavMesh from polygons:', error);
+      log.warn('Failed to build NavMesh from polygons:', error);
       // Create an empty but valid NavMesh
       this.navMesh = new NavMesh();
     }
