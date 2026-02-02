@@ -606,26 +606,26 @@ class LeaderboardSystem {
     }
 
     // Build query
-    let query = `SELECT * FROM leaderboard_entries WHERE level_id = ?`;
+    let whereClause = `WHERE level_id = ?`;
     const params: (string | number)[] = [levelId];
 
     if (difficulty && difficulty !== 'all') {
-      query += ` AND difficulty = ?`;
+      whereClause += ` AND difficulty = ?`;
       params.push(difficulty);
     }
 
     // Get total count
     const countRows = await capacitorDb.query<{ 'COUNT(*)': number }>(
-      query.replace('*', 'COUNT(*)'),
+      `SELECT COUNT(*) FROM leaderboard_entries ${whereClause}`,
       params
     );
     const totalCount = countRows[0]?.['COUNT(*)'] ?? 0;
 
     // Get entries with ordering and pagination
-    query += ` ORDER BY ${orderColumn} ${orderDirection}, timestamp ASC LIMIT ? OFFSET ?`;
+    const selectQuery = `SELECT * FROM leaderboard_entries ${whereClause} ORDER BY ${orderColumn} ${orderDirection}, timestamp ASC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
-    const rows = await capacitorDb.query<LeaderboardRow>(query, params);
+    const rows = await capacitorDb.query<LeaderboardRow>(selectQuery, params);
 
     // Convert to entries with rank
     const entries: LeaderboardEntry[] = rows.map((row, index) => ({
