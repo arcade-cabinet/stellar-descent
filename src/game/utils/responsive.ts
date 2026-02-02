@@ -79,19 +79,22 @@ function determineDeviceType(
     return 'foldable';
   }
 
-  // Use the larger dimension for classification (handles rotation)
-  const effectiveWidth = Math.max(width, height);
+  // Use the SMALLER dimension for phone detection — phones always have their
+  // narrow side < 768px regardless of orientation (e.g., iPhone 17 Pro: 402×874).
+  // Using Math.max was incorrectly classifying tall phones as tablets.
+  const minDim = Math.min(width, height);
+  const maxDim = Math.max(width, height);
 
-  if (effectiveWidth < BREAKPOINTS.phone) {
+  if (minDim < BREAKPOINTS.phone && isTouchDevice) {
     return 'mobile';
   }
 
-  if (effectiveWidth < BREAKPOINTS.tablet) {
+  if (maxDim < BREAKPOINTS.tablet) {
     return isTouchDevice ? 'tablet' : 'desktop';
   }
 
   // Large touch devices are tablets, others are desktop
-  return isTouchDevice && effectiveWidth < 1366 ? 'tablet' : 'desktop';
+  return isTouchDevice && maxDim < 1366 ? 'tablet' : 'desktop';
 }
 
 /**
