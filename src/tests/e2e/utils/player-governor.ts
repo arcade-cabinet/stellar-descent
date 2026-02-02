@@ -78,7 +78,9 @@ export class GovernorController {
    */
   async getState(): Promise<GovernorState> {
     return this.page.evaluate(() => {
-      const w = window as unknown as { __STELLAR_DESCENT_DEBUG__?: { playerGovernor?: GovernorState } };
+      const w = window as unknown as {
+        __STELLAR_DESCENT_DEBUG__?: { playerGovernor?: GovernorState };
+      };
       const gov = w.__STELLAR_DESCENT_DEBUG__?.playerGovernor;
       return {
         enabled: gov?.enabled ?? false,
@@ -284,10 +286,7 @@ export class GovernorController {
         const currentLevel = gs?.getCurrentLevel?.();
         // Level is complete when we reach levelComplete phase
         // or we've moved to the next level
-        return (
-          phase === 'levelComplete' ||
-          (currentLevel !== level && phase !== 'loading')
-        );
+        return phase === 'levelComplete' || (currentLevel !== level && phase !== 'loading');
       },
       levelId,
       { timeout }

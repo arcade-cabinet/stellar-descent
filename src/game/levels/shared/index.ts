@@ -12,19 +12,17 @@
  * - LevelLighting - PBR-calibrated lighting
  */
 
+// Environment builders
+export * from './AlienFloraBuilder';
 // Composable systems (extracted from BaseLevel)
 export * from './CameraShakeSystem';
 export * from './CheckpointSystem';
-export * from './EnvironmentalAudio';
-export * from './LevelLighting';
-export * from './LevelStatsTracker';
-export * from './VictorySystem';
-
-// Environment builders
-export * from './AlienFloraBuilder';
 export * from './CollectiblePlacer';
+export * from './EnvironmentalAudio';
 export * from './HiveEnvironmentBuilder';
+export * from './LevelLighting';
 export * from './LevelSpawnConfigs';
+export * from './LevelStatsTracker';
 export * from './ModularBaseBuilder';
 // Spawn system (interface-based) - primary types
 export type {
@@ -65,3 +63,4 @@ export * from './SpawnManagerIntegration';
 export * from './SpawnManagerZod';
 // Environment builders
 export * from './SurfaceTerrainFactory';
+export * from './VictorySystem';

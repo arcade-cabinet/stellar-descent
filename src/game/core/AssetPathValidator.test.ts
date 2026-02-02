@@ -107,9 +107,7 @@ describe('GLB Asset Path Validator (codebase scan)', () => {
   }
 
   // Filter out test-only paths
-  const uniquePaths = [...allPathsWithSources.keys()]
-    .filter((p) => !TEST_ONLY_PATHS.has(p))
-    .sort();
+  const uniquePaths = [...allPathsWithSources.keys()].filter((p) => !TEST_ONLY_PATHS.has(p)).sort();
 
   it('should find at least one GLB path in the codebase', () => {
     expect(uniquePaths.length).toBeGreaterThan(0);

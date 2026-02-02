@@ -61,11 +61,11 @@ import { createVehicleDestructionEffect } from '../../vehicles/VehicleUtils';
 
 const log = getLogger('FinalEscapeLevel');
 
-import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { levelActionParams } from '../../input/InputBridge';
 import { saveSystem } from '../../persistence/SaveSystem';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { firstPersonWeapons } from '../../weapons/FirstPersonWeapons';
 import { GyroscopeManager, type VehicleYokeInput } from '../../weapons/VehicleYoke';

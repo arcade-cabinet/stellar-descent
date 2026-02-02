@@ -12,8 +12,8 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { getLogger } from '../../core/Logger';
 import { getEventBus } from '../../core/EventBus';
+import { getLogger } from '../../core/Logger';
 import type { LevelId } from '../types';
 
 const log = getLogger('CheckpointSystem');

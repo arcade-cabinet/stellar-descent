@@ -44,12 +44,12 @@ import { StationLevel } from '../StationLevel';
 import type { LevelConfig, LevelId } from '../types';
 import styles from './AnchorStationLevel.module.css';
 import { MODULAR_ROOM_POSITIONS } from './ModularStationBuilder';
-import { StationLightTubes } from './StationLightTubes';
 // Use modular GLB-based station (replaces legacy procedural generation)
 import {
   createModularStationEnvironment,
   type ModularStationEnv,
 } from './ModularStationEnvironment';
+import { StationLightTubes } from './StationLightTubes';
 import { TutorialManager } from './TutorialManager';
 import type { HUDUnlockState, TutorialPhase } from './tutorialSteps';
 
@@ -216,76 +216,91 @@ export class AnchorStationLevel extends StationLevel {
     const visualOnly = { visualOnly: true } as const;
 
     // BRIEFING ROOM - Visual tubes
-    this.lightTubes.addCeilingLights(
-      'briefing', new Vector3(0, 0, 2), 10, 8, 3.5, 3, 2,
-      { ...visualOnly }
-    );
+    this.lightTubes.addCeilingLights('briefing', new Vector3(0, 0, 2), 10, 8, 3.5, 3, 2, {
+      ...visualOnly,
+    });
 
     // CORRIDOR A - Visual tubes
     this.lightTubes.addCorridorLights(
-      'corridorA', new Vector3(0, 0, -4), new Vector3(0, 0, -24), 3.0, 5,
+      'corridorA',
+      new Vector3(0, 0, -4),
+      new Vector3(0, 0, -24),
+      3.0,
+      5,
       { ...visualOnly, length: 1.5 }
     );
 
     // EQUIPMENT BAY - Visual tubes
-    this.lightTubes.addCeilingLights(
-      'equipBay', new Vector3(-10, 0, -16), 10, 8, 3.5, 2, 2,
-      { ...visualOnly, color: new Color3(0.9, 1.0, 0.9) }
-    );
+    this.lightTubes.addCeilingLights('equipBay', new Vector3(-10, 0, -16), 10, 8, 3.5, 2, 2, {
+      ...visualOnly,
+      color: new Color3(0.9, 1.0, 0.9),
+    });
 
     // ARMORY - Visual tubes
-    this.lightTubes.addCeilingLights(
-      'armory', new Vector3(10, 0, -16), 10, 8, 3.5, 2, 2,
-      { ...visualOnly, color: new Color3(1.0, 0.95, 0.9) }
-    );
+    this.lightTubes.addCeilingLights('armory', new Vector3(10, 0, -16), 10, 8, 3.5, 2, 2, {
+      ...visualOnly,
+      color: new Color3(1.0, 0.95, 0.9),
+    });
 
     // HOLODECK - Visual tubes
-    this.lightTubes.addCeilingLights(
-      'holodeck', new Vector3(0, 0, -34), 12, 12, 4.0, 3, 3,
-      { ...visualOnly, color: new Color3(0.8, 0.9, 1.0) }
-    );
+    this.lightTubes.addCeilingLights('holodeck', new Vector3(0, 0, -34), 12, 12, 4.0, 3, 3, {
+      ...visualOnly,
+      color: new Color3(0.8, 0.9, 1.0),
+    });
 
     // SHOOTING RANGE - Visual tubes (center + side strips)
     this.lightTubes.addCorridorLights(
-      'range_center', new Vector3(0, 0, -44), new Vector3(0, 0, -60), 3.5, 4,
+      'range_center',
+      new Vector3(0, 0, -44),
+      new Vector3(0, 0, -60),
+      3.5,
+      4,
       { ...visualOnly }
     );
     this.lightTubes.addCorridorLights(
-      'range_left', new Vector3(-3, 0, -44), new Vector3(-3, 0, -60), 3.5, 6,
+      'range_left',
+      new Vector3(-3, 0, -44),
+      new Vector3(-3, 0, -60),
+      3.5,
+      6,
       { ...visualOnly }
     );
     this.lightTubes.addCorridorLights(
-      'range_right', new Vector3(3, 0, -44), new Vector3(3, 0, -60), 3.5, 6,
+      'range_right',
+      new Vector3(3, 0, -44),
+      new Vector3(3, 0, -60),
+      3.5,
+      6,
       { ...visualOnly }
     );
 
     // HANGAR BAY - Visual tubes
-    this.lightTubes.addCeilingLights(
-      'hangar', new Vector3(0, 0, -70), 16, 12, 8.0, 4, 3,
-      { ...visualOnly, length: 2.5 }
-    );
+    this.lightTubes.addCeilingLights('hangar', new Vector3(0, 0, -70), 16, 12, 8.0, 4, 3, {
+      ...visualOnly,
+      length: 2.5,
+    });
 
     // EXPLORATION AREAS - Visual tubes only
-    this.lightTubes.addCeilingLights(
-      'observation', new Vector3(-12, 0, 4), 8, 8, 3.5, 2, 2,
-      { ...visualOnly, color: new Color3(0.7, 0.8, 1.0) }
-    );
-    this.lightTubes.addCeilingLights(
-      'engine', new Vector3(12, 0, 4), 8, 8, 3.5, 2, 2,
-      { ...visualOnly, color: new Color3(1.0, 0.9, 0.7) }
-    );
-    this.lightTubes.addCeilingLights(
-      'crewQuarters', new Vector3(-12, 0, -8), 8, 8, 3.0, 2, 1,
-      { ...visualOnly, color: new Color3(1.0, 0.95, 0.85) }
-    );
-    this.lightTubes.addCeilingLights(
-      'medical', new Vector3(12, 0, -8), 8, 8, 3.0, 2, 2,
-      { ...visualOnly, color: new Color3(0.95, 0.98, 1.0) }
-    );
-    this.lightTubes.addCeilingLights(
-      'biosphere', new Vector3(-8, 0, -24), 6, 8, 3.5, 2, 2,
-      { ...visualOnly, color: new Color3(0.7, 1.0, 0.8) }
-    );
+    this.lightTubes.addCeilingLights('observation', new Vector3(-12, 0, 4), 8, 8, 3.5, 2, 2, {
+      ...visualOnly,
+      color: new Color3(0.7, 0.8, 1.0),
+    });
+    this.lightTubes.addCeilingLights('engine', new Vector3(12, 0, 4), 8, 8, 3.5, 2, 2, {
+      ...visualOnly,
+      color: new Color3(1.0, 0.9, 0.7),
+    });
+    this.lightTubes.addCeilingLights('crewQuarters', new Vector3(-12, 0, -8), 8, 8, 3.0, 2, 1, {
+      ...visualOnly,
+      color: new Color3(1.0, 0.95, 0.85),
+    });
+    this.lightTubes.addCeilingLights('medical', new Vector3(12, 0, -8), 8, 8, 3.0, 2, 2, {
+      ...visualOnly,
+      color: new Color3(0.95, 0.98, 1.0),
+    });
+    this.lightTubes.addCeilingLights('biosphere', new Vector3(-8, 0, -24), 6, 8, 3.5, 2, 2, {
+      ...visualOnly,
+      color: new Color3(0.7, 1.0, 0.8),
+    });
 
     // ========================================================================
     // ZONE LIGHTS - One per major room for atmosphere color tinting
@@ -293,26 +308,76 @@ export class AnchorStationLevel extends StationLevel {
     // These are the ONLY PointLights in the station (besides 4 emergency)
     // Global DirectionalLight + HemisphericLight handle base PBR illumination
     // ========================================================================
-    this.addStationLight('zone_briefing', new Vector3(0, 3.0, 2),
-      new Color3(0.95, 0.95, 1.0), 2.5, 22);
-    this.addStationLight('zone_equipment', new Vector3(-10, 3.0, -16),
-      new Color3(0.9, 1.0, 0.9), 2.0, 18);
-    this.addStationLight('zone_armory', new Vector3(10, 3.0, -16),
-      new Color3(1.0, 0.95, 0.9), 2.0, 18);
-    this.addStationLight('zone_holodeck', new Vector3(0, 3.5, -34),
-      new Color3(0.8, 0.9, 1.0), 2.0, 22);
-    this.addStationLight('zone_range', new Vector3(0, 3.0, -52),
-      new Color3(0.95, 0.95, 1.0), 2.5, 28);
-    this.addStationLight('zone_hangar', new Vector3(0, 6.0, -70),
-      new Color3(0.8, 0.85, 0.95), 3.0, 40);
-    this.addStationLight('zone_corridor_a', new Vector3(0, 2.8, -10),
-      new Color3(0.9, 0.9, 1.0), 1.5, 20);
-    this.addStationLight('zone_corridor_b', new Vector3(0, 2.8, -20),
-      new Color3(0.9, 0.9, 1.0), 1.5, 20);
-    this.addStationLight('zone_engine', new Vector3(12, 3.0, 4),
-      new Color3(1.0, 0.9, 0.7), 1.5, 18);
-    this.addStationLight('zone_observation', new Vector3(-12, 3.0, 4),
-      new Color3(0.7, 0.8, 1.0), 1.5, 18);
+    this.addStationLight(
+      'zone_briefing',
+      new Vector3(0, 3.0, 2),
+      new Color3(0.95, 0.95, 1.0),
+      2.5,
+      22
+    );
+    this.addStationLight(
+      'zone_equipment',
+      new Vector3(-10, 3.0, -16),
+      new Color3(0.9, 1.0, 0.9),
+      2.0,
+      18
+    );
+    this.addStationLight(
+      'zone_armory',
+      new Vector3(10, 3.0, -16),
+      new Color3(1.0, 0.95, 0.9),
+      2.0,
+      18
+    );
+    this.addStationLight(
+      'zone_holodeck',
+      new Vector3(0, 3.5, -34),
+      new Color3(0.8, 0.9, 1.0),
+      2.0,
+      22
+    );
+    this.addStationLight(
+      'zone_range',
+      new Vector3(0, 3.0, -52),
+      new Color3(0.95, 0.95, 1.0),
+      2.5,
+      28
+    );
+    this.addStationLight(
+      'zone_hangar',
+      new Vector3(0, 6.0, -70),
+      new Color3(0.8, 0.85, 0.95),
+      3.0,
+      40
+    );
+    this.addStationLight(
+      'zone_corridor_a',
+      new Vector3(0, 2.8, -10),
+      new Color3(0.9, 0.9, 1.0),
+      1.5,
+      20
+    );
+    this.addStationLight(
+      'zone_corridor_b',
+      new Vector3(0, 2.8, -20),
+      new Color3(0.9, 0.9, 1.0),
+      1.5,
+      20
+    );
+    this.addStationLight(
+      'zone_engine',
+      new Vector3(12, 3.0, 4),
+      new Color3(1.0, 0.9, 0.7),
+      1.5,
+      18
+    );
+    this.addStationLight(
+      'zone_observation',
+      new Vector3(-12, 3.0, 4),
+      new Color3(0.7, 0.8, 1.0),
+      1.5,
+      18
+    );
 
     // EMERGENCY LIGHTS (red accent - 4 small PointLights)
     this.addEmergencyLight('emergency1', new Vector3(-2, 2, -28), 3.0);

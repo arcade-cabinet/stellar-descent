@@ -423,7 +423,10 @@ export function GameCanvas({
       );
       planet.position.y = -PLANET_RADIUS;
 
-      const surfaceTexture = new Texture('/assets/textures/levels/landfall/Rock022_1K-JPG_Color.jpg', scene);
+      const surfaceTexture = new Texture(
+        '/assets/textures/levels/landfall/Rock022_1K-JPG_Color.jpg',
+        scene
+      );
 
       // Temporarily use StandardMaterial to bypass shader compilation issue
       const planetMaterial = new StandardMaterial('planetMat', scene);

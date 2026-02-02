@@ -4,15 +4,14 @@ import { App } from './App';
 import './css/main.css';
 import './css/colorblind.css';
 
-// Platform detection - initialize physical keyboard and gamepad detection early
-import { initGamepadDetection, initPhysicalKeyboardDetection } from './game/utils/PlatformDetector';
-
+import { initAchievements } from './game/achievements';
+import { getLogger } from './game/core/Logger';
+import { useDifficultyStore } from './game/difficulty/useDifficultyStore';
 // Database initialization - MUST happen before React mounts components that use stores
 import { saveSystem } from './game/persistence';
-import { getLogger } from './game/core/Logger';
-import { initAchievements } from './game/achievements';
-import { useDifficultyStore } from './game/difficulty/useDifficultyStore';
 import { initializeGameStatsStore } from './game/stores/useGameStatsStore';
+// Platform detection - initialize physical keyboard and gamepad detection early
+import { initGamepadDetection, initPhysicalKeyboardDetection } from './game/utils/PlatformDetector';
 
 const log = getLogger('Main');
 

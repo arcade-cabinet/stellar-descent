@@ -19,13 +19,11 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
 import { getMeleeSystem } from '../combat';
-import { getInputTracker, type InputTracker } from '../input';
 import { getAudioManager } from '../core/AudioManager';
 import { devMode } from '../core/DevMode';
 import { getEventBus } from '../core/EventBus';
 import { createEntity, type Entity, removeEntity } from '../core/ecs';
 import { getLogger } from '../core/Logger';
-import { getPlayerGovernor, type PlayerGovernor } from '../systems/PlayerGovernor';
 import { PostProcessManager, type PostProcessQuality } from '../core/PostProcessManager';
 import {
   type AtmosphericEffects,
@@ -41,6 +39,8 @@ import {
   type WeatherSystem,
   type WeatherType,
 } from '../effects/WeatherSystem';
+import { getInputTracker, type InputTracker } from '../input';
+import { getPlayerGovernor, type PlayerGovernor } from '../systems/PlayerGovernor';
 import type {
   ILevel,
   LevelConfig,
@@ -325,9 +325,11 @@ export abstract class BaseLevel implements ILevel {
 
     // Start level-specific audio (fire-and-forget: audio must NOT block level init
     // because the browser audio context may be locked until a user gesture)
-    getAudioManager().startLevelAudio(this.id).catch((e) => {
-      log.warn(`startLevelAudio failed for ${this.id}:`, e);
-    });
+    getAudioManager()
+      .startLevelAudio(this.id)
+      .catch((e) => {
+        log.warn(`startLevelAudio failed for ${this.id}:`, e);
+      });
 
     // Start advanced environmental audio (layered soundscapes with spatial audio)
     getAudioManager().startEnvironmentalAudio(this.id);

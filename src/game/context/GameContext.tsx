@@ -1,30 +1,34 @@
 import { type ReactNode, useEffect, useMemo } from 'react';
-import { useCombatStore, playChapterMusic } from '../stores/useCombatStore';
-import {
-  useMissionStore,
-  type CompassData,
-  type ObjectiveMarker,
-  type ScreenSpaceObjective,
-} from '../stores/useMissionStore';
-import {
-  usePlayerStore,
-  type HUDVisibility,
-  DEFAULT_HUD_VISIBILITY,
-  TUTORIAL_START_HUD_VISIBILITY,
-} from '../stores/usePlayerStore';
+import { getLogger } from '../core/Logger';
 import {
   type DifficultyLevel,
   type DifficultyModifiers,
   getDifficultyModifiers,
   useDifficultyStore,
 } from '../difficulty';
-import { getLogger } from '../core/Logger';
+import { playChapterMusic, useCombatStore } from '../stores/useCombatStore';
+import {
+  type CompassData,
+  type ObjectiveMarker,
+  type ScreenSpaceObjective,
+  useMissionStore,
+} from '../stores/useMissionStore';
+import {
+  DEFAULT_HUD_VISIBILITY,
+  type HUDVisibility,
+  TUTORIAL_START_HUD_VISIBILITY,
+  usePlayerStore,
+} from '../stores/usePlayerStore';
 
 const log = getLogger('GameContext');
 
 // Re-export types from mission store (was MissionContext)
-export type { CompassData, ObjectiveMarker, ScreenSpaceObjective } from '../stores/useMissionStore';
-export type { MissionStoreState as MissionContextType } from '../stores/useMissionStore';
+export type {
+  CompassData,
+  MissionStoreState as MissionContextType,
+  ObjectiveMarker,
+  ScreenSpaceObjective,
+} from '../stores/useMissionStore';
 
 // Re-export types from player store (was PlayerContext)
 export type { HUDVisibility } from '../stores/usePlayerStore';
