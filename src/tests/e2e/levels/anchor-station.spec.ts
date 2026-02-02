@@ -1184,6 +1184,15 @@ test.describe('Anchor Station - Tutorial Level', () => {
       await navigateToMainMenu(page);
       await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
+      // Ensure PlayerGovernor is ready before deterministic navigation
+      await page.waitForFunction(
+        () => {
+          const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
+            .__STELLAR_DESCENT_DEBUG__;
+          return debug?.playerGovernor?.getCurrentGoal !== undefined;
+        },
+        { timeout: 10000 }
+      );
       await page.waitForTimeout(3000);
     });
 
