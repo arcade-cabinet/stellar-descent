@@ -92,7 +92,7 @@ class StatisticsTrackerClass {
    */
   private createNewSession(): SessionStats {
     return {
-      sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // lgtm[js/insecure-randomness] -- game session ID, not security token
       startTime: Date.now(),
       kills: 0,
       deaths: 0,
