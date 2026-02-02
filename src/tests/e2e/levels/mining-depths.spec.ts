@@ -158,7 +158,7 @@ const BURROWER_SPAWN_POSITIONS = {
 /**
  * Wait for the debug interface to become available on the page.
  */
-async function waitForDebugInterface(page: Page, timeout = 30000): Promise<void> {
+async function waitForDebugInterface(page: Page, timeout: number = 30000): Promise<void> {
   await page.waitForFunction(() => typeof window.__STELLAR_DESCENT_DEBUG__ !== 'undefined', {
     timeout,
   });
@@ -167,7 +167,11 @@ async function waitForDebugInterface(page: Page, timeout = 30000): Promise<void>
 /**
  * Wait for the game to reach a specific campaign phase.
  */
-async function waitForCampaignPhase(page: Page, phase: string, timeout = 30000): Promise<void> {
+async function waitForCampaignPhase(
+  page: Page,
+  phase: string,
+  timeout: number = 30000
+): Promise<void> {
   await page.waitForFunction(
     (expectedPhase) =>
       window.__STELLAR_DESCENT_DEBUG__?.campaignDirector?.getState()?.phase === expectedPhase,
@@ -179,7 +183,7 @@ async function waitForCampaignPhase(page: Page, phase: string, timeout = 30000):
 /**
  * Navigate to a specific position using PlayerGovernor.
  */
-async function navigateTo(page: Page, position: Vector3Like, threshold = 2): Promise<void> {
+async function navigateTo(page: Page, position: Vector3Like, threshold: number = 2): Promise<void> {
   await page.evaluate(
     ({ pos, thresh }) => {
       window.__STELLAR_DESCENT_DEBUG__.playerGovernor.setGoal({
@@ -198,8 +202,8 @@ async function navigateTo(page: Page, position: Vector3Like, threshold = 2): Pro
 async function waitForPosition(
   page: Page,
   _position: Vector3Like,
-  _threshold = 3,
-  timeout = 30000
+  _threshold: number = 3,
+  timeout: number = 30000
 ): Promise<void> {
   await page.waitForFunction(
     () => {
@@ -244,6 +248,17 @@ async function enableGodMode(page: Page): Promise<void> {
   await page.evaluate(() => {
     if (window.__STELLAR_DESCENT_DEBUG__?.devMode) {
       window.__STELLAR_DESCENT_DEBUG__.devMode.godMode = true;
+    }
+  });
+}
+
+/**
+ * Disable god mode (re-enable player damage).
+ */
+async function disableGodMode(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    if (window.__STELLAR_DESCENT_DEBUG__?.devMode) {
+      window.__STELLAR_DESCENT_DEBUG__.devMode.godMode = false;
     }
   });
 }
@@ -1183,7 +1198,8 @@ test.describe('Mining Depths Level - E2E Tests', () => {
     });
 
     test('should show burrower attack notification when player is hit', async ({ page }) => {
-      // Do NOT enable god mode for this test
+      // Disable god mode so player can take damage (beforeEach enables it)
+      await disableGodMode(page);
       await startMiningDepths(page);
       await waitForCampaignPhase(page, 'playing', 60000);
       await page.waitForTimeout(3000);

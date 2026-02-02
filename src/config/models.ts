@@ -24,7 +24,7 @@ export const NPC_MODELS = {
 /** Vehicle models */
 export const VEHICLE_MODELS = {
   wraith: resolveAsset('assets/models/vehicles/chitin/wraith.glb'),
-  phantom: resolveAsset('assets/models/spaceships/Dispatcher.glb'),
+  phantom: resolveAsset('assets/models/vehicles/phantom.glb'),
   marcus_mech: resolveAsset('assets/models/vehicles/marcus_mech.glb'),
 } as const;
 

@@ -69,6 +69,14 @@ export class VictorySystem {
    * Mark an objective as complete
    */
   completeObjective(objectiveId: string): boolean {
+    // Guard against re-entrant calls from EventBus listener
+    if (
+      this.completedObjectives.has(objectiveId) ||
+      this.completedBonusObjectives.has(objectiveId)
+    ) {
+      return false;
+    }
+
     if (this.requiredObjectives.has(objectiveId)) {
       this.completedObjectives.add(objectiveId);
       log.info(

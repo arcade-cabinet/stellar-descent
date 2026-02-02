@@ -1,5 +1,3 @@
-// Path resolution
-
 // Audio paths
 export { MUSIC_PATHS, SPLASH_AUDIO_PATHS } from './audio';
 // Entity configs
@@ -13,6 +11,7 @@ export {
   SPACESHIP_MODELS,
   VEHICLE_MODELS,
 } from './models';
+// Path resolution
 export { resolveAsset } from './paths';
 // Texture paths
 export { HDRI_PATHS, SKYBOX_PATHS } from './textures';

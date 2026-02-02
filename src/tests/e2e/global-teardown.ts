@@ -17,7 +17,7 @@
 
 import { execSync } from 'node:child_process';
 
-export default async function globalTeardown() {
+export default async function globalTeardown(): Promise<void> {
   try {
     const platform = process.platform;
 
@@ -32,9 +32,10 @@ export default async function globalTeardown() {
       // Linux: Playwright stores browsers under ~/.cache/ms-playwright/
       execSync("pkill -f '.cache/ms-playwright/chromium' 2>/dev/null || true", { stdio: 'ignore' });
     } else if (platform === 'win32') {
-      // Windows: Playwright stores browsers under %LOCALAPPDATA%\ms-playwright\
+      // Windows: Playwright stores browsers under %LOCALAPPDATA%/ms-playwright/
+      // Use PowerShell to find Chromium by command-line path (taskkill MODULES filter doesn't work)
       execSync(
-        'taskkill /F /FI "IMAGENAME eq chrome.exe" /FI "MODULES eq playwright" 2>nul || exit /b 0',
+        "powershell -Command \"Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'ms-playwright' -and $_.Name -eq 'chrome.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }\" 2>nul || exit /b 0",
         { stdio: 'ignore', shell: 'cmd.exe' }
       );
     }

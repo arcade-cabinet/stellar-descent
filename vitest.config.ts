@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@config': resolve(__dirname, 'src/config'),
-      '@types': resolve(__dirname, 'src/types'),
       '@': resolve(__dirname, 'src'),
+      '@types': resolve(__dirname, 'src/types'),
+      '@config': resolve(__dirname, 'src/config'),
       // Mock PWA virtual module for tests
       'virtual:pwa-register': resolve(__dirname, 'src/test/mocks/pwa-register.ts'),
     },

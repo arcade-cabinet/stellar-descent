@@ -1179,6 +1179,8 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
   test.describe('Visual Regression - Station Lighting', () => {
     test.beforeEach(async ({ page }) => {
+      // Fixed viewport for consistent screenshots across CI and local
+      await page.setViewportSize({ width: 1280, height: 720 });
       await navigateToMainMenu(page);
       await startNewGame(page, 'normal');
       await waitForTutorialLevel(page);
@@ -1194,9 +1196,9 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
     test('should match equipment bay lighting after navigation', async ({ page }) => {
       await clickCanvas(page);
-      // Navigate to equipment bay
-      await holdKey(page, 'w', 4000);
-      await holdKey(page, 'a', 2000);
+      // Use governor for deterministic navigation instead of holdKey
+      await governorNavigateTo(page, ROOM_POSITIONS.equipmentBay);
+      await waitForGoalComplete(page, 'navigate', 15000);
       await page.waitForTimeout(1000);
 
       await expect(page).toHaveScreenshot('anchor-station-equipment-bay.png', {
@@ -1207,8 +1209,9 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
     test('should match shooting range environment', async ({ page }) => {
       await clickCanvas(page);
-      // Navigate to shooting range (further down the corridor)
-      await holdKey(page, 'w', 8000);
+      // Use governor for deterministic navigation
+      await governorNavigateTo(page, ROOM_POSITIONS.shootingRange);
+      await waitForGoalComplete(page, 'navigate', 30000);
       await page.waitForTimeout(2000);
 
       await expect(page).toHaveScreenshot('anchor-station-shooting-range.png', {
@@ -1219,8 +1222,9 @@ test.describe('Anchor Station - Tutorial Level', () => {
 
     test('should match hangar bay lighting', async ({ page }) => {
       await clickCanvas(page);
-      // Navigate deep into station toward hangar
-      await holdKey(page, 'w', 14000);
+      // Use governor for deterministic navigation
+      await governorNavigateTo(page, ROOM_POSITIONS.hangarBay);
+      await waitForGoalComplete(page, 'navigate', 45000);
       await page.waitForTimeout(2000);
 
       await expect(page).toHaveScreenshot('anchor-station-hangar-bay.png', {
@@ -1233,14 +1237,13 @@ test.describe('Anchor Station - Tutorial Level', () => {
       await clickCanvas(page);
       await page.waitForTimeout(5000);
 
-      // Capture HUD element if visible
+      // Assert HUD is visible — fail explicitly if not rendered
       const hud = page.locator('[data-testid="game-hud"], .hud-container');
-      if (await hud.isVisible()) {
-        await expect(hud).toHaveScreenshot('anchor-station-tutorial-hud.png', {
-          maxDiffPixelRatio: 0.08,
-          timeout: 10000,
-        });
-      }
+      await expect(hud).toBeVisible({ timeout: 10000 });
+      await expect(hud).toHaveScreenshot('anchor-station-tutorial-hud.png', {
+        maxDiffPixelRatio: 0.08,
+        timeout: 10000,
+      });
     });
   });
 

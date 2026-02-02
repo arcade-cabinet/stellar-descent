@@ -1,4 +1,13 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<script>window.location.replace(document.baseURI)</script>
+<script>
+  // SPA fallback: redirect unknown paths to the app root (same origin only)
+  var loc = window.location;
+  var segments = loc.pathname.split('/').filter(Boolean);
+  // For project-page deploys (e.g. /stellar-descent/), keep the first segment
+  var base = segments.length > 0 ? '/' + segments[0] + '/' : '/';
+  if (loc.pathname !== base) {
+    loc.replace(loc.origin + base);
+  }
+</script>
 </head><body></body></html>
