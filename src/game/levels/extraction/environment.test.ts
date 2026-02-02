@@ -194,12 +194,12 @@ vi.mock('./ExtractionEnvironmentBuilder', () => ({
 vi.mock('./constants', () => ({
   ESCAPE_TUNNEL_LENGTH: 300,
   LZ_POSITION: { x: 0, y: 0, z: -500 },
-  GLB_MECH: '/assets/models/vehicles/mech.glb',
-  GLB_DROPSHIP: '/assets/models/vehicles/dropship.glb',
-  GLB_SUPPLY_DROP: '/assets/models/props/supply_drop.glb',
-  GLB_AMMO_BOX: '/assets/models/props/ammo_box.glb',
-  GLB_CRUMBLING_WALL: '/assets/models/props/crumbling_wall.glb',
-  GLB_DEBRIS_VARIANTS: ['/assets/models/props/debris1.glb'],
+  GLB_MECH: '/assets/models/vehicles/marcus_mech.glb',
+  GLB_DROPSHIP: '/assets/models/spaceships/Dispatcher.glb',
+  GLB_SUPPLY_DROP: '/assets/models/props/collectibles/supply_drop.glb',
+  GLB_AMMO_BOX: '/assets/models/props/weapons/ammo_box_556.glb',
+  GLB_CRUMBLING_WALL: '/assets/models/props/debris/bricks_stacked_mx_4.glb',
+  GLB_DEBRIS_VARIANTS: ['/assets/models/props/debris/brick_mx_1.glb'],
 }));
 
 import {

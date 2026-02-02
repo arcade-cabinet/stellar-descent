@@ -52,7 +52,7 @@ const GLB_PATHS = {
 
   // Support pillars
   pillar: '/assets/models/environment/station/pillar_hr_2.glb',
-  pillarRg: '/assets/models/environment/station/pillar_rg_1.glb',
+  pillarRg: '/assets/models/environment/station/pillar_rg_2.glb',
   pillarRgBroken: '/assets/models/environment/station/pillar_rg_1_broken.glb',
   column1: '/assets/models/environment/modular/Column_1.glb',
   column2: '/assets/models/environment/modular/Column_2.glb',

@@ -19,19 +19,19 @@ export const FINAL_ESCAPE_ASSETS: AssetEntry[] = [
   {
     id: 'env/column_b',
     category: 'model',
-    path: '/assets/models/environment/modular/Column_B.glb',
+    path: '/assets/models/environment/modular/Column_2.glb',
     sizeKB: 150,
   },
   {
     id: 'env/detail_a',
     category: 'model',
-    path: '/assets/models/environment/modular/Detail_A.glb',
+    path: '/assets/models/environment/modular/Details_Basic_1.glb',
     sizeKB: 100,
   },
   {
     id: 'env/detail_b',
     category: 'model',
-    path: '/assets/models/environment/modular/Detail_B.glb',
+    path: '/assets/models/environment/modular/Details_Basic_2.glb',
     sizeKB: 100,
   },
 

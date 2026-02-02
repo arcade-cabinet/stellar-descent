@@ -167,7 +167,7 @@ describe('ASSET_MANIFEST path validation', () => {
   const ASSET_BASE_PATHS: Record<string, string> = {
     aliens: '/assets/models/enemies/chitin/',
     vehicles: '/assets/models/vehicles/',
-    structures: '/assets/models/structures/',
+    structures: '/assets/models/environment/hive/',
   };
 
   // Re-declare the manifest shape inline to avoid pulling in BabylonJS

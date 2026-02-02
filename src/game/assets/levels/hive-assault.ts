@@ -14,31 +14,31 @@ export const HIVE_ASSAULT_ASSETS: AssetEntry[] = [
   // ============================================================================
   {
     id: 'modular/wall_a',
-    path: '/assets/models/environment/modular/Wall_A.glb',
+    path: '/assets/models/environment/modular/Wall_1.glb',
     category: 'model',
     sizeKB: 300,
   },
   {
     id: 'modular/wall_b',
-    path: '/assets/models/environment/modular/Wall_B.glb',
+    path: '/assets/models/environment/modular/Wall_2.glb',
     category: 'model',
     sizeKB: 300,
   },
   {
     id: 'modular/floor_a',
-    path: '/assets/models/environment/modular/Floor_A.glb',
+    path: '/assets/models/environment/modular/FloorTile_Basic.glb',
     category: 'model',
     sizeKB: 250,
   },
   {
     id: 'modular/door_a',
-    path: '/assets/models/environment/modular/Door_A.glb',
+    path: '/assets/models/environment/modular/Door_Single.glb',
     category: 'model',
     sizeKB: 200,
   },
   {
     id: 'modular/column_a',
-    path: '/assets/models/environment/modular/Column_A.glb',
+    path: '/assets/models/environment/modular/Column_1.glb',
     category: 'model',
     sizeKB: 150,
   },

@@ -33,7 +33,7 @@ import { LODManager } from './LODManager';
 const ASSET_PATHS = {
   aliens: '/assets/models/enemies/chitin/',
   vehicles: '/assets/models/vehicles/',
-  structures: '/assets/models/structures/',
+  structures: '/assets/models/environment/hive/',
   props: '/assets/models/psx/props/',
 } as const;
 
