@@ -359,7 +359,7 @@ export function getRandomPainSound(speciesId: string): string {
   if (!species || species.painSounds.length === 0) {
     return 'organic_squish';
   }
-  const index = Math.floor(Math.random() * species.painSounds.length);
+  const index = Math.floor(Math.random() * species.painSounds.length); // lgtm[js/insecure-randomness] -- game animation selection, not security
   return species.painSounds[index];
 }
 
@@ -372,7 +372,7 @@ export function getRandomDeathAnimation(speciesId: string): string {
   if (!species || species.deathAnimations.length === 0) {
     return 'death_collapse';
   }
-  const index = Math.floor(Math.random() * species.deathAnimations.length);
+  const index = Math.floor(Math.random() * species.deathAnimations.length); // lgtm[js/insecure-randomness] -- game animation selection, not security
   return species.deathAnimations[index];
 }
 
