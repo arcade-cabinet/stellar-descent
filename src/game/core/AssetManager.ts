@@ -34,7 +34,7 @@ const ASSET_PATHS = {
   aliens: '/assets/models/enemies/chitin/',
   vehicles: '/assets/models/vehicles/',
   structures: '/assets/models/environment/hive/',
-  props: '/assets/models/psx/props/',
+  props: '/assets/models/props/',
 } as const;
 
 // Asset manifest - maps logical names to GLB files

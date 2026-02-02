@@ -124,7 +124,7 @@ const SCENIC_MODELS = {
   barrel2: '/assets/models/props/industrial/metal_barrel_hr_2.glb',
   bench: '/assets/models/props/furniture/bench_mx_1.glb',
   lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
-  lamp2: '/assets/models/props/industrial/lamp_mx_2_on.glb',
+  lamp2: '/assets/models/props/electrical/lamp_mx_2_on.glb',
 
   // Station door
   stationDoor: '/assets/models/environment/station/station_door.glb',

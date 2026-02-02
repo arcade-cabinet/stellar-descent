@@ -310,13 +310,13 @@ const INDUSTRIAL_PROPS: AssetEntry[] = [
   {
     id: 'prop/box',
     category: 'model',
-    path: '/assets/models/props/industrial/cardboard_box_1.glb',
+    path: '/assets/models/props/containers/cardboard_box_1.glb',
     sizeKB: 60,
   },
   {
     id: 'prop/electrical',
     category: 'model',
-    path: '/assets/models/props/industrial/electrical_equipment_1.glb',
+    path: '/assets/models/environment/industrial/electrical_equipment_1.glb',
     sizeKB: 180,
   },
   {
@@ -334,7 +334,7 @@ const INDUSTRIAL_PROPS: AssetEntry[] = [
   {
     id: 'prop/door_6',
     category: 'model',
-    path: '/assets/models/props/industrial/door_hr_6.glb',
+    path: '/assets/models/props/doors/door_hr_6.glb',
     sizeKB: 130,
   },
   {
@@ -346,7 +346,7 @@ const INDUSTRIAL_PROPS: AssetEntry[] = [
   {
     id: 'prop/door_13',
     category: 'model',
-    path: '/assets/models/props/industrial/door_hr_13.glb',
+    path: '/assets/models/props/doors/door_hr_13.glb',
     sizeKB: 138,
   },
 ];
@@ -361,13 +361,13 @@ const LIGHTING_PROPS: AssetEntry[] = [
   {
     id: 'prop/lamp_2',
     category: 'model',
-    path: '/assets/models/props/industrial/lamp_mx_2_on.glb',
+    path: '/assets/models/props/electrical/lamp_mx_2_on.glb',
     sizeKB: 72,
   },
   {
     id: 'prop/lamp_3',
     category: 'model',
-    path: '/assets/models/props/industrial/lamp_mx_3_on.glb',
+    path: '/assets/models/props/electrical/lamp_mx_3_on.glb',
     sizeKB: 75,
   },
 ];

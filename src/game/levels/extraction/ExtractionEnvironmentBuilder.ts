@@ -102,7 +102,7 @@ const PROPS = {
   pipe_2: '/assets/models/props/pipes/pipe_e_2.glb',
   pipe_3: '/assets/models/props/pipes/pipe_mx_1.glb',
   pipe_4: '/assets/models/props/pipes/pipe_mx_2.glb',
-  elec_1: '/assets/models/props/industrial/electrical_equipment_1.glb',
+  elec_1: '/assets/models/environment/industrial/electrical_equipment_1.glb',
   gear_1: '/assets/models/props/electrical/gear_mx_1.glb',
   gear_2: '/assets/models/props/electrical/gear_mx_2.glb',
   lamp_off: '/assets/models/props/electrical/lamp_mx_4_off.glb',

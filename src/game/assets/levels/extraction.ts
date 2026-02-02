@@ -41,7 +41,7 @@ const EXTRACTION_PROPS: AssetEntry[] = [
   },
   {
     id: 'prop/extraction/elec_1',
-    path: '/assets/models/props/industrial/electrical_equipment_1.glb',
+    path: '/assets/models/environment/industrial/electrical_equipment_1.glb',
     category: 'model',
     sizeKB: 180,
   },

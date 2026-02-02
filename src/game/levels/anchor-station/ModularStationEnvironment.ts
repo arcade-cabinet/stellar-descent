@@ -630,13 +630,13 @@ export async function createModularStationEnvironment(scene: Scene): Promise<Mod
     shelf: '/assets/models/props/industrial/shelf_mx_1.glb',
     barrel1: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
     barrel2: '/assets/models/props/industrial/metal_barrel_hr_2.glb',
-    cardboardBox: '/assets/models/props/industrial/cardboard_box_1.glb',
-    electricalEquipment: '/assets/models/props/industrial/electrical_equipment_1.glb',
+    cardboardBox: '/assets/models/props/containers/cardboard_box_1.glb',
+    electricalEquipment: '/assets/models/environment/industrial/electrical_equipment_1.glb',
     machinery: '/assets/models/props/industrial/machinery_mx_1.glb',
     pipes: '/assets/models/props/industrial/pipes_hr_1.glb',
     lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
-    lamp2: '/assets/models/props/industrial/lamp_mx_2_on.glb',
-    lamp3: '/assets/models/props/industrial/lamp_mx_3_on.glb',
+    lamp2: '/assets/models/props/electrical/lamp_mx_2_on.glb',
+    lamp3: '/assets/models/props/electrical/lamp_mx_3_on.glb',
   };
 
   interface PropPlacement {
