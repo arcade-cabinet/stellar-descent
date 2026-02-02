@@ -10,9 +10,9 @@
  * distinguishes it from the user's normal Chrome.
  *
  * Cache paths by platform:
- *   macOS:  ~/Library/Caches/ms-playwright/chromium-*/
- *   Linux:  ~/.cache/ms-playwright/chromium-*/
- *   Win32:  %LOCALAPPDATA%\ms-playwright\chromium-*\
+ *   macOS:  ~/Library/Caches/ms-playwright/chromium-{version}/
+ *   Linux:  ~/.cache/ms-playwright/chromium-{version}/
+ *   Win32:  %LOCALAPPDATA%/ms-playwright/chromium-{version}/
  */
 
 import { execSync } from 'node:child_process';
@@ -25,21 +25,17 @@ export default async function globalTeardown() {
       // macOS: Playwright stores browsers under ~/Library/Caches/ms-playwright/
       // The binary is "Google Chrome for Testing" inside a .app bundle.
       // Match the cache path in the full command line to avoid killing user Chrome.
-      execSync(
-        "pkill -f 'Library/Caches/ms-playwright/chromium' 2>/dev/null || true",
-        { stdio: 'ignore' },
-      );
+      execSync("pkill -f 'Library/Caches/ms-playwright/chromium' 2>/dev/null || true", {
+        stdio: 'ignore',
+      });
     } else if (platform === 'linux') {
       // Linux: Playwright stores browsers under ~/.cache/ms-playwright/
-      execSync(
-        "pkill -f '.cache/ms-playwright/chromium' 2>/dev/null || true",
-        { stdio: 'ignore' },
-      );
+      execSync("pkill -f '.cache/ms-playwright/chromium' 2>/dev/null || true", { stdio: 'ignore' });
     } else if (platform === 'win32') {
       // Windows: Playwright stores browsers under %LOCALAPPDATA%\ms-playwright\
       execSync(
         'taskkill /F /FI "IMAGENAME eq chrome.exe" /FI "MODULES eq playwright" 2>nul || exit /b 0',
-        { stdio: 'ignore', shell: 'cmd.exe' },
+        { stdio: 'ignore', shell: 'cmd.exe' }
       );
     }
   } catch {
