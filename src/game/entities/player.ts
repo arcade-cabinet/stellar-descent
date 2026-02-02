@@ -7,6 +7,7 @@ import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { PLAYER_MODEL } from '@config/models';
 import { getAchievementManager } from '../achievements';
 import { getMeleeSystem } from '../combat';
 import { getCurrentWeaponDef } from '../context/useWeaponActions';
@@ -28,7 +29,7 @@ import { STARTER_WEAPON } from './weapons';
 const log = getLogger('Player');
 
 // Path to the marine soldier GLB model
-const PLAYER_MODEL_PATH = '/assets/models/npcs/marine/marine_soldier.glb';
+const PLAYER_MODEL_PATH = PLAYER_MODEL;
 
 // Sun direction for optimal visuals - sun should be top-right when facing forward
 const _SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();

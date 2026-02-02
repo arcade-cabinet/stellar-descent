@@ -73,7 +73,10 @@ export class CameraShakeSystem {
    */
   addShake(intensity: number): void {
     if (!this.enabled) return;
-    this.config.intensity = Math.min(10, this.config.intensity + intensity * this.intensityMultiplier);
+    this.config.intensity = Math.min(
+      10,
+      this.config.intensity + intensity * this.intensityMultiplier
+    );
   }
 
   /**

@@ -660,9 +660,7 @@ export class FOBDeltaLevel extends BaseLevel {
         `Failed to load ${failed.length}/${ALL_FOB_GLB_PATHS.length} GLB assets: ${failed.map((r) => r.path).join(', ')}`
       );
     }
-    log.info(
-      `Preloaded ${results.length - failed.length}/${ALL_FOB_GLB_PATHS.length} GLB assets`
-    );
+    log.info(`Preloaded ${results.length - failed.length}/${ALL_FOB_GLB_PATHS.length} GLB assets`);
   }
 
   /**

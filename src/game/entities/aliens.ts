@@ -1,6 +1,7 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { SPECIES_GLB_CONFIG } from '@config/entities';
 import { Vehicle } from 'yuka';
 import { AssetManager } from '../core/AssetManager';
 import {
@@ -27,21 +28,7 @@ import { createEntity, type Entity } from '../core/ecs';
  * - alienmonster.glb, alienfemale.glb -> Reserved for future use
  */
 
-/** Map each alien species to its GLB file path and scale factor */
-const SPECIES_GLB_CONFIG: Record<string, { path: string; scale: number }> = {
-  // Primary enemy types
-  skitterer: { path: '/assets/models/enemies/chitin/spider.glb', scale: 0.4 },
-  spitter: { path: '/assets/models/enemies/chitin/soldier.glb', scale: 0.5 },
-  warrior: { path: '/assets/models/enemies/chitin/alienmale.glb', scale: 0.7 },
-  heavy: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 0.8 },
-  stalker: { path: '/assets/models/enemies/chitin/scout.glb', scale: 0.6 },
-  broodmother: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 1.0 },
-  queen: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 1.5 },
-  // Legacy mappings (deprecated, kept for backward compatibility)
-  lurker: { path: '/assets/models/enemies/chitin/scout.glb', scale: 0.7 },
-  spewer: { path: '/assets/models/enemies/chitin/soldier.glb', scale: 0.6 },
-  husk: { path: '/assets/models/enemies/chitin/alienmale.glb', scale: 0.6 },
-};
+// SPECIES_GLB_CONFIG imported from @config/entities
 
 // Alien species definitions - creepy, surreal, procedurally generated
 export interface AlienSpecies {

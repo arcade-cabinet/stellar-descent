@@ -33,10 +33,10 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # ============================================================================
-  # STAGING: Always runs on release (GitHub Releases + Netlify)
+  # STAGING: Always runs on release (GitHub Releases + GitHub Pages)
   # ============================================================================
 
-  # Web Deployment (Staging/Production share same Netlify)
+  # Web Deployment (archive for GitHub Release — live site deployed by cd.yml)
   deploy-web:
     name: Deploy Web
     runs-on: ubuntu-latest
@@ -56,14 +56,6 @@ jobs:
         uses: ./.github/actions/build-web
         with:
           upload-artifact: false
-
-      - name: Deploy to Netlify
-        run: |
-          pnpm add -g netlify-cli
-          netlify deploy --prod --dir=dist --site=$NETLIFY_SITE_ID
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: 1df7d7e0-b11c-4a74-8530-3b673b5b36ce
 
       - name: Create web dist archive
         run: |

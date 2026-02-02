@@ -3,18 +3,14 @@
  * Volume levels, fade times, frequency values, and level configurations
  */
 
+import { MUSIC_PATHS as CONFIG_MUSIC_PATHS } from '@config/audio';
 import type { LevelId } from '../../levels/types';
 import type { LevelAudioConfig, MusicTrack, TrackInfo } from './types';
 
-// Music file paths (relative to public/)
+// Music file paths - spread from config, add defeat override
 export const MUSIC_PATHS: Record<MusicTrack, string> = {
-  menu: '/assets/audio/music/menu.ogg',
-  ambient: '/assets/audio/music/ambient.ogg',
-  combat: '/assets/audio/music/combat.ogg',
-  exploration: '/assets/audio/music/exploration.ogg',
-  boss: '/assets/audio/music/boss.ogg',
-  victory: '/assets/audio/music/victory.ogg',
-  defeat: '/assets/audio/music/combat.ogg', // Reuse combat for defeat tension
+  ...CONFIG_MUSIC_PATHS,
+  defeat: CONFIG_MUSIC_PATHS.combat, // Reuse combat for defeat tension
 };
 
 // Track characteristics for intelligent blending

@@ -402,7 +402,9 @@ export class SkyboxManager {
       this.adjustPBRMaterialForDirectLight(material);
     });
 
-    log.info(`Indoor lighting: adjusted ${pbrCount} PBR materials for direct-light-only mode (watching for new materials)`);
+    log.info(
+      `Indoor lighting: adjusted ${pbrCount} PBR materials for direct-light-only mode (watching for new materials)`
+    );
   }
 
   /**

@@ -20,7 +20,11 @@
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@types": ["src/types"],
+      "@types/*": ["src/types/*"],
+      "@config": ["src/config"],
+      "@config/*": ["src/config/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],

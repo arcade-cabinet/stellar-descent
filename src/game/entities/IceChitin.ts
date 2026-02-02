@@ -24,6 +24,7 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
+import { ICE_CHITIN_MODELS } from '@config/entities';
 import { AssetManager } from '../core/AssetManager';
 import { getLogger } from '../core/Logger';
 
@@ -234,12 +235,9 @@ export interface IceChitinInstance {
 // GLB MODEL PATHS AND CONFIGURATION
 // ============================================================================
 
-/** GLB model configuration per ice chitin variant */
-const ICE_CHITIN_GLB_CONFIG: Record<IceChitinVariant, { path: string; scale: number }> = {
-  drone: { path: '/assets/models/enemies/chitin/spider.glb', scale: 0.5 },
-  warrior: { path: '/assets/models/enemies/chitin/soldier.glb', scale: 0.6 },
-  brood_mother: { path: '/assets/models/enemies/chitin/tentakel.glb', scale: 1.0 },
-};
+/** GLB model configuration per ice chitin variant (from @config/entities) */
+const ICE_CHITIN_GLB_CONFIG: Record<IceChitinVariant, { path: string; scale: number }> =
+  ICE_CHITIN_MODELS as Record<IceChitinVariant, { path: string; scale: number }>;
 
 /** All GLB paths for preloading */
 const ALL_ICE_CHITIN_GLBS = [

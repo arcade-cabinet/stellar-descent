@@ -391,11 +391,11 @@ export function playChapterMusic(currentChapter: number): void {
   if (inCombat) return; // Don't override combat music
 
   const trackMap: Record<number, MusicTrack> = {
-    1: 'ambient',       // Tutorial/Anchor Station
-    2: 'exploration',   // Surface
-    7: 'boss',          // The Breach - Queen boss fight
-    9: 'exploration',   // Extraction holdout
-    10: 'victory',      // Final Escape / Victory
+    1: 'ambient', // Tutorial/Anchor Station
+    2: 'exploration', // Surface
+    7: 'boss', // The Breach - Queen boss fight
+    9: 'exploration', // Extraction holdout
+    10: 'victory', // Final Escape / Victory
   };
 
   const track = trackMap[currentChapter] ?? 'exploration';

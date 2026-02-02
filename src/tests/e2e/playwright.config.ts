@@ -94,6 +94,8 @@ export default defineConfig({
 
   outputDir: 'test-results',
 
+  globalTeardown: path.resolve(import.meta.dirname, 'global-teardown.ts'),
+
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080',
     trace: 'retain-on-failure',

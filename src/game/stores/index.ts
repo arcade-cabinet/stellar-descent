@@ -109,17 +109,6 @@ export {
   type SkullEntry,
   useCollectiblesStore,
 } from './useCollectiblesStore';
-// Game stats store (death count, best times, level stats)
-export {
-  type BestTimeEntry,
-  type GameStatsActions,
-  type GameStatsState,
-  type GameStatsStoreState,
-  getGameStatsStore,
-  initializeGameStatsStore,
-  type LevelBestStatsData,
-  useGameStatsStore,
-} from './useGameStatsStore';
 // Combat store (non-persisted runtime stats)
 export {
   type CombatActions,
@@ -136,17 +125,17 @@ export {
   subscribeToCombatState,
   useCombatStore,
 } from './useCombatStore';
-// Mission store (non-persisted UI state - replaces MissionContext)
+// Game stats store (death count, best times, level stats)
 export {
-  type CompassData,
-  getMissionStore,
-  type MissionActions,
-  type MissionState,
-  type MissionStoreState,
-  type ObjectiveMarker,
-  type ScreenSpaceObjective,
-  useMissionStore,
-} from './useMissionStore';
+  type BestTimeEntry,
+  type GameStatsActions,
+  type GameStatsState,
+  type GameStatsStoreState,
+  getGameStatsStore,
+  initializeGameStatsStore,
+  type LevelBestStatsData,
+  useGameStatsStore,
+} from './useGameStatsStore';
 // Keybindings store
 export {
   // Constants
@@ -188,6 +177,17 @@ export {
   useKeybindings,
   useKeybindingsStore,
 } from './useKeybindingsStore';
+// Mission store (non-persisted UI state - replaces MissionContext)
+export {
+  type CompassData,
+  getMissionStore,
+  type MissionActions,
+  type MissionState,
+  type MissionStoreState,
+  type ObjectiveMarker,
+  type ScreenSpaceObjective,
+  useMissionStore,
+} from './useMissionStore';
 // Player store (non-persisted runtime state)
 export {
   DEFAULT_HUD_VISIBILITY,

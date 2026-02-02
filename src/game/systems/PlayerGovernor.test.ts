@@ -151,8 +151,8 @@ import {
   type GovernorConfig,
   type GovernorEvent,
   type GovernorGoal,
-  PlayerGovernor,
   getPlayerGovernor,
+  PlayerGovernor,
   resetPlayerGovernor,
 } from './PlayerGovernor';
 

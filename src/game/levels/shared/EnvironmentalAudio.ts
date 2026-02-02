@@ -13,7 +13,7 @@
  *   ambience.addAudioZone('generator_room', position, 'machinery', 10);
  */
 
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { getAudioManager } from '../../core/AudioManager';
 import { getLogger } from '../../core/Logger';
 import type { LevelId } from '../types';
@@ -61,13 +61,7 @@ export class EnvironmentalAudio {
   /**
    * Add a spatial audio zone (delegates to AudioManager)
    */
-  addAudioZone(
-    id: string,
-    position: Vector3,
-    soundType: string,
-    radius = 10,
-    volume = 1.0
-  ): void {
+  addAudioZone(id: string, position: Vector3, soundType: string, radius = 10, volume = 1.0): void {
     const config: AudioZoneConfig = {
       id,
       position: position.clone(),

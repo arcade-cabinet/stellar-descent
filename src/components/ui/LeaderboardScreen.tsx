@@ -14,8 +14,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
-import { getLogger } from '../../game/core/Logger';
 import type { DifficultyLevel } from '../../game/core/DifficultySettings';
+import { getLogger } from '../../game/core/Logger';
 import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
   getPlayerName,

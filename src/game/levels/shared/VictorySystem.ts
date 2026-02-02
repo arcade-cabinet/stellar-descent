@@ -12,8 +12,8 @@
  *   if (victory.areConditionsMet()) { ... }
  */
 
-import { getLogger } from '../../core/Logger';
 import { getEventBus } from '../../core/EventBus';
+import { getLogger } from '../../core/Logger';
 
 const log = getLogger('VictorySystem');
 
@@ -69,9 +69,19 @@ export class VictorySystem {
    * Mark an objective as complete
    */
   completeObjective(objectiveId: string): boolean {
+    // Guard against re-entrant calls from EventBus listener
+    if (
+      this.completedObjectives.has(objectiveId) ||
+      this.completedBonusObjectives.has(objectiveId)
+    ) {
+      return false;
+    }
+
     if (this.requiredObjectives.has(objectiveId)) {
       this.completedObjectives.add(objectiveId);
-      log.info(`Objective complete: ${objectiveId} (${this.completedObjectives.size}/${this.requiredObjectives.size})`);
+      log.info(
+        `Objective complete: ${objectiveId} (${this.completedObjectives.size}/${this.requiredObjectives.size})`
+      );
 
       getEventBus().emit({
         type: 'OBJECTIVE_COMPLETED',
@@ -161,7 +171,9 @@ export class VictorySystem {
    * Check if a specific objective is complete
    */
   isObjectiveComplete(objectiveId: string): boolean {
-    return this.completedObjectives.has(objectiveId) || this.completedBonusObjectives.has(objectiveId);
+    return (
+      this.completedObjectives.has(objectiveId) || this.completedBonusObjectives.has(objectiveId)
+    );
   }
 
   /**

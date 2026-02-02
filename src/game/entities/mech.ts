@@ -6,6 +6,7 @@ import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { MECH_MODEL } from '@config/models';
 import '@babylonjs/loaders/glTF';
 import { AssetManager } from '../core/AssetManager';
 import { createEntity, type Entity } from '../core/ecs';
@@ -15,7 +16,7 @@ import { tokens } from '../utils/designTokens';
 const log = getLogger('MechWarrior');
 
 /** Path to the Marcus mech GLB model (relative to public/) */
-const MECH_GLB_PATH = '/assets/models/vehicles/marcus_mech.glb';
+const MECH_GLB_PATH = MECH_MODEL;
 
 /**
  * Try to find a child mesh whose name contains one of the given substrings

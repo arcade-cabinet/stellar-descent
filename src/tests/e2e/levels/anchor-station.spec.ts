@@ -1173,6 +1173,89 @@ test.describe('Anchor Station - Tutorial Level', () => {
     });
   });
 
+  // --------------------------------------------------------------------------
+  // VISUAL REGRESSION - Station Lighting & Environment
+  // --------------------------------------------------------------------------
+
+  test.describe('Visual Regression - Station Lighting', () => {
+    test.beforeEach(async ({ page }) => {
+      // Fixed viewport for consistent screenshots across CI and local
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
+      await waitForTutorialLevel(page);
+      // Ensure PlayerGovernor is ready before deterministic navigation
+      await page.waitForFunction(
+        () => {
+          const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__?: GameDebugInterface })
+            .__STELLAR_DESCENT_DEBUG__;
+          return debug?.playerGovernor?.getCurrentGoal !== undefined;
+        },
+        { timeout: 10000 }
+      );
+      await page.waitForTimeout(3000);
+    });
+
+    test('should match briefing room lighting baseline', async ({ page }) => {
+      await expect(page).toHaveScreenshot('anchor-station-briefing-room.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should match equipment bay lighting after navigation', async ({ page }) => {
+      await clickCanvas(page);
+      // Use governor for deterministic navigation instead of holdKey
+      await governorNavigateTo(page, ROOM_POSITIONS.equipmentBay);
+      await waitForGoalComplete(page, 'navigate', 15000);
+      await page.waitForTimeout(1000);
+
+      await expect(page).toHaveScreenshot('anchor-station-equipment-bay.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should match shooting range environment', async ({ page }) => {
+      await clickCanvas(page);
+      // Use governor for deterministic navigation
+      await governorNavigateTo(page, ROOM_POSITIONS.shootingRange);
+      await waitForGoalComplete(page, 'navigate', 30000);
+      await page.waitForTimeout(2000);
+
+      await expect(page).toHaveScreenshot('anchor-station-shooting-range.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should match hangar bay lighting', async ({ page }) => {
+      await clickCanvas(page);
+      // Use governor for deterministic navigation
+      await governorNavigateTo(page, ROOM_POSITIONS.hangarBay);
+      await waitForGoalComplete(page, 'navigate', 45000);
+      await page.waitForTimeout(2000);
+
+      await expect(page).toHaveScreenshot('anchor-station-hangar-bay.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should render HUD overlay consistently during tutorial', async ({ page }) => {
+      await clickCanvas(page);
+      await page.waitForTimeout(5000);
+
+      // Assert HUD is visible — fail explicitly if not rendered
+      const hud = page.locator('[data-testid="game-hud"], .hud-container');
+      await expect(hud).toBeVisible({ timeout: 10000 });
+      await expect(hud).toHaveScreenshot('anchor-station-tutorial-hud.png', {
+        maxDiffPixelRatio: 0.08,
+        timeout: 10000,
+      });
+    });
+  });
+
   test.describe('Error Handling', () => {
     test('should handle canvas click for pointer lock', async ({ page }) => {
       await navigateToMainMenu(page);

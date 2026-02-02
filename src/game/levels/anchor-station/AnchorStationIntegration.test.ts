@@ -13,7 +13,6 @@
  */
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type TutorialCallbacks, TutorialManager } from './TutorialManager';
 import {
   ANCHOR_STATION_LAYOUT,
   DISCOVERY_POINTS,
@@ -21,6 +20,7 @@ import {
   isPositionInStation,
   MODULAR_ROOM_POSITIONS,
 } from './ModularStationBuilder';
+import { type TutorialCallbacks, TutorialManager } from './TutorialManager';
 import { PHASE_HUD_STATES, TUTORIAL_STEPS, type TutorialStep } from './tutorialSteps';
 
 // Mock Scene
@@ -221,7 +221,8 @@ describe('AnchorStation Integration - Holodeck Tutorial Flow', () => {
     if (moveTarget) tutorialManager.checkObjective(moveTarget, new Vector3(0, 0, -1));
     vi.advanceTimersByTime(500);
 
-    const corridorTarget = TUTORIAL_STEPS.find((s) => s.id === 'corridor_progress')?.objective?.target;
+    const corridorTarget = TUTORIAL_STEPS.find((s) => s.id === 'corridor_progress')?.objective
+      ?.target;
     if (corridorTarget) {
       vi.advanceTimersByTime(500);
       tutorialManager.checkObjective(corridorTarget, new Vector3(0, 0, -1));
@@ -280,7 +281,8 @@ describe('AnchorStation Integration - Holodeck Tutorial Flow', () => {
     vi.advanceTimersByTime(500);
 
     // corridor_progress
-    const corridorTarget = TUTORIAL_STEPS.find((s) => s.id === 'corridor_progress')?.objective?.target;
+    const corridorTarget = TUTORIAL_STEPS.find((s) => s.id === 'corridor_progress')?.objective
+      ?.target;
     if (corridorTarget) {
       vi.advanceTimersByTime(500);
       tutorialManager.checkObjective(corridorTarget, new Vector3(0, 0, -1));
@@ -305,9 +307,9 @@ describe('AnchorStation Integration - Holodeck Tutorial Flow', () => {
 describe('AnchorStation Integration - Trigger Sequence Coverage', () => {
   it('should define all trigger sequences used in tutorial steps', () => {
     // Collect all triggerSequence values from tutorial steps
-    const definedSequences = TUTORIAL_STEPS
-      .filter((s) => s.triggerSequence)
-      .map((s) => s.triggerSequence!);
+    const definedSequences = TUTORIAL_STEPS.filter((s) => s.triggerSequence).map(
+      (s) => s.triggerSequence!
+    );
 
     // These are the sequences that handleSequence() in AnchorStationLevel must handle
     const expectedSequences = [
@@ -324,7 +326,7 @@ describe('AnchorStation Integration - Trigger Sequence Coverage', () => {
     // Every expected sequence should be referenced by at least one tutorial step
     for (const seq of expectedSequences) {
       expect(
-        definedSequences.includes(seq as typeof definedSequences[0]),
+        definedSequences.includes(seq as (typeof definedSequences)[0]),
         `Sequence '${seq}' should be referenced in tutorial steps`
       ).toBe(true);
     }
@@ -402,15 +404,11 @@ describe('AnchorStation Integration - MODULAR_ROOM_POSITIONS', () => {
   });
 
   it('should export hangarBay as southernmost major room', () => {
-    expect(MODULAR_ROOM_POSITIONS.hangarBay.z).toBeLessThan(
-      MODULAR_ROOM_POSITIONS.shootingRange.z
-    );
+    expect(MODULAR_ROOM_POSITIONS.hangarBay.z).toBeLessThan(MODULAR_ROOM_POSITIONS.shootingRange.z);
   });
 
   it('should export dropPod south of hangarBay', () => {
-    expect(MODULAR_ROOM_POSITIONS.dropPod.z).toBeLessThan(
-      MODULAR_ROOM_POSITIONS.hangarBay.z
-    );
+    expect(MODULAR_ROOM_POSITIONS.dropPod.z).toBeLessThan(MODULAR_ROOM_POSITIONS.hangarBay.z);
   });
 
   it('should export platform positions with increasing heights', () => {
@@ -488,10 +486,7 @@ describe('AnchorStation Integration - Station Layout', () => {
     const seen = new Set<string>();
     for (const segment of ANCHOR_STATION_LAYOUT.segments) {
       const key = `${segment.position.x},${segment.position.z}`;
-      expect(
-        seen.has(key),
-        `Duplicate segment position at ${key} (${segment.name})`
-      ).toBe(false);
+      expect(seen.has(key), `Duplicate segment position at ${key} (${segment.name})`).toBe(false);
       seen.add(key);
     }
   });
@@ -531,10 +526,9 @@ describe('AnchorStation Integration - Position Helpers', () => {
 
     it('should return true for all room positions', () => {
       for (const [name, pos] of Object.entries(MODULAR_ROOM_POSITIONS)) {
-        expect(
-          isPositionInStation(pos),
-          `Room position '${name}' should be inside station`
-        ).toBe(true);
+        expect(isPositionInStation(pos), `Room position '${name}' should be inside station`).toBe(
+          true
+        );
       }
     });
 
@@ -645,7 +639,7 @@ describe('AnchorStation Integration - Tutorial Step Flow', () => {
 describe('AnchorStation Integration - HUD State Progression', () => {
   it('should progressively enable more HUD elements through phases', () => {
     // Count enabled features per phase
-    const countEnabled = (state: typeof PHASE_HUD_STATES[0]) =>
+    const countEnabled = (state: (typeof PHASE_HUD_STATES)[0]) =>
       Object.values(state).filter(Boolean).length;
 
     const phase0Count = countEnabled(PHASE_HUD_STATES[0]);
@@ -661,7 +655,7 @@ describe('AnchorStation Integration - HUD State Progression', () => {
   });
 
   it('should never disable a HUD element once enabled', () => {
-    const keys = Object.keys(PHASE_HUD_STATES[0]) as (keyof typeof PHASE_HUD_STATES[0])[];
+    const keys = Object.keys(PHASE_HUD_STATES[0]) as (keyof (typeof PHASE_HUD_STATES)[0])[];
 
     for (const key of keys) {
       let wasEnabled = false;
@@ -680,7 +674,7 @@ describe('AnchorStation Integration - HUD State Progression', () => {
 
   it('should enable movement before look, and look before fire', () => {
     // Find the first phase where each is enabled
-    const findEnablePhase = (key: keyof typeof PHASE_HUD_STATES[0]) => {
+    const findEnablePhase = (key: keyof (typeof PHASE_HUD_STATES)[0]) => {
       for (let phase = 0; phase <= 4; phase++) {
         if (PHASE_HUD_STATES[phase as 0 | 1 | 2 | 3 | 4][key]) return phase;
       }

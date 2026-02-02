@@ -8,9 +8,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-
-import { LEVEL_REGISTRY } from './LevelRegistry';
 import { defaultLevelFactories, getSupportedLevelTypes, isLevelTypeSupported } from './factories';
+import { LEVEL_REGISTRY } from './LevelRegistry';
 import type { LevelId, LevelType } from './types';
 
 // ============================================================================
@@ -173,10 +172,9 @@ describe('Mission Definitions', () => {
     for (const [levelId, entry] of Object.entries(LEVEL_REGISTRY)) {
       const objectiveIds = entry.objectives.map((o) => o.id);
       const uniqueIds = new Set(objectiveIds);
-      expect(
-        uniqueIds.size,
-        `Level "${levelId}" has duplicate objective IDs`
-      ).toBe(objectiveIds.length);
+      expect(uniqueIds.size, `Level "${levelId}" has duplicate objective IDs`).toBe(
+        objectiveIds.length
+      );
     }
   });
 

@@ -25,10 +25,10 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
-import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { AssetManager } from '../../core/AssetManager';
 import { getLogger } from '../../core/Logger';
 import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 
 const log = getLogger('BrothersInArms');
 
