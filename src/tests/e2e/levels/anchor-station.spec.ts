@@ -1173,6 +1173,77 @@ test.describe('Anchor Station - Tutorial Level', () => {
     });
   });
 
+  // --------------------------------------------------------------------------
+  // VISUAL REGRESSION - Station Lighting & Environment
+  // --------------------------------------------------------------------------
+
+  test.describe('Visual Regression - Station Lighting', () => {
+    test.beforeEach(async ({ page }) => {
+      await navigateToMainMenu(page);
+      await startNewGame(page, 'normal');
+      await waitForTutorialLevel(page);
+      await page.waitForTimeout(3000);
+    });
+
+    test('should match briefing room lighting baseline', async ({ page }) => {
+      await expect(page).toHaveScreenshot('anchor-station-briefing-room.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should match equipment bay lighting after navigation', async ({ page }) => {
+      await clickCanvas(page);
+      // Navigate to equipment bay
+      await holdKey(page, 'w', 4000);
+      await holdKey(page, 'a', 2000);
+      await page.waitForTimeout(1000);
+
+      await expect(page).toHaveScreenshot('anchor-station-equipment-bay.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should match shooting range environment', async ({ page }) => {
+      await clickCanvas(page);
+      // Navigate to shooting range (further down the corridor)
+      await holdKey(page, 'w', 8000);
+      await page.waitForTimeout(2000);
+
+      await expect(page).toHaveScreenshot('anchor-station-shooting-range.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should match hangar bay lighting', async ({ page }) => {
+      await clickCanvas(page);
+      // Navigate deep into station toward hangar
+      await holdKey(page, 'w', 14000);
+      await page.waitForTimeout(2000);
+
+      await expect(page).toHaveScreenshot('anchor-station-hangar-bay.png', {
+        maxDiffPixelRatio: 0.05,
+        timeout: 10000,
+      });
+    });
+
+    test('should render HUD overlay consistently during tutorial', async ({ page }) => {
+      await clickCanvas(page);
+      await page.waitForTimeout(5000);
+
+      // Capture HUD element if visible
+      const hud = page.locator('[data-testid="game-hud"], .hud-container');
+      if (await hud.isVisible()) {
+        await expect(hud).toHaveScreenshot('anchor-station-tutorial-hud.png', {
+          maxDiffPixelRatio: 0.08,
+          timeout: 10000,
+        });
+      }
+    });
+  });
+
   test.describe('Error Handling', () => {
     test('should handle canvas click for pointer lock', async ({ page }) => {
       await navigateToMainMenu(page);
