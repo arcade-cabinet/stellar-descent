@@ -18,8 +18,9 @@
 - **Package Manager**: pnpm 10.x
 - **Linting**: Biome 2.x
 - **Testing**:
-  - **Unit**: Vitest 4.x + Happy-DOM
-  - **E2E**: Playwright 1.58+
+  - **Unit**: Vitest 4.x + Happy-DOM (96 files, 5,459 tests)
+  - **E2E**: Maestro MCP (web + iOS simulator) + Playwright 1.58+
+  - **Browser Automation**: Chrome extension MCP (claude-in-chrome)
   - **Coverage**: `vitest --coverage`
 
 ## CI/CD Pipeline
@@ -149,6 +150,8 @@ Uses Polly.JS for deterministic CI replay of API responses, enabling reliable te
 - **CapacitorDatabase**: Native SQLite for iOS/Android via @capacitor-community/sqlite
 - **WebSQLiteDatabase**: Browser SQLite via sql.js with IndexedDB backing
 - **Platform Detection**: Auto-routes to correct implementation
+- **DatabaseProxy**: Auto-initializing singleton proxy; close/delete operations must clear the singleton to prevent stale references
+- **WorldDatabase**: Static initPromise must be cleared on resetDatabase() to force table recreation
 
 ### Social Systems
 - **LeaderboardSystem**: Local leaderboards with categories (speedrun, score, accuracy, kills)

@@ -13,6 +13,40 @@
 
 ## Current Status (Phase 6 - Release)
 
+### Completed (Feb 2, 2026 - Runtime Bug Fix & E2E Verification Sprint)
+
+#### Database Race Condition Fix ✅ (3-part cascade)
+- **DatabaseProxy singleton leak**: `close()` and `deleteDatabase()` now clear `dbInstance`/`initPromise` singleton
+- **WorldDatabase initPromise stale**: `resetDatabase()` clears static `initPromise` so `init()` re-runs `createTables()`
+- **Error chain**: `SaveSystem.newGame()` → `worldDb.resetDatabase()` no longer causes "Database not initialized" or "no such table" errors
+- **Files**: `src/game/db/database.ts`, `src/game/db/worldDatabase.ts`
+
+#### Audio Decode Error Fix ✅ (2 root causes)
+- **Splash audio pre-validation**: `SplashAudioManager` checks content-type with HEAD request before Tone.js load (prevents HTML-as-audio decode)
+- **Per-player audio loading**: `MusicPlayer` uses per-player `onload`/`onerror` instead of global `Tone.loaded()` (prevents cross-buffer poisoning)
+- **Files**: `src/game/core/audio/SplashAudioManager.ts`, `src/game/core/audio/music.ts`
+
+#### Overexposed Lighting Fix ✅
+- **Station base lighting**: DirectionalLight 12→3, HemisphericLight 6→1.5
+- **Zone PointLights**: All reduced ~4x (10→2.5, 8→2.0, 6→1.5, 12→3.0)
+- **Files**: `src/game/levels/StationLevel.ts`, `src/game/levels/anchor-station/AnchorStationLevel.ts`
+
+#### LevelIntro Skip Bug Fix ✅
+- **Skip guard**: Fixed phase progression to properly transition through fadeOut→complete when skipping
+- **File**: `src/components/ui/LevelIntro.tsx`
+
+#### Anchor Station Gameplay ✅
+- **Holodeck tutorial**: Added crouch/platforming support with `onCrouch()` override
+- **Touch input dedup**: Touch movement now handled by BaseLevel collision system (removed duplicate)
+- **File**: `src/game/levels/anchor-station/AnchorStationLevel.ts`
+
+#### E2E Verification ✅
+- **Maestro smoke test**: 6 commands passed (app loads, main menu visible)
+- **Maestro new game flow**: 35 assertions passed (menu→mission select→difficulty→briefing)
+- **Maestro screen navigation**: 29 assertions passed (help, settings, achievements, leaderboards)
+- **Chrome browser automation**: Zero console errors through full gameplay flow
+- **Unit tests**: 96 files, 5,459 tests passing
+
 ### Completed (Feb 1, 2026 - Rendering & Bug Fix Sprint)
 
 #### Rendering Bug Fixes ✅ (3 root causes of black screen)
@@ -115,11 +149,14 @@
 #### Build Status ✅
 - **TypeScript**: Zero errors
 - **Production build**: Passes
-- **Tests**: 93 files pass, 4,763 tests passed, 604 skipped
+- **Tests**: 96 files pass, 5,459 tests passed, 604 skipped
 - **Level rendering**: 0 FAIL across all 11 levels
 - **Shader errors**: NONE
 - **PBR alpha=0**: NONE
 - **Fade overlay**: NONE
+- **Database race condition**: NONE (fixed)
+- **Audio decode errors**: NONE (fixed)
+- **Overexposed lighting**: NONE (fixed)
 
 ## Asset Status
 
