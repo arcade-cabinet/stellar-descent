@@ -161,6 +161,7 @@ export interface StellarDescentDebug {
   devFlags: DevFlags;
   vehicle: VehicleDebugState | null;
   level: LevelDebugState | null;
+  damagePlayer?: (amount: number) => void;
 
   // Setters for level/vehicle to be called by game code
   _setVehicleState: (state: VehicleDebugState | null) => void;
@@ -214,10 +215,7 @@ const devFlags: DevFlags = {
  * Create a GovernorGoal from a string type and optional params.
  * Maps E2E test goal strings to proper GovernorGoal objects.
  */
-function createGovernorGoal(
-  type: string,
-  params?: Record<string, unknown>
-): GovernorGoal | null {
+function createGovernorGoal(type: string, params?: Record<string, unknown>): GovernorGoal | null {
   // Import Vector3 for navigation goals
   const Vector3 = (() => {
     try {
@@ -381,6 +379,13 @@ export function initializeDebugInterface(): void {
       return levelState;
     },
 
+    damagePlayer: (amount: number) => {
+      playerState.health = Math.max(0, playerState.health - amount);
+      if (playerState.health <= 0) {
+        playerState.isAlive = false;
+      }
+    },
+
     _setVehicleState: (state: VehicleDebugState | null) => {
       vehicleState = state;
     },
@@ -455,6 +460,12 @@ export function initializeDebugInterface(): void {
           if (vehicleState.health <= 0) {
             vehicleState.isDead = true;
           }
+        }
+      },
+      damagePlayer: (amount: number) => {
+        playerState.health = Math.max(0, playerState.health - amount);
+        if (playerState.health <= 0) {
+          playerState.isAlive = false;
         }
       },
     },

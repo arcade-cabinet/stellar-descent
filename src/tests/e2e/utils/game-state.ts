@@ -116,128 +116,163 @@ export interface GameStateReader {
 export function createGameStateReader(page: Page): GameStateReader {
   const getDebug = async () => {
     return page.evaluate(() => {
-      return (
-        window as unknown as {
-          __STELLAR_DESCENT_DEBUG__?: {
-            gameState?: {
-              getCurrentPhase?: () => string;
-              getCurrentLevel?: () => string;
-              getPlayerHealth?: () => number;
-              getKillCount?: () => number;
-            };
-            levelState?: {
-              getSuitIntegrity?: () => number;
-            };
-          };
-        }
-      ).__STELLAR_DESCENT_DEBUG__;
+      const debug = (window as any).__STELLAR_DESCENT_DEBUG__;
+      const unified = (window as any).__STELLAR_DESCENT__;
+      if (!debug && !unified) return null;
+      return {
+        phase: debug?.campaignDirector?.getPhase() ?? unified?.campaign?.phase ?? 'idle',
+        currentLevelId:
+          debug?.campaignDirector?.getState()?.currentLevelId ??
+          unified?.campaign?.currentLevelId ??
+          'anchor_station',
+        difficulty:
+          debug?.campaignDirector?.getState()?.difficulty ??
+          unified?.campaign?.difficulty ??
+          'normal',
+        playerHealth: debug?.player?.health ?? unified?.player?.health ?? 100,
+        playerMaxHealth: debug?.player?.maxHealth ?? unified?.player?.maxHealth ?? 100,
+        playerPosition: debug?.player?.position ??
+          unified?.player?.position ?? { x: 0, y: 0, z: 0 },
+        playerIsAlive: debug?.player?.isAlive ?? unified?.player?.isAlive ?? true,
+        levelKills: debug?.level?.kills ?? unified?.level?.kills ?? 0,
+        deathCount: unified?.campaign?.deathCount ?? 0,
+        fps: unified?.performance?.fps ?? 60,
+        frameTime: unified?.performance?.frameTime ?? 16.67,
+        secretsFound: unified?.level?.secretsFound ?? 0,
+        totalSecrets: unified?.level?.totalSecrets ?? 0,
+        audioLogsFound: unified?.level?.audioLogsFound ?? 0,
+        totalAudioLogs: unified?.level?.totalAudioLogs ?? 0,
+        timeElapsed: unified?.level?.timeElapsed ?? 0,
+        achievementsUnlocked: unified?.achievements?.unlocked ?? [],
+        achievementProgress: unified?.achievements?.progress ?? {},
+      };
     });
   };
 
   return {
     async getCampaignPhase(): Promise<CampaignPhase> {
       const debug = await getDebug();
-      return (debug?.gameState?.getCurrentPhase?.() as CampaignPhase) ?? 'idle';
+      return (debug?.phase as CampaignPhase) ?? 'idle';
     },
 
     async getCurrentLevelId(): Promise<LevelId> {
       const debug = await getDebug();
-      return (debug?.gameState?.getCurrentLevel?.() as LevelId) ?? 'anchor_station';
+      return (debug?.currentLevelId as LevelId) ?? 'anchor_station';
     },
 
     async getDifficulty(): Promise<string> {
-      return 'normal'; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.difficulty ?? 'normal';
     },
 
     async getTotalKills(): Promise<number> {
       const debug = await getDebug();
-      return debug?.gameState?.getKillCount?.() ?? 0;
+      return debug?.levelKills ?? 0;
     },
 
     async getTotalDeaths(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      // Note: deathCount is tracked in unified interface but still returns 0 by default
+      return debug?.deathCount ?? 0;
     },
 
     async getPlayerHealth(): Promise<number> {
       const debug = await getDebug();
-      return debug?.gameState?.getPlayerHealth?.() ?? 100;
+      return debug?.playerHealth ?? 100;
     },
 
     async getPlayerMaxHealth(): Promise<number> {
-      return 100; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.playerMaxHealth ?? 100;
     },
 
     async getPlayerArmor(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      // Note: Armor not exposed in debug interface yet
+      return 0;
     },
 
     async getPlayerAmmo(): Promise<number> {
-      return 30; // TODO: Expose via debug interface
+      // Note: Ammo not exposed in debug interface yet
+      return 30;
     },
 
     async getPlayerPosition(): Promise<{ x: number; y: number; z: number }> {
-      return { x: 0, y: 0, z: 0 }; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.playerPosition ?? { x: 0, y: 0, z: 0 };
     },
 
     async getLevelTimeElapsed(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.timeElapsed ?? 0;
     },
 
     async getLevelKills(): Promise<number> {
       const debug = await getDebug();
-      return debug?.gameState?.getKillCount?.() ?? 0;
+      return debug?.levelKills ?? 0;
     },
 
     async getLevelSecretsFound(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.secretsFound ?? 0;
     },
 
     async getLevelTotalSecrets(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.totalSecrets ?? 0;
     },
 
     async getLevelAudioLogsFound(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.audioLogsFound ?? 0;
     },
 
     async getLevelTotalAudioLogs(): Promise<number> {
-      return 0; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.totalAudioLogs ?? 0;
     },
 
     async getLevelStats(): Promise<Partial<LevelStats>> {
       const debug = await getDebug();
       return {
-        kills: debug?.gameState?.getKillCount?.() ?? 0,
-        timeElapsed: 0,
-        secretsFound: 0,
-        totalSecrets: 0,
-        audioLogsFound: 0,
-        totalAudioLogs: 0,
+        kills: debug?.levelKills ?? 0,
+        timeElapsed: debug?.timeElapsed ?? 0,
+        secretsFound: debug?.secretsFound ?? 0,
+        totalSecrets: debug?.totalSecrets ?? 0,
+        audioLogsFound: debug?.audioLogsFound ?? 0,
+        totalAudioLogs: debug?.totalAudioLogs ?? 0,
       };
     },
 
     async getUnlockedAchievements(): Promise<string[]> {
-      return []; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.achievementsUnlocked ?? [];
     },
 
     async getAchievementProgress(): Promise<Record<string, number>> {
-      return {}; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      return debug?.achievementProgress ?? {};
     },
 
     async getFPS(): Promise<number> {
-      return 60; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      // Note: FPS tracked in unified interface performance metrics
+      return debug?.fps ?? 60;
     },
 
     async getFrameTime(): Promise<number> {
-      return 16.67; // TODO: Expose via debug interface
+      const debug = await getDebug();
+      // Note: Frame time tracked in unified interface performance metrics
+      return debug?.frameTime ?? 16.67;
     },
 
     async hasSaveData(): Promise<boolean> {
-      return false; // TODO: Expose via debug interface
+      // Note: Save system querying requires enhancement to DebugInterface.ts
+      return false;
     },
 
     async getLastSaveLevel(): Promise<LevelId | null> {
-      return null; // TODO: Expose via debug interface
+      // Note: Save system querying requires enhancement to DebugInterface.ts
+      return null;
     },
   };
 }
@@ -435,10 +470,8 @@ export async function waitForPhase(
 ): Promise<void> {
   await page.waitForFunction(
     (expected) => {
-      const w = window as unknown as {
-        __STELLAR_DESCENT_DEBUG__?: { gameState?: { getCurrentPhase?: () => string } };
-      };
-      return w.__STELLAR_DESCENT_DEBUG__?.gameState?.getCurrentPhase?.() === expected;
+      const w = window as any;
+      return w.__STELLAR_DESCENT_DEBUG__?.campaignDirector?.getPhase() === expected;
     },
     phase,
     { timeout }
@@ -455,14 +488,10 @@ export async function waitForLevelPlayable(
 ): Promise<void> {
   await page.waitForFunction(
     (expected) => {
-      const w = window as unknown as {
-        __STELLAR_DESCENT_DEBUG__?: {
-          gameState?: { getCurrentPhase?: () => string; getCurrentLevel?: () => string };
-        };
-      };
-      const gs = w.__STELLAR_DESCENT_DEBUG__?.gameState;
-      const currentLevel = gs?.getCurrentLevel?.();
-      const currentPhase = gs?.getCurrentPhase?.();
+      const w = window as any;
+      const gs = w.__STELLAR_DESCENT_DEBUG__?.campaignDirector;
+      const currentLevel = gs?.getState()?.currentLevelId;
+      const currentPhase = gs?.getPhase();
       const playablePhases = ['playing', 'tutorial', 'dropping'];
       return currentLevel === expected && playablePhases.includes(currentPhase ?? '');
     },
@@ -477,10 +506,8 @@ export async function waitForLevelPlayable(
 export async function waitForLevelComplete(page: Page, timeout = 600000): Promise<void> {
   await page.waitForFunction(
     () => {
-      const w = window as unknown as {
-        __STELLAR_DESCENT_DEBUG__?: { gameState?: { getCurrentPhase?: () => string } };
-      };
-      return w.__STELLAR_DESCENT_DEBUG__?.gameState?.getCurrentPhase?.() === 'levelComplete';
+      const w = window as any;
+      return w.__STELLAR_DESCENT_DEBUG__?.campaignDirector?.getPhase() === 'levelComplete';
     },
     { timeout }
   );
@@ -492,10 +519,8 @@ export async function waitForLevelComplete(page: Page, timeout = 600000): Promis
 export async function waitForCredits(page: Page, timeout = 60000): Promise<void> {
   await page.waitForFunction(
     () => {
-      const w = window as unknown as {
-        __STELLAR_DESCENT_DEBUG__?: { gameState?: { getCurrentPhase?: () => string } };
-      };
-      return w.__STELLAR_DESCENT_DEBUG__?.gameState?.getCurrentPhase?.() === 'credits';
+      const w = window as any;
+      return w.__STELLAR_DESCENT_DEBUG__?.campaignDirector?.getPhase() === 'credits';
     },
     { timeout }
   );

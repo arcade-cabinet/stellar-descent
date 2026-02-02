@@ -60,6 +60,7 @@ interface StellarDescentDebug {
   };
   triggerAction: (actionId: string) => void;
   emitEvent: (eventType: string, data?: unknown) => void;
+  damagePlayer?: (amount: number) => void;
 }
 
 type DropPhase =
@@ -765,9 +766,41 @@ test.describe('Level 2: Landfall - Edge Cases', () => {
   });
 
   test('should handle player death during combat', async ({ page }) => {
-    // This test would simulate player death and verify death screen
-    // For now, skip as it requires modifying game state
-    test.skip();
+    await page.goto(BASE_URL);
+    await waitForMainMenu(page);
+    await navigateToLandfall(page);
+
+    // Wait for surface combat phase
+    await waitForDropPhase(page, 'surface');
+
+    // Wait for combat to begin
+    await page.waitForFunction(
+      () => {
+        const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__: StellarDescentDebug })
+          .__STELLAR_DESCENT_DEBUG__;
+        return debug?.gameState?.getCombatActive() === true;
+      },
+      { timeout: TIMEOUTS.enemySpawn }
+    );
+
+    // Kill the player via debug interface
+    await page.evaluate(() => {
+      const debug = (window as unknown as { __STELLAR_DESCENT_DEBUG__: StellarDescentDebug })
+        .__STELLAR_DESCENT_DEBUG__;
+      if (debug?.damagePlayer) {
+        debug.damagePlayer(9999);
+      }
+    });
+
+    // Death screen should appear with "MISSION FAILED" text
+    await expect(page.getByText('MISSION FAILED')).toBeVisible({ timeout: 10_000 });
+
+    // Verify death screen elements
+    await expect(page.getByText(/SPECTER DOWN|KIA/i)).toBeVisible();
+    await expect(page.getByText('RESTART MISSION')).toBeVisible();
+    await expect(page.getByText('MAIN MENU')).toBeVisible();
+
+    await captureScreenshot(page, 'edge_player_death');
   });
 });
 
