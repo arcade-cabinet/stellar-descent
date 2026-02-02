@@ -15,9 +15,9 @@
  * - Orange-red sunset lighting
  */
 
-import type { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
@@ -25,12 +25,32 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { getAchievementManager } from '../../achievements';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
+import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+import { SkyboxManager, type SkyboxResult } from '../../core/SkyboxManager';
+
+const log = getLogger('BrothersInArms');
+
+import { type SquadCommand, SquadCommandSystem } from '../../ai/SquadCommandSystem';
 import { createEntity, type Entity, removeEntity } from '../../core/ecs';
 import { levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { tokens } from '../../utils/designTokens';
 import { BaseLevel } from '../BaseLevel';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import { buildFloraFromPlacements, getBrothersFlora } from '../shared/AlienFloraBuilder';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getBrothersCollectibles,
+} from '../shared/CollectiblePlacer';
+import { CANYON_TERRAIN, createDynamicTerrain } from '../shared/SurfaceTerrainFactory';
+import type { LevelId } from '../types';
+import {
+  type BattlefieldResult,
+  buildBattlefieldEnvironment,
+  updateBattlefieldLights,
+} from './BattlefieldEnvironment';
 import { COMMS, NOTIFICATIONS, OBJECTIVES, ReunionCinematic } from './cinematics';
 import { MarcusCombatAI, type MarcusCombatState } from './MarcusCombatAI';
 import type { CoordinationCombatState } from './MarcusCombatCoordinator';
@@ -102,77 +122,85 @@ interface ActiveEnemy {
 const ENEMY_CONFIGS: Record<EnemyType, EnemyConfig> = {
   drone: {
     type: 'drone',
-    health: 30,
-    damage: 5,
-    speed: 18,
-    size: 0.6,
+    health: 25, // Reduced - should be fragile but numerous
+    damage: 8,
+    speed: 20, // Fast flyers
+    size: 0.5,
     color: '#2D4A3E',
-    attackRange: 8,
+    attackRange: 10,
   },
   grunt: {
     type: 'grunt',
-    health: 100,
-    damage: 15,
-    speed: 10,
-    size: 1.6,
+    health: 80, // Balanced - standard enemy
+    damage: 12,
+    speed: 8,
+    size: 1.5,
     color: '#3A3A4A',
-    attackRange: 12,
+    attackRange: 10,
   },
   spitter: {
     type: 'spitter',
-    health: 50,
-    damage: 40,
-    speed: 6,
-    size: 1.3,
+    health: 45, // Fragile but dangerous ranged
+    damage: 30, // Reduced - was too punishing
+    speed: 5,
+    size: 1.2,
     color: '#3E5A2D',
-    attackRange: 25,
+    attackRange: 30, // Long range
   },
   brute: {
     type: 'brute',
-    health: 200,
-    damage: 25,
-    speed: 5,
-    size: 2.8,
+    health: 300, // Increased - should be a real threat
+    damage: 35, // Increased - tank enemy should hit hard
+    speed: 4, // Slow
+    size: 3.0, // Bigger
     color: '#5A2A2A',
-    attackRange: 15,
+    attackRange: 12,
   },
 };
 
 const WAVES: Wave[] = [
   {
+    // Wave 1: Introduction - Drones only, easy warm-up
     id: 1,
-    enemies: [{ type: 'drone', count: 15 }],
+    enemies: [{ type: 'drone', count: 12 }],
     spawnPoints: [],
     dialogue: 'Contacts inbound! Just like the Europa job, eh James?',
     dialogueSender: 'Marcus',
   },
   {
+    // Wave 2: Ground combat - Grunts with a few drones
     id: 2,
-    enemies: [{ type: 'grunt', count: 10 }],
+    enemies: [
+      { type: 'grunt', count: 8 },
+      { type: 'drone', count: 4 },
+    ],
     spawnPoints: [],
     dialogue: 'Grunts incoming! Keep your distance!',
     dialogueSender: 'Marcus',
   },
   {
+    // Wave 3: Combined arms - Mixed threats, introduces spitters
     id: 3,
     enemies: [
-      { type: 'grunt', count: 8 },
-      { type: 'drone', count: 5 },
-      { type: 'spitter', count: 2 },
+      { type: 'grunt', count: 6 },
+      { type: 'drone', count: 6 },
+      { type: 'spitter', count: 3 },
     ],
     spawnPoints: [],
-    dialogue: 'Mixed wave! Watch for acid spitters!',
+    dialogue: 'Mixed wave! Watch for acid spitters - the green ones!',
     dialogueSender: 'Marcus',
   },
   {
+    // Wave 4: Boss wave - Brute with support
     id: 4,
     enemies: [
-      { type: 'brute', count: 1 },
-      { type: 'grunt', count: 6 },
-      { type: 'drone', count: 10 },
+      { type: 'brute', count: 2 }, // Two brutes for challenge
+      { type: 'grunt', count: 5 },
+      { type: 'spitter', count: 2 },
+      { type: 'drone', count: 8 },
     ],
     spawnPoints: [],
-    dialogue: 'Something big is coming... BRUTE! Focus fire!',
+    dialogue: 'Something big is coming... TWO BRUTES! Focus fire, James!',
     dialogueSender: 'Marcus',
   },
 ];
@@ -182,16 +210,72 @@ const ARENA_DEPTH = 150;
 const BREACH_DIAMETER = 100;
 const BREACH_POSITION = new Vector3(0, 0, -60);
 const MARCUS_START_POSITION = new Vector3(15, 0, 10);
-const WAVE_REST_DURATION = 30000; // 30 seconds between waves
+const PLAYER_START_POSITION = new Vector3(0, 1.7, 50); // Consistent player spawn
+const WAVE_REST_DURATION = 20000; // 20 seconds between waves (reduced for better pacing)
+
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS -- canyon walls & breach rim debris
+// ---------------------------------------------------------------------------
+
+const CANYON_WALL_PATHS = {
+  /** Long horizontal wall segment, tiled along N/S boundaries */
+  wall_long: '/assets/models/environment/station/wall_hr_15_double.glb',
+  /** Shorter wall segment used to fill gaps at E/W boundaries */
+  wall_short: '/assets/models/environment/station/wall_hr_1.glb',
+  /** Pillar segments placed at wall junctions for visual variety */
+  pillar: '/assets/models/environment/station/pillar_hr_8.glb',
+} as const;
+
+const BREACH_RIM_PATHS = {
+  /** Debris bricks scattered around breach lip */
+  debris_bricks: '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  /** Gravel piles at breach edge */
+  gravel: '/assets/models/props/debris/gravel_pile_hr_1.glb',
+  /** Scrap metal fragments */
+  scrap: '/assets/models/props/containers/scrap_metal_mx_1.glb',
+} as const;
+
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS -- enemy models (Chitin aliens)
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps enemy types to GLB model paths. These replace the old MeshBuilder
+ * primitives (spheres, capsules, boxes) with proper 3D alien models.
+ */
+const ENEMY_GLB_PATHS: Record<EnemyType, string> = {
+  /** Flying drone - fast, small flyer */
+  drone: '/assets/models/enemies/chitin/flyingalien.glb',
+  /** Grunt - standard ground enemy (lurker/scout type) */
+  grunt: '/assets/models/enemies/chitin/scout.glb',
+  /** Spitter - ranged acid attacker (spewer/soldier type) */
+  spitter: '/assets/models/enemies/chitin/soldier.glb',
+  /** Brute - heavy tank enemy (large alien monster) */
+  brute: '/assets/models/enemies/chitin/alienmonster.glb',
+} as const;
+
+/**
+ * Scale factors for enemy GLB models to match gameplay sizes.
+ * These are tuned so hitbox and visual size align with ENEMY_CONFIGS.size values.
+ */
+const ENEMY_GLB_SCALES: Record<EnemyType, number> = {
+  drone: 0.4, // Small flying alien scaled down
+  grunt: 0.8, // Standard humanoid-sized alien
+  spitter: 0.7, // Medium ranged alien
+  brute: 1.5, // Large heavy alien
+} as const;
 
 // ============================================================================
 // LEVEL CLASS
 // ============================================================================
 
 export class BrothersInArmsLevel extends BaseLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Phase management
   private phase: LevelPhase = 'reunion';
-  private phaseTime = 0;
 
   // Marcus AI ally
   private marcus: MarcusMech | null = null;
@@ -209,19 +293,20 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   // Environment
   private terrain: Mesh | null = null;
+  private terrainMaterial: StandardMaterial | PBRMaterial | null = null;
   private canyonWalls: Mesh[] = [];
-  private rockPillars: Mesh[] = [];
+  private battlefield: BattlefieldResult | null = null;
   private breachMesh: Mesh | null = null;
   private breachGlow: PointLight | null = null;
-  private skyDome: Mesh | null = null;
+  private skyboxResult: SkyboxResult | null = null;
 
   // Combat
   private playerHealth = 100;
+  private maxPlayerHealth = 100; // Track max health for percentage calculations
   private fireSuportCooldown = 0;
   private grenadeCooldown = 0;
   private flankCooldown = 0;
   private focusFireCooldown = 0;
-  private lastMarcusDamageTime = 0;
 
   // Marcus coordination state
   private marcusCoordinationState: CoordinationCombatState = 'support';
@@ -243,6 +328,10 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   // Marcus banter system - situation-aware dialogue
   private marcusBanterManager: MarcusBanterManager | null = null;
+
+  // Squad command system - player-issued orders to Marcus
+  private squadCommandSystem: SquadCommandSystem | null = null;
+  private isCommandWheelOpen = false;
   private previousPlayerHealth = 100;
   private previousMarcusHealth = 500;
   private previousMarcusHealthPercent = 1;
@@ -251,14 +340,14 @@ export class BrothersInArmsLevel extends BaseLevel {
   private hasSeenBreach = false;
   private hasTriggeredDefendingPosition = false;
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks);
-  }
+  // Phase timing
+  private phaseTime = 0;
+
+  // Last time Marcus took damage
+  private lastMarcusDamageTime = 0;
+
+  // Sky dome mesh reference
+  private skyDome: Mesh | null = null;
 
   protected getBackgroundColor(): Color4 {
     // Orange-red sunset sky
@@ -266,28 +355,64 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   protected async createEnvironment(): Promise<void> {
+    // Initialize AssetManager for GLB loading
+    AssetManager.init(this.scene);
+
     // Override default lighting with sunset-style
     this.setupSunsetLighting();
 
-    // Create environment
+    // Create base environment
     this.createTerrain();
-    this.createCanyonWalls();
-    this.createRockPillars();
-    this.createBreach();
+    await this.createCanyonWalls();
+    await this.createBreach();
     this.createSkyDome();
     this.generateSpawnPoints();
 
-    // Create Marcus
-    this.createMarcusMech();
+    // Build GLB-based battlefield (replaces old MeshBuilder rock pillars)
+    // Loads barricades, industrial structures, containers, debris, and decals
+    this.battlefield = await buildBattlefieldEnvironment(this.scene);
+    log.info(
+      `Battlefield built with ${this.battlefield.meshes.length} meshes, ` +
+        `${this.battlefield.lights.length} lights, ` +
+        `${this.battlefield.supplyCratePositions.length} supply positions`
+    );
 
-    // Setup camera for FPS
-    this.camera.position.set(0, 1.7, 50);
+    // Preload enemy GLB models for wave combat
+    await this.preloadEnemyModels();
+
+    // Create Marcus (GLB-based mech model)
+    await this.createMarcusMech();
+
+    // Setup camera for FPS - use constant for consistency
+    this.camera.position.copyFrom(PLAYER_START_POSITION);
     this.rotationY = Math.PI;
+    this.targetRotationY = Math.PI;
     this.camera.rotation.y = this.rotationY;
+    // 90 degrees FOV - standard FPS view for outdoor combat
+    this.camera.fov = Math.PI / 2;
 
     // Setup action handler
     this.actionCallback = this.handleAction.bind(this);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionHandlerRegistered(this.actionCallback);
+
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getBrothersFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getBrothersCollectibles(),
+      collectibleRoot
+    );
+
+    // Register dynamic actions for squad commands and coordination with Marcus
+    registerDynamicActions(
+      'brothers_in_arms',
+      ['squadFollow', 'squadHold', 'squadAttack', 'squadRegroup'],
+      'squad'
+    );
 
     // Start reunion phase
     this.startReunionPhase();
@@ -304,134 +429,186 @@ export class BrothersInArmsLevel extends BaseLevel {
       this.ambientLight = null;
     }
 
-    // Low-angle sunset sun
-    const sunDir = new Vector3(0.5, -0.3, -0.6).normalize();
+    // Low-angle sunset sun - positioned in the west for authentic dusk feel
+    const sunDir = new Vector3(0.7, -0.25, -0.4).normalize();
     const sun = new DirectionalLight('sunsetSun', sunDir, this.scene);
-    sun.intensity = 2.5;
-    sun.diffuse = Color3.FromHexString('#FFA040'); // Orange-red
+    sun.intensity = 2.8;
+    sun.diffuse = Color3.FromHexString('#FF8030'); // Deep orange-red sunset
     sun.specular = Color3.FromHexString('#FFD080');
     this.sunLight = sun;
 
-    // Ambient fill with warm tones
-    const ambient = new DirectionalLight('ambientFill', new Vector3(0, 1, 0), this.scene);
-    ambient.intensity = 0.4;
-    ambient.diffuse = new Color3(0.5, 0.35, 0.25);
+    // Setup shadow generator for dramatic lighting
+    if (sun) {
+      sun.autoUpdateExtends = false;
+    }
+
+    // Ambient fill with warm tones - slightly purple for dusk sky reflection
+    // Note: Using DirectionalLight for consistent ambient fill, not stored in BaseLevel.ambientLight
+    const ambientFill = new DirectionalLight('ambientFill', new Vector3(0, 1, 0), this.scene);
+    ambientFill.intensity = 0.5;
+    ambientFill.diffuse = new Color3(0.45, 0.35, 0.4); // Purple-warm ambient for dusk
+
+    // Add subtle rim light from opposite direction for mech visibility
+    const rimLight = new DirectionalLight(
+      'rimLight',
+      new Vector3(-0.5, -0.2, 0.5).normalize(),
+      this.scene
+    );
+    rimLight.intensity = 0.6;
+    rimLight.diffuse = Color3.FromHexString('#4A3060'); // Cool purple rim light
+    rimLight.specular = Color3.FromHexString('#2A1040');
+
+    // Store reference (note: we keep this as a separate light, not stored in ambientLight)
+  }
+
+  /**
+   * Preload all enemy GLB models so spawnEnemy can create instances synchronously.
+   * Uses parallel loading for better performance during level init.
+   */
+  private async preloadEnemyModels(): Promise<void> {
+    const enemyPaths = Object.values(ENEMY_GLB_PATHS);
+    const uniquePaths = [...new Set(enemyPaths)];
+
+    const loadPromises = uniquePaths.map(async (path) => {
+      try {
+        if (!AssetManager.isPathCached(path)) {
+          await AssetManager.loadAssetByPath(path, this.scene);
+        }
+      } catch (err) {
+        log.warn(`Failed to load enemy GLB: ${path}`, err);
+      }
+    });
+
+    await Promise.all(loadPromises);
+
+    const loaded = uniquePaths.filter((p) => AssetManager.isPathCached(p)).length;
+    log.info(`Preloaded ${loaded}/${uniquePaths.length} enemy models`);
   }
 
   private createTerrain(): void {
-    this.terrain = MeshBuilder.CreateGround(
-      'terrain',
-      {
-        width: ARENA_WIDTH * 1.5,
-        height: ARENA_DEPTH * 1.5,
-        subdivisions: 64,
-      },
-      this.scene
-    );
+    // Use SurfaceTerrainFactory for procedural heightmap terrain.
+    // Canyon arena with rust-brown rocky terrain, moderate height variation.
+    // CANYON_TERRAIN preset includes PBR textures for realistic rock surfaces.
+    const { mesh, material } = createDynamicTerrain(this.scene, {
+      ...CANYON_TERRAIN,
+      size: 220, // Slightly larger than arena for visual continuity
+      heightScale: 12, // Moderate height variation - not too rough for combat
+      subdivisions: 128, // Higher detail for close-up ground visibility
+      seed: 54321,
+      materialName: 'brothersCanyonTerrain',
+      tintColor: '#8B6B4A', // Warm rust brown matching dusk lighting
+      textureUVScale: 0.015, // Larger texture tiles for open battlefield
+    });
 
-    const terrainMat = new StandardMaterial('terrainMat', this.scene);
-    terrainMat.diffuseColor = Color3.FromHexString('#9B7B5A'); // Rust brown
-    terrainMat.specularColor = new Color3(0.05, 0.04, 0.03);
-    this.terrain.material = terrainMat;
+    this.terrain = mesh;
+    this.terrainMaterial = material;
+
+    // Configure terrain for proper rendering
+    mesh.receiveShadows = true;
+    mesh.checkCollisions = false; // Level handles collisions differently
   }
 
-  private createCanyonWalls(): void {
-    const wallMat = new StandardMaterial('wallMat', this.scene);
-    wallMat.diffuseColor = Color3.FromHexString('#6B4423'); // Dark brown
+  private async createCanyonWalls(): Promise<void> {
+    // Preload canyon wall GLBs
+    await Promise.all([
+      AssetManager.loadAssetByPath(CANYON_WALL_PATHS.wall_long, this.scene),
+      AssetManager.loadAssetByPath(CANYON_WALL_PATHS.wall_short, this.scene),
+      AssetManager.loadAssetByPath(CANYON_WALL_PATHS.pillar, this.scene),
+    ]);
 
-    // North wall
-    const northWall = MeshBuilder.CreateBox(
-      'northWall',
-      { width: ARENA_WIDTH * 1.5, height: 80, depth: 30 },
-      this.scene
-    );
-    northWall.position.set(0, 40, -ARENA_DEPTH / 2 - 30);
-    northWall.material = wallMat;
-    this.canyonWalls.push(northWall);
+    const longLoaded = AssetManager.isPathCached(CANYON_WALL_PATHS.wall_long);
+    const shortLoaded = AssetManager.isPathCached(CANYON_WALL_PATHS.wall_short);
+    const pillarLoaded = AssetManager.isPathCached(CANYON_WALL_PATHS.pillar);
 
-    // South wall
-    const southWall = MeshBuilder.CreateBox(
-      'southWall',
-      { width: ARENA_WIDTH * 1.5, height: 80, depth: 30 },
-      this.scene
-    );
-    southWall.position.set(0, 40, ARENA_DEPTH / 2 + 30);
-    southWall.material = wallMat;
-    this.canyonWalls.push(southWall);
+    if (!longLoaded && !shortLoaded) {
+      throw new Error(
+        '[BrothersInArms] FATAL: Canyon wall GLBs failed to load. ' +
+          `Tried: ${CANYON_WALL_PATHS.wall_long}, ${CANYON_WALL_PATHS.wall_short}`
+      );
+    }
+
+    // Each GLB wall segment is ~6m wide at scale 1; we tile them along each boundary.
+    // We use scale 8 so each segment spans ~48m, and place multiple to cover 300m (1.5x arena).
+    const wallScale = 8;
+    const segmentWidth = 48; // approximate visual width per instance at scale 8
+    const totalLengthNS = ARENA_WIDTH * 1.5; // 300m for N/S walls
+    const totalLengthEW = ARENA_DEPTH * 1.5; // 225m for E/W walls
+    const wallPath = longLoaded ? CANYON_WALL_PATHS.wall_long : CANYON_WALL_PATHS.wall_short;
+
+    // Helper: tile wall instances along a line
+    const tileWall = (
+      baseName: string,
+      totalLength: number,
+      centerX: number,
+      centerZ: number,
+      rotY: number,
+      isEW: boolean
+    ) => {
+      const count = Math.ceil(totalLength / segmentWidth) + 1;
+      const startOffset = -(count * segmentWidth) / 2;
+
+      for (let i = 0; i < count; i++) {
+        const instance = AssetManager.createInstanceByPath(
+          wallPath,
+          `${baseName}_seg_${i}`,
+          this.scene,
+          true,
+          'environment'
+        );
+        if (!instance) continue;
+
+        const offset = startOffset + i * segmentWidth;
+        if (isEW) {
+          // E/W walls: tile along Z axis
+          instance.position.set(centerX, 0, centerZ + offset);
+        } else {
+          // N/S walls: tile along X axis
+          instance.position.set(centerX + offset, 0, centerZ);
+        }
+        instance.rotation.y = rotY;
+        instance.scaling.setAll(wallScale);
+
+        // Collect as a Mesh reference for disposal
+        this.canyonWalls.push(instance as unknown as Mesh);
+      }
+
+      // Add pillar at corners for visual anchoring
+      if (pillarLoaded) {
+        const pillar = AssetManager.createInstanceByPath(
+          CANYON_WALL_PATHS.pillar,
+          `${baseName}_pillar`,
+          this.scene,
+          true,
+          'environment'
+        );
+        if (pillar) {
+          pillar.position.set(centerX, 0, centerZ);
+          pillar.scaling.setAll(wallScale * 0.8);
+          this.canyonWalls.push(pillar as unknown as Mesh);
+        }
+      }
+    };
+
+    // North wall (behind breach)
+    tileWall('northWall', totalLengthNS, 0, -ARENA_DEPTH / 2 - 30, 0, false);
+
+    // South wall (behind player start)
+    tileWall('southWall', totalLengthNS, 0, ARENA_DEPTH / 2 + 30, Math.PI, false);
 
     // East wall
-    const eastWall = MeshBuilder.CreateBox(
-      'eastWall',
-      { width: 30, height: 80, depth: ARENA_DEPTH * 1.5 },
-      this.scene
-    );
-    eastWall.position.set(ARENA_WIDTH / 2 + 30, 40, 0);
-    eastWall.material = wallMat;
-    this.canyonWalls.push(eastWall);
+    tileWall('eastWall', totalLengthEW, ARENA_WIDTH / 2 + 30, 0, Math.PI / 2, true);
 
     // West wall
-    const westWall = MeshBuilder.CreateBox(
-      'westWall',
-      { width: 30, height: 80, depth: ARENA_DEPTH * 1.5 },
-      this.scene
-    );
-    westWall.position.set(-ARENA_WIDTH / 2 - 30, 40, 0);
-    westWall.material = wallMat;
-    this.canyonWalls.push(westWall);
+    tileWall('westWall', totalLengthEW, -ARENA_WIDTH / 2 - 30, 0, -Math.PI / 2, true);
   }
 
-  private createRockPillars(): void {
-    const pillarMat = new StandardMaterial('pillarMat', this.scene);
-    pillarMat.diffuseColor = Color3.FromHexString('#8B5A2B');
-    pillarMat.specularColor = new Color3(0.08, 0.06, 0.04);
+  // NOTE: createRockPillars() removed -- replaced by BattlefieldEnvironment.ts
+  // which places GLB barricades, industrial structures, containers, debris,
+  // fencing, and decals across the arena at close/mid/far cover distances.
 
-    // Create 10-15 rock pillars for cover
-    const pillarPositions = [
-      new Vector3(-40, 0, 30),
-      new Vector3(35, 0, 25),
-      new Vector3(-25, 0, -10),
-      new Vector3(50, 0, 0),
-      new Vector3(-55, 0, 15),
-      new Vector3(20, 0, -30),
-      new Vector3(-45, 0, -25),
-      new Vector3(60, 0, -20),
-      new Vector3(-30, 0, 50),
-      new Vector3(45, 0, 45),
-      new Vector3(-60, 0, -40),
-      new Vector3(25, 0, 55),
-      new Vector3(-15, 0, 40),
-    ];
-
-    pillarPositions.forEach((pos, i) => {
-      const height = 8 + Math.random() * 12;
-      const diameterBottom = 3 + Math.random() * 3;
-      const diameterTop = diameterBottom * (0.4 + Math.random() * 0.3);
-
-      const pillar = MeshBuilder.CreateCylinder(
-        `pillar_${i}`,
-        {
-          height,
-          diameterTop,
-          diameterBottom,
-          tessellation: 8,
-        },
-        this.scene
-      );
-
-      pillar.position = pos.clone();
-      pillar.position.y = height / 2;
-      pillar.material = pillarMat;
-
-      // Slight random rotation for variety
-      pillar.rotation.y = Math.random() * Math.PI * 2;
-
-      this.rockPillars.push(pillar);
-    });
-  }
-
-  private createBreach(): void {
+  private async createBreach(): Promise<void> {
     // The Breach - massive sinkhole entrance to hive
-    // Create as a cylinder going down
+    // The cylinder and torus are procedural (unique terrain geometry with no GLB match)
     this.breachMesh = MeshBuilder.CreateCylinder(
       'breach',
       {
@@ -450,7 +627,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.breachMesh.position = BREACH_POSITION.clone();
     this.breachMesh.position.y = -25;
 
-    // Create rim around breach
+    // Create rim around breach (procedural torus -- unique shape)
     const rimMat = new StandardMaterial('rimMat', this.scene);
     rimMat.diffuseColor = Color3.FromHexString('#5A3A5A');
     rimMat.emissiveColor = new Color3(0.1, 0.3, 0.3);
@@ -475,187 +652,227 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.breachGlow.intensity = 1.5;
     this.breachGlow.diffuse = Color3.FromHexString('#4AC8C8');
     this.breachGlow.range = 80;
+
+    // GLB debris ring around breach lip for visual detail
+    await Promise.all([
+      AssetManager.loadAssetByPath(BREACH_RIM_PATHS.debris_bricks, this.scene),
+      AssetManager.loadAssetByPath(BREACH_RIM_PATHS.gravel, this.scene),
+      AssetManager.loadAssetByPath(BREACH_RIM_PATHS.scrap, this.scene),
+    ]);
+
+    const rimDebrisPaths = [
+      BREACH_RIM_PATHS.debris_bricks,
+      BREACH_RIM_PATHS.gravel,
+      BREACH_RIM_PATHS.scrap,
+    ];
+    const rimRadius = BREACH_DIAMETER / 2 + 3;
+    const debrisCount = 12;
+
+    for (let i = 0; i < debrisCount; i++) {
+      const angle = (i / debrisCount) * Math.PI * 2;
+      const pathIndex = i % rimDebrisPaths.length;
+      const path = rimDebrisPaths[pathIndex];
+
+      if (!AssetManager.isPathCached(path)) continue;
+
+      const instance = AssetManager.createInstanceByPath(
+        path,
+        `breachRimDebris_${i}`,
+        this.scene,
+        true,
+        'environment'
+      );
+      if (!instance) continue;
+
+      instance.position.set(
+        BREACH_POSITION.x + Math.cos(angle) * rimRadius + (Math.random() - 0.5) * 4,
+        0,
+        BREACH_POSITION.z + Math.sin(angle) * rimRadius + (Math.random() - 0.5) * 4
+      );
+      instance.rotation.y = angle + (Math.random() - 0.5) * 0.5;
+      const s = 2 + Math.random() * 1.5;
+      instance.scaling.setAll(s);
+    }
   }
 
   private createSkyDome(): void {
-    this.skyDome = MeshBuilder.CreateSphere(
-      'sky',
-      {
-        diameter: 5000,
-        segments: 16,
-        sideOrientation: 1, // Inside facing
-      },
-      this.scene
-    );
+    // Use SkyboxManager for proper Babylon.js skybox with dusk/sunset atmosphere
+    const skyboxManager = new SkyboxManager(this.scene);
 
-    const skyMat = new StandardMaterial('skyMat', this.scene);
-    skyMat.emissiveColor = new Color3(0.85, 0.55, 0.35); // Sunset orange
-    skyMat.disableLighting = true;
-    this.skyDome.material = skyMat;
+    // Try to load HDRI first for best quality
+    const _hdriPath = '/assets/textures/hdri/dusk_canyon.exr';
+
+    // Create fallback dusk skybox - will be replaced if HDRI loads successfully
+    this.skyboxResult = skyboxManager.createFallbackSkybox({
+      type: 'dusk',
+      size: 12000, // Larger skybox for open battlefield
+      useEnvironmentLighting: true,
+      environmentIntensity: 0.85, // Balanced for PBR materials
+      // Sunset orange with purple horizon - dramatic end-of-day lighting
+      tint: new Color3(0.85, 0.5, 0.38),
+    });
+
+    this.skyDome = this.skyboxResult.mesh;
+
+    // Apply dusk atmosphere gradient to scene
+    this.scene.clearColor = new Color4(0.25, 0.15, 0.2, 1); // Dark purple-brown for dusk
+    this.scene.ambientColor = new Color3(0.3, 0.25, 0.25); // Warm ambient
   }
 
   private generateSpawnPoints(): void {
     // Generate spawn points around arena edges
+    // Enemies spawn from multiple directions to create tactical variety
     this.spawnPoints = [];
 
-    // North edge (behind breach)
-    for (let i = 0; i < 5; i++) {
-      const x = (i - 2) * 30;
-      this.spawnPoints.push(new Vector3(x, 0, -ARENA_DEPTH / 2 + 20));
+    // North edge (behind breach) - primary spawn direction
+    for (let i = 0; i < 6; i++) {
+      const x = (i - 2.5) * 25;
+      this.spawnPoints.push(new Vector3(x, 0, -ARENA_DEPTH / 2 + 15));
     }
 
     // East edge
     for (let i = 0; i < 4; i++) {
-      const z = (i - 1.5) * 30;
-      this.spawnPoints.push(new Vector3(ARENA_WIDTH / 2 - 20, 0, z));
+      const z = (i - 1.5) * 25;
+      this.spawnPoints.push(new Vector3(ARENA_WIDTH / 2 - 15, 0, z));
     }
 
     // West edge
     for (let i = 0; i < 4; i++) {
-      const z = (i - 1.5) * 30;
-      this.spawnPoints.push(new Vector3(-ARENA_WIDTH / 2 + 20, 0, z));
+      const z = (i - 1.5) * 25;
+      this.spawnPoints.push(new Vector3(-ARENA_WIDTH / 2 + 15, 0, z));
     }
 
-    // South edge (near player start)
-    for (let i = 0; i < 5; i++) {
-      const x = (i - 2) * 30;
-      this.spawnPoints.push(new Vector3(x, 0, ARENA_DEPTH / 2 - 30));
+    // South-east and south-west flanks (not directly behind player)
+    this.spawnPoints.push(new Vector3(ARENA_WIDTH / 2 - 30, 0, ARENA_DEPTH / 2 - 40));
+    this.spawnPoints.push(new Vector3(-ARENA_WIDTH / 2 + 30, 0, ARENA_DEPTH / 2 - 40));
+
+    // Breach edge spawn points (for later waves emerging from the pit)
+    const breachAngleStep = (Math.PI * 2) / 8;
+    for (let i = 0; i < 8; i++) {
+      const angle = i * breachAngleStep;
+      const radius = BREACH_DIAMETER / 2 + 10;
+      this.spawnPoints.push(
+        new Vector3(
+          BREACH_POSITION.x + Math.cos(angle) * radius,
+          0,
+          BREACH_POSITION.z + Math.sin(angle) * radius
+        )
+      );
     }
 
-    // Assign to waves
+    // Assign spawn points to waves - shuffle for variety
     WAVES.forEach((wave) => {
       wave.spawnPoints = [...this.spawnPoints];
+      // Shuffle spawn points per wave
+      for (let i = wave.spawnPoints.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [wave.spawnPoints[i], wave.spawnPoints[j]] = [wave.spawnPoints[j], wave.spawnPoints[i]];
+      }
     });
+
+    log.info(`Generated ${this.spawnPoints.length} spawn points`);
   }
 
   // ============================================================================
   // MARCUS MECH
   // ============================================================================
 
-  private createMarcusMech(): void {
+  private async createMarcusMech(): Promise<void> {
     const root = new TransformNode('marcusRoot', this.scene);
     root.position = MARCUS_START_POSITION.clone();
 
-    // Materials
-    const bodyMat = new StandardMaterial('mechBodyMat', this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.oliveDark);
-    bodyMat.specularColor = new Color3(0.4, 0.4, 0.4);
+    // Load the Marcus mech GLB model
+    const MECH_GLB_PATH = '/assets/models/vehicles/marcus_mech.glb';
 
-    const accentMat = new StandardMaterial('mechAccentMat', this.scene);
-    accentMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-    accentMat.emissiveColor = new Color3(0.1, 0.15, 0.1);
+    await AssetManager.loadAssetByPath(MECH_GLB_PATH, this.scene);
 
-    // Body (torso) - scaled up to 8m tall total
-    const body = MeshBuilder.CreateBox('mechBody', { width: 4, height: 5, depth: 3 }, this.scene);
-    body.material = bodyMat;
+    if (!AssetManager.isPathCached(MECH_GLB_PATH)) {
+      throw new Error(
+        `[BrothersInArms] FATAL: Failed to load marcus_mech.glb from ${MECH_GLB_PATH}. ` +
+          `Ensure the asset exists and is accessible.`
+      );
+    }
+
+    const mechModel = AssetManager.createInstanceByPath(
+      MECH_GLB_PATH,
+      'marcusMechInstance',
+      this.scene,
+      true,
+      'vehicle'
+    );
+
+    if (!mechModel) {
+      throw new Error(
+        `[BrothersInArms] FATAL: Failed to create instance of marcus_mech.glb. ` +
+          `Asset was cached but instance creation failed.`
+      );
+    }
+
+    mechModel.parent = root;
+    // Scale GLB to match the ~8m tall mech (adjust if model is a different base size)
+    mechModel.scaling.setAll(4);
+    mechModel.position.y = 0;
+
+    // Ensure mech is visible and receives proper lighting
+    const mechMeshes = mechModel.getChildMeshes();
+    for (const mesh of mechMeshes) {
+      mesh.receiveShadows = true;
+      mesh.isPickable = true;
+      // Ensure materials render correctly with sunset lighting
+      if (mesh.material && mesh.material instanceof PBRMaterial) {
+        mesh.material.environmentIntensity = 1.0;
+      }
+    }
+
+    log.info(`Marcus mech loaded successfully with ${mechMeshes.length} meshes`);
+
+    // Create invisible proxy meshes for arms, body, and legs.
+    // These are required by MarcusCombatAI for projectile spawn positions
+    // (absolutePosition), arm recoil animations (rotation.z), and walk
+    // animation (legs.position.y). They are invisible and simply track
+    // the correct offsets on the root TransformNode.
+
+    // Body proxy (torso center -- used only for disposal/structure)
+    const body = MeshBuilder.CreateBox(
+      'mechBody',
+      { width: 0.1, height: 0.1, depth: 0.1 },
+      this.scene
+    );
+    body.visibility = 0;
     body.parent = root;
     body.position.y = 6;
 
-    // Cockpit
-    const cockpit = MeshBuilder.CreateBox(
-      'cockpit',
-      { width: 2, height: 1.2, depth: 1 },
-      this.scene
-    );
-    cockpit.material = accentMat;
-    cockpit.parent = body;
-    cockpit.position.set(0, 2, 1);
-
-    // Left arm with autocannon
-    const leftArm = MeshBuilder.CreateCylinder(
+    // Left arm proxy (projectile spawn + recoil)
+    const leftArm = MeshBuilder.CreateBox(
       'mechLeftArm',
-      { height: 5, diameter: 1 },
+      { width: 0.1, height: 0.1, depth: 0.1 },
       this.scene
     );
-    leftArm.material = bodyMat;
+    leftArm.visibility = 0;
     leftArm.parent = root;
     leftArm.position.set(-3, 5.5, 0);
     leftArm.rotation.z = 0.3;
 
-    // Left autocannon barrel
-    const leftBarrel = MeshBuilder.CreateCylinder(
-      'leftBarrel',
-      { height: 3.5, diameter: 0.5 },
-      this.scene
-    );
-    leftBarrel.material = accentMat;
-    leftBarrel.parent = leftArm;
-    leftBarrel.position.y = -3.5;
-    leftBarrel.rotation.x = Math.PI / 2;
-
-    // Right arm with autocannon
-    const rightArm = MeshBuilder.CreateCylinder(
+    // Right arm proxy (projectile spawn + recoil)
+    const rightArm = MeshBuilder.CreateBox(
       'mechRightArm',
-      { height: 5, diameter: 1 },
+      { width: 0.1, height: 0.1, depth: 0.1 },
       this.scene
     );
-    rightArm.material = bodyMat;
+    rightArm.visibility = 0;
     rightArm.parent = root;
     rightArm.position.set(3, 5.5, 0);
     rightArm.rotation.z = -0.3;
 
-    // Right autocannon barrel
-    const rightBarrel = MeshBuilder.CreateCylinder(
-      'rightBarrel',
-      { height: 3.5, diameter: 0.5 },
-      this.scene
-    );
-    rightBarrel.material = accentMat;
-    rightBarrel.parent = rightArm;
-    rightBarrel.position.y = -3.5;
-    rightBarrel.rotation.x = Math.PI / 2;
-
-    // Legs container
+    // Legs proxy (walking animation target)
     const legs = MeshBuilder.CreateBox(
       'mechLegs',
-      { width: 3.5, height: 0.8, depth: 2 },
+      { width: 0.1, height: 0.1, depth: 0.1 },
       this.scene
     );
     legs.visibility = 0;
     legs.parent = root;
     legs.position.y = 3;
-
-    // Left leg
-    const leftLeg = MeshBuilder.CreateCylinder(
-      'leftLeg',
-      { height: 5.5, diameterTop: 1, diameterBottom: 1.5 },
-      this.scene
-    );
-    leftLeg.material = bodyMat;
-    leftLeg.parent = legs;
-    leftLeg.position.set(-1, -2.75, 0);
-
-    // Right leg
-    const rightLeg = MeshBuilder.CreateCylinder(
-      'rightLeg',
-      { height: 5.5, diameterTop: 1, diameterBottom: 1.5 },
-      this.scene
-    );
-    rightLeg.material = bodyMat;
-    rightLeg.parent = legs;
-    rightLeg.position.set(1, -2.75, 0);
-
-    // Feet
-    const footMat = new StandardMaterial('footMat', this.scene);
-    footMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-
-    const leftFoot = MeshBuilder.CreateBox(
-      'leftFoot',
-      { width: 2, height: 0.6, depth: 2.5 },
-      this.scene
-    );
-    leftFoot.material = footMat;
-    leftFoot.parent = legs;
-    leftFoot.position.set(-1, -5.8, 0.3);
-
-    const rightFoot = MeshBuilder.CreateBox(
-      'rightFoot',
-      { width: 2, height: 0.6, depth: 2.5 },
-      this.scene
-    );
-    rightFoot.material = footMat;
-    rightFoot.parent = legs;
-    rightFoot.position.set(1, -5.8, 0.3);
 
     this.marcus = {
       rootNode: root,
@@ -681,7 +898,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       leftArm,
       rightArm,
       {
-        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
+        onCommsMessage: (message) => this.emitCommsMessage(message),
         onMarcusHealthChange: (health, maxHealth) => {
           this.updateMarcusHealthBar(health, maxHealth);
           if (this.marcus) {
@@ -701,7 +918,7 @@ export class BrothersInArmsLevel extends BaseLevel {
           this.onCoordinatedAttackStarted(attack);
         },
         onNotification: (text, duration) => {
-          this.callbacks.onNotification(text, duration);
+          this.emitNotification(text, duration);
         },
         onMarcusDowned: () => {
           this.onMarcusDowned();
@@ -728,11 +945,29 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Initialize the Marcus banter system for situation-aware dialogue
     this.marcusBanterManager = createMarcusBanterManager(
-      (message) => this.callbacks.onCommsMessage(message),
+      (message) => this.emitCommsMessage(message),
       {
         globalCooldown: 4000, // 4 seconds between dialogue to not overwhelm
         banterChance: 0.35, // 35% chance for optional banter
         allowInterrupts: true,
+      }
+    );
+
+    // Initialize the squad command system for player-issued orders
+    this.squadCommandSystem = new SquadCommandSystem(
+      this.scene,
+      {
+        onCommsMessage: (message) => this.emitCommsMessage(message),
+        onNotification: (text, duration) => this.emitNotification(text, duration),
+        onCommandIssued: (command) => this.onSquadCommandIssued(command),
+        onCommandExpired: (command) => this.onSquadCommandExpired(command),
+      },
+      {
+        commandDuration: 30000, // 30 seconds
+        followDistance: 12,
+        holdPositionTolerance: 3,
+        suppressionDuration: 5000,
+        regroupSpeedMultiplier: 1.5,
       }
     );
   }
@@ -850,7 +1085,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     }
 
     // Update objective to show Marcus is down
-    this.callbacks.onObjectiveUpdate('HAMMER DOWN', 'Stay close to Marcus to help him recover!');
+    this.emitObjectiveUpdate('HAMMER DOWN', 'Stay close to Marcus to help him recover!');
   }
 
   /**
@@ -865,7 +1100,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Restore objective
     const aliveEnemies = this.waveEnemies.filter((e) => e.state !== 'dead').length;
     if (aliveEnemies > 0) {
-      this.callbacks.onObjectiveUpdate(
+      this.emitObjectiveUpdate(
         OBJECTIVES.WAVE_COMBAT.getTitle(this.currentWave + 1, WAVES.length),
         OBJECTIVES.WAVE_COMBAT.getDescription(this.totalKills)
       );
@@ -975,15 +1210,15 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     // Show notification for significant state changes
     if (newState === 'repairing') {
-      this.callbacks.onNotification('HAMMER REPAIRING', 2000);
+      this.emitNotification('HAMMER REPAIRING', 2000);
     } else if (newState === 'downed') {
-      this.callbacks.onNotification('HAMMER IS DOWN!', 3000);
+      this.emitNotification('HAMMER IS DOWN!', 3000);
     } else if (oldState === 'repairing') {
       // Exited repairing state (newState is guaranteed to not be 'repairing' in this branch)
-      this.callbacks.onNotification('HAMMER BACK ONLINE', 2000);
+      this.emitNotification('HAMMER BACK ONLINE', 2000);
     } else if (oldState === 'downed') {
       // Recovered from downed state
-      this.callbacks.onNotification('HAMMER BACK ONLINE!', 2000);
+      this.emitNotification('HAMMER BACK ONLINE!', 2000);
     }
   }
 
@@ -994,16 +1229,16 @@ export class BrothersInArmsLevel extends BaseLevel {
     // Visual indicator for coordinated attacks
     switch (attack.type) {
       case 'focus_fire':
-        this.callbacks.onNotification('FOCUS FIRE', 1500);
+        this.emitNotification('FOCUS FIRE', 1500);
         break;
       case 'flank':
-        this.callbacks.onNotification('FLANKING MANEUVER', 1500);
+        this.emitNotification('FLANKING MANEUVER', 1500);
         break;
       case 'suppress':
-        this.callbacks.onNotification('SUPPRESSION FIRE', 1500);
+        this.emitNotification('SUPPRESSION FIRE', 1500);
         break;
       case 'cover_player':
-        this.callbacks.onNotification('COVERING FIRE', 1500);
+        this.emitNotification('COVERING FIRE', 1500);
         break;
     }
   }
@@ -1013,6 +1248,12 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     const playerPos = this.camera.position.clone();
     playerPos.y = 0;
+    const playerForward = this.camera.getDirection(Vector3.Forward());
+
+    // Update squad command system
+    if (this.squadCommandSystem) {
+      this.squadCommandSystem.update(playerPos, playerForward, this.marcus.position);
+    }
 
     // Use the advanced Combat AI system during combat phases
     if (
@@ -1023,12 +1264,47 @@ export class BrothersInArmsLevel extends BaseLevel {
       // Convert ActiveEnemy[] to Entity[] for the combat AI
       const aliveEnemies = this.waveEnemies.filter((e) => e.state !== 'dead').map((e) => e.entity);
 
+      // Check for squad command overrides
+      const movementOverride = this.squadCommandSystem?.getMovementOverride(this.marcus.position);
+      const targetOverride = this.squadCommandSystem?.getTargetOverride();
+      const fireModeOverride = this.squadCommandSystem?.getFireModeOverride();
+      const speedMultiplier = this.squadCommandSystem?.getSpeedMultiplier() ?? 1;
+
+      // Apply squad command effects to combat AI
+      if (targetOverride) {
+        // Force focus fire on specified target
+        this.marcusCombatAI.requestFocusFire(targetOverride);
+      }
+
+      if (fireModeOverride === 'suppression') {
+        // Trigger suppression fire
+        const suppressionDir = this.squadCommandSystem?.getSuppressionDirection();
+        if (suppressionDir) {
+          const suppressionTarget = playerPos.add(suppressionDir.scale(50));
+          this.marcusCombatAI.requestFireSupport(suppressionTarget, 5000);
+        }
+      }
+
       // Pass player forward direction for tactical awareness
-      const playerForward = this.camera.getDirection(Vector3.Forward());
       this.marcusCombatAI.update(deltaTime, playerPos, aliveEnemies, playerForward);
 
-      // Sync position from Combat AI back to legacy marcus struct
-      this.marcus.position = this.marcusCombatAI.getPosition();
+      // Apply movement override from squad commands
+      if (movementOverride) {
+        const toTarget = movementOverride.subtract(this.marcus.position);
+        toTarget.y = 0;
+        const distance = toTarget.length();
+
+        if (distance > 2) {
+          toTarget.normalize();
+          const moveSpeed = 12 * speedMultiplier * deltaTime;
+          this.marcus.position.addInPlace(toTarget.scale(Math.min(moveSpeed, distance)));
+          this.marcus.rootNode.position = this.marcus.position.clone();
+        }
+      } else {
+        // Sync position from Combat AI back to legacy marcus struct
+        this.marcus.position = this.marcusCombatAI.getPosition();
+      }
+
       this.marcus.health = this.marcusCombatAI.getHealth();
       this.marcus.rootNode.position = this.marcus.position.clone();
 
@@ -1180,12 +1456,15 @@ export class BrothersInArmsLevel extends BaseLevel {
       projMat.disableLighting = true;
       projectile.material = projMat;
 
-      // Arm recoil
+      // Arm recoil animation
       const originalZ = arm.rotation.z;
-      arm.rotation.z += arm.position.x < 0 ? 0.15 : -0.15;
+      const recoilAmount = arm.position.x < 0 ? 0.15 : -0.15;
+      arm.rotation.z += recoilAmount;
+
+      // Restore arm to original position smoothly
       setTimeout(() => {
-        if (this.marcus) {
-          arm.rotation.z = arm.position.x < 0 ? 0.3 : -0.3;
+        if (this.marcus && arm && !arm.isDisposed()) {
+          arm.rotation.z = originalZ;
         }
       }, 100);
 
@@ -1242,68 +1521,51 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   private spawnEnemy(type: EnemyType, position: Vector3): ActiveEnemy {
     const config = ENEMY_CONFIGS[type];
+    const glbPath = ENEMY_GLB_PATHS[type];
+    const glbScale = ENEMY_GLB_SCALES[type];
+    const instanceId = `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
-    // Create enemy mesh based on type
+    // Load GLB instance - throws if not cached or instance creation fails
     let mesh: Mesh;
 
-    switch (type) {
-      case 'drone':
-        mesh = MeshBuilder.CreateSphere(
-          `drone_${Date.now()}`,
-          { diameter: config.size },
+    if (AssetManager.isPathCached(glbPath)) {
+      const instance = AssetManager.createInstanceByPath(
+        glbPath,
+        instanceId,
+        this.scene,
+        true, // apply LOD
+        'enemy'
+      );
+
+      if (instance) {
+        // GLB success - create a collision proxy mesh (invisible) for hit detection
+        // The TransformNode from GLB does not have geometry for raycasting
+        const proxyMesh = MeshBuilder.CreateBox(
+          `${instanceId}_proxy`,
+          { width: config.size, height: config.size * 1.2, depth: config.size },
           this.scene
         );
-        break;
-      case 'grunt':
-        mesh = MeshBuilder.CreateCapsule(
-          `grunt_${Date.now()}`,
-          { height: config.size, radius: config.size * 0.3 },
-          this.scene
+        proxyMesh.visibility = 0; // Invisible collision volume
+        proxyMesh.isPickable = true;
+
+        // Parent GLB instance to proxy so they move together
+        instance.parent = proxyMesh;
+        instance.position.set(0, -config.size * 0.5, 0); // Center GLB on proxy
+        instance.scaling.setAll(glbScale);
+
+        mesh = proxyMesh;
+      } else {
+        throw new Error(
+          `[BrothersInArms] FATAL: Failed to create instance for enemy GLB: ${glbPath}`
         );
-        break;
-      case 'spitter':
-        mesh = MeshBuilder.CreateSphere(
-          `spitter_${Date.now()}`,
-          { diameterX: config.size, diameterY: config.size * 0.7, diameterZ: config.size },
-          this.scene
-        );
-        break;
-      case 'brute':
-        mesh = MeshBuilder.CreateBox(
-          `brute_${Date.now()}`,
-          { width: config.size, height: config.size * 1.2, depth: config.size * 0.8 },
-          this.scene
-        );
-        break;
-      default:
-        mesh = MeshBuilder.CreateSphere(
-          `enemy_${Date.now()}`,
-          { diameter: config.size },
-          this.scene
-        );
+      }
+    } else {
+      throw new Error(
+        `[BrothersInArms] FATAL: Enemy GLB not cached: ${glbPath}. ` +
+          `Ensure preloadEnemyModels() completed successfully.`
+      );
     }
 
-    const mat = new StandardMaterial(`enemy_mat_${Date.now()}`, this.scene);
-    mat.diffuseColor = Color3.FromHexString(config.color);
-    mat.specularColor = new Color3(0.2, 0.2, 0.2);
-
-    // Add glowing eyes for all enemy types
-    const glowMat = new StandardMaterial(`enemy_glow_${Date.now()}`, this.scene);
-    glowMat.emissiveColor = Color3.FromHexString('#4AFF9F');
-    glowMat.disableLighting = true;
-
-    // Add eyes
-    const leftEye = MeshBuilder.CreateSphere('eye', { diameter: config.size * 0.1 }, this.scene);
-    leftEye.material = glowMat;
-    leftEye.parent = mesh;
-    leftEye.position.set(-config.size * 0.15, config.size * 0.2, -config.size * 0.4);
-
-    const rightEye = MeshBuilder.CreateSphere('eye', { diameter: config.size * 0.1 }, this.scene);
-    rightEye.material = glowMat;
-    rightEye.parent = mesh;
-    rightEye.position.set(config.size * 0.15, config.size * 0.2, -config.size * 0.4);
-
-    mesh.material = mat;
     mesh.position = position.clone();
     mesh.position.y = config.size / 2;
 
@@ -1363,15 +1625,32 @@ export class BrothersInArmsLevel extends BaseLevel {
     for (const enemy of this.waveEnemies) {
       if (enemy.state === 'dead') continue;
 
-      // Determine target - some enemies will prioritize Marcus
+      // Determine target - enemies use different targeting strategies
       const distToPlayer = Vector3.Distance(enemy.mesh.position, playerPos);
       const distToMarcus = Vector3.Distance(enemy.mesh.position, marcusPos);
 
-      // Brutes always target Marcus, other enemies have a chance if Marcus is closer
-      const shouldTargetMarcus =
-        this.marcus &&
-        this.marcusCombatAI &&
-        (enemy.type === 'brute' || (distToMarcus < distToPlayer * 0.7 && Math.random() < 0.3));
+      // Target selection logic:
+      // - Brutes always prioritize Marcus (mech threat)
+      // - Spitters prefer the closer target to stay at range
+      // - Grunts split attention (30% target Marcus if he's closer)
+      // - Drones swarm the player
+      let shouldTargetMarcus = false;
+      if (this.marcus && this.marcusCombatAI && !this.marcusCombatAI.isDowned()) {
+        if (enemy.type === 'brute') {
+          // Brutes always target Marcus as the bigger threat
+          shouldTargetMarcus = true;
+        } else if (enemy.type === 'spitter') {
+          // Spitters target whoever is at optimal range (25-35m)
+          const optimalRange = 30;
+          const playerRangeDiff = Math.abs(distToPlayer - optimalRange);
+          const marcusRangeDiff = Math.abs(distToMarcus - optimalRange);
+          shouldTargetMarcus = marcusRangeDiff < playerRangeDiff;
+        } else if (enemy.type === 'grunt') {
+          // Grunts split attention
+          shouldTargetMarcus = distToMarcus < distToPlayer * 0.8 && Math.random() < 0.35;
+        }
+        // Drones always target player (shouldTargetMarcus stays false)
+      }
 
       const targetPos = shouldTargetMarcus ? marcusPos : playerPos;
       enemy.targetPosition = targetPos.clone();
@@ -1418,12 +1697,12 @@ export class BrothersInArmsLevel extends BaseLevel {
             } else {
               // Melee attack - direct damage
               this.playerHealth -= enemy.damage;
-              this.callbacks.onHealthChange(this.playerHealth);
-              this.callbacks.onDamage();
+              this.emitHealthChanged(this.playerHealth);
+              this.emitDamageRegistered();
               this.triggerDamageShake(enemy.damage);
 
               if (this.playerHealth <= 0) {
-                this.callbacks.onNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
+                this.emitNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
               }
             }
           }
@@ -1438,10 +1717,11 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   /**
-   * Spawn acid projectile targeting Marcus's mech
+   * Spawn acid projectile targeting Marcus's mech.
+   * Projectile tracks toward Marcus with proper collision detection.
    */
   private spawnEnemyProjectileAtMarcus(enemy: ActiveEnemy): void {
-    if (!this.marcus) return;
+    if (!this.marcus || !this.marcusCombatAI) return;
 
     const startPos = enemy.mesh.position.clone();
     startPos.y += 0.5;
@@ -1450,7 +1730,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     const targetPos = this.marcus.position.clone();
     targetPos.y += 4;
     const direction = targetPos.subtract(startPos).normalize();
-    const velocity = direction.scale(20);
+    const velocity = direction.scale(22); // Slightly faster for mech targeting
 
     const projectile = MeshBuilder.CreateSphere('acidBoltMarcus', { diameter: 0.4 }, this.scene);
     projectile.position = startPos;
@@ -1557,24 +1837,50 @@ export class BrothersInArmsLevel extends BaseLevel {
       },
     });
 
-    // Check collision with player
+    // Check collision with player - use proper delta time
+    let lastTime = performance.now();
     const checkCollision = () => {
       if (projectile.isDisposed()) return;
 
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.05); // Cap at 50ms to prevent huge jumps
+      lastTime = now;
+
       const dist = Vector3.Distance(projectile.position, this.camera.position);
-      if (dist < 1.5) {
+      if (dist < 1.8) {
+        // Slightly larger hitbox for fairness
         this.playerHealth -= enemy.damage;
-        this.callbacks.onHealthChange(this.playerHealth);
-        this.callbacks.onDamage();
+        this.playerHealth = Math.max(0, this.playerHealth); // Clamp to 0
+        this.emitHealthChanged(this.playerHealth);
+        this.emitDamageRegistered();
         this.triggerDamageShake(enemy.damage);
+        projectile.material?.dispose();
+        projectile.dispose();
+        removeEntity(projEntity);
+
+        // Check for player death
+        if (this.playerHealth <= 0) {
+          this.emitNotification('CRITICAL DAMAGE - MISSION FAILED', 3000);
+          // Note: Death handling is done via health reaching 0
+          // The game loop monitors health and triggers death screen
+        }
+        return;
+      }
+
+      // Update projectile position with delta time
+      projectile.position.addInPlace(velocity.scale(dt));
+
+      // Check if projectile is out of bounds
+      if (
+        projectile.position.y < -10 ||
+        Math.abs(projectile.position.x) > ARENA_WIDTH ||
+        Math.abs(projectile.position.z) > ARENA_DEPTH
+      ) {
         projectile.material?.dispose();
         projectile.dispose();
         removeEntity(projEntity);
         return;
       }
-
-      // Update projectile position
-      projectile.position.addInPlace(velocity.scale(0.016));
 
       if (!projectile.isDisposed()) {
         requestAnimationFrame(checkCollision);
@@ -1588,7 +1894,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
     enemy.state = 'dead';
     this.totalKills++;
-    this.callbacks.onKill();
+    this.recordKill();
 
     // Trigger banter for the kill
     if (this.marcusBanterManager) {
@@ -1642,11 +1948,11 @@ export class BrothersInArmsLevel extends BaseLevel {
       COMMS.WAVE_4_START,
     ];
     if (waveIndex < waveComms.length) {
-      this.callbacks.onCommsMessage(waveComms[waveIndex]);
+      this.emitCommsMessage(waveComms[waveIndex]);
     }
 
-    this.callbacks.onNotification(NOTIFICATIONS.WAVE_INCOMING(wave.id), 2000);
-    this.callbacks.onObjectiveUpdate(
+    this.emitNotification(NOTIFICATIONS.WAVE_INCOMING(wave.id), 2000);
+    this.emitObjectiveUpdate(
       OBJECTIVES.WAVE_COMBAT.getTitle(wave.id, WAVES.length),
       OBJECTIVES.WAVE_COMBAT.getDescription(this.totalKills)
     );
@@ -1677,7 +1983,7 @@ export class BrothersInArmsLevel extends BaseLevel {
         // Stagger spawns
         const spawnDelay = spawnIndex * 200;
         setTimeout(() => {
-          const spawnedEnemy = this.spawnEnemy(type, position);
+          const _spawnedEnemy = this.spawnEnemy(type, position);
 
           // Trigger banter for special enemy types when they first spawn
           if (this.marcusBanterManager && i === 0) {
@@ -1718,16 +2024,15 @@ export class BrothersInArmsLevel extends BaseLevel {
       this.scene,
       this.camera,
       {
-        onCommsMessage: (message) => this.callbacks.onCommsMessage(message),
-        onNotification: (text, duration) => this.callbacks.onNotification(text, duration),
-        onObjectiveUpdate: (title, instructions) =>
-          this.callbacks.onObjectiveUpdate(title, instructions),
+        onCommsMessage: (message) => this.emitCommsMessage(message),
+        onNotification: (text, duration) => this.emitNotification(text, duration),
+        onObjectiveUpdate: (title, instructions) => this.emitObjectiveUpdate(title, instructions),
         onCinematicStart: () => {
-          this.callbacks.onCinematicStart?.();
+          this.emitCinematicStart();
           this.cinematicInProgress = true;
         },
         onCinematicEnd: () => {
-          this.callbacks.onCinematicEnd?.();
+          this.emitCinematicEnd();
           this.cinematicInProgress = false;
           // Transition to wave combat after cinematic
           this.startWaveCombatPhase();
@@ -1749,13 +2054,14 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.rotationY = Math.PI;
     this.targetRotationY = Math.PI;
     this.camera.rotation.y = this.rotationY;
-    this.camera.fov = 1.2;
+    // 90 degrees FOV - standard FPS view for outdoor combat
+    this.camera.fov = Math.PI / 2;
 
     // Setup combat action buttons
     this.updateActionButtons('combat');
 
     // Notify gameplay transition
-    this.callbacks.onNotification('COMBAT INITIATED', 2000);
+    this.emitNotification('COMBAT INITIATED', 2000);
 
     // Start first wave after short delay
     setTimeout(() => {
@@ -1767,17 +2073,14 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.phase = 'breach_battle';
     this.phaseTime = 0;
 
-    this.callbacks.onNotification(NOTIFICATIONS.THE_BREACH, 3000);
-    this.callbacks.onObjectiveUpdate(
-      OBJECTIVES.BREACH_BATTLE.title,
-      OBJECTIVES.BREACH_BATTLE.description
-    );
+    this.emitNotification(NOTIFICATIONS.THE_BREACH, 3000);
+    this.emitObjectiveUpdate(OBJECTIVES.BREACH_BATTLE.title, OBJECTIVES.BREACH_BATTLE.description);
 
-    this.callbacks.onCommsMessage(COMMS.BREACH_APPROACH);
+    this.emitCommsMessage(COMMS.BREACH_APPROACH);
 
     // Final wave already completed - now player must enter breach
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.BREACH_CLEARED);
+      this.emitCommsMessage(COMMS.BREACH_CLEARED);
     }, 3000);
 
     setTimeout(() => {
@@ -1790,29 +2093,26 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.phaseTime = 0;
     this.cinematicInProgress = true;
 
-    this.callbacks.onCinematicStart?.();
-    this.callbacks.onObjectiveUpdate(
-      OBJECTIVES.ENTER_BREACH.title,
-      OBJECTIVES.ENTER_BREACH.description
-    );
+    this.emitCinematicStart();
+    this.emitObjectiveUpdate(OBJECTIVES.ENTER_BREACH.title, OBJECTIVES.ENTER_BREACH.description);
 
     // Marcus dialogue about not being able to follow
-    this.callbacks.onCommsMessage(COMMS.TRANSITION_START);
+    this.emitCommsMessage(COMMS.TRANSITION_START);
 
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.TRANSITION_FAREWELL);
+      this.emitCommsMessage(COMMS.TRANSITION_FAREWELL);
     }, 4000);
 
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.TRANSITION_FINAL);
+      this.emitCommsMessage(COMMS.TRANSITION_FINAL);
     }, 8000);
 
     setTimeout(() => {
-      this.callbacks.onCinematicEnd?.();
+      this.emitCinematicEnd();
       this.cinematicInProgress = false;
 
       // Update objective to enter breach
-      this.callbacks.onNotification(NOTIFICATIONS.ENTER_THE_BREACH, 2000);
+      this.emitNotification(NOTIFICATIONS.ENTER_THE_BREACH, 2000);
     }, 12000);
   }
 
@@ -1837,9 +2137,14 @@ export class BrothersInArmsLevel extends BaseLevel {
         break;
 
       case 'call_marcus':
-        if (this.fireSuportCooldown <= 0 && this.marcus) {
+        if (this.marcusCombatAI?.isDowned()) {
+          this.emitNotification('MARCUS IS DOWN - CANNOT PROVIDE SUPPORT', 2000);
+        } else if (this.fireSuportCooldown <= 0 && this.marcus) {
           this.callFireSupport();
-          this.fireSuportCooldown = 30000;
+          this.fireSuportCooldown = 25000; // 25 seconds cooldown
+        } else if (this.fireSuportCooldown > 0) {
+          const secondsLeft = Math.ceil(this.fireSuportCooldown / 1000);
+          this.emitNotification(`FIRE SUPPORT ON COOLDOWN: ${secondsLeft}s`, 1500);
         }
         break;
 
@@ -1868,7 +2173,152 @@ export class BrothersInArmsLevel extends BaseLevel {
       case 'marcus_support':
         this.setMarcusCoordinationState('support');
         break;
+
+      case 'open_command_wheel':
+        this.openCommandWheel();
+        break;
+
+      case 'close_command_wheel':
+        this.closeCommandWheel();
+        break;
+
+      case 'cancel_command':
+        this.squadCommandSystem?.cancelCommand();
+        break;
     }
+  }
+
+  // ============================================================================
+  // SQUAD COMMAND SYSTEM
+  // ============================================================================
+
+  /**
+   * Open the command wheel (called when Tab is pressed)
+   */
+  private openCommandWheel(): void {
+    if (this.isCommandWheelOpen || !this.squadCommandSystem) return;
+    if (this.cinematicInProgress) return;
+    if (this.marcusCombatAI?.isDowned()) {
+      this.emitNotification('MARCUS IS DOWN - COMMANDS UNAVAILABLE', 1500);
+      return;
+    }
+
+    this.isCommandWheelOpen = true;
+    this.squadCommandSystem.openCommandWheel();
+
+    // Notify UI to show command wheel
+    this.emitSquadCommandWheelChanged(true, null);
+  }
+
+  /**
+   * Close the command wheel and issue selected command
+   */
+  private closeCommandWheel(): void {
+    if (!this.isCommandWheelOpen || !this.squadCommandSystem) return;
+
+    const selectedCommand = this.squadCommandSystem.closeCommandWheel();
+    this.isCommandWheelOpen = false;
+
+    // Handle special commands that need target info
+    if (selectedCommand === 'ATTACK_TARGET') {
+      this.issueAttackTargetCommand();
+    } else if (selectedCommand === 'HOLD_POSITION' && this.marcus) {
+      // Set hold position at Marcus's current location
+      this.squadCommandSystem.issueCommand('HOLD_POSITION', undefined, this.marcus.position);
+    }
+
+    // Notify UI to hide command wheel
+    this.emitSquadCommandWheelChanged(false, selectedCommand);
+  }
+
+  /**
+   * Update command wheel selection based on mouse position
+   */
+  updateCommandWheelSelection(angle: number, distance: number): void {
+    if (!this.isCommandWheelOpen || !this.squadCommandSystem) return;
+
+    this.squadCommandSystem.updateCommandWheelSelection(angle, distance);
+
+    // Notify UI of selection change
+    const selectedCommand = this.squadCommandSystem.getSelectedCommand();
+    this.emitSquadCommandWheelChanged(true, selectedCommand);
+  }
+
+  /**
+   * Issue ATTACK_TARGET command on the enemy under crosshair
+   */
+  private issueAttackTargetCommand(): void {
+    if (!this.squadCommandSystem) return;
+
+    // Find enemy under crosshair
+    const playerPos = this.camera.position.clone();
+    const forward = this.camera.getDirection(Vector3.Forward());
+
+    let bestTarget: ActiveEnemy | null = null;
+    let bestScore = -1;
+
+    for (const enemy of this.waveEnemies) {
+      if (enemy.state === 'dead') continue;
+
+      const toEnemy = enemy.mesh.position.subtract(playerPos);
+      const dist = toEnemy.length();
+      toEnemy.normalize();
+
+      // Score based on alignment with crosshair
+      const alignment = Vector3.Dot(forward, toEnemy);
+      const score = alignment * 100 - dist;
+
+      if (alignment > 0.7 && score > bestScore) {
+        bestScore = score;
+        bestTarget = enemy;
+      }
+    }
+
+    if (bestTarget) {
+      this.squadCommandSystem.issueCommand(
+        'ATTACK_TARGET',
+        bestTarget.entity,
+        bestTarget.mesh.position
+      );
+    } else {
+      this.emitNotification('NO TARGET IN CROSSHAIRS', 1000);
+    }
+  }
+
+  /**
+   * Called when a squad command is issued
+   */
+  private onSquadCommandIssued(command: SquadCommand): void {
+    log.info(`Squad command issued: ${command}`);
+
+    // Update action buttons to reflect active command
+    if (this.phase === 'wave_combat' || this.phase === 'breach_battle') {
+      this.updateActionButtons('combat');
+    }
+  }
+
+  /**
+   * Called when a squad command expires
+   */
+  private onSquadCommandExpired(command: SquadCommand): void {
+    log.info(`Squad command expired: ${command}`);
+
+    // Return Marcus to autonomous behavior
+    // The SquadCommandSystem will return null for getMovementOverride
+  }
+
+  /**
+   * Check if command wheel is open
+   */
+  isSquadCommandWheelOpen(): boolean {
+    return this.isCommandWheelOpen;
+  }
+
+  /**
+   * Get currently selected command in wheel
+   */
+  getSelectedSquadCommand(): SquadCommand | null {
+    return this.squadCommandSystem?.getSelectedCommand() ?? null;
   }
 
   /**
@@ -1904,10 +2354,10 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (bestTarget) {
       const request = this.marcusCombatAI.requestFocusFire(bestTarget.entity);
       if (request) {
-        this.callbacks.onNotification('FOCUS FIRE REQUESTED', 1500);
+        this.emitNotification('FOCUS FIRE REQUESTED', 1500);
       }
     } else {
-      this.callbacks.onNotification('NO TARGET IN SIGHT', 1000);
+      this.emitNotification('NO TARGET IN SIGHT', 1000);
     }
   }
 
@@ -1938,7 +2388,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       threatCenter.scaleInPlace(1 / threatCount);
       const request = this.marcusCombatAI.requestFlank(threatCenter);
       if (request) {
-        this.callbacks.onNotification('FLANKING MANEUVER', 1500);
+        this.emitNotification('FLANKING MANEUVER', 1500);
       }
     }
   }
@@ -1959,11 +2409,11 @@ export class BrothersInArmsLevel extends BaseLevel {
       support: 'SUPPORT',
       damaged: 'DAMAGED',
     };
-    this.callbacks.onNotification(`MARCUS: ${stateNames[state]} MODE`, 1500);
+    this.emitNotification(`MARCUS: ${stateNames[state]} MODE`, 1500);
   }
 
   private throwGrenade(): void {
-    this.callbacks.onNotification(NOTIFICATIONS.GRENADE_OUT, 1000);
+    this.emitNotification(NOTIFICATIONS.GRENADE_OUT, 1000);
 
     // Create grenade projectile
     const startPos = this.camera.position.clone();
@@ -2063,7 +2513,7 @@ export class BrothersInArmsLevel extends BaseLevel {
   }
 
   private meleeAttack(): void {
-    this.callbacks.onNotification(NOTIFICATIONS.MELEE, 500);
+    this.emitNotification(NOTIFICATIONS.MELEE, 500);
 
     // Check for enemies in melee range
     const playerPos = this.camera.position.clone();
@@ -2094,9 +2544,9 @@ export class BrothersInArmsLevel extends BaseLevel {
   private callFireSupport(): void {
     if (!this.marcus) return;
 
-    this.callbacks.onNotification(NOTIFICATIONS.FIRE_SUPPORT_CALLED, 2000);
+    this.emitNotification(NOTIFICATIONS.FIRE_SUPPORT_CALLED, 2000);
 
-    this.callbacks.onCommsMessage({
+    this.emitCommsMessage({
       ...COMMS.WAVE_1_START,
       text: 'Covering fire! Get down!',
     });
@@ -2214,7 +2664,7 @@ export class BrothersInArmsLevel extends BaseLevel {
       ];
     }
 
-    this.callbacks.onActionGroupsChange(groups);
+    this.emitActionGroupsChanged(groups);
   }
 
   // ============================================================================
@@ -2223,6 +2673,14 @@ export class BrothersInArmsLevel extends BaseLevel {
 
   protected updateLevel(deltaTime: number): void {
     this.phaseTime += deltaTime;
+
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
 
     // Update cooldowns
     if (this.grenadeCooldown > 0) {
@@ -2270,7 +2728,7 @@ export class BrothersInArmsLevel extends BaseLevel {
 
           if (this.currentWave < WAVES.length - 1) {
             // Wave complete, start rest period
-            this.callbacks.onNotification(NOTIFICATIONS.WAVE_CLEARED(this.currentWave + 1), 2000);
+            this.emitNotification(NOTIFICATIONS.WAVE_CLEARED(this.currentWave + 1), 2000);
             this.waveRestTimer = WAVE_REST_DURATION;
 
             // Wave completion dialogue using COMMS module
@@ -2281,13 +2739,13 @@ export class BrothersInArmsLevel extends BaseLevel {
               COMMS.WAVE_4_COMPLETE,
             ];
             if (this.currentWave < waveCompleteComms.length) {
-              this.callbacks.onCommsMessage(waveCompleteComms[this.currentWave]);
+              this.emitCommsMessage(waveCompleteComms[this.currentWave]);
             }
           } else {
             // All waves complete
             this.allWavesComplete = true;
-            this.callbacks.onNotification(NOTIFICATIONS.ALL_WAVES_CLEARED, 3000);
-            this.callbacks.onCommsMessage(COMMS.WAVE_4_COMPLETE);
+            this.emitNotification(NOTIFICATIONS.ALL_WAVES_CLEARED, 3000);
+            this.emitCommsMessage(COMMS.WAVE_4_COMPLETE);
 
             // Trigger banter for all waves complete
             if (this.marcusBanterManager) {
@@ -2307,7 +2765,7 @@ export class BrothersInArmsLevel extends BaseLevel {
           } else {
             const secondsLeft = Math.ceil(this.waveRestTimer / 1000);
             if (secondsLeft % 10 === 0 || secondsLeft <= 5) {
-              this.callbacks.onObjectiveUpdate(
+              this.emitObjectiveUpdate(
                 OBJECTIVES.NEXT_WAVE.getTitle(secondsLeft),
                 OBJECTIVES.NEXT_WAVE.getDescription(this.totalKills)
               );
@@ -2339,12 +2797,17 @@ export class BrothersInArmsLevel extends BaseLevel {
       const time = performance.now() * 0.001;
       this.breachGlow.intensity = 1.5 + Math.sin(time * 2) * 0.5;
     }
+
+    // Animate battlefield fire lights (station wreckage flicker)
+    if (this.battlefield) {
+      updateBattlefieldLights(this.battlefield.lights, deltaTime);
+    }
   }
 
   /**
    * Update Marcus banter system with situation awareness
    */
-  private updateMarcusBanter(deltaTime: number): void {
+  private updateMarcusBanter(_deltaTime: number): void {
     if (!this.marcusBanterManager || this.cinematicInProgress) return;
 
     const now = performance.now();
@@ -2357,10 +2820,18 @@ export class BrothersInArmsLevel extends BaseLevel {
     if (this.playerHealth !== this.previousPlayerHealth) {
       this.marcusBanterManager.onPlayerHealthChange(
         this.playerHealth,
-        100, // max health
+        this.maxPlayerHealth, // Use tracked max health
         this.previousPlayerHealth
       );
       this.previousPlayerHealth = this.playerHealth;
+    }
+
+    // Check for close call - player was critical and survived
+    if (
+      this.previousPlayerHealth <= this.maxPlayerHealth * 0.15 &&
+      this.playerHealth > this.maxPlayerHealth * 0.3
+    ) {
+      this.marcusBanterManager.onPlayerCloseCall();
     }
 
     // Only process combat-related banter during active combat phases
@@ -2458,10 +2929,59 @@ export class BrothersInArmsLevel extends BaseLevel {
     return levelId === 'the_breach' && this.phase === 'transition';
   }
 
+  // ============================================================================
+  // KEYBOARD INPUT OVERRIDES FOR COMMAND WHEEL
+  // ============================================================================
+
+  protected override handleKeyDown(e: KeyboardEvent): void {
+    super.handleKeyDown(e);
+
+    // Tab key opens command wheel (only during combat phases)
+    if (e.code === 'Tab' && !this.isCommandWheelOpen) {
+      e.preventDefault();
+      if (this.phase === 'wave_combat' || this.phase === 'breach_battle') {
+        this.openCommandWheel();
+      }
+    }
+
+    // Escape cancels active command
+    if (e.code === 'Escape' && this.squadCommandSystem?.getActiveCommand()) {
+      e.preventDefault();
+      this.squadCommandSystem.cancelCommand();
+    }
+  }
+
+  protected override handleKeyUp(e: KeyboardEvent): void {
+    super.handleKeyUp(e);
+
+    // Tab release closes command wheel and issues command
+    if (e.code === 'Tab' && this.isCommandWheelOpen) {
+      e.preventDefault();
+      this.closeCommandWheel();
+    }
+  }
+
   protected disposeLevel(): void {
+    log.info('Disposing level resources...');
+
+    // Dispose flora
+    for (const node of this.floraNodes) {
+      if (node && !node.isDisposed()) {
+        node.dispose(false, true);
+      }
+    }
+    this.floraNodes = [];
+
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     // Unregister action handler
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
+
+    // Unregister dynamic actions
+    unregisterDynamicActions('brothers_in_arms');
 
     // Dispose cinematic
     this.reunionCinematic?.dispose();
@@ -2471,28 +2991,74 @@ export class BrothersInArmsLevel extends BaseLevel {
     this.marcusBanterManager?.reset();
     this.marcusBanterManager = null;
 
+    // Dispose squad command system
+    this.squadCommandSystem?.dispose();
+    this.squadCommandSystem = null;
+
     // Dispose Marcus Combat AI
     this.marcusCombatAI?.dispose();
     this.marcusCombatAI = null;
 
-    // Dispose Marcus
-    this.marcus?.rootNode.dispose();
+    // Dispose Marcus health bars
+    this.marcusHealthBar?.dispose();
+    this.marcusHealthBarFill?.dispose();
+    this.marcusShieldBar?.dispose();
+    this.marcusShieldBarFill?.dispose();
+    this.marcusDownedIndicator?.dispose();
+
+    // Dispose Marcus mech
+    if (this.marcus) {
+      this.marcus.body?.dispose();
+      this.marcus.leftArm?.dispose();
+      this.marcus.rightArm?.dispose();
+      this.marcus.legs?.dispose();
+      this.marcus.rootNode?.dispose();
+      this.marcus = null;
+    }
 
     // Dispose enemies
-    this.waveEnemies.forEach((enemy) => {
-      if (!enemy.mesh.isDisposed()) {
+    for (const enemy of this.waveEnemies) {
+      if (enemy.mesh && !enemy.mesh.isDisposed()) {
+        // Also dispose any child meshes (GLB instances)
+        const children = enemy.mesh.getChildMeshes();
+        for (const child of children) {
+          child.dispose();
+        }
         enemy.mesh.dispose();
       }
       removeEntity(enemy.entity);
-    });
+    }
     this.waveEnemies = [];
 
-    // Dispose environment
+    // Dispose canyon walls
+    for (const wall of this.canyonWalls) {
+      if (wall && !wall.isDisposed()) {
+        wall.dispose();
+      }
+    }
+    this.canyonWalls = [];
+
+    // Dispose terrain
     this.terrain?.dispose();
-    this.canyonWalls.forEach((w) => w.dispose());
-    this.rockPillars.forEach((p) => p.dispose());
+    this.terrain = null;
+    this.terrainMaterial?.dispose();
+    this.terrainMaterial = null;
+
+    // Dispose battlefield environment
+    this.battlefield?.dispose();
+    this.battlefield = null;
+
+    // Dispose breach
     this.breachMesh?.dispose();
+    this.breachMesh = null;
     this.breachGlow?.dispose();
-    this.skyDome?.dispose();
+    this.breachGlow = null;
+
+    // Dispose skybox using SkyboxResult
+    this.skyboxResult?.dispose();
+    this.skyboxResult = null;
+    this.skyDome = null;
+
+    log.info('Level disposal complete');
   }
 }

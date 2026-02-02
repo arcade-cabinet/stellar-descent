@@ -5,18 +5,16 @@
  * Uses GLB models from AssetManager when available.
  */
 
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager, SPECIES_TO_ASSET } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('TheBreachEnemies');
+
 import {
   type DifficultyLevel,
-  type DifficultyModifiers,
-  getDifficultyModifiers,
   loadDifficultySetting,
   scaleDetectionRange,
   scaleEnemyDamage,
@@ -56,7 +54,7 @@ let currentDifficulty: DifficultyLevel = loadDifficultySetting();
  */
 export function setEnemyDifficulty(difficulty: DifficultyLevel): void {
   currentDifficulty = difficulty;
-  console.log(`[TheBreachLevel/enemies] Difficulty set to: ${difficulty}`);
+  log.info(`Difficulty set to: ${difficulty}`);
 }
 
 /**
@@ -76,7 +74,7 @@ export function getEnemyDifficulty(): DifficultyLevel {
 export async function preloadEnemyModels(scene: Scene): Promise<void> {
   if (glbAssetsPreloaded) return;
 
-  console.log('[TheBreachLevel/enemies] Preloading enemy GLB models...');
+  log.info('Preloading enemy GLB models...');
 
   const speciesIds = Object.values(ENEMY_TYPE_TO_SPECIES);
   const uniqueSpecies = [...new Set(speciesIds)];
@@ -87,77 +85,20 @@ export async function preloadEnemyModels(scene: Scene): Promise<void> {
         const assetName = SPECIES_TO_ASSET[speciesId];
         if (assetName) {
           await AssetManager.loadAsset('aliens', assetName, scene);
-          console.log(`[TheBreachLevel/enemies] Preloaded GLB for ${speciesId} -> ${assetName}`);
+          log.info(`Preloaded GLB for ${speciesId} -> ${assetName}`);
         }
       })
     );
     glbAssetsPreloaded = true;
-    console.log('[TheBreachLevel/enemies] All enemy GLB models preloaded');
+    log.info('All enemy GLB models preloaded');
   } catch (error) {
-    console.warn('[TheBreachLevel/enemies] Some GLB models failed to preload:', error);
+    log.warn('Some GLB models failed to preload:', error);
   }
 }
 
 // ============================================================================
 // ENEMY SPAWNING
 // ============================================================================
-
-/**
- * Create an enemy mesh based on type (procedural fallback)
- */
-function createProceduralEnemyMesh(
-  scene: Scene,
-  type: EnemyType,
-  index: number
-): { mesh: Mesh; material: StandardMaterial } {
-  const mat = new StandardMaterial(`enemy_${index}_mat`, scene);
-  let mesh: Mesh;
-
-  switch (type) {
-    case 'drone':
-      mesh = MeshBuilder.CreateSphere(
-        `drone_${index}`,
-        { diameterX: 0.6, diameterY: 0.4, diameterZ: 0.6, segments: 8 },
-        scene
-      );
-      mat.diffuseColor = Color3.FromHexString('#2D4A3E');
-      mat.emissiveColor = new Color3(0.1, 0.2, 0.15);
-      break;
-
-    case 'grunt':
-      mesh = MeshBuilder.CreateCapsule(
-        `grunt_${index}`,
-        { height: 1.6, radius: 0.3, tessellation: 8 },
-        scene
-      );
-      mat.diffuseColor = Color3.FromHexString('#3A3A3A');
-      mat.specularColor = new Color3(0.2, 0.2, 0.2);
-      break;
-
-    case 'spitter':
-      mesh = MeshBuilder.CreateSphere(
-        `spitter_${index}`,
-        { diameterX: 1, diameterY: 0.8, diameterZ: 1, segments: 10 },
-        scene
-      );
-      mat.diffuseColor = Color3.FromHexString('#3E4A2D');
-      mat.emissiveColor = new Color3(0.15, 0.2, 0.1);
-      break;
-
-    case 'brute':
-      mesh = MeshBuilder.CreateCapsule(
-        `brute_${index}`,
-        { height: 2.5, radius: 0.6, tessellation: 10 },
-        scene
-      );
-      mat.diffuseColor = Color3.FromHexString('#5A3030');
-      mat.specularColor = new Color3(0.25, 0.15, 0.15);
-      break;
-  }
-
-  mesh.material = mat;
-  return { mesh, material: mat };
-}
 
 /**
  * Try to create a GLB-based enemy mesh
@@ -167,7 +108,7 @@ function createGLBEnemyMesh(scene: Scene, type: EnemyType, index: number): Trans
   const assetName = SPECIES_TO_ASSET[speciesId];
 
   if (!assetName) {
-    console.warn(`[TheBreachLevel/enemies] No asset mapping for ${type}/${speciesId}`);
+    log.warn(`No asset mapping for ${type}/${speciesId}`);
     return null;
   }
 
@@ -182,9 +123,7 @@ function createGLBEnemyMesh(scene: Scene, type: EnemyType, index: number): Trans
     // Apply appropriate scale for this enemy type
     const scale = ENEMY_GLB_SCALE[type];
     instance.scaling.setAll(scale);
-    console.log(
-      `[TheBreachLevel/enemies] Created GLB instance for ${type} (${assetName}), scale=${scale}`
-    );
+    log.info(`Created GLB instance for ${type} (${assetName}), scale=${scale}`);
   }
 
   return instance;
@@ -207,17 +146,16 @@ export function spawnEnemy(
   // Apply difficulty scaling to enemy stats
   const scaledHealth = scaleEnemyHealth(baseStats.health, currentDifficulty);
 
-  // Try GLB first if preloaded
-  let mesh: Mesh | TransformNode;
-  const glbMesh = glbAssetsPreloaded ? createGLBEnemyMesh(scene, type, existingCount) : null;
-
-  if (glbMesh) {
-    mesh = glbMesh;
-  } else {
-    // Fall back to procedural
-    console.log(`[TheBreachLevel/enemies] Using procedural mesh for ${type} (GLB not available)`);
-    const { mesh: proceduralMesh } = createProceduralEnemyMesh(scene, type, existingCount);
-    mesh = proceduralMesh;
+  // Use GLB models for all enemies - no fallbacks
+  const mesh = createGLBEnemyMesh(scene, type, existingCount);
+  if (!mesh) {
+    const speciesId = ENEMY_TYPE_TO_SPECIES[type];
+    const assetName = SPECIES_TO_ASSET[speciesId];
+    throw new Error(
+      `[TheBreachLevel/enemies] Failed to create GLB mesh for enemy type '${type}' ` +
+        `(species: ${speciesId}, asset: ${assetName}). ` +
+        `Ensure GLB models are preloaded via preloadEnemyModels().`
+    );
   }
 
   mesh.position = position.clone();

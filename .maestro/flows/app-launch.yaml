@@ -1,23 +1,28 @@
 # App Launch Flow - Verifies app starts and shows main menu
-# Run: maestro test .maestro/flows/app-launch.yaml
+# Cross-platform: Web, Android, iOS
 
-appId: com.jbcom.stellardescent
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - smoke
+  - mobile
+name: "App Launch - Main Menu Verification"
 
 ---
 - launchApp:
     clearState: true
 
-- assertVisible:
-    text: "Stellar Descent"
-    timeout: 10000
+- extendedWaitUntil:
+    visible: "canvas"
+    timeout: 30000
 
 - assertVisible:
     text: "NEW GAME"
 
 - assertVisible:
-    text: "CONTINUE"
+    text: "SETTINGS"
 
 - assertVisible:
-    text: "SETTINGS"
+    text: "HELP"
 
 - takeScreenshot: "main_menu"

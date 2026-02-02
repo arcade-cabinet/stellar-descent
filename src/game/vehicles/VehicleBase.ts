@@ -23,7 +23,10 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../core/AudioManager';
 import { createEntity, type Entity, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import type { Player } from '../entities/player';
+
+const log = getLogger('VehicleBase');
 
 // --------------------------------------------------------------------------
 // Types
@@ -64,6 +67,32 @@ export interface VehicleStats {
   acceleration: number;
   turnRate: number; // radians per second
   mass: number;
+}
+
+/**
+ * Vehicle input state from keyboard/mouse/touch
+ */
+export interface VehicleInputState {
+  /** Throttle input (0-1 forward, negative for reverse) */
+  throttle: number;
+  /** Steering input (-1 left to 1 right) */
+  steer: number;
+  /** Brake input (0-1) */
+  brake: number;
+  /** Boost button pressed */
+  boost: boolean;
+  /** Handbrake pressed */
+  handbrake: boolean;
+  /** Turret aim delta X (mouse/stick movement) */
+  turretAimX: number;
+  /** Turret aim delta Y (mouse/stick movement) */
+  turretAimY: number;
+  /** Primary fire button */
+  fire: boolean;
+  /** Secondary fire button */
+  fireSecondary: boolean;
+  /** Exit vehicle request */
+  exitRequest: boolean;
 }
 
 // --------------------------------------------------------------------------
@@ -149,7 +178,8 @@ export abstract class VehicleBase {
     this.vehicleCamera = new FreeCamera(`vehicleCam_${id}`, Vector3.Zero(), scene);
     this.vehicleCamera.minZ = 0.5;
     this.vehicleCamera.maxZ = 2000;
-    this.vehicleCamera.fov = 1.0;
+    // 85 degrees FOV for vehicle third-person view (slightly narrower than FPS)
+    this.vehicleCamera.fov = (85 * Math.PI) / 180;
     this.vehicleCamera.inputs.clear();
     this.vehicleCamera.parent = this.rootNode;
     // Positioned by subclass via setVehicleCameraOffset
@@ -242,9 +272,9 @@ export abstract class VehicleBase {
   public canEnter(player: Player): boolean {
     if (this._isOccupied) return false;
     if (this.stats.health <= 0) return false;
-    // Check proximity
+    // Check proximity - increased from 6 to 10 for easier vehicle entry
     const dist = Vector3.Distance(player.getPosition(), this.rootNode.position);
-    return dist < 6;
+    return dist < 10;
   }
 
   public enter(player: Player): void {
@@ -268,7 +298,7 @@ export abstract class VehicleBase {
 
     getAudioManager().play('door_open', { volume: 0.5 });
 
-    console.log(`[Vehicle] Player entered ${this.displayName}`);
+    log.info(`Player entered ${this.displayName}`);
   }
 
   public exit(): void {
@@ -298,7 +328,7 @@ export abstract class VehicleBase {
     this._pilot = null;
     this._savedPlayerCamera = null;
 
-    console.log(`[Vehicle] Player exited ${this.displayName}`);
+    log.info(`Player exited ${this.displayName}`);
   }
 
   // ------------------------------------------------------------------
@@ -308,11 +338,14 @@ export abstract class VehicleBase {
   private vehicleKeysPressed = new Set<string>();
   private vehicleMouseDown = false;
   private vehicleRightMouseDown = false;
+  private vehicleMouseMovementX = 0;
+  private vehicleMouseMovementY = 0;
 
   private setupVehicleInput(): void {
     const onKeyDown = (e: KeyboardEvent) => {
       this.vehicleKeysPressed.add(e.code);
-      if (e.code === 'KeyE') {
+      // Exit on E only when nearly stopped
+      if (e.code === 'KeyE' && this.linearVelocity.length() < 3) {
         this.exit();
       }
     };
@@ -339,9 +372,59 @@ export abstract class VehicleBase {
     window.addEventListener('mouseup', onMouseUp);
     this._listeners.push(() => window.removeEventListener('mouseup', onMouseUp));
 
+    const onMouseMove = (e: MouseEvent) => {
+      this.vehicleMouseMovementX += e.movementX;
+      this.vehicleMouseMovementY += e.movementY;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    this._listeners.push(() => window.removeEventListener('mousemove', onMouseMove));
+
     const onContextMenu = (e: Event) => e.preventDefault();
     window.addEventListener('contextmenu', onContextMenu);
     this._listeners.push(() => window.removeEventListener('contextmenu', onContextMenu));
+  }
+
+  /**
+   * Get the current vehicle input state from keyboard/mouse.
+   */
+  protected getVehicleInput(): VehicleInputState {
+    // Build input from current key state
+    let throttle = 0;
+    let steer = 0;
+    let brake = 0;
+
+    // W/S or Up/Down for throttle
+    if (this.isKeyDown('KeyW') || this.isKeyDown('ArrowUp')) throttle = 1;
+    if (this.isKeyDown('KeyS') || this.isKeyDown('ArrowDown')) brake = 1;
+
+    // A/D or Left/Right for steering
+    if (this.isKeyDown('KeyA') || this.isKeyDown('ArrowLeft')) steer = -1;
+    if (this.isKeyDown('KeyD') || this.isKeyDown('ArrowRight')) steer = 1;
+
+    // Boost on Shift
+    const boost = this.isKeyDown('ShiftLeft') || this.isKeyDown('ShiftRight');
+
+    // Handbrake on Space
+    const handbrake = this.isKeyDown('Space');
+
+    // Consume mouse movement
+    const turretAimX = this.vehicleMouseMovementX * 0.003;
+    const turretAimY = this.vehicleMouseMovementY * 0.003;
+    this.vehicleMouseMovementX = 0;
+    this.vehicleMouseMovementY = 0;
+
+    return {
+      throttle,
+      steer,
+      brake,
+      boost,
+      handbrake,
+      turretAimX,
+      turretAimY,
+      fire: this.vehicleMouseDown,
+      fireSecondary: this.vehicleRightMouseDown,
+      exitRequest: this.isKeyDown('KeyE'),
+    };
   }
 
   private teardownVehicleInput(): void {
@@ -384,7 +467,7 @@ export abstract class VehicleBase {
   // Damage
   // ------------------------------------------------------------------
 
-  public takeDamage(amount: number, source?: Vector3): void {
+  public takeDamage(amount: number, _source?: Vector3): void {
     // Shield absorbs first
     if (this.stats.shield > 0) {
       const absorbed = Math.min(this.stats.shield, amount);
@@ -404,7 +487,7 @@ export abstract class VehicleBase {
   }
 
   protected onDestroyed(): void {
-    console.log(`[Vehicle] ${this.displayName} destroyed`);
+    log.info(`${this.displayName} destroyed`);
     // Force eject player
     if (this._isOccupied) {
       this.exit();
@@ -550,6 +633,6 @@ export abstract class VehicleBase {
     // Remove ECS entity
     removeEntity(this.entity);
 
-    console.log(`[Vehicle] Disposed ${this.displayName}`);
+    log.info(`Disposed ${this.displayName}`);
   }
 }

@@ -1,32 +1,29 @@
 /**
- * ChunkManager (World) - Handles procedural terrain chunks for exterior levels.
+ * ChunkManager (World) - Static Level Layout Manager
  *
- * Manages building meshes, obstacle meshes, and enemy entities for the
- * surface world. Integrates with the PerformanceManager for adaptive load
- * radius and with LODManager for distance-based quality.
+ * Manages pre-placed GLB environment assets for exterior levels.
+ * All procedural generation has been removed in favor of hand-crafted layouts.
  *
- * Key improvements:
- * - Shared materials (no per-mesh material allocation)
- * - Proper dispose() to clean up all BabylonJS resources and materials
- * - LODManager integration for all created meshes
- * - Coordination API for the ECS ChunkManager
+ * Key features:
+ * - GLB model loading for buildings, pillars, debris, rocks via AssetManager
+ * - Pre-defined layout positions (no random generation)
+ * - Proper dispose() to clean up all BabylonJS resources
+ * - LODManager integration for all created meshes and GLB instances
  * - Adaptive load/unload radius based on device performance
  */
 
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../core/AssetManager';
 import { getEnemySoundManager } from '../core/EnemySoundManager';
 import { type Entity, removeEntity } from '../core/ecs';
 import { LODManager } from '../core/LODManager';
+import { getLogger } from '../core/Logger';
 import { getPerformanceManager } from '../core/PerformanceManager';
-import { type ChunkData, worldDb } from '../db/worldDatabase';
 import { ALIEN_SPECIES, createAlienEntity } from '../entities/aliens';
-import { tokens } from '../utils/designTokens';
+
+const log = getLogger('WorldChunkManager');
 
 export const CHUNK_SIZE = 100;
 
@@ -49,39 +46,266 @@ export const LOAD_RADIUS = 3;
 export const UNLOAD_RADIUS = 5;
 
 // ---------------------------------------------------------------------------
-// Generation data types
+// GLB asset path mappings
 // ---------------------------------------------------------------------------
 
-interface GeneratedBuilding {
+const BUILDING_GLB_PATHS: Record<string, string[]> = {
+  tower: [
+    '/assets/models/environment/industrial/chimney_a_1.glb',
+    '/assets/models/environment/industrial/chimney_a_2.glb',
+    '/assets/models/environment/industrial/chimney_a_3.glb',
+  ],
+  bunker: [
+    '/assets/models/environment/industrial/shipping_container_mx_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_2.glb',
+  ],
+  depot: [
+    '/assets/models/environment/industrial/warehouse_hl_1.glb',
+    '/assets/models/environment/industrial/storage_tank_mx_1.glb',
+  ],
+  ruin: [
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1_1.glb',
+    '/assets/models/environment/industrial/shipping_container_mx_1_hollow_1_2.glb',
+  ],
+};
+
+const OBSTACLE_GLB_PATHS: Record<string, string[]> = {
+  pillar: [
+    '/assets/models/environment/modular/Column_1.glb',
+    '/assets/models/environment/modular/Column_2.glb',
+    '/assets/models/environment/modular/Column_3.glb',
+    '/assets/models/environment/modular/Column_Slim.glb',
+  ],
+  debris: [
+    '/assets/models/environment/modular/Props_Crate.glb',
+    '/assets/models/environment/modular/Props_CrateLong.glb',
+    '/assets/models/environment/modular/Props_Chest.glb',
+    '/assets/models/environment/modular/Props_ContainerFull.glb',
+  ],
+  rock: [
+    '/assets/models/environment/alien-flora/alien_rock_medium_1.glb',
+    '/assets/models/environment/alien-flora/alien_rock_medium_2.glb',
+    '/assets/models/environment/alien-flora/alien_rock_medium_3.glb',
+    '/assets/models/environment/alien-flora/alien_boulder_polyhaven.glb',
+  ],
+  tallRock: [
+    '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+    '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+    '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+  ],
+};
+
+/** Collect all unique GLB paths used by the chunk system for preloading. */
+function getAllChunkGLBPaths(): string[] {
+  const paths = new Set<string>();
+  for (const variants of Object.values(BUILDING_GLB_PATHS)) {
+    for (const p of variants) paths.add(p);
+  }
+  for (const variants of Object.values(OBSTACLE_GLB_PATHS)) {
+    for (const p of variants) paths.add(p);
+  }
+  return [...paths];
+}
+
+// ---------------------------------------------------------------------------
+// Pre-defined layout types
+// ---------------------------------------------------------------------------
+
+export interface StaticBuilding {
   x: number;
   z: number;
   width: number;
   height: number;
   depth: number;
   type: 'bunker' | 'tower' | 'depot' | 'ruin';
+  rotationY?: number;
 }
 
-interface GeneratedObstacle {
+export interface StaticObstacle {
   x: number;
   z: number;
-  type: 'rock' | 'crater' | 'debris' | 'pillar';
+  type: 'rock' | 'tallRock' | 'debris' | 'pillar';
   scale: number;
+  rotationY?: number;
+  variant?: number;
 }
 
-interface GeneratedEnemy {
+export interface StaticEnemy {
   x: number;
   z: number;
   type: 'skitterer' | 'lurker' | 'spewer' | 'husk' | 'broodmother';
-  seed: number;
 }
 
-// Seeded random number generator
-function seededRandom(seed: number): () => number {
-  return () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
+export interface ChunkLayout {
+  chunkX: number;
+  chunkZ: number;
+  buildings: StaticBuilding[];
+  obstacles: StaticObstacle[];
+  enemies: StaticEnemy[];
 }
+
+// ---------------------------------------------------------------------------
+// Pre-defined level layouts (hand-crafted positions)
+// ---------------------------------------------------------------------------
+
+/**
+ * Define level layouts here. Each chunk key is "x,z" format.
+ * This replaces all procedural generation with hand-crafted positions.
+ */
+const LEVEL_LAYOUTS: Map<string, ChunkLayout> = new Map([
+  // Spawn area - clear zone with minimal obstacles
+  [
+    '0,0',
+    {
+      chunkX: 0,
+      chunkZ: 0,
+      buildings: [],
+      obstacles: [
+        { x: 30, z: 40, type: 'rock', scale: 1.5, variant: 0 },
+        { x: -35, z: 30, type: 'rock', scale: 1.2, variant: 1 },
+        { x: 40, z: -35, type: 'tallRock', scale: 2.0, variant: 0 },
+      ],
+      enemies: [],
+    },
+  ],
+
+  // North chunk
+  [
+    '0,1',
+    {
+      chunkX: 0,
+      chunkZ: 1,
+      buildings: [{ x: 20, z: 30, width: 8, height: 6, depth: 8, type: 'bunker', rotationY: 0.3 }],
+      obstacles: [
+        { x: -30, z: 20, type: 'pillar', scale: 1.8, rotationY: 0 },
+        { x: -25, z: 40, type: 'debris', scale: 1.2, variant: 0 },
+        { x: 35, z: -10, type: 'rock', scale: 1.5, variant: 2 },
+        { x: 10, z: 45, type: 'tallRock', scale: 1.8, variant: 1 },
+      ],
+      enemies: [
+        { x: 15, z: 25, type: 'skitterer' },
+        { x: -20, z: 35, type: 'skitterer' },
+      ],
+    },
+  ],
+
+  // South chunk
+  [
+    '0,-1',
+    {
+      chunkX: 0,
+      chunkZ: -1,
+      buildings: [
+        { x: -15, z: -25, width: 10, height: 8, depth: 6, type: 'tower', rotationY: -0.2 },
+      ],
+      obstacles: [
+        { x: 25, z: -30, type: 'rock', scale: 2.0, variant: 0 },
+        { x: 30, z: -20, type: 'debris', scale: 1.0, variant: 1 },
+        { x: -35, z: -40, type: 'pillar', scale: 1.5 },
+        { x: 40, z: -45, type: 'tallRock', scale: 2.2, variant: 2 },
+      ],
+      enemies: [
+        { x: 10, z: -30, type: 'lurker' },
+        { x: -25, z: -15, type: 'skitterer' },
+      ],
+    },
+  ],
+
+  // East chunk
+  [
+    '1,0',
+    {
+      chunkX: 1,
+      chunkZ: 0,
+      buildings: [
+        { x: 25, z: 10, width: 12, height: 5, depth: 10, type: 'depot', rotationY: 0.5 },
+        { x: -10, z: -30, width: 6, height: 4, depth: 6, type: 'ruin', rotationY: -0.3 },
+      ],
+      obstacles: [
+        { x: 40, z: 35, type: 'rock', scale: 1.8, variant: 1 },
+        { x: -25, z: 20, type: 'debris', scale: 1.3, variant: 2 },
+        { x: 15, z: -40, type: 'pillar', scale: 2.0 },
+      ],
+      enemies: [
+        { x: 30, z: 15, type: 'husk' },
+        { x: 20, z: -25, type: 'skitterer' },
+        { x: -15, z: 10, type: 'skitterer' },
+      ],
+    },
+  ],
+
+  // West chunk
+  [
+    '-1,0',
+    {
+      chunkX: -1,
+      chunkZ: 0,
+      buildings: [{ x: -30, z: 20, width: 8, height: 10, depth: 8, type: 'tower', rotationY: 0.8 }],
+      obstacles: [
+        { x: -40, z: -25, type: 'tallRock', scale: 2.5, variant: 0 },
+        { x: -10, z: 35, type: 'rock', scale: 1.4, variant: 2 },
+        { x: 30, z: 15, type: 'debris', scale: 1.1, variant: 0 },
+        { x: 20, z: -30, type: 'pillar', scale: 1.6 },
+      ],
+      enemies: [
+        { x: -25, z: 25, type: 'spewer' },
+        { x: 15, z: -20, type: 'lurker' },
+      ],
+    },
+  ],
+
+  // Northeast chunk - boss area approach
+  [
+    '1,1',
+    {
+      chunkX: 1,
+      chunkZ: 1,
+      buildings: [
+        { x: 0, z: 0, width: 15, height: 12, depth: 15, type: 'depot', rotationY: 0 },
+        { x: -35, z: 35, width: 8, height: 6, depth: 8, type: 'bunker', rotationY: 0.4 },
+      ],
+      obstacles: [
+        { x: 35, z: 40, type: 'tallRock', scale: 3.0, variant: 1 },
+        { x: -40, z: -10, type: 'rock', scale: 2.2, variant: 0 },
+        { x: 25, z: -35, type: 'debris', scale: 1.5, variant: 1 },
+        { x: -20, z: 20, type: 'pillar', scale: 2.0 },
+      ],
+      enemies: [
+        { x: 20, z: 30, type: 'husk' },
+        { x: -30, z: 15, type: 'lurker' },
+        { x: 10, z: -20, type: 'skitterer' },
+        { x: -15, z: -35, type: 'skitterer' },
+      ],
+    },
+  ],
+
+  // Far north - broodmother territory
+  [
+    '0,2',
+    {
+      chunkX: 0,
+      chunkZ: 2,
+      buildings: [
+        { x: -20, z: 15, width: 10, height: 8, depth: 12, type: 'ruin', rotationY: 0.2 },
+        { x: 25, z: -20, width: 8, height: 15, depth: 8, type: 'tower', rotationY: -0.5 },
+      ],
+      obstacles: [
+        { x: 40, z: 40, type: 'tallRock', scale: 3.5, variant: 2 },
+        { x: -40, z: 35, type: 'tallRock', scale: 2.8, variant: 0 },
+        { x: 0, z: -40, type: 'rock', scale: 2.5, variant: 1 },
+        { x: -30, z: -25, type: 'debris', scale: 1.8, variant: 2 },
+      ],
+      enemies: [
+        { x: 0, z: 20, type: 'broodmother' },
+        { x: -25, z: 0, type: 'husk' },
+        { x: 25, z: 5, type: 'husk' },
+        { x: 15, z: -30, type: 'spewer' },
+      ],
+    },
+  ],
+]);
 
 // ---------------------------------------------------------------------------
 // LOD category for world chunk geometry
@@ -90,71 +314,59 @@ function seededRandom(seed: number): () => number {
 const WORLD_LOD_CATEGORY = 'environment';
 
 // ---------------------------------------------------------------------------
+// Loaded chunk data -- tracks GLB TransformNodes
+// ---------------------------------------------------------------------------
+
+interface LoadedChunkData {
+  entities: Entity[];
+  glbNodes: TransformNode[];
+  lodIds: string[];
+}
+
+// ---------------------------------------------------------------------------
 // ChunkManager
 // ---------------------------------------------------------------------------
 
 export class ChunkManager {
   private scene: Scene;
-  private loadedChunks: Map<string, { entities: Entity[]; meshes: Mesh[]; lodIds: string[] }> =
-    new Map();
-  private materials: Map<string, StandardMaterial> = new Map();
-  private baseSeed: number;
+  private loadedChunks: Map<string, LoadedChunkData> = new Map();
   private disposed = false;
 
   /** Set of chunk keys currently being loaded (prevents double-load). */
   private loadingChunks: Set<string> = new Set();
 
+  /** Whether GLB assets have been preloaded into the AssetManager cache. */
+  private glbAssetsPreloaded = false;
+
   constructor(scene: Scene) {
     this.scene = scene;
-    this.baseSeed = Date.now();
-    this.createMaterials();
   }
 
   // -----------------------------------------------------------------------
-  // Material setup (shared, created once)
+  // GLB preloading -- call once before first chunk load
   // -----------------------------------------------------------------------
 
-  private createMaterials(): void {
-    // Rock material - harsh sunlit appearance
-    const rockMat = new StandardMaterial('chunkRockMat', this.scene);
-    rockMat.diffuseColor = Color3.FromHexString(tokens.colors.environment.rock);
-    rockMat.specularColor = new Color3(0.3, 0.25, 0.2);
-    rockMat.roughness = 0.8;
-    rockMat.freeze(); // immutable for performance
-    this.materials.set('rock', rockMat);
+  /**
+   * Preload all GLB models used by the chunk system into the AssetManager
+   * cache. This ensures that createInstanceByPath calls during chunk loading
+   * are synchronous and fast.
+   *
+   * Safe to call multiple times; subsequent calls are no-ops.
+   */
+  async preloadGLBAssets(): Promise<void> {
+    if (this.glbAssetsPreloaded) return;
 
-    // Building material - military concrete
-    const buildingMat = new StandardMaterial('chunkBuildingMat', this.scene);
-    buildingMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.khakiDark);
-    buildingMat.specularColor = new Color3(0.1, 0.1, 0.1);
-    const concreteTex = new Texture('https://assets.babylonjs.com/textures/floor.png', this.scene);
-    concreteTex.uScale = 4;
-    concreteTex.vScale = 4;
-    buildingMat.diffuseTexture = concreteTex;
-    this.materials.set('building', buildingMat);
+    const paths = getAllChunkGLBPaths();
+    const loadPromises = paths.map((path) =>
+      AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
+        log.warn(`Failed to preload GLB ${path}:`, err);
+        return null;
+      })
+    );
 
-    // Metal material for towers
-    const metalMat = new StandardMaterial('chunkMetalMat', this.scene);
-    metalMat.diffuseColor = Color3.FromHexString(tokens.colors.accent.gunmetal);
-    metalMat.specularColor = new Color3(0.5, 0.5, 0.5);
-    metalMat.specularPower = 64;
-    metalMat.freeze();
-    this.materials.set('metal', metalMat);
-
-    // Sand/ground material
-    const sandMat = new StandardMaterial('chunkSandMat', this.scene);
-    sandMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.sand);
-    const sandTex = new Texture('https://assets.babylonjs.com/textures/sand.png', this.scene);
-    sandTex.uScale = 10;
-    sandTex.vScale = 10;
-    sandMat.diffuseTexture = sandTex;
-    this.materials.set('sand', sandMat);
-
-    // Shared crater material (avoids per-mesh allocation)
-    const craterMat = new StandardMaterial('chunkCraterMat', this.scene);
-    craterMat.diffuseColor = Color3.FromHexString(tokens.colors.environment.rockDark);
-    craterMat.freeze();
-    this.materials.set('crater', craterMat);
+    await Promise.all(loadPromises);
+    this.glbAssetsPreloaded = true;
+    log.info(`Preloaded ${paths.length} chunk GLB assets`);
   }
 
   // -----------------------------------------------------------------------
@@ -172,270 +384,144 @@ export class ChunkManager {
     };
   }
 
-  private generateChunkSeed(chunkX: number, chunkZ: number): number {
-    return this.baseSeed + chunkX * 73856093 + chunkZ * 19349663;
-  }
-
   // -----------------------------------------------------------------------
-  // Chunk generation
+  // Get layout for a chunk (returns predefined layout or empty)
   // -----------------------------------------------------------------------
 
-  private generateChunkData(chunkX: number, chunkZ: number): ChunkData {
-    const seed = this.generateChunkSeed(chunkX, chunkZ);
-    const random = seededRandom(seed);
+  private getChunkLayout(chunkX: number, chunkZ: number): ChunkLayout {
+    const key = this.getChunkKey(chunkX, chunkZ);
+    const layout = LEVEL_LAYOUTS.get(key);
 
-    const isSpawnChunk = chunkX === 0 && chunkZ === 0;
-    const distanceFromSpawn = Math.sqrt(chunkX * chunkX + chunkZ * chunkZ);
-
-    // Buildings
-    const buildings: GeneratedBuilding[] = [];
-    const buildingCount = isSpawnChunk ? 0 : Math.floor(random() * 4) + 1;
-    const types: GeneratedBuilding['type'][] = ['bunker', 'tower', 'depot', 'ruin'];
-
-    for (let i = 0; i < buildingCount; i++) {
-      buildings.push({
-        x: (random() - 0.5) * CHUNK_SIZE * 0.8,
-        z: (random() - 0.5) * CHUNK_SIZE * 0.8,
-        width: 5 + random() * 15,
-        height: 3 + random() * 20,
-        depth: 5 + random() * 15,
-        type: types[Math.floor(random() * types.length)],
-      });
+    if (layout) {
+      return layout;
     }
 
-    // Obstacles
-    const obstacles: GeneratedObstacle[] = [];
-    const obstacleCount = isSpawnChunk
-      ? Math.floor(random() * 4) + 2
-      : Math.floor(random() * 12) + 5;
-    const obstacleTypes: GeneratedObstacle['type'][] = ['rock', 'crater', 'debris', 'pillar'];
-
-    for (let i = 0; i < obstacleCount; i++) {
-      obstacles.push({
-        x: (random() - 0.5) * CHUNK_SIZE * 0.9,
-        z: (random() - 0.5) * CHUNK_SIZE * 0.9,
-        type: obstacleTypes[Math.floor(random() * obstacleTypes.length)],
-        scale: 0.5 + random() * 2,
-      });
-    }
-
-    // Enemies
-    const enemies: GeneratedEnemy[] = [];
-    const enemyMultiplier = isSpawnChunk ? 0 : Math.min(distanceFromSpawn / 2, 1);
-    const baseEnemyCount = Math.floor(random() * 6) + 2;
-    const enemyCount = Math.floor(baseEnemyCount * enemyMultiplier);
-
-    const enemyWeights: { type: GeneratedEnemy['type']; weight: number }[] = [
-      { type: 'skitterer', weight: 0.4 },
-      { type: 'husk', weight: 0.25 },
-      { type: 'lurker', weight: 0.2 },
-      { type: 'spewer', weight: 0.12 },
-      { type: 'broodmother', weight: 0.03 },
-    ];
-
-    const selectEnemyType = (): GeneratedEnemy['type'] => {
-      const roll = random();
-      let cumulative = 0;
-      for (const entry of enemyWeights) {
-        cumulative += entry.weight;
-        if (roll < cumulative) return entry.type;
-      }
-      return 'skitterer';
-    };
-
-    for (let i = 0; i < enemyCount; i++) {
-      let type = selectEnemyType();
-      if (type === 'broodmother' && distanceFromSpawn < 4) {
-        type = 'lurker';
-      }
-
-      enemies.push({
-        x: (random() - 0.5) * CHUNK_SIZE * 0.7,
-        z: (random() - 0.5) * CHUNK_SIZE * 0.7,
-        type,
-        seed: Math.floor(random() * 1000000),
-      });
-    }
-
+    // Return empty layout for undefined chunks
     return {
       chunkX,
       chunkZ,
-      seed,
-      buildings: JSON.stringify(buildings),
-      obstacles: JSON.stringify(obstacles),
-      enemies: JSON.stringify(enemies),
-      visited: true,
+      buildings: [],
+      obstacles: [],
+      enemies: [],
     };
   }
 
   // -----------------------------------------------------------------------
-  // Mesh creation helpers
+  // GLB instance creation helpers
   // -----------------------------------------------------------------------
 
-  private createBuildingMesh(building: GeneratedBuilding, chunkX: number, chunkZ: number): Mesh {
+  /**
+   * Pick a GLB variant from a list based on an index.
+   */
+  private pickVariant(variants: string[], index: number): string {
+    return variants[Math.abs(index) % variants.length];
+  }
+
+  /**
+   * Create a GLB instance for a building.
+   */
+  private createBuildingInstance(
+    building: StaticBuilding,
+    chunkX: number,
+    chunkZ: number,
+    instanceIndex: number
+  ): TransformNode | null {
     const worldX = chunkX * CHUNK_SIZE + building.x;
     const worldZ = chunkZ * CHUNK_SIZE + building.z;
 
-    const perfManager = getPerformanceManager();
-    const isMobile = perfManager.isMobile();
-    const cylinderTessellation = isMobile ? 8 : 16;
+    const variants = BUILDING_GLB_PATHS[building.type];
+    if (!variants || variants.length === 0) return null;
 
-    let mesh: Mesh;
+    const glbPath = this.pickVariant(variants, instanceIndex);
 
-    switch (building.type) {
-      case 'tower': {
-        mesh = MeshBuilder.CreateCylinder(
-          'tower',
-          {
-            height: building.height,
-            diameter: building.width * 0.5,
-            tessellation: cylinderTessellation,
-          },
-          this.scene
-        );
-        mesh.material = this.materials.get('metal')!;
-        break;
-      }
-      case 'bunker': {
-        mesh = MeshBuilder.CreateBox(
-          'bunker',
-          { width: building.width, height: building.height * 0.5, depth: building.depth },
-          this.scene
-        );
-        mesh.material = this.materials.get('building')!;
-        break;
-      }
-      case 'depot': {
-        mesh = MeshBuilder.CreateBox(
-          'depot',
-          { width: building.width, height: building.height * 0.7, depth: building.depth },
-          this.scene
-        );
-        mesh.material = this.materials.get('building')!;
-        break;
-      }
-      case 'ruin':
-      default: {
-        mesh = MeshBuilder.CreateBox(
-          'ruin',
-          { width: building.width, height: building.height * 0.3, depth: building.depth },
-          this.scene
-        );
-        mesh.material = this.materials.get('rock')!;
-        break;
-      }
+    const instanceName = `chunk_${chunkX}_${chunkZ}_${building.type}_${instanceIndex}`;
+    const node = AssetManager.createInstanceByPath(
+      glbPath,
+      instanceName,
+      this.scene,
+      true,
+      WORLD_LOD_CATEGORY
+    );
+
+    if (!node) {
+      return null;
     }
 
-    mesh.position.set(worldX, building.height * 0.5, worldZ);
-    mesh.checkCollisions = true;
-    mesh.receiveShadows = true;
+    node.position = new Vector3(worldX, 0, worldZ);
 
-    // Apply LOD for distance-based quality
-    LODManager.applyNativeLOD(mesh, WORLD_LOD_CATEGORY);
+    // Scale the GLB instance based on building dimensions
+    const scaleX = building.width / 10;
+    const scaleY = building.height / 10;
+    const scaleZ = building.depth / 10;
+    node.scaling = new Vector3(scaleX, scaleY, scaleZ);
 
-    return mesh;
+    // Apply rotation
+    node.rotation = new Vector3(0, building.rotationY ?? 0, 0);
+
+    return node;
   }
 
-  private createObstacleMesh(obstacle: GeneratedObstacle, chunkX: number, chunkZ: number): Mesh {
+  /**
+   * Create a GLB instance for an obstacle (all obstacle types now use GLB).
+   */
+  private createObstacleInstance(
+    obstacle: StaticObstacle,
+    chunkX: number,
+    chunkZ: number,
+    instanceIndex: number
+  ): TransformNode | null {
     const worldX = chunkX * CHUNK_SIZE + obstacle.x;
     const worldZ = chunkZ * CHUNK_SIZE + obstacle.z;
 
-    const perfManager = getPerformanceManager();
-    const isMobile = perfManager.isMobile();
-    const cylinderTessellation = isMobile ? 6 : 12;
-    const polyType = isMobile ? 0 : 1;
+    const variants = OBSTACLE_GLB_PATHS[obstacle.type];
+    if (!variants || variants.length === 0) return null;
 
-    let mesh: Mesh;
+    const variantIndex = obstacle.variant ?? instanceIndex;
+    const glbPath = this.pickVariant(variants, variantIndex);
 
-    switch (obstacle.type) {
-      case 'rock': {
-        mesh = MeshBuilder.CreatePolyhedron(
-          'rock',
-          { type: polyType, size: obstacle.scale * 2 },
-          this.scene
-        );
-        const seed = Math.abs(obstacle.x * 1000 + obstacle.z);
-        const rng = seededRandom(seed);
+    const instanceName = `chunk_${chunkX}_${chunkZ}_${obstacle.type}_${instanceIndex}`;
+    const node = AssetManager.createInstanceByPath(glbPath, instanceName, this.scene, true, 'prop');
 
-        mesh.scaling.y = 0.7 + rng() * 0.6;
-        mesh.rotation.y = rng() * Math.PI * 2;
+    if (!node) return null;
 
-        mesh.material = this.materials.get('rock')!;
-        mesh.position.set(worldX, obstacle.scale, worldZ);
-        break;
-      }
-      case 'pillar': {
-        mesh = MeshBuilder.CreateCylinder(
-          'pillar',
-          {
-            height: obstacle.scale * 8,
-            diameter: obstacle.scale * 1.5,
-            tessellation: cylinderTessellation,
-          },
-          this.scene
-        );
-        mesh.material = this.materials.get('rock')!;
-        mesh.position.set(worldX, obstacle.scale * 4, worldZ);
-        break;
-      }
-      case 'crater': {
-        mesh = MeshBuilder.CreateDisc(
-          'crater',
-          { radius: obstacle.scale * 3, tessellation: isMobile ? 12 : 24 },
-          this.scene
-        );
-        mesh.rotation.x = Math.PI / 2;
-        mesh.position.set(worldX, 0.05, worldZ);
-        // Use shared crater material instead of creating per-mesh
-        mesh.material = this.materials.get('crater')!;
-        break;
-      }
-      case 'debris':
-      default: {
-        mesh = MeshBuilder.CreateBox(
-          'debris',
-          { width: obstacle.scale, height: obstacle.scale * 0.5, depth: obstacle.scale },
-          this.scene
-        );
-        // Use deterministic rotation instead of Math.random()
-        const seed = Math.abs(obstacle.x * 7919 + obstacle.z * 104729);
-        const rng = seededRandom(seed);
-        mesh.rotation.y = rng() * Math.PI;
-        mesh.material = this.materials.get('metal')!;
-        mesh.position.set(worldX, obstacle.scale * 0.25, worldZ);
-        break;
-      }
+    node.position = new Vector3(worldX, 0, worldZ);
+
+    // Scale based on the obstacle's scale factor and type
+    const uniformScale = obstacle.scale;
+    if (obstacle.type === 'pillar') {
+      node.scaling = new Vector3(uniformScale * 0.8, uniformScale * 2, uniformScale * 0.8);
+    } else if (obstacle.type === 'tallRock') {
+      node.scaling = new Vector3(uniformScale * 1.2, uniformScale * 2.0, uniformScale * 1.2);
+    } else {
+      node.scaling = new Vector3(uniformScale, uniformScale, uniformScale);
     }
 
-    mesh.checkCollisions = true;
-    mesh.receiveShadows = true;
+    // Apply rotation
+    node.rotation = new Vector3(0, obstacle.rotationY ?? 0, 0);
 
-    // Apply LOD
-    LODManager.applyNativeLOD(mesh, 'prop');
-
-    return mesh;
+    return node;
   }
 
   // -----------------------------------------------------------------------
   // Enemy entity creation
   // -----------------------------------------------------------------------
 
-  private createEnemyEntity(
-    enemy: GeneratedEnemy,
+  private async createEnemyEntity(
+    enemy: StaticEnemy,
     chunkX: number,
     chunkZ: number,
     playSpawnSound = false
-  ): Entity {
+  ): Promise<Entity> {
     const worldX = chunkX * CHUNK_SIZE + enemy.x;
     const worldZ = chunkZ * CHUNK_SIZE + enemy.z;
     const position = new Vector3(worldX, 1, worldZ);
 
     const species = ALIEN_SPECIES[enemy.type];
     if (!species) {
-      return createAlienEntity(this.scene, ALIEN_SPECIES.skitterer, position, enemy.seed);
+      return await createAlienEntity(this.scene, ALIEN_SPECIES.skitterer, position, 0);
     }
 
-    const entity = createAlienEntity(this.scene, species, position, enemy.seed);
+    const entity = await createAlienEntity(this.scene, species, position, 0);
 
     entity.chunkInfo = {
       chunkX,
@@ -459,71 +545,45 @@ export class ChunkManager {
 
     this.loadingChunks.add(key);
 
-    try {
-      let chunkData = worldDb.getChunk(chunkX, chunkZ);
+    // Ensure GLB assets are preloaded before first chunk load
+    if (!this.glbAssetsPreloaded) {
+      await this.preloadGLBAssets();
+    }
 
-      if (!chunkData) {
-        chunkData = this.generateChunkData(chunkX, chunkZ);
-        worldDb.saveChunk(chunkData);
-      }
+    try {
+      const layout = this.getChunkLayout(chunkX, chunkZ);
 
       if (this.disposed) return;
 
       const entities: Entity[] = [];
-      const meshes: Mesh[] = [];
+      const glbNodes: TransformNode[] = [];
       const lodIds: string[] = [];
 
-      // Buildings
-      const buildings: GeneratedBuilding[] = JSON.parse(chunkData.buildings);
-      for (const building of buildings) {
-        const mesh = this.createBuildingMesh(building, chunkX, chunkZ);
-        meshes.push(mesh);
-      }
-
-      // Obstacles
-      const obstacles: GeneratedObstacle[] = JSON.parse(chunkData.obstacles);
-      for (const obstacle of obstacles) {
-        const mesh = this.createObstacleMesh(obstacle, chunkX, chunkZ);
-        meshes.push(mesh);
-      }
-
-      // Register meshes with LODManager for tracked distance-based updates
-      for (const mesh of meshes) {
-        const lodId = `world_${key}_${mesh.name}_${mesh.uniqueId}`;
-        lodIds.push(lodId);
-      }
-
-      // Saved entities
-      const savedEntities = worldDb.getEntitiesInChunk(chunkX, chunkZ);
-      const loadedEntityIds = new Set<string>();
-
-      for (const saved of savedEntities) {
-        const speciesId = saved.type === 'boss' ? 'broodmother' : 'skitterer';
-        const species = ALIEN_SPECIES[speciesId];
-        if (species) {
-          const entity = createAlienEntity(
-            this.scene,
-            species,
-            new Vector3(saved.x, saved.y, saved.z)
-          );
-          if (entity.health) entity.health.current = saved.health;
-          entity.chunkInfo = { chunkX, chunkZ };
-          entities.push(entity);
-          loadedEntityIds.add(saved.id);
+      // Buildings -- load as GLB instances
+      for (let i = 0; i < layout.buildings.length; i++) {
+        const node = this.createBuildingInstance(layout.buildings[i], chunkX, chunkZ, i);
+        if (node) {
+          glbNodes.push(node);
         }
       }
 
-      // New enemies from generation (skip if we loaded from save)
-      if (savedEntities.length === 0) {
-        const enemies: GeneratedEnemy[] = JSON.parse(chunkData.enemies);
-        for (const enemy of enemies) {
-          entities.push(this.createEnemyEntity(enemy, chunkX, chunkZ));
+      // Obstacles -- all types now use GLB models
+      for (let i = 0; i < layout.obstacles.length; i++) {
+        const obstacle = layout.obstacles[i];
+        const node = this.createObstacleInstance(obstacle, chunkX, chunkZ, i);
+        if (node) {
+          glbNodes.push(node);
         }
       }
 
-      this.loadedChunks.set(key, { entities, meshes, lodIds });
+      // Enemies from layout
+      for (const enemy of layout.enemies) {
+        entities.push(await this.createEnemyEntity(enemy, chunkX, chunkZ));
+      }
+
+      this.loadedChunks.set(key, { entities, glbNodes, lodIds });
     } catch (error) {
-      console.error(`[WorldChunkManager] Failed to load chunk ${key}:`, error);
+      log.error(`Failed to load chunk ${key}:`, error);
     } finally {
       this.loadingChunks.delete(key);
     }
@@ -534,23 +594,8 @@ export class ChunkManager {
     const chunk = this.loadedChunks.get(key);
     if (!chunk) return;
 
-    // Save entity states before unloading
+    // Remove entity references
     for (const entity of chunk.entities) {
-      if (entity.transform && entity.health) {
-        worldDb.saveEntity(
-          {
-            id: entity.id,
-            type: entity.tags?.boss ? 'boss' : 'enemy',
-            x: entity.transform.position.x,
-            y: entity.transform.position.y,
-            z: entity.transform.position.z,
-            health: entity.health.current,
-            data: JSON.stringify({}),
-          },
-          chunkX,
-          chunkZ
-        );
-      }
       removeEntity(entity);
     }
 
@@ -559,11 +604,9 @@ export class ChunkManager {
       LODManager.unregisterMesh(lodId);
     }
 
-    // Dispose meshes (geometry + vertex buffers)
-    for (const mesh of chunk.meshes) {
-      if (!mesh.isDisposed()) {
-        mesh.dispose(false, false); // keep material (shared), dispose geometry
-      }
+    // Dispose GLB instance nodes (instances only, source meshes stay cached)
+    for (const node of chunk.glbNodes) {
+      node.dispose(false, true);
     }
 
     this.loadedChunks.delete(key);
@@ -632,13 +675,29 @@ export class ChunkManager {
     return Array.from(this.loadedChunks.keys());
   }
 
+  /**
+   * Register a custom layout for a chunk.
+   * Useful for level-specific configurations.
+   */
+  static registerLayout(layout: ChunkLayout): void {
+    const key = `${layout.chunkX},${layout.chunkZ}`;
+    LEVEL_LAYOUTS.set(key, layout);
+  }
+
+  /**
+   * Clear all registered layouts.
+   */
+  static clearLayouts(): void {
+    LEVEL_LAYOUTS.clear();
+  }
+
   // -----------------------------------------------------------------------
   // Dispose
   // -----------------------------------------------------------------------
 
   /**
    * Dispose all resources held by this ChunkManager.
-   * Unloads all chunks, disposes shared materials and textures.
+   * Unloads all chunks.
    * Safe to call multiple times.
    */
   dispose(): void {
@@ -650,15 +709,6 @@ export class ChunkManager {
       const [cx, cz] = key.split(',').map(Number);
       this.unloadChunk(cx, cz);
     }
-
-    // Dispose shared materials (and their textures)
-    for (const [, mat] of this.materials) {
-      if (mat.diffuseTexture) {
-        mat.diffuseTexture.dispose();
-      }
-      mat.dispose();
-    }
-    this.materials.clear();
 
     this.loadedChunks.clear();
     this.loadingChunks.clear();

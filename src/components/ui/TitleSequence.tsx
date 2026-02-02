@@ -5,6 +5,7 @@ import styles from './TitleSequence.module.css';
 
 interface TitleSequenceProps {
   onComplete: () => void;
+  isTouchDevice?: boolean;
 }
 
 // Text content for the briefing
@@ -197,7 +198,7 @@ function TypingText({
   );
 }
 
-export function TitleSequence({ onComplete }: TitleSequenceProps) {
+export function TitleSequence({ onComplete, isTouchDevice = false }: TitleSequenceProps) {
   const [phase, setPhase] = useState<SequencePhase>('initial');
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [lineComplete, setLineComplete] = useState(false);
@@ -307,7 +308,7 @@ export function TitleSequence({ onComplete }: TitleSequenceProps) {
     if (briefingRef.current) {
       briefingRef.current.scrollTop = briefingRef.current.scrollHeight;
     }
-  }, [displayedLines]);
+  }, []);
 
   const handleLineComplete = useCallback(() => {
     setLineComplete(true);
@@ -333,7 +334,7 @@ export function TitleSequence({ onComplete }: TitleSequenceProps) {
 
       {/* Skip hint */}
       <div className={styles.skipHint}>
-        <span>PRESS ANY KEY TO SKIP</span>
+        <span>{isTouchDevice ? 'TAP TO SKIP' : 'PRESS ANY KEY TO SKIP'}</span>
       </div>
 
       {/* Year display */}

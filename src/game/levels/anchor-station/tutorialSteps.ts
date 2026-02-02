@@ -1,5 +1,6 @@
 import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { ROOM_POSITIONS } from './environment';
+// Use modular room positions (matches the GLB-based station layout)
+import { MODULAR_ROOM_POSITIONS as ROOM_POSITIONS } from './ModularStationBuilder';
 
 // ============================================================================
 // Tutorial Phase System

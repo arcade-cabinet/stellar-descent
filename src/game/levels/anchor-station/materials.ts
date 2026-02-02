@@ -76,11 +76,39 @@ export function createStationMaterials(scene: Scene): Map<string, StandardMateri
   // Caution stripes - yellow/black
   const cautionMat = new StandardMaterial('cautionMat', scene);
   cautionMat.diffuseColor = Color3.FromHexString('#CCAA00');
+  cautionMat.emissiveColor = Color3.FromHexString('#332200'); // Slight glow for visibility
   materials.set('caution', cautionMat);
 
   // Space window material - shows planet Alpha-7 and stars
   const spaceWindowMat = createSpaceWindowMaterial(scene);
   materials.set('spaceWindow', spaceWindowMat);
+
+  // Holodeck material - glowing blue-cyan for VR training platforms
+  const holodeckMat = new StandardMaterial('holodeckMat', scene);
+  holodeckMat.diffuseColor = Color3.FromHexString('#102040');
+  holodeckMat.emissiveColor = Color3.FromHexString('#0066AA');
+  holodeckMat.alpha = 0.85;
+  holodeckMat.backFaceCulling = false;
+  materials.set('holodeck', holodeckMat);
+
+  // Interactive metal for buttons and levers
+  const interactiveMat = new StandardMaterial('interactiveMat', scene);
+  interactiveMat.diffuseColor = Color3.FromHexString('#404550');
+  interactiveMat.specularColor = new Color3(0.6, 0.6, 0.6);
+  interactiveMat.specularPower = 48;
+  materials.set('interactive', interactiveMat);
+
+  // Warning material - pulsing amber
+  const warningMat = new StandardMaterial('warningMat', scene);
+  warningMat.diffuseColor = Color3.FromHexString('#804000');
+  warningMat.emissiveColor = Color3.FromHexString('#FF6600');
+  materials.set('warning', warningMat);
+
+  // Target material - bright red for shooting range
+  const targetMat = new StandardMaterial('targetMat', scene);
+  targetMat.diffuseColor = Color3.FromHexString('#401010');
+  targetMat.emissiveColor = Color3.FromHexString('#FF2020');
+  materials.set('target', targetMat);
 
   return materials;
 }

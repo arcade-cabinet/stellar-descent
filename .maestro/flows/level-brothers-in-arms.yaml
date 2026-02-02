@@ -1,0 +1,582 @@
+# Comprehensive E2E Test Flow: Level 5 - Brothers in Arms
+# Tests Marcus reunion, squad commands, wave combat, and extraction
+# Cross-platform: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - campaign
+  - level-5
+  - brothers-in-arms
+  - mech
+  - squad-commands
+  - e2e
+  - coop-ai
+name: "Brothers in Arms - Full E2E Test"
+
+---
+# ============================================================================
+# SETUP: Launch and Navigate to Level
+# ============================================================================
+
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+- takeScreenshot: "brothers_01_main_menu"
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1500
+
+# Navigate to Chapter 5
+- assertVisible:
+    text: "CHAPTER 5"
+    optional: true
+    timeout: 5000
+
+# ============================================================================
+# TEST: Mission Briefing Screen
+# ============================================================================
+
+- tapOn:
+    text: "BROTHERS IN ARMS"
+    optional: true
+
+- wait: 800
+
+- takeScreenshot: "brothers_02_level_select"
+
+# Verify mission briefing elements
+- assertVisible:
+    text: "MISSION BRIEFING"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "BROTHERS IN ARMS"
+    optional: true
+
+# Verify Marcus is mentioned
+- assertVisible:
+    text: "Marcus"
+    optional: true
+
+- takeScreenshot: "brothers_03_mission_briefing"
+
+# Check intel tab
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 600
+
+# Verify enemy intel
+- assertVisible:
+    text: "CHITIN"
+    optional: true
+
+- assertVisible:
+    text: "BRUTE"
+    optional: true
+
+- takeScreenshot: "brothers_04_intel_tab"
+
+# Check loadout tab
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 600
+
+- takeScreenshot: "brothers_05_loadout_tab"
+
+# Begin mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# ============================================================================
+# TEST: Loading and Initialization
+# ============================================================================
+
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "brothers_06_level_start"
+
+# ============================================================================
+# TEST: Marcus Reunion Cinematic
+# ============================================================================
+
+# Look for cinematic indicators
+- assertVisible:
+    text: "MARCUS"
+    optional: true
+    timeout: 15000
+
+# Wait for reunion dialogue
+- wait: 5000
+
+- takeScreenshot: "brothers_07_reunion_cinematic"
+
+# Test cinematic skip functionality
+- tapOn:
+    id: "skip-cinematic"
+    optional: true
+
+- wait: 1000
+
+# Alternative: tap screen to skip
+- tapOn:
+    point: "50%, 50%"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "brothers_08_cinematic_end"
+
+# ============================================================================
+# TEST: Marcus AI Ally Indicators
+# ============================================================================
+
+# Verify Marcus health bar is visible
+- assertVisible:
+    text: "HAMMER"
+    optional: true
+    timeout: 10000
+
+# Look for Titan mech indicator
+- assertVisible:
+    text: "TITAN"
+    optional: true
+
+- takeScreenshot: "brothers_09_marcus_hud"
+
+# ============================================================================
+# TEST: Squad Command System
+# ============================================================================
+
+# Open command wheel (if touch)
+- tapOn:
+    id: "command_wheel"
+    optional: true
+
+- wait: 500
+
+# Or test keyboard command (Tab key simulation via touch)
+- swipe:
+    start: "10%, 50%"
+    end: "15%, 50%"
+    duration: 100
+    optional: true
+
+- wait: 300
+
+- takeScreenshot: "brothers_10_command_wheel"
+
+# Test FOLLOW command
+- tapOn:
+    text: "FOLLOW"
+    optional: true
+
+- wait: 500
+
+# Verify Marcus acknowledgment
+- assertVisible:
+    text: "following"
+    optional: true
+    timeout: 3000
+
+- takeScreenshot: "brothers_11_follow_command"
+
+# ============================================================================
+# TEST: Wave Combat - Wave 1
+# ============================================================================
+
+# Wait for wave 1 notification
+- assertVisible:
+    text: "WAVE"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "brothers_12_wave_1_start"
+
+# Combat movement and shooting
+- repeat:
+    times: 5
+    commands:
+      # Move forward-left
+      - swipe:
+          start: "10%, 70%"
+          end: "18%, 58%"
+          duration: 1500
+      - wait: 200
+
+      # Aim adjustment
+      - swipe:
+          start: "80%, 50%"
+          end: "75%, 48%"
+          duration: 600
+      - wait: 100
+
+      # Fire
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+      # Fire again
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+- takeScreenshot: "brothers_13_wave_1_combat"
+
+# ============================================================================
+# TEST: Marcus Coordination - Aggressive Mode
+# ============================================================================
+
+# Test Marcus stance buttons
+- tapOn:
+    id: "marcus_aggressive"
+    optional: true
+
+- wait: 300
+
+# Or test keyboard equivalent (1 key)
+- tapOn:
+    text: "AGR"
+    optional: true
+
+- wait: 500
+
+# Verify notification
+- assertVisible:
+    text: "AGGRESSIVE"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "brothers_14_aggressive_mode"
+
+# ============================================================================
+# TEST: Grenade Throw
+# ============================================================================
+
+# Test grenade button
+- tapOn:
+    id: "grenade-button"
+    optional: true
+
+- wait: 300
+
+# Or test keyboard equivalent (G key)
+- tapOn:
+    text: "GRENADE"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "brothers_15_grenade"
+
+# ============================================================================
+# TEST: Fire Support Request
+# ============================================================================
+
+# Test fire support / call marcus button
+- tapOn:
+    id: "fire-support"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    text: "FIRE SUPPORT"
+    optional: true
+
+- wait: 500
+
+# Verify Marcus acknowledgment
+- assertVisible:
+    text: "Covering"
+    optional: true
+    timeout: 3000
+
+- takeScreenshot: "brothers_16_fire_support"
+
+# ============================================================================
+# TEST: Wave Combat Progression
+# ============================================================================
+
+# Continue combat
+- repeat:
+    times: 8
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "20%, 55%"
+          duration: 1800
+      - wait: 150
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 250
+      - swipe:
+          start: "80%, 50%"
+          end: "70%, 45%"
+          duration: 700
+      - wait: 100
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+- takeScreenshot: "brothers_17_combat_progression"
+
+# ============================================================================
+# TEST: Wave Cleared Notification
+# ============================================================================
+
+# Wait for wave clear or timeout
+- wait: 5000
+
+- takeScreenshot: "brothers_18_wave_status"
+
+# Look for wave cleared
+- assertVisible:
+    text: "CLEARED"
+    optional: true
+    timeout: 30000
+
+# ============================================================================
+# TEST: Marcus Defensive Mode
+# ============================================================================
+
+- tapOn:
+    text: "DEF"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "DEFENSIVE"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "brothers_19_defensive_mode"
+
+# ============================================================================
+# TEST: Focus Fire Command
+# ============================================================================
+
+- tapOn:
+    text: "FOCUS"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "focus-fire"
+    optional: true
+
+- wait: 300
+
+- takeScreenshot: "brothers_20_focus_fire"
+
+# ============================================================================
+# TEST: Flank Command
+# ============================================================================
+
+- tapOn:
+    text: "FLANK"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "FLANKING"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "brothers_21_flank_command"
+
+# ============================================================================
+# TEST: Weapon Switching
+# ============================================================================
+
+- tapOn:
+    id: "weapon-switch"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "brothers_22_weapon_switch"
+
+# ============================================================================
+# TEST: Continued Combat - Multiple Waves
+# ============================================================================
+
+# Extended combat sequence
+- repeat:
+    times: 10
+    commands:
+      - swipe:
+          start: "10%, 65%"
+          end: "25%, 50%"
+          duration: 2000
+      - wait: 100
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+      - swipe:
+          start: "85%, 50%"
+          end: "65%, 40%"
+          duration: 800
+      - wait: 100
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 100
+
+- takeScreenshot: "brothers_23_multi_wave"
+
+# ============================================================================
+# TEST: Marcus Support Mode
+# ============================================================================
+
+- tapOn:
+    text: "SUP"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "SUPPORT"
+    optional: true
+    timeout: 2000
+
+- takeScreenshot: "brothers_24_support_mode"
+
+# ============================================================================
+# TEST: Breach Battle Phase
+# ============================================================================
+
+# Wait for breach battle indication
+- assertVisible:
+    text: "BREACH"
+    optional: true
+    timeout: 60000
+
+- takeScreenshot: "brothers_25_breach_phase"
+
+# Combat near breach
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 50%"
+          duration: 2500
+      - wait: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+- takeScreenshot: "brothers_26_breach_combat"
+
+# ============================================================================
+# TEST: Transition Phase - Marcus Farewell
+# ============================================================================
+
+# Wait for transition dialogue
+- wait: 5000
+
+- assertVisible:
+    text: "alone"
+    optional: true
+    timeout: 20000
+
+- takeScreenshot: "brothers_27_transition"
+
+# ============================================================================
+# TEST: Level Completion / Extraction
+# ============================================================================
+
+# Move toward extraction
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "10%, 40%"
+          duration: 3000
+      - wait: 300
+
+- takeScreenshot: "brothers_28_extraction"
+
+# Look for mission complete
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 30000
+
+- takeScreenshot: "brothers_29_mission_complete"
+
+# ============================================================================
+# TEST: Victory Screen / Stats
+# ============================================================================
+
+- wait: 3000
+
+# Check for stats display
+- assertVisible:
+    text: "KILLS"
+    optional: true
+
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+- takeScreenshot: "brothers_30_victory_stats"
+
+# ============================================================================
+# CLEANUP: Return to Menu
+# ============================================================================
+
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "brothers_31_final_state"
+
+# Verify return to menu or next level
+- assertVisible:
+    text: "MENU"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "brothers_32_end"

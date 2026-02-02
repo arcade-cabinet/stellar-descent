@@ -10,27 +10,39 @@
 
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
 import { getAchievementManager } from '../achievements';
+import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
+import { getLogger } from '../core/Logger';
 import type { LevelId } from '../levels/types';
-import { addDiscoveredAudioLog, getDiscoveredAudioLogIds } from './audioLogPersistence';
+import { getDiscoveredAudioLogIds, useCollectiblesStore } from '../stores/useCollectiblesStore';
 import type { AudioLog } from './audioLogs';
 import { getAudioLogsByLevel } from './audioLogs';
+
+const logger = getLogger('AudioLogSystem');
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Path to the audio log GLB model */
+const AUDIO_LOG_MODEL_PATH = '/assets/models/props/collectibles/audio_log.glb';
+
+/** Path to the data pad GLB model (used for the glow ring base) */
+const GLOW_RING_MODEL_PATH = '/assets/models/props/collectibles/data_pad.glb';
 
 /**
  * Audio log pickup in the game world
  */
 interface AudioLogPickup {
   log: AudioLog;
-  mesh: Mesh;
-  glowMesh: Mesh;
+  meshNode: TransformNode;
+  glowNode: TransformNode;
   light: PointLight;
   isCollected: boolean;
 }
@@ -67,19 +79,25 @@ export class AudioLogSystem {
     this.levelId = levelId;
     this.callbacks = callbacks;
 
-    this.initialize();
+    this.initializeAsync();
   }
 
-  private initialize(): void {
+  private async initializeAsync(): Promise<void> {
     // Create glow layer for pickups
     this.glowLayer = new GlowLayer('audioLogGlow', this.scene, {
       blurKernelSize: 32,
     });
     this.glowLayer.intensity = 0.5;
 
+    // Pre-load both GLB models
+    await Promise.all([
+      AssetManager.loadAssetByPath(AUDIO_LOG_MODEL_PATH, this.scene),
+      AssetManager.loadAssetByPath(GLOW_RING_MODEL_PATH, this.scene),
+    ]);
+
     // Get audio logs for this level
     const logs = getAudioLogsByLevel(this.levelId);
-    const discoveredIds = getDiscoveredAudioLogIds();
+    const discoveredIds = await getDiscoveredAudioLogIds();
 
     // Create pickups for undiscovered logs
     for (const log of logs) {
@@ -88,9 +106,7 @@ export class AudioLogSystem {
       }
     }
 
-    console.log(
-      `[AudioLogSystem] Initialized ${this.pickups.size} audio log pickups for level ${this.levelId}`
-    );
+    logger.info(`Initialized ${this.pickups.size} audio log pickups for level ${this.levelId}`);
   }
 
   private createPickup(log: AudioLog): void {
@@ -99,50 +115,44 @@ export class AudioLogSystem {
       ? new Vector3(log.positionHint.x, log.positionHint.y, log.positionHint.z)
       : new Vector3(0, 1, 0);
 
-    // Create the main pickup mesh (data pad / audio device)
-    const mesh = MeshBuilder.CreateBox(
+    // Create the main pickup mesh (audio log device) from GLB
+    const meshNode = AssetManager.createInstanceByPath(
+      AUDIO_LOG_MODEL_PATH,
       `audioLog_${log.id}`,
-      {
-        width: 0.3,
-        height: 0.05,
-        depth: 0.2,
-      },
-      this.scene
+      this.scene,
+      false,
+      'prop'
     );
-    mesh.position = position.clone();
-    mesh.rotation.x = Math.PI * 0.1; // Slight tilt
 
-    // Create material with emissive glow
-    const material = new StandardMaterial(`audioLogMat_${log.id}`, this.scene);
-    material.diffuseColor = new Color3(0.1, 0.1, 0.15);
-    material.emissiveColor = new Color3(0.2, 0.6, 1.0); // Blue glow
-    material.specularColor = new Color3(0.5, 0.5, 0.5);
-    mesh.material = material;
-
-    // Create outer glow ring
-    const glowMesh = MeshBuilder.CreateTorus(
-      `audioLogGlow_${log.id}`,
-      {
-        diameter: 0.8,
-        thickness: 0.05,
-        tessellation: 24,
-      },
-      this.scene
-    );
-    glowMesh.position = position.clone();
-    glowMesh.position.y -= 0.3;
-    glowMesh.rotation.x = Math.PI / 2;
-
-    const glowMaterial = new StandardMaterial(`audioLogGlowMat_${log.id}`, this.scene);
-    glowMaterial.emissiveColor = new Color3(0.3, 0.7, 1.0);
-    glowMaterial.alpha = 0.6;
-    glowMesh.material = glowMaterial;
-
-    // Add to glow layer
-    if (this.glowLayer) {
-      this.glowLayer.addIncludedOnlyMesh(mesh);
-      this.glowLayer.addIncludedOnlyMesh(glowMesh);
+    if (!meshNode) {
+      logger.warn(`Failed to create audio log model for "${log.id}"`);
+      return;
     }
+
+    meshNode.position = position.clone();
+    meshNode.rotation = new Vector3(Math.PI * 0.1, 0, 0); // Slight tilt
+    meshNode.scaling = new Vector3(0.3, 0.3, 0.3);
+
+    // Create outer glow ring from data pad GLB
+    const glowNode = AssetManager.createInstanceByPath(
+      GLOW_RING_MODEL_PATH,
+      `audioLogGlow_${log.id}`,
+      this.scene,
+      false,
+      'prop'
+    );
+
+    if (!glowNode) {
+      logger.warn(`Failed to create glow ring model for "${log.id}"`);
+      // Clean up the mesh node since we cannot create the full pickup
+      meshNode.dispose();
+      return;
+    }
+
+    glowNode.position = position.clone();
+    glowNode.position.y -= 0.3;
+    glowNode.scaling = new Vector3(0.4, 0.05, 0.4);
+    glowNode.rotation = new Vector3(Math.PI / 2, 0, 0);
 
     // Create point light for visibility
     const light = new PointLight(`audioLogLight_${log.id}`, position.clone(), this.scene);
@@ -153,8 +163,8 @@ export class AudioLogSystem {
     // Store pickup data
     this.pickups.set(log.id, {
       log,
-      mesh,
-      glowMesh,
+      meshNode,
+      glowNode,
       light,
       isCollected: false,
     });
@@ -172,7 +182,7 @@ export class AudioLogSystem {
     for (const pickup of this.pickups.values()) {
       if (pickup.isCollected) continue;
 
-      const distance = Vector3.Distance(playerPosition, pickup.mesh.position);
+      const distance = Vector3.Distance(playerPosition, pickup.meshNode.position);
 
       // Animate the pickup
       this.animatePickup(pickup);
@@ -200,19 +210,14 @@ export class AudioLogSystem {
     const time = performance.now() * 0.001;
 
     // Rotate the glow ring
-    pickup.glowMesh.rotation.z = time * 2;
+    pickup.glowNode.rotation = new Vector3(Math.PI / 2, 0, time * 2);
 
     // Bob the main mesh up and down
     const bob = Math.sin(time * 3) * 0.05;
-    pickup.mesh.position.y = (pickup.log.positionHint?.y ?? 1) + bob + 0.3; // Base height + bob + offset
+    pickup.meshNode.position.y = (pickup.log.positionHint?.y ?? 1) + bob + 0.3; // Base height + bob + offset
 
     // Pulse the light intensity
     pickup.light.intensity = 0.4 + Math.sin(time * 4) * 0.2;
-
-    // Pulse the material emission
-    const material = pickup.mesh.material as StandardMaterial;
-    const pulse = 0.5 + Math.sin(time * 4) * 0.3;
-    material.emissiveColor = new Color3(0.2 * pulse, 0.6 * pulse, 1.0 * pulse);
   }
 
   /**
@@ -223,19 +228,19 @@ export class AudioLogSystem {
   tryCollect(playerPosition: Vector3): AudioLog | null {
     if (!this.nearestLog) return null;
 
-    const distance = Vector3.Distance(playerPosition, this.nearestLog.mesh.position);
+    const distance = Vector3.Distance(playerPosition, this.nearestLog.meshNode.position);
     if (distance > this.COLLECT_DISTANCE) return null;
 
     const pickup = this.nearestLog;
     pickup.isCollected = true;
 
     // Hide the pickup
-    pickup.mesh.setEnabled(false);
-    pickup.glowMesh.setEnabled(false);
+    pickup.meshNode.setEnabled(false);
+    pickup.glowNode.setEnabled(false);
     pickup.light.setEnabled(false);
 
-    // Save to persistence
-    addDiscoveredAudioLog(pickup.log.id, this.levelId);
+    // Save to persistence via store
+    useCollectiblesStore.getState().addAudioLog(pickup.log.id, this.levelId);
 
     // Track achievement progress
     getAchievementManager().onAudioLogFound();
@@ -293,8 +298,8 @@ export class AudioLogSystem {
     const pickup = this.pickups.get(logId);
     if (pickup && !pickup.isCollected) {
       pickup.isCollected = true;
-      pickup.mesh.setEnabled(false);
-      pickup.glowMesh.setEnabled(false);
+      pickup.meshNode.setEnabled(false);
+      pickup.glowNode.setEnabled(false);
       pickup.light.setEnabled(false);
     }
   }
@@ -302,15 +307,15 @@ export class AudioLogSystem {
   /**
    * Reset all pickups (for level restart)
    */
-  reset(): void {
-    const discoveredIds = getDiscoveredAudioLogIds();
+  async reset(): Promise<void> {
+    const discoveredIds = await getDiscoveredAudioLogIds();
 
     for (const pickup of this.pickups.values()) {
       // Only reset if not already discovered in save
       if (!discoveredIds.includes(pickup.log.id)) {
         pickup.isCollected = false;
-        pickup.mesh.setEnabled(true);
-        pickup.glowMesh.setEnabled(true);
+        pickup.meshNode.setEnabled(true);
+        pickup.glowNode.setEnabled(true);
         pickup.light.setEnabled(true);
       }
     }
@@ -321,8 +326,8 @@ export class AudioLogSystem {
    */
   dispose(): void {
     for (const pickup of this.pickups.values()) {
-      pickup.mesh.dispose();
-      pickup.glowMesh.dispose();
+      pickup.meshNode.dispose();
+      pickup.glowNode.dispose();
       pickup.light.dispose();
     }
     this.pickups.clear();

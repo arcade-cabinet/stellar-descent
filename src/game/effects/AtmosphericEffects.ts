@@ -20,7 +20,6 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
@@ -29,6 +28,10 @@ import type { Scene } from '@babylonjs/core/scene';
 
 import '@babylonjs/core/Particles/particleSystemComponent';
 import '@babylonjs/core/Rendering/depthRendererSceneComponent';
+
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('AtmosphericEffects');
 
 // ============================================================================
 // TYPES
@@ -151,7 +154,7 @@ export class AtmosphericEffects {
     this.scene = scene;
     this.camera = camera ?? null;
     this.createParticleTexture();
-    console.log('[AtmosphericEffects] Initialized');
+    log.info('Initialized');
   }
 
   // ============================================================================
@@ -211,7 +214,7 @@ export class AtmosphericEffects {
    */
   createGodRays(id: string, config: GodRayConfig): void {
     if (!this.camera) {
-      console.warn('[AtmosphericEffects] Camera required for god rays');
+      log.warn('Camera required for god rays');
       return;
     }
 
@@ -264,7 +267,7 @@ export class AtmosphericEffects {
     }
 
     this.godRays.set(id, { postProcess: godRay, mesh: lightMesh, light });
-    console.log(`[AtmosphericEffects] Created god rays: ${id}`);
+    log.info(`Created god rays: ${id}`);
   }
 
   /**
@@ -544,7 +547,7 @@ export class AtmosphericEffects {
       config.particleColor.b
     );
 
-    console.log(`[AtmosphericEffects] Dust storm initialized at intensity ${config.intensity}`);
+    log.info(`Dust storm initialized at intensity ${config.intensity}`);
   }
 
   /**
@@ -814,7 +817,7 @@ export class AtmosphericEffects {
   }
 
   private updateEmergencyLights(deltaTime: number): void {
-    const time = performance.now() * 0.001;
+    const _time = performance.now() * 0.001;
 
     for (const [_, emergency] of this.emergencyLights) {
       emergency.phase += deltaTime * (emergency.config.speed ?? 1);
@@ -863,7 +866,7 @@ export class AtmosphericEffects {
     }
   }
 
-  private updateSporeClouds(deltaTime: number): void {
+  private updateSporeClouds(_deltaTime: number): void {
     const time = performance.now() * 0.001;
 
     for (const [_, cloud] of this.sporeClouds) {
@@ -882,7 +885,7 @@ export class AtmosphericEffects {
     }
   }
 
-  private updateHeatHaze(deltaTime: number): void {
+  private updateHeatHaze(_deltaTime: number): void {
     if (!this.heatHazeMesh || this.heatHazeIntensity <= 0) return;
 
     const time = performance.now() * 0.001;
@@ -949,7 +952,7 @@ export class AtmosphericEffects {
     this.particleTexture?.dispose();
     this.particleTexture = null;
 
-    console.log('[AtmosphericEffects] Disposed');
+    log.info('Disposed');
   }
 }
 

@@ -1,0 +1,44 @@
+# Main Menu tests
+# Works on: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - menu
+name: "Main Menu - Navigation and Controls"
+
+---
+
+- launchApp
+
+# Wait for main menu to load
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
+
+# Test Help modal
+- tapOn:
+    text: "HELP"
+
+- extendedWaitUntil:
+    visible: "OPERATIONS GUIDE"
+    timeout: 5000
+
+- assertVisible:
+    text: "OBJECTIVES"
+
+- takeScreenshot: "help-modal"
+
+# Close help modal
+- tapOn:
+    text: "CLOSE"
+
+- extendedWaitUntil:
+    notVisible: "OPERATIONS GUIDE"
+    timeout: 5000
+
+# Verify we're back at main menu
+- assertVisible:
+    text: "NEW GAME"
+
+- takeScreenshot: "main-menu-after-close"

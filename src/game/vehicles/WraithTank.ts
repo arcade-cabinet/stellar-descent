@@ -9,7 +9,7 @@
  *  - Boost ability on cooldown
  *  - Weak point on rear (double damage)
  *  - Hijackable by player when health drops below 25%
- *  - Built from BabylonJS primitives
+ *  - Loads GLB model from models/vehicles/wraith.glb
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -17,12 +17,17 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
-import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../core/ecs';
+import { createEntity, getEntitiesInRadius, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import type { Player } from '../entities/player';
 import { VehicleBase, type VehicleStats, type VehicleWeapon } from './VehicleBase';
+
+const log = getLogger('WraithTank');
 
 // --------------------------------------------------------------------------
 // Constants
@@ -55,8 +60,6 @@ const HIJACK_HEALTH_THRESHOLD = 0.25;
 const WEAK_POINT_ANGLE = Math.PI / 3; // 60 degree cone from rear
 
 // Colors
-const WRAITH_HULL = '#1E1040';
-const WRAITH_ACCENT = '#3A2070';
 const WRAITH_GLOW = '#9B59B6';
 const WRAITH_MORTAR_GLOW = '#FF4488';
 
@@ -91,6 +94,12 @@ export class WraithTank extends VehicleBase {
   private boostTrailMeshes: Mesh[] = [];
   private glowMat: StandardMaterial | null = null;
 
+  // GLB model node
+  private glbNode: TransformNode | null = null;
+
+  // Model loading state
+  private _modelLoaded = false;
+
   constructor(scene: Scene, position: Vector3, patrolPoints?: Vector3[]) {
     super(scene, `wraith_${Date.now()}`, 'Wraith Tank', position, WRAITH_STATS, 0);
     this.weapons = this.initWeapons();
@@ -116,159 +125,64 @@ export class WraithTank extends VehicleBase {
     }
   }
 
+  /**
+   * Async factory method. Use this instead of `new WraithTank(...)` to ensure
+   * the GLB model is loaded before the tank is used.
+   */
+  static async create(
+    scene: Scene,
+    position: Vector3,
+    patrolPoints?: Vector3[]
+  ): Promise<WraithTank> {
+    const tank = new WraithTank(scene, position, patrolPoints);
+    await tank.loadModel();
+    return tank;
+  }
+
+  /**
+   * Load the GLB model and attach it to the root transform node.
+   */
+  private async loadModel(): Promise<void> {
+    try {
+      // Ensure the asset is loaded (may already be cached from level preload)
+      await AssetManager.loadAsset('vehicles', 'wraith', this.scene);
+
+      // Create an instance parented to our root node
+      const instance = AssetManager.createInstance(
+        'vehicles',
+        'wraith',
+        `wraith_model_${this.vehicleId}`,
+        this.scene
+      );
+
+      if (instance) {
+        instance.parent = this.rootNode;
+        instance.position = Vector3.Zero();
+        this.glbNode = instance;
+        this._modelLoaded = true;
+        log.info(`GLB model loaded for ${this.vehicleId}`);
+      } else {
+        throw new Error(
+          `[WraithTank] GLB instance creation failed for ${this.vehicleId} - asset not preloaded or path invalid`
+        );
+      }
+    } catch (err) {
+      throw new Error(`[WraithTank] Failed to load GLB model for ${this.vehicleId}: ${err}`);
+    }
+  }
+
   // ------------------------------------------------------------------
   // Hull
   // ------------------------------------------------------------------
 
+  /**
+   * Called synchronously by VehicleBase constructor.
+   * We cannot load GLB here (async), so this is intentionally a no-op.
+   * The actual model is loaded via the async `loadModel()` method
+   * called from the static `create()` factory.
+   */
   protected buildHull(): void {
-    const hullMat = new StandardMaterial('wraithHull', this.scene);
-    hullMat.diffuseColor = Color3.FromHexString(WRAITH_HULL);
-    hullMat.specularColor = new Color3(0.15, 0.1, 0.25);
-
-    const accentMat = new StandardMaterial('wraithAccent', this.scene);
-    accentMat.diffuseColor = Color3.FromHexString(WRAITH_ACCENT);
-
-    this.glowMat = new StandardMaterial('wraithGlow', this.scene);
-    this.glowMat.emissiveColor = Color3.FromHexString(WRAITH_GLOW);
-    this.glowMat.disableLighting = true;
-    this.glowMat.alpha = 0.8;
-
-    const mortarMat = new StandardMaterial('wraithMortarGlow', this.scene);
-    mortarMat.emissiveColor = Color3.FromHexString(WRAITH_MORTAR_GLOW);
-    mortarMat.disableLighting = true;
-
-    // --- Main body - wide, low, curved ---
-    const body = MeshBuilder.CreateSphere(
-      'wraithBody',
-      {
-        diameterX: 7,
-        diameterY: 2.2,
-        diameterZ: 8,
-        segments: 14,
-      },
-      this.scene
-    );
-    body.material = hullMat;
-    body.parent = this.rootNode;
-    body.position.y = 1.2;
-    this.hullMeshes.push(body);
-
-    // --- Side skirts / hover pods ---
-    for (let side = -1; side <= 1; side += 2) {
-      const skirt = MeshBuilder.CreateBox(
-        `wraithSkirt_${side}`,
-        { width: 2.5, height: 0.8, depth: 6 },
-        this.scene
-      );
-      skirt.material = accentMat;
-      skirt.parent = this.rootNode;
-      skirt.position.set(side * 3.2, 0.4, 0);
-      this.hullMeshes.push(skirt);
-
-      // Hover glow under skirts
-      const hoverGlow = MeshBuilder.CreateDisc(
-        `wraithHover_${side}`,
-        { radius: 1, tessellation: 12 },
-        this.scene
-      );
-      hoverGlow.material = this.glowMat;
-      hoverGlow.parent = this.rootNode;
-      hoverGlow.position.set(side * 3.2, 0.05, 0);
-      hoverGlow.rotation.x = Math.PI / 2;
-      this.hullMeshes.push(hoverGlow);
-    }
-
-    // --- Mortar cannon (top center, front) ---
-    const turretBase = MeshBuilder.CreateCylinder(
-      'wraithTurretBase',
-      { height: 0.6, diameterTop: 1.8, diameterBottom: 2.2, tessellation: 12 },
-      this.scene
-    );
-    turretBase.material = accentMat;
-    turretBase.parent = this.rootNode;
-    turretBase.position.set(0, 2.3, -1);
-    this.hullMeshes.push(turretBase);
-
-    const turretBarrel = MeshBuilder.CreateCylinder(
-      'wraithTurretBarrel',
-      { height: 2.5, diameterTop: 0.3, diameterBottom: 0.5, tessellation: 10 },
-      this.scene
-    );
-    turretBarrel.material = hullMat;
-    turretBarrel.parent = this.rootNode;
-    turretBarrel.position.set(0, 2.8, -1);
-    turretBarrel.rotation.x = -Math.PI / 5; // Angled upward for mortar arc
-    this.hullMeshes.push(turretBarrel);
-
-    // Mortar glow at barrel tip
-    this.mortarGlowMesh = MeshBuilder.CreateSphere(
-      'wraithMortarGlow',
-      { diameter: 0.5 },
-      this.scene
-    );
-    this.mortarGlowMesh.material = mortarMat;
-    this.mortarGlowMesh.parent = this.rootNode;
-    this.mortarGlowMesh.position.set(0, 3.6, -2.2);
-    this.hullMeshes.push(this.mortarGlowMesh);
-
-    // --- Rear section (weak point area - visually distinct) ---
-    const rearPanel = MeshBuilder.CreateBox(
-      'wraithRearPanel',
-      { width: 2.5, height: 1.5, depth: 1 },
-      this.scene
-    );
-    rearPanel.material = accentMat;
-    rearPanel.parent = this.rootNode;
-    rearPanel.position.set(0, 1.2, 3.5);
-    this.hullMeshes.push(rearPanel);
-
-    // Exposed power core (weak point indicator)
-    const powerCore = MeshBuilder.CreateSphere(
-      'wraithPowerCore',
-      { diameter: 0.8, segments: 8 },
-      this.scene
-    );
-    const coreMat = new StandardMaterial('wraithCoreMat', this.scene);
-    coreMat.emissiveColor = Color3.FromHexString('#FF2244');
-    coreMat.disableLighting = true;
-    coreMat.alpha = 0.9;
-    powerCore.material = coreMat;
-    powerCore.parent = this.rootNode;
-    powerCore.position.set(0, 1.2, 4.1);
-    this.hullMeshes.push(powerCore);
-
-    // --- Glow seams ---
-    const seams = [new Vector3(0, 1.5, -3), new Vector3(-2, 0.8, 0), new Vector3(2, 0.8, 0)];
-    for (let i = 0; i < seams.length; i++) {
-      const seam = MeshBuilder.CreateBox(
-        `wraithSeam_${i}`,
-        { width: 0.08, height: 0.06, depth: 2.5 },
-        this.scene
-      );
-      seam.material = this.glowMat;
-      seam.parent = this.rootNode;
-      seam.position = seams[i];
-      this.hullMeshes.push(seam);
-    }
-
-    // --- Boost exhaust visual (hidden by default) ---
-    for (let side = -1; side <= 1; side += 2) {
-      const trail = MeshBuilder.CreateCylinder(
-        `wraithBoostTrail_${side}`,
-        { height: 3, diameterTop: 0.1, diameterBottom: 0.8, tessellation: 8 },
-        this.scene
-      );
-      const trailMat = new StandardMaterial(`wraithTrailMat_${side}`, this.scene);
-      trailMat.emissiveColor = Color3.FromHexString(WRAITH_GLOW);
-      trailMat.disableLighting = true;
-      trailMat.alpha = 0;
-      trail.material = trailMat;
-      trail.parent = this.rootNode;
-      trail.position.set(side * 2.5, 0.6, 4.5);
-      trail.rotation.x = Math.PI / 2;
-      this.hullMeshes.push(trail);
-      this.boostTrailMeshes.push(trail);
-    }
+    // No-op: GLB model is loaded asynchronously via loadModel().
   }
 
   // ------------------------------------------------------------------
@@ -433,7 +347,7 @@ export class WraithTank extends VehicleBase {
     if (this.isBoosting || this.boostCooldownTimer > 0) return;
     this.isBoosting = true;
     this.boostTimer = BOOST_DURATION;
-    console.log('[Wraith] Boost activated');
+    log.info('Boost activated');
   }
 
   private updateBoost(deltaTime: number): void {
@@ -455,7 +369,7 @@ export class WraithTank extends VehicleBase {
     if (this.boostTimer <= 0) {
       this.isBoosting = false;
       this.boostCooldownTimer = BOOST_COOLDOWN;
-      console.log('[Wraith] Boost ended, cooldown started');
+      log.info('Boost ended, cooldown started');
     }
 
     // Show boost trail
@@ -477,11 +391,13 @@ export class WraithTank extends VehicleBase {
       const forward = this.getForward();
       const dot = Vector3.Dot(forward, toSource);
       // dot > 0 means source is in front, dot < 0 means behind
-      // We want rear: check if the angle from rear is within WEAK_POINT_ANGLE
-      if (dot > Math.cos(Math.PI - WEAK_POINT_ANGLE)) {
+      // We want rear: dot < -cos(WEAK_POINT_ANGLE) means within angle from rear
+      // WEAK_POINT_ANGLE = 60 degrees, so cos(60) = 0.5
+      // Hit from rear if dot < -0.5 (angle > 120 degrees from front)
+      if (dot < -Math.cos(WEAK_POINT_ANGLE)) {
         // Hit from rear - double damage
         amount *= 2;
-        console.log('[Wraith] Weak point hit! Double damage');
+        log.info('Weak point hit! Double damage');
       }
     }
 
@@ -493,7 +409,7 @@ export class WraithTank extends VehicleBase {
       this.isHijackable = true;
       this.aiState = 'stunned';
       this.stunDuration = 10; // 10 seconds to hijack
-      console.log('[Wraith] Stunned - hijackable!');
+      log.info('Stunned - hijackable!');
     }
   }
 
@@ -532,7 +448,7 @@ export class WraithTank extends VehicleBase {
     this.scene.activeCamera = this.vehicleCamera;
 
     getAudioManager().play('door_open', { volume: 0.5 });
-    console.log('[Wraith] Hijacked by player!');
+    log.info('Hijacked by player!');
   }
 
   // ------------------------------------------------------------------
@@ -585,7 +501,7 @@ export class WraithTank extends VehicleBase {
     const dist = Vector3.Distance(this.rootNode.position, this.playerTarget.getPosition());
     if (dist < DETECTION_RANGE) {
       this.aiState = 'chase';
-      console.log('[Wraith] Player detected, chasing');
+      log.info('Player detected, chasing');
     }
   }
 
@@ -656,7 +572,7 @@ export class WraithTank extends VehicleBase {
     if (this.stunDuration <= 0) {
       this.isHijackable = false;
       this.aiState = 'patrol';
-      console.log('[Wraith] Recovered from stun');
+      log.info('Recovered from stun');
     }
   }
 
@@ -694,15 +610,21 @@ export class WraithTank extends VehicleBase {
   // ------------------------------------------------------------------
 
   protected processInput(deltaTime: number): void {
+    // Get unified input state
+    const input = this.getVehicleInput();
+
     // Only processes when player is in the vehicle
     const moveDir = Vector3.Zero();
     const forward = this.getForward();
     const right = this.getRight();
 
-    if (this.isKeyDown('KeyW')) moveDir.addInPlace(forward);
-    if (this.isKeyDown('KeyS')) moveDir.subtractInPlace(forward);
-    if (this.isKeyDown('KeyA')) moveDir.subtractInPlace(right);
-    if (this.isKeyDown('KeyD')) moveDir.addInPlace(right);
+    // Use throttle/brake for forward/backward
+    if (input.throttle > 0) moveDir.addInPlace(forward.scale(input.throttle));
+    if (input.brake > 0) moveDir.subtractInPlace(forward.scale(input.brake));
+
+    // Use steer for lateral movement
+    if (input.steer < 0) moveDir.subtractInPlace(right.scale(-input.steer));
+    if (input.steer > 0) moveDir.addInPlace(right.scale(input.steer));
 
     if (moveDir.length() > 0.01) {
       moveDir.normalize();
@@ -711,13 +633,13 @@ export class WraithTank extends VehicleBase {
       this.moveToward(moveDir, speed, deltaTime);
     }
 
-    // Boost on shift
-    if (this.isKeyDown('ShiftLeft') || this.isKeyDown('ShiftRight')) {
+    // Boost on shift (from input.boost)
+    if (input.boost) {
       this.activateBoost();
     }
 
-    // Fire mortar on click
-    if (this.isFiring) {
+    // Fire mortar on primary fire
+    if (input.fire) {
       this.fireMortar();
     }
   }
@@ -743,5 +665,17 @@ export class WraithTank extends VehicleBase {
       const ready = this.canFireWeapon(weapon);
       this.mortarGlowMesh.material.alpha = ready ? 0.8 + Math.sin(time * 2) * 0.2 : 0.3;
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Disposal override to clean up GLB instance
+  // ------------------------------------------------------------------
+
+  public override dispose(): void {
+    if (this.glbNode) {
+      this.glbNode.dispose();
+      this.glbNode = null;
+    }
+    super.dispose();
   }
 }

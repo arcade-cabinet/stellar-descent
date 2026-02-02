@@ -1,20 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { useCombatStore } from '../../game/stores/useCombatStore';
+import { useGameStatsStore } from '../../game/stores/useGameStatsStore';
 import styles from './DeathScreen.module.css';
-
-/**
- * Increment death counter in localStorage for campaign stats
- */
-function incrementDeathCount(): void {
-  try {
-    const key = 'stellar_descent_death_count';
-    const current = Number.parseInt(localStorage.getItem(key) ?? '0', 10);
-    localStorage.setItem(key, String(current + 1));
-  } catch {
-    // Ignore storage errors
-  }
-}
+import { MilitaryButton } from './MilitaryButton';
 
 interface DeathScreenProps {
   /** Callback when restart mission button is clicked */
@@ -43,7 +32,7 @@ export function DeathScreen({
   deathReason = 'SPECTER DOWN - KIA',
   missionName = 'CURRENT MISSION',
 }: DeathScreenProps) {
-  const { kills } = useGame();
+  const kills = useCombatStore((state) => state.kills);
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const restartButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -53,7 +42,7 @@ export function DeathScreen({
       // Play a somber/failure sound
       getAudioManager().playMusic('menu', 2); // Fade to menu music
       // Track death for campaign stats
-      incrementDeathCount();
+      useGameStatsStore.getState().incrementDeathCount();
       setHasPlayedSound(true);
     }
     // Focus restart button for accessibility
@@ -74,8 +63,35 @@ export function DeathScreen({
     onMainMenu();
   }, [onMainMenu, playClickSound]);
 
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        // Allow default button behavior
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        handleRestartMission();
+      }
+      if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        handleMainMenu();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRestartMission, handleMainMenu]);
+
   return (
-    <div className={styles.overlay} role="dialog" aria-labelledby="death-title" aria-modal="true">
+    <div
+      className={styles.overlay}
+      role="alertdialog"
+      aria-labelledby="death-title"
+      aria-describedby="death-reason"
+      aria-modal="true"
+    >
       {/* Scan line effect */}
       <div className={styles.scanLines} aria-hidden="true" />
 
@@ -100,7 +116,9 @@ export function DeathScreen({
         </h1>
 
         {/* Death reason */}
-        <p className={styles.deathReason}>{deathReason}</p>
+        <p id="death-reason" className={styles.deathReason}>
+          {deathReason}
+        </p>
 
         {/* Divider */}
         <div className={styles.divider} aria-hidden="true">
@@ -108,37 +126,39 @@ export function DeathScreen({
         </div>
 
         {/* Stats display */}
-        <div className={styles.statsContainer}>
+        <div className={styles.statsContainer} role="group" aria-label="Mission statistics">
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>HOSTILES ELIMINATED</span>
-            <span className={styles.statValue}>{kills}</span>
+            <span className={styles.statLabel} id="kills-label">
+              HOSTILES ELIMINATED
+            </span>
+            <span className={styles.statValue} aria-labelledby="kills-label">
+              {kills}
+            </span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>MISSION STATUS</span>
-            <span className={styles.statValue}>FAILED</span>
+            <span className={styles.statLabel} id="status-label">
+              MISSION STATUS
+            </span>
+            <span className={styles.statValue} aria-labelledby="status-label">
+              FAILED
+            </span>
           </div>
         </div>
 
         {/* Buttons */}
         <div className={styles.buttonGroup}>
-          <button
-            ref={restartButtonRef}
-            type="button"
-            className={`${styles.button} ${styles.primaryButton}`}
+          <MilitaryButton
+            variant="primary"
             onClick={handleRestartMission}
+            icon={<>&#8635;</>}
+            buttonRef={restartButtonRef}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">
-              ↻
-            </span>
             RESTART MISSION
-          </button>
+          </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleMainMenu}>
-            <span className={styles.buttonIcon} aria-hidden="true">
-              ◀
-            </span>
+          <MilitaryButton onClick={handleMainMenu} icon={<>&#9664;</>}>
             MAIN MENU
-          </button>
+          </MilitaryButton>
         </div>
 
         {/* Footer info */}

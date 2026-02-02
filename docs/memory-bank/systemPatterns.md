@@ -125,3 +125,230 @@ src/components/
     ├── TouchControls.tsx # Mobile input
     └── CommsDisplay.tsx  # Dialogue system
 ```
+
+### Asset Structure
+```
+public/assets/
+├── models/               # GLB 3D models
+├── textures/             # Texture files
+├── audio/                # Sound effects and music
+└── videos/
+    └── splash/           # Splash screen videos
+        ├── main_16x9.mp4
+        ├── main_9x16.mp4
+        └── manifest.json # Generation manifest
+```
+
+## GenAI Asset Generation
+
+### Manifest-Driven Generation
+Assets are generated via manifests that define generation parameters:
+```typescript
+// Example manifest structure
+{
+  "assets": [{
+    "name": "main",
+    "prompt": "...",
+    "aspectRatios": ["16:9", "9:16"],
+    "duration": 8,
+    "resolution": "1080p"
+  }]
+}
+```
+
+### Schema Validation
+- **GenerationManifestSchemas.ts**: Defines Zod schemas for generation manifests
+- **AssetManifestSchemas.ts**: Defines Zod schemas for asset metadata
+
+### Generation Flow
+1. Manifest parsed with Zod validation
+2. API calls to Gemini 3 Pro (images) or Veo 3.1 (videos)
+3. Assets saved alongside manifest
+4. VCR recordings saved for CI replay
+
+### VCR Testing with Polly.JS
+Deterministic CI testing via recorded API responses:
+- Records live API responses during development
+- Replays recordings in CI for deterministic tests
+- Avoids flaky tests and API rate limits
+
+## Rendering Safety Patterns
+
+### PBR Material Observer (Global Alpha=0 Fix)
+All levels inherit from BaseLevel, which adds a global material observer in its constructor:
+```typescript
+// BaseLevel constructor
+this.scene.onNewMaterialAddedObservable.add((material) => {
+  if ('metallic' in material && 'roughness' in material && material.alpha === 0) {
+    material.alpha = 1;
+    material.transparencyMode = 0; // OPAQUE
+  }
+});
+```
+**Why**: GLTF models with `baseColorFactor[3]=0` and `alphaMode:"MASK"` cause BabylonJS to set alpha=0, making all fragments invisible.
+
+### Static Shader Imports (Vite+pnpm Fix)
+BaseLevel statically imports all critical shader modules to prevent ShaderStore duplication:
+```typescript
+// Must be static imports, NOT dynamic
+import '@babylonjs/core/Materials/PBR/pbrMaterial';
+import '@babylonjs/core/Shaders/pbr.vertex';
+import '@babylonjs/core/Shaders/pbr.fragment';
+import '@babylonjs/core/Shaders/glowMapGeneration.vertex';
+import '@babylonjs/core/Shaders/glowMapGeneration.fragment';
+```
+**Why**: Vite+pnpm can resolve dynamic BabylonJS imports to a different module instance, causing shaders to register in the wrong `ShaderStore`.
+
+### Vite Shader Guard Plugin
+`vite.config.ts` includes `babylonShaderGuardPlugin()` that intercepts `.fragment`/`.vertex`/`.fx` HTTP requests and returns 404 instead of SPA fallback HTML.
+**Why**: Without this, BabylonJS tries to compile `index.html` as GLSL, causing "SHADER ERROR: '<' : syntax error".
+
+### CinematicSystem Lifecycle
+The cinematic system manages fade overlays and letterbox bars. Critical lifecycle rules:
+1. `completeSequence()` MUST hide both letterbox bars AND fadeOverlay
+2. All `setTimeout` calls MUST be tracked in `pendingTimeouts` for cleanup on dispose
+3. `dispose()` and `emergencyCleanup()` clear all pending timeouts
+
+### COOP/COEP Headers
+Only enabled in production mode. Dev mode omits them because:
+- Game doesn't use SharedArrayBuffer (no Havok physics WASM)
+- They block Chrome extension content scripts needed for testing
+
+## Difficulty System
+
+### DifficultySettings Pattern
+Centralized difficulty configuration with type-safe presets:
+```typescript
+type DifficultyLevel = 'easy' | 'normal' | 'hard' | 'nightmare' | 'ultra_nightmare';
+
+interface DifficultyModifiers {
+  enemyHealthMultiplier: number;
+  enemyDamageMultiplier: number;
+  playerDamageReceivedMultiplier: number;
+  playerHealthRegenMultiplier: number;
+  forcesPermadeath: boolean;
+  // ... more modifiers
+}
+```
+
+### ULTRA-NIGHTMARE Mode
+Extreme difficulty with forced permadeath:
+- 2.0x enemy health, 2.5x enemy damage
+- No health regeneration (0.0 multiplier)
+- One death ends entire campaign
+- 2.0x XP reward
+
+### Permadeath Toggle
+Optional permadeath mode for any difficulty:
+- Stored in localStorage (`stellar_descent_permadeath`)
+- +50% XP bonus when enabled
+- ULTRA-NIGHTMARE always forces permadeath
+
+### DifficultyManager Singleton
+```typescript
+const manager = getDifficultyManager();
+manager.getDifficulty();
+manager.setDifficulty('nightmare');
+manager.scaleHealth(100);  // Returns scaled enemy health
+manager.addListener((newDiff, oldDiff) => { /* react */ });
+```
+
+## Database Pattern
+
+### Platform-Aware SQLite
+Two implementations with unified interface:
+
+**CapacitorDatabase** (Native)
+- Uses @capacitor-community/sqlite
+- jeep-sqlite web component for web fallback
+- Supports encryption on native
+
+**WebSQLiteDatabase** (Web)
+- Uses sql.js (compiled SQLite)
+- IndexedDB backing for persistence
+- WASM loaded from `/assets/sql-wasm.js`
+
+### Singleton Initialization
+```typescript
+// Both databases use singleton init promise to prevent race conditions
+private static initPromise: Promise<void> | null = null;
+
+async init(): Promise<void> {
+  if (this.initialized) return;
+  if (CapacitorDatabase.initPromise) {
+    return CapacitorDatabase.initPromise;
+  }
+  CapacitorDatabase.initPromise = this.doInit();
+  // ...
+}
+```
+
+## Player Governor (Dev Mode)
+
+### Autonomous Player Control
+Uses Yuka AI for automated testing:
+```typescript
+const governor = getPlayerGovernor();
+governor.setPlayer(playerEntity);
+governor.setGoal({ type: 'navigate', target: position });
+governor.setGoal({ type: 'engage_enemies', aggressive: true });
+governor.setGoal({ type: 'complete_tutorial' });
+```
+
+### Goal Queue
+Goals can be queued for sequential execution:
+```typescript
+governor.queueGoal({ type: 'wait', duration: 2000 });
+governor.queueGoal({ type: 'advance_dialogue' });
+governor.queueGoal({ type: 'follow_objective' });
+```
+
+### DevMenu Integration
+Toggle "Player Governor (Unlock All)" enables `devMode.allLevelsUnlocked`
+
+## Leaderboard System
+
+### Local Leaderboards
+```
+src/game/social/
+├── LeaderboardSystem.ts   # Core leaderboard logic
+├── LeaderboardTypes.ts    # Type definitions
+└── index.ts
+```
+
+### Categories
+- **speedrun**: Lower time is better
+- **score**: Total performance score
+- **accuracy**: Shot accuracy percentage
+- **kills**: Total enemies killed
+
+### Query Pattern
+```typescript
+const results = await leaderboardSystem.getLeaderboard({
+  levelId: 'landfall',
+  type: 'speedrun',
+  difficulty: 'nightmare',
+  limit: 10,
+});
+```
+
+## Internationalization (i18n)
+
+### Translation System
+```typescript
+import { t, setLanguage } from '../i18n';
+
+// Use translations
+const text = t('menu.new_game');
+
+// Change language
+setLanguage('es');
+
+// React hook
+const { t, language } = useTranslation();
+```
+
+### Language Management
+- Supports multiple languages via `SUPPORTED_LANGUAGES`
+- Language stored in localStorage
+- React components re-render on language change via `onLanguageChange()`

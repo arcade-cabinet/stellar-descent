@@ -101,15 +101,11 @@ export const DEFAULT_TOUCH_SETTINGS: TouchControlSettings = {
  * Load touch control settings from localStorage
  */
 export function loadTouchSettings(): TouchControlSettings {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Merge with defaults to handle new properties
-      return { ...DEFAULT_TOUCH_SETTINGS, ...parsed };
-    }
-  } catch (e) {
-    console.warn('[TouchSettings] Failed to load settings:', e);
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    // Merge with defaults to handle new properties
+    return { ...DEFAULT_TOUCH_SETTINGS, ...parsed };
   }
   return { ...DEFAULT_TOUCH_SETTINGS };
 }
@@ -118,11 +114,7 @@ export function loadTouchSettings(): TouchControlSettings {
  * Save touch control settings to localStorage
  */
 export function saveTouchSettings(settings: TouchControlSettings): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('[TouchSettings] Failed to save settings:', e);
-  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 /**

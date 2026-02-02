@@ -20,13 +20,17 @@ import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
 import type { LevelId } from '../levels/types';
+import { getLogger } from './Logger';
+
+const log = getLogger('AssetPipeline');
+
 import {
   type AssetEntry,
   estimateTotalSizeKB,
   getAssetEntry,
   getNextLevelId,
   LEVEL_MANIFESTS,
-} from './AssetManifest';
+} from '../assets';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -173,7 +177,7 @@ export class AssetPipeline {
   async loadLevel(levelId: LevelId, onProgress?: ProgressCallback): Promise<void> {
     const manifest = LEVEL_MANIFESTS[levelId];
     if (!manifest) {
-      console.warn(`[AssetPipeline] No manifest for level: ${levelId}`);
+      log.warn(`No manifest for level: ${levelId}`);
       return;
     }
 
@@ -224,12 +228,12 @@ export class AssetPipeline {
     // Phase 3: LOW -- fire and forget (but still tracked in cache)
     this.batchStage = 'LOADING DEFERRED';
     this.loadBand(manifest.deferred, 'low', levelId).catch((err) => {
-      console.warn('[AssetPipeline] Deferred load error:', err);
+      throw new Error(`Deferred load error: ${err}`);
     });
 
     this.progressCb = null;
-    console.log(
-      `[AssetPipeline] Level ${levelId}: ${totalToLoad} assets loaded, ` +
+    log.info(
+      `Level ${levelId}: ${totalToLoad} assets loaded, ` +
         `${uniqueIds.length - totalToLoad} from cache`
     );
   }
@@ -252,7 +256,7 @@ export class AssetPipeline {
     this.prefetchAbort = new AbortController();
     this.isPrefetching = true;
 
-    console.log(`[AssetPipeline] Prefetching assets for next level: ${nextId}`);
+    log.info(`Prefetching assets for next level: ${nextId}`);
 
     // Load only required + preload at LOW priority
     const ids = [...manifest.required, ...manifest.preload];
@@ -260,12 +264,12 @@ export class AssetPipeline {
 
     try {
       await this.loadBand(toLoad, 'low', nextId, this.prefetchAbort.signal);
-      console.log(`[AssetPipeline] Prefetch complete for ${nextId}`);
+      log.info(`Prefetch complete for ${nextId}`);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
-        console.log(`[AssetPipeline] Prefetch cancelled for ${nextId}`);
+        log.info(`Prefetch cancelled for ${nextId}`);
       } else {
-        console.warn(`[AssetPipeline] Prefetch error for ${nextId}:`, err);
+        throw err;
       }
     } finally {
       this.isPrefetching = false;
@@ -299,8 +303,8 @@ export class AssetPipeline {
       this.disposeAsset(id);
     }
 
-    console.log(
-      `[AssetPipeline] Unloaded level ${levelId}: removed ${toRemove.length} assets, ` +
+    log.info(
+      `Unloaded level ${levelId}: removed ${toRemove.length} assets, ` +
         `${this.cache.size} remain in cache`
     );
   }
@@ -353,8 +357,8 @@ export class AssetPipeline {
       this.disposeAsset(id);
     }
 
-    console.log(
-      `[AssetPipeline] Memory budget enforced: ${(this.currentMemoryKB / 1024).toFixed(1)}MB / ${(this.memoryBudgetKB / 1024).toFixed(1)}MB`
+    log.info(
+      `Memory budget enforced: ${(this.currentMemoryKB / 1024).toFixed(1)}MB / ${(this.memoryBudgetKB / 1024).toFixed(1)}MB`
     );
   }
 
@@ -432,7 +436,7 @@ export class AssetPipeline {
    */
   private async loadBand(
     assetIds: string[],
-    priority: AssetPriority,
+    _priority: AssetPriority,
     levelId: LevelId,
     signal?: AbortSignal
   ): Promise<void> {
@@ -452,7 +456,7 @@ export class AssetPipeline {
 
       const entry = getAssetEntry(id);
       if (!entry) {
-        console.warn(`[AssetPipeline] Unknown asset id: ${id}`);
+        log.warn(`Unknown asset id: ${id}`);
         continue;
       }
 
@@ -556,11 +560,11 @@ export class AssetPipeline {
         case 'data':
           return await this.loadData(entry, levelId);
         default:
-          console.warn(`[AssetPipeline] Unsupported category: ${entry.category}`);
+          log.warn(`Unsupported category: ${entry.category}`);
           return null;
       }
     } catch (err) {
-      console.error(`[AssetPipeline] Failed to load ${entry.id} (${entry.path}):`, err);
+      log.error(`Failed to load ${entry.id} (${entry.path}):`, err);
       return null;
     }
   }
@@ -574,7 +578,7 @@ export class AssetPipeline {
     levelId: LevelId
   ): Promise<CachedPipelineAsset | null> {
     if (!this.scene) {
-      console.error('[AssetPipeline] No scene bound');
+      log.error('No scene bound');
       return null;
     }
 
@@ -612,9 +616,7 @@ export class AssetPipeline {
     this.currentMemoryKB += memoryCostKB;
 
     const elapsed = (performance.now() - startTime).toFixed(0);
-    console.log(
-      `[AssetPipeline] Loaded model: ${entry.id} (${result.meshes.length} meshes, ${elapsed}ms)`
-    );
+    log.info(`Loaded model: ${entry.id} (${result.meshes.length} meshes, ${elapsed}ms)`);
 
     // Check budget after every load
     this.enforceMemoryBudget();
@@ -631,7 +633,7 @@ export class AssetPipeline {
     levelId: LevelId
   ): Promise<CachedPipelineAsset | null> {
     if (!this.scene) {
-      console.error('[AssetPipeline] No scene bound');
+      log.error('No scene bound');
       return null;
     }
 
@@ -668,7 +670,7 @@ export class AssetPipeline {
     this.cache.set(entry.id, cachedAsset);
     this.currentMemoryKB += memoryCostKB;
 
-    console.log(`[AssetPipeline] Loaded texture: ${entry.id}`);
+    log.info(`Loaded texture: ${entry.id}`);
     return cachedAsset;
   }
 
@@ -710,7 +712,7 @@ export class AssetPipeline {
     this.cache.set(entry.id, cachedAsset);
     this.currentMemoryKB += memoryCostKB;
 
-    console.log(`[AssetPipeline] Loaded data: ${entry.id}`);
+    log.info(`Loaded data: ${entry.id}`);
     return cachedAsset;
   }
 

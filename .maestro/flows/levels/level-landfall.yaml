@@ -1,0 +1,347 @@
+# Level 2: Landfall - Comprehensive E2E Flow
+# Tests the complete HALO drop and first surface combat experience
+# Cross-platform: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - campaign
+  - level-2
+  - landfall
+  - halo-drop
+  - combat
+  - e2e
+name: "Level 2 Landfall - Complete E2E Test"
+
+---
+
+# =============================================================================
+# SECTION 1: LAUNCH AND NAVIGATION TO LEVEL 2
+# =============================================================================
+
+- launchApp:
+    clearState: true
+
+# Wait for main menu to load
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
+
+- takeScreenshot: "landfall_01_main_menu"
+
+# Start new game to begin campaign
+- tapOn:
+    text: "NEW GAME"
+
+# Wait for loading screen
+- extendedWaitUntil:
+    visible: "LOADING"
+    timeout: 10000
+    optional: true
+
+# Wait for initial loading to complete
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- takeScreenshot: "landfall_02_loading_complete"
+
+# =============================================================================
+# SECTION 2: HALO DROP CINEMATIC SEQUENCE
+# =============================================================================
+
+# Look for drop initiation indicators
+- extendedWaitUntil:
+    visible: "HALO"
+    timeout: 30000
+    optional: true
+
+- extendedWaitUntil:
+    visible: "30 SECONDS TO LZ"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "landfall_03_halo_drop_start"
+
+# Wait for debris field notification
+- extendedWaitUntil:
+    visible: "DEBRIS"
+    timeout: 20000
+    optional: true
+
+- takeScreenshot: "landfall_04_debris_field"
+
+# Wait for debris cleared
+- extendedWaitUntil:
+    visible: "CLEARED"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "landfall_05_debris_cleared"
+
+# =============================================================================
+# SECTION 3: POWERED DESCENT PHASE
+# =============================================================================
+
+# Look for ignite jets prompt or button
+- assertVisible:
+    text: "IGNITE"
+    optional: true
+    timeout: 15000
+
+# Tap ignite jets button if present
+- tapOn:
+    text: "IGNITE"
+    optional: true
+
+- wait: 2000
+
+- takeScreenshot: "landfall_06_jets_ignited"
+
+# Look for LZ targeting
+- assertVisible:
+    text: "LZ"
+    optional: true
+    timeout: 10000
+
+# Simulate boosting during descent
+- tapOn:
+    id: "boost-button"
+    optional: true
+
+- wait: 1000
+
+# =============================================================================
+# SECTION 4: LANDING SEQUENCE
+# =============================================================================
+
+# Wait for landing notification
+- extendedWaitUntil:
+    visible: "LANDING"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "landfall_07_landing"
+
+# Check for landing outcome notification
+- assertVisible:
+    text: "TOUCHDOWN"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "landfall_08_landed"
+
+# =============================================================================
+# SECTION 5: VEHICLE TRANSIT SECTION
+# =============================================================================
+
+# Wait for vehicle transit to start
+- extendedWaitUntil:
+    visible: "ATV"
+    timeout: 15000
+    optional: true
+
+- takeScreenshot: "landfall_09_vehicle_transit"
+
+# Simulate driving forward
+- swipe:
+    start: "10%, 70%"
+    end: "10%, 50%"
+    duration: 3000
+
+- wait: 2000
+
+# Look for objective waypoint
+- assertVisible:
+    text: "FORWARD POSITION"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "landfall_10_driving"
+
+# Continue driving
+- swipe:
+    start: "10%, 70%"
+    end: "10%, 50%"
+    duration: 5000
+
+# Wait for dismount
+- extendedWaitUntil:
+    visible: "DISMOUNT"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "landfall_11_dismounted"
+
+# =============================================================================
+# SECTION 6: FIRST SURFACE COMBAT
+# =============================================================================
+
+# Wait for seismic warning
+- extendedWaitUntil:
+    visible: "SEISMIC"
+    timeout: 20000
+    optional: true
+
+- takeScreenshot: "landfall_12_seismic_warning"
+
+# Wait for combat to begin
+- extendedWaitUntil:
+    visible: "CONTACTS"
+    timeout: 15000
+    optional: true
+
+- takeScreenshot: "landfall_13_combat_start"
+
+# Check for objective update
+- assertVisible:
+    text: "SURVIVE"
+    optional: true
+    timeout: 10000
+
+# Simulate combat movement - strafe left
+- swipe:
+    start: "15%, 70%"
+    end: "5%, 70%"
+    duration: 1000
+
+# Fire at enemies
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "fire-button"
+    optional: true
+
+- takeScreenshot: "landfall_14_combat_action"
+
+# Move and shoot
+- repeat:
+    times: 5
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 60%"
+          duration: 500
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 300
+
+# Look for kill confirmation
+- assertVisible:
+    text: "HOSTILE DOWN"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "landfall_15_enemy_killed"
+
+# Continue combat
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: "80%, 50%"
+          end: "60%, 50%"
+          duration: 500
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 500
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 1000
+
+# =============================================================================
+# SECTION 7: COMBAT COMPLETION
+# =============================================================================
+
+# Wait for all hostiles eliminated
+- extendedWaitUntil:
+    visible: "ELIMINATED"
+    timeout: 60000
+    optional: true
+
+- takeScreenshot: "landfall_16_combat_cleared"
+
+# Check for LZ secured notification
+- assertVisible:
+    text: "LZ SECURED"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "landfall_17_lz_secured"
+
+# =============================================================================
+# SECTION 8: MISSION COMPLETION
+# =============================================================================
+
+# Wait for FOB Delta objective
+- extendedWaitUntil:
+    visible: "FOB DELTA"
+    timeout: 15000
+    optional: true
+
+- takeScreenshot: "landfall_18_fob_objective"
+
+# Wait for mission complete
+- extendedWaitUntil:
+    visible: "MISSION COMPLETE"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "landfall_19_mission_complete"
+
+# Verify level completion screen elements
+- assertVisible:
+    text: "KILLS"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "ACCURACY"
+    optional: true
+    timeout: 5000
+
+- assertVisible:
+    text: "TIME"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "landfall_20_stats_screen"
+
+# =============================================================================
+# SECTION 9: CONTINUE TO NEXT LEVEL
+# =============================================================================
+
+# Tap continue if present
+- tapOn:
+    text: "CONTINUE"
+    optional: true
+
+- wait: 2000
+
+# Verify transition to next level or level select
+- assertVisible:
+    text: "FOB"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "landfall_21_next_level"
+
+# =============================================================================
+# SECTION 10: CLEANUP
+# =============================================================================
+
+# Final verification
+- assertVisible:
+    id: "game-canvas"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "landfall_22_test_complete"

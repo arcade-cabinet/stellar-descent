@@ -1,0 +1,40 @@
+# HALO Drop (skip tutorial) tests
+# Works on: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - gameplay
+name: "HALO Drop - Skip Tutorial"
+
+---
+
+- launchApp
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
+
+# Select NEW GAME
+- tapOn:
+    text: "NEW GAME"
+
+# Should see loading
+- extendedWaitUntil:
+    visible: "ANCHOR STATION PROMETHEUS"
+    timeout: 10000
+
+# Wait for loading to complete
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+- takeScreenshot: "halo-drop-loading-complete"
+
+# Should see orbital drop notification
+- extendedWaitUntil:
+    visible: "ORBITAL DROP INITIATED"
+    timeout: 30000
+
+- takeScreenshot: "halo-drop-initiated"

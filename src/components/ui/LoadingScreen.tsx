@@ -57,11 +57,15 @@ const LEVEL_BACKGROUNDS: Record<LevelType, string> = {
   base: 'linear-gradient(180deg, #050a08 0%, #0a1410 50%, #050505 100%)',
   brothers: 'linear-gradient(180deg, #1a1005 0%, #2d2010 50%, #0a0805 100%)',
   hive: 'linear-gradient(180deg, #0a0510 0%, #150a18 50%, #050308 100%)',
+  boss: 'linear-gradient(180deg, #150510 0%, #200a15 50%, #0a0308 100%)', // Queen boss fight
   extraction: 'linear-gradient(180deg, #1a0a00 0%, #2d1a08 50%, #0a0500 100%)',
   vehicle: 'linear-gradient(180deg, #1a0a05 0%, #2d1810 50%, #0a0505 100%)',
   ice: 'linear-gradient(180deg, #050a14 0%, #0a1828 50%, #050810 100%)',
+  assault: 'linear-gradient(180deg, #0a0510 0%, #1a0a18 50%, #050308 100%)', // Combined arms assault
   combined_arms: 'linear-gradient(180deg, #0a0510 0%, #1a0a18 50%, #050308 100%)',
+  escape: 'linear-gradient(180deg, #1a0500 0%, #2d0a08 50%, #0a0200 100%)', // Timed escape
   finale: 'linear-gradient(180deg, #1a0500 0%, #2d0a08 50%, #0a0200 100%)',
+  mine: 'linear-gradient(180deg, #0a0808 0%, #141210 50%, #0a0808 100%)',
 };
 
 // ASCII environment art for atmospheric display
@@ -187,6 +191,34 @@ const LEVEL_ART: Record<LevelType, string[]> = {
     '          SOUTHERN POLAR REGION',
     '          Temperature: -62C',
   ],
+  boss: [
+    '        ╔════════════════════════════════════╗',
+    '        ║   !! CHITIN QUEEN DETECTED !!      ║',
+    '        ╚════════════════════════════════════╝',
+    '              \\\\\\\\    ////     \\\\\\\\    ////',
+    '               \\\\\\\\  ////       \\\\\\\\  ////',
+    '                \\\\\\\\//// ◊◊◊◊◊ \\\\\\\\////',
+    '                 ||  [QUEEN]  ||',
+    '                ////\\\\\\\\     ////\\\\\\\\',
+    '               ////  \\\\\\\\   ////  \\\\\\\\',
+    '',
+    '          THREAT LEVEL: EXTREME',
+    '          ENGAGING BOSS ENCOUNTER',
+  ],
+  assault: [
+    '        ╔════════════════════════════════════╗',
+    '        ║   ~~ COMBINED ARMS ASSAULT ~~     ║',
+    '        ╚════════════════════════════════════╝',
+    '    ▄▄▄▄▄▄▄     ┌─────┐     ▄▄▄▄▄▄▄',
+    '   ██ TITAN██   │SQUAD │   ██ TITAN██',
+    '    ▀▀▀▀▀▀▀     └─────┘    ▀▀▀▀▀▀▀',
+    '          \\\\       ||       //',
+    '           \\\\      ||      //',
+    '            \\\\=====||=====//',
+    '',
+    '          ALL UNITS ADVANCE',
+    '          TARGET: HIVE CORE',
+  ],
   combined_arms: [
     '        ╔════════════════════════════════════╗',
     '        ║   ~~ COMBINED ARMS ASSAULT ~~     ║',
@@ -201,6 +233,20 @@ const LEVEL_ART: Record<LevelType, string[]> = {
     '          ALL UNITS ADVANCE',
     '          TARGET: HIVE CORE',
   ],
+  escape: [
+    '    ████████████████████████████████████',
+    '    ██ !! TIMED ESCAPE SEQUENCE !!    ██',
+    '    ████████████████████████████████████',
+    '         \\\\   //      \\\\   //',
+    '          \\\\ //        \\\\ //',
+    '     ┌───┐ XX    ┌───┐  XX',
+    '     │LRV│ //\\\\  │LRV│ //\\\\',
+    '     └─┬─┘//  \\\\└─┬─┘//  \\\\',
+    '       ════════════════════',
+    '',
+    '      OUTRUN THE COLLAPSE',
+    '      TIME REMAINING: ???',
+  ],
   finale: [
     '    ████████████████████████████████████',
     '    ██ !! PLANETARY COLLAPSE !!       ██',
@@ -214,6 +260,20 @@ const LEVEL_ART: Record<LevelType, string[]> = {
     '',
     '      OUTRUN THE COLLAPSE',
     '      TIME REMAINING: ???',
+  ],
+  mine: [
+    '            ╔════════════════════╗',
+    '            ║  MINING DEPTHS     ║',
+    '            ╚════════╤═══════════╝',
+    '                ┌────┴────┐',
+    '                │ SHAFT-7 │',
+    '                └────┬────┘',
+    '            ═════════╧═════════',
+    '            ////////////////////',
+    '            ░░░░░░░░░░░░░░░░░░░',
+    '',
+    '      UNDERGROUND MINING FACILITY',
+    '      DEPTH: CLASSIFIED',
   ],
 };
 
@@ -438,8 +498,11 @@ export function LoadingScreen({
     <div
       className={`${styles.overlay} ${fadeClass}`}
       style={backgroundStyle}
-      role="dialog"
-      aria-label="Loading"
+      role="progressbar"
+      aria-label={`Loading ${levelConfig?.missionName || 'mission'}: ${Math.round(displayProgress.progress)}% complete`}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(displayProgress.progress)}
       aria-busy={displayProgress.progress < 100}
     >
       {/* Atmospheric effects layer */}
@@ -541,16 +604,18 @@ export function LoadingScreen({
         </div>
 
         {/* Tips section */}
-        <div className={styles.tipsSection}>
-          <div className={styles.tipsDivider}>
+        <div className={styles.tipsSection} role="status" aria-live="polite">
+          <div className={styles.tipsDivider} aria-hidden="true">
             <div className={styles.tipsLine} />
             <span className={styles.tipsLabel}>COMBAT ADVISORY</span>
             <div className={styles.tipsLine} />
           </div>
 
           <div className={`${styles.tipContainer} ${tipFading ? styles.tipFading : ''}`}>
-            <span className={styles.tipCategory}>[{currentTip.category}]</span>
-            <p className={styles.tipText}>
+            <span className={styles.tipCategory} aria-hidden="true">
+              [{currentTip.category}]
+            </span>
+            <p className={styles.tipText} aria-label={`Tip: ${currentTip.tip}`}>
               {typedTipText}
               <span className={styles.cursor} aria-hidden="true">
                 _

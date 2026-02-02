@@ -588,19 +588,539 @@ export class WeaponSoundManager {
   // UNIFIED FIRE SOUND
   // ============================================================================
 
+  // ============================================================================
+  // PISTOL SOUNDS
+  // ============================================================================
+
+  /**
+   * Pistol fire - Sharp attack, quick decay, mid-frequency
+   * Compact, punchy sound for sidearms
+   */
+  playPistolFire(volume = 0.45, distance = 0): void {
+    if (this.isMuted) return;
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+    const variation = this.getNextVariation('sidearm');
+    const pitch = this.getPitchVariation(0.06);
+    const vol = this.applyDistanceFalloff(volume, distance);
+
+    const freqOffset = [0, 50, -40, 70][variation];
+
+    // Sharp transient crack
+    const crack = ctx.createOscillator();
+    crack.type = 'sawtooth';
+    crack.frequency.setValueAtTime((1800 + freqOffset) * pitch, now);
+    crack.frequency.exponentialRampToValueAtTime(400, now + 0.02);
+
+    // Mid-range body punch
+    const body = ctx.createOscillator();
+    body.type = 'sine';
+    body.frequency.setValueAtTime((350 + variation * 20) * pitch, now);
+    body.frequency.exponentialRampToValueAtTime(120, now + 0.06);
+
+    // Quick noise burst
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.value = 2500 + variation * 300;
+    noiseFilter.Q.value = 2;
+
+    // Tight envelopes for snappy feel
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(vol * 0.7, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.025);
+
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(vol * 0.6, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(vol * 0.35, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+
+    // Connect
+    crack.connect(crackGain);
+    crackGain.connect(this.dryGain!);
+    crackGain.connect(this.reverbNode!);
+
+    body.connect(bodyGain);
+    bodyGain.connect(this.dryGain!);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.dryGain!);
+
+    // Play
+    crack.start(now);
+    crack.stop(now + 0.035);
+    body.start(now);
+    body.stop(now + 0.08);
+    noise.start(now);
+    noise.stop(now + 0.045);
+  }
+
+  // ============================================================================
+  // SHOTGUN SOUNDS
+  // ============================================================================
+
+  /**
+   * Shotgun fire - Low boom with wide spread noise
+   * Massive, punchy blast with satisfying bass thump
+   */
+  playShotgunFire(volume = 0.6, distance = 0): void {
+    if (this.isMuted) return;
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+    const variation = this.getNextVariation('auto_shotgun');
+    const pitch = this.getPitchVariation(0.03);
+    const vol = this.applyDistanceFalloff(volume, distance);
+
+    // Deep bass thump - the "boom"
+    const boom = ctx.createOscillator();
+    boom.type = 'sine';
+    boom.frequency.setValueAtTime((120 + variation * 10) * pitch, now);
+    boom.frequency.exponentialRampToValueAtTime(35, now + 0.2);
+
+    // Sub-bass rumble
+    const subBass = ctx.createOscillator();
+    subBass.type = 'sine';
+    subBass.frequency.setValueAtTime(60, now);
+    subBass.frequency.exponentialRampToValueAtTime(25, now + 0.25);
+
+    // Wide spread crack/snap
+    const crack = ctx.createOscillator();
+    crack.type = 'sawtooth';
+    crack.frequency.setValueAtTime((1500 + variation * 200) * pitch, now);
+    crack.frequency.exponentialRampToValueAtTime(300, now + 0.04);
+
+    // Broad noise burst for spread feel
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    // Low-pass filter for chunky noise
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(4000, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+
+    // Compression for punch
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -15;
+    compressor.knee.value = 5;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.001;
+    compressor.release.value = 0.05;
+
+    // Envelopes
+    const boomGain = ctx.createGain();
+    boomGain.gain.setValueAtTime(vol * 0.9, now);
+    boomGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(vol * 0.7, now);
+    subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(vol * 0.65, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(vol * 0.5, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+    // Connect through compressor
+    boom.connect(boomGain);
+    boomGain.connect(compressor);
+
+    subBass.connect(subGain);
+    subGain.connect(compressor);
+
+    crack.connect(crackGain);
+    crackGain.connect(compressor);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(compressor);
+
+    compressor.connect(this.dryGain!);
+    compressor.connect(this.reverbNode!);
+
+    // Play
+    boom.start(now);
+    boom.stop(now + 0.3);
+    subBass.start(now);
+    subBass.stop(now + 0.35);
+    crack.start(now);
+    crack.stop(now + 0.06);
+    noise.start(now);
+    noise.stop(now + 0.15);
+  }
+
+  // ============================================================================
+  // SNIPER RIFLE SOUNDS
+  // ============================================================================
+
+  /**
+   * Sniper fire - Deep thud with long tail
+   * Heavy, precise sound with satisfying crack and long echo
+   */
+  playSniperFire(volume = 0.55, distance = 0): void {
+    if (this.isMuted) return;
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+    const variation = this.getNextVariation('sniper_rifle');
+    const pitch = this.getPitchVariation(0.02);
+    const vol = this.applyDistanceFalloff(volume, distance);
+
+    // Deep bass thud
+    const thud = ctx.createOscillator();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime((90 + variation * 8) * pitch, now);
+    thud.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+
+    // Sharp supersonic crack
+    const crack = ctx.createOscillator();
+    crack.type = 'sawtooth';
+    crack.frequency.setValueAtTime((2500 + variation * 300) * pitch, now);
+    crack.frequency.exponentialRampToValueAtTime(500, now + 0.03);
+
+    // High-frequency whip crack
+    const whip = ctx.createOscillator();
+    whip.type = 'square';
+    whip.frequency.setValueAtTime(4000, now);
+    whip.frequency.exponentialRampToValueAtTime(1000, now + 0.015);
+
+    // Mechanical action sound
+    const action = ctx.createOscillator();
+    action.type = 'triangle';
+    action.frequency.setValueAtTime(600, now + 0.02);
+    action.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+
+    // Long tail noise for echo
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.4, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(2000, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+    noiseFilter.Q.value = 1.5;
+
+    // Envelopes
+    const thudGain = ctx.createGain();
+    thudGain.gain.setValueAtTime(vol * 0.85, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(vol * 0.7, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+
+    const whipGain = ctx.createGain();
+    whipGain.gain.setValueAtTime(vol * 0.4, now);
+    whipGain.gain.exponentialRampToValueAtTime(0.01, now + 0.02);
+
+    const actionGain = ctx.createGain();
+    actionGain.gain.setValueAtTime(vol * 0.25, now + 0.02);
+    actionGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(vol * 0.35, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+    // Connect
+    thud.connect(thudGain);
+    thudGain.connect(this.dryGain!);
+    thudGain.connect(this.reverbNode!);
+
+    crack.connect(crackGain);
+    crackGain.connect(this.dryGain!);
+    crackGain.connect(this.reverbNode!);
+
+    whip.connect(whipGain);
+    whipGain.connect(this.dryGain!);
+
+    action.connect(actionGain);
+    actionGain.connect(this.dryGain!);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.reverbNode!);
+
+    // Play
+    thud.start(now);
+    thud.stop(now + 0.45);
+    crack.start(now);
+    crack.stop(now + 0.05);
+    whip.start(now);
+    whip.stop(now + 0.025);
+    action.start(now + 0.02);
+    action.stop(now + 0.12);
+    noise.start(now);
+    noise.stop(now + 0.4);
+  }
+
+  // ============================================================================
+  // ROCKET LAUNCHER SOUNDS
+  // ============================================================================
+
+  /**
+   * Rocket launcher fire - Low rumble building to whoosh
+   * Powerful launch sound with trailing thrust
+   */
+  playRocketFire(volume = 0.6, distance = 0): void {
+    if (this.isMuted) return;
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+    const pitch = this.getPitchVariation(0.02);
+    const vol = this.applyDistanceFalloff(volume, distance);
+
+    // Initial launch thump
+    const launch = ctx.createOscillator();
+    launch.type = 'sine';
+    launch.frequency.setValueAtTime(150 * pitch, now);
+    launch.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+
+    // Whoosh/thrust sound - rising frequency
+    const whoosh = ctx.createOscillator();
+    whoosh.type = 'sawtooth';
+    whoosh.frequency.setValueAtTime(100, now);
+    whoosh.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+
+    const whooshFilter = ctx.createBiquadFilter();
+    whooshFilter.type = 'lowpass';
+    whooshFilter.frequency.setValueAtTime(300, now);
+    whooshFilter.frequency.exponentialRampToValueAtTime(1500, now + 0.25);
+
+    // Rocket motor hiss
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(1000, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(3000, now + 0.3);
+    noiseFilter.Q.value = 2;
+
+    // Mechanical clunk (tube launch)
+    const clunk = ctx.createOscillator();
+    clunk.type = 'triangle';
+    clunk.frequency.setValueAtTime(300, now);
+    clunk.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+
+    // Envelopes
+    const launchGain = ctx.createGain();
+    launchGain.gain.setValueAtTime(vol * 0.8, now);
+    launchGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+    const whooshGain = ctx.createGain();
+    whooshGain.gain.setValueAtTime(0, now);
+    whooshGain.gain.linearRampToValueAtTime(vol * 0.5, now + 0.05);
+    whooshGain.gain.setValueAtTime(vol * 0.45, now + 0.25);
+    whooshGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0, now);
+    noiseGain.gain.linearRampToValueAtTime(vol * 0.4, now + 0.05);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+    const clunkGain = ctx.createGain();
+    clunkGain.gain.setValueAtTime(vol * 0.5, now);
+    clunkGain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+
+    // Connect
+    launch.connect(launchGain);
+    launchGain.connect(this.dryGain!);
+    launchGain.connect(this.reverbNode!);
+
+    whoosh.connect(whooshFilter);
+    whooshFilter.connect(whooshGain);
+    whooshGain.connect(this.dryGain!);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.dryGain!);
+
+    clunk.connect(clunkGain);
+    clunkGain.connect(this.dryGain!);
+
+    // Play
+    launch.start(now);
+    launch.stop(now + 0.25);
+    whoosh.start(now);
+    whoosh.stop(now + 0.45);
+    noise.start(now);
+    noise.stop(now + 0.5);
+    clunk.start(now);
+    clunk.stop(now + 0.08);
+  }
+
+  /**
+   * Rocket explosion sound - Massive boom for impact
+   */
+  playRocketExplosion(volume = 0.7, distance = 0): void {
+    if (this.isMuted) return;
+    const ctx = this.getContext();
+    const now = ctx.currentTime;
+    const vol = this.applyDistanceFalloff(volume, distance);
+
+    // Deep bass explosion
+    const bass = ctx.createOscillator();
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(80, now);
+    bass.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+
+    // Sub-bass rumble
+    const subBass = ctx.createOscillator();
+    subBass.type = 'sine';
+    subBass.frequency.value = 30;
+
+    // Mid-range punch
+    const mid = ctx.createOscillator();
+    mid.type = 'sawtooth';
+    mid.frequency.setValueAtTime(200, now);
+    mid.frequency.exponentialRampToValueAtTime(60, now + 0.3);
+
+    // Debris noise
+    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.7, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(5000, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(300, now + 0.6);
+
+    // Distortion for crunch
+    const distortion = ctx.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) {
+      const x = i / 128 - 1;
+      curve[i] = Math.tanh(x * 3);
+    }
+    distortion.curve = curve;
+
+    // Envelopes
+    const bassGain = ctx.createGain();
+    bassGain.gain.setValueAtTime(vol, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(vol * 0.8, now);
+    subGain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+
+    const midGain = ctx.createGain();
+    midGain.gain.setValueAtTime(vol * 0.6, now);
+    midGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(vol * 0.7, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+
+    // Connect
+    bass.connect(distortion);
+    distortion.connect(bassGain);
+    bassGain.connect(this.dryGain!);
+    bassGain.connect(this.reverbNode!);
+
+    subBass.connect(subGain);
+    subGain.connect(this.dryGain!);
+
+    mid.connect(midGain);
+    midGain.connect(this.dryGain!);
+    midGain.connect(this.reverbNode!);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.dryGain!);
+    noiseGain.connect(this.reverbNode!);
+
+    // Play
+    bass.start(now);
+    bass.stop(now + 0.7);
+    subBass.start(now);
+    subBass.stop(now + 0.75);
+    mid.start(now);
+    mid.stop(now + 0.45);
+    noise.start(now);
+    noise.stop(now + 0.7);
+  }
+
   /**
    * Play fire sound for specified weapon
    */
   playWeaponFire(weaponId: WeaponId, volume = 0.5, distance = 0): void {
     switch (weaponId) {
+      // Rifles - full auto / burst
       case 'assault_rifle':
+      case 'battle_rifle':
+      case 'carbine':
+      case 'heavy_lmg':
+      case 'saw_lmg':
         this.playAssaultRifleFire(volume, distance);
         break;
+
+      // Precision rifles
+      case 'dmr':
+      case 'sniper_rifle':
+        this.playSniperFire(volume, distance);
+        break;
+
+      // SMGs - rapid fire
       case 'pulse_smg':
+      case 'pdw':
+      case 'smg_mp5':
+      case 'smg_ump':
         this.playSMGFire(volume, distance);
         break;
+
+      // Pistols - sharp, quick
+      case 'sidearm':
+      case 'heavy_pistol':
+      case 'classic_pistol':
+      case 'revolver':
+        this.playPistolFire(volume, distance);
+        break;
+
+      // Shotguns - boomy
+      case 'auto_shotgun':
+      case 'double_barrel':
+        this.playShotgunFire(volume, distance);
+        break;
+
+      // Energy weapons
       case 'plasma_cannon':
         this.playPlasmaCannonFire(volume, distance);
+        break;
+
+      // Default to assault rifle
+      default:
+        this.playAssaultRifleFire(volume, distance);
         break;
     }
   }
@@ -712,13 +1232,31 @@ export class WeaponSoundManager {
   playWeaponReload(weaponId: WeaponId, volume = 0.4): void {
     switch (weaponId) {
       case 'assault_rifle':
+      case 'battle_rifle':
+      case 'carbine':
+      case 'dmr':
+      case 'sniper_rifle':
+      case 'heavy_lmg':
+      case 'saw_lmg':
+      case 'auto_shotgun':
+      case 'double_barrel':
         this.playAssaultRifleReload(volume);
         break;
       case 'pulse_smg':
+      case 'pdw':
+      case 'smg_mp5':
+      case 'smg_ump':
+      case 'sidearm':
+      case 'heavy_pistol':
+      case 'classic_pistol':
+      case 'revolver':
         this.playSMGReload(volume);
         break;
       case 'plasma_cannon':
         this.playPlasmaCannonReload(volume);
+        break;
+      default:
+        this.playAssaultRifleReload(volume);
         break;
     }
   }
@@ -726,7 +1264,7 @@ export class WeaponSoundManager {
   /**
    * Play reload start sound (beginning of reload animation)
    */
-  playReloadStart(weaponId: WeaponId, volume = 0.3): void {
+  playReloadStart(_weaponId: WeaponId, volume = 0.3): void {
     if (this.isMuted) return;
     const ctx = this.getContext();
     const now = ctx.currentTime;
@@ -1066,13 +1604,31 @@ export class WeaponSoundManager {
 
     switch (weaponId) {
       case 'assault_rifle':
+      case 'battle_rifle':
+      case 'carbine':
+      case 'dmr':
+      case 'sniper_rifle':
+      case 'heavy_lmg':
+      case 'saw_lmg':
+      case 'auto_shotgun':
+      case 'double_barrel':
         this.playAssaultRifleEquip(vol, now);
         break;
       case 'pulse_smg':
+      case 'pdw':
+      case 'smg_mp5':
+      case 'smg_ump':
+      case 'sidearm':
+      case 'heavy_pistol':
+      case 'classic_pistol':
+      case 'revolver':
         this.playSMGEquip(vol, now);
         break;
       case 'plasma_cannon':
         this.playPlasmaCannonEquip(vol, now);
+        break;
+      default:
+        this.playAssaultRifleEquip(vol, now);
         break;
     }
   }

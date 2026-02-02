@@ -153,8 +153,8 @@ yarn.lock
 .netlify
 
 # Capacitor native projects (regenerated from web build)
-ios/
-android/
+/ios/
+/android/
 
 # Maestro test artifacts (keep flows and config)
 .maestro/screenshots/
@@ -163,3 +163,6 @@ android/
 
 # Vite PWA dev service worker output
 dev-dist/
+
+# Vite dependency cache
+.vite/

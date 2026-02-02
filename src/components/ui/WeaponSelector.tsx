@@ -8,7 +8,7 @@
  * - Click to switch
  */
 
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useWeaponOptional } from '../../game/context/WeaponContext';
 import { getWeapon, WEAPON_SLOTS } from '../../game/entities/weapons';
 import styles from './WeaponSelector.module.css';

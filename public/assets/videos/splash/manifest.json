@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../../src/game/ai/schemas/GenerationManifestSchemas.ts#SplashManifestSchema",
+  "schemaVersion": "1.0.0",
+  "description": "Splash/title screen video generation manifest - Stellar Descent",
+  "updatedAt": "2026-01-31T14:15:00.000Z",
+
+  "assets": [
+    {
+      "id": "splash_main_16x9",
+      "prompt": "An intense cinematic splash screen for a military sci-fi shooter set on Proxima Centauri b. A lone drop marine in worn tactical armor stands on a rocky alien plateau under the harsh red light of a dwarf star. Dust and ash blow across the ground in heavy gusts. The environment is hostile and barren: jagged basalt rock, sparse alien growth, scorched terrain.\n\nThe camera slowly pushes forward from a low angle, emphasizing scale and isolation. The marine's armor is scratched, functional, and realistic—olive drab, brass fasteners, matte metal plates, no glowing elements. A distant alien structure silhouettes against the red-orange sky.\n\nLighting is high contrast and unforgiving, like midday desert sun filtered through alien atmosphere. Subtle lens bloom, volumetric dust, and heat distortion near the ground. No HUD, no text, no UI. This is a pure cinematic moment meant to establish tone: military, tactical, dangerous, grounded realism.\n\nStyle is modern military science fiction, grounded and utilitarian. Realistic materials, physically plausible lighting, cinematic depth of field. The mood is tense, foreboding, and mission-focused. Horizontal composition optimized for desktop and TV screens.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "16:9",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "main_16x9.mp4",
+      "tags": ["title", "menu", "landscape", "desktop"],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "3a8f2c1d",
+        "generatedAt": "2026-01-30T13:10:00.000Z",
+        "generationTimeMs": 65000,
+        "fileSizeBytes": 11709980,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    },
+    {
+      "id": "splash_main_9x16",
+      "prompt": "An intense cinematic splash screen for a military sci-fi shooter set on Proxima Centauri b. A lone drop marine in worn tactical armor stands on a rocky alien plateau under the harsh red light of a dwarf star. Dust and ash blow across the ground in heavy gusts. The environment is hostile and barren: jagged basalt rock, sparse alien growth, scorched terrain.\n\nThe camera slowly pushes forward from a low angle, emphasizing scale and isolation. The marine's armor is scratched, functional, and realistic—olive drab, brass fasteners, matte metal plates, no glowing elements. A distant alien structure silhouettes against the red-orange sky.\n\nLighting is high contrast and unforgiving, like midday desert sun filtered through alien atmosphere. Subtle lens bloom, volumetric dust, and heat distortion near the ground. No HUD, no text, no UI. This is a pure cinematic moment meant to establish tone: military, tactical, dangerous, grounded realism.\n\nStyle is modern military science fiction, grounded and utilitarian. Realistic materials, physically plausible lighting, cinematic depth of field. The mood is tense, foreboding, and mission-focused. Vertical composition optimized for mobile screens.",
+      "negativePrompt": "neon colors, cyberpunk lighting, purple color grading, blue color grading, glowing armor, holograms, HUD overlays, anime style, cartoon style, painterly style, illustrated style, fantasy elements, magic effects, medieval designs, low quality, blurry",
+      "aspectRatio": "9:16",
+      "resolution": "1080p",
+      "duration": 8,
+      "filename": "main_9x16.mp4",
+      "tags": ["title", "menu", "portrait", "mobile"],
+      "status": "generated",
+      "metadata": {
+        "promptHash": "7b4e9d2f",
+        "generatedAt": "2026-01-30T13:10:00.000Z",
+        "generationTimeMs": 68000,
+        "fileSizeBytes": 11897913,
+        "model": "veo-3.1-fast-generate-preview"
+      }
+    }
+  ]
+}

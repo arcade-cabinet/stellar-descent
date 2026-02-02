@@ -27,6 +27,10 @@ import type { Scene } from '@babylonjs/core/scene';
 // Required for animation
 import '@babylonjs/core/Animations/animatable';
 
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('DamageFeedback');
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -115,7 +119,7 @@ export class DamageFeedbackManager {
   // Screen shake callback (to be set by levels)
   private screenShakeCallback: ((intensity: number) => void) | null = null;
 
-  // Camera reference for billboard damage numbers
+  // Camera position for billboard orientation
   private cameraPosition: Vector3 = Vector3.Zero();
 
   private constructor() {}
@@ -142,7 +146,7 @@ export class DamageFeedbackManager {
     // Pre-create damage number pool
     this.initDamageNumberPool();
 
-    console.log('[DamageFeedback] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -254,7 +258,7 @@ export class DamageFeedbackManager {
    * Restore original materials after flash
    */
   private restoreMaterials(
-    target: Mesh | TransformNode,
+    _target: Mesh | TransformNode,
     savedMaterials: Map<AbstractMesh, Material | null>
   ): void {
     for (const [mesh, material] of savedMaterials) {
@@ -495,7 +499,7 @@ export class DamageFeedbackManager {
   /**
    * Update damage numbers (call each frame)
    */
-  updateDamageNumbers(deltaTime: number): void {
+  updateDamageNumbers(_deltaTime: number): void {
     if (!this.config.enableDamageNumbers) return;
 
     const now = performance.now();
@@ -657,7 +661,7 @@ export class DamageFeedbackManager {
 
     DamageFeedbackManager.instance = null;
 
-    console.log('[DamageFeedback] Disposed');
+    log.info('Disposed');
   }
 }
 

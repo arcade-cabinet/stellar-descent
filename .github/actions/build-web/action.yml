@@ -1,0 +1,31 @@
+name: 'Build Web'
+description: 'Builds the web application and uploads artifacts'
+
+inputs:
+  upload-artifact:
+    description: 'Whether to upload the build artifact'
+    required: false
+    default: 'true'
+  artifact-name:
+    description: 'Name for the uploaded artifact'
+    required: false
+    default: 'web-dist'
+  retention-days:
+    description: 'Number of days to retain the artifact'
+    required: false
+    default: '7'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build web application
+      shell: bash
+      run: pnpm build:web
+
+    - name: Upload web build artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: dist/
+        retention-days: ${{ inputs.retention-days }}

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useGame } from '../../game/context/GameContext';
+import { useEffect, useState } from 'react';
+import { usePlayer } from '../../game/context/GameContext';
+import { useCombatStore } from '../../game/stores/useCombatStore';
 import styles from './Crosshair.module.css';
 
 export interface CrosshairState {
@@ -22,7 +23,8 @@ interface CrosshairProps {
  * - Hidden during non-combat phases via hudVisibility
  */
 export function Crosshair({ state }: CrosshairProps) {
-  const { hudVisibility, inCombat } = useGame();
+  const { hudVisibility } = usePlayer();
+  const inCombat = useCombatStore((s) => s.inCombat);
   const [localFiring, setLocalFiring] = useState(false);
   const [localHit, setLocalHit] = useState(false);
 

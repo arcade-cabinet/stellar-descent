@@ -1,88 +1,121 @@
+import { Capacitor } from '@capacitor/core';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGame } from '../../game/context/GameContext';
-import {
-  getKeyDisplayName,
-  getPrimaryKey,
-  useKeybindings,
-} from '../../game/context/KeybindingsContext';
 import { getAudioManager } from '../../game/core/AudioManager';
-import { type DifficultyLevel, getDifficultyDisplayName } from '../../game/core/DifficultySettings';
+import {
+  disposeSplashAudioManager,
+  getSplashAudioManager,
+} from '../../game/core/audio/SplashAudioManager';
+import type { DifficultyLevel } from '../../game/core/DifficultySettings';
+import { getLogger } from '../../game/core/Logger';
 import { GAME_SUBTITLE, GAME_TITLE, GAME_VERSION, LORE } from '../../game/core/lore';
-import { worldDb } from '../../game/db/worldDatabase';
+import { useDifficultyStore } from '../../game/difficulty';
 import type { LevelId } from '../../game/levels/types';
+import {
+  getNewGamePlusSystem,
+  initChallenges,
+  initNewGamePlus,
+  MAX_NG_PLUS_TIER,
+} from '../../game/modes';
 import {
   formatPlayTime,
   type GameSaveMetadata,
   getLevelDisplayName,
   saveSystem,
 } from '../../game/persistence';
-import { getScreenInfo } from '../../game/utils/responsive';
 import { AchievementsPanel } from './AchievementsPanel';
+import { ChallengeScreen } from './ChallengeScreen';
 import { DifficultySelector } from './DifficultySelector';
-import { InstallPrompt, useInstallAvailable } from './InstallPrompt';
+import { HelpModal } from './HelpModal';
+import { LeaderboardScreen } from './LeaderboardScreen';
+// PWA install is handled transparently - no button or prompt needed
 import { LevelSelect } from './LevelSelect';
 import styles from './MainMenu.module.css';
+import { MilitaryButton } from './MilitaryButton';
 import { SettingsMenu } from './SettingsMenu';
+
+const log = getLogger('MainMenu');
 
 interface MainMenuProps {
   onStart: () => void;
+  onNewGame?: (difficulty: DifficultyLevel, startLevel: LevelId) => void;
   onContinue?: () => void;
-  onSkipTutorial?: () => void;
   onSelectLevel?: (levelId: LevelId) => void;
   onReplayTitle?: () => void;
 }
 
 export function MainMenu({
   onStart,
+  onNewGame,
   onContinue,
-  onSkipTutorial,
   onSelectLevel,
   onReplayTitle,
 }: MainMenuProps) {
-  const [showControls, setShowControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showChallenges, setShowChallenges] = useState(false);
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [showCampaignSelect, setShowCampaignSelect] = useState(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showNgPlusConfirm, setShowNgPlusConfirm] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const [saveMetadata, setSaveMetadata] = useState<GameSaveMetadata | null>(null);
-  const [screenInfo, setScreenInfo] = useState(() => getScreenInfo());
+  const [selectedStartLevel, setSelectedStartLevel] = useState<LevelId | null>(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel | null>(null);
+  const [ngPlusUnlocked, setNgPlusUnlocked] = useState(false);
+  const [ngPlusTier, setNgPlusTier] = useState(0);
+  const [isNgPlusMode, setIsNgPlusMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { keybindings } = useKeybindings();
-  const { difficulty } = useGame();
+  const storeDifficulty = useDifficultyStore((state) => state.difficulty);
 
-  // PWA install availability
-  const { isAvailable: canInstall, isStandalone } = useInstallAvailable();
-
-  const isMobile = screenInfo.deviceType === 'mobile' || screenInfo.deviceType === 'foldable';
-
-  useEffect(() => {
-    const handleResize = () => setScreenInfo(getScreenInfo());
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Check if running on web platform (not native iOS/Android)
+  const _isWebPlatform = !Capacitor.isNativePlatform();
 
   useEffect(() => {
     const checkSave = async () => {
       await saveSystem.initialize();
-      const hasSaveData = saveSystem.hasSave();
+      const hasSaveData = await saveSystem.hasSave();
       setHasSave(hasSaveData);
       if (hasSaveData) {
-        const metadata = saveSystem.getSaveMetadata();
+        const metadata = await saveSystem.getSaveMetadata();
         setSaveMetadata(metadata);
       }
+
+      // Initialize and check NG+ status
+      initNewGamePlus();
+      const ngPlus = getNewGamePlusSystem();
+      setNgPlusUnlocked(ngPlus.isUnlocked());
+      setNgPlusTier(ngPlus.getCompletions());
     };
     checkSave();
   }, []);
 
-  // Start menu music
+  // Start menu music with crossfade from splash audio
   useEffect(() => {
     const audioManager = getAudioManager();
-    audioManager.playMusic('menu', 1.5);
+    const splashAudioManager = getSplashAudioManager();
+
+    // Check if splash audio is still playing (indicates we came from splash screen)
+    const isFromSplash = splashAudioManager.isCurrentlyPlaying();
+
+    if (isFromSplash) {
+      // Use crossfade transition from splash audio
+      log.info('Starting menu music with crossfade from splash');
+      audioManager.playMusicWithCrossfadeFromSplash('menu', 2);
+
+      // Dispose splash audio manager after crossfade completes
+      setTimeout(() => {
+        disposeSplashAudioManager();
+        log.info('Splash audio manager disposed after crossfade');
+      }, 2500);
+    } else {
+      // Normal menu music start (e.g., returning from game)
+      audioManager.playMusic('menu', 1.5);
+    }
 
     return () => {
       // Don't stop music on unmount - let it crossfade to next track
@@ -95,41 +128,79 @@ export function MainMenu({
 
   const handleNewGame = useCallback(() => {
     playClickSound();
-    // If there's an existing save, ask for confirmation
+    // If there's an existing save, ask for confirmation first
     if (hasSave) {
       setShowNewGameConfirm(true);
     } else {
-      // No save exists, show difficulty selection first
-      setShowDifficultySelect(true);
+      // No save exists, show campaign selection first
+      setShowCampaignSelect(true);
     }
   }, [hasSave, playClickSound]);
 
-  const handleStartWithDifficulty = useCallback(
-    (selectedDifficulty: DifficultyLevel) => {
-      playClickSound();
-      setShowDifficultySelect(false);
-      saveSystem.newGame(selectedDifficulty).then(() => {
+  // When difficulty is selected in the difficulty modal, just store it
+  const handleDifficultySelect = useCallback((diff: DifficultyLevel) => {
+    setSelectedDifficulty(diff);
+  }, []);
+
+  // When START CAMPAIGN is clicked in difficulty modal
+  const _handleStartCampaign = useCallback(() => {
+    playClickSound();
+    if (!selectedStartLevel || !selectedDifficulty) return;
+
+    setShowDifficultySelect(false);
+    // Use onNewGame if available (dispatches to CampaignDirector)
+    if (onNewGame) {
+      onNewGame(selectedDifficulty, selectedStartLevel);
+    } else {
+      // Fallback to legacy behavior
+      saveSystem.newGame(selectedDifficulty, selectedStartLevel).then(() => {
         onStart();
       });
-    },
-    [onStart, playClickSound]
-  );
+    }
+  }, [selectedStartLevel, selectedDifficulty, onStart, onNewGame, playClickSound]);
+
+  // Go back from difficulty to campaign selection
+  const handleBackToCampaign = useCallback(() => {
+    playClickSound();
+    setShowDifficultySelect(false);
+    setShowCampaignSelect(true);
+  }, [playClickSound]);
 
   const handleCancelDifficultySelect = useCallback(() => {
     playClickSound();
     setShowDifficultySelect(false);
+    setSelectedStartLevel(null);
+    setSelectedDifficulty(null);
   }, [playClickSound]);
 
+  // After confirming overwrite, show campaign selection
   const handleConfirmNewGame = useCallback(async () => {
     playClickSound();
     setShowNewGameConfirm(false);
-    // Show difficulty selection for the new game
-    setShowDifficultySelect(true);
+    setShowCampaignSelect(true);
   }, [playClickSound]);
 
   const handleCancelNewGame = useCallback(() => {
     playClickSound();
     setShowNewGameConfirm(false);
+  }, [playClickSound]);
+
+  // When a level is selected in campaign selection, proceed to difficulty
+  const handleCampaignLevelSelect = useCallback(
+    (levelId: LevelId) => {
+      playClickSound();
+      setSelectedStartLevel(levelId);
+      setShowCampaignSelect(false);
+      // Initialize selectedDifficulty with store value so button isn't disabled
+      setSelectedDifficulty(storeDifficulty);
+      setShowDifficultySelect(true);
+    },
+    [playClickSound, storeDifficulty]
+  );
+
+  const handleCancelCampaignSelect = useCallback(() => {
+    playClickSound();
+    setShowCampaignSelect(false);
   }, [playClickSound]);
 
   const handleContinue = useCallback(async () => {
@@ -144,15 +215,6 @@ export function MainMenu({
     }
   }, [onContinue, onStart, playClickSound]);
 
-  const handleSkipTutorial = useCallback(async () => {
-    playClickSound();
-    // Create new game but skip tutorial
-    await saveSystem.newGame();
-    saveSystem.completeTutorial();
-    saveSystem.setCurrentLevel('landfall');
-    onSkipTutorial?.();
-  }, [onSkipTutorial, playClickSound]);
-
   const handleLoadClick = useCallback(() => {
     playClickSound();
     fileInputRef.current?.click();
@@ -163,22 +225,15 @@ export function MainMenu({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Validate file size (50MB limit)
-      const MAX_FILE_SIZE = 50 * 1024 * 1024;
-      if (file.size > MAX_FILE_SIZE) {
-        console.error('Save file too large. Maximum size is 50MB.');
-        return;
-      }
-
       try {
-        const buffer = await file.arrayBuffer();
-        const data = new Uint8Array(buffer);
-        await worldDb.importDatabase(data);
-        setHasSave(true);
-        onStart();
+        // Use SaveSystem's import method which handles validation and error reporting
+        const success = await saveSystem.importDatabaseFile(file);
+        if (success) {
+          setHasSave(true);
+          onStart();
+        }
       } catch (err) {
-        console.error('Failed to load save file', err);
-        // Alert user (simple fallback)
+        log.error('Failed to load save file', err);
         alert(`Failed to load save file: ${err instanceof Error ? err.message : String(err)}`);
       }
 
@@ -189,53 +244,14 @@ export function MainMenu({
     [onStart]
   );
 
-  const handleExport = useCallback(() => {
-    playClickSound();
-    const data = worldDb.exportDatabase();
-    if (!data) return;
-
-    // Create a copy in a standard ArrayBuffer for Blob compatibility
-    const arrayBuffer = new ArrayBuffer(data.byteLength);
-    new Uint8Array(arrayBuffer).set(data);
-    const blob = new Blob([arrayBuffer], { type: 'application/x-sqlite3' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `stellar_descent_save_${new Date().toISOString().slice(0, 10)}.db`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [playClickSound]);
-
-  const handleShowControls = useCallback(() => {
-    playClickSound();
-    setShowControls(true);
-  }, [playClickSound]);
-
-  const handleCloseControls = useCallback(() => {
-    playClickSound();
-    setShowControls(false);
-  }, [playClickSound]);
-
   const handleShowSettings = useCallback(() => {
     playClickSound();
     setShowSettings(true);
   }, [playClickSound]);
 
-  const handleReplayTitle = useCallback(() => {
-    playClickSound();
-    onReplayTitle?.();
-  }, [playClickSound, onReplayTitle]);
-
   const handleCloseSettings = useCallback(() => {
     playClickSound();
     setShowSettings(false);
-  }, [playClickSound]);
-
-  const handleShowLevelSelect = useCallback(() => {
-    playClickSound();
-    setShowLevelSelect(true);
   }, [playClickSound]);
 
   const handleCloseLevelSelect = useCallback(() => {
@@ -261,14 +277,95 @@ export function MainMenu({
     setShowAchievements(false);
   }, [playClickSound]);
 
-  const handleShowInstall = useCallback(() => {
+  const handleShowHelp = useCallback(() => {
     playClickSound();
-    setShowInstallPrompt(true);
+    setShowHelp(true);
   }, [playClickSound]);
 
-  const handleCloseInstall = useCallback(() => {
-    setShowInstallPrompt(false);
-  }, []);
+  const handleCloseHelp = useCallback(() => {
+    playClickSound();
+    setShowHelp(false);
+  }, [playClickSound]);
+
+  const handleShowLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(true);
+  }, [playClickSound]);
+
+  const handleCloseLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(false);
+  }, [playClickSound]);
+
+  const handleShowChallenges = useCallback(() => {
+    playClickSound();
+    initChallenges(); // Initialize challenge system when opening
+    setShowChallenges(true);
+  }, [playClickSound]);
+
+  const handleCloseChallenges = useCallback(() => {
+    playClickSound();
+    setShowChallenges(false);
+  }, [playClickSound]);
+
+  // Handle NG+ button click
+  const handleNewGamePlus = useCallback(() => {
+    playClickSound();
+    if (!ngPlusUnlocked) return;
+    setShowNgPlusConfirm(true);
+  }, [ngPlusUnlocked, playClickSound]);
+
+  const handleCancelNgPlus = useCallback(() => {
+    playClickSound();
+    setShowNgPlusConfirm(false);
+    setIsNgPlusMode(false);
+  }, [playClickSound]);
+
+  // Start NG+ after confirming
+  const handleConfirmNgPlus = useCallback(() => {
+    playClickSound();
+    setShowNgPlusConfirm(false);
+    setIsNgPlusMode(true);
+    // Show difficulty selection for NG+
+    setSelectedStartLevel('anchor_station');
+    // Initialize selectedDifficulty with store value so button isn't disabled
+    setSelectedDifficulty(storeDifficulty);
+    setShowDifficultySelect(true);
+  }, [playClickSound, storeDifficulty]);
+
+  // Modified start campaign to handle NG+ mode
+  const handleStartCampaignOrNgPlus = useCallback(() => {
+    playClickSound();
+    if (!selectedStartLevel || !selectedDifficulty) return;
+
+    setShowDifficultySelect(false);
+
+    if (isNgPlusMode) {
+      // Start NG+ run
+      const ngPlus = getNewGamePlusSystem();
+      const nextTier = Math.min(ngPlus.getCompletions(), MAX_NG_PLUS_TIER);
+      saveSystem.startNewGamePlus(nextTier, selectedDifficulty, selectedStartLevel).then(() => {
+        onStart();
+      });
+      setIsNgPlusMode(false);
+    } else if (onNewGame) {
+      // Normal new game
+      onNewGame(selectedDifficulty, selectedStartLevel);
+    } else {
+      // Fallback to legacy behavior
+      saveSystem.newGame(selectedDifficulty, selectedStartLevel).then(() => {
+        onStart();
+      });
+    }
+  }, [selectedStartLevel, selectedDifficulty, isNgPlusMode, onStart, onNewGame, playClickSound]);
+
+  // Get NG+ tier display string
+  const getNgPlusTierDisplay = (): string => {
+    const tier = Math.min(ngPlusTier, MAX_NG_PLUS_TIER);
+    if (tier === 0) return 'NG+';
+    if (tier === 1) return 'NG+';
+    return `NG${'+'.repeat(tier)}`;
+  };
 
   return (
     <div className={styles.overlay}>
@@ -276,7 +373,7 @@ export function MainMenu({
         type="file"
         ref={fileInputRef}
         style={{ display: 'none' }}
-        accept=".db,.sqlite"
+        accept=".db,.sqlite,.json"
         onChange={handleFileChange}
       />
 
@@ -304,90 +401,66 @@ export function MainMenu({
           <span className={styles.dividerText}>{LORE.setting.year}</span>
         </div>
 
-        {/* Buttons */}
-        <div className={styles.buttonGroup}>
-          {/* Show CONTINUE as primary if save exists */}
-          {hasSave && (
-            <button
-              type="button"
-              className={`${styles.button} ${styles.primaryButton}`}
+        {/* Two-column button layout */}
+        <div className={styles.buttonColumns}>
+          {/* Left Column - Game Actions */}
+          <div className={styles.buttonColumn}>
+            <MilitaryButton variant="primary" onClick={handleNewGame} icon={'\u25B6'}>
+              NEW GAME
+            </MilitaryButton>
+
+            <MilitaryButton
               onClick={handleContinue}
+              disabled={!hasSave}
+              icon={'\u25B6'}
+              info={
+                saveMetadata
+                  ? `Ch.${saveMetadata.currentChapter} - ${formatPlayTime(saveMetadata.playTime)}`
+                  : undefined
+              }
             >
-              <span className={styles.buttonIcon}>▶</span>
               CONTINUE
-              {saveMetadata && (
-                <span className={styles.saveInfo}>
-                  Ch.{saveMetadata.currentChapter} - {formatPlayTime(saveMetadata.playTime)} -{' '}
-                  {getDifficultyDisplayName(saveMetadata.difficulty)}
-                </span>
-              )}
-            </button>
-          )}
+            </MilitaryButton>
 
-          <button
-            type="button"
-            className={`${styles.button} ${!hasSave ? styles.primaryButton : ''}`}
-            onClick={handleNewGame}
-          >
-            <span className={styles.buttonIcon}>{hasSave ? '◆' : '▶'}</span>
-            NEW CAMPAIGN
-          </button>
+            <MilitaryButton onClick={handleLoadClick} icon={'\u2191'}>
+              LOAD GAME
+            </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleLoadClick}>
-            <span className={styles.buttonIcon}>▲</span>
-            LOAD CAMPAIGN
-          </button>
+            <MilitaryButton onClick={handleShowChallenges} icon={'\u26A1'}>
+              CHALLENGES
+            </MilitaryButton>
 
-          {hasSave && (
-            <button type="button" className={styles.button} onClick={handleExport}>
-              <span className={styles.buttonIcon}>▼</span>
-              EXPORT SAVE
-            </button>
-          )}
+            {/* New Game Plus Button - only shown when unlocked */}
+            {ngPlusUnlocked && (
+              <MilitaryButton
+                variant="primary"
+                onClick={handleNewGamePlus}
+                icon={'\u2B50'}
+                info={`Tier ${Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)}`}
+              >
+                {getNgPlusTierDisplay()}
+              </MilitaryButton>
+            )}
+          </div>
 
-          {onSkipTutorial && (
-            <button type="button" className={styles.button} onClick={handleSkipTutorial}>
-              <span className={styles.buttonIcon}>⬇</span>
-              HALO DROP
-            </button>
-          )}
+          {/* Right Column - System */}
+          <div className={styles.buttonColumn}>
+            <MilitaryButton onClick={handleShowSettings} icon={'\u2699'}>
+              SETTINGS
+            </MilitaryButton>
 
-          {onSelectLevel && (
-            <button type="button" className={styles.button} onClick={handleShowLevelSelect}>
-              <span className={styles.buttonIcon}>&#9632;</span>
-              SELECT MISSION
-            </button>
-          )}
+            <MilitaryButton onClick={handleShowAchievements} icon={'\u2606'}>
+              ACHIEVEMENTS
+            </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleShowAchievements}>
-            <span className={styles.buttonIcon}>{'\u2605'}</span>
-            ACHIEVEMENTS
-          </button>
+            <MilitaryButton onClick={handleShowLeaderboard} icon={'\u2605'}>
+              LEADERBOARDS
+            </MilitaryButton>
 
-          <button type="button" className={styles.button} onClick={handleShowControls}>
-            <span className={styles.buttonIcon}>◈</span>
-            CONTROLS
-          </button>
-
-          <button type="button" className={styles.button} onClick={handleShowSettings}>
-            <span className={styles.buttonIcon}>⚙</span>
-            SETTINGS
-          </button>
-
-          {onReplayTitle && (
-            <button type="button" className={styles.button} onClick={handleReplayTitle}>
-              <span className={styles.buttonIcon}>&#9654;</span>
-              REPLAY INTRO
-            </button>
-          )}
-
-          {/* Install App button - only show when PWA install is available and not already installed */}
-          {canInstall && !isStandalone && (
-            <button type="button" className={styles.button} onClick={handleShowInstall}>
-              <span className={styles.buttonIcon}>&#8681;</span>
-              INSTALL APP
-            </button>
-          )}
+            <MilitaryButton onClick={handleShowHelp} icon={'\u003F'}>
+              HELP
+            </MilitaryButton>
+          </div>
         </div>
 
         {/* Footer info */}
@@ -398,90 +471,10 @@ export function MainMenu({
         </div>
       </div>
 
-      {/* Controls Modal */}
-      {showControls && (
-        // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
-        <div
-          className={styles.modalOverlay}
-          onClick={handleCloseControls}
-          onKeyDown={(e) => e.key === 'Escape' && handleCloseControls()}
-          role="presentation"
-        >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
-          <div
-            className={styles.modal}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
-          >
-            <div className={styles.modalHeader}>
-              <span>OPERATIONS MANUAL</span>
-            </div>
-
-            <div className={styles.modalContent}>
-              {isMobile ? (
-                <div className={styles.controlsGrid}>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>LEFT STICK</span>
-                    <span className={styles.controlAction}>Move</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>RIGHT STICK</span>
-                    <span className={styles.controlAction}>Aim / Look</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>FIRE</span>
-                    <span className={styles.controlAction}>Shoot</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>RUN</span>
-                    <span className={styles.controlAction}>Sprint</span>
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.controlsGrid}>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveForward))}{' '}
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveLeft))}{' '}
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveBackward))}{' '}
-                      {getKeyDisplayName(getPrimaryKey(keybindings.moveRight))} / Arrows
-                    </span>
-                    <span className={styles.controlAction}>Move</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>MOUSE</span>
-                    <span className={styles.controlAction}>Aim / Look</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>
-                      {getKeyDisplayName(getPrimaryKey(keybindings.fire))}
-                    </span>
-                    <span className={styles.controlAction}>Fire</span>
-                  </div>
-                  <div className={styles.controlItem}>
-                    <span className={styles.controlKey}>
-                      {getKeyDisplayName(getPrimaryKey(keybindings.sprint))}
-                    </span>
-                    <span className={styles.controlAction}>Sprint</span>
-                  </div>
-                </div>
-              )}
-
-              <div className={styles.controlsNote}>Click on screen to lock mouse for aiming</div>
-            </div>
-
-            <button type="button" className={styles.modalClose} onClick={handleCloseControls}>
-              CLOSE
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Settings Menu */}
+      {/* Settings Menu (includes Controls tab) */}
       <SettingsMenu isOpen={showSettings} onClose={handleCloseSettings} />
 
-      {/* Level Select */}
+      {/* Level Select - used for New Game mission select */}
       <LevelSelect
         isOpen={showLevelSelect}
         onClose={handleCloseLevelSelect}
@@ -490,6 +483,12 @@ export function MainMenu({
 
       {/* Achievements Panel */}
       <AchievementsPanel isOpen={showAchievements} onClose={handleCloseAchievements} />
+
+      {/* Leaderboard Screen */}
+      <LeaderboardScreen isOpen={showLeaderboard} onClose={handleCloseLeaderboard} />
+
+      {/* Challenge Screen */}
+      <ChallengeScreen isOpen={showChallenges} onClose={handleCloseChallenges} />
 
       {/* New Game Confirmation Modal */}
       {showNewGameConfirm && (
@@ -500,19 +499,21 @@ export function MainMenu({
           onKeyDown={(e) => e.key === 'Escape' && handleCancelNewGame()}
           role="presentation"
         >
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: Stop propagation */}
           <div
             className={styles.modal}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
-            role="presentation"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="newgame-confirm-title"
+            aria-describedby="newgame-confirm-desc"
           >
             <div className={styles.modalHeader}>
-              <span>START NEW CAMPAIGN?</span>
+              <span id="newgame-confirm-title">START NEW CAMPAIGN?</span>
             </div>
 
             <div className={styles.modalContent}>
-              <p className={styles.confirmText}>
+              <p id="newgame-confirm-desc" className={styles.confirmText}>
                 Starting a new campaign will overwrite your existing save data.
               </p>
               {saveMetadata && (
@@ -534,19 +535,34 @@ export function MainMenu({
             </div>
 
             <div className={styles.modalButtons}>
-              <button type="button" className={styles.modalButton} onClick={handleCancelNewGame}>
+              <button
+                type="button"
+                className={styles.modalButton}
+                onClick={handleCancelNewGame}
+                aria-label="Cancel and keep existing save"
+              >
                 CANCEL
               </button>
               <button
                 type="button"
                 className={`${styles.modalButton} ${styles.dangerButton}`}
                 onClick={handleConfirmNewGame}
+                aria-label="Confirm start new campaign"
               >
                 START NEW
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Campaign Selection Modal */}
+      {showCampaignSelect && (
+        <LevelSelect
+          isOpen={showCampaignSelect}
+          onClose={handleCancelCampaignSelect}
+          onSelectLevel={handleCampaignLevelSelect}
+        />
       )}
 
       {/* Difficulty Selection Modal */}
@@ -572,24 +588,112 @@ export function MainMenu({
             </div>
 
             <div className={styles.modalContent}>
-              <DifficultySelector onSelect={handleStartWithDifficulty} />
+              <DifficultySelector onSelect={handleDifficultySelect} />
             </div>
 
             <div className={styles.modalButtons}>
               <button
                 type="button"
                 className={styles.modalButton}
-                onClick={handleCancelDifficultySelect}
+                onClick={isNgPlusMode ? handleCancelNgPlus : handleBackToCampaign}
               >
-                CANCEL
+                {isNgPlusMode ? 'CANCEL' : '\u2190 BACK'}
+              </button>
+              <button
+                type="button"
+                className={`${styles.modalButton} ${styles.primaryButton}`}
+                onClick={handleStartCampaignOrNgPlus}
+                disabled={!selectedDifficulty}
+              >
+                {isNgPlusMode ? `START ${getNgPlusTierDisplay()} \u2192` : 'START CAMPAIGN \u2192'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* PWA Install Prompt */}
-      <InstallPrompt triggerShow={showInstallPrompt} onClose={handleCloseInstall} />
+      {/* NG+ Confirmation Modal */}
+      {showNgPlusConfirm && (
+        // biome-ignore lint/a11y/useSemanticElements: Overlay needs to be a div for layout
+        <div
+          className={styles.modalOverlay}
+          onClick={handleCancelNgPlus}
+          onKeyDown={(e) => e.key === 'Escape' && handleCancelNgPlus()}
+          role="presentation"
+        >
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="ngplus-confirm-title"
+            aria-describedby="ngplus-confirm-desc"
+          >
+            <div className={styles.modalHeader}>
+              <span id="ngplus-confirm-title">START {getNgPlusTierDisplay()}?</span>
+            </div>
+
+            <div className={styles.modalContent}>
+              <p id="ngplus-confirm-desc" className={styles.confirmText}>
+                Begin a New Game Plus run with increased difficulty and rewards.
+              </p>
+              <div className={styles.savePreview}>
+                <div className={styles.savePreviewRow}>
+                  <span>NG+ Tier:</span>
+                  <span>{Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER)}</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Enemy Health:</span>
+                  <span>
+                    +{Math.round((1.5 ** Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER) - 1) * 100)}%
+                  </span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Enemy Damage:</span>
+                  <span>
+                    +{Math.round((1.25 ** Math.min(ngPlusTier + 1, MAX_NG_PLUS_TIER) - 1) * 100)}%
+                  </span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Starting Health Bonus:</span>
+                  <span>+{Math.min(50 * (ngPlusTier + 1), 150)}</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Starting Armor:</span>
+                  <span>+{Math.min(25 * (ngPlusTier + 1), 75)}</span>
+                </div>
+                <div className={styles.savePreviewRow}>
+                  <span>Score Multiplier:</span>
+                  <span>x{(1 + 0.5 * (ngPlusTier + 1)).toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.modalButtons}>
+              <button
+                type="button"
+                className={styles.modalButton}
+                onClick={handleCancelNgPlus}
+                aria-label="Cancel NG+"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                className={`${styles.modalButton} ${styles.primaryButton}`}
+                onClick={handleConfirmNgPlus}
+                aria-label="Confirm start NG+"
+              >
+                SELECT DIFFICULTY
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Help Modal */}
+      <HelpModal isOpen={showHelp} onClose={handleCloseHelp} />
     </div>
   );
 }

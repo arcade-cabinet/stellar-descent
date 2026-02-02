@@ -10,14 +10,14 @@
  * The bridge ensures all levels use consistent, user-configurable keybindings.
  */
 
-import type { BindableAction, KeybindingValue } from '../context/KeybindingsContext';
+import type { BindableAction } from '../stores/useKeybindingsStore';
 import {
   DEFAULT_KEYBINDINGS,
+  getKeybindings,
   getKeyDisplayName,
   getKeysForAction,
   getPrimaryKey,
-} from '../context/KeybindingsContext';
-import { getKeybindings } from '../context/useInputActions';
+} from '../stores/useKeybindingsStore';
 
 // ============================================================================
 // KEY DISPLAY FORMATTING
@@ -170,7 +170,18 @@ export type LevelSpecificAction =
   | 'boost' // Space - Landfall (contextual)
   | 'brake' // E - Landfall (contextual)
   | 'stabilize' // Q - Landfall (contextual)
-  | 'flare'; // F - Extraction
+  | 'flare' // F - Extraction
+  | 'jetpack' // Space (hold) - Jetpack boost
+  // Vehicle-specific actions
+  | 'vehicleAccelerate' // W/Up - Accelerate vehicle
+  | 'vehicleBrake' // S/Down - Brake/reverse vehicle
+  | 'vehicleSteerLeft' // A/Left - Steer left
+  | 'vehicleSteerRight' // D/Right - Steer right
+  | 'vehicleHandbrake' // Space - Handbrake/Boost
+  | 'vehicleFire' // Mouse0 - Fire vehicle weapons
+  | 'vehicleSecondaryFire' // Mouse1 - Secondary weapon
+  | 'vehicleExit' // E - Exit vehicle (when stopped)
+  | 'vehicleTurretAim'; // Mouse - Turret aim (implied by mouse movement)
 
 /**
  * Default keys for level-specific actions.
@@ -187,7 +198,47 @@ export const LEVEL_SPECIFIC_KEYS: Record<LevelSpecificAction, string> = {
   brake: 'KeyE',
   stabilize: 'KeyQ',
   flare: 'KeyF',
+  jetpack: 'Space',
+  // Vehicle controls
+  vehicleAccelerate: 'KeyW',
+  vehicleBrake: 'KeyS',
+  vehicleSteerLeft: 'KeyA',
+  vehicleSteerRight: 'KeyD',
+  vehicleHandbrake: 'Space',
+  vehicleFire: 'Mouse0',
+  vehicleSecondaryFire: 'Mouse1',
+  vehicleExit: 'KeyE',
+  vehicleTurretAim: 'MouseMove',
 };
+
+/**
+ * Alternative keys for vehicle controls (arrows, etc.)
+ */
+export const VEHICLE_ALT_KEYS: Record<string, string[]> = {
+  vehicleAccelerate: ['KeyW', 'ArrowUp'],
+  vehicleBrake: ['KeyS', 'ArrowDown'],
+  vehicleSteerLeft: ['KeyA', 'ArrowLeft'],
+  vehicleSteerRight: ['KeyD', 'ArrowRight'],
+};
+
+/**
+ * Check if any key in a set of alternatives is pressed.
+ */
+export function isVehicleKeyPressed(
+  action: LevelSpecificAction,
+  keysPressed: Set<string>
+): boolean {
+  const primaryKey = LEVEL_SPECIFIC_KEYS[action];
+  if (keysPressed.has(primaryKey)) return true;
+
+  const alts = VEHICLE_ALT_KEYS[action];
+  if (alts) {
+    for (const key of alts) {
+      if (keysPressed.has(key)) return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Get key info for a level-specific action.
@@ -230,4 +281,213 @@ export function levelActionParams(action: LevelSpecificAction): {
   keyDisplay: string;
 } {
   return getLevelSpecificKeyInfo(action);
+}
+
+// ============================================================================
+// WEAPON SWITCHING KEYS (Fixed bindings for weapon slots)
+// ============================================================================
+
+/**
+ * Weapon switching actions - always available during gameplay
+ */
+export type WeaponSwitchAction =
+  | 'weaponSlot1' // 1 - First weapon slot
+  | 'weaponSlot2' // 2 - Second weapon slot
+  | 'weaponSlot3' // 3 - Third weapon slot
+  | 'weaponSlot4' // 4 - Fourth weapon slot
+  | 'weaponQuickSwap' // Q - Last weapon quick swap
+  | 'weaponNext' // Mouse wheel up
+  | 'weaponPrevious'; // Mouse wheel down
+
+/**
+ * Default keys for weapon switching.
+ * These are fixed and not configurable by the user.
+ */
+export const WEAPON_SWITCH_KEYS: Record<WeaponSwitchAction, string> = {
+  weaponSlot1: 'Digit1',
+  weaponSlot2: 'Digit2',
+  weaponSlot3: 'Digit3',
+  weaponSlot4: 'Digit4',
+  weaponQuickSwap: 'KeyQ',
+  weaponNext: 'WheelUp', // Special: handled via wheel event
+  weaponPrevious: 'WheelDown', // Special: handled via wheel event
+};
+
+/**
+ * Get key info for a weapon switch action.
+ *
+ * @param action - The weapon switch action
+ * @returns Key code and display string for the action
+ */
+export function getWeaponSwitchKeyInfo(action: WeaponSwitchAction): ActionKeyInfo {
+  const key = WEAPON_SWITCH_KEYS[action];
+  return {
+    key,
+    keyDisplay: formatKeyForDisplay(key),
+  };
+}
+
+/**
+ * Check if a keyboard event matches a weapon switch action.
+ *
+ * @param event - The keyboard event
+ * @param action - The weapon switch action to check
+ * @returns True if the event's key matches the action
+ */
+export function isWeaponSwitchKeyEvent(event: KeyboardEvent, action: WeaponSwitchAction): boolean {
+  const key = WEAPON_SWITCH_KEYS[action];
+  return event.code === key;
+}
+
+/**
+ * Get the weapon slot (0-3) from a keyboard event, or -1 if not a slot key.
+ *
+ * @param event - The keyboard event
+ * @returns Slot index (0-3) or -1
+ */
+export function getWeaponSlotFromKeyEvent(event: KeyboardEvent): number {
+  switch (event.code) {
+    case 'Digit1':
+      return 0;
+    case 'Digit2':
+      return 1;
+    case 'Digit3':
+      return 2;
+    case 'Digit4':
+      return 3;
+    default:
+      return -1;
+  }
+}
+
+/**
+ * Check if a keyboard event is the quick swap key (Q).
+ *
+ * @param event - The keyboard event
+ * @returns True if quick swap key
+ */
+export function isQuickSwapKeyEvent(event: KeyboardEvent): boolean {
+  return event.code === WEAPON_SWITCH_KEYS.weaponQuickSwap;
+}
+
+// ============================================================================
+// WEAPON SWITCHING INPUT HANDLER
+// ============================================================================
+
+import {
+  cycleWeapon as cycleWeaponAction,
+  quickSwapWeapon,
+  switchToWeaponSlot,
+} from '../context/useWeaponActions';
+
+/**
+ * Handle weapon switching keyboard input.
+ * Call this from your level's keydown handler.
+ *
+ * @param event - The keyboard event
+ * @returns True if the event was handled (weapon switch triggered)
+ */
+export function handleWeaponSwitchKeyEvent(event: KeyboardEvent): boolean {
+  // Check for number key weapon slots (1-4)
+  const slot = getWeaponSlotFromKeyEvent(event);
+  if (slot >= 0) {
+    switchToWeaponSlot(slot);
+    return true;
+  }
+
+  // Check for quick swap (Q key)
+  if (isQuickSwapKeyEvent(event)) {
+    quickSwapWeapon();
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Handle weapon switching mouse wheel input.
+ * Call this from your level's wheel handler.
+ *
+ * @param event - The wheel event
+ * @returns True if the event was handled
+ */
+export function handleWeaponSwitchWheelEvent(event: WheelEvent): boolean {
+  if (event.deltaY < 0) {
+    // Scroll up - previous weapon
+    cycleWeaponAction(-1);
+    return true;
+  } else if (event.deltaY > 0) {
+    // Scroll down - next weapon
+    cycleWeaponAction(1);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Interface for touch weapon switching
+ */
+export interface TouchWeaponSwitchInput {
+  /** True if player swiped left on weapon area */
+  swipeLeft: boolean;
+  /** True if player swiped right on weapon area */
+  swipeRight: boolean;
+  /** Slot number tapped (0-3) or -1 if none */
+  slotTapped: number;
+}
+
+/**
+ * Handle weapon switching touch input.
+ * Call this from your level's touch input handler.
+ *
+ * @param input - The touch weapon switch input state
+ * @returns True if any input was handled
+ */
+export function handleWeaponSwitchTouchInput(input: TouchWeaponSwitchInput): boolean {
+  if (input.swipeLeft) {
+    cycleWeaponAction(-1);
+    return true;
+  }
+
+  if (input.swipeRight) {
+    cycleWeaponAction(1);
+    return true;
+  }
+
+  if (input.slotTapped >= 0) {
+    switchToWeaponSlot(input.slotTapped);
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Create weapon switching event listeners and return a cleanup function.
+ * This is a convenience function for levels that want automatic weapon switching.
+ *
+ * @param canvas - The canvas element (for wheel events)
+ * @returns Cleanup function to remove listeners
+ */
+export function setupWeaponSwitchListeners(canvas: HTMLCanvasElement): () => void {
+  const keydownHandler = (e: KeyboardEvent) => {
+    handleWeaponSwitchKeyEvent(e);
+  };
+
+  const wheelHandler = (e: WheelEvent) => {
+    // Only handle wheel for weapon switching when pointer is locked (in gameplay)
+    if (document.pointerLockElement === canvas) {
+      if (handleWeaponSwitchWheelEvent(e)) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  window.addEventListener('keydown', keydownHandler);
+  canvas.addEventListener('wheel', wheelHandler, { passive: false });
+
+  return () => {
+    window.removeEventListener('keydown', keydownHandler);
+    canvas.removeEventListener('wheel', wheelHandler);
+  };
 }

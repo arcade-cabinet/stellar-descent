@@ -4,6 +4,7 @@
  * Provides comprehensive visual feedback systems for combat:
  * - ParticleManager: Low-level pooled particle system management
  * - WeaponEffects: High-level weapon-specific effects (muzzle, impacts, trails)
+ * - BulletTrails: Bullet trail and tracer effects for ballistic weapons
  * - DamageFeedback: Damage number popups, hit flash, screen shake
  * - MuzzleFlash: Enhanced muzzle flash with light pulses
  * - DeathEffects: Enemy dissolve, disintegrate, and explosion effects
@@ -12,6 +13,9 @@
  * - AtmosphericEffects: God rays, emergency lighting, dust storms, spore clouds
  * - FrostEffect: Screen frost overlay and movement slow debuff (Southern Ice level)
  * - IceShardProjectile: Ice crystal ranged projectile with frost AOE
+ * - ShellCasings: Physical brass casing ejection with SPS and ground physics
+ * - ImpactDecals: Pool-based bullet hole decals with surface-specific visuals
+ * - ImpactParticles: Multi-layer surface-specific impact VFX (metal sparks, concrete dust, etc.)
  */
 
 export type {
@@ -27,6 +31,9 @@ export {
   disposeAtmosphericEffects,
   getAtmosphericEffects,
 } from './AtmosphericEffects';
+// Bullet trails and tracers
+export type { BulletTrailConfig, WeaponTrailConfig } from './BulletTrails';
+export { BulletTrailManager, bulletTrails } from './BulletTrails';
 export type { DamageFeedbackConfig } from './DamageFeedback';
 export { DamageFeedbackManager, damageFeedback } from './DamageFeedback';
 export type { DeathEffectConfig, DeathEffectType } from './DeathEffects';
@@ -38,10 +45,36 @@ export type { FrostEffectConfig } from './FrostEffect';
 export { FrostEffectManager, frostEffect } from './FrostEffect';
 export type { IceShardConfig } from './IceShardProjectile';
 export { destroyIceShardInAir, fireIceShard } from './IceShardProjectile';
+// Impact decals - bullet hole and damage marks
+export type { DecalConfig, DecalSurfaceType } from './ImpactDecals';
+export {
+  createImpactDecal,
+  detectMeshSurfaceType,
+  ImpactDecalSystem,
+  impactDecals,
+} from './ImpactDecals';
+// Impact particles - surface-specific impact VFX
+export type {
+  ImpactParticleLayerConfig,
+  ImpactSurfaceConfig,
+  ImpactSurfaceType,
+} from './ImpactParticles';
+export { ImpactParticles, impactParticles } from './ImpactParticles';
+// Low health feedback effects (vignette, heartbeat, breathing)
+export type { LowHealthFeedbackConfig } from './LowHealthFeedback';
+export {
+  disposeLowHealthFeedback,
+  getLowHealthFeedback,
+  LowHealthFeedbackManager,
+  lowHealthFeedback,
+} from './LowHealthFeedback';
 export type { MuzzleFlashConfig } from './MuzzleFlash';
 export { MuzzleFlashManager, muzzleFlash, WEAPON_FLASH_CONFIGS } from './MuzzleFlash';
 export type { ParticleEffectConfig } from './ParticleManager';
 export { ParticleManager, particleManager } from './ParticleManager';
+// Shell casing ejection system
+export type { CasingConfig, CasingWeaponType } from './ShellCasings';
+export { categoryToCasingType, ShellCasingSystem, shellCasings } from './ShellCasings';
 export type { SurfaceMaterial, WeaponType } from './WeaponEffects';
 export { WeaponEffects, weaponEffects } from './WeaponEffects';
 export type {

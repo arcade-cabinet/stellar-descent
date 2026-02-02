@@ -1,28 +1,56 @@
 # Tutorial Complete Flow - Plays through Anchor Station tutorial
-# Run: maestro test .maestro/flows/tutorial-complete.yaml
+# Cross-platform: Web, Android, iOS
 
-appId: com.jbcom.stellardescent
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - gameplay
+  - tutorial
+  - extended
+name: "Tutorial Complete Playthrough"
 
 ---
 - launchApp:
     clearState: true
 
-- tapOn:
-    text: "NEW GAME"
-    timeout: 10000
-
 - extendedWaitUntil:
-    notVisible:
-      text: "Loading"
+    visible: "NEW GAME"
     timeout: 30000
 
-# Tutorial Step 1: Movement
-- assertVisible:
-    text: "Movement"
-    optional: true
-    timeout: 10000
+- tapOn:
+    text: "NEW GAME"
 
-# Simulate movement input
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Wait for tutorial to start
+- extendedWaitUntil:
+    visible: "Good morning"
+    timeout: 30000
+
+- takeScreenshot: "tutorial_start"
+
+# Skip through tutorial comms
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
+
+- tapOn:
+    text: "SKIP"
+    optional: true
+
+- wait: 2000
+
+# Tutorial movement (for mobile)
 - swipe:
     start: "10%, 70%"
     end: "15%, 65%"
@@ -30,7 +58,7 @@ appId: com.jbcom.stellardescent
 
 - wait: 1000
 
-# Tutorial Step 2: Look around
+# Tutorial look around (for mobile)
 - swipe:
     start: "80%, 50%"
     end: "70%, 40%"
@@ -38,7 +66,7 @@ appId: com.jbcom.stellardescent
 
 - wait: 1000
 
-# Tutorial Step 3: Interact/Fire
+# Tutorial interact/fire
 - tapOn:
     id: "interact-button"
     optional: true
@@ -49,7 +77,6 @@ appId: com.jbcom.stellardescent
 
 - wait: 2000
 
-# Check for tutorial completion or next step
 - takeScreenshot: "tutorial_progress"
 
 # Continue through tutorial prompts
@@ -59,10 +86,6 @@ appId: com.jbcom.stellardescent
 
 - tapOn:
     text: "CONTINUE"
-    optional: true
-
-- tapOn:
-    text: "Got it"
     optional: true
 
 - wait: 3000

@@ -2,8 +2,10 @@
  * MuzzleFlash - Enhanced muzzle flash effect with multi-layered particles and light
  *
  * Provides:
- * - Flash sprite at barrel position
- * - Brief point light pulse
+ * - Flash sprite at barrel position with variation (2-3 different intensities)
+ * - Brief point light pulse (50-100ms)
+ * - Color matches weapon type (orange for ballistic, blue for energy)
+ * - Intensity varies by weapon (pistol weak, shotgun strong)
  * - Smoke wisps
  * - Pooled for performance
  *
@@ -18,11 +20,38 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
-import { getAdjustedParticleCount, getParticleMultiplier } from '../core/PerformanceManager';
+import { getLogger } from '../core/Logger';
+import { getAdjustedParticleCount } from '../core/PerformanceManager';
 import { particleManager } from './ParticleManager';
+
+const log = getLogger('MuzzleFlash');
 
 // Import particle system components
 import '@babylonjs/core/Particles/particleSystemComponent';
+
+/**
+ * Flash variation type - provides visual variety per shot
+ */
+export type FlashVariation = 'normal' | 'bright' | 'dim';
+
+/**
+ * Flash variation presets - intensity and scale multipliers
+ */
+const FLASH_VARIATIONS: Record<FlashVariation, { intensityMult: number; scaleMult: number }> = {
+  normal: { intensityMult: 1.0, scaleMult: 1.0 },
+  bright: { intensityMult: 1.35, scaleMult: 1.15 },
+  dim: { intensityMult: 0.7, scaleMult: 0.85 },
+};
+
+/**
+ * Get a random flash variation for visual variety
+ */
+function getRandomFlashVariation(): FlashVariation {
+  const rand = Math.random();
+  if (rand < 0.2) return 'bright'; // 20% chance for bright flash
+  if (rand < 0.4) return 'dim'; // 20% chance for dim flash
+  return 'normal'; // 60% chance for normal flash
+}
 
 /**
  * Configuration for muzzle flash effects
@@ -30,18 +59,22 @@ import '@babylonjs/core/Particles/particleSystemComponent';
 export interface MuzzleFlashConfig {
   /** Scale of the flash effect */
   scale: number;
-  /** Light intensity multiplier */
+  /** Light intensity multiplier (base value before variation) */
   lightIntensity: number;
-  /** Light range */
+  /** Light range - affects how far the flash illuminates surfaces */
   lightRange: number;
-  /** Light color */
+  /** Light color - orange for ballistic, blue for energy weapons */
   lightColor: Color3;
-  /** Flash duration in milliseconds */
+  /** Flash duration in milliseconds (50-100ms recommended) */
   flashDuration: number;
   /** Whether to emit smoke wisps */
   emitSmoke: boolean;
   /** Whether to emit sparks */
   emitSparks: boolean;
+  /** Minimum flash duration for variation (defaults to flashDuration - 20) */
+  minFlashDuration?: number;
+  /** Maximum flash duration for variation (defaults to flashDuration + 20) */
+  maxFlashDuration?: number;
 }
 
 /**
@@ -51,47 +84,90 @@ const DEFAULT_CONFIG: MuzzleFlashConfig = {
   scale: 1.0,
   lightIntensity: 2.5,
   lightRange: 8,
-  lightColor: new Color3(1, 0.8, 0.4),
+  lightColor: new Color3(1, 0.8, 0.4), // Warm orange for ballistic
   flashDuration: 60,
   emitSmoke: true,
   emitSparks: true,
+  minFlashDuration: 50,
+  maxFlashDuration: 80,
 };
 
 /**
  * Weapon-specific flash configurations
+ * - Ballistic weapons: orange/yellow colors
+ * - Energy weapons: blue/cyan colors
+ * - Duration: 50-100ms range for realistic flash
+ * - Intensity: pistol (weak) < rifle < shotgun/heavy (strong)
  */
 export const WEAPON_FLASH_CONFIGS: Record<string, Partial<MuzzleFlashConfig>> = {
   rifle: {
     scale: 1.0,
     lightIntensity: 2.5,
-    flashDuration: 50,
+    lightRange: 8,
+    lightColor: new Color3(1, 0.85, 0.4), // Warm orange
+    flashDuration: 60,
+    minFlashDuration: 50,
+    maxFlashDuration: 70,
   },
   pistol: {
     scale: 0.7,
-    lightIntensity: 1.5,
+    lightIntensity: 1.5, // Weak flash for small caliber
     lightRange: 5,
-    flashDuration: 40,
+    lightColor: new Color3(1, 0.9, 0.5), // Lighter orange
+    flashDuration: 50,
+    minFlashDuration: 40,
+    maxFlashDuration: 60,
   },
   shotgun: {
     scale: 1.8,
-    lightIntensity: 4.0,
+    lightIntensity: 4.0, // Strong flash for large bore
     lightRange: 12,
-    flashDuration: 80,
+    lightColor: new Color3(1, 0.75, 0.3), // Deep orange
+    flashDuration: 90,
+    minFlashDuration: 80,
+    maxFlashDuration: 100,
     emitSparks: true,
   },
   plasma: {
     scale: 1.2,
     lightIntensity: 3.0,
-    lightColor: new Color3(0.3, 0.8, 1),
+    lightRange: 10,
+    lightColor: new Color3(0.3, 0.8, 1), // Cyan/blue for energy
     flashDuration: 70,
+    minFlashDuration: 60,
+    maxFlashDuration: 80,
+    emitSmoke: false,
+    emitSparks: false,
+  },
+  energy: {
+    scale: 1.0,
+    lightIntensity: 2.5,
+    lightRange: 8,
+    lightColor: new Color3(0.4, 0.9, 1), // Light blue for energy
+    flashDuration: 60,
+    minFlashDuration: 50,
+    maxFlashDuration: 70,
     emitSmoke: false,
     emitSparks: false,
   },
   heavy: {
     scale: 2.0,
-    lightIntensity: 5.0,
+    lightIntensity: 5.0, // Very strong flash for heavy weapons
     lightRange: 15,
+    lightColor: new Color3(1, 0.8, 0.35), // Bright orange
     flashDuration: 100,
+    minFlashDuration: 90,
+    maxFlashDuration: 110,
+    emitSparks: true,
+  },
+  smg: {
+    scale: 0.85,
+    lightIntensity: 1.8,
+    lightRange: 6,
+    lightColor: new Color3(1, 0.9, 0.5), // Light orange
+    flashDuration: 45,
+    minFlashDuration: 35,
+    maxFlashDuration: 55,
   },
 };
 
@@ -111,6 +187,10 @@ interface PooledFlash {
   startTime: number;
   /** Current configuration */
   config: MuzzleFlashConfig;
+  /** Current flash variation for this emission */
+  variation: FlashVariation;
+  /** Actual duration for this flash (randomized within min/max) */
+  actualDuration: number;
 }
 
 /**
@@ -163,7 +243,7 @@ export class MuzzleFlashManager {
     // Pre-warm the pool
     this.preWarmPools();
 
-    console.log('[MuzzleFlash] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -221,6 +301,8 @@ export class MuzzleFlashManager {
       inUse: false,
       startTime: 0,
       config: { ...DEFAULT_CONFIG },
+      variation: 'normal',
+      actualDuration: DEFAULT_CONFIG.flashDuration,
     };
 
     this.flashPool.push(entry);
@@ -324,7 +406,7 @@ export class MuzzleFlashManager {
   }
 
   /**
-   * Activate a pooled flash
+   * Activate a pooled flash with variation for visual variety
    */
   private activateFlash(
     flash: PooledFlash,
@@ -336,15 +418,28 @@ export class MuzzleFlashManager {
     flash.startTime = performance.now();
     flash.config = config;
 
+    // Get random flash variation for visual variety
+    flash.variation = getRandomFlashVariation();
+    const variation = FLASH_VARIATIONS[flash.variation];
+
+    // Calculate actual duration with randomization (50-100ms range)
+    const minDur = config.minFlashDuration ?? config.flashDuration - 20;
+    const maxDur = config.maxFlashDuration ?? config.flashDuration + 20;
+    flash.actualDuration = minDur + Math.random() * (maxDur - minDur);
+
+    // Apply variation multipliers
+    const effectiveIntensity = config.lightIntensity * variation.intensityMult;
+    const effectiveScale = config.scale * variation.scaleMult;
+
     // Position flash slightly in front of muzzle
     const flashPos = position.add(direction.scale(0.1));
     flash.mesh.position = flashPos;
-    flash.mesh.scaling.setAll(config.scale * 0.5);
+    flash.mesh.scaling.setAll(effectiveScale * 0.5);
     flash.mesh.isVisible = true;
 
-    // Configure and show light
+    // Configure and show light with varied intensity
     flash.light.position = flashPos;
-    flash.light.intensity = config.lightIntensity;
+    flash.light.intensity = effectiveIntensity;
     flash.light.range = config.lightRange;
     flash.light.diffuse = config.lightColor;
 
@@ -353,17 +448,22 @@ export class MuzzleFlashManager {
   }
 
   /**
-   * Animate a flash (fade out)
+   * Animate a flash (fade out) with variation-aware timing
+   * Light fades over 50-100ms for realistic muzzle flash feel
    */
   private animateFlash(flash: PooledFlash): void {
+    const variation = FLASH_VARIATIONS[flash.variation];
+    const baseIntensity = flash.config.lightIntensity * variation.intensityMult;
+    const baseScale = flash.config.scale * variation.scaleMult;
+
     const animate = () => {
       if (!flash.inUse) return;
 
       const elapsed = performance.now() - flash.startTime;
-      const progress = elapsed / flash.config.flashDuration;
+      const progress = elapsed / flash.actualDuration;
 
       if (progress >= 1) {
-        // Release back to pool
+        // Release back to pool - ensure light is fully off
         flash.inUse = false;
         flash.mesh.isVisible = false;
         flash.light.intensity = 0;
@@ -371,16 +471,24 @@ export class MuzzleFlashManager {
         return;
       }
 
-      // Fade out flash sprite
-      const alpha = 1 - progress;
-      flash.material.alpha = alpha;
+      // Fade out flash sprite with slight flicker for realism
+      const flicker = 1 + (Math.random() - 0.5) * 0.1; // +/- 5% flicker
+      const alpha = (1 - progress) * flicker;
+      flash.material.alpha = Math.max(0, Math.min(1, alpha));
 
-      // Quick scale pop then shrink
+      // Quick scale pop (first 20%) then shrink
       const scaleProgress = progress < 0.2 ? 1 + progress * 2 : 1.4 - (progress - 0.2) * 1.5;
-      flash.mesh.scaling.setAll(flash.config.scale * 0.5 * Math.max(0.1, scaleProgress));
+      flash.mesh.scaling.setAll(baseScale * 0.5 * Math.max(0.1, scaleProgress));
 
-      // Fade light
-      flash.light.intensity = flash.config.lightIntensity * (1 - progress * progress);
+      // Fade light with quadratic falloff for natural decay
+      // Light fades faster than the sprite for realism
+      const lightFade = 1 - progress * progress;
+      flash.light.intensity = baseIntensity * lightFade * flicker;
+
+      // Ensure light is off at the end of animation
+      if (progress > 0.9) {
+        flash.light.intensity *= (1 - progress) * 10; // Rapid final fade
+      }
 
       requestAnimationFrame(animate);
     };
@@ -510,9 +618,32 @@ export class MuzzleFlashManager {
     this.scene = null;
     MuzzleFlashManager.instance = null;
 
-    console.log('[MuzzleFlash] Disposed');
+    log.info('Disposed');
   }
 }
 
 // Export singleton accessor
 export const muzzleFlash = MuzzleFlashManager.getInstance();
+
+/**
+ * Helper to create MuzzleFlashConfig from weapon definition properties
+ * This bridges the gap between weapon definitions and the muzzle flash system
+ */
+export function createMuzzleFlashConfigFromWeapon(
+  weaponType: string,
+  muzzleFlashColor: Color3,
+  muzzleFlashIntensity: number,
+  muzzleFlashRange: number
+): Partial<MuzzleFlashConfig> {
+  // Calculate flash duration based on weapon type (50-100ms range)
+  const baseDuration = WEAPON_FLASH_CONFIGS[weaponType]?.flashDuration ?? 60;
+
+  return {
+    lightColor: muzzleFlashColor,
+    lightIntensity: muzzleFlashIntensity,
+    lightRange: muzzleFlashRange,
+    flashDuration: baseDuration,
+    minFlashDuration: Math.max(50, baseDuration - 15),
+    maxFlashDuration: Math.min(100, baseDuration + 15),
+  };
+}

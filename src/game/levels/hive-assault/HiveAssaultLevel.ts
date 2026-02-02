@@ -39,36 +39,52 @@
 
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { registerDynamicActions, unregisterDynamicActions } from '../../stores/useKeybindingsStore';
 import { fireWeapon, getWeaponActions, startReload } from '../../context/useWeaponActions';
-import { getAudioManager } from '../../core/AudioManager';
+import { AssetManager } from '../../core/AssetManager';
 import { particleManager } from '../../effects/ParticleManager';
 import { ALIEN_SPECIES, createAlienMesh } from '../../entities/aliens';
 import { bindableActionParams, levelActionParams } from '../../input/InputBridge';
 import { type ActionButtonGroup, createAction } from '../../types/actions';
 import { SurfaceLevel } from '../SurfaceLevel';
-import type { LevelCallbacks, LevelConfig, LevelId } from '../types';
+import { buildFloraFromPlacements, getHiveAssaultFlora } from '../shared/AlienFloraBuilder';
+import {
+  buildCollectibles,
+  type CollectibleSystemResult,
+  getHiveAssaultCollectibles,
+} from '../shared/CollectiblePlacer';
+import { HiveEnvironmentBuilder, updateBiolights } from '../shared/HiveEnvironmentBuilder';
+import type { TerrainResult } from '../shared/SurfaceTerrainFactory';
+import { createDynamicTerrain, ROCK_TERRAIN } from '../shared/SurfaceTerrainFactory';
+import type { LevelConfig } from '../types';
 import {
   type AATurret,
   AssaultEnvironmentBuilder,
-  type DestroyedVehicle,
   type Fortification,
   type HiveEntrance,
-  type StagingAreaProps,
 } from './environment';
-import {
-  type EnemyTarget,
-  type Marine,
-  type MarineSquad,
-  MarineSquadManager,
-} from './MarineSquadAI';
+import { type EnemyTarget, type Marine, MarineSquadManager } from './MarineSquadAI';
 
 import '@babylonjs/core/Animations/animatable';
+
+// ============================================================================
+// GLB ASSET PATHS (vehicles & NPCs)
+// ============================================================================
+
+const LEVEL_GLB = {
+  marcusMech: '/assets/models/vehicles/marcus_mech.glb',
+  marineSoldier: '/assets/models/npcs/marine/marine_soldier.glb',
+  marineSergeant: '/assets/models/npcs/marine/marine_sergeant.glb',
+  marineElite: '/assets/models/npcs/marine/marine_elite.glb',
+  marineCrusader: '/assets/models/npcs/marine/marine_crusader.glb',
+  playerVehicle: '/assets/models/vehicles/chitin/wraith.glb',
+} as const;
 
 // ============================================================================
 // TYPES
@@ -143,15 +159,27 @@ const PLAYER_VEHICLE_HEALTH = 500;
 const VEHICLE_SPEED = 25;
 const VEHICLE_FIRE_RATE = 3; // shots per second
 const VEHICLE_DAMAGE = 40;
+const _VEHICLE_TURN_SPEED = 2.0; // radians per second
 
 const MARCUS_MECH_HEALTH = 800;
 const MARCUS_FIRE_RATE = 2;
 const MARCUS_DAMAGE = 60;
 const MARCUS_RANGE = 100;
+const MARCUS_FOLLOW_DISTANCE = 12; // meters behind player
 
 const AA_TURRET_FIRE_RATE = 1.5;
 const AA_TURRET_DAMAGE = 15;
 const AA_TURRET_RANGE = 80;
+const _AA_TURRET_HEALTH = 200;
+
+// Objective marker update intervals
+const OBJECTIVE_UPDATE_INTERVAL = 2.0; // seconds
+const _WAYPOINT_PROXIMITY = 15; // meters to consider waypoint reached
+
+// Performance optimization constants
+const ENEMY_UPDATE_DISTANCE = 150; // only update enemies within this range
+const ENEMY_LOD_DISTANCE = 80; // distance for enemy LOD switching
+const _MARINE_UPDATE_DISTANCE = 120; // only update marines within this range
 
 const ENEMY_CONFIGS: Record<
   EnemyClass,
@@ -333,19 +361,22 @@ const COMMS = {
 // ============================================================================
 
 export class HiveAssaultLevel extends SurfaceLevel {
+  // Flora & collectibles
+  private floraNodes: TransformNode[] = [];
+  private collectibleSystem: CollectibleSystemResult | null = null;
+
   // Phase management
   private phase: AssaultPhase = 'staging';
   private phaseTime = 0;
-  private phaseStarted = false;
 
   // Environment
   private envBuilder: AssaultEnvironmentBuilder | null = null;
-  private stagingArea: StagingAreaProps | null = null;
+  private surfaceTerrain: TerrainResult | null = null;
+  private hiveBuilder: HiveEnvironmentBuilder | null = null;
   private aaTurrets: AATurret[] = [];
   private fieldCover: Fortification[] = [];
   private breachFortifications: Fortification[] = [];
   private hiveEntrance: HiveEntrance | null = null;
-  private destroyedVehicles: DestroyedVehicle[] = [];
 
   // Player
   private playerHealth = PLAYER_MAX_HEALTH;
@@ -391,13 +422,38 @@ export class HiveAssaultLevel extends SurfaceLevel {
   private beachheadProgress = 0;
   private readonly beachheadRequired = 100; // Kill score to secure beachhead
 
-  constructor(
-    engine: Engine,
-    canvas: HTMLCanvasElement,
-    config: LevelConfig,
-    callbacks: LevelCallbacks
-  ) {
-    super(engine, canvas, config, callbacks, {
+  // Objective marker state
+  private currentObjectiveMarker: Vector3 | null = null;
+  private objectiveUpdateTimer = 0;
+
+  // Squad command state
+  private squadCommandMode: 'follow' | 'hold' | 'advance' = 'follow';
+  private lastSquadCommandTime = 0;
+
+  // Performance optimization state
+  private enemyUpdateAccumulator = 0;
+  private marineUpdateAccumulator = 0;
+
+  // Level completion state
+  private levelCompleteTriggered = false;
+  private extractionZonePosition = new Vector3(0, 0, -660);
+
+  // Environment references
+  private stagingArea: {
+    vehicleBay: Mesh;
+    briefingPlatform: Mesh;
+    sandbags: Mesh[];
+    crates: Mesh[];
+    lights: PointLight[];
+  } | null = null;
+  private destroyedVehicles: { mesh: Mesh; position: Vector3; type: string }[] = [];
+
+  // Phase started flag
+  private phaseStarted = false;
+  private extractionZoneRadius = 15;
+
+  constructor(engine: Engine, canvas: HTMLCanvasElement, config: LevelConfig) {
+    super(engine, canvas, config, {
       terrainSize: 700,
       heightScale: 5,
       timeOfDay: 0.55,
@@ -437,12 +493,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Initialize systems
     particleManager.init(this.scene);
 
-    // Build environment
+    // Build environment -- load GLB assets first, then construct zones
     this.envBuilder = new AssaultEnvironmentBuilder(this.scene);
+    await this.envBuilder.loadAssets();
     this.envBuilder.setupGlowLayer();
     this.envBuilder.createTerrain();
     this.envBuilder.createSkyDome();
     this.envBuilder.createCanyonWalls();
+    this.envBuilder.createFleetBackdrop();
 
     this.stagingArea = this.envBuilder.createStagingArea();
     this.fieldCover = this.envBuilder.createFieldCover();
@@ -450,8 +508,40 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.destroyedVehicles = this.envBuilder.createDestroyedVehicles();
     this.aaTurrets = this.envBuilder.createAATurrets();
 
-    const hazards = this.envBuilder.createHazards();
+    const _hazards = this.envBuilder.createHazards();
     this.hiveEntrance = this.envBuilder.createHiveEntrance();
+
+    // --- Surface terrain (open field combat area, phases 1-3) ---
+    this.surfaceTerrain = createDynamicTerrain(this.scene, {
+      ...ROCK_TERRAIN,
+      size: 700,
+      heightScale: 5,
+      seed: 88881,
+      materialName: 'hiveAssaultRockTerrain',
+    });
+
+    // --- Hive underground environment (entry push, phase 4) ---
+    this.hiveBuilder = new HiveEnvironmentBuilder(this.scene, {
+      logPrefix: 'HiveAssault',
+    });
+    this.hiveBuilder.setupGlowLayer();
+
+    // Build the hive entrance corridor tunnels (z: -600 to -650)
+    for (let i = 0; i < 6; i++) {
+      this.hiveBuilder.createTunnelSegment(new Vector3(0, -2, -600 - i * 8), 0, 'upper');
+    }
+
+    // Place bioluminescent lights along the entrance corridor
+    for (let i = 0; i < 8; i++) {
+      const side = i % 2 === 0 ? -1.5 : 1.5;
+      this.hiveBuilder.createBiolight(
+        new Vector3(side, 1.5, -605 - i * 6),
+        0.6 + Math.random() * 0.4
+      );
+    }
+
+    // Create a chamber at the beachhead destination
+    this.hiveBuilder.createChamber(new Vector3(0, -3, -660), 10, 'upper');
 
     // Extract cover positions for marine AI
     this.coverPositions = [
@@ -459,18 +549,27 @@ export class HiveAssaultLevel extends SurfaceLevel {
       ...this.breachFortifications.filter((f) => f.provideCover).map((f) => f.position),
     ];
 
+    // Preload level-specific GLBs (mech, marines)
+    await Promise.all(
+      Object.values(LEVEL_GLB).map((p) =>
+        AssetManager.isPathCached(p)
+          ? Promise.resolve(null)
+          : AssetManager.loadAssetByPath(p, this.scene)
+      )
+    );
+
     // Create Marcus mech
     this.createMarcusMech();
 
     // Create marine squads
     this.marineManager = new MarineSquadManager(this.scene, {
-      onCommsMessage: (msg) => this.callbacks.onCommsMessage(msg),
-      onNotification: (text, duration) => this.callbacks.onNotification(text, duration),
+      onCommsMessage: (msg) => this.emitCommsMessage(msg),
+      onNotification: (text, duration) => this.emitNotification(text, duration),
       onMarineRevived: (marine) => {
-        this.callbacks.onNotification(`${marine.name} revived!`, 3000);
+        this.emitNotification(`${marine.name} revived!`, 3000);
       },
       onSquadWiped: (squad) => {
-        this.callbacks.onNotification(`${squad.callsign} squad is down!`, 5000);
+        this.emitNotification(`${squad.callsign} squad is down!`, 5000);
       },
     });
 
@@ -510,6 +609,25 @@ export class HiveAssaultLevel extends SurfaceLevel {
       }
     );
 
+    // Build alien flora
+    const floraRoot = new TransformNode('flora_root', this.scene);
+    this.floraNodes = await buildFloraFromPlacements(this.scene, getHiveAssaultFlora(), floraRoot);
+
+    // Build collectibles
+    const collectibleRoot = new TransformNode('collectible_root', this.scene);
+    this.collectibleSystem = await buildCollectibles(
+      this.scene,
+      getHiveAssaultCollectibles(),
+      collectibleRoot
+    );
+
+    // Register dynamic actions for squad commands and vehicle controls
+    registerDynamicActions(
+      'hive_assault',
+      ['squadFollow', 'squadHold', 'squadAttack', 'vehicleBoost', 'vehicleBrake'],
+      'squad'
+    );
+
     // Start staging phase
     this.startStagingPhase();
   }
@@ -522,43 +640,57 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const rootNode = new TransformNode('marcus_mech', this.scene);
     rootNode.position.set(10, 0, -15);
 
-    const bodyMat = new StandardMaterial('mechBodyMat', this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString('#5A6A5A');
-    bodyMat.specularColor = new Color3(0.2, 0.2, 0.2);
+    // Load GLB model for the mech
+    if (AssetManager.isPathCached(LEVEL_GLB.marcusMech)) {
+      const mechModel = AssetManager.createInstanceByPath(
+        LEVEL_GLB.marcusMech,
+        'marcus_mech_model',
+        this.scene,
+        true,
+        'vehicle'
+      );
+      if (mechModel) {
+        mechModel.scaling.setAll(2.0);
+        mechModel.parent = rootNode;
+      }
+    }
 
-    const body = MeshBuilder.CreateBox('mechBody', { width: 3, height: 4, depth: 2.5 }, this.scene);
-    body.material = bodyMat;
+    // Invisible proxy meshes to satisfy MarcusMech interface (body, arms, legs)
+    const body = MeshBuilder.CreateBox(
+      'mechBody_proxy',
+      { width: 3, height: 4, depth: 2.5 },
+      this.scene
+    );
     body.position.y = 5;
     body.parent = rootNode;
-
-    const armMat = new StandardMaterial('mechArmMat', this.scene);
-    armMat.diffuseColor = Color3.FromHexString('#4A5A4A');
+    body.isVisible = false;
 
     const leftArm = MeshBuilder.CreateBox(
-      'mechLeftArm',
+      'mechLeftArm_proxy',
       { width: 1, height: 3.5, depth: 1 },
       this.scene
     );
-    leftArm.material = armMat;
     leftArm.position.set(-2.2, 5, 0);
     leftArm.parent = rootNode;
+    leftArm.isVisible = false;
 
     const rightArm = MeshBuilder.CreateBox(
-      'mechRightArm',
+      'mechRightArm_proxy',
       { width: 1, height: 3.5, depth: 1 },
       this.scene
     );
-    rightArm.material = armMat;
     rightArm.position.set(2.2, 5, 0);
     rightArm.parent = rootNode;
+    rightArm.isVisible = false;
 
-    const legMat = new StandardMaterial('mechLegMat', this.scene);
-    legMat.diffuseColor = Color3.FromHexString('#3A4A3A');
-
-    const legs = MeshBuilder.CreateBox('mechLegs', { width: 2.5, height: 3, depth: 2 }, this.scene);
-    legs.material = legMat;
+    const legs = MeshBuilder.CreateBox(
+      'mechLegs_proxy',
+      { width: 2.5, height: 3, depth: 2 },
+      this.scene
+    );
     legs.position.y = 1.5;
     legs.parent = rootNode;
+    legs.isVisible = false;
 
     // Mech eye light
     const mechEye = new PointLight('mechEye', new Vector3(10, 7.5, -14.5), this.scene);
@@ -591,52 +723,40 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const rootNode = new TransformNode('playerVehicle', this.scene);
     rootNode.position.set(15, 0, -10);
 
-    const bodyMat = new StandardMaterial('vehicleBodyMat', this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString('#5A5A4A');
+    // Load GLB model for the player vehicle
+    if (AssetManager.isPathCached(LEVEL_GLB.playerVehicle)) {
+      const vehicleModel = AssetManager.createInstanceByPath(
+        LEVEL_GLB.playerVehicle,
+        'playerVehicle_model',
+        this.scene,
+        true,
+        'vehicle'
+      );
+      if (vehicleModel) {
+        vehicleModel.scaling.setAll(0.8);
+        vehicleModel.parent = rootNode;
+      }
+    }
 
+    // Invisible collision proxy for body (gameplay collision)
     const body = MeshBuilder.CreateBox(
       'vehicleBody',
       { width: 2.5, height: 1.2, depth: 4 },
       this.scene
     );
-    body.material = bodyMat;
     body.position.y = 0.8;
     body.parent = rootNode;
+    body.isVisible = false;
 
-    const turretMat = new StandardMaterial('vehicleTurretMat', this.scene);
-    turretMat.diffuseColor = new Color3(0.3, 0.3, 0.3);
-
+    // Invisible collision proxy for turret
     const turret = MeshBuilder.CreateBox(
       'vehicleTurret',
       { width: 0.6, height: 0.5, depth: 1.5 },
       this.scene
     );
-    turret.material = turretMat;
     turret.position.set(0, 1.8, 0.3);
     turret.parent = rootNode;
-
-    // Wheels
-    const wheelMat = new StandardMaterial('wheelMat', this.scene);
-    wheelMat.diffuseColor = new Color3(0.15, 0.15, 0.15);
-
-    const wheelPositions = [
-      new Vector3(-1.2, 0.3, 1.3),
-      new Vector3(1.2, 0.3, 1.3),
-      new Vector3(-1.2, 0.3, -1.3),
-      new Vector3(1.2, 0.3, -1.3),
-    ];
-
-    for (let i = 0; i < wheelPositions.length; i++) {
-      const wheel = MeshBuilder.CreateCylinder(
-        `wheel_${i}`,
-        { height: 0.3, diameter: 0.6, tessellation: 8 },
-        this.scene
-      );
-      wheel.material = wheelMat;
-      wheel.position = wheelPositions[i];
-      wheel.rotation.z = Math.PI / 2;
-      wheel.parent = rootNode;
-    }
+    turret.isVisible = false;
 
     this.playerVehicle = {
       rootNode,
@@ -661,38 +781,48 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.phaseTime = 0;
     this.phaseStarted = true;
 
-    this.callbacks.onChapterChange(this.config.chapter);
-    this.callbacks.onObjectiveUpdate(
-      'STAGING AREA',
-      'Attend briefing and board your vehicle when ready.'
-    );
+    this.emitChapterChanged(this.config.chapter);
+    this.emitObjectiveUpdate('STAGING AREA', 'Attend briefing and board your vehicle when ready.');
+
+    // Set initial objective marker at vehicle
+    this.currentObjectiveMarker = new Vector3(15, 0, -10);
+    this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
 
     // Register action buttons
     this.registerStagingActions();
 
     // Delayed comms sequence
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.BRIEFING), 2000);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.ATHENA_BRIEFING), 8000);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.MARCUS_RALLY), 14000);
+    setTimeout(() => this.emitCommsMessage(COMMS.BRIEFING), 2000);
+    setTimeout(() => this.emitCommsMessage(COMMS.ATHENA_BRIEFING), 8000);
+    setTimeout(() => this.emitCommsMessage(COMMS.MARCUS_RALLY), 14000);
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.BOARD_VEHICLE);
-      this.callbacks.onNotification('Board your vehicle to begin the assault', 5000);
+      this.emitCommsMessage(COMMS.BOARD_VEHICLE);
+      this.emitNotification('Board your vehicle to begin the assault', 5000);
     }, 20000);
   }
 
   private startFieldAssaultPhase(): void {
+    // Save checkpoint at start of field assault
+    this.saveCheckpoint('field_assault');
+
     this.phase = 'field_assault';
     this.phaseTime = 0;
     this.waveIndex = 0;
     this.turretsDestroyed = 0;
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'OPEN FIELD ASSAULT',
       `Destroy AA turrets (0/${this.totalTurrets}) and advance to hive entrance.`
     );
 
+    // Set objective marker to first AA turret
+    if (this.aaTurrets.length > 0) {
+      this.currentObjectiveMarker = this.aaTurrets[0].position.clone();
+      this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
+    }
+
     this.registerCombatActions();
-    this.callbacks.onCommsMessage(COMMS.ASSAULT_BEGIN);
+    this.emitCommsMessage(COMMS.ASSAULT_BEGIN);
 
     // Marcus follows the assault
     if (this.marcus) {
@@ -700,18 +830,22 @@ export class HiveAssaultLevel extends SurfaceLevel {
       this.marcus.rootNode.position.copyFrom(this.marcus.position);
     }
 
-    // Squads advance
+    // Squads advance with proper spacing
     this.marineManager?.issueGlobalOrder('advance', new Vector3(0, 0, -200));
+    this.squadCommandMode = 'advance';
 
     // Spawn first wave
     this.spawnWave(FIELD_WAVES[0]);
 
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.MARCUS_FIELD), 5000);
+    setTimeout(() => this.emitCommsMessage(COMMS.MARCUS_FIELD), 5000);
 
     this.setCombatState(true);
   }
 
   private startBreachPointPhase(): void {
+    // Save checkpoint before breach point (major encounter)
+    this.saveCheckpoint('breach_point');
+
     this.phase = 'breach_point';
     this.phaseTime = 0;
     this.waveIndex = 0;
@@ -721,22 +855,30 @@ export class HiveAssaultLevel extends SurfaceLevel {
       this.dismountVehicle();
     }
 
-    // Destroy vehicle (scripted)
+    // Destroy vehicle (scripted) with explosion effect
     if (this.playerVehicle) {
       this.playerVehicle.isActive = false;
       this.playerVehicle.health = 0;
+      particleManager.emit('explosion', this.playerVehicle.rootNode.position);
+      this.triggerShake(6);
+      this.playSound('explosion');
     }
 
-    this.callbacks.onObjectiveUpdate('BREACH POINT', 'Clear the hive entrance. Fight on foot.');
+    this.emitObjectiveUpdate('BREACH POINT', 'Clear the hive entrance. Fight on foot.');
 
-    this.callbacks.onCommsMessage(COMMS.DISMOUNT);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.BREACH_COMBAT), 3000);
+    // Set objective marker to hive entrance
+    this.currentObjectiveMarker = new Vector3(0, 0, -550);
+    this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
 
-    // Squads push to breach
+    this.emitCommsMessage(COMMS.DISMOUNT);
+    setTimeout(() => this.emitCommsMessage(COMMS.BREACH_COMBAT), 3000);
+
+    // Squads push to breach with line formation for maximum firepower
     this.marineManager?.issueGlobalOrder('advance', new Vector3(0, 0, -500));
     this.marineManager?.getSquads().forEach((s) => {
       this.marineManager?.setFormation(s, 'line');
     });
+    this.squadCommandMode = 'advance';
 
     this.spawnWave(BREACH_WAVES[0]);
 
@@ -750,29 +892,34 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.waveIndex = 0;
     this.beachheadProgress = 0;
 
-    this.callbacks.onObjectiveUpdate(
+    this.emitObjectiveUpdate(
       'ENTRY PUSH',
       'Push into the hive entrance and establish a beachhead.'
     );
 
-    this.callbacks.onCommsMessage(COMMS.ENTRY_BEGIN);
-    setTimeout(() => this.callbacks.onCommsMessage(COMMS.ENTRY_COMBAT), 4000);
+    // Set objective marker to extraction/beachhead zone
+    this.currentObjectiveMarker = this.extractionZonePosition.clone();
+    this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
 
-    // Marcus holds the entrance
+    this.emitCommsMessage(COMMS.ENTRY_BEGIN);
+    setTimeout(() => this.emitCommsMessage(COMMS.ENTRY_COMBAT), 4000);
+
+    // Marcus holds the entrance - provide covering fire
     if (this.marcus) {
       this.marcus.position = new Vector3(0, 0, -590);
       this.marcus.rootNode.position.copyFrom(this.marcus.position);
     }
 
-    // Squads push inside
+    // Squads push inside with cover formation for close quarters
     this.marineManager?.issueGlobalOrder('advance', new Vector3(0, 0, -630));
     this.marineManager?.getSquads().forEach((s) => {
       this.marineManager?.setFormation(s, 'cover');
     });
+    this.squadCommandMode = 'advance';
 
     this.spawnWave(ENTRY_WAVES[0]);
 
-    // Transition color grading to hive
+    // Transition color grading to hive atmosphere
     this.transitionColorGrading('hive', 5000);
   }
 
@@ -783,17 +930,42 @@ export class HiveAssaultLevel extends SurfaceLevel {
   protected updateLevel(deltaTime: number): void {
     this.phaseTime += deltaTime;
 
+    // Update collectibles
+    if (this.collectibleSystem) {
+      const nearby = this.collectibleSystem.update(this.camera.position, deltaTime);
+      if (nearby) {
+        this.collectibleSystem.collect(nearby.id);
+      }
+    }
+
     // Update environment effects
     if (this.hiveEntrance && this.envBuilder) {
       this.envBuilder.updateBioLights(this.hiveEntrance.bioLights, this.phaseTime);
     }
 
-    // Update Marcus
+    // Update shared hive bioluminescent lights
+    if (this.hiveBuilder) {
+      updateBiolights(this.hiveBuilder.getBiolights(), this.phaseTime);
+    }
+
+    // Update objective markers (periodic update for performance)
+    this.objectiveUpdateTimer += deltaTime;
+    if (this.objectiveUpdateTimer >= OBJECTIVE_UPDATE_INTERVAL) {
+      this.objectiveUpdateTimer = 0;
+      this.updateObjectiveMarker();
+    }
+
+    // Update Marcus (optimized - always update since he's important)
     this.updateMarcus(deltaTime);
 
-    // Update marine squads
-    const enemyTargets = this.getEnemyTargets();
-    this.marineManager?.update(deltaTime, this.camera.position, enemyTargets, this.coverPositions);
+    // Update marine squads (with distance-based optimization)
+    this.marineUpdateAccumulator += deltaTime;
+    if (this.marineUpdateAccumulator >= 0.05) {
+      // 20Hz update for marines
+      this.marineUpdateAccumulator = 0;
+      const enemyTargets = this.getEnemyTargets();
+      this.marineManager?.update(0.05, this.camera.position, enemyTargets, this.coverPositions);
+    }
 
     // Process marine fire
     this.processMarineFire();
@@ -801,8 +973,13 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Check revive
     this.checkReviveProximity();
 
-    // Update enemies
-    this.updateEnemies(deltaTime);
+    // Update enemies (with performance optimization)
+    this.enemyUpdateAccumulator += deltaTime;
+    if (this.enemyUpdateAccumulator >= 0.033) {
+      // 30Hz update for enemies
+      this.enemyUpdateAccumulator = 0;
+      this.updateEnemies(0.033);
+    }
 
     // Update spawning
     this.updateSpawning(deltaTime);
@@ -833,11 +1010,63 @@ export class HiveAssaultLevel extends SurfaceLevel {
       this.updateVehicle(deltaTime);
     }
 
+    // Check extraction zone in entry_push phase
+    if (this.phase === 'entry_push' && !this.levelCompleteTriggered) {
+      this.checkExtractionZone();
+    }
+
     // Update player health visual
     this.updatePlayerHealthVisual(this.playerHealth);
 
     // Update HUD
-    this.callbacks.onHealthChange(this.playerHealth);
+    this.emitHealthChanged(this.playerHealth);
+
+    // Check for squad rescue opportunity
+    if (this.squadOverwhelmedTriggered) {
+      this.checkSquadRescue();
+    }
+  }
+
+  /**
+   * Update objective marker position based on current phase
+   */
+  private updateObjectiveMarker(): void {
+    switch (this.phase) {
+      case 'field_assault': {
+        // Point to next undestroyed AA turret
+        const nextTurret = this.aaTurrets.find((t) => !t.destroyed);
+        if (nextTurret) {
+          this.currentObjectiveMarker = nextTurret.position.clone();
+        } else {
+          // All turrets destroyed - point to breach point
+          this.currentObjectiveMarker = new Vector3(0, 0, -400);
+        }
+        break;
+      }
+      case 'breach_point':
+        // Point to hive entrance
+        this.currentObjectiveMarker = new Vector3(0, 0, -550);
+        break;
+      case 'entry_push':
+        // Point to extraction/beachhead zone
+        this.currentObjectiveMarker = this.extractionZonePosition.clone();
+        break;
+    }
+
+    if (this.currentObjectiveMarker) {
+      this.emitObjectiveMarkerUpdate(this.currentObjectiveMarker);
+    }
+  }
+
+  /**
+   * Check if player is in extraction zone
+   */
+  private checkExtractionZone(): void {
+    const dist = Vector3.Distance(this.camera.position, this.extractionZonePosition);
+    if (dist <= this.extractionZoneRadius && this.beachheadProgress >= this.beachheadRequired) {
+      this.levelCompleteTriggered = true;
+      this.triggerLevelComplete();
+    }
   }
 
   // ============================================================================
@@ -855,11 +1084,17 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Update AA turrets
     this.updateAATurrets(deltaTime);
 
-    // Check wave progression
+    // Check wave progression with delay between waves
     if (this.enemiesRemaining <= 0 && this.enemiesToSpawn.length === 0) {
       this.waveIndex++;
       if (this.waveIndex < FIELD_WAVES.length) {
-        this.spawnWave(FIELD_WAVES[this.waveIndex]);
+        // Small delay before next wave
+        setTimeout(() => {
+          if (this.phase === 'field_assault') {
+            this.spawnWave(FIELD_WAVES[this.waveIndex]);
+            this.emitNotification(`Wave ${this.waveIndex + 1} incoming!`, 3000);
+          }
+        }, 2000);
       }
     }
 
@@ -868,26 +1103,58 @@ export class HiveAssaultLevel extends SurfaceLevel {
       this.triggerAmbush();
     }
 
+    // Alert for flying chitin first appearance
+    if (
+      !this.flyingChitinAlerted &&
+      this.enemies.some((e) => e.enemyClass === 'flying' && e.isActive)
+    ) {
+      this.flyingChitinAlerted = true;
+      this.emitCommsMessage(COMMS.FLYING_CHITIN);
+    }
+
     // Transition to breach point when all turrets destroyed and player is close
     if (this.turretsDestroyed >= this.totalTurrets && this.camera.position.z < -380) {
       this.startBreachPointPhase();
     }
 
-    // Update objective
-    this.callbacks.onObjectiveUpdate(
+    // Update objective with more detail
+    const nearestTurret = this.aaTurrets.find((t) => !t.destroyed);
+    const turretDistance = nearestTurret
+      ? Math.floor(Vector3.Distance(this.camera.position, nearestTurret.position))
+      : 0;
+
+    this.emitObjectiveUpdate(
       'OPEN FIELD ASSAULT',
-      `Destroy AA turrets (${this.turretsDestroyed}/${this.totalTurrets}) and advance to hive entrance.`
+      `Destroy AA turrets (${this.turretsDestroyed}/${this.totalTurrets})${nearestTurret ? ` - ${turretDistance}m to next target` : ' - Advance!'}`
     );
   }
 
   private updateBreachPoint(_deltaTime: number): void {
-    // Wave progression
+    // Wave progression with notification
     if (this.enemiesRemaining <= 0 && this.enemiesToSpawn.length === 0) {
       this.waveIndex++;
       if (this.waveIndex < BREACH_WAVES.length) {
-        this.spawnWave(BREACH_WAVES[this.waveIndex]);
+        setTimeout(() => {
+          if (this.phase === 'breach_point') {
+            this.spawnWave(BREACH_WAVES[this.waveIndex]);
+            this.emitNotification(`Wave ${this.waveIndex + 1} - Hold the line!`, 3000);
+          }
+        }, 1500);
       }
     }
+
+    // Alert for armored chitin first appearance
+    if (
+      !this.armoredChitinAlerted &&
+      this.enemies.some((e) => e.enemyClass === 'armored' && e.isActive)
+    ) {
+      this.armoredChitinAlerted = true;
+      this.emitCommsMessage(COMMS.ARMORED_CHITIN);
+    }
+
+    // Update objective with distance to gate
+    const distToGate = Math.floor(Math.abs(this.camera.position.z - -560));
+    this.emitObjectiveUpdate('BREACH POINT', `Clear the entrance - ${distToGate}m to gate`);
 
     // Transition to entry push when player reaches the gate
     if (
@@ -904,20 +1171,34 @@ export class HiveAssaultLevel extends SurfaceLevel {
     if (this.enemiesRemaining <= 0 && this.enemiesToSpawn.length === 0) {
       this.waveIndex++;
       if (this.waveIndex < ENTRY_WAVES.length) {
-        this.spawnWave(ENTRY_WAVES[this.waveIndex]);
+        setTimeout(() => {
+          if (this.phase === 'entry_push') {
+            this.spawnWave(ENTRY_WAVES[this.waveIndex]);
+            this.emitNotification('More hostiles incoming!', 2000);
+          }
+        }, 1000);
       }
     }
 
-    // Track beachhead progress
-    this.callbacks.onObjectiveUpdate(
-      'ENTRY PUSH',
-      `Secure the beachhead (${Math.min(100, Math.floor((this.beachheadProgress / this.beachheadRequired) * 100))}%)`
+    // Track beachhead progress with detailed feedback
+    const progressPercent = Math.min(
+      100,
+      Math.floor((this.beachheadProgress / this.beachheadRequired) * 100)
+    );
+    const distToZone = Math.floor(
+      Vector3.Distance(this.camera.position, this.extractionZonePosition)
     );
 
-    // Level complete when beachhead is secured
-    if (this.beachheadProgress >= this.beachheadRequired) {
-      this.triggerLevelComplete();
+    let statusText = `Secure the beachhead (${progressPercent}%)`;
+    if (progressPercent >= 100) {
+      statusText = `Beachhead secured! Move to extraction point (${distToZone}m)`;
+    } else if (progressPercent >= 75) {
+      statusText = `Almost there! (${progressPercent}%) - Keep pushing!`;
+    } else if (progressPercent >= 50) {
+      statusText = `Halfway secure (${progressPercent}%) - Hold the line!`;
     }
+
+    this.emitObjectiveUpdate('ENTRY PUSH', statusText);
   }
 
   // ============================================================================
@@ -972,30 +1253,72 @@ export class HiveAssaultLevel extends SurfaceLevel {
     }
   }
 
-  private spawnEnemy(enemyClass: EnemyClass): void {
+  private async spawnEnemy(enemyClass: EnemyClass): Promise<void> {
     const config = ENEMY_CONFIGS[enemyClass];
 
-    // Determine spawn position based on phase
+    // Determine spawn position based on phase with better distribution
     let spawnPos: Vector3;
     const playerZ = this.camera.position.z;
+    const _playerX = this.camera.position.x;
 
     switch (this.phase) {
-      case 'field_assault':
-        spawnPos = new Vector3(
-          (Math.random() - 0.5) * 200,
-          enemyClass === 'flying' ? 15 + Math.random() * 10 : 0,
-          playerZ - 80 - Math.random() * 60
-        );
+      case 'field_assault': {
+        // Spawn from multiple directions - flanking attacks
+        const spawnPattern = Math.random();
+        if (spawnPattern < 0.4) {
+          // Spawn ahead of player
+          spawnPos = new Vector3(
+            (Math.random() - 0.5) * 180,
+            enemyClass === 'flying' ? 15 + Math.random() * 10 : 0,
+            playerZ - 80 - Math.random() * 60
+          );
+        } else if (spawnPattern < 0.7) {
+          // Spawn from left flank
+          spawnPos = new Vector3(
+            -80 - Math.random() * 40,
+            enemyClass === 'flying' ? 12 + Math.random() * 8 : 0,
+            playerZ - 30 - Math.random() * 40
+          );
+        } else {
+          // Spawn from right flank
+          spawnPos = new Vector3(
+            80 + Math.random() * 40,
+            enemyClass === 'flying' ? 12 + Math.random() * 8 : 0,
+            playerZ - 30 - Math.random() * 40
+          );
+        }
         break;
-      case 'breach_point':
-        spawnPos = new Vector3(
-          (Math.random() - 0.5) * 100,
-          enemyClass === 'flying' ? 12 + Math.random() * 8 : 0,
-          -500 - Math.random() * 50
-        );
+      }
+      case 'breach_point': {
+        // Spawn from hive entrance and flanks
+        const spawnSide = Math.random();
+        if (spawnSide < 0.6) {
+          // Main spawn from entrance
+          spawnPos = new Vector3(
+            (Math.random() - 0.5) * 80,
+            enemyClass === 'flying' ? 12 + Math.random() * 8 : 0,
+            -520 - Math.random() * 40
+          );
+        } else if (spawnSide < 0.8) {
+          // Left side spawn
+          spawnPos = new Vector3(
+            -40 - Math.random() * 20,
+            enemyClass === 'flying' ? 10 + Math.random() * 5 : 0,
+            playerZ - 20 - Math.random() * 30
+          );
+        } else {
+          // Right side spawn
+          spawnPos = new Vector3(
+            40 + Math.random() * 20,
+            enemyClass === 'flying' ? 10 + Math.random() * 5 : 0,
+            playerZ - 20 - Math.random() * 30
+          );
+        }
         break;
+      }
       case 'entry_push':
-        spawnPos = new Vector3((Math.random() - 0.5) * 30, 0, -620 - Math.random() * 30);
+        // Spawn from deeper in the hive (corridor spawns)
+        spawnPos = new Vector3((Math.random() - 0.5) * 25, 0, -630 - Math.random() * 25);
         break;
       default:
         spawnPos = new Vector3(0, 0, -100);
@@ -1018,7 +1341,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const species = ALIEN_SPECIES[speciesId];
     if (!species) return;
 
-    const mesh = createAlienMesh(this.scene, species, Math.random() * 10000);
+    const mesh = await createAlienMesh(this.scene, species, Math.random() * 10000);
     mesh.position = spawnPos;
 
     // Scale flying enemies smaller
@@ -1051,73 +1374,126 @@ export class HiveAssaultLevel extends SurfaceLevel {
     // Alert callouts for new enemy types
     if (enemyClass === 'flying' && !this.flyingChitinAlerted) {
       this.flyingChitinAlerted = true;
-      this.callbacks.onCommsMessage(COMMS.FLYING_CHITIN);
+      this.emitCommsMessage(COMMS.FLYING_CHITIN);
     }
     if (enemyClass === 'armored' && !this.armoredChitinAlerted) {
       this.armoredChitinAlerted = true;
-      this.callbacks.onCommsMessage(COMMS.ARMORED_CHITIN);
+      this.emitCommsMessage(COMMS.ARMORED_CHITIN);
     }
   }
 
   private updateEnemies(deltaTime: number): void {
+    const playerPos = this.camera.position;
+    const activeMarines = this.marineManager?.getActiveMarines() ?? [];
+
     for (const enemy of this.enemies) {
       if (!enemy.isActive) continue;
 
-      // Target selection: nearest between player and marines
-      const distToPlayer = Vector3.Distance(enemy.position, this.camera.position);
-      let targetPos = this.camera.position.clone();
-      let minDist = distToPlayer;
+      // Performance optimization: skip distant enemies
+      const distToPlayer = Vector3.Distance(enemy.position, playerPos);
+      if (distToPlayer > ENEMY_UPDATE_DISTANCE) {
+        // Still move mesh position but skip complex AI
+        enemy.mesh.position.copyFrom(enemy.position);
+        continue;
+      }
 
-      // Check marine positions
-      const activeMarines = this.marineManager?.getActiveMarines() ?? [];
-      for (const marine of activeMarines) {
-        const dist = Vector3.Distance(enemy.position, marine.position);
-        if (dist < minDist) {
-          minDist = dist;
-          targetPos = marine.position.clone();
+      // LOD-based detail: reduce update frequency for distant enemies
+      const isClose = distToPlayer < ENEMY_LOD_DISTANCE;
+
+      // Target selection: prioritize player but consider marines
+      let targetPos = playerPos.clone();
+      let minDist = distToPlayer;
+      let targetIsMarine = false;
+
+      // Check marine positions (only for close enemies to save perf)
+      if (isClose) {
+        for (const marine of activeMarines) {
+          const dist = Vector3.Distance(enemy.position, marine.position);
+          // Enemies prefer closer targets, but player is more attractive
+          if (dist < minDist * 0.8) {
+            minDist = dist;
+            targetPos = marine.position.clone();
+            targetIsMarine = true;
+          }
         }
       }
 
       enemy.targetPosition = targetPos;
 
-      // Move toward target
+      // Move toward target with class-specific behavior
       const moveDir = targetPos.subtract(enemy.position);
       const distance = moveDir.length();
 
       if (distance > 2) {
         const normalized = moveDir.normalize();
-        const moveAmount = enemy.speed * deltaTime;
 
+        // Speed varies by enemy class and distance
+        let effectiveSpeed = enemy.speed;
+        if (enemy.enemyClass === 'armored') {
+          // Armored enemies are slower but relentless
+          effectiveSpeed = enemy.speed;
+        } else if (enemy.enemyClass === 'flying') {
+          // Flying enemies strafe more
+          effectiveSpeed = enemy.speed * 1.2;
+        } else {
+          // Ground enemies speed up when close
+          effectiveSpeed = distance < 20 ? enemy.speed * 1.3 : enemy.speed;
+        }
+
+        const moveAmount = effectiveSpeed * deltaTime;
         enemy.position.addInPlace(normalized.scale(moveAmount));
 
-        // Flying enemies maintain altitude
+        // Class-specific movement behaviors
         if (enemy.enemyClass === 'flying') {
-          enemy.position.y = Math.max(10, enemy.position.y);
-          // Add bobbing motion
-          enemy.position.y += Math.sin(this.phaseTime * 2 + enemy.position.x) * 0.05;
+          // Flying enemies maintain altitude and bob
+          const targetAltitude = 12 + Math.sin(this.phaseTime * 0.5 + enemy.position.x * 0.1) * 5;
+          enemy.position.y = Math.max(
+            8,
+            enemy.position.y + (targetAltitude - enemy.position.y) * 0.1
+          );
+          // Add strafing motion
+          enemy.position.x += Math.sin(this.phaseTime * 3 + enemy.position.z * 0.1) * 0.2;
+        } else if (enemy.enemyClass === 'ground') {
+          // Ground enemies hug terrain
+          enemy.position.y = 0;
+        } else if (enemy.enemyClass === 'armored') {
+          // Armored enemies are more direct
+          enemy.position.y = 0;
         }
 
         enemy.mesh.position.copyFrom(enemy.position);
 
-        // Face movement direction
+        // Face movement direction smoothly
         if (normalized.length() > 0.01) {
-          enemy.mesh.rotation = new Vector3(0, Math.atan2(normalized.x, normalized.z), 0);
+          const targetRotY = Math.atan2(normalized.x, normalized.z);
+          const currentRotY = (enemy.mesh.rotation as Vector3).y;
+          const rotDiff = targetRotY - currentRotY;
+          (enemy.mesh.rotation as Vector3).y += rotDiff * Math.min(1, deltaTime * 5);
         }
       }
 
-      // Attack
+      // Attack behavior
       enemy.attackCooldown -= deltaTime;
-      if (enemy.attackCooldown <= 0 && distance < ENEMY_CONFIGS[enemy.enemyClass].attackRange) {
+      const attackRange = ENEMY_CONFIGS[enemy.enemyClass].attackRange;
+
+      if (enemy.attackCooldown <= 0 && distance < attackRange) {
         enemy.attackCooldown = 1 / enemy.fireRate;
 
+        // Calculate damage with distance falloff for ranged enemies
+        let damage = enemy.damage;
+        if (enemy.enemyClass === 'flying') {
+          // Flying enemies have ranged attacks with falloff
+          damage = enemy.damage * (1 - distance / (attackRange * 2));
+        }
+
         // Determine target: player or marine
-        if (distToPlayer === minDist) {
-          this.damagePlayer(enemy.damage);
+        if (!targetIsMarine) {
+          this.damagePlayer(damage);
         } else {
           // Damage nearest marine
           const nearestMarine = this.findNearestMarine(enemy.position);
           if (nearestMarine) {
-            this.marineManager?.damageMarine(nearestMarine, enemy.damage);
+            this.marineManager?.damageMarine(nearestMarine, damage);
           }
         }
       }
@@ -1147,7 +1523,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     this.enemiesRemaining--;
     this.kills++;
-    this.callbacks.onKill();
+    this.recordKill();
 
     // Beachhead progress in entry push
     if (this.phase === 'entry_push') {
@@ -1183,57 +1559,111 @@ export class HiveAssaultLevel extends SurfaceLevel {
   private updateMarcus(deltaTime: number): void {
     if (!this.marcus) return;
 
-    // Move Marcus toward player (but stays behind slightly)
-    const targetPos = this.camera.position.add(new Vector3(8, 0, 5));
+    // Phase-specific positioning
+    let targetPos: Vector3;
+
+    switch (this.phase) {
+      case 'staging':
+        // Stay at staging position
+        targetPos = new Vector3(10, 0, -15);
+        break;
+      case 'field_assault':
+        // Flank the player on the right, slightly behind
+        targetPos = this.camera.position.add(new Vector3(MARCUS_FOLLOW_DISTANCE, 0, 5));
+        break;
+      case 'breach_point':
+        // Push alongside player during breach
+        targetPos = this.camera.position.add(new Vector3(8, 0, 3));
+        break;
+      case 'entry_push':
+        // Hold entrance position - don't follow into the hive
+        targetPos = new Vector3(0, 0, -590);
+        break;
+      default:
+        targetPos = this.camera.position.add(new Vector3(8, 0, 5));
+    }
+
     const diff = targetPos.subtract(this.marcus.position);
     const dist = diff.length();
 
-    if (dist > 5) {
+    // Move toward target with speed based on distance
+    if (dist > 3) {
+      const moveSpeed = dist > 20 ? 18 : 12; // Catch up faster when far away
       const moveDir = diff.normalize();
-      this.marcus.position.addInPlace(moveDir.scale(12 * deltaTime));
+      this.marcus.position.addInPlace(moveDir.scale(moveSpeed * deltaTime));
       this.marcus.rootNode.position.copyFrom(this.marcus.position);
+
+      // Face movement direction while moving
+      this.marcus.rootNode.rotation.y = Math.atan2(moveDir.x, moveDir.z);
     }
 
-    // Simple leg animation
-    this.marcus.legs.position.y = 1.5 + Math.sin(this.phaseTime * 4) * 0.1;
+    // Leg animation based on movement
+    const isMoving = dist > 3;
+    if (isMoving) {
+      this.marcus.legs.position.y = 1.5 + Math.sin(this.phaseTime * 6) * 0.15;
+    } else {
+      this.marcus.legs.position.y = 1.5;
+    }
 
-    // Combat: find and shoot nearest enemy
+    // Combat: find and shoot nearest enemy (prioritize high-threat targets)
     this.marcus.fireTimer -= deltaTime;
 
     let nearestEnemy: AssaultEnemy | null = null;
-    let nearestDist = this.marcus.range;
+    let bestScore = -Infinity;
 
     for (const enemy of this.enemies) {
       if (!enemy.isActive) continue;
       const eDist = Vector3.Distance(this.marcus.position, enemy.position);
-      if (eDist < nearestDist) {
-        nearestDist = eDist;
+      if (eDist > this.marcus.range) continue;
+
+      // Score based on distance, class, and threat to player
+      const distToPlayer = Vector3.Distance(enemy.position, this.camera.position);
+      let score = 100 - eDist; // Closer is better
+
+      // Prioritize threats to player
+      if (distToPlayer < 30) score += 50;
+
+      // Prioritize armored enemies (Marcus can handle them)
+      if (enemy.enemyClass === 'armored') score += 30;
+      if (enemy.enemyClass === 'flying') score += 20;
+
+      if (score > bestScore) {
+        bestScore = score;
         nearestEnemy = enemy;
       }
     }
 
-    if (nearestEnemy && this.marcus.fireTimer <= 0) {
-      this.marcus.fireTimer = 1 / this.marcus.fireRate;
-      this.marcus.targetEnemy = nearestEnemy;
-
-      // Face enemy
+    if (nearestEnemy) {
+      // Face enemy smoothly
       const lookDir = nearestEnemy.position.subtract(this.marcus.position);
-      this.marcus.rootNode.rotation.y = Math.atan2(lookDir.x, lookDir.z);
+      const targetRotY = Math.atan2(lookDir.x, lookDir.z);
+      const rotDiff = targetRotY - this.marcus.rootNode.rotation.y;
+      this.marcus.rootNode.rotation.y += rotDiff * Math.min(1, deltaTime * 5);
 
-      // Arm animation for firing
-      this.marcus.rightArm.rotation.x = -0.3;
-      setTimeout(() => {
-        if (this.marcus) this.marcus.rightArm.rotation.x = 0;
-      }, 150);
+      // Fire when ready
+      if (this.marcus.fireTimer <= 0) {
+        this.marcus.fireTimer = 1 / this.marcus.fireRate;
+        this.marcus.targetEnemy = nearestEnemy;
 
-      // Deal damage to enemy
-      nearestEnemy.health -= this.marcus.damage;
-      if (nearestEnemy.health <= 0) {
-        this.killEnemy(nearestEnemy);
+        // Arm animation for firing
+        this.marcus.rightArm.rotation.x = -0.3;
+        setTimeout(() => {
+          if (this.marcus) this.marcus.rightArm.rotation.x = 0;
+        }, 150);
+
+        // Deal damage to enemy (Marcus deals extra damage to armored)
+        const damage =
+          nearestEnemy.enemyClass === 'armored' ? this.marcus.damage * 1.5 : this.marcus.damage;
+        nearestEnemy.health -= damage;
+
+        if (nearestEnemy.health <= 0) {
+          this.killEnemy(nearestEnemy);
+        }
+
+        // Muzzle flash effect and sound
+        this.playSound('weapon_fire');
+        particleManager.emit('muzzleFlash', this.marcus.position.add(new Vector3(0, 5, 0)));
       }
-
-      // Muzzle flash effect
-      this.playSound('weapon_fire');
     }
   }
 
@@ -1279,7 +1709,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         mat.emissiveColor = new Color3(0.3, 0.1, 0.05);
       }
 
-      this.callbacks.onCommsMessage(COMMS.AA_DESTROYED(this.turretsDestroyed, this.totalTurrets));
+      this.emitCommsMessage(COMMS.AA_DESTROYED(this.turretsDestroyed, this.totalTurrets));
       this.triggerShake(4);
       this.playSound('explosion');
     }
@@ -1296,14 +1726,14 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.isInVehicle = true;
     this.camera.position.y = 2.5; // Higher camera in vehicle
 
-    this.callbacks.onNotification('Vehicle mounted. Use WASD to drive.', 3000);
+    this.emitNotification('Vehicle mounted. Use WASD to drive.', 3000);
   }
 
   private dismountVehicle(): void {
     this.isInVehicle = false;
     this.camera.position.y = 1.7;
 
-    this.callbacks.onNotification('Dismounted from vehicle.', 2000);
+    this.emitNotification('Dismounted from vehicle.', 2000);
   }
 
   private updateVehicle(deltaTime: number): void {
@@ -1404,7 +1834,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         enemy.health -= damage;
 
         this.triggerHitConfirmation();
-        this.callbacks.onHitMarker?.(damage, false);
+        this.emitHitMarker(damage, false);
 
         if (enemy.health <= 0) {
           this.killEnemy(enemy);
@@ -1466,15 +1896,15 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
   private damagePlayer(damage: number): void {
     this.playerHealth -= damage;
-    this.callbacks.onHealthChange(this.playerHealth);
-    this.callbacks.onDamage();
+    this.emitHealthChanged(this.playerHealth);
+    this.emitDamageRegistered();
     this.triggerDamageFlash(damage / 50);
     this.triggerDamageShake(damage);
     this.trackPlayerDamage(damage);
 
     // Directional damage indicator
     // (Simplified: assumes damage comes from in front)
-    this.callbacks.onDirectionalDamage?.(0, damage);
+    this.emitDirectionalDamage(0, damage);
 
     if (this.playerHealth <= 0) {
       this.playerHealth = 0;
@@ -1519,7 +1949,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
         this.marineManager.startRevive(marine);
 
         const progress = Math.floor((marine.reviveProgress / marine.reviveTime) * 100);
-        this.callbacks.onNotification(`Reviving ${marine.name}... ${progress}%`, 500);
+        this.emitNotification(`Reviving ${marine.name}... ${progress}%`, 500);
       } else {
         this.marineManager.cancelRevive(marine);
       }
@@ -1538,7 +1968,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const alphaSquad = this.marineManager?.getSquad(0);
     if (alphaSquad) {
       this.marineManager?.simulateSquadUnderFire(0, 40);
-      this.callbacks.onCommsMessage(COMMS.AMBUSH_ALERT);
+      this.emitCommsMessage(COMMS.AMBUSH_ALERT);
     }
 
     // Spawn enemies around alpha squad
@@ -1557,7 +1987,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
     const bravoSquad = this.marineManager?.getSquad(1);
     if (bravoSquad) {
       this.marineManager?.setSquadOverwhelmed(1);
-      this.callbacks.onCommsMessage(COMMS.SQUAD_OVERWHELMED);
+      this.emitCommsMessage(COMMS.SQUAD_OVERWHELMED);
     }
 
     // Spawn enemies around bravo squad
@@ -1581,7 +2011,7 @@ export class HiveAssaultLevel extends SurfaceLevel {
 
     if (playerDist < 20 && nearbyEnemies.length < 3) {
       this.marineManager?.triggerRescueCallout(bravoSquad);
-      this.callbacks.onCommsMessage(COMMS.SQUAD_SAVED);
+      this.emitCommsMessage(COMMS.SQUAD_SAVED);
 
       // Restore squad orders
       this.marineManager?.issueOrder(bravoSquad, 'follow_player');
@@ -1590,10 +2020,10 @@ export class HiveAssaultLevel extends SurfaceLevel {
   }
 
   private triggerLevelComplete(): void {
-    this.callbacks.onCommsMessage(COMMS.BEACHHEAD_SECURED);
+    this.emitCommsMessage(COMMS.BEACHHEAD_SECURED);
 
     setTimeout(() => {
-      this.callbacks.onCommsMessage(COMMS.MARCUS_FAREWELL);
+      this.emitCommsMessage(COMMS.MARCUS_FAREWELL);
     }, 5000);
 
     setTimeout(() => {
@@ -1629,8 +2059,8 @@ export class HiveAssaultLevel extends SurfaceLevel {
       }
     };
 
-    this.callbacks.onActionGroupsChange(groups);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionGroupsChanged(groups);
+    this.emitActionHandlerRegistered(this.actionCallback);
   }
 
   private registerCombatActions(): void {
@@ -1659,6 +2089,25 @@ export class HiveAssaultLevel extends SurfaceLevel {
           }),
         ],
       },
+      {
+        id: 'squad',
+        label: 'SQUAD ORDERS',
+        position: 'left',
+        buttons: [
+          createAction('squad_follow', 'FOLLOW', '1', {
+            keyDisplay: '1',
+            variant: this.squadCommandMode === 'follow' ? 'primary' : 'secondary',
+          }),
+          createAction('squad_hold', 'HOLD', '2', {
+            keyDisplay: '2',
+            variant: this.squadCommandMode === 'hold' ? 'primary' : 'secondary',
+          }),
+          createAction('squad_advance', 'ADVANCE', '3', {
+            keyDisplay: '3',
+            variant: this.squadCommandMode === 'advance' ? 'primary' : 'secondary',
+          }),
+        ],
+      },
     ];
 
     this.actionCallback = (actionId: string) => {
@@ -1672,11 +2121,59 @@ export class HiveAssaultLevel extends SurfaceLevel {
         case 'revive':
           // Handled in checkReviveProximity
           break;
+        case 'squad_follow':
+          this.issueSquadCommand('follow');
+          break;
+        case 'squad_hold':
+          this.issueSquadCommand('hold');
+          break;
+        case 'squad_advance':
+          this.issueSquadCommand('advance');
+          break;
       }
     };
 
-    this.callbacks.onActionGroupsChange(groups);
-    this.callbacks.onActionHandlerRegister(this.actionCallback);
+    this.emitActionGroupsChanged(groups);
+    this.emitActionHandlerRegistered(this.actionCallback);
+  }
+
+  /**
+   * Issue a command to all marine squads
+   */
+  private issueSquadCommand(command: 'follow' | 'hold' | 'advance'): void {
+    // Cooldown check to prevent spam
+    const now = performance.now();
+    if (now - this.lastSquadCommandTime < 1000) return;
+    this.lastSquadCommandTime = now;
+
+    this.squadCommandMode = command;
+
+    switch (command) {
+      case 'follow':
+        this.marineManager?.issueGlobalOrder('follow_player');
+        this.emitNotification('Squad: Following your lead', 2000);
+        break;
+      case 'hold':
+        this.marineManager?.issueGlobalOrder('hold_position');
+        this.marineManager?.getSquads().forEach((s) => {
+          this.marineManager?.setFormation(s, 'cover');
+        });
+        this.emitNotification('Squad: Holding position', 2000);
+        break;
+      case 'advance': {
+        // Advance to a position ahead of player
+        const advanceTarget = this.camera.position.add(new Vector3(0, 0, -50));
+        this.marineManager?.issueGlobalOrder('advance', advanceTarget);
+        this.marineManager?.getSquads().forEach((s) => {
+          this.marineManager?.setFormation(s, 'line');
+        });
+        this.emitNotification('Squad: Advancing!', 2000);
+        break;
+      }
+    }
+
+    // Update action button highlights
+    this.registerCombatActions();
   }
 
   // ============================================================================
@@ -1701,6 +2198,19 @@ export class HiveAssaultLevel extends SurfaceLevel {
     if (e.code === 'KeyF') {
       if (this.isInVehicle) {
         this.dismountVehicle();
+      }
+    }
+
+    // Squad command shortcuts (1, 2, 3)
+    if (this.phase !== 'staging') {
+      if (e.code === 'Digit1') {
+        this.issueSquadCommand('follow');
+      }
+      if (e.code === 'Digit2') {
+        this.issueSquadCommand('hold');
+      }
+      if (e.code === 'Digit3') {
+        this.issueSquadCommand('advance');
       }
     }
   }
@@ -1728,6 +2238,15 @@ export class HiveAssaultLevel extends SurfaceLevel {
   // ============================================================================
 
   protected override disposeLevel(): void {
+    // Dispose flora
+    for (const node of this.floraNodes) {
+      node.dispose(false, true);
+    }
+    this.floraNodes = [];
+    // Dispose collectibles
+    this.collectibleSystem?.dispose();
+    this.collectibleSystem = null;
+
     super.disposeLevel();
 
     // Dispose enemies
@@ -1756,10 +2275,24 @@ export class HiveAssaultLevel extends SurfaceLevel {
     this.envBuilder?.dispose();
     this.envBuilder = null;
 
+    // Dispose surface terrain
+    if (this.surfaceTerrain) {
+      this.surfaceTerrain.mesh.dispose();
+      this.surfaceTerrain.material.dispose();
+      this.surfaceTerrain = null;
+    }
+
+    // Dispose hive environment
+    this.hiveBuilder?.dispose();
+    this.hiveBuilder = null;
+
     // Unregister actions
-    this.callbacks.onActionHandlerRegister(null);
-    this.callbacks.onActionGroupsChange([]);
+    this.emitActionHandlerRegistered(null);
+    this.emitActionGroupsChanged([]);
     this.actionCallback = null;
+
+    // Unregister dynamic actions
+    unregisterDynamicActions('hive_assault');
 
     // Remove audio
     this.removeAudioZone('staging');

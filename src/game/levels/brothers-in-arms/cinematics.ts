@@ -18,7 +18,6 @@
 
 import { Animation } from '@babylonjs/core/Animations/animation';
 import { CubicEase, EasingFunction } from '@babylonjs/core/Animations/easing';
-import type { Camera } from '@babylonjs/core/Cameras/camera';
 import type { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -28,10 +27,29 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import type { CommsMessage } from '../../types';
 
 // Import animation module for easing
 import '@babylonjs/core/Animations/animatable';
+
+const log = getLogger('BrothersInArmsCinematics');
+
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS for cover rubble (replaces MeshBuilder rock boxes)
+// ---------------------------------------------------------------------------
+
+const COVER_RUBBLE_PATHS = {
+  /** Debris brick piles - varied sizes */
+  debris_bricks_1: '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  debris_bricks_2: '/assets/models/props/debris/debris_bricks_mx_2.glb',
+  /** Stacked bricks - larger rubble pieces */
+  bricks_stacked_1: '/assets/models/props/debris/bricks_stacked_mx_1.glb',
+  bricks_stacked_2: '/assets/models/props/debris/bricks_stacked_mx_2.glb',
+  /** Gravel piles for variety */
+  gravel_pile: '/assets/models/props/debris/gravel_pile_hr_1.glb',
+} as const;
 
 // ============================================================================
 // TYPES
@@ -44,6 +62,7 @@ export interface CinematicCallbacks {
   onCinematicStart?: () => void;
   onCinematicEnd?: () => void;
   onShakeCamera: (intensity: number) => void;
+  onSkipCinematic?: () => void; // Allow cinematic skip
 }
 
 export interface CinematicState {
@@ -254,15 +273,20 @@ export class ReunionCinematic {
   private coverRubble: Mesh[] = [];
   private dialogueTimeouts: ReturnType<typeof setTimeout>[] = [];
   private animationTimeouts: ReturnType<typeof setTimeout>[] = [];
+  private marcusHasEmerged: boolean = false;
 
-  // Original camera state (for restoration)
+  // Skip functionality
+  private canSkip: boolean = false;
+  private skipPromptShown: boolean = false;
+  private skipKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+
+  // Original camera state for restoration
   private originalCameraPosition: Vector3 = Vector3.Zero();
   private originalCameraRotation: Vector3 = Vector3.Zero();
-  private originalFov: number = 1.2;
+  private originalFov: number = 0;
 
-  // Marcus emergence state
+  // Original Marcus Y position
   private marcusOriginalY: number = 0;
-  private marcusHasEmerged: boolean = false;
 
   constructor(
     scene: Scene,
@@ -307,8 +331,9 @@ export class ReunionCinematic {
     this.callbacks.onNotification('MARCUS LOCATED', 2000);
     this.callbacks.onObjectiveUpdate('REUNION', 'Link up with Marcus');
 
-    // Create cover rubble that Marcus will emerge from
-    this.createCoverRubble();
+    // Create cover rubble that Marcus will emerge from (async, fire-and-forget)
+    // The rubble loading happens in parallel with other cinematic setup
+    void this.createCoverRubble();
 
     // Create dramatic lighting on Marcus
     this.createDramaticLighting();
@@ -321,6 +346,42 @@ export class ReunionCinematic {
 
     // Schedule dialogue with Marcus actions
     this.scheduleDialogue();
+
+    // Enable skip after 3 seconds
+    setTimeout(() => {
+      this.canSkip = true;
+      if (this.state.isPlaying && !this.skipPromptShown) {
+        this.callbacks.onNotification('Press [SPACE] to skip', 3000);
+        this.skipPromptShown = true;
+      }
+    }, 3000);
+
+    // Add skip key listener
+    this.skipKeyHandler = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && this.canSkip && this.state.isPlaying) {
+        this.skipCinematic();
+      }
+    };
+    document.addEventListener('keydown', this.skipKeyHandler);
+  }
+
+  /**
+   * Skip the cinematic and jump to combat
+   */
+  skipCinematic(): void {
+    if (!this.state.isPlaying) return;
+
+    // Ensure Marcus is at final position
+    if (this.marcusRoot) {
+      this.marcusRoot.position.y = MARCUS_STAND_POSITION.y;
+      this.marcusHasEmerged = true;
+    }
+
+    // Notify of skip
+    this.callbacks.onNotification('CINEMATIC SKIPPED', 1500);
+
+    // End immediately
+    this.stop();
   }
 
   /**
@@ -436,39 +497,69 @@ export class ReunionCinematic {
   }
 
   /**
-   * Create rubble/cover that Marcus is hiding behind
+   * Create rubble/cover that Marcus is hiding behind using GLB debris models.
+   * The debris pieces will be scattered when Marcus emerges from cover.
    */
-  private createCoverRubble(): void {
-    const rubbleMat = new StandardMaterial('rubbleMat', this.scene);
-    rubbleMat.diffuseColor = Color3.FromHexString('#6B4423');
-    rubbleMat.specularColor = new Color3(0.1, 0.1, 0.1);
-
-    // Create several rock pieces around Marcus's position
-    const rubblePositions = [
-      new Vector3(12, 0.8, 8),
-      new Vector3(18, 1.2, 9),
-      new Vector3(14, 0.6, 12),
-      new Vector3(16, 1.0, 7),
-      new Vector3(13, 0.9, 11),
+  private async createCoverRubble(): Promise<void> {
+    // Rubble placement data: position, GLB path, scale
+    const rubblePlacements: Array<{
+      position: Vector3;
+      path: string;
+      scale: number;
+    }> = [
+      { position: new Vector3(12, 0.8, 8), path: COVER_RUBBLE_PATHS.debris_bricks_1, scale: 2.5 },
+      { position: new Vector3(18, 1.2, 9), path: COVER_RUBBLE_PATHS.bricks_stacked_1, scale: 2.0 },
+      { position: new Vector3(14, 0.6, 12), path: COVER_RUBBLE_PATHS.debris_bricks_2, scale: 2.2 },
+      { position: new Vector3(16, 1.0, 7), path: COVER_RUBBLE_PATHS.gravel_pile, scale: 2.8 },
+      { position: new Vector3(13, 0.9, 11), path: COVER_RUBBLE_PATHS.bricks_stacked_2, scale: 1.8 },
     ];
 
-    rubblePositions.forEach((pos, i) => {
-      const size = 1.5 + Math.random() * 2;
-      const rock = MeshBuilder.CreateBox(
-        `coverRubble_${i}`,
-        {
-          width: size * (0.8 + Math.random() * 0.4),
-          height: size * (0.5 + Math.random() * 0.5),
-          depth: size * (0.8 + Math.random() * 0.4),
-        },
-        this.scene
-      );
-      rock.position = pos;
-      rock.rotation.y = Math.random() * Math.PI * 2;
-      rock.rotation.x = (Math.random() - 0.5) * 0.3;
-      rock.material = rubbleMat;
-      this.coverRubble.push(rock);
+    // Preload all unique GLB paths
+    const uniquePaths = [...new Set(rubblePlacements.map((p) => p.path))];
+    const loadPromises = uniquePaths.map(async (path) => {
+      try {
+        if (!AssetManager.isPathCached(path)) {
+          await AssetManager.loadAssetByPath(path, this.scene);
+        }
+      } catch (err) {
+        log.warn(`Failed to load cover rubble GLB: ${path}`, err);
+      }
     });
+
+    await Promise.all(loadPromises);
+
+    // Create instances for each rubble piece
+    for (let i = 0; i < rubblePlacements.length; i++) {
+      const { position, path, scale } = rubblePlacements[i];
+
+      if (!AssetManager.isPathCached(path)) {
+        log.warn(`Skipping rubble ${i}: GLB not cached: ${path}`);
+        continue;
+      }
+
+      const instance = AssetManager.createInstanceByPath(
+        path,
+        `coverRubble_${i}`,
+        this.scene,
+        true,
+        'environment'
+      );
+
+      if (!instance) {
+        log.warn(`Failed to create rubble instance ${i}`);
+        continue;
+      }
+
+      instance.position = position.clone();
+      instance.rotation.y = Math.random() * Math.PI * 2;
+      instance.rotation.x = (Math.random() - 0.5) * 0.3;
+      instance.scaling.setAll(scale);
+
+      // Store as Mesh for animation compatibility
+      this.coverRubble.push(instance as unknown as Mesh);
+    }
+
+    log.info(`Created ${this.coverRubble.length} cover rubble pieces using GLB models`);
   }
 
   /**
@@ -722,7 +813,7 @@ export class ReunionCinematic {
 
     for (let i = 0; i < REUNION_CAMERA_PATH.length; i++) {
       const keyframe = REUNION_CAMERA_PATH[i];
-      const prevKeyframe = i > 0 ? REUNION_CAMERA_PATH[i - 1] : keyframe;
+      const _prevKeyframe = i > 0 ? REUNION_CAMERA_PATH[i - 1] : keyframe;
 
       if (i === 0) {
         // Set initial position immediately
@@ -949,6 +1040,12 @@ export class ReunionCinematic {
    * Cleanup visual effects
    */
   private cleanup(): void {
+    // Remove skip key handler
+    if (this.skipKeyHandler) {
+      document.removeEventListener('keydown', this.skipKeyHandler);
+      this.skipKeyHandler = null;
+    }
+
     // Dispose dust particles
     for (const dust of this.dustParticles) {
       dust.dispose();
@@ -977,6 +1074,10 @@ export class ReunionCinematic {
     if (this.marcusRoot) {
       this.marcusRoot.position.y = MARCUS_STAND_POSITION.y;
     }
+
+    // Reset skip state
+    this.canSkip = false;
+    this.skipPromptShown = false;
 
     // Keep spotlight but at reduced intensity for gameplay
     // (disposed when level disposes)
@@ -1030,7 +1131,7 @@ export const COMMS = {
 
   WAVE_4_START: {
     ...MARCUS_CHARACTER,
-    text: 'Something big is coming... BRUTE! Focus fire!',
+    text: 'Something big is coming... TWO BRUTES! Focus fire, James!',
   } as CommsMessage,
 
   WAVE_4_COMPLETE: {
@@ -1090,22 +1191,22 @@ export const NOTIFICATIONS = {
 export const OBJECTIVES = {
   REUNION: {
     title: 'REUNION',
-    description: 'Link up with Marcus',
+    description: 'Link up with Corporal Marcus Cole',
   },
   WAVE_COMBAT: {
     getTitle: (wave: number, total: number) => `WAVE ${wave}/${total}`,
-    getDescription: (kills: number) => `Eliminate all hostiles | Kills: ${kills}`,
+    getDescription: (kills: number) => `Eliminate all hostiles | Total Kills: ${kills}`,
   },
   NEXT_WAVE: {
     getTitle: (seconds: number) => `NEXT WAVE IN ${seconds}s`,
-    getDescription: (kills: number) => `Kills: ${kills}`,
+    getDescription: (kills: number) => `Regroup with Marcus | Total Kills: ${kills}`,
   },
   BREACH_BATTLE: {
     title: 'THE BREACH',
-    description: 'Clear the hive entrance',
+    description: 'Secure the hive entrance with Marcus',
   },
   ENTER_BREACH: {
     title: 'ENTER THE BREACH',
-    description: 'Descend into the hive',
+    description: 'Proceed into the hive tunnels',
   },
 } as const;

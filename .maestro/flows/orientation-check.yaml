@@ -1,7 +1,12 @@
 # Orientation Check Flow - Verifies landscape enforcement
-# Run: maestro test .maestro/flows/orientation-check.yaml
+# Platform: Android, iOS (mobile-specific)
 
-appId: com.jbcom.stellardescent
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - mobile-only
+  - orientation
+name: "Orientation Check - Landscape Enforcement"
 
 ---
 - launchApp:
@@ -11,9 +16,9 @@ appId: com.jbcom.stellardescent
 - takeScreenshot: "initial_orientation"
 
 # Verify main menu is accessible
-- assertVisible:
-    text: "Stellar Descent"
-    timeout: 10000
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
 
 # Test rotating to portrait (should show error or auto-rotate back)
 - setDeviceOrientation: portrait

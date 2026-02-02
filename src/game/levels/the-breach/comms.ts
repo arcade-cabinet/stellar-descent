@@ -66,15 +66,45 @@ export const NOTIFICATIONS = {
   BOSS_DEFEATED: 'QUEEN DEFEATED!',
   ESCAPE: 'ESCAPE THE HIVE!',
 
+  // Zone transitions
+  ZONE_UPPER: 'ENTERING UPPER HIVE',
+  ZONE_MID: 'DESCENDING INTO MID HIVE',
+  ZONE_LOWER: 'ENTERING LOWER HIVE',
+  ZONE_QUEEN: "QUEEN'S CHAMBER AHEAD",
+
   // Boss phases
   BOSS_PHASE_2: 'QUEEN ENRAGED - PHASE 2',
   BOSS_PHASE_3: 'QUEEN CRITICAL - PHASE 3',
 
-  // Queen attacks
+  // Queen attacks (legacy)
   ACID_INCOMING: 'ACID INCOMING!',
   CLAW_ATTACK: 'CLAW ATTACK!',
   TAIL_SLAM: 'TAIL SLAM!',
   GROUND_POUND: 'GROUND POUND!',
+
+  // Phase 1 attacks
+  ACID_SPRAY: 'ACID SPRAY INCOMING!',
+  TAIL_SWIPE: 'TAIL SWIPE!',
+  SCREECH: 'QUEEN SCREECH!',
+
+  // Phase 2 attacks
+  EGG_BURST: 'EGG BURST!',
+  CHARGE: 'QUEEN CHARGING!',
+  POISON_CLOUD: 'POISON CLOUD!',
+
+  // Phase 3 attacks
+  FRENZY: 'FRENZY ATTACK!',
+  DEATH_THROES: 'DEATH THROES: DRONES SPAWNED!',
+
+  // Weak point notifications
+  WEAK_POINT_HIT: (damage: number) => `WEAK POINT HIT! ${damage} damage!`,
+  WEAK_POINT_DESTROYED: (name: string) => `${name.toUpperCase()} WEAK POINT DESTROYED!`,
+  STAGGER_START: 'QUEEN STAGGERED!',
+  STAGGER_END: 'QUEEN RECOVERED!',
+
+  // Phase transition warnings
+  PHASE_2_WARNING: 'QUEEN HEALTH AT 66% - ENTERING PHASE 2!',
+  PHASE_3_WARNING: 'QUEEN HEALTH AT 33% - FINAL PHASE!',
 
   // Minion spawns
   MINIONS_SPAWNED: (count: number, type: string) => `${count} ${type.toUpperCase()}S SPAWNED!`,
@@ -90,10 +120,23 @@ export const NOTIFICATIONS = {
   SCAN_NOT_AVAILABLE: 'SCAN NOT AVAILABLE',
   SCANNING: 'SCANNING FOR WEAKNESS...',
   WEAK_POINT_REVEALED: 'WEAK POINT REVEALED!',
+  WEAK_POINT_EXPIRED: 'WEAK POINT HIDDEN',
   CRITICAL_HIT: (damage: number) => `CRITICAL HIT! ${damage} damage!`,
 
   // Hazards
   EGGS_HATCHING: 'EGGS HATCHING!',
+  ACID_POOL_WARNING: 'ACID DETECTED!',
+  PHEROMONE_WARNING: 'PHEROMONE CLOUD!',
+
+  // Tutorial hints
+  HINT_SCAN: 'TIP: Press T to scan for weak points during boss fight',
+  HINT_GRENADE: 'TIP: Grenades deal high damage to the Queen',
+  HINT_COVER: 'TIP: Use pillars for cover during attacks',
+  HINT_WEAK_POINT: 'TIP: Shoot the weak point for 3x damage!',
+
+  // Victory stats
+  VICTORY_STATS: (time: number, kills: number, damage: number) =>
+    `TIME: ${Math.floor(time / 60)}:${String(Math.floor(time % 60)).padStart(2, '0')} | KILLS: ${kills} | DAMAGE TAKEN: ${damage}`,
 } as const;
 
 // ============================================================================
@@ -107,16 +150,43 @@ export const OBJECTIVES = {
   },
   KILL_QUEEN: {
     title: 'KILL THE QUEEN',
-    getDescription: (health: number, maxHealth: number) => `Health: ${health} / ${maxHealth}`,
+    getDescription: (health: number, maxHealth: number) => {
+      const percent = Math.ceil((health / maxHealth) * 100);
+      return `Health: ${Math.ceil(health)} / ${maxHealth} (${percent}%)`;
+    },
   },
   QUEEN_PHASE: {
-    getTitle: (phase: number) => `QUEEN PHASE ${phase}`,
-    getDescription: (health: number, maxHealth: number) =>
-      `Health: ${Math.ceil(health)} / ${maxHealth}`,
+    getTitle: (phase: number) => {
+      const phaseName = phase === 1 ? 'AWAKENED' : phase === 2 ? 'ENRAGED' : 'DESPERATE';
+      return `QUEEN ${phaseName} - PHASE ${phase}`;
+    },
+    getDescription: (health: number, maxHealth: number) => {
+      const percent = Math.ceil((health / maxHealth) * 100);
+      const bar = getHealthBar(percent);
+      return `${bar} ${Math.ceil(health)} HP (${percent}%)`;
+    },
   },
   EXPLORATION: {
     getTitle: (zone: string) => `${zone.toUpperCase()} HIVE`,
     getDescription: (depth: number, enemyCount: number, kills: number) =>
-      `Depth: ${Math.floor(depth)}m | Enemies: ${enemyCount} | Kills: ${kills}`,
+      `Depth: ${Math.floor(depth)}m | Hostiles: ${enemyCount} | Eliminated: ${kills}`,
+  },
+  BOSS_INTRO: {
+    title: 'BOSS AWAKENING',
+    description: 'The Queen rises... Prepare for battle!',
+  },
+  ESCAPE: {
+    title: 'ESCAPE THE HIVE',
+    getDescription: (seconds: number) => `Hive collapsing in ${seconds}s - RUN!`,
   },
 } as const;
+
+/**
+ * Generate ASCII health bar for objectives display
+ */
+function getHealthBar(percent: number): string {
+  const totalBars = 20;
+  const filledBars = Math.ceil((percent / 100) * totalBars);
+  const emptyBars = totalBars - filledBars;
+  return `[${'|'.repeat(filledBars)}${'-'.repeat(emptyBars)}]`;
+}

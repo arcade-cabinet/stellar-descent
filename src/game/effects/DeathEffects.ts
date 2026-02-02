@@ -5,7 +5,7 @@
  * - Dissolve/disintegrate particle effects
  * - Explosion effects for larger enemies
  * - Ichor spray for alien deaths
- * - Debris scatter for mechanical enemies
+ * - Debris scatter for mechanical enemies (using GLB models)
  *
  * All effects are performance-aware and scale with entity size.
  */
@@ -20,8 +20,12 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
-import { getAdjustedParticleCount, getPerformanceManager } from '../core/PerformanceManager';
+import { AssetManager } from '../core/AssetManager';
+import { getLogger } from '../core/Logger';
+import { getAdjustedParticleCount } from '../core/PerformanceManager';
 import { particleManager } from './ParticleManager';
+
+const log = getLogger('DeathEffects');
 
 /**
  * Types of death effects
@@ -141,6 +145,33 @@ const DISSOLVE_CONFIGS: Record<DeathEffectType, DissolveConfig> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// GLB DEBRIS ASSETS
+// ---------------------------------------------------------------------------
+
+/** Debris GLB models for mechanical death effects. */
+const DEBRIS_GLB_PATHS = [
+  '/assets/models/props/debris/brick_mx_1_0.glb',
+  '/assets/models/props/debris/brick_mx_1_1.glb',
+  '/assets/models/props/debris/brick_mx_1_2.glb',
+  '/assets/models/props/debris/brick_mx_2_0.glb',
+  '/assets/models/props/debris/brick_mx_2_1.glb',
+  '/assets/models/props/debris/brick_mx_3_0.glb',
+];
+
+/** Whether debris GLB assets have been preloaded. */
+let debrisAssetsReady = false;
+
+/**
+ * Preload debris GLB assets for death effects.
+ * Call once during level setup before any mechanical deaths.
+ */
+export async function preloadDeathEffectAssets(scene?: Scene): Promise<void> {
+  if (debrisAssetsReady) return;
+  await Promise.all(DEBRIS_GLB_PATHS.map((p) => AssetManager.loadAssetByPath(p, scene)));
+  debrisAssetsReady = true;
+}
+
 /**
  * Active death effect tracking
  */
@@ -148,7 +179,7 @@ interface ActiveDeathEffect {
   id: string;
   systems: ParticleSystem[];
   lights: PointLight[];
-  meshes: Mesh[];
+  meshes: AbstractMesh[];
   startTime: number;
   duration: number;
   onComplete?: () => void;
@@ -181,7 +212,7 @@ export class DeathEffects {
    */
   init(scene: Scene): void {
     this.scene = scene;
-    console.log('[DeathEffects] Initialized');
+    log.info('Initialized');
   }
 
   /**
@@ -207,7 +238,7 @@ export class DeathEffects {
 
     const systems: ParticleSystem[] = [];
     const lights: PointLight[] = [];
-    const meshes: Mesh[] = [];
+    const meshes: AbstractMesh[] = [];
 
     // Create main dissolve particle system
     const mainSystem = this.createDissolveSystem(
@@ -343,9 +374,9 @@ export class DeathEffects {
    */
   private addExplosionEffects(
     config: DeathEffectConfig,
-    systems: ParticleSystem[],
+    _systems: ParticleSystem[],
     lights: PointLight[],
-    meshes: Mesh[]
+    meshes: AbstractMesh[]
   ): void {
     if (!this.scene) return;
 
@@ -399,7 +430,7 @@ export class DeathEffects {
   private addIchorEffects(
     config: DeathEffectConfig,
     systems: ParticleSystem[],
-    meshes: Mesh[]
+    meshes: AbstractMesh[]
   ): void {
     if (!this.scene) return;
 
@@ -444,37 +475,58 @@ export class DeathEffects {
   }
 
   /**
-   * Add mechanical death effects
+   * Add mechanical death effects using GLB debris models
    */
   private addMechanicalEffects(
     config: DeathEffectConfig,
-    systems: ParticleSystem[],
-    meshes: Mesh[]
+    _systems: ParticleSystem[],
+    meshes: AbstractMesh[]
   ): void {
     if (!this.scene) return;
 
     // Spark burst
     particleManager.emitBulletImpact(config.position, undefined, config.scale * 2);
 
-    // Create debris chunks
+    // Create debris chunks using GLB models
     const debrisCount = Math.min(8, Math.floor(4 * config.scale));
 
+    if (!debrisAssetsReady) {
+      throw new Error(
+        '[DeathEffects] Debris assets not preloaded - call preloadDeathEffectAssets() first'
+      );
+    }
+
     for (let i = 0; i < debrisCount; i++) {
-      const debris = MeshBuilder.CreateBox(
-        `debris_${this.effectIdCounter}_${i}`,
-        { size: 0.1 + Math.random() * 0.15 * config.scale },
-        this.scene
+      const glbPath = DEBRIS_GLB_PATHS[i % DEBRIS_GLB_PATHS.length];
+
+      if (!AssetManager.isPathCached(glbPath)) {
+        throw new Error(`[DeathEffects] Debris GLB not cached: ${glbPath}`);
+      }
+
+      const debrisNode = AssetManager.createInstanceByPath(
+        glbPath,
+        `debris_glb_${this.effectIdCounter}_${i}`,
+        this.scene,
+        false // No LOD for short-lived debris
       );
 
-      debris.position = config.position.add(
+      if (!debrisNode) {
+        throw new Error(`[DeathEffects] Failed to create debris instance from: ${glbPath}`);
+      }
+
+      // Scale debris based on config
+      const scale = (0.05 + Math.random() * 0.08) * config.scale;
+      debrisNode.scaling.setAll(scale);
+
+      debrisNode.position = config.position.add(
         new Vector3((Math.random() - 0.5) * 0.5, Math.random() * 0.5, (Math.random() - 0.5) * 0.5)
       );
 
-      const material = new StandardMaterial(`debrisMat_${i}`, this.scene);
-      material.diffuseColor = new Color3(0.3, 0.28, 0.25);
-      debris.material = material;
-
-      meshes.push(debris);
+      // Get child meshes for tracking
+      const childMeshes = debrisNode.getChildMeshes();
+      for (const mesh of childMeshes) {
+        meshes.push(mesh);
+      }
 
       // Animate debris flying outward
       const velocity = new Vector3(
@@ -488,8 +540,63 @@ export class DeathEffects {
         Math.random() * 10
       );
 
-      this.animateDebris(debris, velocity, angularVelocity);
+      this.animateDebrisNode(debrisNode, velocity, angularVelocity);
     }
+  }
+
+  /**
+   * Animate a TransformNode (GLB debris) with physics-like motion
+   */
+  private animateDebrisNode(
+    node: TransformNode,
+    velocity: Vector3,
+    angularVelocity: Vector3
+  ): void {
+    const startTime = performance.now();
+    const gravity = -15;
+
+    const animate = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+
+      if (elapsed > 3 || node.isDisposed()) {
+        if (!node.isDisposed()) {
+          node.dispose();
+        }
+        return;
+      }
+
+      // Update velocity with gravity
+      velocity.y += gravity * (1 / 60);
+
+      // Update position
+      node.position.addInPlace(velocity.scale(1 / 60));
+
+      // Update rotation
+      node.rotation.addInPlace(angularVelocity.scale(1 / 60));
+
+      // Ground collision
+      if (node.position.y < 0.05) {
+        node.position.y = 0.05;
+        velocity.y *= -0.3;
+        velocity.x *= 0.7;
+        velocity.z *= 0.7;
+        angularVelocity.scaleInPlace(0.8);
+      }
+
+      // Fade out child meshes at end
+      if (elapsed > 2.5) {
+        const fadeProgress = (elapsed - 2.5) / 0.5;
+        for (const mesh of node.getChildMeshes()) {
+          if (mesh.material instanceof StandardMaterial) {
+            (mesh.material as StandardMaterial).alpha = 1 - fadeProgress;
+          }
+        }
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
   }
 
   /**
@@ -569,7 +676,7 @@ export class DeathEffects {
   /**
    * Create a shockwave ring effect
    */
-  private createShockwave(position: Vector3, scale: number, meshes: Mesh[]): void {
+  private createShockwave(position: Vector3, scale: number, meshes: AbstractMesh[]): void {
     if (!this.scene) return;
 
     const shockwave = MeshBuilder.CreateTorus(
@@ -624,7 +731,7 @@ export class DeathEffects {
     position: Vector3,
     scale: number,
     isAlien: boolean,
-    meshes: Mesh[]
+    meshes: AbstractMesh[]
   ): void {
     if (!this.scene) return;
 
@@ -660,52 +767,6 @@ export class DeathEffects {
       }
 
       material.alpha = 0.6 * (1 - progress);
-
-      requestAnimationFrame(animate);
-    };
-
-    requestAnimationFrame(animate);
-  }
-
-  /**
-   * Animate debris chunk physics
-   */
-  private animateDebris(mesh: Mesh, velocity: Vector3, angularVelocity: Vector3): void {
-    const startTime = performance.now();
-    const gravity = -15;
-
-    const animate = () => {
-      const elapsed = (performance.now() - startTime) / 1000;
-
-      if (elapsed > 3 || mesh.isDisposed()) {
-        return;
-      }
-
-      // Update velocity with gravity
-      velocity.y += gravity * (1 / 60);
-
-      // Update position
-      mesh.position.addInPlace(velocity.scale(1 / 60));
-
-      // Update rotation
-      mesh.rotation.addInPlace(angularVelocity.scale(1 / 60));
-
-      // Ground collision
-      if (mesh.position.y < 0.05) {
-        mesh.position.y = 0.05;
-        velocity.y *= -0.3;
-        velocity.x *= 0.7;
-        velocity.z *= 0.7;
-        angularVelocity.scaleInPlace(0.8);
-      }
-
-      // Fade out at end
-      if (elapsed > 2.5) {
-        const fadeProgress = (elapsed - 2.5) / 0.5;
-        if (mesh.material instanceof StandardMaterial) {
-          (mesh.material as StandardMaterial).alpha = 1 - fadeProgress;
-        }
-      }
 
       requestAnimationFrame(animate);
     };
@@ -895,7 +956,7 @@ export class DeathEffects {
 
     this.scene = null;
     DeathEffects.instance = null;
-    console.log('[DeathEffects] Disposed');
+    log.info('Disposed');
   }
 }
 

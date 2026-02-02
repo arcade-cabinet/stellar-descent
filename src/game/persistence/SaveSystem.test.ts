@@ -10,20 +10,20 @@ import {
   createNewSave,
   extractSaveMetadata,
   formatPlayTime,
-  type GameSave,
   generateSaveId,
   getLevelDisplayName,
   SAVE_FORMAT_VERSION,
+  toSaveState,
 } from './GameSave';
 import { saveSystem } from './SaveSystem';
 
-// Mock worldDb
+// Mock worldDb - all methods are now async
 vi.mock('../db/worldDatabase', () => ({
   worldDb: {
     init: vi.fn().mockResolvedValue(undefined),
-    getChunkData: vi.fn(),
-    setChunkData: vi.fn(),
-    deleteChunkData: vi.fn(),
+    getChunkData: vi.fn().mockResolvedValue(null),
+    setChunkData: vi.fn().mockResolvedValue(undefined),
+    deleteChunkData: vi.fn().mockResolvedValue(undefined),
     resetDatabase: vi.fn().mockResolvedValue(undefined),
     persistToIndexedDB: vi.fn(),
     flushPersistence: vi.fn().mockResolvedValue(undefined),
@@ -135,17 +135,17 @@ describe('SaveSystem', () => {
   });
 
   describe('hasSave', () => {
-    it('returns false when no save exists', () => {
-      vi.mocked(worldDb.getChunkData).mockReturnValue(null);
+    it('returns false when no save exists', async () => {
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(null);
 
-      expect(saveSystem.hasSave()).toBe(false);
+      expect(await saveSystem.hasSave()).toBe(false);
     });
 
-    it('returns true when save exists', () => {
+    it('returns true when save exists', async () => {
       const save = createNewSave('primary');
-      vi.mocked(worldDb.getChunkData).mockReturnValue(JSON.stringify(save));
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(JSON.stringify(save));
 
-      expect(saveSystem.hasSave()).toBe(true);
+      expect(await saveSystem.hasSave()).toBe(true);
     });
   });
 
@@ -154,16 +154,18 @@ describe('SaveSystem', () => {
       const save = await saveSystem.newGame();
 
       expect(save).toBeDefined();
-      expect(save.id).toBe('primary');
+      // ID is now dynamically generated with timestamp
+      expect(save.id).toMatch(/^save_\d+$/);
       expect(save.currentLevel).toBe('anchor_station');
       expect(worldDb.resetDatabase).toHaveBeenCalled();
-      expect(worldDb.setChunkData).toHaveBeenCalledWith('save_primary', expect.any(String));
+      // Autosave is stored with 'save_autosave' key
+      expect(worldDb.setChunkData).toHaveBeenCalledWith('save_autosave', expect.any(String));
     });
   });
 
   describe('loadGame', () => {
     it('returns null when no save exists', async () => {
-      vi.mocked(worldDb.getChunkData).mockReturnValue(null);
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(null);
 
       const result = await saveSystem.loadGame();
 
@@ -174,7 +176,7 @@ describe('SaveSystem', () => {
       const mockSave = createNewSave('primary');
       mockSave.currentLevel = 'landfall';
       mockSave.playerHealth = 75;
-      vi.mocked(worldDb.getChunkData).mockReturnValue(JSON.stringify(mockSave));
+      vi.mocked(worldDb.getChunkData).mockResolvedValue(JSON.stringify(mockSave));
 
       const result = await saveSystem.loadGame();
 
@@ -254,10 +256,11 @@ describe('SaveSystem', () => {
     });
 
     it('updates tutorial progress', () => {
-      saveSystem.setTutorialProgress(5);
+      // tutorialStep removed in v5 - now using quest chain system
+      saveSystem.setTutorialProgress(5, true);
       const save = saveSystem.getCurrentSave();
 
-      expect(save?.tutorialStep).toBe(5);
+      expect(save?.tutorialCompleted).toBe(true);
     });
 
     it('completes tutorial', () => {
@@ -285,9 +288,10 @@ describe('SaveSystem', () => {
   describe('deleteSave', () => {
     it('deletes the save and clears current save', async () => {
       await saveSystem.newGame();
-      saveSystem.deleteSave();
+      await saveSystem.deleteSave();
 
-      expect(worldDb.deleteChunkData).toHaveBeenCalledWith('save_primary');
+      // Autosave slot uses 'save_autosave' key
+      expect(worldDb.deleteChunkData).toHaveBeenCalledWith('save_autosave');
       expect(saveSystem.getCurrentSave()).toBeNull();
     });
   });
@@ -325,11 +329,14 @@ describe('SaveSystem', () => {
   describe('export/import JSON', () => {
     it('exports save as JSON', async () => {
       await saveSystem.newGame();
-      const json = saveSystem.exportSaveJSON();
+      const json = await saveSystem.exportSaveJSON();
 
       expect(json).toBeDefined();
       const parsed = JSON.parse(json!);
-      expect(parsed.id).toBe('primary');
+      // Export is SaveState format, not GameSave - no id field
+      expect(parsed.campaign).toBeDefined();
+      expect(parsed.campaign.currentLevel).toBe('anchor_station');
+      expect(parsed.version).toBe(SAVE_FORMAT_VERSION);
     });
 
     it('imports save from JSON', async () => {
@@ -337,13 +344,16 @@ describe('SaveSystem', () => {
       save.currentLevel = 'fob_delta';
       save.playerHealth = 50;
 
-      const result = await saveSystem.importSaveJSON(JSON.stringify(save));
+      // importSaveJSON expects SaveState format, not GameSave
+      const saveState = toSaveState(save);
+      const result = await saveSystem.importSaveJSON(JSON.stringify(saveState));
 
       expect(result).toBe(true);
       const loaded = saveSystem.getCurrentSave();
       expect(loaded?.currentLevel).toBe('fob_delta');
-      expect(loaded?.playerHealth).toBe(50);
-      expect(loaded?.id).toBe('primary'); // ID should be forced to primary
+      // Note: SaveState doesn't preserve playerHealth directly - it's in player.health
+      // The import generates a new ID
+      expect(loaded?.id).toMatch(/^imported_\d+$/);
     });
 
     it('rejects invalid JSON', async () => {
@@ -356,6 +366,461 @@ describe('SaveSystem', () => {
       const result = await saveSystem.importSaveJSON('{"invalid": true}');
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('grenade inventory', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('updates grenade counts', () => {
+      saveSystem.updateGrenades({ frag: 5, plasma: 3, emp: 2 });
+      const grenades = saveSystem.getGrenades();
+
+      expect(grenades?.frag).toBe(5);
+      expect(grenades?.plasma).toBe(3);
+      expect(grenades?.emp).toBe(2);
+    });
+
+    it('returns default grenades when not set', async () => {
+      // Fresh save should have default grenades
+      const grenades = saveSystem.getGrenades();
+
+      expect(grenades).toBeDefined();
+      expect(grenades?.frag).toBe(2);
+      expect(grenades?.plasma).toBe(1);
+      expect(grenades?.emp).toBe(1);
+    });
+
+    it('returns null when no save exists', async () => {
+      await saveSystem.deleteSave();
+      const grenades = saveSystem.getGrenades();
+
+      expect(grenades).toBeNull();
+    });
+
+    it('updates grenade usage stats', () => {
+      saveSystem.updateGrenadeStats({
+        pickedUp: { frag: 10, plasma: 5, emp: 3 },
+        used: { frag: 7, plasma: 4, emp: 2 },
+      });
+      const stats = saveSystem.getGrenadeStats();
+
+      expect(stats?.pickedUp.frag).toBe(10);
+      expect(stats?.used.frag).toBe(7);
+    });
+
+    it('returns default grenade stats when not set', () => {
+      const stats = saveSystem.getGrenadeStats();
+
+      expect(stats?.pickedUp.frag).toBe(0);
+      expect(stats?.used.plasma).toBe(0);
+    });
+  });
+
+  describe('weapon states', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('updates weapon states', () => {
+      saveSystem.updateWeaponStates([
+        { weaponId: 'rifle', currentAmmo: 25, reserveAmmo: 60, unlocked: true },
+        { weaponId: 'shotgun', currentAmmo: 6, reserveAmmo: 12, unlocked: true },
+      ]);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.weaponStates).toHaveLength(2);
+      expect(save?.weaponStates[0].currentAmmo).toBe(25);
+      expect(save?.weaponStates[1].unlocked).toBe(true);
+    });
+
+    it('updates current weapon slot', () => {
+      saveSystem.updateCurrentWeapon(2);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.currentWeaponSlot).toBe(2);
+    });
+  });
+
+  describe('armor updates', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('updates armor and max armor', () => {
+      saveSystem.updateArmor(75, 150);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.playerArmor).toBe(75);
+      expect(save?.maxPlayerArmor).toBe(150);
+    });
+
+    it('updates armor only', () => {
+      saveSystem.updateArmor(50);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.playerArmor).toBe(50);
+    });
+  });
+
+  describe('collectibles', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('adds collected skulls without duplicates', () => {
+      saveSystem.addCollectedSkull('skull_1');
+      saveSystem.addCollectedSkull('skull_2');
+      saveSystem.addCollectedSkull('skull_1'); // Duplicate
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.collectedSkulls).toHaveLength(2);
+      expect(save?.collectedSkulls).toContain('skull_1');
+      expect(save?.collectedSkulls).toContain('skull_2');
+    });
+
+    it('adds discovered audio logs without duplicates', () => {
+      saveSystem.addDiscoveredAudioLog('log_a');
+      saveSystem.addDiscoveredAudioLog('log_b');
+      saveSystem.addDiscoveredAudioLog('log_a'); // Duplicate
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.discoveredAudioLogs).toHaveLength(2);
+    });
+
+    it('adds discovered secret areas without duplicates', () => {
+      saveSystem.addDiscoveredSecretArea('secret_1');
+      saveSystem.addDiscoveredSecretArea('secret_2');
+      saveSystem.addDiscoveredSecretArea('secret_1'); // Duplicate
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.discoveredSecretAreas).toHaveLength(2);
+    });
+
+    it('adds unlocked achievements without duplicates', () => {
+      saveSystem.addUnlockedAchievement('ach_first_blood');
+      saveSystem.addUnlockedAchievement('ach_survivor');
+      saveSystem.addUnlockedAchievement('ach_first_blood'); // Duplicate
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.unlockedAchievements).toHaveLength(2);
+    });
+  });
+
+  describe('quest system', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('completes quests without duplicates', () => {
+      saveSystem.completeQuest('quest_tutorial');
+      saveSystem.completeQuest('quest_rescue');
+      saveSystem.completeQuest('quest_tutorial'); // Duplicate
+      const completed = saveSystem.getCompletedQuests();
+
+      expect(completed).toHaveLength(2);
+      expect(saveSystem.isQuestCompleted('quest_tutorial')).toBe(true);
+    });
+
+    it('sets and gets active quest state', () => {
+      saveSystem.setActiveQuestState('quest_escort', { stage: 2, npcsAlive: 3 });
+      const active = saveSystem.getActiveQuests();
+
+      expect(active.quest_escort).toEqual({ stage: 2, npcsAlive: 3 });
+    });
+
+    it('removes active quest on completion', () => {
+      saveSystem.setActiveQuestState('quest_escort', { stage: 1 });
+      saveSystem.completeQuest('quest_escort');
+      const active = saveSystem.getActiveQuests();
+
+      expect(active.quest_escort).toBeUndefined();
+    });
+
+    it('removes active quest explicitly', () => {
+      saveSystem.setActiveQuestState('quest_patrol', { checkpoints: 0 });
+      saveSystem.removeActiveQuest('quest_patrol');
+      const active = saveSystem.getActiveQuests();
+
+      expect(active.quest_patrol).toBeUndefined();
+    });
+
+    it('fails quests and removes from active', () => {
+      saveSystem.setActiveQuestState('quest_timed', { timeLeft: 30 });
+      saveSystem.failQuest('quest_timed');
+      const failed = saveSystem.getFailedQuests();
+      const active = saveSystem.getActiveQuests();
+
+      expect(failed).toContain('quest_timed');
+      expect(active.quest_timed).toBeUndefined();
+    });
+
+    it('fails quests without duplicates', () => {
+      saveSystem.failQuest('quest_failed');
+      saveSystem.failQuest('quest_failed');
+      const failed = saveSystem.getFailedQuests();
+
+      expect(failed.filter((q) => q === 'quest_failed')).toHaveLength(1);
+    });
+  });
+
+  describe('level best times', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('records level time and returns true for new record', () => {
+      const isNew = saveSystem.recordLevelTime('anchor_station', 120.5);
+
+      expect(isNew).toBe(true);
+      expect(saveSystem.getLevelBestTime('anchor_station')).toBe(120.5);
+    });
+
+    it('updates best time when faster', () => {
+      saveSystem.recordLevelTime('landfall', 300);
+      const isNew = saveSystem.recordLevelTime('landfall', 250);
+
+      expect(isNew).toBe(true);
+      expect(saveSystem.getLevelBestTime('landfall')).toBe(250);
+    });
+
+    it('does not update best time when slower', () => {
+      saveSystem.recordLevelTime('fob_delta', 200);
+      const isNew = saveSystem.recordLevelTime('fob_delta', 220);
+
+      expect(isNew).toBe(false);
+      expect(saveSystem.getLevelBestTime('fob_delta')).toBe(200);
+    });
+
+    it('returns null for level without time', () => {
+      expect(saveSystem.getLevelBestTime('the_breach')).toBeNull();
+    });
+
+    it('gets all level best times', () => {
+      saveSystem.recordLevelTime('anchor_station', 100);
+      saveSystem.recordLevelTime('landfall', 150);
+      const times = saveSystem.getAllLevelBestTimes();
+
+      expect(times.anchor_station).toBe(100);
+      expect(times.landfall).toBe(150);
+    });
+  });
+
+  describe('difficulty settings', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('sets and gets difficulty', () => {
+      saveSystem.setDifficulty('nightmare');
+      const diff = saveSystem.getDifficulty();
+
+      expect(diff).toBe('nightmare');
+    });
+
+    it('gets default difficulty when not set', async () => {
+      // newGame uses default difficulty
+      const diff = saveSystem.getDifficulty();
+      expect(['easy', 'normal', 'hard', 'nightmare']).toContain(diff);
+    });
+  });
+
+  describe('saved settings', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('updates saved settings', () => {
+      saveSystem.updateSavedSettings({
+        masterVolume: 0.8,
+        musicVolume: 0.3,
+        invertMouseY: true,
+      });
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.savedSettings?.masterVolume).toBe(0.8);
+      expect(save?.savedSettings?.musicVolume).toBe(0.3);
+      expect(save?.savedSettings?.invertMouseY).toBe(true);
+    });
+
+    it('creates settings object if not present', () => {
+      const save = saveSystem.getCurrentSave();
+      if (save) save.savedSettings = undefined as any;
+
+      saveSystem.updateSavedSettings({ fieldOfView: 110 });
+      const updatedSave = saveSystem.getCurrentSave();
+
+      expect(updatedSave?.savedSettings).toBeDefined();
+      expect(updatedSave?.savedSettings?.fieldOfView).toBe(110);
+    });
+  });
+
+  describe('chapter and distance tracking', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('sets chapter', () => {
+      saveSystem.setChapter(5);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.currentChapter).toBe(5);
+    });
+
+    it('adds distance', () => {
+      saveSystem.addDistance(100);
+      saveSystem.addDistance(50);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.totalDistance).toBe(150);
+    });
+  });
+
+  describe('intro briefing', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('has not seen intro by default', () => {
+      expect(saveSystem.hasSeenIntroBriefing()).toBe(false);
+    });
+
+    it('marks intro as seen', () => {
+      saveSystem.setSeenIntroBriefing();
+      expect(saveSystem.hasSeenIntroBriefing()).toBe(true);
+    });
+  });
+
+  describe('checkpoints', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('saves checkpoint with position and rotation', async () => {
+      await saveSystem.saveCheckpoint({ x: 10, y: 5, z: 20 }, 1.57);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.checkpoint).toBeDefined();
+      expect(save?.checkpoint?.position).toEqual({ x: 10, y: 5, z: 20 });
+      expect(save?.checkpoint?.rotation).toBe(1.57);
+      expect(save?.checkpoint?.timestamp).toBeGreaterThan(0);
+    });
+
+    it('updates player position on checkpoint', async () => {
+      await saveSystem.saveCheckpoint({ x: 100, y: 10, z: 200 }, 3.14);
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.playerPosition).toEqual({ x: 100, y: 10, z: 200 });
+      expect(save?.playerRotation).toBe(3.14);
+    });
+
+    it('clears checkpoint on level completion', () => {
+      // Set a checkpoint first
+      saveSystem.saveCheckpoint({ x: 50, y: 5, z: 50 }, 0);
+
+      saveSystem.completeLevel('anchor_station');
+      const save = saveSystem.getCurrentSave();
+
+      expect(save?.checkpoint).toBeNull();
+    });
+  });
+
+  describe('auto-save control', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('disables auto-save', () => {
+      saveSystem.setAutoSaveEnabled(false);
+      saveSystem.completeLevel('anchor_station');
+
+      // Auto-save is disabled, so save should only be called from completeLevel's internal call
+      // The test verifies no error is thrown
+    });
+
+    it('enables auto-save', () => {
+      saveSystem.setAutoSaveEnabled(true);
+      saveSystem.completeLevel('landfall');
+
+      // Auto-save is enabled - completeLevel triggers autoSave internally
+    });
+  });
+
+  describe('play time tracking', () => {
+    beforeEach(async () => {
+      await saveSystem.newGame();
+    });
+
+    it('tracks play time including session', async () => {
+      // Wait a small amount of time
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const playTime = saveSystem.getTotalPlayTime();
+
+      expect(playTime).toBeGreaterThan(0);
+    });
+
+    it('returns 0 when no save', async () => {
+      await saveSystem.deleteSave();
+      expect(saveSystem.getTotalPlayTime()).toBe(0);
+    });
+  });
+
+  describe('error handling for no save', () => {
+    beforeEach(async () => {
+      await saveSystem.deleteSave();
+    });
+
+    it('handles updateHealth with no save', () => {
+      expect(() => saveSystem.updateHealth(50)).not.toThrow();
+    });
+
+    it('handles updateArmor with no save', () => {
+      expect(() => saveSystem.updateArmor(50)).not.toThrow();
+    });
+
+    it('handles updatePosition with no save', () => {
+      expect(() => saveSystem.updatePosition(0, 0, 0)).not.toThrow();
+    });
+
+    it('handles updateWeaponStates with no save', () => {
+      expect(() => saveSystem.updateWeaponStates([])).not.toThrow();
+    });
+
+    it('handles updateGrenades with no save', () => {
+      expect(() => saveSystem.updateGrenades({ frag: 0, plasma: 0, emp: 0 })).not.toThrow();
+    });
+
+    it('handles setCurrentLevel with no save', () => {
+      expect(() => saveSystem.setCurrentLevel('landfall')).not.toThrow();
+    });
+
+    it('handles completeLevel with no save', () => {
+      expect(() => saveSystem.completeLevel('anchor_station')).not.toThrow();
+    });
+
+    it('handles addKill with no save', () => {
+      expect(() => saveSystem.addKill()).not.toThrow();
+    });
+
+    it('handles collectibles with no save', () => {
+      expect(() => saveSystem.addCollectedSkull('skull_1')).not.toThrow();
+      expect(() => saveSystem.addDiscoveredAudioLog('log_1')).not.toThrow();
+      expect(() => saveSystem.addDiscoveredSecretArea('secret_1')).not.toThrow();
+      expect(() => saveSystem.addUnlockedAchievement('ach_1')).not.toThrow();
+    });
+
+    it('handles quests with no save', () => {
+      expect(() => saveSystem.completeQuest('quest_1')).not.toThrow();
+      expect(() => saveSystem.failQuest('quest_1')).not.toThrow();
+      expect(() => saveSystem.setActiveQuestState('quest_1', {})).not.toThrow();
+      expect(saveSystem.isQuestCompleted('quest_1')).toBe(false);
+    });
+
+    it('handles settings with no save', () => {
+      expect(() => saveSystem.setDifficulty('hard')).not.toThrow();
+      expect(() => saveSystem.updateSavedSettings({ masterVolume: 0.5 })).not.toThrow();
     });
   });
 });

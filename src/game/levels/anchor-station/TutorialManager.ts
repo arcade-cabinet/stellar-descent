@@ -1,5 +1,6 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../../core/Logger';
 import {
   type HUDUnlockState,
   PHASE_HUD_STATES,
@@ -7,6 +8,8 @@ import {
   type TutorialPhase,
   type TutorialStep,
 } from './tutorialSteps';
+
+const log = getLogger('TutorialManager');
 
 export interface TutorialCallbacks {
   onStepChange?: (step: TutorialStep) => void;
@@ -20,7 +23,6 @@ export interface TutorialCallbacks {
 
 // Manages the tutorial flow - story unfolds through comms as objectives complete
 export class TutorialManager {
-  private scene: Scene;
   private currentStepIndex = 0;
   private steps: TutorialStep[];
   private isActive = false;
@@ -35,11 +37,16 @@ export class TutorialManager {
 
   // Track if player can interact
   private canInteract = false;
-  private interactCallback: (() => void) | null = null;
 
   // Minimum delay between comms messages to prevent dialogue flood
   private static readonly MIN_COMMS_INTERVAL = 3000; // 3 seconds minimum
   private lastCommsTime = 0;
+
+  // Scene reference
+  private scene: Scene;
+
+  // Interaction callback
+  private interactCallback: (() => void) | null = null;
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -47,7 +54,7 @@ export class TutorialManager {
   }
 
   start(callbacks: TutorialCallbacks): void {
-    console.log('[TutorialManager] start() called');
+    log.info('start() called');
     this.callbacks = callbacks;
     this.isActive = true;
     this.currentStepIndex = 0;
@@ -57,9 +64,9 @@ export class TutorialManager {
     this.callbacks.onPhaseChange?.(0, PHASE_HUD_STATES[0]);
 
     // Small delay before first step to let player orient
-    console.log('[TutorialManager] Setting timeout for first step (1500ms)');
+    log.debug('Setting timeout for first step (1500ms)');
     setTimeout(() => {
-      console.log('[TutorialManager] Timeout fired, isActive:', this.isActive);
+      log.debug('Timeout fired, isActive:', this.isActive);
       if (this.isActive) {
         this.activateStep(this.steps[0]);
       }
@@ -67,7 +74,7 @@ export class TutorialManager {
   }
 
   private activateStep(step: TutorialStep): void {
-    console.log('[TutorialManager] activateStep() called for step:', step.id);
+    log.debug('activateStep() called for step:', step.id);
     // Clear any pending timers
     if (this.waitTimer) {
       clearTimeout(this.waitTimer);
@@ -113,9 +120,9 @@ export class TutorialManager {
       );
       const actualDelay = Math.max(configuredDelay, minIntervalRemaining);
 
-      console.log('[TutorialManager] Setting comms timer for', actualDelay, 'ms');
+      log.debug('Setting comms timer for', actualDelay, 'ms');
       this.commsTimer = window.setTimeout(() => {
-        console.log('[TutorialManager] Comms timer fired, calling onCommsMessage');
+        log.debug('Comms timer fired, calling onCommsMessage');
         this.lastCommsTime = performance.now();
         this.callbacks.onCommsMessage?.(step.commsMessage!);
 
@@ -407,8 +414,39 @@ export class TutorialManager {
   }
 
   dispose(): void {
-    if (this.waitTimer) clearTimeout(this.waitTimer);
-    if (this.commsTimer) clearTimeout(this.commsTimer);
+    if (this.waitTimer) {
+      clearTimeout(this.waitTimer);
+      this.waitTimer = null;
+    }
+    if (this.commsTimer) {
+      clearTimeout(this.commsTimer);
+      this.commsTimer = null;
+    }
     this.isActive = false;
+    this.callbacks = {};
+    this.canInteract = false;
+    this.interactCallback = null;
+  }
+
+  /**
+   * Get progress through the tutorial as a percentage (0-100).
+   */
+  getProgress(): number {
+    if (this.steps.length === 0) return 0;
+    return Math.round((this.currentStepIndex / this.steps.length) * 100);
+  }
+
+  /**
+   * Get the total number of steps in the tutorial.
+   */
+  getTotalSteps(): number {
+    return this.steps.length;
+  }
+
+  /**
+   * Get the current step index (0-based).
+   */
+  getCurrentStepIndex(): number {
+    return this.currentStepIndex;
   }
 }

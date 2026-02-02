@@ -6,7 +6,6 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { AlienSpecies } from '../entities/aliens';
 import { getAudioManager, type SoundEffect } from './AudioManager';
 import type { Entity } from './ecs';
 
@@ -234,15 +233,6 @@ class EnemySoundManager {
     const attenuation = 1 / (1 + SPATIAL_CONFIG.rolloffFactor * normalizedDistance);
 
     return Math.max(SPATIAL_CONFIG.minVolume, Math.min(1, attenuation));
-  }
-
-  /**
-   * Calculate stereo pan based on direction to entity (-1 = left, 1 = right)
-   * Note: This is a simplified implementation. For true 3D audio, we'd use Web Audio API's PannerNode
-   */
-  private calculatePan(_entityPosition: Vector3): number {
-    // For now, return 0 (center) - full spatial implementation would need camera orientation
-    return 0;
   }
 
   /**

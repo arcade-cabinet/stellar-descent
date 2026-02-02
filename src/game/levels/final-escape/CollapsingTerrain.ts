@@ -26,8 +26,13 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
 import { particleManager } from '../../effects/ParticleManager';
+
+const log = getLogger('CollapsingTerrain');
 
 // ============================================================================
 // TYPES
@@ -74,7 +79,7 @@ interface Chasm {
 }
 
 interface FallingRock {
-  mesh: Mesh;
+  mesh: TransformNode;
   velocity: Vector3;
   rotationSpeed: Vector3;
   lifetime: number;
@@ -133,6 +138,32 @@ const LAVA_EMISSIVE = Color3.FromHexString('#FF6600');
 const CRACK_EMISSIVE = Color3.FromHexString('#FF3300');
 const ROCK_COLOR = Color3.FromHexString('#6A5A4A');
 
+// GLB paths for debris (falling rocks)
+const DEBRIS_GLB_PATHS = [
+  '/assets/models/props/debris/brick_mx_1.glb',
+  '/assets/models/props/debris/brick_mx_2.glb',
+  '/assets/models/props/debris/brick_mx_3.glb',
+  '/assets/models/props/debris/brick_mx_4.glb',
+  '/assets/models/props/debris/debris_bricks_mx_1.glb',
+  '/assets/models/props/debris/debris_bricks_mx_2.glb',
+  '/assets/models/props/debris/gravel_pile_hr_1.glb',
+  '/assets/models/props/debris/gravel_pile_hr_2.glb',
+] as const;
+
+// GLB paths for terrain floor tiles (modular sci-fi floor tiles)
+const FLOOR_TILE_GLB_PATHS = [
+  '/assets/models/environment/modular/FloorTile_Basic.glb',
+  '/assets/models/environment/modular/FloorTile_Basic2.glb',
+  '/assets/models/environment/modular/FloorTile_Empty.glb',
+] as const;
+
+// GLB paths for canyon wall segments
+const WALL_GLB_PATHS = [
+  '/assets/models/environment/station/wall_rg_1.glb',
+  '/assets/models/environment/station/wall_rg_1_double.glb',
+  '/assets/models/environment/station/wall_hr_1.glb',
+] as const;
+
 // ============================================================================
 // COLLAPSING TERRAIN
 // ============================================================================
@@ -146,6 +177,10 @@ export class CollapsingTerrain {
   private lavaMaterial: StandardMaterial | null = null;
   private rockMaterial: StandardMaterial | null = null;
   private crackMaterial: StandardMaterial | null = null;
+
+  // Preload tracking flags
+  private structuralGLBsPreloaded = false;
+  private debrisPreloaded = false;
   private chasmMaterial: StandardMaterial | null = null;
 
   // Terrain segments
@@ -173,6 +208,13 @@ export class CollapsingTerrain {
   // Seeded random for deterministic destruction
   private seed: number;
 
+  // Counter for unique falling rock instance names
+  private rockInstanceCounter = 0;
+
+  // Counters for unique instance naming
+  private terrainSegmentCounter = 0;
+  private wallSegmentCounter = 0;
+
   constructor(scene: Scene, config: Partial<CollapsingTerrainConfig> = {}) {
     this.scene = scene;
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -186,18 +228,57 @@ export class CollapsingTerrain {
   /**
    * Create the initial terrain geometry, materials, and canyon walls.
    */
-  initialize(): void {
+  async initialize(): Promise<void> {
     this.createMaterials();
-    this.createTerrainSegments();
-    this.createCanyonWalls();
 
     // Initialize particle manager if needed
     particleManager.init(this.scene);
 
-    console.log(
-      `[CollapsingTerrain] Initialized: ${this.config.segmentCount} segments, ` +
+    // Preload all GLBs before creating geometry
+    await this.preloadStructuralGLBs();
+    this.preloadDebrisGLBs();
+
+    // Create terrain and walls after GLBs are loaded
+    this.createTerrainSegments();
+    this.createCanyonWalls();
+
+    log.info(
+      `Initialized: ${this.config.segmentCount} segments, ` +
         `${this.config.terrainLength}m long, ${this.config.terrainWidth}m wide`
     );
+  }
+
+  /**
+   * Preload structural GLBs for terrain and walls.
+   * This must complete before terrain/wall creation.
+   */
+  private async preloadStructuralGLBs(): Promise<void> {
+    const allPaths = [...FLOOR_TILE_GLB_PATHS, ...WALL_GLB_PATHS];
+    const loadPromises = allPaths.map((path) =>
+      AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
+        log.warn(`Failed to preload structural GLB ${path}:`, err);
+        return null;
+      })
+    );
+    await Promise.all(loadPromises);
+    this.structuralGLBsPreloaded = true;
+    log.info(`Preloaded ${allPaths.length} structural GLBs`);
+  }
+
+  /**
+   * Preload debris GLBs for falling rocks (fire-and-forget).
+   */
+  private preloadDebrisGLBs(): void {
+    const loadPromises = DEBRIS_GLB_PATHS.map((path) =>
+      AssetManager.loadAssetByPath(path, this.scene).catch((err) => {
+        log.warn(`Failed to preload debris GLB ${path}:`, err);
+        return null;
+      })
+    );
+    Promise.all(loadPromises).then(() => {
+      this.debrisPreloaded = true;
+      log.info(`Preloaded ${DEBRIS_GLB_PATHS.length} debris GLBs`);
+    });
   }
 
   /**
@@ -233,27 +314,71 @@ export class CollapsingTerrain {
 
   /**
    * Create the ground terrain as discrete segments that can individually collapse.
+   * Uses GLB floor tile models for visual quality.
    */
   private createTerrainSegments(): void {
     const segLen = this.config.terrainLength / this.config.segmentCount;
-    const halfWidth = this.config.terrainWidth / 2;
     const startZ = 0;
+
+    // Desired scale: each GLB floor tile is scaled to match segment dimensions
+    // Floor tiles are typically 4x4m, so we scale to match terrainWidth x segLen
+    const tileBaseSize = 4; // Approximate GLB tile size in meters
+    const scaleX = this.config.terrainWidth / tileBaseSize;
+    const scaleZ = segLen / tileBaseSize;
 
     for (let i = 0; i < this.config.segmentCount; i++) {
       const zPos = startZ - i * segLen;
 
-      // Each segment is a box (ground slab)
-      const mesh = MeshBuilder.CreateBox(
-        `terrain_seg_${i}`,
-        {
-          width: this.config.terrainWidth,
-          height: 2,
-          depth: segLen,
-        },
-        this.scene
+      // Pick a floor tile GLB (cycle through variants for visual variety)
+      const tileIndex = i % FLOOR_TILE_GLB_PATHS.length;
+      const tilePath = FLOOR_TILE_GLB_PATHS[tileIndex];
+      const instanceName = `terrain_seg_${this.terrainSegmentCounter++}`;
+
+      // Create GLB instance
+      const node = AssetManager.createInstanceByPath(
+        tilePath,
+        instanceName,
+        this.scene,
+        true, // apply LOD
+        'environment'
       );
+
+      let mesh: Mesh;
+      if (node) {
+        // Create a wrapper mesh for the segment interface
+        // The TransformNode from GLB becomes the visual, but we need a Mesh for the interface
+        mesh = MeshBuilder.CreateBox(
+          `${instanceName}_collider`,
+          {
+            width: this.config.terrainWidth,
+            height: 0.1, // Thin collision box
+            depth: segLen,
+          },
+          this.scene
+        );
+        mesh.isVisible = false; // Invisible collision box
+        mesh.position.set(0, -0.05, zPos);
+
+        // Parent the GLB visual to the collision mesh
+        node.parent = mesh;
+        node.position.set(0, 0, 0);
+        node.scaling.set(scaleX, 1, scaleZ);
+      } else {
+        // Fallback if GLB not loaded - keep MeshBuilder box as visible geometry
+        log.warn(`GLB not loaded for terrain segment, using fallback: ${tilePath}`);
+        mesh = MeshBuilder.CreateBox(
+          instanceName,
+          {
+            width: this.config.terrainWidth,
+            height: 2,
+            depth: segLen,
+          },
+          this.scene
+        );
+        mesh.material = this.terrainMaterial;
+      }
+
       mesh.position.set(0, -1, zPos);
-      mesh.material = this.terrainMaterial;
 
       // Add slight height variation for visual interest
       const heightVariation = this.seededNoise(i * 0.3) * 0.5;
@@ -271,6 +396,7 @@ export class CollapsingTerrain {
 
   /**
    * Create canyon wall segments on both sides of the terrain.
+   * Uses GLB wall models for visual quality.
    */
   private createCanyonWalls(): void {
     const segLen = this.config.terrainLength / this.config.segmentCount;
@@ -278,9 +404,15 @@ export class CollapsingTerrain {
     const wallHeight = 30;
     const wallThickness = 8;
 
+    // Fallback material in case GLB loading fails
     const wallMat = new StandardMaterial('canyon_wall_mat', this.scene);
     wallMat.diffuseColor = Color3.FromHexString('#7A6A5A');
     wallMat.specularColor = new Color3(0.05, 0.05, 0.05);
+
+    // GLB wall base dimensions (approximate, will be scaled)
+    const wallBaseWidth = 4;
+    const wallBaseHeight = 4;
+    const wallBaseDepth = 4;
 
     for (let i = 0; i < this.config.segmentCount; i++) {
       const zPos = -i * segLen;
@@ -289,32 +421,103 @@ export class CollapsingTerrain {
       const heightVar = this.seededNoise(i * 0.5 + 100) * 10;
       const thisHeight = wallHeight + heightVar;
 
+      // Pick a wall GLB (cycle through variants)
+      const wallIndex = i % WALL_GLB_PATHS.length;
+      const wallPath = WALL_GLB_PATHS[wallIndex];
+
+      // Scale factors for wall GLBs
+      const scaleX = wallThickness / wallBaseWidth;
+      const scaleY = thisHeight / wallBaseHeight;
+      const scaleZ = (segLen + 0.5) / wallBaseDepth;
+
       // Left wall
-      const leftWall = MeshBuilder.CreateBox(
-        `left_wall_${i}`,
-        {
-          width: wallThickness,
-          height: thisHeight,
-          depth: segLen + 0.5,
-        },
-        this.scene
+      const leftInstanceName = `left_wall_${this.wallSegmentCounter++}`;
+      const leftNode = AssetManager.createInstanceByPath(
+        wallPath,
+        leftInstanceName,
+        this.scene,
+        true,
+        'environment'
       );
-      leftWall.position.set(-halfWidth - wallThickness / 2, thisHeight / 2 - 2, zPos);
-      leftWall.material = wallMat;
+
+      let leftWall: Mesh;
+      if (leftNode) {
+        // Create invisible collision box
+        leftWall = MeshBuilder.CreateBox(
+          `${leftInstanceName}_collider`,
+          {
+            width: wallThickness,
+            height: thisHeight,
+            depth: segLen + 0.5,
+          },
+          this.scene
+        );
+        leftWall.isVisible = false;
+        leftWall.position.set(-halfWidth - wallThickness / 2, thisHeight / 2 - 2, zPos);
+
+        // Parent GLB visual to collision mesh
+        leftNode.parent = leftWall;
+        leftNode.position.set(0, 0, 0);
+        leftNode.scaling.set(scaleX, scaleY, scaleZ);
+      } else {
+        // Fallback to MeshBuilder box
+        leftWall = MeshBuilder.CreateBox(
+          leftInstanceName,
+          {
+            width: wallThickness,
+            height: thisHeight,
+            depth: segLen + 0.5,
+          },
+          this.scene
+        );
+        leftWall.position.set(-halfWidth - wallThickness / 2, thisHeight / 2 - 2, zPos);
+        leftWall.material = wallMat;
+      }
       this.leftWallSegments.push(leftWall);
 
       // Right wall
-      const rightWall = MeshBuilder.CreateBox(
-        `right_wall_${i}`,
-        {
-          width: wallThickness,
-          height: thisHeight,
-          depth: segLen + 0.5,
-        },
-        this.scene
+      const rightInstanceName = `right_wall_${this.wallSegmentCounter++}`;
+      const rightNode = AssetManager.createInstanceByPath(
+        wallPath,
+        rightInstanceName,
+        this.scene,
+        true,
+        'environment'
       );
-      rightWall.position.set(halfWidth + wallThickness / 2, thisHeight / 2 - 2, zPos);
-      rightWall.material = wallMat;
+
+      let rightWall: Mesh;
+      if (rightNode) {
+        // Create invisible collision box
+        rightWall = MeshBuilder.CreateBox(
+          `${rightInstanceName}_collider`,
+          {
+            width: wallThickness,
+            height: thisHeight,
+            depth: segLen + 0.5,
+          },
+          this.scene
+        );
+        rightWall.isVisible = false;
+        rightWall.position.set(halfWidth + wallThickness / 2, thisHeight / 2 - 2, zPos);
+
+        // Parent GLB visual to collision mesh
+        rightNode.parent = rightWall;
+        rightNode.position.set(0, 0, 0);
+        rightNode.scaling.set(scaleX, scaleY, scaleZ);
+      } else {
+        // Fallback to MeshBuilder box
+        rightWall = MeshBuilder.CreateBox(
+          rightInstanceName,
+          {
+            width: wallThickness,
+            height: thisHeight,
+            depth: segLen + 0.5,
+          },
+          this.scene
+        );
+        rightWall.position.set(halfWidth + wallThickness / 2, thisHeight / 2 - 2, zPos);
+        rightWall.material = wallMat;
+      }
       this.rightWallSegments.push(rightWall);
     }
   }
@@ -483,32 +686,48 @@ export class CollapsingTerrain {
   }
 
   /**
-   * Create a falling rock at the given position.
+   * Create a falling rock at the given position using GLB debris models.
    */
   private spawnFallingRock(position: Vector3, sideDirection: number): void {
     const size = 0.8 + this.seededNoise(this.totalElapsed * 4.1) * 1.5;
 
-    const mesh = MeshBuilder.CreatePolyhedron(
-      `rock_${this.fallingRocks.length}_${this.totalElapsed | 0}`,
-      {
-        type: Math.floor(this.seededNoise(this.totalElapsed * 5.3) * 3),
-        size: size,
-      },
-      this.scene
+    // Pick a random debris GLB path
+    const debrisIndex = Math.floor(
+      this.seededNoise(this.totalElapsed * 5.3) * DEBRIS_GLB_PATHS.length
     );
-    mesh.position.copyFrom(position);
-    mesh.material = this.rockMaterial;
+    const debrisPath = DEBRIS_GLB_PATHS[debrisIndex];
+    const instanceName = `rock_${this.rockInstanceCounter++}`;
 
-    // Shadow marker on ground (warning indicator)
+    // Create GLB instance
+    const mesh = AssetManager.createInstanceByPath(
+      debrisPath,
+      instanceName,
+      this.scene,
+      false, // not animated
+      'debris'
+    );
+
+    if (!mesh) {
+      // Fallback: if GLB not loaded yet, skip this rock
+      log.warn(`Failed to create debris instance from ${debrisPath}`);
+      return;
+    }
+
+    mesh.position.copyFrom(position);
+    // Scale the GLB to desired size (normalize to ~1m and then scale)
+    const scale = size * 0.5;
+    mesh.scaling.set(scale, scale, scale);
+
+    // Shadow marker on ground (warning indicator) - keep as procedural VFX
     const shadowMarker = MeshBuilder.CreateDisc(
-      `rock_shadow_${this.fallingRocks.length}`,
+      `rock_shadow_${instanceName}`,
       { radius: size * 1.5, tessellation: 16 },
       this.scene
     );
     shadowMarker.position.set(position.x - sideDirection * 5, 0.05, position.z);
     shadowMarker.rotation.x = Math.PI / 2;
 
-    const shadowMat = new StandardMaterial(`shadow_mat_${this.fallingRocks.length}`, this.scene);
+    const shadowMat = new StandardMaterial(`shadow_mat_${instanceName}`, this.scene);
     shadowMat.diffuseColor = new Color3(0.8, 0.2, 0.1);
     shadowMat.emissiveColor = new Color3(0.4, 0.1, 0.0);
     shadowMat.alpha = 0.4;
@@ -803,7 +1022,7 @@ export class CollapsingTerrain {
   /**
    * Update lava material emissive pulsing.
    */
-  private updateLavaAnimation(deltaTime: number): void {
+  private updateLavaAnimation(_deltaTime: number): void {
     if (!this.lavaMaterial) return;
 
     const pulse = Math.sin(this.totalElapsed * 2) * 0.15 + 0.85;
@@ -1050,6 +1269,6 @@ export class CollapsingTerrain {
     }
     this.groundCracks = [];
 
-    console.log('[CollapsingTerrain] Disposed all resources');
+    log.info('Disposed all resources');
   }
 }

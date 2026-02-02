@@ -2,8 +2,12 @@ import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/loaders/glTF';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('ModularStationBuilder');
 
 // ============================================================================
 // MODULAR STATION BUILDER
@@ -13,24 +17,24 @@ import type { Scene } from '@babylonjs/core/scene';
 // ============================================================================
 
 // Corridor module size (from asset analysis)
-const MODULE_LENGTH = 4.0; // Y-axis length per corridor segment
-const MODULE_WIDTH = 5.55; // X-axis width
-const MODULE_HEIGHT = 3.09; // Z-axis height (becomes Y in Babylon)
+const _MODULE_LENGTH = 4.0; // Y-axis length per corridor segment
+const _MODULE_WIDTH = 5.55; // X-axis width
+const _MODULE_HEIGHT = 3.09; // Z-axis height (becomes Y in Babylon)
 
 // Model paths (reorganized asset structure)
 const MODELS = {
-  corridorMain: '/models/environment/station/corridor_main.glb',
-  corridorJunction: '/models/environment/station/corridor_junction.glb',
-  corridorCorner: '/models/environment/station/corridor_corner.glb',
-  corridorWide: '/models/environment/station/corridor_wide.glb',
-  stationDoor: '/models/environment/station/station_door.glb',
-  stationBarrel: '/models/environment/station/station_barrel.glb',
+  corridorMain: '/assets/models/environment/station/corridor_main.glb',
+  corridorJunction: '/assets/models/environment/station/corridor_junction.glb',
+  corridorCorner: '/assets/models/environment/station/corridor_corner.glb',
+  corridorWide: '/assets/models/environment/station/corridor_wide.glb',
+  stationDoor: '/assets/models/environment/station/station_door.glb',
+  stationBarrel: '/assets/models/environment/station/station_barrel.glb',
   // Additional station pieces
-  wall: '/models/environment/station/wall_hr_1_double.glb',
-  doorway: '/models/environment/station/doorway_hr_1.glb',
-  floorCeiling: '/models/environment/station/floor_ceiling_hr_1.glb',
-  beam: '/models/environment/station/beam_hc_vertical_1.glb',
-  pipe: '/models/environment/station/pipe_cx_1.glb',
+  wall: '/assets/models/environment/station/wall_hr_1_double.glb',
+  doorway: '/assets/models/environment/station/doorway_hr_1.glb',
+  floorCeiling: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
+  beam: '/assets/models/environment/station/beam_hc_vertical_1.glb',
+  pipe: '/assets/models/environment/station/pipe_cx_1.glb',
 };
 
 // Station layout definition
@@ -473,10 +477,22 @@ export const MODULAR_ROOM_POSITIONS = {
   armory: new Vector3(10, 1.5, -16),
   weaponRack: new Vector3(12, 1.5, -16),
 
-  // HOLODECK - Platforming training
+  // HOLODECK / PLATFORMING ROOM - VR Training area
+  // Entry from corridor
   holodeckEntry: new Vector3(0, 1.5, -28),
+  platformingEntry: new Vector3(0, 1.5, -28), // Alias for tutorial compatibility
+  // Center of holodeck
   holodeckCenter: new Vector3(0, 1.5, -34),
+  // Platform positions for jump training (progressive heights)
+  platform1: new Vector3(-3, 1.5, -32), // First platform - starting point
+  platform2: new Vector3(0, 2.0, -34), // Second platform - requires jump
+  platform3: new Vector3(3, 2.5, -36), // Third platform - higher jump
+  // Crouch passage (low ceiling obstacle)
+  crouchPassageEntry: new Vector3(-2, 1.5, -37),
+  crouchPassageExit: new Vector3(2, 1.5, -39),
+  // Exit from holodeck
   holodeckExit: new Vector3(0, 1.5, -40),
+  platformingExit: new Vector3(0, 1.5, -40), // Alias for tutorial compatibility
 
   // SHOOTING RANGE
   shootingRange: new Vector3(0, 1.5, -52),
@@ -623,13 +639,13 @@ async function loadModel(
   rotation: number,
   name: string
 ): Promise<AbstractMesh[]> {
-  console.log(`[loadModel] Loading ${name} from ${modelPath}`);
+  log.info(`Loading ${name} from ${modelPath}`);
   const result = await withTimeout(
     SceneLoader.ImportMeshAsync('', modelPath, '', scene),
     MODEL_LOAD_TIMEOUT_MS,
     name
   );
-  console.log(`[loadModel] Loaded ${name} - ${result.meshes.length} meshes`);
+  log.info(`Loaded ${name} - ${result.meshes.length} meshes`);
 
   // Create parent transform for positioning
   const parent = new TransformNode(name, scene);
@@ -650,13 +666,20 @@ async function loadModel(
 }
 
 /**
- * Build the modular station from GLB segments
+ * Build the modular station from GLB segments using instanced containers.
+ *
+ * Optimization: loads each unique corridor type ONCE as an AssetContainer,
+ * then instances segments from that container. This reduces:
+ * - Network requests: 4 instead of 47
+ * - GLB parse operations: 4 instead of 47
+ * - Draw calls: shared materials enable GPU batching
+ * - CPU overhead: frozen world matrices skip per-frame recomputation
  */
 export async function buildModularStation(
   scene: Scene,
   layout: StationLayout = ANCHOR_STATION_LAYOUT
 ): Promise<ModularStationResult> {
-  console.log('[ModularStationBuilder] Starting station build, segments:', layout.segments.length);
+  log.info('Starting station build, segments:', layout.segments.length);
   const root = new TransformNode('AnchorStation', scene);
   const allMeshes: AbstractMesh[] = [];
 
@@ -668,37 +691,125 @@ export async function buildModularStation(
     wide: MODELS.corridorWide,
   };
 
-  console.log('[ModularStationBuilder] Loading', layout.segments.length, 'segments...');
-  // Load all segments
-  const loadPromises = layout.segments.map(async (segment) => {
-    const modelPath = typeToModel[segment.type];
-    try {
-      const meshes = await loadModel(
-        scene,
-        modelPath,
-        segment.position,
-        segment.rotation,
-        segment.name
-      );
-      allMeshes.push(...meshes);
-      return meshes;
-    } catch (error) {
-      console.warn(`[ModularStationBuilder] Failed to load segment ${segment.name}:`, error);
-      return [];
+  // ─── Step 1: Load each unique corridor type ONCE as an AssetContainer ───
+  const uniqueTypes = [...new Set(layout.segments.map((s) => s.type))];
+  log.info(
+    `Loading ${uniqueTypes.length} unique corridor types (was ${layout.segments.length} individual imports)`
+  );
+
+  // Use a record keyed by type so we can look up containers efficiently
+  type Container = Awaited<ReturnType<typeof SceneLoader.LoadAssetContainerAsync>>;
+  const containers: Partial<Record<StationSegment['type'], Container>> = {};
+
+  await Promise.all(
+    uniqueTypes.map(async (type) => {
+      const modelPath = typeToModel[type];
+      try {
+        const container = await withTimeout(
+          SceneLoader.LoadAssetContainerAsync(modelPath, '', scene),
+          MODEL_LOAD_TIMEOUT_MS,
+          `container_${type}`
+        );
+        containers[type] = container;
+        log.info(`Loaded container for '${type}': ${container.meshes.length} meshes`);
+      } catch (error) {
+        log.error(`Failed to load container for '${type}':`, error);
+      }
+    })
+  );
+
+  // ─── Step 2: Instance each segment from its container ───
+  log.info(
+    `Instancing ${layout.segments.length} segments from ${Object.keys(containers).length} containers...`
+  );
+
+  for (const segment of layout.segments) {
+    const container = containers[segment.type];
+    if (!container) {
+      log.warn(`No container for segment '${segment.name}' (type: ${segment.type})`);
+      continue;
     }
-  });
 
-  console.log('[ModularStationBuilder] Waiting for all segments to load...');
-  await Promise.all(loadPromises);
-  console.log('[ModularStationBuilder] All segments loaded, total meshes:', allMeshes.length);
+    // instantiateModelsToScene clones meshes from the container.
+    // cloneMaterials=false shares materials across instances for draw call batching.
+    const entries = container.instantiateModelsToScene(
+      (name) => `${segment.name}_${name}`,
+      false // share materials across instances
+    );
 
-  // Parent all to root
-  for (const mesh of allMeshes) {
-    const parent = mesh.parent;
-    if (parent instanceof TransformNode && parent.name !== 'AnchorStation') {
-      parent.parent = root;
+    // Create parent transform for positioning
+    const parent = new TransformNode(segment.name, scene);
+    parent.position = segment.position;
+    parent.rotation.y = segment.rotation;
+    parent.parent = root;
+
+    // Parent instanced root nodes under the segment transform
+    for (const rootNode of entries.rootNodes) {
+      rootNode.parent = parent;
+    }
+
+    // Collect meshes and configure for collisions
+    for (const rootNode of entries.rootNodes) {
+      const meshes = rootNode.getChildMeshes(false);
+      for (const mesh of meshes) {
+        mesh.receiveShadows = true;
+        mesh.checkCollisions = true;
+        allMeshes.push(mesh);
+      }
     }
   }
+
+  // ─── Step 2b: Log corridor bounding info for snapping diagnostics ───
+  for (const type of uniqueTypes) {
+    const container = containers[type];
+    if (!container) continue;
+    // Measure actual model dimensions from the container's meshes
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+    for (const mesh of container.meshes) {
+      if (mesh.name === '__root__') continue;
+      const bounds = mesh.getBoundingInfo();
+      if (!bounds) continue;
+      const bMin = bounds.boundingBox.minimumWorld;
+      const bMax = bounds.boundingBox.maximumWorld;
+      minX = Math.min(minX, bMin.x); maxX = Math.max(maxX, bMax.x);
+      minY = Math.min(minY, bMin.y); maxY = Math.max(maxY, bMax.y);
+      minZ = Math.min(minZ, bMin.z); maxZ = Math.max(maxZ, bMax.z);
+    }
+    const sizeX = maxX - minX;
+    const sizeY = maxY - minY;
+    const sizeZ = maxZ - minZ;
+    log.info(
+      `Corridor '${type}' actual dimensions: ` +
+      `X=${sizeX.toFixed(2)} Y=${sizeY.toFixed(2)} Z=${sizeZ.toFixed(2)} ` +
+      `(expected: length=${_MODULE_LENGTH} width=${_MODULE_WIDTH} height=${_MODULE_HEIGHT})`
+    );
+    if (Math.abs(sizeZ - _MODULE_LENGTH) > 0.5 && Math.abs(sizeX - _MODULE_LENGTH) > 0.5) {
+      log.warn(
+        `Corridor '${type}' may not snap at 4-unit intervals! ` +
+        `Neither X (${sizeX.toFixed(2)}) nor Z (${sizeZ.toFixed(2)}) matches MODULE_LENGTH (${_MODULE_LENGTH})`
+      );
+    }
+  }
+
+  // ─── Step 3: Freeze world matrices for static geometry ───
+  // This prevents BabylonJS from recomputing transforms every frame.
+  // Must be done AFTER setting all positions/rotations/parenting.
+  log.info(`Freezing world matrices on ${allMeshes.length} meshes...`);
+  for (const mesh of allMeshes) {
+    mesh.computeWorldMatrix(true);
+    mesh.freezeWorldMatrix();
+    // Disable bounding info updates for static meshes
+    if (mesh instanceof Mesh) {
+      mesh.doNotSyncBoundingInfo = true;
+    }
+  }
+
+  log.info(
+    `Station built: ${allMeshes.length} meshes from ${layout.segments.length} segments ` +
+      `(${Object.keys(containers).length} unique types loaded)`
+  );
 
   return {
     root,
@@ -707,6 +818,10 @@ export async function buildModularStation(
     dispose: () => {
       for (const mesh of allMeshes) {
         mesh.dispose();
+      }
+      // Dispose containers (template meshes held off-scene)
+      for (const container of Object.values(containers)) {
+        container?.dispose();
       }
       root.dispose();
     },

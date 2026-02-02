@@ -1,0 +1,178 @@
+{
+  "$schema": "../../../../src/game/ai/schemas/GenerationManifestSchemas.ts#PortraitManifestSchema",
+  "schemaVersion": "1.0.0",
+  "description": "Character portrait generation manifest - Stellar Descent",
+  "updatedAt": "2026-01-31T20:22:18.622Z",
+  "loreBranding": {
+    "unitPatches": {
+      "cole": "7th Drop Marines 'Hell Jumpers' - skull with wings emblem patch on shoulder armor",
+      "marcus": "Vanguard Recon Team - crossed swords over planet emblem on mech shoulder plate",
+      "reyes": "UEF Prometheus Command - gold star cluster insignia on uniform collar",
+      "phoenix": "Dropship Wing - stylized phoenix emblem on flight helmet",
+      "athena": ""
+    },
+    "rankInsignia": {
+      "cole": "Sergeant - three chevron pins on armor collar",
+      "marcus": "Corporal - two chevron pins on suit collar",
+      "reyes": "Commander - four gold bar pins on collar, command star medal on chest",
+      "phoenix": "Pilot wings insignia pin on chest",
+      "athena": ""
+    },
+    "styleGuide": "CRITICAL STYLING RULES FOR MILITARY PORTRAITS:\n- DO NOT add any visible text, names, or labels to uniforms or armor\n- Unit patches should be SYMBOL-BASED ONLY (skull, wings, stars) - no text on patches\n- Rank insignia are SMALL metallic pins - not text or large badges\n- Equipment may have subtle wear markings but NO stenciled names or callsigns\n- Overall aesthetic: Realistic modern military photography, gritty and authentic\n- NO comic book style, NO anime influence, NO fantasy elements\n- Reference: Modern US Marine photos, Mass Effect 2-3 character portraits, Starship Troopers film"
+  },
+  "assets": [
+    {
+      "id": "portrait_cole_neutral",
+      "characterId": "cole",
+      "emotion": "neutral",
+      "prompt": "Military sci-fi portrait of a battle-hardened space marine sergeant. Male, mid-30s, short dark hair, strong jaw, determined eyes. Wearing futuristic combat helmet with visor up. Subtle scars. Dark background with subtle blue rim lighting. Realistic rendering, cinematic quality. Similar to Mass Effect character portraits.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "cole/neutral.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "1a827401",
+        "generatedAt": "2026-01-31T20:20:29.105Z",
+        "generationTimeMs": 13425,
+        "fileSizeBytes": 742387,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_cole_combat",
+      "characterId": "cole",
+      "emotion": "combat",
+      "prompt": "Military sci-fi portrait of a space marine sergeant in intense combat focus. Male, mid-30s, visor down with HUD reflection visible. Sweat, dust on armor. Concentrated expression. Muzzle flash lighting from side. Realistic rendering.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "cole/combat.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "7bb4a063",
+        "generatedAt": "2026-01-31T20:20:44.069Z",
+        "generationTimeMs": 14964,
+        "fileSizeBytes": 824611,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_cole_injured",
+      "characterId": "cole",
+      "emotion": "injured",
+      "prompt": "Military sci-fi portrait of a wounded space marine sergeant. Male, mid-30s, helmet cracked and visor shattered. Blood on face, determined but pained expression. Emergency lighting casting red glow. Smoke and debris in background. Realistic rendering, intense atmosphere.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "cole/injured.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "6e441c28",
+        "generatedAt": "2026-01-31T20:20:58.085Z",
+        "generationTimeMs": 14016,
+        "fileSizeBytes": 787916,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_marcus_neutral",
+      "characterId": "marcus",
+      "emotion": "neutral",
+      "prompt": "Military sci-fi portrait of a mech pilot. Male, late-20s, similar features to protagonist (brothers), slightly younger. Mech pilot helmet with retracted faceplate. Confident but weary expression. Scorch marks on helmet. Dark background with orange rim lighting. Realistic rendering.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "marcus/neutral.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "4e0c805f",
+        "generatedAt": "2026-01-31T20:21:10.539Z",
+        "generationTimeMs": 12454,
+        "fileSizeBytes": 727159,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_marcus_combat",
+      "characterId": "marcus",
+      "emotion": "combat",
+      "prompt": "Military sci-fi portrait of a mech pilot in combat. Male, late-20s, faceplate down with mech HUD reflections visible. Intense focus, jaw clenched. Cockpit emergency lights flashing. Sweat visible. Realistic rendering, high tension.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "marcus/combat.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "172a1532",
+        "generatedAt": "2026-01-31T20:21:23.754Z",
+        "generationTimeMs": 13214,
+        "fileSizeBytes": 834919,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_athena_normal",
+      "characterId": "athena",
+      "emotion": "normal",
+      "prompt": "Holographic AI avatar portrait. Abstract feminine face formed from blue light particles and data streams. Geometric patterns suggesting features. Calm, professional appearance. Circuit board patterns in background. TRON meets Cortana aesthetic. Glowing edges, digital artifacts.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "athena/normal.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "6de6f0e5",
+        "generatedAt": "2026-01-31T20:21:38.434Z",
+        "generationTimeMs": 14679,
+        "fileSizeBytes": 766616,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_athena_alert",
+      "characterId": "athena",
+      "emotion": "alert",
+      "prompt": "Holographic AI avatar portrait in alert state. Abstract feminine face formed from orange and red light particles - warning colors. Data streams accelerating. Expression showing concern. Glitch artifacts appearing. Background showing threat indicators. Digital aesthetic with urgency.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "athena/alert.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "3829a7ec",
+        "generatedAt": "2026-01-31T20:21:51.741Z",
+        "generationTimeMs": 13307,
+        "fileSizeBytes": 873049,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_reyes_neutral",
+      "characterId": "reyes",
+      "emotion": "neutral",
+      "prompt": "Military commander portrait. Female, 40s, Hispanic, silver-streaked dark hair in tight bun. Command uniform with medals. Stern but fair expression. Command bridge background with tactical displays. Authority and experience evident. Realistic rendering.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "reyes/neutral.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "7717b049",
+        "generatedAt": "2026-01-31T20:22:05.678Z",
+        "generationTimeMs": 13937,
+        "fileSizeBytes": 803614,
+        "model": "gemini-3-pro-image-preview"
+      }
+    },
+    {
+      "id": "portrait_reyes_concerned",
+      "characterId": "reyes",
+      "emotion": "concerned",
+      "prompt": "Military commander portrait showing concern. Female, 40s, Hispanic, silver-streaked dark hair. Expression showing worry for troops, weight of command visible. Hand touching earpiece. Tactical displays showing red alerts in background. Realistic rendering, emotional depth.",
+      "aspectRatio": "1:1",
+      "resolution": "2K",
+      "filename": "reyes/concerned.png",
+      "status": "generated",
+      "metadata": {
+        "promptHash": "429bec4a",
+        "generatedAt": "2026-01-31T20:22:18.622Z",
+        "generationTimeMs": 12943,
+        "fileSizeBytes": 790921,
+        "model": "gemini-3-pro-image-preview"
+      }
+    }
+  ]
+}

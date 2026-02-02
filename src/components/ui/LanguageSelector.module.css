@@ -1,0 +1,201 @@
+/**
+ * LanguageSelector styles
+ * Military terminal aesthetic consistent with game UI
+ */
+
+.container {
+  position: relative;
+  display: inline-block;
+  font-family: "Courier New", monospace;
+}
+
+/* Trigger button */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 20, 0, 0.8);
+  border: 1px solid var(--color-primary, #00ff00);
+  color: var(--color-primary, #00ff00);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.trigger:hover {
+  background: rgba(0, 40, 0, 0.9);
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+}
+
+.trigger:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 255, 0, 0.5);
+}
+
+.trigger.compact {
+  min-width: auto;
+  padding: 0.4rem 0.6rem;
+}
+
+/* Flag emoji */
+.flag {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Language name in trigger */
+.languageName {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dropdown arrow */
+.arrow {
+  font-size: 0.625rem;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+
+.arrowUp {
+  transform: rotate(180deg);
+}
+
+/* Dropdown panel */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 200px;
+  background: rgba(0, 15, 0, 0.95);
+  border: 1px solid var(--color-primary, #00ff00);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 255, 0, 0.1);
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown header */
+.dropdownHeader {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+  background: rgba(0, 40, 0, 0.5);
+}
+
+.dropdownTitle {
+  font-size: 0.75rem;
+  color: rgba(0, 255, 0, 0.7);
+  letter-spacing: 0.1em;
+}
+
+/* Dropdown list */
+.dropdownList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Individual language option */
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--color-primary, #00ff00);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.option:hover {
+  background: rgba(0, 60, 0, 0.6);
+}
+
+.option:focus {
+  outline: none;
+  background: rgba(0, 60, 0, 0.6);
+}
+
+.option.selected {
+  background: rgba(0, 80, 0, 0.4);
+}
+
+/* Option flag */
+.optionFlag {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Option names */
+.optionName {
+  flex: 1;
+  font-weight: bold;
+}
+
+.optionNameEnglish {
+  font-size: 0.75rem;
+  color: rgba(0, 255, 0, 0.5);
+}
+
+/* Selected checkmark */
+.checkmark {
+  color: var(--color-primary, #00ff00);
+  font-size: 1rem;
+}
+
+/* Open state indicator */
+.container.open .trigger {
+  border-bottom-color: transparent;
+}
+
+/* Scrollbar styling for dropdown */
+.dropdownList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdownList::-webkit-scrollbar-track {
+  background: rgba(0, 20, 0, 0.5);
+}
+
+.dropdownList::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 0, 0.3);
+  border-radius: 3px;
+}
+
+.dropdownList::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 0, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .dropdown {
+    min-width: 180px;
+  }
+
+  .optionNameEnglish {
+    display: none;
+  }
+}

@@ -11,10 +11,11 @@ This document defines the complete level system architecture, mapping the story 
 3. [Level Architecture](#level-architecture)
 4. [HUD System](#hud-system)
 5. [Dynamic Action Buttons](#dynamic-action-buttons)
-6. [Quest & Marker System](#quest--marker-system)
-7. [Input & Keybindings](#input--keybindings)
+6. [Quest and Marker System](#quest-and-marker-system)
+7. [Input and Keybindings](#input-and-keybindings)
 8. [Level Implementation Guide](#level-implementation-guide)
 9. [Level Specifications](#level-specifications)
+10. [Timer and Best Times](#timer-and-best-times)
 
 ---
 
@@ -33,9 +34,9 @@ Each level is a completely self-contained experience:
 **2. Linked List Navigation**
 Levels form a doubly-linked list, not an array:
 ```
-anchor_station <-> landfall <-> fob_delta <-> brothers_in_arms <-> the_breach <-> extraction
-      ↑                                                                              ↓
-   (start)                                                                        (end)
+anchor_station <-> landfall <-> canyon_run <-> fob_delta <-> brothers_in_arms
+                                                                     |
+southern_ice <-> the_breach <-> hive_assault <-> extraction <-> final_escape
 ```
 Each level knows only its `nextLevelId` and `previousLevelId`.
 
@@ -48,51 +49,70 @@ The HUD is a React component that floats ABOVE all levels:
 - Dynamic action buttons (level-controlled)
 - Comms display (narrative delivery)
 - Notifications (events/achievements)
+- Timer display (level elapsed time)
 
 **4. Progressive Unlocking**
 Tutorial (Anchor Station) progressively unlocks HUD elements:
-- Movement first → health bar appears
-- Look around → crosshair appears
-- Weapon training → ammo counter appears
-- Action tutorial → action buttons explained
+- Movement first -> health bar appears
+- Look around -> crosshair appears
+- Weapon training -> ammo counter appears
+- Action tutorial -> action buttons explained
 - Full HUD unlocked by level end
 
 ---
 
 ## Campaign Structure
 
-### Mapping Lore Chapters to Levels
+### 10-Level Campaign Overview
 
-| Lore Chapter | Level ID | Level Type | Environment |
-|:-------------|:---------|:-----------|:------------|
-| Prologue + Chapter 1 | `anchor_station` | station | Space station interior |
-| Chapter 2 (partial) | `landfall` | drop → canyon | HALO drop → planet surface |
-| Chapter 3 | `fob_delta` | base | Abandoned military outpost |
-| Chapter 4 | `brothers_in_arms` | canyon | Open world, mech combat |
-| Chapter 5 | `the_breach` | hive | Underground alien tunnels |
-| Chapter 6 + Epilogue | `extraction` | extraction | Surface holdout → victory |
+| Act | Level ID | Chapter | Level Type | Environment |
+|:----|:---------|:--------|:-----------|:------------|
+| **ACT 1: THE DROP** | `anchor_station` | 1 | station | Space station interior |
+| | `landfall` | 2 | drop -> canyon | HALO drop -> planet surface |
+| **ACT 2: THE SEARCH** | `canyon_run` | 3 | vehicle | Vehicle chase through canyons |
+| | `fob_delta` | 4 | base | Abandoned military outpost |
+| | `brothers_in_arms` | 5 | brothers | Open world, mech combat |
+| **ACT 3: THE TRUTH** | `southern_ice` | 6 | ice | Frozen wasteland |
+| | `the_breach` | 7 | hive | Underground alien tunnels |
+| **ACT 4: ENDGAME** | `hive_assault` | 8 | combined_arms | Vehicle + infantry |
+| | `extraction` | 9 | extraction | Surface holdout |
+| | `final_escape` | 10 | finale | Vehicle escape -> victory |
 
-### Level Flow
+### Level Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           STELLAR DESCENT CAMPAIGN                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐   │
-│  │  ANCHOR STATION  │────▶│     LANDFALL     │────▶│    FOB DELTA     │   │
-│  │    (Tutorial)    │     │   (HALO Drop)    │     │   (Horror/Inv)   │   │
-│  │   Chapter 1      │     │    Chapter 2     │     │    Chapter 3     │   │
-│  └──────────────────┘     └──────────────────┘     └──────────────────┘   │
-│                                                              │              │
-│                                                              ▼              │
-│  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐   │
-│  │    EXTRACTION    │◀────│    THE BREACH    │◀────│ BROTHERS IN ARMS │   │
-│  │  (Final Stand)   │     │ (Hive/Boss Fight)│     │  (Mech Combat)   │   │
-│  │    Chapter 6     │     │    Chapter 5     │     │    Chapter 4     │   │
-│  └──────────────────┘     └──────────────────┘     └──────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------------------+
+|                           STELLAR DESCENT CAMPAIGN                           |
++-----------------------------------------------------------------------------+
+|                                                                             |
+|  +------------------+     +------------------+     +------------------+     |
+|  | ANCHOR STATION   |---->|     LANDFALL     |---->|   CANYON RUN     |     |
+|  |   (Tutorial)     |     |   (HALO Drop)    |     | (Vehicle Chase)  |     |
+|  |   Chapter 1      |     |    Chapter 2     |     |   Chapter 3      |     |
+|  +------------------+     +------------------+     +------------------+     |
+|                                                           |                 |
+|                                                           v                 |
+|  +------------------+     +------------------+     +------------------+     |
+|  | BROTHERS IN ARMS |<----|    FOB DELTA     |<----|                  |     |
+|  |  (Mech Combat)   |     |   (Horror/Inv)   |                             |
+|  |   Chapter 5      |     |    Chapter 4     |                             |
+|  +------------------+     +------------------+                             |
+|          |                                                                  |
+|          v                                                                  |
+|  +------------------+     +------------------+     +------------------+     |
+|  |  SOUTHERN ICE    |---->|   THE BREACH     |---->|  HIVE ASSAULT    |     |
+|  | (Ice Variants)   |     | (Queen Boss)     |     | (Combined Arms)  |     |
+|  |   Chapter 6      |     |   Chapter 7      |     |   Chapter 8      |     |
+|  +------------------+     +------------------+     +------------------+     |
+|                                                           |                 |
+|                                                           v                 |
+|                           +------------------+     +------------------+     |
+|                           |   FINAL ESCAPE   |<----|   EXTRACTION     |     |
+|                           | (Vehicle Finale) |     |  (Wave Holdout)  |     |
+|                           |   Chapter 10     |     |   Chapter 9      |     |
+|                           +------------------+     +------------------+     |
+|                                                                             |
++-----------------------------------------------------------------------------+
 ```
 
 ---
@@ -124,6 +144,7 @@ interface ILevel {
   lockPointer(): void;
   unlockPointer(): void;
   isPointerLocked(): boolean;
+  setTouchInput(input: TouchInputState | null): void;
 
   // Navigation
   canTransitionTo(levelId: LevelId): boolean;
@@ -136,11 +157,16 @@ interface ILevel {
 | Type | Description | Camera | Combat | Example |
 |:-----|:------------|:-------|:-------|:--------|
 | `station` | Interior space station | FPS | Limited/Tutorial | Anchor Station |
-| `drop` | HALO descent sequence | Special (down→forward) | Dodge/Avoid | Landfall (phase 1) |
-| `canyon` | Exterior planet surface | FPS | Full | Landfall (phase 2), Brothers |
+| `drop` | HALO descent sequence | Special (down->forward) | Dodge/Avoid | Landfall (phase 1) |
+| `canyon` | Exterior planet surface | FPS | Full | Landfall (phase 2) |
+| `vehicle` | Vehicle chase/driving | Third-person | Vehicle weapons | Canyon Run |
 | `base` | Abandoned outpost interior | FPS | Ambush | FOB Delta |
-| `hive` | Underground alien tunnels | FPS | Heavy | The Breach |
+| `brothers` | Open canyon with mech ally | FPS | Full + ally support | Brothers in Arms |
+| `ice` | Frozen wasteland | FPS | Full + ice hazards | Southern Ice |
+| `hive` | Underground alien tunnels | FPS | Heavy + boss | The Breach |
+| `combined_arms` | Vehicle + infantry | Mixed | Full | Hive Assault |
 | `extraction` | Holdout/escape | FPS | Wave-based | Extraction |
+| `finale` | Timed vehicle escape | Third-person | Obstacles | Final Escape |
 
 ### Scene Isolation Rules
 
@@ -158,42 +184,38 @@ interface ILevel {
 ### HUD Component Hierarchy
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         HUD OVERLAY                         │
-│                    (React, always on top)                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────┐              ┌──────────────────────┐ │
-│  │   Health Bar    │              │    Mission Text      │ │
-│  │  (bottom-left)  │              │    (top-center)      │ │
-│  └─────────────────┘              └──────────────────────┘ │
-│                                                             │
-│                     ┌────────────┐       ┌──────────────┐  │
-│                     │  Crosshair │       │ Kill Counter │  │
-│                     │  (center)  │       │ (top-right)  │  │
-│                     └────────────┘       └──────────────┘  │
-│                                                             │
-│  ┌─────────────────┐              ┌──────────────────────┐ │
-│  │ Action Buttons  │              │   Action Buttons     │ │
-│  │ (left panel)    │              │   (right panel)      │ │
-│  └─────────────────┘              └──────────────────────┘ │
-│                                                             │
-│              ┌─────────────────────────────┐               │
-│              │     Action Buttons          │               │
-│              │     (bottom panel)          │               │
-│              └─────────────────────────────┘               │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                   Comms Display                       │  │
-│  │                 (bottom, modal)                       │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                   Notifications                       │  │
-│  │                  (center, toast)                      │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                         HUD OVERLAY                          |
+|                    (React, always on top)                    |
++-------------------------------------------------------------+
+|                                                              |
+|  +-------------+              +----------------------+       |
+|  | Health Bar  |              |    Mission Text      |       |
+|  | (bottom-L)  |              |    (top-center)      |       |
+|  +-------------+              +----------------------+       |
+|                                                              |
+|                   +----------+        +-------------+        |
+|  +-------+        | Crosshair|        |Kill Counter |        |
+|  | Timer |        | (center) |        | (top-right) |        |
+|  |(top-L)|        +----------+        +-------------+        |
+|  +-------+                                                   |
+|                                                              |
+|  +---------------+              +---------------------+      |
+|  | Action Btns   |              |   Action Buttons    |      |
+|  | (left panel)  |              |   (right panel)     |      |
+|  +---------------+              +---------------------+      |
+|                                                              |
+|              +-------------------------------+               |
+|              |       Action Buttons          |               |
+|              |       (bottom panel)          |               |
+|              +-------------------------------+               |
+|                                                              |
+|  +----------------------------------------------------------+|
+|  |                   Comms Display                           ||
+|  |                 (bottom, modal)                           ||
+|  +----------------------------------------------------------+|
+|                                                              |
++-------------------------------------------------------------+
 ```
 
 ### HUD Visibility States
@@ -207,237 +229,317 @@ interface HUDVisibility {
   actionButtons: boolean;  // Unlocked: action tutorial
   commsDisplay: boolean;   // Always available (narrative)
   notifications: boolean;  // Always available
+  timer: boolean;          // Shown during timed sections
 }
-```
-
-### Tutorial Unlock Sequence
-
-1. **Start**: Only notifications visible
-2. **Movement Tutorial**: Health bar fades in
-3. **Look Tutorial**: Crosshair appears
-4. **Weapon Tutorial**: Ammo counter (future)
-5. **Action Tutorial**: Action buttons explained
-6. **Shooting Range**: Kill counter appears
-7. **Mission Start**: Full HUD unlocked
-
----
-
-## Dynamic Action Buttons
-
-### Architecture
-
-Levels control which action buttons appear via callbacks:
-
-```typescript
-// Level calls this to update HUD action buttons
-callbacks.onActionGroupsChange(groups: ActionButtonGroup[]);
-
-// Level registers handler for button presses
-callbacks.onActionHandlerRegister(handler: (actionId: string) => void);
-```
-
-### ActionButtonGroup Structure
-
-```typescript
-interface ActionButtonGroup {
-  id: string;
-  label?: string;                    // Group header (optional)
-  position: 'left' | 'right' | 'bottom';
-  buttons: ActionButton[];
-}
-
-interface ActionButton {
-  id: string;                        // Unique action identifier
-  label: string;                     // Display text
-  key: string;                       // Keyboard binding (e.g., 'Space', 'KeyE')
-  keyDisplay: string;                // What to show user (e.g., 'SPACE', 'E')
-  enabled: boolean;                  // Can be triggered?
-  visible: boolean;                  // Is it shown?
-  highlighted?: boolean;             // Pulsing attention effect
-  cooldown?: number;                 // Total cooldown time (ms)
-  cooldownRemaining?: number;        // Current remaining (ms)
-  progress?: number;                 // 0-1 for progress bar
-  progressColor?: string;            // Color of progress bar
-  variant?: 'primary' | 'secondary' | 'danger' | 'warning';
-  size?: 'small' | 'medium' | 'large';
-  icon?: string;                     // Emoji or icon character
-}
-```
-
-### Level-Specific Action Sets
-
-#### Anchor Station (Tutorial)
-```typescript
-// Phase 1: Movement only - no buttons
-[]
-
-// Phase 2: Suit equip
-[{
-  id: 'suit',
-  position: 'right',
-  buttons: [
-    { id: 'equip_suit', label: 'EQUIP SUIT', key: 'KeyE', highlighted: true }
-  ]
-}]
-
-// Phase 3: Shooting range
-[{
-  id: 'weapons',
-  position: 'right',
-  buttons: [
-    { id: 'fire', label: 'FIRE', key: 'Mouse0' },
-    { id: 'reload', label: 'RELOAD', key: 'KeyR' }
-  ]
-}]
-
-// Phase 4: Ready for drop
-[{
-  id: 'mission',
-  position: 'bottom',
-  buttons: [
-    { id: 'begin_drop', label: 'BEGIN ORBITAL DROP', key: 'Space', variant: 'danger', size: 'large' }
-  ]
-}]
-```
-
-#### Landfall (HALO Drop)
-```typescript
-// Phase 1: Freefall - no buttons (WASD dodge)
-[]
-
-// Phase 2: Post-debris, awaiting jets
-[{
-  id: 'jets',
-  position: 'right',
-  buttons: [
-    { id: 'ignite_jets', label: 'IGNITE JETS', key: 'Space', variant: 'danger', highlighted: true }
-  ]
-}]
-
-// Phase 3: Powered descent
-[{
-  id: 'thrusters',
-  position: 'right',
-  buttons: [
-    { id: 'boost', label: 'BOOST', key: 'Space', variant: 'primary' },
-    { id: 'stabilize', label: 'STABILIZE', key: 'KeyQ', variant: 'secondary' },
-    { id: 'brake', label: 'BRAKE', key: 'KeyE', variant: 'warning' }
-  ]
-}]
-
-// Phase 4: Surface combat
-[{
-  id: 'combat',
-  position: 'right',
-  buttons: [
-    { id: 'grenade', label: 'GRENADE', key: 'KeyG', cooldown: 5000 },
-    { id: 'melee', label: 'MELEE', key: 'KeyV' }
-  ]
-}]
 ```
 
 ---
 
-## Quest & Marker System
+## Timer and Best Times
 
-### Marker Types
+### Timer System
 
-| Marker | Icon | Color | Usage |
-|:-------|:-----|:------|:------|
-| Main Objective | `!` | Gold | Primary mission goals |
-| Optional | `?` | Blue | Side objectives |
-| Interact | `[E]` | White | Interactable objects |
-| Enemy | `▲` | Red | Hostile targets (optional) |
-| Ally | `♦` | Green | Friendly NPCs |
-| Waypoint | `◆` | Yellow | Navigation points |
-
-### Marker Implementation
+Each level tracks completion time for speedrunning:
 
 ```typescript
-interface QuestMarker {
-  id: string;
-  type: 'main' | 'optional' | 'interact' | 'enemy' | 'ally' | 'waypoint';
-  position: Vector3;
-  visible: boolean;
-  distanceVisible: number;    // Max distance to show (meters)
-  showDistance: boolean;      // Show "42m" below marker
-  pulseEffect: boolean;       // Attention-grabbing pulse
-  label?: string;             // Optional text label
-  attachedTo?: Entity;        // Follow an entity
+interface LevelTimer {
+  startTime: number;       // When level started (ms)
+  elapsedTime: number;     // Current elapsed time (ms)
+  isPaused: boolean;       // Timer paused (pause menu)
+  isComplete: boolean;     // Level finished
 }
 ```
 
-### Visibility Rules
+### Best Times Persistence
 
-1. **Distance Culling**: Markers fade at `distanceVisible`
-2. **Occlusion**: Markers show through walls (gameplay clarity > realism)
-3. **Screen Edge**: Off-screen markers show as edge indicators
-4. **Priority**: Main > Optional > Interact for overlapping markers
-
----
-
-## Input & Keybindings
-
-### Default Keyboard Bindings
-
-| Action | Primary | Secondary | Description |
-|:-------|:--------|:----------|:------------|
-| Move Forward | W | ↑ | Move forward |
-| Move Back | S | ↓ | Move backward |
-| Strafe Left | A | ← | Move left |
-| Strafe Right | D | → | Move right |
-| Look | Mouse | - | Aim/look around |
-| Fire | Left Click | - | Primary weapon fire |
-| Aim/Zoom | Right Click | - | Aim down sights |
-| Reload | R | - | Reload weapon |
-| Interact | E | - | Use/interact |
-| Jump | Space | - | Jump |
-| Crouch | Ctrl | C | Crouch/duck |
-| Sprint | Shift | - | Run faster |
-| Grenade | G | - | Throw grenade |
-| Melee | V | - | Melee attack |
-| Menu/Pause | Escape | - | Pause game |
-
-### Keybinding System
+Best times are stored in the save file:
 
 ```typescript
-interface KeybindingConfig {
-  action: string;
-  primary: string;      // Key code (e.g., 'KeyW', 'ArrowUp')
-  secondary?: string;   // Alternative binding
-  category: 'movement' | 'combat' | 'interaction' | 'ui';
-}
-
-// Settings stored in localStorage
-interface UserSettings {
-  keybindings: KeybindingConfig[];
-  mouseSensitivity: number;
-  invertY: boolean;
+interface GameSave {
   // ...
+  levelBestTimes: Partial<Record<LevelId, number>>;  // Best time in seconds
+}
+
+// Recording a time
+const isNewBest = saveSystem.recordLevelTime('anchor_station', 125.5);
+if (isNewBest) {
+  notify('NEW BEST TIME!');
 }
 ```
 
-### Settings Menu Requirements
+### Timer Display
 
-**Desktop/Laptop Only** (keyboard detected):
-- Full keybinding customization
-- Mouse sensitivity slider
-- Invert Y-axis toggle
-- Key conflict detection
+- Shows elapsed time in `MM:SS.ms` format
+- Pauses when game is paused
+- Best time shown on level completion screen
+- New best time celebration effect
 
-**Touch-Only Devices**:
-- NO keybinding section (irrelevant)
-- Touch sensitivity settings
-- Control layout options
+---
 
-**Detection Logic**:
-```typescript
-const hasKeyboard = () => {
-  // Check for physical keyboard
-  return !('ontouchstart' in window) ||
-         window.matchMedia('(pointer: fine)').matches;
-};
-```
+## Level Specifications
+
+### Level 1: Anchor Station (`anchor_station`)
+
+**Act**: ACT 1: THE DROP
+**Chapter**: 1
+**Type**: `station`
+**Duration**: 5-10 minutes
+
+**Setting**:
+- Interior of ANCHOR STATION PROMETHEUS
+- Clean, industrial military aesthetic
+- Artificial gravity, artificial lighting
+- Large windows showing planet below
+
+**Key Objectives**:
+1. Attend briefing (story delivery)
+2. Navigate to Equipment Bay (movement tutorial)
+3. Equip ODST suit (interaction tutorial)
+4. Complete weapon familiarization (combat tutorial)
+5. Proceed to Hangar Bay (navigation)
+6. Board drop pod (level complete)
+
+**Collectibles**:
+- 1 Secret area
+- 2 Audio logs
+
+---
+
+### Level 2: Landfall (`landfall`)
+
+**Act**: ACT 1: THE DROP
+**Chapter**: 2
+**Type**: `drop` -> `canyon`
+**Duration**: 8-12 minutes
+
+**Phases**:
+1. **Freefall** (0-30s): Camera looking DOWN at planet
+2. **Debris Belt** (30-90s): Dodge asteroids with WASD
+3. **Powered Descent** (90-150s): Control jets for landing
+4. **Surface Combat**: First Chitin encounters
+
+**Landing Outcomes**:
+| Outcome | Condition | Result |
+|:--------|:----------|:-------|
+| Perfect | On pad, low velocity | Clean start, bonus |
+| Near Miss | Close to pad | Fight to LZ |
+| Rough | Far from pad | Damage, heavy combat |
+| Crash | High velocity | Major damage, near death |
+
+**Collectibles**:
+- 2 Secret areas
+- 2 Audio logs
+
+---
+
+### Level 3: Canyon Run (`canyon_run`)
+
+**Act**: ACT 2: THE SEARCH
+**Chapter**: 3
+**Type**: `vehicle`
+**Duration**: 8-12 minutes
+
+**Setting**:
+- Northern Canyon system
+- High-speed vehicle chase
+- Narrow canyon corridors
+
+**Key Events**:
+1. Find functional survey vehicle
+2. Chase through canyon
+3. Environmental hazards (rockfalls, acid pools)
+4. Brute encounter (first appearance)
+5. Vehicle destroyed, continue on foot
+
+**Collectibles**:
+- 2 Secret areas
+- 1 Audio log
+
+---
+
+### Level 4: FOB Delta (`fob_delta`)
+
+**Act**: ACT 2: THE SEARCH
+**Chapter**: 4
+**Type**: `base`
+**Duration**: 10-15 minutes
+
+**Setting**:
+- Abandoned military outpost
+- Power flickering/offline
+- Horror atmosphere
+
+**Areas**:
+1. Perimeter - Breached barriers
+2. Courtyard - Overturned vehicles
+3. Barracks - Personal effects, bodies
+4. Command Center - Mission logs
+5. Vehicle Bay - Marcus's mech signature
+6. Underground Access - Exit to The Breach
+
+**Collectibles**:
+- 3 Secret areas
+- 3 Audio logs
+
+---
+
+### Level 5: Brothers in Arms (`brothers_in_arms`)
+
+**Act**: ACT 2: THE SEARCH
+**Chapter**: 5
+**Type**: `brothers`
+**Duration**: 12-18 minutes
+
+**Setting**:
+- Open canyon terrain
+- Marcus's mech as AI ally
+- Wave-based combat
+
+**Key Moments**:
+1. Cinematic reunion with Marcus
+2. Fight together (mech provides support)
+3. Wave-based defense
+4. Discover The Breach entrance
+
+**Collectibles**:
+- 2 Secret areas
+- 2 Audio logs
+
+---
+
+### Level 6: Southern Ice (`southern_ice`)
+
+**Act**: ACT 3: THE TRUTH
+**Chapter**: 6
+**Type**: `ice`
+**Duration**: 10-15 minutes
+
+**Setting**:
+- Frozen wasteland
+- Ice fields, frozen fog
+- New Chitin variants (ice-adapted)
+
+**Environmental Hazards**:
+- Hypothermia exposure
+- Ice surfaces (affect movement)
+- Cryogenic spitter projectiles
+
+**New Enemy Types**:
+- Ice Chitin (hardened carapaces)
+- Cryo-spitters (freeze projectiles)
+- Ice burrowers
+
+**Collectibles**:
+- 3 Secret areas
+- 2 Audio logs
+
+---
+
+### Level 7: The Breach (`the_breach`)
+
+**Act**: ACT 3: THE TRUTH
+**Chapter**: 7
+**Type**: `hive`
+**Duration**: 15-20 minutes
+
+**Setting**:
+- Underground alien tunnels
+- Bioluminescent architecture
+- Queen's Chamber at bottom
+
+**Structure**:
+1. Upper Hive - Scout territory
+2. Mid Hive - Maze tunnels
+3. Lower Hive - Egg chambers
+4. Queen's Chamber - Boss arena
+
+**Queen Boss Fight**:
+- Health: 5000 HP
+- 3 phases with increasing difficulty
+- Spawns minions throughout
+- Weak point on abdomen between phases
+
+**Collectibles**:
+- 3 Secret areas
+- 2 Audio logs
+
+---
+
+### Level 8: Hive Assault (`hive_assault`)
+
+**Act**: ACT 4: ENDGAME
+**Chapter**: 8
+**Type**: `combined_arms`
+**Duration**: 12-15 minutes
+
+**Setting**:
+- Surface above The Breach
+- Collapsing hive network
+- Combined vehicle + infantry combat
+
+**Key Events**:
+1. Emerge from collapsing hive
+2. Fight alongside Marcus's mech
+3. Supply drops from orbit
+4. Push to extraction point
+
+**Collectibles**:
+- 2 Secret areas
+- 1 Audio log
+
+---
+
+### Level 9: Extraction (`extraction`)
+
+**Act**: ACT 4: ENDGAME
+**Chapter**: 9
+**Type**: `extraction`
+**Duration**: 8-12 minutes
+
+**Setting**:
+- LZ Omega clearing
+- Hasty barricades
+- Dropship ETA countdown
+
+**Wave Structure**:
+1. Skitterer swarms
+2. Lurker assault
+3. Acid rain (spitters)
+4. Combined arms
+5. Broodmother + Brutes
+6. Husk swarms
+7. Everything at once
+
+**Collectibles**:
+- 2 Secret areas
+- 1 Audio log
+
+---
+
+### Level 10: Final Escape (`final_escape`)
+
+**Act**: ACT 4: ENDGAME
+**Chapter**: 10
+**Type**: `finale`
+**Duration**: 5-8 minutes
+
+**Setting**:
+- Collapsing terrain
+- Vehicle escape sequence
+- Dropship as destination
+
+**Key Moments**:
+1. Board salvaged vehicle
+2. Race through disintegrating terrain
+3. Canyon walls collapse
+4. Bridge crossing
+5. Jump across sinkhole
+6. Sprint to dropship
+7. Victory!
+
+**Collectibles**:
+- 1 Secret area
+- 1 Audio log
 
 ---
 
@@ -481,475 +583,11 @@ export class MyLevel extends BaseLevel {
 - [ ] Action buttons configured per phase
 - [ ] Quest markers for objectives
 - [ ] Comms messages for narrative
+- [ ] Timer tracking implemented
 - [ ] State saved on exit
 - [ ] Clean dispose() implementation
 - [ ] Transition conditions defined
-
----
-
-## Level Specifications
-
-### Level 1: Anchor Station (`anchor_station`)
-
-**Lore Reference**: Prologue + Chapter 1
-**Type**: `station`
-**Duration**: 5-10 minutes
-
-**Setting**:
-- Interior of ANCHOR STATION PROMETHEUS
-- Clean, industrial military aesthetic
-- Artificial gravity, artificial lighting
-- Large windows showing planet below
-
-**Rooms/Areas**:
-1. **Briefing Room** - Starting point, Commander Vasquez hologram
-2. **Corridor A** - Main walkway with crew activity
-3. **Equipment Bay** - Suit locker, weapon rack
-4. **Shooting Range** - Target practice area
-5. **Hangar Bay** - Drop pods visible, final destination
-
-**Key Objectives**:
-1. Attend briefing (story delivery)
-2. Navigate to Equipment Bay (movement tutorial)
-3. Equip ODST suit (interaction tutorial)
-4. Complete weapon familiarization (combat tutorial)
-5. Proceed to Hangar Bay (navigation)
-6. Board drop pod (level complete)
-
-**Progressive Unlocks**:
-- Phase 1: Movement only (WASD/arrows)
-- Phase 2: Look controls (mouse/touch)
-- Phase 3: Interaction (E key)
-- Phase 4: Combat basics (shooting range)
-- Phase 5: Full HUD, ready for drop
-
-**Assets Required**:
-- Station interior geometry (modular corridors, rooms)
-- PSX-style textures (metal panels, grating, displays)
-- NPCs (static or minimal animation)
-- Weapon models (M7 rifle)
-- Suit model on rack
-- Drop pod interior/exterior
-
----
-
-### Level 2: Landfall (`landfall`)
-
-**Lore Reference**: Chapter 2
-**Type**: `drop` → `canyon`
-**Duration**: 8-12 minutes
-
-**Setting**:
-- Phase 1: Space, looking down at planet
-- Phase 2: Asteroid/debris field (upper atmosphere)
-- Phase 3: Powered descent through atmosphere
-- Phase 4: Canyon surface, first combat
-
-**Phases**:
-
-#### Phase 1: Freefall Start (0-30 seconds)
-- Camera: Looking DOWN at planet
-- Arms extended (skydiver pose)
-- Planet growing larger below
-- Visor HUD elements visible
-- No action buttons yet
-
-#### Phase 2: Debris Belt (30-90 seconds)
-- Asteroids rushing UP past player
-- WASD to dodge (body position)
-- Impacts damage suit integrity
-- Tension building
-
-#### Phase 3: Powered Descent (90-150 seconds)
-- "IGNITE JETS" action button
-- Camera transitions to forward view
-- Fuel/velocity/position management
-- LZ beacon visible
-- Multiple landing outcomes
-
-#### Phase 4: Surface (remaining)
-- Canyon environment
-- First Chitin encounters
-- Combat tutorial in action
-- Navigate toward FOB Delta marker
-
-**Landing Outcomes**:
-| Outcome | Condition | Result |
-|:--------|:----------|:-------|
-| Perfect | On pad, low velocity | Clean start, bonus |
-| Near Miss | Close to pad | Fight to LZ |
-| Rough | Far from pad, moderate velocity | Damage, heavy combat |
-| Crash | High velocity | Major damage, near death |
-| Slingshot | Too far off course | Death, restart |
-
-**Assets Required**:
-- Planet sphere (growing during descent)
-- Asteroid meshes (varied sizes)
-- Arm/glove models (skydiver pose)
-- Thruster handle models
-- Canyon terrain
-- LZ pad geometry
-- Chitin enemy models (Drones, Grunts)
-
----
-
-### Level 3: FOB Delta (`fob_delta`)
-
-**Lore Reference**: Chapter 3
-**Type**: `base`
-**Duration**: 10-15 minutes
-
-**Setting**:
-- Abandoned military outpost
-- Power flickering/offline
-- Signs of battle (blood, damage, debris)
-- Dark, claustrophobic
-- Horror atmosphere
-
-**Areas**:
-1. **Perimeter** - Breached barriers, entry point
-2. **Courtyard** - Central open area, overturned vehicles
-3. **Barracks** - Bunks, personal effects, bodies
-4. **Command Center** - Terminals, mission logs
-5. **Vehicle Bay** - Marcus's mech signature detected
-6. **Underground Access** - Exit to The Breach
-
-**Key Objectives**:
-1. Breach perimeter
-2. Secure courtyard
-3. Access command logs (discover what happened)
-4. Locate Marcus's signal
-5. Survive ambush (first indoor combat)
-6. Find underground tunnel entrance
-
-**Atmosphere Elements**:
-- Flickering lights
-- Environmental storytelling
-- Jump scares (carefully placed)
-- Motion tracker mechanic introduction
-- Increasing dread
-
-**Assets Required**:
-- Modular base structures
-- Military prefab buildings
-- Computer terminals
-- Mech (Marcus's Titan visible)
-- Barricades, debris
-- Blood effects, damage decals
-- Chitin corpses (battle aftermath)
-
----
-
-### Level 4: Brothers in Arms (`brothers_in_arms`)
-
-**Lore Reference**: Chapter 4
-**Type**: `canyon`
-**Duration**: 12-18 minutes
-
-**Setting**:
-- Open canyon environment
-- Large combat arena
-- Marcus's mech active (AI ally)
-- Waves of Chitin
-
-**Key Moments**:
-1. Reunion with Marcus (emotional beat)
-2. Fight together (mech provides support fire)
-3. Search for hive entrance
-4. Major battle at The Breach entrance
-
-**Marcus AI**:
-- Provides covering fire
-- Calls out threats
-- Story dialogue during combat lulls
-- Cannot enter tunnels (mech too large)
-
-**Unique Mechanics**:
-- Mech ally (large-scale support)
-- Wave-based combat
-- Environmental hazards
-- The Breach revealed
-
-**Assets Required**:
-- Expanded canyon terrain
-- The Breach (massive sinkhole)
-- Titan mech (animated, firing)
-- Large enemy counts
-- Bioluminescent growths (near Breach)
-
----
-
-### Level 5: The Breach (`the_breach`)
-
-**Lore Reference**: Chapter 5
-**Type**: `hive`
-**Duration**: 15-20 minutes
-
-**Setting**:
-- Underground alien tunnels
-- Organic architecture
-- Bioluminescent lighting
-- **Procedurally generated maze** (seeded for consistency)
-- Boss arena at bottom
-
-#### Procedural Maze Generation
-
-The Breach uses `seedrandom` to generate a consistent maze from the level seed:
-
-```typescript
-// Maze generation algorithm (recursive backtracking)
-interface MazeCell {
-  x: number;
-  z: number;
-  walls: { north: boolean; south: boolean; east: boolean; west: boolean };
-  visited: boolean;
-  type: 'path' | 'boulder' | 'acid' | 'egg_cluster' | 'chamber';
-}
-
-// Generate maze from seed (same seed = same maze)
-function generateHiveMaze(seed: string, width: number, height: number): MazeCell[][] {
-  const rng = seedrandom(seed);
-  const maze: MazeCell[][] = createGrid(width, height);
-
-  // Recursive backtracking for base maze
-  carve(maze, 0, 0, rng);
-
-  // Add special cells
-  placeBoulders(maze, rng, 0.15);      // 15% chance of boulder obstacles
-  placeAcidPools(maze, rng, 0.08);     // 8% chance of acid hazard
-  placeEggClusters(maze, rng, 0.10);   // 10% chance of egg clusters
-  placeChambers(maze, rng, 3);         // 3 larger chamber rooms
-
-  return maze;
-}
-```
-
-#### 3D Mesh Generation
-
-Maze cells convert to 3D geometry using merged cubes for performance:
-
-```typescript
-// Convert 2D maze to 3D meshes (like QR code tutorial)
-function buildMazeMeshes(scene: Scene, maze: MazeCell[][], cellSize: number): Mesh {
-  const wallMeshes: Mesh[] = [];
-
-  for (const row of maze) {
-    for (const cell of row) {
-      // Create wall cubes for each active wall
-      if (cell.walls.north) {
-        wallMeshes.push(createOrganicWall(scene, cell.x, cell.z, 'north', cellSize));
-      }
-      // ... other walls
-    }
-  }
-
-  // CRITICAL: Merge all walls for performance (30fps → 60fps)
-  return Mesh.MergeMeshes(wallMeshes, true, true, undefined, false, true);
-}
-```
-
-#### Drill & Explosives Mechanics
-
-Some maze sections have **boulder blockages** requiring special tools:
-
-```typescript
-// Obstacle types and solutions
-interface Obstacle {
-  type: 'boulder' | 'cave_in' | 'organic_barrier';
-  durability: number;      // Health points
-  requiredTool: 'drill' | 'explosives' | 'acid_grenade';
-  clearTime?: number;      // Seconds for drill
-}
-
-// Action buttons for obstacle removal
-[{
-  id: 'tools',
-  label: 'BREACH TOOLS',
-  position: 'right',
-  buttons: [
-    { id: 'drill', label: 'DRILL', key: 'KeyT', cooldown: 2000, icon: '🔧',
-      progress: drillProgress, progressColor: '#FFD700' },
-    { id: 'explosives', label: 'C4', key: 'KeyC', cooldown: 10000, icon: '💥',
-      variant: 'danger', enabled: explosivesCount > 0 }
-  ]
-}]
-```
-
-**Obstacle Types**:
-| Type | Solution | Time/Cost | Effect |
-|:-----|:---------|:----------|:-------|
-| Boulder | Drill | 3 seconds | Silent, attracts no enemies |
-| Cave-in | Explosives | Instant | Loud, alerts enemies in 30m radius |
-| Organic Barrier | Acid Grenade | Instant | Medium noise, may spawn drones |
-
-#### Marcus AI Signaling System
-
-Marcus stays on the surface with his mech but provides tactical support via radio and signaling:
-
-```typescript
-// Right-side HUD for mech commands
-[{
-  id: 'mech_commands',
-  label: 'TITAN LINK',
-  position: 'right',
-  buttons: [
-    { id: 'signal_recon', label: 'RECON', key: 'Digit1', icon: '📡',
-      description: 'Marcus scans for hostiles nearby' },
-    { id: 'signal_distract', label: 'DISTRACT', key: 'Digit2', icon: '🔊',
-      cooldown: 30000, description: 'Mech fires to draw enemies' },
-    { id: 'signal_rally', label: 'RALLY', key: 'Digit3', icon: '🎯',
-      description: 'Mark waypoint for extraction' }
-  ]
-}]
-```
-
-**Signal Mechanics**:
-- **RECON**: Marcus's sensors ping nearby hostiles (mini-map update)
-- **DISTRACT**: Mech fires above ground, enemies run toward sound
-- **RALLY**: Marcus marks optimal extraction route
-
-#### Platforming Puzzles
-
-The hive includes vertical sections with platforming:
-
-```typescript
-// Platforming obstacle types
-type PlatformingObstacle =
-  | 'acid_gap'       // Jump across acid pool
-  | 'collapsed_floor'// Navigate around hole
-  | 'organic_bridge' // Unstable, time-limited crossing
-  | 'egg_chamber'    // Stealth or fight choice
-  | 'vertical_shaft' // Climb/drop with ledges
-```
-
-**Areas**:
-1. **Tunnel Entrance** - Transition from surface, first drill tutorial
-2. **Upper Hive** - Scout area, drones, platforming introduction
-3. **Mid Hive** - Maze section with boulders and cave-ins
-4. **Lower Hive** - Vertical descent, egg chambers
-5. **Queen's Chamber** - Boss arena (hand-crafted, not procedural)
-
-**Queen Boss Fight**:
-- **Health**: 5000 HP
-- **Phases**: 3 distinct phases
-- **Mechanics**:
-  - Phase 1: Ranged attacks, spawns drones
-  - Phase 2: Melee attacks, spawns grunts
-  - Phase 3: Enraged, all attacks faster
-- **Victory**: Triggers hive collapse
-
-**Environmental Hazards**:
-- Acid pools (damage over time)
-- Collapsing tunnels (timed escape)
-- Egg clusters (spawn drones if disturbed)
-- Pheromone clouds (obscure vision, slow movement)
-- Bioluminescent spores (mark player for enemies)
-
-**Assets Required**:
-- Organic tunnel meshes (modular for procedural assembly)
-- Boulder/cave-in meshes
-- Bioluminescent materials
-- Queen model (massive, animated)
-- Egg cluster models
-- All enemy variants
-- Drill tool effect (particles, sound)
-- Explosion effect for C4
-
----
-
-### Level 6: Extraction (`extraction`)
-
-**Lore Reference**: Chapter 6 + Epilogue
-**Type**: `extraction`
-**Duration**: 8-12 minutes
-
-**Setting**:
-- Race back to surface
-- Collapsing hive behind
-- Surface holdout at LZ Omega
-- Dropship arrival (victory)
-
-**Phases**:
-
-#### Phase 1: Escape (3-4 minutes)
-- Timer pressure
-- Collapsing tunnels
-- Enemies chasing
-- Marcus provides guidance via radio
-
-#### Phase 2: Surface Run (2-3 minutes)
-- Open canyon, running
-- Chitin pouring from multiple holes
-- Marcus's mech providing cover
-
-#### Phase 3: Holdout (3-5 minutes)
-- Wave-based defense
-- Dropship ETA countdown
-- Marcus's mech failing
-- Final desperate stand
-
-#### Phase 4: Victory
-- Dropship arrives
-- Extraction complete
-- Epilogue scene
-- Credits option
-
-**Unique Mechanics**:
-- Timer pressure (collapse)
-- Escort/defend Marcus
-- Final wave intensity
-- Cinematic victory
-
-**Assets Required**:
-- Collapsing tunnel effects
-- Dropship model
-- Victory scene assets
-- Epilogue environment (station interior)
-
----
-
-## Asset Requirements Summary
-
-### PSX-Style Requirements
-
-All assets should follow PSX aesthetic:
-- Low polygon counts (500-2000 per model)
-- Pixelated textures (64x64 to 256x256)
-- Vertex snapping effect (optional)
-- Limited color palettes
-- No smooth shading (flat or Gouraud)
-
-### Priority Asset List
-
-1. **Player Equipment**
-   - Marine armor (first person arms)
-   - M7 rifle model
-   - Sidearm model
-
-2. **Environments**
-   - Station corridor modules
-   - Canyon terrain
-   - Base prefab buildings
-   - Hive tunnel segments
-
-3. **Characters**
-   - Marine NPCs (static)
-   - Marcus's mech (Titan)
-   - Commander Vasquez (hologram)
-
-4. **Enemies**
-   - Drone (small, fast)
-   - Grunt (medium, standard)
-   - Brute (large, slow)
-   - Spitter (ranged)
-   - Queen (boss)
-
-5. **Props**
-   - Crates, barrels
-   - Computer terminals
-   - Drop pod
-   - Weapon racks
-   - Mech parts
+- [ ] Collectibles placed
 
 ---
 
@@ -957,10 +595,9 @@ All assets should follow PSX aesthetic:
 
 ### GameContext Integration
 
-Levels communicate with the HUD via GameContext:
+Levels communicate with the HUD via callbacks:
 
 ```typescript
-// From level to HUD
 callbacks.onActionGroupsChange(groups);     // Update action buttons
 callbacks.onActionHandlerRegister(handler); // Register button handler
 callbacks.onObjectiveUpdate(title, text);   // Update mission display
@@ -968,29 +605,37 @@ callbacks.onCommsMessage(message);          // Show narrative
 callbacks.onNotification(text, duration);   // Toast notification
 callbacks.onHealthChange(health);           // Update health bar
 callbacks.onCombatStateChange(inCombat);    // Combat music trigger
+callbacks.onLevelComplete(nextLevelId);     // Level complete
 ```
 
 ### Level Transition Flow
 
 ```
 Level A completes
-    ↓
+    |
+    v
 callbacks.onLevelComplete(nextLevelId)
-    ↓
+    |
+    v
 LevelManager.transitionTo(nextLevelId)
-    ↓
+    |
+    v
 Level A.prepareTransition() - fade out, save state
-    ↓
+    |
+    v
 Level A.dispose() - cleanup
-    ↓
+    |
+    v
 Level B = factory.create(config)
-    ↓
+    |
+    v
 Level B.initialize() - load assets, create scene
-    ↓
+    |
+    v
 Level B active
 ```
 
 ---
 
 *"Find them. Bring them home. Or avenge them."*
-— Commander Elena Vasquez
+-- Commander Elena Vasquez

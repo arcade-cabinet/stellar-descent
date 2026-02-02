@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoadingModal, type LoadingState } from './LoadingModal';
 
@@ -127,9 +127,9 @@ describe('LoadingModal', () => {
     expect(screen.getByText('ANCHOR STATION PROMETHEUS')).toBeTruthy();
     unmount();
 
-    // Hive level
+    // Hive level (boss level type)
     render(<LoadingModal isOpen={true} onLoadComplete={vi.fn()} levelId="the_breach" />);
-    expect(screen.getByText('INTO THE BREACH')).toBeTruthy();
+    expect(screen.getByText('THE BREACH')).toBeTruthy();
   });
 
   it('displays act name in header when level is provided', () => {

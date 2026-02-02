@@ -196,14 +196,10 @@ const STORAGE_KEY = 'stellar-descent-subtitles';
  * Load subtitle settings from localStorage
  */
 function loadSettings(): SubtitleSettings {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed };
-    }
-  } catch (e) {
-    console.warn('Failed to load subtitle settings from localStorage:', e);
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    return { ...DEFAULT_SUBTITLE_SETTINGS, ...parsed };
   }
   return { ...DEFAULT_SUBTITLE_SETTINGS };
 }
@@ -212,11 +208,7 @@ function loadSettings(): SubtitleSettings {
  * Save subtitle settings to localStorage
  */
 function saveSettings(settings: SubtitleSettings): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  } catch (e) {
-    console.warn('Failed to save subtitle settings to localStorage:', e);
-  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 interface SubtitleContextType {

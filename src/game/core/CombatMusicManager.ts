@@ -1,118 +1,71 @@
 /**
- * CombatMusicManager - Adaptive combat music system for Stellar Descent
+ * CombatMusicManager - Adaptive Combat Music System for Stellar Descent
  *
  * Features:
- * - Procedural Tone.js-based combat music that layers over ambient
- * - Dynamic intensity based on enemy count and threat level
- * - Smooth crossfade transitions in/out of combat
- * - Act-specific musical themes (station, surface, hive)
- * - Victory/clear jingle when combat ends
+ * - 5-layer adaptive music system synced with gameplay state
+ * - Layer 0: Ambient pad (always playing, low volume)
+ * - Layer 1: Percussion (combat detected)
+ * - Layer 2: Bass line (enemies nearby)
+ * - Layer 3: Synth stabs (taking/dealing damage)
+ * - Layer 4: Lead melody (intense combat)
  *
- * Musical Design:
- * - Station: Tense industrial synths, metallic percussion
- * - Surface: Driving drums, aggressive bass, wind elements
- * - Hive: Organic pulses, dissonant horror tones, alien rhythms
- * - Boss: All elements intensified with added urgency
+ * - Smooth crossfade transitions (2 seconds)
+ * - Quantized to musical bars (4 beats)
+ * - Combat exit handling with gradual de-escalation
+ * - Boss music override with phase-based intensity
+ * - Level-specific music themes
+ * - Pre-loaded layers for performance
  */
 
 import * as Tone from 'tone';
 import type { LevelId } from '../levels/types';
+import {
+  type CombatState,
+  calculateCombatIntensity,
+  generateAmbientPattern,
+  generateBassPattern,
+  generateLeadPattern,
+  generatePercussionPattern,
+  generateStabPattern,
+  getActiveLayersForIntensity,
+  getSynthFactoryForStyle,
+  LAYER_VOLUMES,
+  type LayerSynthSet,
+  LEVEL_MUSIC_THEMES,
+  type LevelMusicTheme,
+  MusicLayerType,
+  scheduleAtNextBar,
+  TRANSITION_TIMING,
+} from './audio/MusicLayers';
+import { getLogger } from './Logger';
 
-// Combat intensity levels (0-1 scale, maps to enemy threat)
+const log = getLogger('CombatMusicManager');
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+/** Combat intensity levels for music adaptation */
 export type CombatIntensity = 'none' | 'low' | 'medium' | 'high' | 'boss';
 
-// Act-specific combat themes
+/** Combat music theme types */
 export type CombatTheme = 'station' | 'surface' | 'hive' | 'boss';
 
-// Combat music configuration per level
-interface CombatMusicConfig {
-  theme: CombatTheme;
-  baseBpm: number;
-  key: string; // Musical key for harmonic coherence
-  intensity: number; // Base intensity modifier (0-1)
+/** Boss phase for phase-based intensity */
+export type BossPhase = 1 | 2 | 3;
+
+/** Layer state tracking */
+interface LayerStateInfo {
+  type: MusicLayerType;
+  isActive: boolean;
+  gain: Tone.Gain;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  patterns: (Tone.Loop | Tone.Sequence<any>)[];
 }
 
-// Map levels to combat music configurations
-const LEVEL_COMBAT_CONFIGS: Record<LevelId, CombatMusicConfig> = {
-  anchor_station: {
-    theme: 'station',
-    baseBpm: 120,
-    key: 'Dm',
-    intensity: 0.3, // Tutorial level, lower intensity
-  },
-  landfall: {
-    theme: 'surface',
-    baseBpm: 135,
-    key: 'Em',
-    intensity: 0.7,
-  },
-  canyon_run: {
-    theme: 'surface',
-    baseBpm: 140,
-    key: 'Gm',
-    intensity: 0.8, // Vehicle chase, driving energy
-  },
-  fob_delta: {
-    theme: 'station',
-    baseBpm: 110,
-    key: 'Am',
-    intensity: 0.8, // Horror atmosphere
-  },
-  brothers_in_arms: {
-    theme: 'surface',
-    baseBpm: 145,
-    key: 'Gm',
-    intensity: 0.9, // Intense mech combat
-  },
-  southern_ice: {
-    theme: 'surface',
-    baseBpm: 130,
-    key: 'Bm',
-    intensity: 0.85, // Frozen wasteland, tense
-  },
-  the_breach: {
-    theme: 'hive',
-    baseBpm: 125,
-    key: 'Bm',
-    intensity: 1.0, // Boss level
-  },
-  hive_assault: {
-    theme: 'boss',
-    baseBpm: 150,
-    key: 'Dm',
-    intensity: 1.0, // Combined arms assault
-  },
-  extraction: {
-    theme: 'surface',
-    baseBpm: 150,
-    key: 'Dm',
-    intensity: 1.0, // Finale urgency
-  },
-  final_escape: {
-    theme: 'boss',
-    baseBpm: 160,
-    key: 'Em',
-    intensity: 1.0, // Maximum intensity vehicle escape
-  },
-};
-
-// Musical scales for procedural composition
-const SCALES: Record<string, number[]> = {
-  Dm: [62, 64, 65, 67, 69, 70, 72, 74], // D minor
-  Em: [64, 66, 67, 69, 71, 72, 74, 76], // E minor
-  Am: [69, 71, 72, 74, 76, 77, 79, 81], // A minor
-  Gm: [67, 69, 70, 72, 74, 75, 77, 79], // G minor
-  Bm: [71, 73, 74, 76, 78, 79, 81, 83], // B minor
-};
-
-// Bass notes for each key (one octave lower)
-const BASS_NOTES: Record<string, number[]> = {
-  Dm: [38, 41, 43, 45],
-  Em: [40, 43, 45, 47],
-  Am: [45, 48, 50, 52],
-  Gm: [43, 46, 48, 50],
-  Bm: [47, 50, 52, 54],
-};
+// ============================================================================
+// COMBAT MUSIC MANAGER
+// ============================================================================
 
 export class CombatMusicManager {
   // Audio chain
@@ -122,33 +75,41 @@ export class CombatMusicManager {
   private reverb: Tone.Reverb;
   private distortion: Tone.Distortion;
 
-  // Instrument layers
-  private bassSynth: Tone.MonoSynth | null = null;
-  private leadSynth: Tone.PolySynth | null = null;
-  private padSynth: Tone.PolySynth | null = null;
-  private drumSampler: Tone.MembraneSynth | null = null;
-  private hihatSynth: Tone.MetalSynth | null = null;
-  private noiseSynth: Tone.NoiseSynth | null = null;
-
-  // Sequencers for each layer
-  private bassSequence: Tone.Sequence | null = null;
-  private drumSequence: Tone.Sequence | null = null;
-  private hihatSequence: Tone.Sequence | null = null;
-  private padSequence: Tone.Sequence | null = null;
-  private leadSequence: Tone.Sequence | null = null;
+  // Layer management
+  private layers: Map<MusicLayerType, LayerStateInfo> = new Map();
+  private synths: LayerSynthSet | null = null;
 
   // State
   private isPlaying = false;
-  private currentTheme: CombatTheme = 'surface';
-  private currentConfig: CombatMusicConfig | null = null;
+  private isPreloaded = false;
+  private currentLevelId: LevelId | null = null;
+  private currentTheme: LevelMusicTheme | null = null;
   private currentIntensity: CombatIntensity = 'none';
   private intensityValue = 0; // 0-1 continuous value
   private volume = 0.6;
   private isMuted = false;
 
-  // Transition state
+  // Combat state tracking
+  private combatState: CombatState = {
+    nearbyEnemies: 0,
+    recentDamageDealt: 0,
+    recentDamageTaken: 0,
+    playerHealthPercent: 1.0,
+    bossActive: false,
+  };
+  private combatExitTimeout: ReturnType<typeof setTimeout> | null = null;
+  private deescalationInterval: ReturnType<typeof setInterval> | null = null;
   private transitionTimeout: ReturnType<typeof setTimeout> | null = null;
-  private fadeInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Boss music state
+  private bossPhase: BossPhase = 1;
+  private isBossMusicActive = false;
+
+  // Combat tracking
+  private lastEnemyTime = 0;
+
+  // Scheduled events for cleanup
+  private scheduledIds: number[] = [];
 
   constructor() {
     // Create effects chain
@@ -178,7 +139,7 @@ export class CombatMusicManager {
     // Master output
     this.masterGain = new Tone.Gain(0);
 
-    // Chain: instruments -> distortion -> compressor -> filter -> reverb -> master -> destination
+    // Chain: layers -> distortion -> compressor -> filter -> reverb -> master -> destination
     this.distortion.connect(this.compressor);
     this.compressor.connect(this.lowpassFilter);
     this.lowpassFilter.connect(this.reverb);
@@ -186,751 +147,17 @@ export class CombatMusicManager {
     this.masterGain.toDestination();
   }
 
-  /**
-   * Initialize instruments for a specific theme
-   */
-  private initializeInstruments(theme: CombatTheme): void {
-    // Dispose existing instruments
-    this.disposeInstruments();
-
-    // Create theme-specific instruments
-    switch (theme) {
-      case 'station':
-        this.createStationInstruments();
-        break;
-      case 'surface':
-        this.createSurfaceInstruments();
-        break;
-      case 'hive':
-        this.createHiveInstruments();
-        break;
-      case 'boss':
-        this.createBossInstruments();
-        break;
-    }
-  }
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
 
   /**
-   * Station theme: Industrial synths, metallic percussion
+   * Preload all music layers for a level (call on level start)
    */
-  private createStationInstruments(): void {
-    // Dark, industrial bass
-    this.bassSynth = new Tone.MonoSynth({
-      oscillator: { type: 'sawtooth' },
-      envelope: {
-        attack: 0.01,
-        decay: 0.3,
-        sustain: 0.4,
-        release: 0.3,
-      },
-      filterEnvelope: {
-        attack: 0.01,
-        decay: 0.2,
-        sustain: 0.5,
-        release: 0.3,
-        baseFrequency: 100,
-        octaves: 2.5,
-      },
-    }).connect(this.distortion);
-    this.bassSynth.volume.value = -8;
-
-    // Metallic lead synth
-    this.leadSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'square' },
-      envelope: {
-        attack: 0.02,
-        decay: 0.1,
-        sustain: 0.3,
-        release: 0.4,
-      },
-    }).connect(this.distortion);
-    this.leadSynth.volume.value = -12;
-
-    // Dark pad for atmosphere
-    this.padSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.5,
-        decay: 0.5,
-        sustain: 0.8,
-        release: 1,
-      },
-    }).connect(this.distortion);
-    this.padSynth.volume.value = -16;
-
-    // Industrial kick
-    this.drumSampler = new Tone.MembraneSynth({
-      pitchDecay: 0.05,
-      octaves: 6,
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.001,
-        decay: 0.3,
-        sustain: 0.01,
-        release: 0.3,
-      },
-    }).connect(this.distortion);
-    this.drumSampler.volume.value = -4;
-
-    // Metallic hi-hat
-    this.hihatSynth = new Tone.MetalSynth({
-      envelope: {
-        attack: 0.001,
-        decay: 0.1,
-        release: 0.01,
-      },
-      harmonicity: 5.1,
-      modulationIndex: 32,
-      resonance: 4000,
-      octaves: 1.5,
-    }).connect(this.distortion);
-    this.hihatSynth.volume.value = -18;
-
-    // Noise for industrial texture
-    this.noiseSynth = new Tone.NoiseSynth({
-      noise: { type: 'pink' },
-      envelope: {
-        attack: 0.005,
-        decay: 0.1,
-        sustain: 0,
-        release: 0.1,
-      },
-    }).connect(this.distortion);
-    this.noiseSynth.volume.value = -20;
-  }
-
-  /**
-   * Surface theme: Driving drums, aggressive bass
-   */
-  private createSurfaceInstruments(): void {
-    // Aggressive bass
-    this.bassSynth = new Tone.MonoSynth({
-      oscillator: { type: 'fatsawtooth', spread: 20 },
-      envelope: {
-        attack: 0.005,
-        decay: 0.2,
-        sustain: 0.5,
-        release: 0.2,
-      },
-      filterEnvelope: {
-        attack: 0.005,
-        decay: 0.1,
-        sustain: 0.3,
-        release: 0.2,
-        baseFrequency: 150,
-        octaves: 3,
-      },
-    }).connect(this.distortion);
-    this.bassSynth.volume.value = -6;
-
-    // Bright, aggressive lead
-    this.leadSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'fatsawtooth', spread: 30 },
-      envelope: {
-        attack: 0.01,
-        decay: 0.2,
-        sustain: 0.4,
-        release: 0.3,
-      },
-    }).connect(this.distortion);
-    this.leadSynth.volume.value = -10;
-
-    // Power pad
-    this.padSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sawtooth' },
-      envelope: {
-        attack: 0.3,
-        decay: 0.3,
-        sustain: 0.7,
-        release: 0.8,
-      },
-    }).connect(this.distortion);
-    this.padSynth.volume.value = -14;
-
-    // Punchy kick drum
-    this.drumSampler = new Tone.MembraneSynth({
-      pitchDecay: 0.03,
-      octaves: 8,
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.001,
-        decay: 0.4,
-        sustain: 0.01,
-        release: 0.2,
-      },
-    }).connect(this.distortion);
-    this.drumSampler.volume.value = -2;
-
-    // Crisp hi-hat
-    this.hihatSynth = new Tone.MetalSynth({
-      envelope: {
-        attack: 0.001,
-        decay: 0.08,
-        release: 0.01,
-      },
-      harmonicity: 4,
-      modulationIndex: 20,
-      resonance: 6000,
-      octaves: 1,
-    }).connect(this.distortion);
-    this.hihatSynth.volume.value = -16;
-
-    // White noise for impact
-    this.noiseSynth = new Tone.NoiseSynth({
-      noise: { type: 'white' },
-      envelope: {
-        attack: 0.001,
-        decay: 0.05,
-        sustain: 0,
-        release: 0.05,
-      },
-    }).connect(this.distortion);
-    this.noiseSynth.volume.value = -22;
-  }
-
-  /**
-   * Hive theme: Organic pulses, dissonant horror tones
-   */
-  private createHiveInstruments(): void {
-    // Deep, organic bass
-    this.bassSynth = new Tone.MonoSynth({
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.1,
-        decay: 0.4,
-        sustain: 0.6,
-        release: 0.5,
-      },
-      filterEnvelope: {
-        attack: 0.1,
-        decay: 0.3,
-        sustain: 0.4,
-        release: 0.4,
-        baseFrequency: 80,
-        octaves: 2,
-      },
-    }).connect(this.distortion);
-    this.bassSynth.volume.value = -10;
-
-    // Dissonant, eerie lead
-    this.leadSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'triangle' },
-      envelope: {
-        attack: 0.1,
-        decay: 0.3,
-        sustain: 0.2,
-        release: 0.5,
-      },
-    }).connect(this.distortion);
-    this.leadSynth.volume.value = -14;
-
-    // Dark, swelling pad
-    this.padSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 1,
-        decay: 0.5,
-        sustain: 0.9,
-        release: 2,
-      },
-    }).connect(this.distortion);
-    this.padSynth.volume.value = -12;
-
-    // Organic pulse drum
-    this.drumSampler = new Tone.MembraneSynth({
-      pitchDecay: 0.1,
-      octaves: 4,
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.01,
-        decay: 0.5,
-        sustain: 0.1,
-        release: 0.4,
-      },
-    }).connect(this.distortion);
-    this.drumSampler.volume.value = -6;
-
-    // Clicking/chittering hi-hat
-    this.hihatSynth = new Tone.MetalSynth({
-      envelope: {
-        attack: 0.001,
-        decay: 0.15,
-        release: 0.02,
-      },
-      harmonicity: 8,
-      modulationIndex: 40,
-      resonance: 2000,
-      octaves: 2,
-    }).connect(this.distortion);
-    this.hihatSynth.volume.value = -20;
-
-    // Organic noise texture
-    this.noiseSynth = new Tone.NoiseSynth({
-      noise: { type: 'brown' },
-      envelope: {
-        attack: 0.1,
-        decay: 0.2,
-        sustain: 0.1,
-        release: 0.3,
-      },
-    }).connect(this.distortion);
-    this.noiseSynth.volume.value = -18;
-  }
-
-  /**
-   * Boss theme: All elements intensified
-   */
-  private createBossInstruments(): void {
-    // Heavy, distorted bass
-    this.bassSynth = new Tone.MonoSynth({
-      oscillator: { type: 'fatsawtooth', spread: 40 },
-      envelope: {
-        attack: 0.005,
-        decay: 0.3,
-        sustain: 0.6,
-        release: 0.3,
-      },
-      filterEnvelope: {
-        attack: 0.005,
-        decay: 0.15,
-        sustain: 0.4,
-        release: 0.3,
-        baseFrequency: 120,
-        octaves: 4,
-      },
-    }).connect(this.distortion);
-    this.bassSynth.volume.value = -4;
-
-    // Aggressive, screaming lead
-    this.leadSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'fatsquare', spread: 50 },
-      envelope: {
-        attack: 0.01,
-        decay: 0.15,
-        sustain: 0.5,
-        release: 0.3,
-      },
-    }).connect(this.distortion);
-    this.leadSynth.volume.value = -8;
-
-    // Epic pad
-    this.padSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'fatsawtooth', spread: 30 },
-      envelope: {
-        attack: 0.2,
-        decay: 0.4,
-        sustain: 0.8,
-        release: 1,
-      },
-    }).connect(this.distortion);
-    this.padSynth.volume.value = -10;
-
-    // Massive kick
-    this.drumSampler = new Tone.MembraneSynth({
-      pitchDecay: 0.04,
-      octaves: 10,
-      oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.001,
-        decay: 0.5,
-        sustain: 0.01,
-        release: 0.3,
-      },
-    }).connect(this.distortion);
-    this.drumSampler.volume.value = 0;
-
-    // Aggressive hi-hat
-    this.hihatSynth = new Tone.MetalSynth({
-      envelope: {
-        attack: 0.001,
-        decay: 0.06,
-        release: 0.01,
-      },
-      harmonicity: 3,
-      modulationIndex: 16,
-      resonance: 8000,
-      octaves: 1,
-    }).connect(this.distortion);
-    this.hihatSynth.volume.value = -14;
-
-    // Intense noise bursts
-    this.noiseSynth = new Tone.NoiseSynth({
-      noise: { type: 'white' },
-      envelope: {
-        attack: 0.001,
-        decay: 0.08,
-        sustain: 0,
-        release: 0.08,
-      },
-    }).connect(this.distortion);
-    this.noiseSynth.volume.value = -18;
-  }
-
-  /**
-   * Create sequences based on intensity level
-   */
-  private createSequences(config: CombatMusicConfig): void {
-    this.disposeSequences();
-
-    const scale = SCALES[config.key] || SCALES.Dm;
-    const bassNotes = BASS_NOTES[config.key] || BASS_NOTES.Dm;
-
-    // Set tempo
-    Tone.getTransport().bpm.value = config.baseBpm;
-
-    // Bass sequence - plays root notes with rhythmic pattern
-    const bassPattern = this.generateBassPattern(config.theme);
-    this.bassSequence = new Tone.Sequence(
-      (time, note) => {
-        if (note !== null && this.bassSynth && this.intensityValue > 0.1) {
-          const midiNote = bassNotes[note % bassNotes.length];
-          this.bassSynth.triggerAttackRelease(
-            Tone.Frequency(midiNote, 'midi').toFrequency(),
-            '8n',
-            time
-          );
-        }
-      },
-      bassPattern,
-      '8n'
-    );
-
-    // Drum sequence - kick drum pattern based on intensity
-    const drumPattern = this.generateDrumPattern(config.theme);
-    this.drumSequence = new Tone.Sequence(
-      (time, hit) => {
-        if (hit && this.drumSampler && this.intensityValue > 0.2) {
-          this.drumSampler.triggerAttackRelease('C1', '8n', time);
-        }
-      },
-      drumPattern,
-      '16n'
-    );
-
-    // Hi-hat sequence - 16th note pattern
-    const hihatPattern = this.generateHihatPattern(config.theme);
-    this.hihatSequence = new Tone.Sequence(
-      (time, velocity) => {
-        if (velocity > 0 && this.hihatSynth && this.intensityValue > 0.3) {
-          this.hihatSynth.triggerAttackRelease('16n', time, velocity * 0.5);
-        }
-      },
-      hihatPattern,
-      '16n'
-    );
-
-    // Pad sequence - sustained chords
-    const padPattern = this.generatePadPattern(scale);
-    this.padSequence = new Tone.Sequence(
-      (time, chord) => {
-        if (chord && Array.isArray(chord) && this.padSynth && this.intensityValue > 0.1) {
-          const frequencies = chord.map((n: number) => Tone.Frequency(n, 'midi').toFrequency());
-          this.padSynth.triggerAttackRelease(frequencies, '2n', time, 0.3);
-        }
-      },
-      padPattern,
-      '1n'
-    );
-
-    // Lead sequence - melodic riffs (only at higher intensity)
-    const leadPattern = this.generateLeadPattern(scale, config.theme);
-    this.leadSequence = new Tone.Sequence(
-      (time, note) => {
-        if (note !== null && this.leadSynth && this.intensityValue > 0.5) {
-          this.leadSynth.triggerAttackRelease(
-            Tone.Frequency(note, 'midi').toFrequency(),
-            '16n',
-            time,
-            0.7
-          );
-        }
-      },
-      leadPattern,
-      '16n'
-    );
-  }
-
-  /**
-   * Generate bass pattern based on theme
-   */
-  private generateBassPattern(theme: CombatTheme): (number | null)[] {
-    switch (theme) {
-      case 'station':
-        // Industrial, syncopated
-        return [0, null, 0, null, 1, null, null, 0, null, 2, null, null, 0, null, 1, null];
-      case 'surface':
-        // Driving, aggressive
-        return [0, null, 0, 0, null, 1, null, 0, 2, null, 0, null, 1, null, 0, null];
-      case 'hive':
-        // Organic, pulsing
-        return [0, null, null, null, 1, null, null, null, 0, null, null, 2, null, null, null, null];
-      case 'boss':
-        // Intense, relentless
-        return [0, 0, null, 0, 1, null, 0, null, 2, null, 0, 0, 1, null, 0, null];
-      default:
-        return [0, null, null, null, 1, null, null, null, 0, null, null, null, 1, null, null, null];
-    }
-  }
-
-  /**
-   * Generate drum pattern based on theme
-   */
-  private generateDrumPattern(theme: CombatTheme): boolean[] {
-    switch (theme) {
-      case 'station':
-        // Industrial 4/4 with ghost notes
-        return [
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-          false,
-        ];
-      case 'surface':
-        // Driving double-time feel
-        return [
-          true,
-          false,
-          false,
-          true,
-          false,
-          false,
-          true,
-          false,
-          true,
-          false,
-          false,
-          true,
-          false,
-          false,
-          true,
-          false,
-        ];
-      case 'hive':
-        // Organic pulse
-        return [
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-          false,
-          false,
-          false,
-        ];
-      case 'boss':
-        // Relentless
-        return [
-          true,
-          false,
-          true,
-          false,
-          true,
-          false,
-          false,
-          true,
-          true,
-          false,
-          true,
-          false,
-          true,
-          false,
-          true,
-          false,
-        ];
-      default:
-        return [
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-        ];
-    }
-  }
-
-  /**
-   * Generate hi-hat pattern based on theme
-   */
-  private generateHihatPattern(theme: CombatTheme): number[] {
-    switch (theme) {
-      case 'station':
-        // Mechanical, steady
-        return [0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4];
-      case 'surface':
-        // Aggressive, accented
-        return [1, 0.3, 0.5, 0.3, 1, 0.3, 0.5, 0.3, 1, 0.3, 0.5, 0.3, 1, 0.3, 0.7, 0.5];
-      case 'hive':
-        // Clicking, irregular
-        return [0, 0.5, 0, 0.3, 0.7, 0, 0.4, 0, 0, 0.6, 0, 0.3, 0.5, 0, 0.4, 0];
-      case 'boss':
-        // Intense, continuous
-        return [1, 0.5, 0.7, 0.5, 1, 0.5, 0.8, 0.6, 1, 0.5, 0.7, 0.5, 1, 0.6, 0.9, 0.7];
-      default:
-        return [0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4, 0.8, 0.4, 0.6, 0.4];
-    }
-  }
-
-  /**
-   * Generate pad chord pattern
-   */
-  private generatePadPattern(scale: number[]): (number[] | null)[] {
-    // Create chord voicings from scale
-    const i = [scale[0], scale[2], scale[4]]; // i chord
-    const iv = [scale[3], scale[5], scale[0] + 12]; // iv chord
-    const v = [scale[4], scale[6], scale[1] + 12]; // v chord
-    const vi = [scale[5], scale[0] + 12, scale[2] + 12]; // vi chord
-
-    return [i, null, iv, null, v, null, i, null];
-  }
-
-  /**
-   * Generate lead melody pattern
-   */
-  private generateLeadPattern(scale: number[], theme: CombatTheme): (number | null)[] {
-    // Different melodic patterns per theme
-    switch (theme) {
-      case 'station':
-        // Minimal, tension-building
-        return [
-          scale[0],
-          null,
-          null,
-          null,
-          scale[2],
-          null,
-          scale[1],
-          null,
-          null,
-          null,
-          null,
-          null,
-          scale[4],
-          null,
-          null,
-          null,
-        ];
-      case 'surface':
-        // Aggressive, driving
-        return [
-          scale[4],
-          null,
-          scale[3],
-          null,
-          scale[2],
-          null,
-          scale[0],
-          null,
-          scale[4],
-          scale[5],
-          null,
-          scale[3],
-          null,
-          scale[2],
-          null,
-          scale[0],
-        ];
-      case 'hive':
-        // Eerie, chromatic touches
-        return [
-          scale[0],
-          null,
-          null,
-          scale[1],
-          null,
-          null,
-          null,
-          scale[0] - 1, // chromatic
-          null,
-          scale[0],
-          null,
-          null,
-          scale[2],
-          null,
-          null,
-          null,
-        ];
-      case 'boss':
-        // Intense, heroic
-        return [
-          scale[0],
-          scale[2],
-          null,
-          scale[4],
-          null,
-          scale[5],
-          scale[4],
-          null,
-          scale[7],
-          null,
-          scale[5],
-          null,
-          scale[4],
-          null,
-          scale[2],
-          scale[0],
-        ];
-      default:
-        return [
-          scale[0],
-          null,
-          null,
-          null,
-          scale[2],
-          null,
-          null,
-          null,
-          scale[4],
-          null,
-          null,
-          null,
-          scale[2],
-          null,
-          null,
-          null,
-        ];
-    }
-  }
-
-  /**
-   * Start combat music for a level
-   */
-  async startCombat(levelId: LevelId, initialIntensity: CombatIntensity = 'low'): Promise<void> {
-    if (this.isMuted) return;
-
-    const config = LEVEL_COMBAT_CONFIGS[levelId];
-    if (!config) {
-      console.warn(`[CombatMusicManager] No combat config for level: ${levelId}`);
+  async preloadForLevel(levelId: LevelId): Promise<void> {
+    const theme = LEVEL_MUSIC_THEMES[levelId];
+    if (!theme) {
+      log.warn(`No music theme for level: ${levelId}`);
       return;
     }
 
@@ -939,107 +166,159 @@ export class CombatMusicManager {
       await Tone.start();
     }
 
-    this.currentConfig = config;
-    this.currentTheme = config.theme;
+    // Clean up previous level if any
+    if (this.isPreloaded) {
+      this.disposeLayersAndSynths();
+    }
 
-    // Initialize instruments for this theme
-    this.initializeInstruments(config.theme);
+    this.currentLevelId = levelId;
+    this.currentTheme = theme;
 
-    // Create sequences
-    this.createSequences(config);
+    // Create synths for this level's style
+    const synthFactory = getSynthFactoryForStyle(theme.style);
+    this.synths = synthFactory();
+
+    // Set tempo
+    Tone.getTransport().bpm.value = theme.tempo;
+
+    // Create and connect all layers
+    this.createAllLayers(theme);
+
+    // Apply theme-specific effects
+    this.applyThemeEffects(theme.style);
+
+    this.isPreloaded = true;
+    log.info(`Preloaded music for level: ${levelId} (${theme.style} style @ ${theme.tempo} BPM)`);
+  }
+
+  /**
+   * Start combat music (typically when first enemy is detected)
+   */
+  async startCombat(levelId: LevelId, initialIntensity: CombatIntensity = 'low'): Promise<void> {
+    if (this.isMuted) return;
+
+    // Preload if needed
+    if (!this.isPreloaded || this.currentLevelId !== levelId) {
+      await this.preloadForLevel(levelId);
+    }
+
+    if (!this.currentTheme) {
+      log.warn('No theme loaded, cannot start combat music');
+      return;
+    }
+
+    // Already playing - just update intensity
+    if (this.isPlaying) {
+      this.setIntensityLevel(initialIntensity);
+      return;
+    }
+
+    this.isPlaying = true;
+    this.lastEnemyTime = Date.now();
+
+    // Clear any pending exit transitions
+    this.clearCombatExitTimers();
 
     // Set initial intensity
     this.setIntensityLevel(initialIntensity);
 
-    // Fade in
-    this.isPlaying = true;
-    this.masterGain.gain.rampTo(this.volume, 1);
+    // Fade in master gain
+    this.masterGain.gain.rampTo(this.volume, TRANSITION_TIMING.CROSSFADE_DURATION);
 
-    // Apply theme-specific effects
-    this.applyThemeEffects(config.theme);
+    // Start all layer patterns
+    this.startAllPatterns();
 
-    // Start all sequences
-    this.bassSequence?.start(0);
-    this.drumSequence?.start(0);
-    this.hihatSequence?.start(0);
-    this.padSequence?.start(0);
-    this.leadSequence?.start(0);
-
-    // Start transport
-    Tone.getTransport().start();
-
-    console.log(
-      `[CombatMusicManager] Started combat music: ${config.theme} theme @ ${config.baseBpm} BPM`
-    );
-  }
-
-  /**
-   * Apply theme-specific audio effects
-   */
-  private applyThemeEffects(theme: CombatTheme): void {
-    switch (theme) {
-      case 'station':
-        this.distortion.distortion = 0.2;
-        this.distortion.wet.value = 0.3;
-        this.reverb.decay = 3;
-        this.reverb.wet.value = 0.2;
-        break;
-      case 'surface':
-        this.distortion.distortion = 0.3;
-        this.distortion.wet.value = 0.4;
-        this.reverb.decay = 1.5;
-        this.reverb.wet.value = 0.1;
-        break;
-      case 'hive':
-        this.distortion.distortion = 0.15;
-        this.distortion.wet.value = 0.2;
-        this.reverb.decay = 4;
-        this.reverb.wet.value = 0.3;
-        break;
-      case 'boss':
-        this.distortion.distortion = 0.4;
-        this.distortion.wet.value = 0.5;
-        this.reverb.decay = 2;
-        this.reverb.wet.value = 0.15;
-        break;
+    // Start transport if not already running
+    if (Tone.getTransport().state !== 'started') {
+      Tone.getTransport().start();
     }
+
+    log.info(
+      `Started combat music: ${this.currentTheme.style} @ ${this.currentTheme.tempo} BPM, intensity: ${initialIntensity}`
+    );
   }
 
   /**
    * Stop combat music with fade
    */
-  stopCombat(fadeDuration = 2): void {
+  stopCombat(fadeDuration = TRANSITION_TIMING.CROSSFADE_DURATION): void {
     if (!this.isPlaying) return;
 
     // Clear any pending transitions
-    if (this.transitionTimeout) {
-      clearTimeout(this.transitionTimeout);
-      this.transitionTimeout = null;
-    }
+    this.clearCombatExitTimers();
 
-    // Fade out
+    // Fade out master
     this.masterGain.gain.rampTo(0, fadeDuration);
 
-    // Stop after fade
+    // Schedule cleanup
     this.transitionTimeout = setTimeout(
       () => {
         this.isPlaying = false;
-        Tone.getTransport().stop();
-
-        this.disposeSequences();
-        this.disposeInstruments();
-
+        this.stopAllPatterns();
+        this.resetAllLayerVolumes();
         this.currentIntensity = 'none';
         this.intensityValue = 0;
-
-        console.log('[CombatMusicManager] Combat music stopped');
+        this.isBossMusicActive = false;
+        log.info('Combat music stopped');
       },
       fadeDuration * 1000 + 100
     );
   }
 
   /**
-   * Set combat intensity level (affects which layers play)
+   * Update combat state from game - this drives adaptive music
+   * Call this every frame or when combat state changes
+   */
+  updateCombatState(state: Partial<CombatState>): void {
+    const hadEnemies = this.combatState.nearbyEnemies > 0;
+
+    // Merge new state
+    this.combatState = { ...this.combatState, ...state };
+
+    const hasEnemies = this.combatState.nearbyEnemies > 0;
+
+    // Track last enemy time for combat exit handling
+    if (hasEnemies) {
+      this.lastEnemyTime = Date.now();
+      this.clearCombatExitTimers();
+    } else if (hadEnemies && this.isPlaying) {
+      // No more enemies - start combat exit sequence
+      this.scheduleCombatExit();
+    }
+
+    // Calculate intensity and update layers
+    if (this.isPlaying && !this.isBossMusicActive) {
+      const intensity = calculateCombatIntensity(this.combatState);
+      this.setIntensityValue(intensity);
+    }
+
+    // Decay recent damage values
+    if (this.combatState.recentDamageDealt > 0) {
+      this.combatState.recentDamageDealt = Math.max(0, this.combatState.recentDamageDealt - 1);
+    }
+    if (this.combatState.recentDamageTaken > 0) {
+      this.combatState.recentDamageTaken = Math.max(0, this.combatState.recentDamageTaken - 1);
+    }
+  }
+
+  /**
+   * Notify of damage dealt (triggers synth stabs)
+   */
+  onDamageDealt(amount: number): void {
+    this.combatState.recentDamageDealt = Math.min(this.combatState.recentDamageDealt + amount, 100);
+    this.updateCombatState({});
+  }
+
+  /**
+   * Notify of damage taken (triggers synth stabs, increases intensity)
+   */
+  onDamageTaken(amount: number): void {
+    this.combatState.recentDamageTaken = Math.min(this.combatState.recentDamageTaken + amount, 100);
+    this.updateCombatState({});
+  }
+
+  /**
+   * Set discrete intensity level
    */
   setIntensityLevel(intensity: CombatIntensity): void {
     if (this.currentIntensity === intensity) return;
@@ -1049,112 +328,89 @@ export class CombatMusicManager {
     // Map intensity to continuous value
     switch (intensity) {
       case 'none':
-        this.intensityValue = 0;
+        this.setIntensityValue(0);
         break;
       case 'low':
-        this.intensityValue = 0.3;
+        this.setIntensityValue(0.25);
         break;
       case 'medium':
-        this.intensityValue = 0.6;
+        this.setIntensityValue(0.5);
         break;
       case 'high':
-        this.intensityValue = 0.85;
+        this.setIntensityValue(0.8);
         break;
       case 'boss':
-        this.intensityValue = 1.0;
+        this.setIntensityValue(1.0);
+        this.startBossMusic();
         break;
     }
 
-    // Adjust effects based on intensity
-    this.updateIntensityEffects();
-
-    console.log(`[CombatMusicManager] Intensity set to: ${intensity} (${this.intensityValue})`);
+    log.info(`Intensity set to: ${intensity} (${this.intensityValue})`);
   }
 
   /**
-   * Set continuous intensity value (0-1)
+   * Start boss music override
    */
-  setIntensityValue(value: number): void {
-    this.intensityValue = Math.max(0, Math.min(1, value));
-
-    // Map to discrete level for logging
-    if (this.intensityValue < 0.1) {
-      this.currentIntensity = 'none';
-    } else if (this.intensityValue < 0.4) {
-      this.currentIntensity = 'low';
-    } else if (this.intensityValue < 0.7) {
-      this.currentIntensity = 'medium';
-    } else if (this.intensityValue < 0.9) {
-      this.currentIntensity = 'high';
-    } else {
-      this.currentIntensity = 'boss';
+  startBossMusic(phase: BossPhase = 1): void {
+    if (!this.isPlaying) {
+      log.warn('Cannot start boss music - combat music not playing');
+      return;
     }
 
-    this.updateIntensityEffects();
+    this.isBossMusicActive = true;
+    this.bossPhase = phase;
+    this.combatState.bossActive = true;
+
+    // All layers active at max intensity
+    this.setIntensityValue(1.0);
+
+    // Increase tempo for boss fight
+    if (this.currentTheme) {
+      const bossTempoBoost = phase * 10;
+      Tone.getTransport().bpm.rampTo(this.currentTheme.tempo + bossTempoBoost, 2);
+    }
+
+    // More aggressive effects
+    this.distortion.distortion = 0.4 + phase * 0.1;
+    this.distortion.wet.rampTo(0.5, 1);
+    this.lowpassFilter.frequency.rampTo(18000, 1);
+
+    log.info(`Boss music started at phase ${phase}`);
   }
 
   /**
-   * Update effects based on current intensity
+   * Transition to new boss phase
    */
-  private updateIntensityEffects(): void {
-    if (!this.isPlaying || !this.currentConfig) return;
+  setBossPhase(phase: BossPhase): void {
+    if (!this.isBossMusicActive) return;
 
-    // Scale BPM slightly with intensity
-    const bpmBoost = this.intensityValue * 15;
-    Tone.getTransport().bpm.rampTo(this.currentConfig.baseBpm + bpmBoost, 2);
+    this.bossPhase = phase;
 
-    // Increase distortion with intensity
-    this.distortion.wet.rampTo(this.intensityValue * 0.5, 1);
+    // Tempo increases with phase
+    if (this.currentTheme) {
+      const bossTempoBoost = phase * 10;
+      Tone.getTransport().bpm.rampTo(this.currentTheme.tempo + bossTempoBoost, 2);
+    }
 
-    // Open filter as intensity increases
-    const filterFreq = 2000 + this.intensityValue * 18000;
-    this.lowpassFilter.frequency.rampTo(filterFreq, 1);
+    // Effects intensify with phase
+    this.distortion.distortion = 0.4 + phase * 0.1;
 
-    // Adjust reverb (less reverb at high intensity for clarity)
-    this.reverb.wet.rampTo(0.3 - this.intensityValue * 0.2, 1);
+    log.info(`Boss phase set to: ${phase}`);
   }
 
   /**
-   * Calculate intensity from enemy count and threat
-   * Call this from combat system to dynamically adjust music
+   * Play victory sting when boss is defeated
    */
-  calculateIntensityFromEnemies(
-    enemyCount: number,
-    maxExpectedEnemies: number,
-    hasActiveBoss = false,
-    playerHealthPercent = 1.0
-  ): CombatIntensity {
-    if (hasActiveBoss) return 'boss';
-    if (enemyCount === 0) return 'none';
-
-    // Base intensity from enemy count
-    const countRatio = Math.min(enemyCount / maxExpectedEnemies, 1);
-
-    // Increase intensity if player health is low
-    const healthModifier = playerHealthPercent < 0.3 ? 0.2 : playerHealthPercent < 0.5 ? 0.1 : 0;
-
-    const totalIntensity = countRatio + healthModifier;
-
-    if (totalIntensity >= 0.8) return 'high';
-    if (totalIntensity >= 0.5) return 'medium';
-    return 'low';
-  }
-
-  /**
-   * Play victory fanfare when combat ends
-   */
-  playVictoryJingle(): void {
+  playVictoryStinger(): void {
     if (this.isMuted) return;
 
-    // Create a quick victory synth
+    this.isBossMusicActive = false;
+    this.combatState.bossActive = false;
+
+    // Create victory synth
     const victorySynth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
-      envelope: {
-        attack: 0.01,
-        decay: 0.3,
-        sustain: 0.2,
-        release: 0.5,
-      },
+      envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.5 },
     });
 
     const victoryGain = new Tone.Gain(0.4);
@@ -1164,7 +420,7 @@ export class CombatMusicManager {
     victoryGain.connect(victoryReverb);
     victoryReverb.toDestination();
 
-    // Play a triumphant arpeggio
+    // Play triumphant arpeggio
     const now = Tone.now();
     const notes = ['C4', 'E4', 'G4', 'C5'];
 
@@ -1175,37 +431,34 @@ export class CombatMusicManager {
     // Final chord
     victorySynth.triggerAttackRelease(['C5', 'E5', 'G5'], '2n', now + 0.5, 0.6);
 
-    // Clean up after
+    // Clean up after stinger and crossfade back to ambient
     setTimeout(() => {
       victorySynth.dispose();
       victoryGain.dispose();
       victoryReverb.dispose();
     }, 3000);
 
-    console.log('[CombatMusicManager] Victory jingle played');
+    // Start gradual return to ambient
+    this.startGradualDeescalation();
+
+    log.info('Victory stinger played');
   }
 
   /**
-   * Play combat clear stinger (brief fanfare when area is cleared)
+   * Play brief combat clear stinger
    */
   playClearStinger(): void {
     if (this.isMuted) return;
 
     const stingerSynth = new Tone.Synth({
       oscillator: { type: 'triangle' },
-      envelope: {
-        attack: 0.01,
-        decay: 0.2,
-        sustain: 0.1,
-        release: 0.3,
-      },
+      envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.3 },
     });
 
     const stingerGain = new Tone.Gain(0.3);
     stingerSynth.connect(stingerGain);
     stingerGain.toDestination();
 
-    // Quick ascending notes
     const now = Tone.now();
     stingerSynth.triggerAttackRelease('E4', '16n', now);
     stingerSynth.triggerAttackRelease('G4', '16n', now + 0.08);
@@ -1216,12 +469,35 @@ export class CombatMusicManager {
       stingerGain.dispose();
     }, 1000);
 
-    console.log('[CombatMusicManager] Clear stinger played');
+    log.info('Clear stinger played');
   }
 
   /**
-   * Set master volume
+   * Calculate intensity from enemy state
+   * Convenience method for game systems
    */
+  calculateIntensityFromEnemies(
+    enemyCount: number,
+    maxExpectedEnemies: number,
+    hasActiveBoss = false,
+    playerHealthPercent = 1.0
+  ): CombatIntensity {
+    if (hasActiveBoss) return 'boss';
+    if (enemyCount === 0) return 'none';
+
+    const countRatio = Math.min(enemyCount / maxExpectedEnemies, 1);
+    const healthModifier = playerHealthPercent < 0.3 ? 0.2 : playerHealthPercent < 0.5 ? 0.1 : 0;
+    const totalIntensity = countRatio + healthModifier;
+
+    if (totalIntensity >= 0.8) return 'high';
+    if (totalIntensity >= 0.5) return 'medium';
+    return 'low';
+  }
+
+  // ============================================================================
+  // VOLUME & MUTE
+  // ============================================================================
+
   setVolume(vol: number): void {
     this.volume = Math.max(0, Math.min(1, vol));
     if (this.isPlaying && !this.isMuted) {
@@ -1229,17 +505,11 @@ export class CombatMusicManager {
     }
   }
 
-  /**
-   * Mute combat music
-   */
   mute(): void {
     this.isMuted = true;
     this.masterGain.gain.rampTo(0, 0.1);
   }
 
-  /**
-   * Unmute combat music
-   */
   unmute(): void {
     this.isMuted = false;
     if (this.isPlaying) {
@@ -1247,95 +517,57 @@ export class CombatMusicManager {
     }
   }
 
-  /**
-   * Check if combat music is currently playing
-   */
+  // ============================================================================
+  // STATE QUERIES
+  // ============================================================================
+
   isActive(): boolean {
     return this.isPlaying;
   }
 
-  /**
-   * Get current intensity
-   */
   getIntensity(): CombatIntensity {
     return this.currentIntensity;
   }
 
-  /**
-   * Get current theme
-   */
-  getTheme(): CombatTheme {
+  getIntensityValue(): number {
+    return this.intensityValue;
+  }
+
+  getTheme(): LevelMusicTheme | null {
     return this.currentTheme;
   }
 
-  /**
-   * Dispose sequences
-   */
-  private disposeSequences(): void {
-    this.bassSequence?.stop();
-    this.bassSequence?.dispose();
-    this.bassSequence = null;
-
-    this.drumSequence?.stop();
-    this.drumSequence?.dispose();
-    this.drumSequence = null;
-
-    this.hihatSequence?.stop();
-    this.hihatSequence?.dispose();
-    this.hihatSequence = null;
-
-    this.padSequence?.stop();
-    this.padSequence?.dispose();
-    this.padSequence = null;
-
-    this.leadSequence?.stop();
-    this.leadSequence?.dispose();
-    this.leadSequence = null;
+  isBossActive(): boolean {
+    return this.isBossMusicActive;
   }
 
-  /**
-   * Dispose instruments
-   */
-  private disposeInstruments(): void {
-    this.bassSynth?.dispose();
-    this.bassSynth = null;
-
-    this.leadSynth?.dispose();
-    this.leadSynth = null;
-
-    this.padSynth?.dispose();
-    this.padSynth = null;
-
-    this.drumSampler?.dispose();
-    this.drumSampler = null;
-
-    this.hihatSynth?.dispose();
-    this.hihatSynth = null;
-
-    this.noiseSynth?.dispose();
-    this.noiseSynth = null;
+  getBossPhase(): BossPhase {
+    return this.bossPhase;
   }
 
-  /**
-   * Full cleanup
-   */
+  // ============================================================================
+  // CLEANUP
+  // ============================================================================
+
   dispose(): void {
-    // Clear timeouts
+    this.clearCombatExitTimers();
+
     if (this.transitionTimeout) {
       clearTimeout(this.transitionTimeout);
-    }
-    if (this.fadeInterval) {
-      clearInterval(this.fadeInterval);
+      this.transitionTimeout = null;
     }
 
-    // Stop playback
+    // Clear scheduled transport events
+    for (const id of this.scheduledIds) {
+      Tone.getTransport().clear(id);
+    }
+    this.scheduledIds = [];
+
     if (this.isPlaying) {
       Tone.getTransport().stop();
     }
 
-    // Dispose all
-    this.disposeSequences();
-    this.disposeInstruments();
+    this.disposeLayersAndSynths();
 
     this.masterGain.dispose();
     this.compressor.dispose();
@@ -1344,10 +576,435 @@ export class CombatMusicManager {
     this.distortion.dispose();
 
     this.isPlaying = false;
+    this.isPreloaded = false;
+  }
+
+  // ============================================================================
+  // PRIVATE: LAYER MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Set continuous intensity value (0-1) and update layers accordingly
+   */
+  private setIntensityValue(value: number): void {
+    const newValue = Math.max(0, Math.min(1, value));
+
+    // Skip if no significant change
+    if (Math.abs(newValue - this.intensityValue) < 0.05) return;
+
+    this.intensityValue = newValue;
+
+    // Update discrete intensity level for external queries
+    if (this.intensityValue < 0.1) {
+      this.currentIntensity = 'none';
+    } else if (this.intensityValue < 0.35) {
+      this.currentIntensity = 'low';
+    } else if (this.intensityValue < 0.65) {
+      this.currentIntensity = 'medium';
+    } else if (this.intensityValue < 0.9) {
+      this.currentIntensity = 'high';
+    } else {
+      this.currentIntensity = 'boss';
+    }
+
+    // Update layer activation based on intensity
+    this.updateLayerActivation();
+
+    // Update effects based on intensity
+    this.updateIntensityEffects();
+  }
+
+  /**
+   * Update which layers are active based on current intensity
+   */
+  private updateLayerActivation(): void {
+    const activeLayers = getActiveLayersForIntensity(this.intensityValue);
+
+    for (const [layerType, layerInfo] of this.layers) {
+      const shouldBeActive = activeLayers.includes(layerType);
+
+      if (shouldBeActive && !layerInfo.isActive) {
+        this.activateLayer(layerType);
+      } else if (
+        !shouldBeActive &&
+        layerInfo.isActive &&
+        layerType !== MusicLayerType.AMBIENT_PAD
+      ) {
+        this.deactivateLayer(layerType);
+      }
+    }
+  }
+
+  /**
+   * Activate a layer with crossfade
+   */
+  private activateLayer(type: MusicLayerType): void {
+    const layerInfo = this.layers.get(type);
+    if (!layerInfo || layerInfo.isActive) return;
+
+    layerInfo.isActive = true;
+    const volumeRange = LAYER_VOLUMES[type];
+
+    // Schedule activation at next bar for quantized transition
+    if (this.currentTheme) {
+      const id = scheduleAtNextBar(this.currentTheme.tempo, () => {
+        layerInfo.gain.gain.rampTo(volumeRange.max, TRANSITION_TIMING.CROSSFADE_DURATION);
+      });
+      this.scheduledIds.push(id);
+    } else {
+      layerInfo.gain.gain.rampTo(volumeRange.max, TRANSITION_TIMING.CROSSFADE_DURATION);
+    }
+  }
+
+  /**
+   * Deactivate a layer with crossfade
+   */
+  private deactivateLayer(type: MusicLayerType): void {
+    const layerInfo = this.layers.get(type);
+    if (!layerInfo || !layerInfo.isActive) return;
+
+    layerInfo.isActive = false;
+
+    // Schedule deactivation at next bar for quantized transition
+    if (this.currentTheme) {
+      const id = scheduleAtNextBar(this.currentTheme.tempo, () => {
+        layerInfo.gain.gain.rampTo(0, TRANSITION_TIMING.CROSSFADE_DURATION);
+      });
+      this.scheduledIds.push(id);
+    } else {
+      layerInfo.gain.gain.rampTo(0, TRANSITION_TIMING.CROSSFADE_DURATION);
+    }
+  }
+
+  /**
+   * Update audio effects based on intensity
+   */
+  private updateIntensityEffects(): void {
+    if (!this.isPlaying || !this.currentTheme) return;
+
+    // Scale BPM slightly with intensity
+    const bpmBoost = this.intensityValue * 15;
+    Tone.getTransport().bpm.rampTo(this.currentTheme.tempo + bpmBoost, 2);
+
+    // Increase distortion with intensity
+    this.distortion.wet.rampTo(this.intensityValue * 0.4, 1);
+
+    // Open filter as intensity increases
+    const filterFreq = 3000 + this.intensityValue * 17000;
+    this.lowpassFilter.frequency.rampTo(filterFreq, 1);
+
+    // Adjust reverb (less reverb at high intensity for clarity)
+    this.reverb.wet.rampTo(0.25 - this.intensityValue * 0.15, 1);
+  }
+
+  // ============================================================================
+  // PRIVATE: COMBAT EXIT HANDLING
+  // ============================================================================
+
+  /**
+   * Schedule combat exit after delay
+   */
+  private scheduleCombatExit(): void {
+    if (this.combatExitTimeout) return; // Already scheduled
+
+    this.combatExitTimeout = setTimeout(() => {
+      // Check if enemies returned during delay
+      if (this.combatState.nearbyEnemies > 0) {
+        this.combatExitTimeout = null;
+        return;
+      }
+
+      log.info('Combat exit: Starting gradual de-escalation');
+      this.startGradualDeescalation();
+    }, TRANSITION_TIMING.COMBAT_EXIT_DELAY);
+  }
+
+  /**
+   * Start gradual layer removal for smooth de-escalation
+   */
+  private startGradualDeescalation(): void {
+    // Clear any existing de-escalation
+    if (this.deescalationInterval) {
+      clearInterval(this.deescalationInterval);
+    }
+
+    // Get current active layers (excluding ambient which stays)
+    const layersToRemove = [
+      MusicLayerType.LEAD_MELODY,
+      MusicLayerType.SYNTH_STABS,
+      MusicLayerType.BASS_LINE,
+      MusicLayerType.PERCUSSION,
+    ];
+
+    let removeIndex = 0;
+
+    this.deescalationInterval = setInterval(() => {
+      // Check if enemies returned
+      if (this.combatState.nearbyEnemies > 0) {
+        this.clearCombatExitTimers();
+        return;
+      }
+
+      if (removeIndex < layersToRemove.length) {
+        this.deactivateLayer(layersToRemove[removeIndex]);
+        removeIndex++;
+      } else {
+        // All layers removed, return to ambient
+        this.clearCombatExitTimers();
+        this.setIntensityValue(0);
+        log.info('Combat music returned to ambient');
+      }
+    }, TRANSITION_TIMING.LAYER_REMOVAL_INTERVAL);
+  }
+
+  /**
+   * Clear combat exit timers
+   */
+  private clearCombatExitTimers(): void {
+    if (this.combatExitTimeout) {
+      clearTimeout(this.combatExitTimeout);
+      this.combatExitTimeout = null;
+    }
+    if (this.deescalationInterval) {
+      clearInterval(this.deescalationInterval);
+      this.deescalationInterval = null;
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE: LAYER CREATION
+  // ============================================================================
+
+  /**
+   * Create all music layers for the current theme
+   */
+  private createAllLayers(theme: LevelMusicTheme): void {
+    if (!this.synths) return;
+
+    // Create layer 0: Ambient Pad
+    this.createAmbientLayer(theme);
+
+    // Create layer 1: Percussion
+    this.createPercussionLayer(theme);
+
+    // Create layer 2: Bass Line
+    this.createBassLayer(theme);
+
+    // Create layer 3: Synth Stabs
+    this.createStabsLayer(theme);
+
+    // Create layer 4: Lead Melody
+    this.createLeadLayer(theme);
+  }
+
+  private createAmbientLayer(theme: LevelMusicTheme): void {
+    if (!this.synths?.ambient) return;
+
+    const gain = new Tone.Gain(LAYER_VOLUMES[MusicLayerType.AMBIENT_PAD].min);
+    gain.connect(this.distortion);
+
+    this.synths.ambient.volume.value = -8;
+    this.synths.ambient.connect(gain);
+
+    const pattern = generateAmbientPattern(this.synths.ambient, theme.key, theme.tempo);
+
+    this.layers.set(MusicLayerType.AMBIENT_PAD, {
+      type: MusicLayerType.AMBIENT_PAD,
+      isActive: true, // Ambient is always active
+      gain,
+      patterns: [pattern],
+    });
+  }
+
+  private createPercussionLayer(theme: LevelMusicTheme): void {
+    if (!this.synths?.percussion || !this.synths?.hihat) return;
+
+    const gain = new Tone.Gain(0);
+    gain.connect(this.distortion);
+
+    this.synths.percussion.volume.value = -4;
+    this.synths.percussion.connect(gain);
+
+    this.synths.hihat.volume.value = -16;
+    this.synths.hihat.connect(gain);
+
+    const { kickPattern, hihatPattern } = generatePercussionPattern(
+      this.synths.percussion,
+      this.synths.hihat,
+      theme.style,
+      theme.tempo
+    );
+
+    this.layers.set(MusicLayerType.PERCUSSION, {
+      type: MusicLayerType.PERCUSSION,
+      isActive: false,
+      gain,
+      patterns: [kickPattern, hihatPattern],
+    });
+  }
+
+  private createBassLayer(theme: LevelMusicTheme): void {
+    if (!this.synths?.bass) return;
+
+    const gain = new Tone.Gain(0);
+    gain.connect(this.distortion);
+
+    this.synths.bass.volume.value = -6;
+    this.synths.bass.connect(gain);
+
+    const pattern = generateBassPattern(this.synths.bass, theme.key, theme.style);
+
+    this.layers.set(MusicLayerType.BASS_LINE, {
+      type: MusicLayerType.BASS_LINE,
+      isActive: false,
+      gain,
+      patterns: [pattern],
+    });
+  }
+
+  private createStabsLayer(theme: LevelMusicTheme): void {
+    if (!this.synths?.stabs) return;
+
+    const gain = new Tone.Gain(0);
+    gain.connect(this.distortion);
+
+    this.synths.stabs.volume.value = -10;
+    this.synths.stabs.connect(gain);
+
+    const pattern = generateStabPattern(this.synths.stabs, theme.key, theme.style);
+
+    this.layers.set(MusicLayerType.SYNTH_STABS, {
+      type: MusicLayerType.SYNTH_STABS,
+      isActive: false,
+      gain,
+      patterns: [pattern],
+    });
+  }
+
+  private createLeadLayer(theme: LevelMusicTheme): void {
+    if (!this.synths?.lead) return;
+
+    const gain = new Tone.Gain(0);
+    gain.connect(this.distortion);
+
+    this.synths.lead.volume.value = -8;
+    this.synths.lead.connect(gain);
+
+    const pattern = generateLeadPattern(this.synths.lead, theme.key, theme.style);
+
+    this.layers.set(MusicLayerType.LEAD_MELODY, {
+      type: MusicLayerType.LEAD_MELODY,
+      isActive: false,
+      gain,
+      patterns: [pattern],
+    });
+  }
+
+  /**
+   * Apply theme-specific audio effects
+   */
+  private applyThemeEffects(style: LevelMusicTheme['style']): void {
+    switch (style) {
+      case 'industrial':
+        this.distortion.distortion = 0.2;
+        this.reverb.decay = 3;
+        this.reverb.wet.value = 0.2;
+        break;
+      case 'desolate':
+        this.distortion.distortion = 0.1;
+        this.reverb.decay = 4;
+        this.reverb.wet.value = 0.25;
+        break;
+      case 'organic':
+        this.distortion.distortion = 0.15;
+        this.reverb.decay = 4;
+        this.reverb.wet.value = 0.3;
+        break;
+      case 'urgent':
+        this.distortion.distortion = 0.3;
+        this.reverb.decay = 1.5;
+        this.reverb.wet.value = 0.1;
+        break;
+      case 'horror':
+        this.distortion.distortion = 0.1;
+        this.reverb.decay = 5;
+        this.reverb.wet.value = 0.35;
+        break;
+      case 'frozen':
+        this.distortion.distortion = 0.15;
+        this.reverb.decay = 4.5;
+        this.reverb.wet.value = 0.28;
+        break;
+    }
+  }
+
+  /**
+   * Start all layer patterns
+   */
+  private startAllPatterns(): void {
+    for (const layerInfo of this.layers.values()) {
+      for (const pattern of layerInfo.patterns) {
+        pattern.start(0);
+      }
+    }
+  }
+
+  /**
+   * Stop all layer patterns
+   */
+  private stopAllPatterns(): void {
+    for (const layerInfo of this.layers.values()) {
+      for (const pattern of layerInfo.patterns) {
+        pattern.stop();
+      }
+    }
+  }
+
+  /**
+   * Reset all layer volumes to initial state
+   */
+  private resetAllLayerVolumes(): void {
+    for (const [layerType, layerInfo] of this.layers) {
+      const volumeRange = LAYER_VOLUMES[layerType];
+      const targetVolume = layerType === MusicLayerType.AMBIENT_PAD ? volumeRange.min : 0;
+      layerInfo.gain.gain.value = targetVolume;
+      layerInfo.isActive = layerType === MusicLayerType.AMBIENT_PAD;
+    }
+  }
+
+  /**
+   * Dispose all layers and synths
+   */
+  private disposeLayersAndSynths(): void {
+    // Dispose layers
+    for (const layerInfo of this.layers.values()) {
+      for (const pattern of layerInfo.patterns) {
+        pattern.stop();
+        pattern.dispose();
+      }
+      layerInfo.gain.dispose();
+    }
+    this.layers.clear();
+
+    // Dispose synths
+    if (this.synths) {
+      this.synths.ambient?.dispose();
+      this.synths.percussion?.dispose();
+      this.synths.hihat?.dispose();
+      this.synths.bass?.dispose();
+      this.synths.stabs?.dispose();
+      this.synths.lead?.dispose();
+      this.synths = null;
+    }
+
+    this.isPreloaded = false;
   }
 }
 
-// Singleton instance
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
 let combatMusicManagerInstance: CombatMusicManager | null = null;
 
 export function getCombatMusicManager(): CombatMusicManager {

@@ -2,7 +2,8 @@
  * PhantomDropship - Alien dropship vehicle the player can pilot
  *
  * Inspired by the Covenant Phantom from Halo.
- * Built entirely from BabylonJS primitives (no GLB).
+ * Hull geometry loaded from GLB model (models/spaceships/Dispatcher.glb).
+ * VFX (shield bubble, projectiles, thrust glow) still use MeshBuilder.
  *
  * Features:
  *  - Flight controls: pitch, yaw, roll, throttle, strafe
@@ -12,19 +13,24 @@
  *  - Passenger capacity for NPC marines
  *  - Landing / takeoff animations
  *  - Procedural engine sound via Web Audio API
- *  - Purple/blue glowing hull using StandardMaterial emissive
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
 import { createEntity, getEntitiesInRadius, removeEntity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import { VehicleBase, type VehicleStats, type VehicleWeapon } from './VehicleBase';
+
+const log = getLogger('PhantomDropship');
 
 // --------------------------------------------------------------------------
 // Constants
@@ -52,12 +58,12 @@ const VERTICAL_SPEED = 15;
 const ROLL_LIMIT = Math.PI / 6;
 const PITCH_LIMIT = Math.PI / 8;
 
-// Colors
-const HULL_COLOR = '#2E1B4E'; // Dark purple
-const HULL_ACCENT = '#4A2D7A'; // Lighter purple
+// GLB model path (absolute from public root, used by AssetManager)
+const PHANTOM_GLB_PATH = '/assets/models/vehicles/phantom.glb';
+
+// Colors (used for VFX: shield bubble, projectiles, engine glow animation)
 const GLOW_PRIMARY = '#7B4FE0'; // Purple glow
 const GLOW_SECONDARY = '#4FA0E0'; // Blue glow
-const ENGINE_GLOW = '#6B8CFF'; // Engine blue
 
 // --------------------------------------------------------------------------
 // Phantom Dropship
@@ -87,11 +93,22 @@ export class PhantomDropship extends VehicleBase {
   private engineGainNode: GainNode | null = null;
   private engineLFO: OscillatorNode | null = null;
 
+  // GLB model state
+  private modelReady = false;
+  private glbRoot: TransformNode | null = null;
+  private glbMeshes: AbstractMesh[] = [];
+
   // Visual references
   private engineGlowMeshes: Mesh[] = [];
   private shieldMesh: Mesh | null = null;
   private shieldMat: StandardMaterial | null = null;
   private hullGlowMat: StandardMaterial | null = null;
+
+  // Animated mesh part references (from GLB)
+  private rampMesh: AbstractMesh | null = null;
+  private leftEngineMesh: AbstractMesh | null = null;
+  private rightEngineMesh: AbstractMesh | null = null;
+  private turretMesh: AbstractMesh | null = null;
 
   // Landing animation progress
   private landingProgress = 0;
@@ -103,216 +120,16 @@ export class PhantomDropship extends VehicleBase {
   }
 
   // ------------------------------------------------------------------
-  // Hull construction from BabylonJS primitives
+  // Hull construction -- VFX only (shield bubble).
+  // Structural hull geometry is loaded async from GLB via loadModel().
   // ------------------------------------------------------------------
 
   protected buildHull(): void {
-    // --- Materials ---
-    const hullMat = new StandardMaterial('phantomHull', this.scene);
-    hullMat.diffuseColor = Color3.FromHexString(HULL_COLOR);
-    hullMat.specularColor = new Color3(0.2, 0.15, 0.3);
-    hullMat.emissiveColor = new Color3(0.05, 0.02, 0.08);
-
-    const accentMat = new StandardMaterial('phantomAccent', this.scene);
-    accentMat.diffuseColor = Color3.FromHexString(HULL_ACCENT);
-    accentMat.specularColor = new Color3(0.25, 0.2, 0.35);
-
+    // --- VFX materials (used by engine glow animation + shield) ---
     this.hullGlowMat = new StandardMaterial('phantomGlow', this.scene);
     this.hullGlowMat.emissiveColor = Color3.FromHexString(GLOW_PRIMARY);
     this.hullGlowMat.disableLighting = true;
     this.hullGlowMat.alpha = 0.85;
-
-    const engineMat = new StandardMaterial('phantomEngine', this.scene);
-    engineMat.emissiveColor = Color3.FromHexString(ENGINE_GLOW);
-    engineMat.disableLighting = true;
-    engineMat.alpha = 0.9;
-
-    // --- Main body - flattened elongated ellipsoid ---
-    const body = MeshBuilder.CreateSphere(
-      'phantomBody',
-      {
-        diameterX: 8,
-        diameterY: 2.5,
-        diameterZ: 14,
-        segments: 16,
-      },
-      this.scene
-    );
-    body.material = hullMat;
-    body.parent = this.rootNode;
-    body.position.y = 0;
-    this.hullMeshes.push(body);
-
-    // --- Top canopy / bridge ---
-    const canopy = MeshBuilder.CreateSphere(
-      'phantomCanopy',
-      {
-        diameterX: 3.5,
-        diameterY: 1.8,
-        diameterZ: 4,
-        segments: 12,
-      },
-      this.scene
-    );
-    canopy.material = accentMat;
-    canopy.parent = this.rootNode;
-    canopy.position.set(0, 1.3, -2);
-    this.hullMeshes.push(canopy);
-
-    // --- Side wings / fins ---
-    for (let side = -1; side <= 1; side += 2) {
-      const wing = MeshBuilder.CreateBox(
-        `phantomWing_${side}`,
-        { width: 5, height: 0.4, depth: 6 },
-        this.scene
-      );
-      wing.material = hullMat;
-      wing.parent = this.rootNode;
-      wing.position.set(side * 5.5, -0.3, -1);
-      wing.rotation.z = side * 0.15;
-      this.hullMeshes.push(wing);
-
-      // Wing tip fin
-      const fin = MeshBuilder.CreateBox(
-        `phantomFin_${side}`,
-        { width: 0.4, height: 2, depth: 3 },
-        this.scene
-      );
-      fin.material = accentMat;
-      fin.parent = this.rootNode;
-      fin.position.set(side * 8, 0.5, -2);
-      this.hullMeshes.push(fin);
-
-      // Engine pods under wings
-      const enginePod = MeshBuilder.CreateCylinder(
-        `phantomEnginePod_${side}`,
-        {
-          height: 2.5,
-          diameterTop: 1.2,
-          diameterBottom: 1.8,
-          tessellation: 12,
-        },
-        this.scene
-      );
-      enginePod.material = hullMat;
-      enginePod.parent = this.rootNode;
-      enginePod.position.set(side * 5, -1.2, 1);
-      this.hullMeshes.push(enginePod);
-
-      // Engine glow disc
-      const engineGlow = MeshBuilder.CreateDisc(
-        `phantomEngineGlow_${side}`,
-        { radius: 0.8, tessellation: 16 },
-        this.scene
-      );
-      engineGlow.material = engineMat;
-      engineGlow.parent = this.rootNode;
-      engineGlow.position.set(side * 5, -2.5, 1);
-      engineGlow.rotation.x = Math.PI / 2;
-      this.hullMeshes.push(engineGlow);
-      this.engineGlowMeshes.push(engineGlow);
-    }
-
-    // --- Central engine (underside) ---
-    const centralEngine = MeshBuilder.CreateCylinder(
-      'phantomCentralEngine',
-      {
-        height: 1.5,
-        diameterTop: 2,
-        diameterBottom: 3,
-        tessellation: 16,
-      },
-      this.scene
-    );
-    centralEngine.material = hullMat;
-    centralEngine.parent = this.rootNode;
-    centralEngine.position.set(0, -1.5, 0);
-    this.hullMeshes.push(centralEngine);
-
-    const centralGlow = MeshBuilder.CreateDisc(
-      'phantomCentralGlow',
-      { radius: 1.4, tessellation: 16 },
-      this.scene
-    );
-    centralGlow.material = engineMat;
-    centralGlow.parent = this.rootNode;
-    centralGlow.position.set(0, -2.3, 0);
-    centralGlow.rotation.x = Math.PI / 2;
-    this.hullMeshes.push(centralGlow);
-    this.engineGlowMeshes.push(centralGlow);
-
-    // --- Troop bay / underside compartment ---
-    const bay = MeshBuilder.CreateBox(
-      'phantomBay',
-      { width: 3.5, height: 1.5, depth: 6 },
-      this.scene
-    );
-    bay.material = accentMat;
-    bay.parent = this.rootNode;
-    bay.position.set(0, -1, 2);
-    this.hullMeshes.push(bay);
-
-    // --- Glow strips along hull seams ---
-    const stripPositions = [
-      { pos: new Vector3(0, 0.8, -5), rot: new Vector3(0, 0, 0), len: 3 },
-      { pos: new Vector3(0, 0.8, 4), rot: new Vector3(0, 0, 0), len: 2 },
-      { pos: new Vector3(-3, 0, 0), rot: new Vector3(0, Math.PI / 2, 0), len: 4 },
-      { pos: new Vector3(3, 0, 0), rot: new Vector3(0, Math.PI / 2, 0), len: 4 },
-    ];
-
-    for (let i = 0; i < stripPositions.length; i++) {
-      const { pos, rot, len } = stripPositions[i];
-      const strip = MeshBuilder.CreateBox(
-        `phantomStrip_${i}`,
-        { width: 0.1, height: 0.08, depth: len },
-        this.scene
-      );
-      strip.material = this.hullGlowMat;
-      strip.parent = this.rootNode;
-      strip.position = pos;
-      strip.rotation = rot;
-      this.hullMeshes.push(strip);
-    }
-
-    // --- Plasma turret mount (front underside) ---
-    const turretMount = MeshBuilder.CreateCylinder(
-      'phantomTurret',
-      {
-        height: 0.8,
-        diameterTop: 0.6,
-        diameterBottom: 1.0,
-        tessellation: 10,
-      },
-      this.scene
-    );
-    turretMount.material = accentMat;
-    turretMount.parent = this.rootNode;
-    turretMount.position.set(0, -1.8, -4);
-    this.hullMeshes.push(turretMount);
-
-    // Turret barrel
-    const turretBarrel = MeshBuilder.CreateCylinder(
-      'phantomTurretBarrel',
-      {
-        height: 2.5,
-        diameterTop: 0.15,
-        diameterBottom: 0.2,
-        tessellation: 8,
-      },
-      this.scene
-    );
-    turretBarrel.material = hullMat;
-    turretBarrel.parent = this.rootNode;
-    turretBarrel.position.set(0, -2.2, -5);
-    turretBarrel.rotation.x = Math.PI / 2;
-    this.hullMeshes.push(turretBarrel);
-
-    // Turret glow tip
-    const turretGlow = MeshBuilder.CreateSphere('phantomTurretGlow', { diameter: 0.3 }, this.scene);
-    turretGlow.material = this.hullGlowMat;
-    turretGlow.parent = this.rootNode;
-    turretGlow.position.set(0, -2.2, -6.3);
-    this.hullMeshes.push(turretGlow);
 
     // --- Shield bubble (invisible until hit) ---
     this.shieldMat = new StandardMaterial('phantomShield', this.scene);
@@ -330,6 +147,97 @@ export class PhantomDropship extends VehicleBase {
     this.shieldMesh.parent = this.rootNode;
     this.shieldMesh.position.y = 0;
     this.hullMeshes.push(this.shieldMesh);
+  }
+
+  // ------------------------------------------------------------------
+  // GLB model loading -- replaces procedural hull geometry
+  // ------------------------------------------------------------------
+
+  /**
+   * Load the Phantom hull from the GLB model and parent it under the
+   * vehicle's root TransformNode. Call this after construction to make
+   * the hull visible. The vehicle remains functional (shield, weapons,
+   * flight) while the model is loading; it just won't be visible yet.
+   *
+   * @returns Promise that resolves when the model is loaded and parented.
+   */
+  public async loadModel(): Promise<void> {
+    if (this.modelReady) return;
+
+    try {
+      log.info('Loading GLB model via AssetManager...');
+
+      // Load the spaceship GLB through AssetManager (caches for instancing)
+      await AssetManager.loadAssetByPath(PHANTOM_GLB_PATH, this.scene);
+
+      // Create an instance parented under our root transform node
+      const instance = AssetManager.createInstanceByPath(
+        PHANTOM_GLB_PATH,
+        `phantom_model_${this.vehicleId}`,
+        this.scene,
+        true,
+        'vehicle'
+      );
+
+      if (instance) {
+        this.glbRoot = instance;
+        this.glbRoot.parent = this.rootNode;
+        this.glbRoot.position = Vector3.Zero();
+
+        // Collect child meshes for hull disposal tracking
+        const childMeshes = instance.getChildMeshes();
+        for (const mesh of childMeshes) {
+          this.glbMeshes.push(mesh);
+          if (mesh instanceof Mesh) {
+            this.hullMeshes.push(mesh);
+          }
+        }
+
+        // Cache animated part references for animations
+        this.cacheAnimatedParts(childMeshes);
+
+        this.modelReady = true;
+        log.info(`GLB loaded via AssetManager: ${childMeshes.length} mesh instances`);
+      } else {
+        log.warn('AssetManager instance creation failed');
+      }
+    } catch (error) {
+      log.error('Failed to load GLB model:', error);
+    }
+  }
+
+  /**
+   * Cache references to animated mesh parts from the loaded GLB.
+   * These are used for landing ramp animation, engine glow effects,
+   * and turret rotation.
+   */
+  private cacheAnimatedParts(childMeshes: AbstractMesh[]): void {
+    for (const mesh of childMeshes) {
+      const name = mesh.name.toLowerCase();
+
+      // Match ramp mesh for landing animation
+      if (name.includes('ramp') || name.includes('door') || name.includes('hatch')) {
+        this.rampMesh = mesh;
+        log.info(`Cached ramp mesh: ${mesh.name}`);
+      }
+
+      // Match engine meshes for thrust glow
+      if (name.includes('engine')) {
+        if (name.includes('left') || name.includes('_l') || name.endsWith('l')) {
+          this.leftEngineMesh = mesh;
+          log.info(`Cached left engine mesh: ${mesh.name}`);
+        } else if (name.includes('right') || name.includes('_r') || name.endsWith('r')) {
+          this.rightEngineMesh = mesh;
+          log.info(`Cached right engine mesh: ${mesh.name}`);
+        }
+      }
+
+      // Match turret mesh for weapon rotation
+      if (name.includes('turret') || name.includes('gun') || name.includes('cannon')) {
+        this.turretMesh = mesh;
+        log.info(`Cached turret mesh: ${mesh.name}`);
+      }
+    }
   }
 
   // ------------------------------------------------------------------
@@ -586,10 +494,13 @@ export class PhantomDropship extends VehicleBase {
   // ------------------------------------------------------------------
 
   protected processInput(deltaTime: number): void {
-    // Throttle
-    if (this.isKeyDown('KeyW') || this.isKeyDown('ArrowUp')) {
+    // Get unified input state
+    const input = this.getVehicleInput();
+
+    // Throttle from input
+    if (input.throttle > 0) {
       this.throttle = Math.min(1, this.throttle + deltaTime * 1.5);
-    } else if (this.isKeyDown('KeyS') || this.isKeyDown('ArrowDown')) {
+    } else if (input.brake > 0) {
       this.throttle = Math.max(-0.3, this.throttle - deltaTime * 2);
     } else {
       // Throttle decay
@@ -597,40 +508,40 @@ export class PhantomDropship extends VehicleBase {
       if (Math.abs(this.throttle) < 0.01) this.throttle = 0;
     }
 
-    // Yaw
-    if (this.isKeyDown('KeyA') || this.isKeyDown('ArrowLeft')) {
+    // Yaw from steering input
+    if (input.steer < 0) {
       this.yaw = -this.stats.turnRate;
-    } else if (this.isKeyDown('KeyD') || this.isKeyDown('ArrowRight')) {
+    } else if (input.steer > 0) {
       this.yaw = this.stats.turnRate;
     } else {
       this.yaw = 0;
     }
 
-    // Strafe
+    // Strafe (Q = left, R = right since E is exit)
     if (this.isKeyDown('KeyQ')) {
       this.strafeInput = -1;
-    } else if (this.isKeyDown('KeyE') && !this.isKeyDown('KeyE')) {
-      // E is exit, handled in base. For strafe use alternative
-      this.strafeInput = 0;
+    } else if (this.isKeyDown('KeyR')) {
+      this.strafeInput = 1;
     } else {
       this.strafeInput = 0;
     }
 
-    // Vertical
-    if (this.isKeyDown('Space')) {
+    // Vertical: Space up, Ctrl/Shift down
+    if (input.handbrake) {
+      // Space = handbrake input = vertical up
       this.verticalInput = 1;
-    } else if (this.isKeyDown('ControlLeft') || this.isKeyDown('ShiftLeft')) {
+    } else if (this.isKeyDown('ControlLeft') || input.boost) {
       this.verticalInput = -1;
     } else {
       this.verticalInput = 0;
     }
 
-    // Toggle flight mode
+    // Toggle flight mode with F key
     if (this.isKeyDown('KeyF') && this.landingState === 'airborne') {
       this.flightMode = this.flightMode === 'hover' ? 'forward' : 'hover';
     }
 
-    // Takeoff / Landing
+    // Takeoff / Landing with G key
     if (this.isKeyDown('KeyG')) {
       if (this.landingState === 'grounded') {
         this.beginTakeoff();
@@ -639,11 +550,11 @@ export class PhantomDropship extends VehicleBase {
       }
     }
 
-    // Fire weapons
-    if (this.isFiring) {
+    // Fire weapons from unified input
+    if (input.fire) {
       this.fireWeapon();
     }
-    if (this.isFiringSecondary) {
+    if (input.fireSecondary) {
       this.fireSecondaryWeapon();
     }
   }
@@ -658,7 +569,7 @@ export class PhantomDropship extends VehicleBase {
     this.landingProgress = 0;
     this.targetAltitude = HOVER_HEIGHT;
     this.startEngineSound();
-    console.log('[Phantom] Takeoff initiated');
+    log.info('Takeoff initiated');
   }
 
   private beginLanding(): void {
@@ -666,7 +577,7 @@ export class PhantomDropship extends VehicleBase {
     this.landingState = 'landing';
     this.landingProgress = 0;
     this.targetAltitude = LANDING_HEIGHT;
-    console.log('[Phantom] Landing initiated');
+    log.info('Landing initiated');
   }
 
   // ------------------------------------------------------------------
@@ -713,7 +624,7 @@ export class PhantomDropship extends VehicleBase {
       this.engineOscillator.start();
       this.engineLFO.start();
     } catch {
-      console.warn('[Phantom] Could not create engine audio');
+      log.warn('Could not create engine audio');
     }
   }
 
@@ -766,7 +677,7 @@ export class PhantomDropship extends VehicleBase {
       if (this.altitude >= this.targetAltitude) {
         this.landingState = 'airborne';
         this.altitude = HOVER_HEIGHT;
-        console.log('[Phantom] Airborne');
+        log.info('Airborne');
       }
     } else if (this.landingState === 'landing') {
       this.altitude = Math.max(
@@ -781,7 +692,7 @@ export class PhantomDropship extends VehicleBase {
         this.throttle = 0;
         this.stopEngineSound();
         getAudioManager().play('drop_impact', { volume: 0.3 });
-        console.log('[Phantom] Grounded');
+        log.info('Grounded');
       }
     }
   }
@@ -856,7 +767,7 @@ export class PhantomDropship extends VehicleBase {
     }
   }
 
-  private updateEngineGlow(deltaTime: number): void {
+  private updateEngineGlow(_deltaTime: number): void {
     const time = performance.now() * 0.003;
     const intensity =
       this.landingState === 'grounded'
@@ -876,14 +787,22 @@ export class PhantomDropship extends VehicleBase {
     }
   }
 
+  // Track last damage time for shield visual
+  private lastShieldDamageTime = 0;
+
   private updateShieldVisual(_deltaTime: number): void {
     if (!this.shieldMat || !this.shieldMesh) return;
 
     const shieldRatio = this.stats.shield / this.stats.maxShield;
     // Shield becomes visible when recently hit or when regenerating
-    const recentlyHit = performance.now() - (this as any).lastDamageTime < 500;
+    const recentlyHit = performance.now() - this.lastShieldDamageTime < 500;
     const targetAlpha = recentlyHit ? 0.15 + (1 - shieldRatio) * 0.2 : 0;
     this.shieldMat.alpha += (targetAlpha - this.shieldMat.alpha) * 0.1;
+  }
+
+  public override takeDamage(amount: number, source?: Vector3): void {
+    this.lastShieldDamageTime = performance.now();
+    super.takeDamage(amount, source);
   }
 
   // ------------------------------------------------------------------
@@ -916,6 +835,20 @@ export class PhantomDropship extends VehicleBase {
 
   public override dispose(): void {
     this.stopEngineSound();
+
+    // Dispose GLB-specific resources
+    if (this.glbRoot) {
+      this.glbRoot.dispose();
+      this.glbRoot = null;
+    }
+    for (const mesh of this.glbMeshes) {
+      if (!mesh.isDisposed()) {
+        mesh.material?.dispose();
+        mesh.dispose();
+      }
+    }
+    this.glbMeshes = [];
+
     super.dispose();
   }
 }

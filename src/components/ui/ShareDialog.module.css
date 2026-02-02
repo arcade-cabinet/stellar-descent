@@ -1,0 +1,514 @@
+/* ShareDialog - Military Terminal Style Share Modal */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 12, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+  animation: fadeIn 0.3s ease forwards;
+  padding: 1rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Scan line effect */
+.scanLines {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.container {
+  position: relative;
+  width: min(95%, 480px);
+  max-height: calc(100vh - 2rem);
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98) 0%, rgba(12, 12, 14, 0.98) 100%);
+  border: 2px solid #4a5d23;
+  display: flex;
+  flex-direction: column;
+  animation: containerSlideIn 0.25s ease forwards;
+  overflow-y: auto;
+}
+
+@keyframes containerSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Corner decorations */
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cornerTL {
+  top: -2px;
+  left: -2px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+
+.cornerTR {
+  top: -2px;
+  right: -2px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+
+.cornerBL {
+  bottom: -2px;
+  left: -2px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+
+.cornerBR {
+  bottom: -2px;
+  right: -2px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
+
+/* Close button */
+.closeButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #666;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.closeButton:hover {
+  background: rgba(139, 69, 19, 0.3);
+  border-color: #8b4513;
+  color: #e8e8e8;
+}
+
+.closeButton:focus {
+  outline: 2px solid #b5a642;
+  outline-offset: 2px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-right: 2rem; /* Space for close button */
+}
+
+.shareIcon {
+  font-size: 1.5rem;
+  color: #b5a642;
+}
+
+.title {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #b5a642;
+  margin: 0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Divider */
+.divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #4a5d23, transparent);
+}
+
+.dividerText {
+  padding: 0 0.75rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6rem;
+  color: #555;
+  letter-spacing: 0.1em;
+}
+
+/* Screenshot preview */
+.previewContainer {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+  border: 1px solid #2a2a2a;
+  background: #0a0a0c;
+  overflow: hidden;
+}
+
+.previewImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.previewPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: #555;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+}
+
+.previewLoading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 12, 0.8);
+  color: #b5a642;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+}
+
+/* Stats overlay toggle */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2a2a2a;
+}
+
+.toggleLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.7rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  background: #1a1a1c;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle.active {
+  background: rgba(74, 93, 35, 0.4);
+  border-color: #4a5d23;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: #666;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.toggle.active .toggleKnob {
+  left: calc(100% - 16px);
+  background: #b5a642;
+}
+
+/* Share text area */
+.textAreaContainer {
+  margin-bottom: 1rem;
+}
+
+.textAreaLabel {
+  display: block;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6rem;
+  color: #666;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.textArea {
+  width: 100%;
+  min-height: 100px;
+  padding: 0.75rem;
+  background: rgba(10, 10, 12, 0.8);
+  border: 1px solid #3a3a3a;
+  color: #e8e8e8;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+.textArea:focus {
+  outline: none;
+  border-color: #4a5d23;
+}
+
+.textArea::placeholder {
+  color: #555;
+}
+
+.charCount {
+  text-align: right;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #555;
+  margin-top: 0.25rem;
+}
+
+.charCount.warning {
+  color: #ffa500;
+}
+
+.charCount.error {
+  color: #ff4444;
+}
+
+/* Platform buttons */
+.platformButtons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.platformButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #a0a0a0;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+}
+
+.platformButton:hover:not(:disabled) {
+  background: rgba(74, 93, 35, 0.3);
+  border-color: #4a5d23;
+  color: #e8e8e8;
+}
+
+.platformButton:focus {
+  outline: 2px solid #b5a642;
+  outline-offset: 2px;
+}
+
+.platformButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.platformIcon {
+  font-size: 1rem;
+}
+
+/* Twitter/X specific */
+.platformButton.twitter:hover:not(:disabled) {
+  background: rgba(29, 161, 242, 0.15);
+  border-color: #1da1f2;
+  color: #1da1f2;
+}
+
+/* Facebook specific */
+.platformButton.facebook:hover:not(:disabled) {
+  background: rgba(24, 119, 242, 0.15);
+  border-color: #1877f2;
+  color: #1877f2;
+}
+
+/* Native share button */
+.nativeShareButton {
+  grid-column: 1 / -1;
+}
+
+.platformButton.native:hover:not(:disabled) {
+  background: rgba(74, 93, 35, 0.4);
+  border-color: #b5a642;
+  color: #b5a642;
+}
+
+/* Action buttons row */
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.actionButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2a2a2a;
+  color: #888;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+}
+
+.actionButton:hover:not(:disabled) {
+  background: rgba(74, 93, 35, 0.2);
+  border-color: #3a4a1a;
+  color: #b5a642;
+}
+
+.actionButton:focus {
+  outline: 2px solid #b5a642;
+  outline-offset: 2px;
+}
+
+.actionButton.success {
+  background: rgba(74, 93, 35, 0.3);
+  border-color: #4a5d23;
+  color: #66ff66;
+}
+
+.actionIcon {
+  font-size: 0.9rem;
+}
+
+/* Footer status */
+.footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid #2a2a2a;
+  text-align: center;
+}
+
+.footerText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.55rem;
+  color: #444;
+  letter-spacing: 0.05em;
+}
+
+.statusMessage {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.65rem;
+  color: #66ff66;
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.statusMessage.error {
+  color: #ff4444;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .platformButtons {
+    grid-template-columns: 1fr;
+  }
+
+  .nativeShareButton {
+    grid-column: auto;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+  }
+
+  .previewImage {
+    max-height: 150px;
+  }
+
+  .textArea {
+    min-height: 80px;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    animation: none;
+  }
+
+  .container {
+    animation: none;
+  }
+
+  .statusMessage {
+    animation: none;
+  }
+
+  .toggle,
+  .toggleKnob,
+  .platformButton,
+  .actionButton {
+    transition: none;
+  }
+}

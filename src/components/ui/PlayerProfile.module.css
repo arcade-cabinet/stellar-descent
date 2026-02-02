@@ -1,0 +1,629 @@
+/* Player Profile - Profile Display and Editing */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  width: min(95%, 450px);
+  max-height: 90vh;
+  background: #0a0a0c;
+  border: 1px solid #4a5d23;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Corner decorations */
+.panel::before,
+.panel::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.panel::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #666;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+}
+
+/* Profile Header */
+.profileHeader {
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: rgba(74, 93, 35, 0.15);
+  border-bottom: 1px solid #4a5d23;
+}
+
+.avatarButton {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.avatarButton:hover .avatarChange {
+  opacity: 1;
+}
+
+.avatarLarge {
+  width: 80px;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #4a5d23;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #b5a642;
+  transition: all 0.15s ease;
+}
+
+.avatarButton:hover .avatarLarge {
+  border-color: #b5a642;
+}
+
+.avatarChange {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #b5a642;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.profileInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nameButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.nameButton:hover .editHint {
+  opacity: 1;
+}
+
+.profileName {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.editHint {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #b5a642;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.nameEdit {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nameInput {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #4a5d23;
+  color: #e8e8e8;
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0.375rem 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: #b5a642;
+}
+
+.saveButton {
+  background: rgba(74, 93, 35, 0.3);
+  border: 1px solid #4a5d23;
+  color: #b5a642;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.saveButton:hover {
+  background: rgba(74, 93, 35, 0.5);
+  border-color: #b5a642;
+}
+
+.levelBadge {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.levelLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.levelValue {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #b5a642;
+}
+
+/* XP Section */
+.xpSection {
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.xpInfo {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.xpLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.xpValue {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #b5a642;
+}
+
+.xpBar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.xpFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a5d23 0%, #6a7d43 50%, #b5a642 100%);
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.totalXp {
+  display: block;
+  text-align: right;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #4a5d23;
+  margin-top: 0.25rem;
+}
+
+/* Featured Section */
+.featuredSection {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.sectionTitle {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.75rem 0;
+}
+
+.featuredAchievement {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(74, 93, 35, 0.15);
+  border: 1px solid #4a5d23;
+}
+
+.achievementIcon {
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #4a5d23;
+}
+
+.achievementInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.achievementName {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b5a642;
+  text-transform: uppercase;
+}
+
+.achievementDesc {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #888;
+  line-height: 1.4;
+}
+
+.noFeatured {
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed #3a3a3a;
+  text-align: center;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+/* Quick Stats */
+.quickStats {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.statItem {
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+}
+
+.statItem .statValue {
+  display: block;
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #e8e8e8;
+}
+
+.statItem .statLabel {
+  display: block;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.125rem;
+}
+
+.favoriteWeapon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.favoriteLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.favoriteValue {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #b5a642;
+}
+
+/* Footer */
+.footer {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.joinDate {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #4a5d23;
+}
+
+.closeButton {
+  padding: 0.75rem 2rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #a0a0a0;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.closeButton:hover {
+  background: rgba(74, 93, 35, 0.2);
+  border-color: #4a5d23;
+  color: #e8e8e8;
+}
+
+/* Avatar Modal */
+.avatarModal {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.avatarGrid {
+  background: #0a0a0c;
+  border: 1px solid #4a5d23;
+  padding: 1.5rem;
+}
+
+.avatarTitle {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+.avatarOptions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.avatarOption {
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.avatarOption:hover {
+  border-color: #4a5d23;
+  background: rgba(74, 93, 35, 0.15);
+}
+
+.avatarOption.selected {
+  border-color: #b5a642;
+  background: rgba(74, 93, 35, 0.25);
+}
+
+.avatarIcon {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #b5a642;
+}
+
+.avatarLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.4375rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Compact Profile (for inline menu display) */
+.compactProfile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(74, 93, 35, 0.1);
+  border: 1px solid #4a5d23;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.compactProfile:hover {
+  background: rgba(74, 93, 35, 0.2);
+  border-color: #6a7d33;
+}
+
+.compactAvatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #4a5d23;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #b5a642;
+  flex-shrink: 0;
+}
+
+.compactInfo {
+  flex: 1;
+}
+
+.compactName {
+  font-family: "Rajdhani", Impact, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #e8e8e8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.compactLevel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #b5a642;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.compactStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #666;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .panel {
+    max-height: 95vh;
+  }
+
+  .profileHeader {
+    padding: 1.25rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profileInfo {
+    align-items: center;
+  }
+
+  .avatarLarge {
+    width: 70px;
+    height: 70px;
+  }
+
+  .profileName {
+    font-size: 1.25rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .closeButton {
+    width: 100%;
+  }
+
+  .avatarOptions {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .avatarOption {
+    width: 50px;
+    height: 50px;
+  }
+}

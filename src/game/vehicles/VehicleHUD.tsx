@@ -14,7 +14,7 @@
  * Uses CSS Modules with the same military sci-fi aesthetic as HUD.module.css.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PhantomDropship } from './PhantomDropship';
 import type { VehicleBase } from './VehicleBase';
 import styles from './VehicleHUD.module.css';

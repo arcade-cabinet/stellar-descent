@@ -1,0 +1,307 @@
+/* Jetpack Gauge Styles */
+
+.container {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: max(180px, calc(env(safe-area-inset-left, 20px) + 160px));
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.375rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 60px;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.container.cooldown {
+  border-color: #ff4444;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.3);
+}
+
+.container.boosting {
+  border-color: #ffbf00;
+  box-shadow: 0 0 12px rgba(255, 191, 0, 0.5);
+  animation: boostPulse 0.3s ease-in-out infinite;
+}
+
+@keyframes boostPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(255, 191, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 191, 0, 0.7);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.label {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #a0a0a0;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.key {
+  font-family: "Courier New", monospace;
+  font-size: 0.4375rem;
+  color: #606060;
+  background: rgba(60, 60, 60, 0.6);
+  padding: 0.0625rem 0.1875rem;
+  border-radius: 2px;
+  border: 1px solid #505050;
+}
+
+.gaugeContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.375rem;
+}
+
+.gauge {
+  position: relative;
+  width: 16px;
+  height: 48px;
+  background: rgba(40, 40, 40, 0.9);
+  border: 1px solid #505050;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fuelFill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #4caf50;
+  transition: height 0.1s ease;
+}
+
+.fuelFill.fuelActive {
+  animation: fuelPulse 0.15s ease-in-out infinite;
+}
+
+.fuelFill.fuelLow {
+  animation: fuelWarning 0.5s ease-in-out infinite;
+}
+
+@keyframes fuelPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes fuelWarning {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.cooldownOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 68, 68, 0.3) 2px,
+    rgba(255, 68, 68, 0.3) 4px
+  );
+  transition: height 0.1s linear;
+}
+
+.segments {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  pointer-events: none;
+}
+
+.segment {
+  width: 100%;
+  height: 1px;
+  background: rgba(80, 80, 80, 0.8);
+}
+
+.thrusterIcon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.thrusterBase {
+  width: 12px;
+  height: 8px;
+  background: #404040;
+  border: 1px solid #606060;
+  border-radius: 2px 2px 0 0;
+  position: relative;
+}
+
+.thrusterBase::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 4px;
+  background: #505050;
+  border-radius: 0 0 2px 2px;
+}
+
+.thrusterActive .thrusterBase {
+  background: #606060;
+  border-color: #ffbf00;
+}
+
+.thrusterFlame {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: -2px;
+}
+
+.flame1,
+.flame2 {
+  width: 3px;
+  height: 12px;
+  background: linear-gradient(to bottom, #ffbf00, #ff6b35, transparent);
+  border-radius: 0 0 50% 50%;
+  animation: flameFlicker 0.1s ease-in-out infinite alternate;
+}
+
+.flame2 {
+  animation-delay: 0.05s;
+  height: 10px;
+}
+
+@keyframes flameFlicker {
+  0% {
+    opacity: 0.8;
+    transform: scaleY(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1.1);
+  }
+}
+
+.statusContainer {
+  margin-top: 0.125rem;
+}
+
+.status {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  transition: color 0.2s ease;
+}
+
+.statusActive {
+  animation: statusBlink 0.3s ease-in-out infinite;
+}
+
+.statusCooldown {
+  animation: statusBlink 0.5s ease-in-out infinite;
+}
+
+@keyframes statusBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Touch controls adjustment */
+@media (pointer: coarse) {
+  .container {
+    bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .container {
+    left: max(140px, calc(env(safe-area-inset-left, 20px) + 120px));
+    min-width: 50px;
+    padding: 0.25rem 0.375rem;
+  }
+
+  .label {
+    display: none;
+  }
+
+  .key {
+    display: none;
+  }
+
+  .gauge {
+    height: 40px;
+    width: 12px;
+  }
+
+  .status {
+    font-size: 0.4375rem;
+  }
+}
+
+/* Landscape phone */
+@media (max-height: 450px) {
+  .container {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .container.boosting {
+    animation: none;
+  }
+
+  .fuelFill.fuelActive,
+  .fuelFill.fuelLow {
+    animation: none;
+  }
+
+  .flame1,
+  .flame2 {
+    animation: none;
+  }
+
+  .statusActive,
+  .statusCooldown {
+    animation: none;
+  }
+}

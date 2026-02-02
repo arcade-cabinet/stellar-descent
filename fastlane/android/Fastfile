@@ -1,0 +1,147 @@
+# Stellar Descent Android Fastfile
+# https://docs.fastlane.tools
+
+default_platform(:android)
+
+platform :android do
+  # ============================================================================
+  # Configuration
+  # ============================================================================
+
+  PACKAGE_NAME = "com.jbcom.stellardescent"
+
+  before_all do
+    # Ensure we're in the right directory
+  end
+
+  # ============================================================================
+  # Build Lanes
+  # ============================================================================
+
+  desc "Build debug APK"
+  lane :build_debug do
+    gradle(
+      task: "assemble",
+      build_type: "Debug"
+    )
+  end
+
+  desc "Build release APK"
+  lane :build_release do
+    gradle(
+      task: "assemble",
+      build_type: "Release"
+    )
+  end
+
+  desc "Build release AAB (App Bundle)"
+  lane :build_bundle do
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+  end
+
+  # ============================================================================
+  # Distribution Lanes
+  # ============================================================================
+
+  desc "Deploy to internal testing track"
+  lane :internal do
+    build_bundle
+
+    upload_to_play_store(
+      track: "internal",
+      release_status: "completed",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    )
+  end
+
+  desc "Deploy to alpha (closed testing) track"
+  lane :alpha do
+    build_bundle
+
+    upload_to_play_store(
+      track: "alpha",
+      release_status: "completed",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    )
+  end
+
+  desc "Deploy to beta (open testing) track"
+  lane :beta do
+    build_bundle
+
+    upload_to_play_store(
+      track: "beta",
+      release_status: "completed",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    )
+  end
+
+  desc "Deploy to production"
+  lane :production do
+    build_bundle
+
+    upload_to_play_store(
+      track: "production",
+      release_status: "completed",
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    )
+  end
+
+  desc "Promote from internal to beta"
+  lane :promote_to_beta do
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "beta"
+    )
+  end
+
+  desc "Promote from beta to production"
+  lane :promote_to_production do
+    upload_to_play_store(
+      track: "beta",
+      track_promote_to: "production",
+      rollout: "0.1" # 10% rollout
+    )
+  end
+
+  # ============================================================================
+  # Utility Lanes
+  # ============================================================================
+
+  desc "Increment version code"
+  lane :increment_version do
+    # Read current version code
+    version_code = google_play_track_version_codes(
+      track: "internal"
+    ).max || 0
+
+    # Increment
+    new_version_code = version_code + 1
+
+    # Update build.gradle
+    android_set_version_code(
+      version_code: new_version_code,
+      gradle_file: "app/build.gradle"
+    )
+
+    UI.success("Version code updated to #{new_version_code}")
+  end
+
+  desc "Take screenshots for Play Store"
+  lane :screenshots do
+    capture_android_screenshots
+    # Optionally upload to Play Store
+    # upload_to_play_store(skip_upload_apk: true, skip_upload_aab: true)
+  end
+
+  # ============================================================================
+  # Error Handling
+  # ============================================================================
+
+  error do |lane, exception|
+    UI.error("Lane #{lane} failed with: #{exception.message}")
+  end
+end

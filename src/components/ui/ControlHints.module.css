@@ -396,7 +396,7 @@
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   .controlHints * {
-    animation: none !important;
-    transition: opacity 0.2s ease !important;
+    animation: none;
+    transition: opacity 0.2s ease;
   }
 }

@@ -15,12 +15,27 @@ export interface TouchInput {
   aimAssist?: boolean;
   /** Aim assist strength (0-1) */
   aimAssistStrength?: number;
+  /** Jetpack boost active (hold jump in air) */
+  isJetpacking?: boolean;
+  /** Melee attack triggered */
+  isMelee?: boolean;
+  /** Grenade throw triggered */
+  isGrenade?: boolean;
+  /** Grenade aiming mode (long press to aim arc) */
+  isAimingGrenade?: boolean;
+  /** Slide triggered (double-tap crouch or swipe down while moving) */
+  isSliding?: boolean;
 }
+
+/**
+ * Portrait types for comms display character images
+ */
+export type PortraitType = 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
 
 export interface CommsMessage {
   sender: string;
   callsign: string;
-  portrait: 'commander' | 'ai' | 'marcus' | 'armory' | 'player';
+  portrait: PortraitType;
   text: string;
 }
 

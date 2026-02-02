@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TUTORIAL_STEPS, type TutorialStep } from './tutorialSteps';
+import { TUTORIAL_STEPS } from './tutorialSteps';
 
 describe('Tutorial Steps Configuration', () => {
   describe('step structure', () => {

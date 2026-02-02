@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { getLogger } from '../../game/core/Logger';
 import styles from './InstallPrompt.module.css';
 
 /**
@@ -14,6 +15,8 @@ interface BeforeInstallPromptEvent extends Event {
   }>;
   prompt(): Promise<void>;
 }
+
+const log = getLogger('InstallPrompt');
 
 // Storage keys for install prompt state
 const STORAGE_KEYS = {
@@ -177,7 +180,7 @@ export function InstallPrompt({ triggerShow = false, onClose }: InstallPromptPro
         onClose?.();
       }, 2000);
     } catch (error) {
-      console.error('Error during PWA install:', error);
+      log.error('Error during PWA install:', error);
       setShowPrompt(false);
       onClose?.();
     }

@@ -1,0 +1,76 @@
+{
+  "name": "stellar-descent-military-olive",
+  "version": "1.0.0",
+  "recommendedAssetSizePx": {
+    "width": 512,
+    "height": 192
+  },
+  "slicePx": {
+    "left": 96,
+    "right": 96,
+    "top": 64,
+    "bottom": 64
+  },
+  "states": {
+    "normal": {
+      "png": "assets/ui/buttons/btn_military_olive_normal.png",
+      "capInsetsPx": {
+        "left": 96,
+        "right": 96,
+        "top": 64,
+        "bottom": 64
+      },
+      "css": {
+        "borderWidthPx": 32,
+        "borderImageSlice": "64 96 64 96 fill",
+        "borderImageWidth": "32px",
+        "borderImageRepeat": "stretch"
+      }
+    },
+    "hover": {
+      "png": "assets/ui/buttons/btn_military_olive_hover.png",
+      "capInsetsPx": {
+        "left": 96,
+        "right": 96,
+        "top": 64,
+        "bottom": 64
+      },
+      "css": {
+        "borderWidthPx": 32,
+        "borderImageSlice": "64 96 64 96 fill",
+        "borderImageWidth": "32px",
+        "borderImageRepeat": "stretch"
+      }
+    },
+    "pressed": {
+      "png": "assets/ui/buttons/btn_military_olive_pressed.png",
+      "capInsetsPx": {
+        "left": 96,
+        "right": 96,
+        "top": 64,
+        "bottom": 64
+      },
+      "css": {
+        "borderWidthPx": 32,
+        "borderImageSlice": "64 96 64 96 fill",
+        "borderImageWidth": "32px",
+        "borderImageRepeat": "stretch"
+      }
+    },
+    "disabled": {
+      "png": "assets/ui/buttons/btn_military_olive_disabled.png",
+      "capInsetsPx": {
+        "left": 96,
+        "right": 96,
+        "top": 64,
+        "bottom": 64
+      },
+      "css": {
+        "borderWidthPx": 32,
+        "borderImageSlice": "64 96 64 96 fill",
+        "borderImageWidth": "32px",
+        "borderImageRepeat": "stretch"
+      }
+    }
+  }
+}

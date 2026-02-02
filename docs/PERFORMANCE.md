@@ -147,6 +147,29 @@ Default budgets per quality level:
 | Low | 1000 | Unlimited | 30 |
 | Potato | 500 | Unlimited | 15 |
 
+## Vite Dev Server Optimizations
+
+### Shader Guard Plugin
+`babylonShaderGuardPlugin()` in `vite.config.ts` intercepts `.fragment`/`.vertex`/`.fx` HTTP requests and returns 404 immediately. Without this, Vite's SPA fallback serves `index.html` for every unregistered shader URL, and BabylonJS attempts to compile HTML as GLSL -- producing dozens of "SHADER ERROR: '<' : syntax error" messages that spam the console and waste GPU cycles.
+
+### COOP/COEP Headers (Dev vs Production)
+`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers are only enabled in production mode. These headers are required for `SharedArrayBuffer` (used by sql.js WASM in production), but the game does NOT use Havok physics WASM, so they aren't needed in dev. Disabling them in dev mode:
+- Allows Chrome extension content scripts to run (for browser testing tools)
+- Reduces cross-origin fetch failures during development
+- Does not affect game functionality
+
+### WASM MIME Plugin
+`wasmMimePlugin()` ensures `.wasm` files are served with `Content-Type: application/wasm`. Required for sql.js/jeep-sqlite to load properly.
+
+## Static Shader Imports
+
+BabylonJS with Vite+pnpm has a module duplication issue: dynamic shader imports can resolve to a different `ShaderStore` instance than statically bundled code. `BaseLevel.ts` includes explicit static imports for all critical shader modules:
+- PBR material + vertex/fragment shaders
+- StandardMaterial shaders
+- GlowLayer generation + merge shaders
+
+This ensures all shaders register in the same module instance, preventing silent shader compilation failures.
+
 ## Future Improvements
 
 1. **Texture Streaming**: Load lower-resolution textures first, upgrade as bandwidth allows

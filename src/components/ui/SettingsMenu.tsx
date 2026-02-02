@@ -1,5 +1,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { getAudioManager } from '../../game/core/AudioManager';
+import { BUILD_FLAGS } from '../../game/core/BuildConfig';
 import {
   ACTION_LABELS,
   type BindableAction,
@@ -7,7 +9,7 @@ import {
   getKeyDisplayName,
   getPrimaryKey,
   useKeybindings,
-} from '../../game/context/KeybindingsContext';
+} from '../../game/stores/useKeybindingsStore';
 import {
   COLOR_BLIND_MODE_DESCRIPTIONS,
   COLOR_BLIND_MODE_LABELS,
@@ -22,9 +24,9 @@ import {
   SHADOW_QUALITY_OPTIONS,
   type ShadowQuality,
   useSettings,
-} from '../../game/context/SettingsContext';
-import { getAudioManager } from '../../game/core/AudioManager';
+} from '../../game/stores/useSettingsStore';
 import { DifficultySelector } from './DifficultySelector';
+import { KeybindingsSettings } from './KeybindingsSettings';
 import styles from './SettingsMenu.module.css';
 import { SubtitleSettings } from './SubtitleSettings';
 
@@ -66,11 +68,28 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
   const { keybindings, setKeybinding, resetToDefaults } = useKeybindings();
   const { settings, updateSetting, resetCategory, colorPalette } = useSettings();
 
+  // Detect if device has fine pointer (mouse) - indicates desktop/laptop
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(pointer: fine)').matches;
+  });
+
+  // Listen for pointer capability changes (e.g., connecting a mouse to tablet)
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(pointer: fine)');
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   // Current active tab
   const [activeTab, setActiveTab] = useState<SettingsTab>('gameplay');
 
   // Track which action is currently being rebound
   const [listeningFor, setListeningFor] = useState<BindableAction | null>(null);
+
+  // Track if the dedicated keybindings panel is open
+  const [showAdvancedKeybindings, setShowAdvancedKeybindings] = useState(false);
 
   /**
    * Convert keybindings to single-key format for the settings UI.
@@ -298,13 +317,15 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
   ) => {
     const { min = 0, max = 1, step = 0.05, showPercent = true } = options;
     const displayValue = showPercent ? `${Math.round(value * 100)}%` : value.toFixed(1);
+    const sliderId = `slider-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
       <div className={styles.settingRow}>
-        <span className={styles.settingLabel}>
+        <label htmlFor={sliderId} className={styles.settingLabel}>
           {label} ({displayValue})
-        </span>
+        </label>
         <input
+          id={sliderId}
           type="range"
           min={min}
           max={max}
@@ -312,7 +333,10 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
           value={value}
           onChange={onChange}
           className={styles.slider}
-          aria-label={label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-valuetext={displayValue}
         />
       </div>
     );
@@ -379,23 +403,35 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
     value: boolean,
     onChange: () => void,
     description?: string
-  ) => (
-    <div className={styles.settingRow}>
-      <div className={styles.settingLabelGroup}>
-        <span className={styles.settingLabel}>{label}</span>
-        {description && <span className={styles.settingDescription}>{description}</span>}
+  ) => {
+    const toggleId = `toggle-${label.toLowerCase().replace(/\s+/g, '-')}`;
+    const descId = description ? `${toggleId}-desc` : undefined;
+
+    return (
+      <div className={styles.settingRow}>
+        <div className={styles.settingLabelGroup}>
+          <span id={toggleId} className={styles.settingLabel}>
+            {label}
+          </span>
+          {description && (
+            <span id={descId} className={styles.settingDescription}>
+              {description}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          className={`${styles.toggleButton} ${value ? styles.toggleOn : ''}`}
+          onClick={onChange}
+          aria-pressed={value}
+          aria-labelledby={toggleId}
+          aria-describedby={descId}
+        >
+          {value ? 'ON' : 'OFF'}
+        </button>
       </div>
-      <button
-        type="button"
-        className={`${styles.toggleButton} ${value ? styles.toggleOn : ''}`}
-        onClick={onChange}
-        aria-pressed={value}
-        aria-label={`${label}: ${value ? 'On' : 'Off'}`}
-      >
-        {value ? 'ON' : 'OFF'}
-      </button>
-    </div>
-  );
+    );
+  };
 
   const renderGameplayTab = () => (
     <div className={styles.tabContent}>
@@ -407,6 +443,30 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
           Difficulty affects enemy health, damage, and aggression. Changes take effect immediately.
         </p>
       </div>
+
+      {/* Combat Feedback Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Combat Feedback</h3>
+        {renderToggleRow(
+          'Hitmarkers',
+          settings.showHitmarkers,
+          handleToggle('showHitmarkers'),
+          'Show visual confirmation when damaging enemies'
+        )}
+      </div>
+
+      {/* AI Player Section - only visible when build flag is enabled */}
+      {BUILD_FLAGS.ENABLE_AI_PLAYER && (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Developer Options</h3>
+          {renderToggleRow(
+            'AI Player',
+            settings.aiPlayerEnabled,
+            handleToggle('aiPlayerEnabled'),
+            'Enable AI-controlled player for automated testing and demos'
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -480,6 +540,30 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
 
   const renderControlsTab = () => (
     <div className={styles.tabContent}>
+      {/* Advanced Keybindings Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Key Bindings</h3>
+        <div className={styles.advancedKeybindingsRow}>
+          <div className={styles.keybindingsDescription}>
+            <span className={styles.keybindingsLabel}>Advanced Key Binding Editor</span>
+            <span className={styles.keybindingsHint}>
+              Full rebinding with conflict detection and alternative keys
+            </span>
+          </div>
+          <button
+            type="button"
+            className={styles.openAdvancedButton}
+            onClick={() => {
+              playClickSound();
+              setShowAdvancedKeybindings(true);
+            }}
+            aria-label="Open advanced key bindings editor"
+          >
+            OPEN EDITOR
+          </button>
+        </div>
+      </div>
+
       {/* Sensitivity Settings */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Sensitivity</h3>
@@ -976,8 +1060,9 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
 
           {/* Tab Navigation */}
           <div className={styles.tabNav} role="tablist" aria-label="Settings categories">
-            {(['gameplay', 'audio', 'controls', 'graphics', 'accessibility'] as SettingsTab[]).map(
-              (tab) => (
+            {(['gameplay', 'audio', 'controls', 'graphics', 'accessibility'] as SettingsTab[])
+              .filter((tab) => tab !== 'controls' || isDesktop)
+              .map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -989,8 +1074,7 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
-              )
-            )}
+              ))}
           </div>
 
           {/* Content */}
@@ -1034,6 +1118,15 @@ export function SettingsMenu({ isOpen, onClose }: SettingsMenuProps) {
           </div>
         </div>
       )}
+
+      {/* Advanced Keybindings Panel */}
+      <KeybindingsSettings
+        isOpen={showAdvancedKeybindings}
+        onClose={() => {
+          playClickSound();
+          setShowAdvancedKeybindings(false);
+        }}
+      />
     </>
   );
 }

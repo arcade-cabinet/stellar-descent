@@ -10,6 +10,7 @@
 
 import { registerSW } from 'virtual:pwa-register';
 import { useCallback, useEffect, useState } from 'react';
+import { getLogger } from '../game/core/Logger';
 
 export interface PWAState {
   /** Whether the app is ready to work offline */
@@ -33,6 +34,8 @@ export interface PWAActions {
   dismissUpdate: () => void;
 }
 
+const log = getLogger('PWA');
+
 export function usePWA(): PWAState & PWAActions {
   const [isOfflineReady, setIsOfflineReady] = useState(false);
   const [needsUpdate, setNeedsUpdate] = useState(false);
@@ -54,7 +57,7 @@ export function usePWA(): PWAState & PWAActions {
       const updateServiceWorker = registerSW({
         immediate: true,
         onRegistered(registration) {
-          console.log('[PWA] Service worker registered');
+          log.info('Service worker registered');
           setIsRegistered(true);
 
           // Check for updates periodically (every hour)
@@ -68,22 +71,22 @@ export function usePWA(): PWAState & PWAActions {
           }
         },
         onRegisterError(error) {
-          console.error('[PWA] Service worker registration error:', error);
+          log.error('Service worker registration error:', error);
           setRegistrationError(error instanceof Error ? error : new Error(String(error)));
         },
         onOfflineReady() {
-          console.log('[PWA] App is ready for offline use');
+          log.info('App is ready for offline use');
           setIsOfflineReady(true);
         },
         onNeedRefresh() {
-          console.log('[PWA] New content available, please refresh');
+          log.info('New content available');
           setNeedsUpdate(true);
         },
       });
 
       setUpdateSW(() => updateServiceWorker);
     } catch (error) {
-      console.error('[PWA] Failed to register service worker:', error);
+      log.error('Failed to register service worker:', error);
       setRegistrationError(error instanceof Error ? error : new Error(String(error)));
     }
 

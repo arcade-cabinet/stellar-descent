@@ -6,8 +6,11 @@
  * Styled to match the game's military/tactical aesthetic.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import styles from './PWAUpdatePrompt.module.css';
+
+/** Auto-dismiss delay for offline ready notification (ms) */
+const OFFLINE_READY_AUTO_DISMISS_MS = 4000;
 
 interface PWAUpdatePromptProps {
   /** Whether a new version is available */
@@ -40,6 +43,16 @@ export function PWAUpdatePrompt({
       onDismissOfflineReady();
     }
   }, [needsUpdate, onDismissUpdate, onDismissOfflineReady]);
+
+  // Auto-dismiss the "offline ready" notification after a delay
+  useEffect(() => {
+    if (isOfflineReady && !needsUpdate) {
+      const timer = setTimeout(() => {
+        onDismissOfflineReady();
+      }, OFFLINE_READY_AUTO_DISMISS_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [isOfflineReady, needsUpdate, onDismissOfflineReady]);
 
   // Don't show if neither condition is true
   if (!needsUpdate && !isOfflineReady) {

@@ -17,7 +17,11 @@ import type { Scene } from '@babylonjs/core/scene';
 import { AssetManager } from '../core/AssetManager';
 import { createEntity, type Entity, removeEntity } from '../core/ecs';
 import { LODManager } from '../core/LODManager';
+import { getLogger } from '../core/Logger';
 import { worldDb } from '../db/worldDatabase';
+
+const log = getLogger('ECSChunkManager');
+
 import {
   ALL_ASSEMBLAGES,
   type AssemblageDefinition,
@@ -166,9 +170,7 @@ export class ChunkManager {
     }
 
     if (loadPromises.length > 0) {
-      console.log(
-        `[ECSChunkManager] Preloading ${loadPromises.length} model(s) for environment: ${this.environment}`
-      );
+      log.info(`Preloading ${loadPromises.length} model(s) for environment: ${this.environment}`);
       await Promise.all(loadPromises);
     }
 
@@ -343,7 +345,7 @@ export class ChunkManager {
       const loaded = await this.spawnChunk(state);
       this.loadedChunks.set(key, loaded);
     } catch (error) {
-      console.error(`[ECSChunkManager] Failed to load chunk ${key}:`, error);
+      log.error(`Failed to load chunk ${key}:`, error);
     } finally {
       this.loadingChunks.delete(key);
     }
@@ -388,7 +390,7 @@ export class ChunkManager {
 
     const available = getAssemblagesByEnvironment(this.environment);
     if (available.length === 0) {
-      console.warn(`[ECSChunkManager] No assemblages for environment: ${this.environment}`);
+      log.warn(`No assemblages for environment: ${this.environment}`);
       return state;
     }
 
@@ -512,7 +514,7 @@ export class ChunkManager {
     for (const placed of state.assemblages) {
       const def = ALL_ASSEMBLAGES[placed.type];
       if (!def) {
-        console.warn(`[ECSChunkManager] Unknown assemblage type: ${placed.type}`);
+        log.warn(`Unknown assemblage type: ${placed.type}`);
         continue;
       }
 
@@ -671,10 +673,7 @@ export class ChunkManager {
       binding.loadState = 'loaded';
       meshNodes.push(meshNode);
     } catch (error) {
-      console.warn(
-        `[ECSChunkManager] Failed to load mesh for entity ${entity.id} (${modelPath}):`,
-        error
-      );
+      log.warn(`Failed to load mesh for entity ${entity.id} (${modelPath}):`, error);
       binding.loadState = 'failed';
     }
   }
@@ -775,25 +774,17 @@ export class ChunkManager {
   }
 
   private async loadChunkState(x: number, z: number): Promise<ChunkState | null> {
-    try {
-      const key = `chunk_${this.environment}_${x}_${z}`;
-      const data = worldDb.getChunkData(key);
-      if (data) {
-        return JSON.parse(data) as ChunkState;
-      }
-    } catch (error) {
-      console.warn(`[ECSChunkManager] Failed to load chunk state: ${error}`);
+    const key = `chunk_${this.environment}_${x}_${z}`;
+    const data = await worldDb.getChunkData(key);
+    if (data) {
+      return JSON.parse(data) as ChunkState;
     }
     return null;
   }
 
   private async saveChunkState(state: ChunkState): Promise<void> {
-    try {
-      const key = `chunk_${this.environment}_${state.chunkX}_${state.chunkZ}`;
-      worldDb.setChunkData(key, JSON.stringify(state));
-    } catch (error) {
-      console.warn(`[ECSChunkManager] Failed to save chunk state: ${error}`);
-    }
+    const key = `chunk_${this.environment}_${state.chunkX}_${state.chunkZ}`;
+    await worldDb.setChunkData(key, JSON.stringify(state));
   }
 
   // -----------------------------------------------------------------------

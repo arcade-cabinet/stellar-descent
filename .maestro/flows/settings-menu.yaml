@@ -1,51 +1,41 @@
 # Settings Menu Flow - Tests settings accessibility
-# Run: maestro test .maestro/flows/settings-menu.yaml
+# Cross-platform: Web, Android, iOS
 
-appId: com.jbcom.stellardescent
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - menu
+  - settings
+name: "Settings Menu Navigation"
 
 ---
 - launchApp:
     clearState: true
 
-- assertVisible:
-    text: "SETTINGS"
-    timeout: 10000
+- extendedWaitUntil:
+    visible: "SETTINGS"
+    timeout: 30000
 
 - tapOn:
     text: "SETTINGS"
 
-# Verify settings categories
-- assertVisible:
-    text: "Audio"
-    optional: true
+# Verify settings modal opens
+- extendedWaitUntil:
+    visible: "SYSTEM PREFERENCES"
     timeout: 5000
 
 - assertVisible:
-    text: "Graphics"
-    optional: true
-
-- assertVisible:
-    text: "Controls"
-    optional: true
-
-- assertVisible:
-    text: "Accessibility"
+    text: "Audio"
     optional: true
 
 - takeScreenshot: "settings_menu"
 
-# Test audio slider if present
+# Close settings
 - tapOn:
-    text: "Audio"
-    optional: true
+    text: "CLOSE"
 
-- takeScreenshot: "audio_settings"
+- extendedWaitUntil:
+    notVisible: "SYSTEM PREFERENCES"
+    timeout: 5000
 
-# Go back
-- tapOn:
-    text: "Back"
-    optional: true
-
-- tapOn:
-    text: "BACK"
-    optional: true
+- takeScreenshot: "back_to_menu"

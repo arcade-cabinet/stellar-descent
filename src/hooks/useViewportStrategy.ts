@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ScreenInfo } from '../game/types';
-import {
-  getScreenInfo,
-  getViewportConfig,
-  type ViewportConfig,
-  type ViewportStrategy,
-} from '../game/utils/responsive';
+import { getScreenInfo, getViewportConfig, type ViewportConfig } from '../game/utils/responsive';
 
 export interface ViewportState extends ViewportConfig {
   screenInfo: ScreenInfo;

@@ -179,12 +179,18 @@ export function removeEntity(entity: Entity): void {
 
 /**
  * Gets entities within a certain radius of a point.
- * Note: This uses a 2D distance check (X/Z plane) ignoring the Y axis, ideal for gameplay logic on terrain.
+ * Uses full 3D distance check for accurate spatial queries.
+ *
+ * @param center - Center point of the sphere query
+ * @param radius - Radius of the query sphere
+ * @param filter - Optional filter function to include/exclude entities
+ * @param use2D - If true, uses 2D distance (X/Z plane only), otherwise uses 3D distance
  */
 export function getEntitiesInRadius(
   center: Vector3,
   radius: number,
-  filter?: (entity: Entity) => boolean
+  filter?: (entity: Entity) => boolean,
+  use2D: boolean = false
 ): Entity[] {
   const results: Entity[] = [];
   const radiusSq = radius * radius;
@@ -194,7 +200,14 @@ export function getEntitiesInRadius(
 
     const dx = entity.transform.position.x - center.x;
     const dz = entity.transform.position.z - center.z;
-    const distSq = dx * dx + dz * dz;
+
+    let distSq: number;
+    if (use2D) {
+      distSq = dx * dx + dz * dz;
+    } else {
+      const dy = entity.transform.position.y - center.y;
+      distSq = dx * dx + dy * dy + dz * dz;
+    }
 
     if (distSq <= radiusSq) {
       if (!filter || filter(entity)) {

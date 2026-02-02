@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import styles from './Compass.module.css';
 
 interface CompassProps {

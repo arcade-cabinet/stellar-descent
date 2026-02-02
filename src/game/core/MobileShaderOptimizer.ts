@@ -17,7 +17,10 @@ import { ShaderMaterial } from '@babylonjs/core/Materials/shaderMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from './Logger';
 import { getPerformanceManager } from './PerformanceManager';
+
+const log = getLogger('MobileShaderOptimizer');
 
 // ============================================================================
 // SIMPLIFIED MOBILE SHADERS
@@ -148,13 +151,13 @@ class MobileShaderOptimizer {
     if (this.shadersRegistered) return;
 
     // Register mobile-optimized shaders
-    Effect.ShadersStore['mobileVertexShader'] = MOBILE_VERTEX_SHADER;
-    Effect.ShadersStore['mobileFragmentShader'] = MOBILE_FRAGMENT_SHADER;
-    Effect.ShadersStore['unlitVertexShader'] = UNLIT_VERTEX_SHADER;
-    Effect.ShadersStore['unlitFragmentShader'] = UNLIT_FRAGMENT_SHADER;
+    Effect.ShadersStore.mobileVertexShader = MOBILE_VERTEX_SHADER;
+    Effect.ShadersStore.mobileFragmentShader = MOBILE_FRAGMENT_SHADER;
+    Effect.ShadersStore.unlitVertexShader = UNLIT_VERTEX_SHADER;
+    Effect.ShadersStore.unlitFragmentShader = UNLIT_FRAGMENT_SHADER;
 
     this.shadersRegistered = true;
-    console.log('[MobileShaderOptimizer] Shaders registered');
+    log.info('Shaders registered');
   }
 
   /**
@@ -357,7 +360,7 @@ class MobileShaderOptimizer {
       }
     }
 
-    console.log(`[MobileShaderOptimizer] Optimized ${optimizedCount} materials`);
+    log.info(`Optimized ${optimizedCount} materials`);
   }
 }
 

@@ -19,6 +19,7 @@ export {
 // Legacy procedural environment
 export {
   CURVED_CORRIDOR_CONFIGS,
+  clearModelCache,
   createStationEnvironment,
   ROOM_POSITIONS,
 } from './environment';

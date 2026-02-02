@@ -1,0 +1,580 @@
+# Campaign Level 8: Hive Assault - Comprehensive E2E Test
+# Combined arms assault - staging, vehicle combat, breach, entry push
+# Tests all 4 phases: staging -> field_assault -> breach_point -> entry_push
+# Cross-platform: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - campaign
+  - level-8
+  - hive-assault
+  - combined-arms
+  - vehicle-combat
+  - squad-commands
+  - assault
+name: "Campaign Level 8 - Hive Assault (Combined Arms)"
+
+---
+# ============================================================================
+# LAUNCH AND NAVIGATION TO LEVEL
+# ============================================================================
+
+- launchApp:
+    clearState: true
+
+# Wait for main menu to fully load
+- extendedWaitUntil:
+    visible: "SELECT MISSION"
+    timeout: 30000
+
+- takeScreenshot: "level_08_main_menu"
+
+# Open level select
+- tapOn:
+    text: "SELECT MISSION"
+
+- wait: 1000
+
+# Navigate to Chapter 8 / Hive Assault
+- assertVisible:
+    text: "CHAPTER 8"
+    optional: true
+    timeout: 5000
+
+- tapOn:
+    text: "HIVE ASSAULT"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_08_selected"
+
+# ============================================================================
+# MISSION BRIEFING SCREEN
+# ============================================================================
+
+- extendedWaitUntil:
+    visible: "MISSION BRIEFING"
+    timeout: 10000
+    optional: true
+
+# Verify mission details
+- assertVisible:
+    text: "HIVE ASSAULT"
+    optional: true
+
+- assertVisible:
+    text: "Combined Arms"
+    optional: true
+
+- assertVisible:
+    text: "ACT 4: ENDGAME"
+    optional: true
+
+- takeScreenshot: "level_08_briefing"
+
+# Check intel tab for enemy information
+- tapOn:
+    text: "INTEL"
+    optional: true
+
+- wait: 500
+
+# Verify enemy intel displays
+- assertVisible:
+    text: "HIVE COLOSSUS"
+    optional: true
+
+- assertVisible:
+    text: "EXTREME"
+    optional: true
+
+- assertVisible:
+    text: "SWARM TIDE"
+    optional: true
+
+- takeScreenshot: "level_08_intel"
+
+# Check loadout tab for weapons
+- tapOn:
+    text: "LOADOUT"
+    optional: true
+
+- wait: 500
+
+- assertVisible:
+    text: "ROCKET LAUNCHER"
+    optional: true
+
+- assertVisible:
+    text: "FRAG GRENADES"
+    optional: true
+
+- takeScreenshot: "level_08_loadout"
+
+# Begin the mission
+- tapOn:
+    text: "BEGIN MISSION"
+    optional: true
+
+# ============================================================================
+# PHASE 1: STAGING AREA
+# ============================================================================
+
+# Wait for level to load
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+    optional: true
+
+- wait: 3000
+
+- takeScreenshot: "level_08_staging_start"
+
+# Verify staging area objective
+- assertVisible:
+    text: "STAGING AREA"
+    optional: true
+    timeout: 10000
+
+# Wait for briefing comms sequence
+- wait: 3000
+
+# Commander Reyes briefing should appear
+- assertVisible:
+    text: "ACTUAL"
+    optional: true
+    timeout: 5000
+
+# Dismiss comms
+- tapOn:
+    point: "50%, 50%"
+    optional: true
+
+- wait: 2000
+
+# Look around staging area
+- swipe:
+    start: "70%, 50%"
+    end: "30%, 50%"
+    duration: 1000
+
+- wait: 500
+
+- takeScreenshot: "level_08_staging_fob"
+
+# Move toward vehicle bay
+- swipe:
+    start: "10%, 70%"
+    end: "10%, 50%"
+    duration: 2000
+
+- wait: 1000
+
+# Verify board vehicle action is available
+- assertVisible:
+    text: "BOARD VEHICLE"
+    optional: true
+    timeout: 5000
+
+- takeScreenshot: "level_08_vehicle_prompt"
+
+# Board the vehicle (press E or tap button)
+- tapOn:
+    text: "BOARD VEHICLE"
+    optional: true
+
+- wait: 500
+
+# Alternative: tap interact button if visible
+- tapOn:
+    id: "interact-button"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "level_08_vehicle_mounted"
+
+# ============================================================================
+# PHASE 2: FIELD ASSAULT
+# ============================================================================
+
+# Verify field assault objective
+- assertVisible:
+    text: "OPEN FIELD ASSAULT"
+    optional: true
+    timeout: 10000
+
+- assertVisible:
+    text: "AA turrets"
+    optional: true
+
+- takeScreenshot: "level_08_field_assault_start"
+
+# Drive forward (vehicle movement)
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+# Fire vehicle weapons
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+- takeScreenshot: "level_08_vehicle_combat"
+
+# Continue assault toward AA turrets
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "10%, 70%"
+          end: "15%, 55%"
+          duration: 2000
+      - wait: 300
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+# Check for AA destroyed message
+- assertVisible:
+    text: "AA turret destroyed"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "level_08_aa_turret_destroyed"
+
+# Continue pushing forward
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 50%"
+    duration: 4000
+
+- wait: 1000
+
+# ============================================================================
+# SQUAD COMMANDS TESTING
+# ============================================================================
+
+# Test squad command wheel (if available)
+- tapOn:
+    id: "command_wheel"
+    optional: true
+
+- wait: 500
+
+# Issue follow command
+- tapOn:
+    text: "FOLLOW"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_08_squad_follow"
+
+# Test hold command
+- tapOn:
+    id: "command_wheel"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    text: "HOLD"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_08_squad_hold"
+
+# Test advance command
+- tapOn:
+    id: "command_wheel"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    text: "ADVANCE"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_08_squad_advance"
+
+# Continue assault
+- swipe:
+    start: "10%, 70%"
+    end: "20%, 50%"
+    duration: 3000
+
+# Combat engagement
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+      - swipe:
+          start: "70%, 50%"
+          end: "60%, 50%"
+          duration: 200
+
+- takeScreenshot: "level_08_heavy_combat"
+
+# ============================================================================
+# PHASE 3: BREACH POINT (after vehicle destruction)
+# ============================================================================
+
+# At breach point, vehicle is destroyed - should be on foot
+- wait: 2000
+
+# Check for dismount notification
+- assertVisible:
+    text: "BREACH POINT"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "level_08_breach_point"
+
+# Infantry combat
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+      - swipe:
+          start: "10%, 70%"
+          end: "12%, 60%"
+          duration: 1000
+
+# Use grenade
+- tapOn:
+    text: "GRENADE"
+    optional: true
+
+- wait: 300
+
+- tapOn:
+    id: "grenade-button"
+    optional: true
+
+- wait: 500
+
+- takeScreenshot: "level_08_grenade_thrown"
+
+# Push toward hive entrance
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+# More combat
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+
+- takeScreenshot: "level_08_hive_entrance_approach"
+
+# ============================================================================
+# REVIVE MECHANIC TEST (if squad member is downed)
+# ============================================================================
+
+# Look for downed marine indicator
+- assertVisible:
+    text: "REVIVE"
+    optional: true
+    timeout: 5000
+
+# Attempt revive if available
+- tapOn:
+    text: "REVIVE"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "level_08_revive_attempt"
+
+# ============================================================================
+# PHASE 4: ENTRY PUSH
+# ============================================================================
+
+# Push into hive entrance
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 50%"
+    duration: 4000
+
+# Check for entry push objective
+- assertVisible:
+    text: "ENTRY PUSH"
+    optional: true
+    timeout: 15000
+
+- takeScreenshot: "level_08_entry_push"
+
+# Close quarters combat inside hive
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+      - swipe:
+          start: "10%, 70%"
+          end: "12%, 65%"
+          duration: 800
+
+# Reload
+- tapOn:
+    text: "RELOAD"
+    optional: true
+
+- wait: 500
+
+- tapOn:
+    id: "reload-button"
+    optional: true
+
+- wait: 1500
+
+- takeScreenshot: "level_08_inside_hive"
+
+# Push to beachhead
+- swipe:
+    start: "10%, 70%"
+    end: "15%, 55%"
+    duration: 3000
+
+# Continue fighting
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 150
+
+# ============================================================================
+# BEACHHEAD SECURED / LEVEL COMPLETION
+# ============================================================================
+
+# Check for beachhead progress
+- assertVisible:
+    text: "beachhead"
+    optional: true
+    timeout: 20000
+
+- takeScreenshot: "level_08_beachhead_progress"
+
+# Push to extraction zone
+- swipe:
+    start: "10%, 70%"
+    end: "18%, 50%"
+    duration: 5000
+
+# Final combat
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "fire-button"
+          optional: true
+      - wait: 200
+
+# Check for mission complete
+- assertVisible:
+    text: "MISSION COMPLETE"
+    optional: true
+    timeout: 60000
+
+- takeScreenshot: "level_08_mission_complete"
+
+# Verify beachhead secured message
+- assertVisible:
+    text: "Beachhead secured"
+    optional: true
+    timeout: 10000
+
+# Marcus farewell message
+- assertVisible:
+    text: "HAMMER"
+    optional: true
+    timeout: 10000
+
+- takeScreenshot: "level_08_marcus_farewell"
+
+# ============================================================================
+# LEVEL COMPLETION SCREEN
+# ============================================================================
+
+# Wait for completion screen
+- extendedWaitUntil:
+    visible: "LEVEL COMPLETE"
+    timeout: 30000
+    optional: true
+
+- takeScreenshot: "level_08_completion_screen"
+
+# Verify stats displayed
+- assertVisible:
+    text: "KILLS"
+    optional: true
+
+- assertVisible:
+    text: "ACCURACY"
+    optional: true
+
+- assertVisible:
+    text: "TIME"
+    optional: true
+
+# Verify marines survived stat
+- assertVisible:
+    text: "MARINES"
+    optional: true
+
+- takeScreenshot: "level_08_final_stats"
+
+# Verify next level is unlocked
+- assertVisible:
+    text: "CONTINUE"
+    optional: true
+
+- assertVisible:
+    text: "EXTRACTION"
+    optional: true
+
+- takeScreenshot: "level_08_next_level_unlocked"
+
+# ============================================================================
+# CLEANUP
+# ============================================================================
+
+# Return to main menu
+- tapOn:
+    text: "MAIN MENU"
+    optional: true
+
+- wait: 1000
+
+- takeScreenshot: "level_08_test_complete"

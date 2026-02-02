@@ -21,10 +21,41 @@ import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 
+import { AssetManager } from '../core/AssetManager';
 import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../core/ecs';
 import { particleManager } from './ParticleManager';
+
+// ---------------------------------------------------------------------------
+// GLB ASSET PATHS
+// ---------------------------------------------------------------------------
+
+/** Debris GLB models used for ice shard body and shatter fragments. */
+const ICE_SHARD_BODY_GLB = '/assets/models/props/debris/brick_mx_1_0.glb';
+const ICE_FRAGMENT_GLBS = [
+  '/assets/models/props/debris/brick_mx_1_1.glb',
+  '/assets/models/props/debris/brick_mx_1_2.glb',
+  '/assets/models/props/debris/brick_mx_1_3.glb',
+  '/assets/models/props/debris/brick_mx_2_0.glb',
+];
+
+/** Whether GLB assets have been preloaded. */
+let glbAssetsReady = false;
+
+/**
+ * Preload all GLB assets needed by the ice shard system.
+ * Call once during level setup before any ice shards are fired.
+ */
+export async function preloadIceShardAssets(scene?: Scene): Promise<void> {
+  if (glbAssetsReady) return;
+  await Promise.all([
+    AssetManager.loadAssetByPath(ICE_SHARD_BODY_GLB, scene),
+    ...ICE_FRAGMENT_GLBS.map((p) => AssetManager.loadAssetByPath(p, scene)),
+  ]);
+  glbAssetsReady = true;
+}
 
 // ---------------------------------------------------------------------------
 // CONFIGURATION
@@ -137,7 +168,7 @@ function createIceShardMesh(
  * Attach a continuous ice particle trail to the shard mesh.
  * Returns a dispose callback to stop the trail.
  */
-function attachIceTrail(scene: Scene, shardMesh: Mesh, scale: number): () => void {
+function attachIceTrail(_scene: Scene, shardMesh: Mesh, scale: number): () => void {
   // Use the energy_trail config from ParticleManager as a starting point
   // but override colours to icy blue/white
   const trailSystem = particleManager.emit('energy_trail', Vector3.Zero(), {
@@ -212,10 +243,12 @@ function onIceShardImpact(scene: Scene, position: Vector3, config: IceShardConfi
 
 /**
  * Spawn small ice fragments that fly outward and fall.
+ * Uses GLB models when available, falls back to procedural polyhedra.
  */
 function emitShatterFragments(scene: Scene, position: Vector3, scale: number): void {
   const count = Math.min(8, Math.floor(4 * scale));
 
+  // Create shared ice material for procedural fallback
   const fragMat = new StandardMaterial('iceFragMat', scene);
   fragMat.diffuseColor = new Color3(0.65, 0.82, 0.95);
   fragMat.emissiveColor = new Color3(0.2, 0.35, 0.55);
@@ -223,6 +256,47 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
   fragMat.alpha = 0.85;
 
   for (let i = 0; i < count; i++) {
+    // Try to use GLB fragment model
+    const glbPath = ICE_FRAGMENT_GLBS[i % ICE_FRAGMENT_GLBS.length];
+    let fragNode: TransformNode | null = null;
+
+    if (glbAssetsReady && AssetManager.isPathCached(glbPath)) {
+      fragNode = AssetManager.createInstanceByPath(
+        glbPath,
+        `iceFrag_glb_${i}`,
+        scene,
+        false // No LOD for short-lived fragments
+      );
+
+      if (fragNode) {
+        // Scale and position the GLB fragment
+        const fragScale = (0.02 + Math.random() * 0.04 * scale) * 0.5;
+        fragNode.scaling.setAll(fragScale);
+        fragNode.position = position.add(
+          new Vector3((Math.random() - 0.5) * 0.3, Math.random() * 0.3, (Math.random() - 0.5) * 0.3)
+        );
+
+        // Apply ice material tint to child meshes
+        for (const mesh of fragNode.getChildMeshes()) {
+          if (mesh.material instanceof StandardMaterial) {
+            const mat = mesh.material as StandardMaterial;
+            mat.emissiveColor = new Color3(0.2, 0.35, 0.55);
+          }
+        }
+
+        // Animate GLB fragment
+        const velocity = new Vector3(
+          (Math.random() - 0.5) * 7,
+          2 + Math.random() * 4,
+          (Math.random() - 0.5) * 7
+        );
+        const angularVel = new Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10);
+        animateGlbFragment(fragNode, velocity, angularVel);
+        continue; // Skip procedural fallback
+      }
+    }
+
+    // Fallback to procedural polyhedron
     const frag = MeshBuilder.CreatePolyhedron(
       `iceFrag_${i}`,
       { type: 1, size: 0.02 + Math.random() * 0.04 * scale },
@@ -275,6 +349,49 @@ function emitShatterFragments(scene: Scene, position: Vector3, scale: number): v
 
     requestAnimationFrame(animate);
   }
+}
+
+/**
+ * Animate a GLB fragment with physics-like motion
+ */
+function animateGlbFragment(node: TransformNode, velocity: Vector3, angularVel: Vector3): void {
+  const startTime = performance.now();
+  const gravity = -14;
+
+  const animate = () => {
+    const elapsed = (performance.now() - startTime) / 1000;
+    if (elapsed > 1.5 || node.isDisposed()) {
+      if (!node.isDisposed()) {
+        node.dispose();
+      }
+      return;
+    }
+
+    velocity.y += gravity * (1 / 60);
+    node.position.addInPlace(velocity.scale(1 / 60));
+    node.rotation.addInPlace(angularVel.scale(1 / 60));
+
+    if (node.position.y < 0.02) {
+      node.position.y = 0.02;
+      velocity.y *= -0.2;
+      velocity.x *= 0.5;
+      velocity.z *= 0.5;
+      angularVel.scaleInPlace(0.6);
+    }
+
+    if (elapsed > 1.0) {
+      const fade = (elapsed - 1.0) / 0.5;
+      for (const mesh of node.getChildMeshes()) {
+        if (mesh.material instanceof StandardMaterial) {
+          (mesh.material as StandardMaterial).alpha = 0.85 * (1 - fade);
+        }
+      }
+    }
+
+    requestAnimationFrame(animate);
+  };
+
+  requestAnimationFrame(animate);
 }
 
 /**

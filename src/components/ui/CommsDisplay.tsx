@@ -2,8 +2,9 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSubtitles } from '../../game/context/SubtitleContext';
 import { getAudioManager } from '../../game/core/AudioManager';
-import type { CommsMessage } from '../../game/types';
+import type { CommsMessage, PortraitType } from '../../game/types';
 import { getScreenInfo } from '../../game/utils/responsive';
+import { useGameEvent } from '../../hooks/useGameEvent';
 import styles from './CommsDisplay.module.css';
 
 interface CommsDisplayProps {
@@ -12,34 +13,145 @@ interface CommsDisplayProps {
   message: CommsMessage;
 }
 
+/**
+ * Mapping from speaker IDs to portrait types for EventBus-driven messages
+ */
+const SPEAKER_TO_PORTRAIT: Record<string, PortraitType> = {
+  commander: 'commander',
+  reyes: 'commander',
+  vasquez: 'commander',
+  marcus: 'marcus',
+  hammer: 'marcus',
+  player: 'player',
+  cole: 'player',
+  specter: 'player',
+  ai: 'ai',
+  orbital: 'ai',
+  armory: 'armory',
+  gunnery: 'armory',
+};
+
+/**
+ * Mapping from speaker IDs to display names
+ */
+const SPEAKER_TO_NAME: Record<string, string> = {
+  commander: 'Cmdr. Elena Vasquez',
+  reyes: 'Cmdr. Elena Vasquez',
+  vasquez: 'Cmdr. Elena Vasquez',
+  marcus: 'Cpl. Marcus Cole',
+  hammer: 'Cpl. Marcus Cole',
+  player: 'Sgt. James Cole',
+  cole: 'Sgt. James Cole',
+  specter: 'Sgt. James Cole',
+  ai: 'ORBITAL AI',
+  orbital: 'ORBITAL AI',
+  armory: 'Gunnery Keeper',
+  gunnery: 'Gunnery Keeper',
+};
+
+/**
+ * Mapping from speaker IDs to callsigns
+ */
+const SPEAKER_TO_CALLSIGN: Record<string, string> = {
+  commander: 'ACTUAL',
+  reyes: 'ACTUAL',
+  vasquez: 'ACTUAL',
+  marcus: 'HAMMER',
+  hammer: 'HAMMER',
+  player: 'SPECTER',
+  cole: 'SPECTER',
+  specter: 'SPECTER',
+  ai: 'ORBITAL',
+  orbital: 'ORBITAL',
+  armory: 'ARMORY',
+  gunnery: 'ARMORY',
+};
+
 export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   const [typedText, setTypedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const screenInfo = getScreenInfo();
   const hasPlayedSound = useRef(false);
 
+  // EventBus-driven message state (supplements props)
+  const [eventBusMessage, setEventBusMessage] = useState<CommsMessage | null>(null);
+  const [eventBusOpen, setEventBusOpen] = useState(false);
+  const dialogueTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Get subtitle settings for accessibility font size
   const { settings: subtitleSettings, fontSizePx } = useSubtitles();
 
+  // Subscribe to DIALOGUE_STARTED events from EventBus
+  useGameEvent('DIALOGUE_STARTED', (event) => {
+    // Convert EventBus event to CommsMessage format
+    const speakerId = event.speakerId?.toLowerCase() ?? 'ai';
+    const commsMessage: CommsMessage = {
+      text: event.text ?? '',
+      sender: SPEAKER_TO_NAME[speakerId] ?? 'Unknown',
+      callsign: SPEAKER_TO_CALLSIGN[speakerId] ?? 'UNKNOWN',
+      portrait: SPEAKER_TO_PORTRAIT[speakerId] ?? 'ai',
+    };
+
+    setEventBusMessage(commsMessage);
+    setEventBusOpen(true);
+
+    // Clear any existing auto-close timeout
+    if (dialogueTimeoutRef.current) {
+      clearTimeout(dialogueTimeoutRef.current);
+    }
+
+    // Auto-close after duration if specified
+    if (event.duration && event.duration > 0) {
+      dialogueTimeoutRef.current = setTimeout(() => {
+        setEventBusOpen(false);
+        setEventBusMessage(null);
+      }, event.duration);
+    }
+  });
+
+  // Subscribe to DIALOGUE_ENDED events from EventBus
+  useGameEvent('DIALOGUE_ENDED', () => {
+    setEventBusOpen(false);
+    setEventBusMessage(null);
+
+    if (dialogueTimeoutRef.current) {
+      clearTimeout(dialogueTimeoutRef.current);
+      dialogueTimeoutRef.current = null;
+    }
+  });
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dialogueTimeoutRef.current) {
+        clearTimeout(dialogueTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Use EventBus message if available, otherwise fall back to props
+  const effectiveMessage = eventBusMessage ?? message;
+  const effectiveIsOpen = eventBusOpen || isOpen;
+
   // Play comms open sound when message appears
   useEffect(() => {
-    if (isOpen && message && !hasPlayedSound.current) {
+    if (effectiveIsOpen && effectiveMessage && !hasPlayedSound.current) {
       getAudioManager().play('comms_open', { volume: 0.4 });
       hasPlayedSound.current = true;
     }
-    if (!isOpen) {
+    if (!effectiveIsOpen) {
       hasPlayedSound.current = false;
     }
-  }, [isOpen, message]);
+  }, [effectiveIsOpen, effectiveMessage]);
 
   // Typewriter effect
   useEffect(() => {
-    if (!isOpen || !message) return;
+    if (!effectiveIsOpen || !effectiveMessage) return;
 
     setTypedText('');
     setIsTyping(true);
 
-    const text = message.text;
+    const text = effectiveMessage.text;
     let index = 0;
 
     const interval = setInterval(() => {
@@ -53,24 +165,32 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
     }, 20); // Slightly faster for smoother reading
 
     return () => clearInterval(interval);
-  }, [isOpen, message]);
+  }, [effectiveIsOpen, effectiveMessage]);
 
   const handleAdvance = useCallback(() => {
     if (isTyping) {
       // Skip to end of current message
-      setTypedText(message?.text || '');
+      setTypedText(effectiveMessage?.text || '');
       setIsTyping(false);
       return;
     }
 
-    // Close the comms
+    // Close the comms - handle both EventBus and prop-driven modes
+    if (eventBusOpen) {
+      setEventBusOpen(false);
+      setEventBusMessage(null);
+      if (dialogueTimeoutRef.current) {
+        clearTimeout(dialogueTimeoutRef.current);
+        dialogueTimeoutRef.current = null;
+      }
+    }
     onClose();
-  }, [isTyping, message, onClose]);
+  }, [isTyping, effectiveMessage, eventBusOpen, onClose]);
 
   // Keyboard support
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (isOpen && (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) {
+      if (effectiveIsOpen && (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) {
         e.preventDefault();
         handleAdvance();
       }
@@ -78,12 +198,12 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, handleAdvance]);
+  }, [effectiveIsOpen, handleAdvance]);
 
-  if (!isOpen || !message) return null;
+  if (!effectiveIsOpen || !effectiveMessage) return null;
 
   const getPortraitClass = () => {
-    switch (message.portrait) {
+    switch (effectiveMessage.portrait) {
       case 'commander':
         return styles.portraitCommander;
       case 'marcus':
@@ -100,7 +220,7 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
   };
 
   const getPortraitInitials = () => {
-    switch (message.portrait) {
+    switch (effectiveMessage.portrait) {
       case 'commander':
         return 'CV';
       case 'marcus':
@@ -153,8 +273,8 @@ export function CommsDisplay({ isOpen, onClose, message }: CommsDisplayProps) {
               <div className={styles.scanLine} />
             </div>
             <div className={styles.senderInfo}>
-              <span className={styles.senderName}>{message.sender}</span>
-              <span className={styles.senderCallsign}>[{message.callsign}]</span>
+              <span className={styles.senderName}>{effectiveMessage.sender}</span>
+              <span className={styles.senderCallsign}>[{effectiveMessage.callsign}]</span>
             </div>
           </div>
 

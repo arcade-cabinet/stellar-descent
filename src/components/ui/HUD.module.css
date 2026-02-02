@@ -1,4 +1,4 @@
-/* HUD Styles */
+/* HUD Styles - Complete Combat HUD */
 
 .hud {
   position: fixed;
@@ -45,7 +45,10 @@
   }
 }
 
-/* Health Bar */
+/* ============================================================================
+   HEALTH BAR
+   ============================================================================ */
+
 .healthContainer {
   position: absolute;
   bottom: max(20px, env(safe-area-inset-bottom, 20px));
@@ -82,6 +85,23 @@
     rgba(255, 255, 255, 0.05) 3px,
     rgba(255, 255, 255, 0.05) 6px
   );
+}
+
+/* Low health pulsing effect */
+.healthBarPulsing {
+  animation: healthPulse 1s ease-in-out infinite;
+}
+
+@keyframes healthPulse {
+  0%,
+  100% {
+    border-color: #4a5d23;
+    box-shadow: 0 0 4px rgba(244, 67, 54, 0.3);
+  }
+  50% {
+    border-color: #f44336;
+    box-shadow: 0 0 12px rgba(244, 67, 54, 0.6);
+  }
 }
 
 .healthFill {
@@ -161,7 +181,54 @@
   font-weight: bold;
 }
 
-/* Mission Text */
+/* ============================================================================
+   ARMOR BAR
+   ============================================================================ */
+
+.armorContainer {
+  position: absolute;
+  bottom: max(48px, calc(env(safe-area-inset-bottom, 20px) + 28px));
+  left: max(20px, env(safe-area-inset-left, 20px));
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.armorLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #4da6ff;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.armorBar {
+  position: relative;
+  width: clamp(150px, 30vw, 250px);
+  height: 12px;
+  background: rgba(28, 28, 28, 0.8);
+  border: 2px solid #2266aa;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.armorFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4da6ff, #66bbff);
+  transition: width 0.2s ease;
+}
+
+.armorText {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #4da6ff;
+  font-weight: bold;
+}
+
+/* ============================================================================
+   MISSION TEXT
+   ============================================================================ */
+
 .missionContainer {
   position: absolute;
   top: max(20px, env(safe-area-inset-top, 20px));
@@ -181,7 +248,10 @@
   white-space: nowrap;
 }
 
-/* Kills Counter */
+/* ============================================================================
+   KILLS COUNTER
+   ============================================================================ */
+
 .killsContainer {
   position: absolute;
   top: max(20px, env(safe-area-inset-top, 20px));
@@ -210,7 +280,44 @@
   font-weight: bold;
 }
 
-/* Notification */
+/* ============================================================================
+   MISSION TIMER
+   ============================================================================ */
+
+.timerContainer {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  left: max(20px, env(safe-area-inset-left, 20px));
+  background: rgba(28, 28, 28, 0.8);
+  border: 2px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.timerLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #a0a0a0;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.timerValue {
+  font-family: "Courier New", monospace;
+  font-size: 1.25rem;
+  color: #e8e8e8;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================================
+   NOTIFICATION
+   ============================================================================ */
+
 .notification {
   position: absolute;
   top: 35%;
@@ -249,7 +356,10 @@
   }
 }
 
-/* Ammo Display */
+/* ============================================================================
+   AMMO DISPLAY
+   ============================================================================ */
+
 .ammoContainer {
   position: absolute;
   bottom: max(20px, env(safe-area-inset-bottom, 20px));
@@ -263,6 +373,110 @@
   align-items: flex-end;
   gap: 0.25rem;
   min-width: 100px;
+}
+
+/* Empty magazine highlight */
+.ammoContainer.ammoEmpty {
+  border-color: #f44336;
+  animation: ammoEmptyPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes ammoEmptyPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(244, 67, 54, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(244, 67, 54, 0.8);
+  }
+}
+
+/* Weapon switch flash */
+.ammoContainer.weaponSwitchFlash {
+  animation: weaponSwitchFlash 0.2s ease-out;
+}
+
+@keyframes weaponSwitchFlash {
+  0% {
+    background: rgba(255, 191, 0, 0.4);
+    border-color: #ffbf00;
+  }
+  100% {
+    background: rgba(28, 28, 28, 0.85);
+    border-color: #4a5d23;
+  }
+}
+
+/* Weapon name display */
+.weaponName {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #b5a642;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Weapon icons */
+.weaponIcon {
+  width: 16px;
+  height: 16px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.8;
+}
+
+.weaponIconPistol::before {
+  content: "P";
+}
+.weaponIconSmg::before {
+  content: "S";
+}
+.weaponIconRifle::before {
+  content: "R";
+}
+.weaponIconShotgun::before {
+  content: "SG";
+}
+.weaponIconHeavy::before {
+  content: "H";
+}
+.weaponIconPlasma::before {
+  content: "PL";
+}
+
+.weaponIcon::before {
+  display: block;
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  font-weight: bold;
+  color: #b5a642;
+  text-align: center;
+  line-height: 16px;
+}
+
+/* Reload ring (circular progress) */
+.reloadRing {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.reloadRingBg {
+  stroke: rgba(60, 60, 60, 0.8);
+}
+
+.reloadRingProgress {
+  stroke: #ffbf00;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.05s linear;
 }
 
 .ammoMain {
@@ -284,6 +498,10 @@
 .ammoCount.ammoLow {
   color: var(--cb-ammo-low, #ff6b35);
   animation: ammoPulse 0.5s ease-in-out infinite;
+}
+
+.ammoCount.ammoEmptyText {
+  color: #f44336;
 }
 
 .ammoCount.ammoReloading {
@@ -355,6 +573,36 @@
   text-align: center;
 }
 
+/* Auto-reload prompt */
+.autoReloadPrompt {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #ffbf00;
+  font-weight: bold;
+  animation: autoReloadBlink 1s ease-in-out infinite;
+}
+
+.autoReloadKey {
+  background: rgba(255, 191, 0, 0.2);
+  padding: 0.125rem 0.25rem;
+  border-radius: 2px;
+  border: 1px solid #ffbf00;
+}
+
+@keyframes autoReloadBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 @keyframes ammoPulse {
   0%,
   100% {
@@ -375,55 +623,663 @@
   }
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .healthBar {
-    height: 16px;
-  }
+/* ============================================================================
+   WEAPON SLOTS
+   ============================================================================ */
 
-  .healthLabel {
-    display: none;
-  }
-
-  .killsContainer {
-    min-width: 60px;
-    padding: 0.375rem 0.75rem;
-  }
-
-  .ammoContainer {
-    min-width: 80px;
-    padding: 0.375rem 0.75rem;
-  }
-
-  .ammoCount {
-    font-size: 1.5rem;
-  }
-
-  .ammoReserveLabel {
-    display: none;
-  }
-}
-
-/* When touch controls are visible, move health bar and ammo up */
-@media (pointer: coarse) {
-  .healthContainer {
-    bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
-  }
-
-  .ammoContainer {
-    bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
-  }
-}
-
-/* Compass positioning when mission text is visible */
-.compassBelowMission {
+.weaponSlotsContainer {
   position: absolute;
-  top: calc(max(20px, env(safe-area-inset-top, 20px)) + 50px);
+  bottom: max(100px, calc(env(safe-area-inset-bottom, 20px) + 80px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  display: flex;
+  gap: 0.25rem;
+}
+
+.weaponSlot {
+  width: 32px;
+  height: 32px;
+  background: rgba(28, 28, 28, 0.7);
+  border: 2px solid #404040;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  transition: all 0.15s ease;
+}
+
+.weaponSlot.weaponSlotActive {
+  background: rgba(74, 93, 35, 0.8);
+  border-color: #b5a642;
+  box-shadow: 0 0 8px rgba(181, 166, 66, 0.4);
+}
+
+.weaponSlot.weaponSlotEmpty {
+  opacity: 0.4;
+}
+
+.weaponSlotKey {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #808080;
+  font-weight: bold;
+}
+
+.weaponSlotActive .weaponSlotKey {
+  color: #e8e8e8;
+}
+
+.weaponSlotIcon {
+  width: 16px;
+  height: 12px;
+}
+
+.weaponSlotIcon::before {
+  display: block;
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  font-weight: bold;
+  color: #a0a0a0;
+  text-align: center;
+}
+
+.weaponSlotActive .weaponSlotIcon::before {
+  color: #e8e8e8;
+}
+
+/* ============================================================================
+   GRENADE DISPLAY
+   ============================================================================ */
+
+.grenadeContainer {
+  position: absolute;
+  bottom: max(80px, calc(env(safe-area-inset-bottom, 20px) + 60px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.375rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 90px;
+}
+
+.grenadeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.grenadeLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #a0a0a0;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.grenadeKey {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #606060;
+  background: rgba(60, 60, 60, 0.6);
+  padding: 0.125rem 0.25rem;
+  border-radius: 2px;
+  border: 1px solid #505050;
+}
+
+/* Grenade type selector */
+.grenadeTypes {
+  display: flex;
+  gap: 0.375rem;
+  margin: 0.25rem 0;
+}
+
+.grenadeTypeSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.grenadeTypeSlot.grenadeTypeSelected {
+  background: rgba(74, 93, 35, 0.4);
+  border-color: #6a7d43;
+}
+
+.grenadeTypeSlot.grenadeTypeEmpty {
+  opacity: 0.4;
+}
+
+.grenadeTypeCount {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #a0a0a0;
+  font-weight: bold;
+}
+
+.grenadeTypeSelected .grenadeTypeCount {
+  color: #e8e8e8;
+}
+
+.grenadeMain {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.grenadeIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  position: relative;
+}
+
+.grenadeIcon::before {
+  content: "";
+  position: absolute;
+  top: -4px;
   left: 50%;
   transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 2px;
 }
 
-/* Objective Marker */
+.grenadeIconFrag {
+  color: #4a5d23;
+  background: rgba(74, 93, 35, 0.3);
+}
+
+.grenadeIconPlasma {
+  color: #44aaff;
+  background: rgba(68, 170, 255, 0.3);
+}
+
+.grenadeIconEmp {
+  color: #ffff44;
+  background: rgba(255, 255, 68, 0.3);
+}
+
+.grenadeCount {
+  font-family: "Courier New", monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #e8e8e8;
+  min-width: 1.5ch;
+  text-align: center;
+}
+
+.grenadeCountEmpty {
+  color: #666666;
+}
+
+.grenadeType {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #a0a0a0;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Grenade slots display */
+.grenadeSlots {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.125rem;
+}
+
+.grenadeSlot {
+  width: 8px;
+  height: 12px;
+  background: rgba(60, 60, 60, 0.6);
+  border: 1px solid #404040;
+  border-radius: 2px;
+}
+
+.grenadeSlotFilled {
+  background: #4a5d23;
+  border-color: #6a7d43;
+}
+
+.grenadeSlotFilledPlasma {
+  background: #2244aa;
+  border-color: #4466cc;
+}
+
+.grenadeSlotFilledEmp {
+  background: #666633;
+  border-color: #888855;
+}
+
+/* ============================================================================
+   KILL FEED
+   ============================================================================ */
+
+.killFeed {
+  position: absolute;
+  top: max(80px, calc(env(safe-area-inset-top, 20px) + 60px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  pointer-events: none;
+}
+
+.killFeedEntry {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(28, 28, 28, 0.7);
+  border: 1px solid #4a5d23;
+  border-radius: 2px;
+  padding: 0.25rem 0.5rem;
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #e8e8e8;
+  animation: killFeedSlideIn 0.2s ease-out;
+}
+
+@keyframes killFeedSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.killFeedEntry.killFeedCritical {
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.2);
+}
+
+.killFeedIcon {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.killFeedEnemy {
+  color: #e8e8e8;
+  font-weight: bold;
+}
+
+.killFeedWeapon {
+  color: #808080;
+  font-size: 0.5rem;
+}
+
+.killFeedCriticalBadge {
+  background: #ff6b35;
+  color: #ffffff;
+  padding: 0.0625rem 0.25rem;
+  border-radius: 2px;
+  font-size: 0.5rem;
+  font-weight: bold;
+}
+
+/* ============================================================================
+   SCORE POPUPS
+   ============================================================================ */
+
+.scorePopupContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scorePopup {
+  position: absolute;
+  font-family: "Courier New", monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #ffbf00;
+  text-shadow:
+    0 0 4px rgba(255, 191, 0, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  animation: scorePopupIn 0.15s ease-out;
+}
+
+@keyframes scorePopupIn {
+  from {
+    transform: translate(-50%, 0) scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.scorePopup.scorePopupCombo {
+  font-size: 1.25rem;
+  color: #ff6b35;
+  text-shadow:
+    0 0 8px rgba(255, 107, 53, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.scorePopup.scorePopupCritical {
+  color: #ff4444;
+  text-shadow:
+    0 0 8px rgba(255, 68, 68, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================================
+   COMBO INDICATOR
+   ============================================================================ */
+
+.comboIndicator {
+  position: absolute;
+  bottom: max(150px, calc(env(safe-area-inset-bottom, 20px) + 130px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #ff6b35;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  animation: comboIn 0.2s ease-out;
+}
+
+@keyframes comboIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.comboLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #a0a0a0;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+.comboCount {
+  font-family: "Courier New", monospace;
+  font-size: 1.5rem;
+  color: #ff6b35;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(255, 107, 53, 0.5);
+}
+
+.comboMultiplier {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #ffbf00;
+  font-weight: bold;
+}
+
+/* ============================================================================
+   OBJECTIVE DISPLAY
+   ============================================================================ */
+
+.objectiveDisplay {
+  position: absolute;
+  left: max(20px, env(safe-area-inset-left, 20px));
+  top: max(100px, calc(env(safe-area-inset-top, 20px) + 80px));
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-left: 4px solid #ffbf00;
+  border-radius: 2px;
+  padding: 0.75rem 1rem;
+  max-width: 280px;
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.objectiveFadeIn {
+  opacity: 1;
+  transform: translateX(0);
+  animation: objectiveFadeIn 0.5s ease-out;
+}
+
+@keyframes objectiveFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.objectiveFadeVisible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.objectiveFadeOut {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.objectiveHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+.objectiveIcon {
+  width: 16px;
+  height: 16px;
+  background: #ffbf00;
+  color: #1c1c1c;
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.objectiveLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #a0a0a0;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+.objectiveTitle {
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #e8e8e8;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.objectiveInstructions {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+  line-height: 1.4;
+}
+
+.objectiveDistance {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #ffbf00;
+  font-weight: bold;
+  margin-top: 0.375rem;
+}
+
+/* Sub-objectives */
+.subObjectives {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.subObjective {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #a0a0a0;
+}
+
+.subObjective.subObjectiveComplete {
+  color: #4caf50;
+  text-decoration: line-through;
+}
+
+.subObjectiveCheck {
+  font-size: 0.75rem;
+  color: #606060;
+}
+
+.subObjectiveComplete .subObjectiveCheck {
+  color: #4caf50;
+}
+
+/* ============================================================================
+   MINIMAP / RADAR
+   ============================================================================ */
+
+.minimapContainer {
+  position: absolute;
+  top: max(80px, calc(env(safe-area-inset-top, 20px) + 60px));
+  left: max(20px, env(safe-area-inset-left, 20px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.minimap {
+  width: 80px;
+  height: 80px;
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Radar grid lines */
+.minimap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, transparent 49%, rgba(74, 93, 35, 0.3) 50%, transparent 51%),
+    linear-gradient(90deg, transparent 49%, rgba(74, 93, 35, 0.3) 50%, transparent 51%);
+  background-size: 100% 100%;
+}
+
+/* Radar sweep */
+.minimap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(74, 93, 35, 0.4) 30deg,
+    transparent 60deg
+  );
+  transform-origin: center center;
+  animation: radarSweep 3s linear infinite;
+}
+
+@keyframes radarSweep {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.minimapPlayer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.minimapPlayer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 8px solid #4da6ff;
+}
+
+.minimapObjective {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: #ffbf00;
+  border-radius: 50%;
+  transform-origin: center center;
+  z-index: 1;
+  animation: objectiveBlip 1s ease-in-out infinite;
+}
+
+@keyframes objectiveBlip {
+  0%,
+  100% {
+    box-shadow: 0 0 4px #ffbf00;
+  }
+  50% {
+    box-shadow:
+      0 0 8px #ffbf00,
+      0 0 12px #ffbf00;
+  }
+}
+
+.minimapLabel {
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #606060;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================================
+   OBJECTIVE MARKER
+   ============================================================================ */
+
 .objectiveMarker {
   position: absolute;
   top: calc(max(20px, env(safe-area-inset-top, 20px)) + 60px);
@@ -466,7 +1322,296 @@
   }
 }
 
-/* Reduced motion preference */
+/* ============================================================================
+   COMPASS POSITIONING
+   ============================================================================ */
+
+.compassBelowMission {
+  position: absolute;
+  top: calc(max(20px, env(safe-area-inset-top, 20px)) + 50px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ============================================================================
+   SAVE BUTTON
+   ============================================================================ */
+
+.saveButton {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(28, 28, 28, 0.85);
+  border: 2px solid #4a5d23;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.saveButton:hover {
+  background: rgba(74, 93, 35, 0.9);
+  border-color: #b5a642;
+}
+
+.saveButton:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.saveButtonIcon {
+  font-size: 1rem;
+  color: #e8e8e8;
+}
+
+.saveButtonText {
+  font-family: "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.saveButtonSaving {
+  border-color: #ffbf00;
+  animation: savePulse 0.5s ease-in-out;
+}
+
+@keyframes savePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(255, 191, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 191, 0, 0.8);
+  }
+}
+
+.saveButtonRight {
+  left: auto;
+  right: max(130px, calc(env(safe-area-inset-right, 20px) + 110px));
+  transform: none;
+}
+
+/* ============================================================================
+   MOBILE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .healthBar {
+    height: 16px;
+  }
+
+  .healthLabel {
+    display: none;
+  }
+
+  .armorLabel {
+    display: none;
+  }
+
+  .killsContainer {
+    min-width: 60px;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .timerContainer {
+    min-width: 60px;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .timerLabel {
+    display: none;
+  }
+
+  .timerValue {
+    font-size: 1rem;
+  }
+
+  .ammoContainer {
+    min-width: 80px;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .ammoCount {
+    font-size: 1.5rem;
+  }
+
+  .ammoReserveLabel {
+    display: none;
+  }
+
+  .weaponName {
+    display: none;
+  }
+
+  .saveButtonText {
+    display: none;
+  }
+
+  .saveButton {
+    padding: 0.5rem;
+  }
+
+  .saveButtonRight {
+    right: max(100px, calc(env(safe-area-inset-right, 20px) + 80px));
+  }
+
+  .grenadeContainer {
+    min-width: 50px;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .grenadeLabel,
+  .grenadeKey {
+    display: none;
+  }
+
+  .grenadeTypes {
+    display: none;
+  }
+
+  .grenadeCount {
+    font-size: 1rem;
+  }
+
+  .grenadeType {
+    font-size: 0.5rem;
+  }
+
+  .objectiveDisplay {
+    max-width: 200px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .objectiveTitle {
+    font-size: 0.75rem;
+  }
+
+  .objectiveInstructions {
+    font-size: 0.625rem;
+  }
+
+  .minimapContainer {
+    display: none;
+  }
+
+  .killFeed {
+    display: none;
+  }
+
+  .weaponSlotsContainer {
+    display: none;
+  }
+}
+
+/* Touch controls adjustment */
+@media (pointer: coarse) {
+  .healthContainer {
+    bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
+  }
+
+  .armorContainer {
+    bottom: max(188px, calc(env(safe-area-inset-bottom, 20px) + 168px));
+  }
+
+  .ammoContainer {
+    bottom: max(160px, calc(env(safe-area-inset-bottom, 20px) + 140px));
+  }
+
+  .grenadeContainer {
+    bottom: max(220px, calc(env(safe-area-inset-bottom, 20px) + 200px));
+  }
+
+  .weaponSlotsContainer {
+    bottom: max(240px, calc(env(safe-area-inset-bottom, 20px) + 220px));
+  }
+
+  .comboIndicator {
+    bottom: max(280px, calc(env(safe-area-inset-bottom, 20px) + 260px));
+  }
+}
+
+/* Landscape phone */
+@media (max-height: 450px) {
+  .healthContainer {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+
+  .armorContainer {
+    bottom: max(38px, calc(env(safe-area-inset-bottom, 10px) + 28px));
+  }
+
+  .ammoContainer {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+
+  .killsContainer,
+  .timerContainer {
+    top: max(10px, env(safe-area-inset-top, 10px));
+    padding: 0.25rem 0.5rem;
+  }
+
+  .notification {
+    top: 25%;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+
+  .grenadeContainer {
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    right: max(140px, calc(env(safe-area-inset-right, 20px) + 120px));
+  }
+
+  .minimapContainer {
+    display: none;
+  }
+
+  .objectiveDisplay {
+    top: max(50px, calc(env(safe-area-inset-top, 10px) + 40px));
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .healthBar {
+    width: 120px;
+  }
+
+  .killsContainer,
+  .timerContainer {
+    min-width: 50px;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .killsLabel,
+  .timerLabel {
+    display: none;
+  }
+
+  .killsCount,
+  .timerValue {
+    font-size: 1rem;
+  }
+
+  .comboIndicator {
+    display: none;
+  }
+
+  .objectiveDisplay {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
 @media (prefers-reduced-motion: reduce) {
   .visible,
   .hidden {
@@ -481,9 +1626,95 @@
     animation: none;
   }
 
+  .healthFill {
+    transition: width 0s;
+  }
+
+  .healthBarPulsing {
+    animation: none;
+  }
+
+  .ammoCount.ammoLow,
+  .ammoCount.ammoReloading {
+    animation: none;
+  }
+
+  .ammoContainer.ammoEmpty {
+    animation: none;
+  }
+
+  .ammoContainer.weaponSwitchFlash {
+    animation: none;
+  }
+
+  .healthCriticalIndicator {
+    animation: none;
+  }
+
+  .autoReloadPrompt {
+    animation: none;
+  }
+
+  .scorePopup {
+    animation: none;
+  }
+
+  .comboIndicator {
+    animation: none;
+  }
+
+  .killFeedEntry {
+    animation: none;
+  }
+
+  .objectiveFadeIn {
+    animation: none;
+  }
+
+  .minimap::after {
+    animation: none;
+  }
+
+  .minimapObjective {
+    animation: none;
+  }
+
   @keyframes flashOut {
     to {
       opacity: 0;
     }
+  }
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================ */
+
+@media (prefers-contrast: high) {
+  .healthBar,
+  .killsContainer,
+  .timerContainer,
+  .ammoContainer,
+  .missionContainer,
+  .objectiveMarker,
+  .grenadeContainer,
+  .objectiveDisplay,
+  .comboIndicator {
+    border-width: 3px;
+    border-color: #ffffff;
+  }
+
+  .healthLabel,
+  .killsLabel,
+  .timerLabel,
+  .missionText,
+  .healthText,
+  .armorLabel,
+  .armorText {
+    color: #ffffff;
+  }
+
+  .minimap {
+    border-color: #ffffff;
   }
 }

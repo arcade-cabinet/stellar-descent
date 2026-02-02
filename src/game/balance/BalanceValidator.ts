@@ -15,7 +15,6 @@ import type { DifficultyLevel } from '../core/DifficultySettings';
 import { DIFFICULTY_ORDER, DIFFICULTY_PRESETS } from '../core/DifficultySettings';
 import type { WeaponId } from '../entities/weapons';
 import {
-  AMMO_ECONOMY,
   calculateAmmoRequiredForLevel,
   calculatePlayerSurvivableHits,
   calculateSustainedDPS,
@@ -121,7 +120,7 @@ export class BalanceValidator {
         const canKill = dps > 0 && hp > 0;
         this.addEntry({
           check: 'weapon_can_kill',
-          description: `${WEAPON_BALANCE[weaponId].name} can kill ${ENEMY_BALANCE[enemyId].name}`,
+          description: `${WEAPON_BALANCE[weaponId]?.name ?? weaponId} can kill ${ENEMY_BALANCE[enemyId].name}`,
           severity: canKill ? 'pass' : 'fail',
           details: `DPS=${dps.toFixed(1)}, HP=${hp}`,
         });
@@ -155,7 +154,7 @@ export class BalanceValidator {
 
           this.addEntry({
             check: 'ttk_target',
-            description: `TTK ${WEAPON_BALANCE[weaponId].name} vs ${ENEMY_BALANCE[enemyId].name} [${difficulty}]`,
+            description: `TTK ${WEAPON_BALANCE[weaponId]?.name ?? weaponId} vs ${ENEMY_BALANCE[enemyId].name} [${difficulty}]`,
             severity,
             details: `TTK=${ttk.toFixed(2)}s, target=[${target[0]}-${target[1]}]s`,
           });
@@ -178,9 +177,11 @@ export class BalanceValidator {
     // and weapon switching (player uses all 3 weapons, not just one)
     const AMMO_PARAMS: Record<string, { missRate: number; failRatio: number; warnRatio: number }> =
       {
+        easy: { missRate: 1.6, failRatio: 0.9, warnRatio: 1.1 },
         normal: { missRate: 1.5, failRatio: 0.8, warnRatio: 1.0 },
-        veteran: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
-        legendary: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
+        hard: { missRate: 1.3, failRatio: 0.45, warnRatio: 0.7 },
+        nightmare: { missRate: 1.15, failRatio: 0.3, warnRatio: 0.5 },
+        ultra_nightmare: { missRate: 1.1, failRatio: 0.2, warnRatio: 0.4 }, // Extreme precision
       };
 
     for (const difficulty of DIFFICULTY_ORDER) {
@@ -201,7 +202,7 @@ export class BalanceValidator {
 
           this.addEntry({
             check: 'ammo_economy',
-            description: `Ammo economy: ${WEAPON_BALANCE[weaponId].name} on ${LEVEL_SPAWN_CONFIG[levelId].levelName} [${difficulty}]`,
+            description: `Ammo economy: ${WEAPON_BALANCE[weaponId]?.name ?? weaponId} on ${LEVEL_SPAWN_CONFIG[levelId].levelName} [${difficulty}]`,
             severity,
             details: `available=${available}, needed(adj)=${adjustedRequired}, ratio=${ratio.toFixed(2)}`,
           });
@@ -220,9 +221,11 @@ export class BalanceValidator {
 
     // Skilled players on harder difficulties take fewer hits per section
     const HITS_PER_SECTION: Record<string, number> = {
+      easy: 2.5,
       normal: 2,
-      veteran: 1.5,
-      legendary: 1,
+      hard: 1.5,
+      nightmare: 1,
+      ultra_nightmare: 0.5, // Elite players barely get touched
     };
 
     for (const difficulty of DIFFICULTY_ORDER) {
@@ -329,32 +332,32 @@ export class BalanceValidator {
 
   /**
    * Difficulty scaling should produce meaningful differences.
-   * Veteran should be noticeably harder than Normal, Legendary harder still.
+   * Hard should be noticeably harder than Normal, Nightmare harder still.
    */
   private validateDifficultyScaling(): void {
     const enemyIds = Object.keys(ENEMY_BALANCE);
 
     for (const enemyId of enemyIds) {
       const normalHP = getScaledEnemyHealth(enemyId, 'normal');
-      const veteranHP = getScaledEnemyHealth(enemyId, 'veteran');
-      const legendaryHP = getScaledEnemyHealth(enemyId, 'legendary');
+      const hardHP = getScaledEnemyHealth(enemyId, 'hard');
+      const nightmareHP = getScaledEnemyHealth(enemyId, 'nightmare');
 
-      // Veteran should be at least 20% harder
-      const vetRatio = veteranHP / normalHP;
+      // Hard should be at least 20% harder
+      const hardRatio = hardHP / normalHP;
       this.addEntry({
         check: 'difficulty_scaling',
-        description: `${ENEMY_BALANCE[enemyId].name} veteran/normal HP ratio`,
-        severity: vetRatio >= 1.2 ? 'pass' : 'warn',
-        details: `ratio=${vetRatio.toFixed(2)} (want >= 1.20)`,
+        description: `${ENEMY_BALANCE[enemyId].name} hard/normal HP ratio`,
+        severity: hardRatio >= 1.2 ? 'pass' : 'warn',
+        details: `ratio=${hardRatio.toFixed(2)} (want >= 1.20)`,
       });
 
-      // Legendary should be at least 50% harder than normal
-      const legRatio = legendaryHP / normalHP;
+      // Nightmare should be at least 50% harder than normal
+      const nightmareRatio = nightmareHP / normalHP;
       this.addEntry({
         check: 'difficulty_scaling',
-        description: `${ENEMY_BALANCE[enemyId].name} legendary/normal HP ratio`,
-        severity: legRatio >= 1.5 ? 'pass' : 'warn',
-        details: `ratio=${legRatio.toFixed(2)} (want >= 1.50)`,
+        description: `${ENEMY_BALANCE[enemyId].name} nightmare/normal HP ratio`,
+        severity: nightmareRatio >= 1.5 ? 'pass' : 'warn',
+        details: `ratio=${nightmareRatio.toFixed(2)} (want >= 1.50)`,
       });
     }
   }
@@ -385,7 +388,7 @@ export class BalanceValidator {
 
         this.addEntry({
           check: 'weapon_dominance',
-          description: `Burst DPS ratio: ${WEAPON_BALANCE[a].name} vs ${WEAPON_BALANCE[b].name}`,
+          description: `Burst DPS ratio: ${WEAPON_BALANCE[a]?.name ?? a} vs ${WEAPON_BALANCE[b]?.name ?? b}`,
           severity: ratio <= MAX_DPS_RATIO ? 'pass' : 'warn',
           details: `ratio=${ratio.toFixed(2)} (max ${MAX_DPS_RATIO})`,
         });
@@ -402,7 +405,7 @@ export class BalanceValidator {
 
         this.addEntry({
           check: 'weapon_dominance_sustained',
-          description: `Sustained DPS ratio: ${WEAPON_BALANCE[a].name} vs ${WEAPON_BALANCE[b].name}`,
+          description: `Sustained DPS ratio: ${WEAPON_BALANCE[a]?.name ?? a} vs ${WEAPON_BALANCE[b]?.name ?? b}`,
           severity: ratio <= MAX_DPS_RATIO ? 'pass' : 'warn',
           details: `ratio=${ratio.toFixed(2)} (max ${MAX_DPS_RATIO})`,
         });
@@ -447,7 +450,7 @@ export class BalanceValidator {
    * Validate that species mix fractions sum to approximately 1.0 for each level.
    */
   private validateSpawnMixTotals(): void {
-    for (const [levelId, config] of Object.entries(LEVEL_SPAWN_CONFIG)) {
+    for (const [_levelId, config] of Object.entries(LEVEL_SPAWN_CONFIG)) {
       const total = Object.values(config.speciesMix).reduce((sum, v) => sum + v, 0);
       const isValid = Math.abs(total - 1.0) < 0.01;
 

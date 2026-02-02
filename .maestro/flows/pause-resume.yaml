@@ -1,23 +1,37 @@
 # Pause and Resume Flow - Tests pause menu during gameplay
-# Run: maestro test .maestro/flows/pause-resume.yaml
+# Cross-platform: Web, Android, iOS
 
-appId: com.jbcom.stellardescent
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - gameplay
+  - pause
+name: "Pause and Resume Test"
 
 ---
 - launchApp:
     clearState: true
 
-- tapOn:
-    text: "NEW GAME"
-    timeout: 10000
-
 - extendedWaitUntil:
-    notVisible:
-      text: "Loading"
+    visible: "NEW GAME"
     timeout: 30000
 
-# Wait for game to be playable
+- tapOn:
+    text: "NEW GAME"
+
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+# Wait for game to be playable (skip tutorial comms)
 - wait: 3000
+
+# Skip tutorial comms by pressing space/clicking
+- tapOn:
+    text: "ACKNOWLEDGE"
+    optional: true
+
+- wait: 1000
 
 # Tap pause button (usually top-right corner)
 - tapOn:

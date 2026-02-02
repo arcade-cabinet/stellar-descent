@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useGame } from '../../game/context/GameContext';
-import { useSettings } from '../../game/context/SettingsContext';
+import { usePlayer } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { useSettings } from '../../game/stores/useSettingsStore';
+import { useGameEvent } from '../../hooks/useGameEvent';
 import styles from './DamageIndicators.module.css';
 
 /**
@@ -24,6 +25,8 @@ export interface HitMarker {
   id: number;
   /** Whether this was a critical/headshot */
   isCritical: boolean;
+  /** Whether this hit resulted in a kill */
+  isKill: boolean;
   /** Damage dealt */
   damage: number;
   /** Time created */
@@ -41,16 +44,108 @@ export interface HitMarker {
  * - All effects support reduced motion preferences
  */
 export function DamageIndicators() {
-  const {
-    playerHealth,
-    maxHealth,
-    damageIndicators,
-    hitMarkers,
-    removeDamageIndicator,
-    removeHitMarker,
-    damageFlash,
-  } = useGame();
+  const { playerHealth, maxHealth } = usePlayer();
   const { settings } = useSettings();
+
+  // All combat UI is EventBus-driven (CombatContext removed)
+  const [damageFlash, setDamageFlash] = useState(false);
+  const [damageIndicators, setDamageIndicators] = useState<DamageIndicator[]>([]);
+  const [hitMarkers, setHitMarkers] = useState<HitMarker[]>([]);
+  const indicatorIdRef = useRef(0);
+  const hitMarkerIdRef = useRef(0);
+  const damageFlashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Subscribe to PLAYER_DAMAGED events for damage flash and directional indicators
+  useGameEvent('PLAYER_DAMAGED', (event) => {
+    // Trigger damage flash
+    setDamageFlash(true);
+
+    if (damageFlashTimeoutRef.current) {
+      clearTimeout(damageFlashTimeoutRef.current);
+    }
+    damageFlashTimeoutRef.current = setTimeout(() => {
+      setDamageFlash(false);
+    }, 300);
+
+    // Add directional damage indicator if direction is provided
+    if (event.direction !== undefined) {
+      const id = indicatorIdRef.current++;
+      const newIndicator: DamageIndicator = {
+        id,
+        angle: event.direction,
+        damage: event.amount,
+        timestamp: performance.now(),
+      };
+      setDamageIndicators((prev) => [...prev, newIndicator]);
+    }
+  });
+
+  // Subscribe to PROJECTILE_IMPACT events for hit markers
+  useGameEvent('PROJECTILE_IMPACT', (event) => {
+    const id = hitMarkerIdRef.current++;
+    const newMarker: HitMarker = {
+      id,
+      damage: event.damage,
+      isCritical: event.isCritical,
+      isKill: false,
+      timestamp: performance.now(),
+    };
+    setHitMarkers((prev) => [...prev, newMarker]);
+  });
+
+  // Subscribe to ENEMY_KILLED events for kill markers
+  useGameEvent('ENEMY_KILLED', () => {
+    const id = hitMarkerIdRef.current++;
+    const newMarker: HitMarker = {
+      id,
+      damage: 0,
+      isCritical: false,
+      isKill: true,
+      timestamp: performance.now(),
+    };
+    setHitMarkers((prev) => [...prev, newMarker]);
+  });
+
+  // Clean up damage indicators
+  useEffect(() => {
+    const INDICATOR_DURATION = 1000;
+    const interval = setInterval(() => {
+      const now = performance.now();
+      setDamageIndicators((prev) =>
+        prev.filter((indicator) => now - indicator.timestamp < INDICATOR_DURATION)
+      );
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Clean up hit markers
+  useEffect(() => {
+    const HIT_DURATION = 150;
+    const CRITICAL_DURATION = 200;
+    const KILL_DURATION = 300;
+
+    const interval = setInterval(() => {
+      const now = performance.now();
+      setHitMarkers((prev) =>
+        prev.filter((marker) => {
+          let duration = HIT_DURATION;
+          if (marker.isKill) duration = KILL_DURATION;
+          else if (marker.isCritical) duration = CRITICAL_DURATION;
+          return now - marker.timestamp < duration;
+        })
+      );
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (damageFlashTimeoutRef.current) {
+        clearTimeout(damageFlashTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Calculate health percentage
   const healthPercent =
@@ -105,48 +200,6 @@ export function DamageIndicators() {
     }
   }, [isLowHealth, isCriticalHealth, playerHealth]);
 
-  // Remove expired damage indicators
-  useEffect(() => {
-    const INDICATOR_DURATION = 1000; // 1 second
-    const now = performance.now();
-
-    damageIndicators.forEach((indicator) => {
-      if (now - indicator.timestamp > INDICATOR_DURATION) {
-        removeDamageIndicator(indicator.id);
-      }
-    });
-
-    // Set up cleanup interval
-    const interval = setInterval(() => {
-      const currentTime = performance.now();
-      damageIndicators.forEach((indicator) => {
-        if (currentTime - indicator.timestamp > INDICATOR_DURATION) {
-          removeDamageIndicator(indicator.id);
-        }
-      });
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [damageIndicators, removeDamageIndicator]);
-
-  // Remove expired hit markers
-  useEffect(() => {
-    const HIT_MARKER_DURATION = 200; // 200ms for snappy feedback
-    const CRITICAL_HIT_DURATION = 400; // Longer for criticals
-
-    const interval = setInterval(() => {
-      const currentTime = performance.now();
-      hitMarkers.forEach((marker) => {
-        const duration = marker.isCritical ? CRITICAL_HIT_DURATION : HIT_MARKER_DURATION;
-        if (currentTime - marker.timestamp > duration) {
-          removeHitMarker(marker.id);
-        }
-      });
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [hitMarkers, removeHitMarker]);
-
   // Convert angle to screen position for directional indicators
   const getIndicatorStyle = useCallback((indicator: DamageIndicator) => {
     // Calculate intensity based on damage (more damage = more visible)
@@ -199,7 +252,7 @@ export function DamageIndicators() {
       <div className={styles.directionalIndicators}>
         {damageIndicators.map((indicator) => (
           <div
-            key={indicator.id}
+            key={`indicator-${indicator.id}`}
             className={`${styles.directionalIndicator} ${
               prefersReducedMotion ? styles.reducedMotion : ''
             }`}
@@ -209,26 +262,41 @@ export function DamageIndicators() {
       </div>
 
       {/* Hit markers - center of screen */}
-      {hitMarkers.length > 0 && (
+      {settings.showHitmarkers && hitMarkers.length > 0 && (
         <div className={styles.hitMarkerContainer}>
-          {hitMarkers.map((marker) => (
-            <div
-              key={marker.id}
-              className={`${styles.hitMarker} ${marker.isCritical ? styles.critical : ''} ${
-                prefersReducedMotion ? styles.reducedMotion : ''
-              }`}
-            >
-              {/* X-shaped hit marker */}
-              <div className={styles.hitMarkerLine1} />
-              <div className={styles.hitMarkerLine2} />
-              {/* Critical hit indicator */}
-              {marker.isCritical && (
-                <div className={styles.criticalIndicator}>
-                  <span className={styles.criticalText}>CRITICAL</span>
-                </div>
-              )}
-            </div>
-          ))}
+          {hitMarkers.map((marker) => {
+            // Determine marker type class
+            const typeClass = marker.isKill
+              ? styles.kill
+              : marker.isCritical
+                ? styles.critical
+                : '';
+
+            return (
+              <div
+                key={`marker-${marker.id}`}
+                className={`${styles.hitMarker} ${typeClass} ${
+                  prefersReducedMotion ? styles.reducedMotion : ''
+                }`}
+              >
+                {/* X-shaped hit marker */}
+                <div className={styles.hitMarkerLine1} />
+                <div className={styles.hitMarkerLine2} />
+                {/* Kill indicator */}
+                {marker.isKill && (
+                  <div className={styles.killIndicator}>
+                    <span className={styles.killIcon}>+</span>
+                  </div>
+                )}
+                {/* Critical hit indicator (only if not a kill) */}
+                {marker.isCritical && !marker.isKill && (
+                  <div className={styles.criticalIndicator}>
+                    <span className={styles.criticalText}>CRITICAL</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

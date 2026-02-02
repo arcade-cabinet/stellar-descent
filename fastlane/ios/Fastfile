@@ -1,0 +1,171 @@
+# Stellar Descent iOS Fastfile
+# https://docs.fastlane.tools
+
+default_platform(:ios)
+
+platform :ios do
+  # ============================================================================
+  # Configuration
+  # ============================================================================
+
+  APP_IDENTIFIER = "com.jbcom.stellardescent"
+  TEAM_ID = ENV["APPLE_TEAM_ID"]
+
+  before_all do
+    setup_ci if ENV['CI']
+  end
+
+  # ============================================================================
+  # Code Signing (using Match)
+  # ============================================================================
+
+  desc "Sync certificates and profiles from private repo"
+  lane :sync_certs do
+    # For App Store / TestFlight builds
+    match(
+      type: "appstore",
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      readonly: is_ci
+    )
+  end
+
+  desc "Sync development certificates"
+  lane :sync_dev_certs do
+    match(
+      type: "development",
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      readonly: is_ci
+    )
+  end
+
+  # ============================================================================
+  # Build Lanes
+  # ============================================================================
+
+  desc "Build the app for TestFlight"
+  lane :build do
+    sync_certs
+
+    # Increment build number based on TestFlight
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1,
+      xcodeproj: "App.xcodeproj"
+    )
+
+    build_app(
+      workspace: "App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "StellarDescent.ipa",
+      clean: true,
+      xcargs: "-allowProvisioningUpdates"
+    )
+  end
+
+  desc "Build for local development"
+  lane :build_dev do
+    sync_dev_certs
+
+    build_app(
+      workspace: "App.xcworkspace",
+      scheme: "App",
+      configuration: "Debug",
+      export_method: "development",
+      output_directory: "./build",
+      output_name: "StellarDescent-Dev.ipa"
+    )
+  end
+
+  # ============================================================================
+  # Distribution Lanes
+  # ============================================================================
+
+  desc "Upload to TestFlight for beta testing"
+  lane :beta do
+    build
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      changelog: "New build from CI/CD pipeline"
+    )
+  end
+
+  desc "Upload to TestFlight and distribute to external testers"
+  lane :beta_external do
+    build
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      distribute_external: true,
+      groups: ["Beta Testers"],
+      changelog: changelog_from_git_commits(commits_count: 10)
+    )
+  end
+
+  desc "Submit to App Store for review"
+  lane :release do
+    build
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY"],
+      is_key_content_base64: true
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      precheck_include_in_app_purchases: false
+    )
+  end
+
+  # ============================================================================
+  # Utility Lanes
+  # ============================================================================
+
+  desc "Register new devices"
+  lane :register_devices do
+    register_devices(
+      devices_file: "./devices.txt"
+    )
+    match(type: "development", force_for_new_devices: true)
+  end
+
+  desc "Take screenshots for App Store"
+  lane :screenshots do
+    capture_screenshots
+    frame_screenshots(white: true)
+  end
+
+  # ============================================================================
+  # Error Handling
+  # ============================================================================
+
+  error do |lane, exception|
+    # Notify on error (could add Slack notification here)
+    UI.error("Lane #{lane} failed with: #{exception.message}")
+  end
+end

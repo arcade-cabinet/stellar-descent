@@ -8,7 +8,6 @@
  * 4. Visited locations are persisted so they don't change on revisit
  */
 
-import type { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { StructuralEntity } from '../components/structural';
 
 export const CHUNK_SIZE = 32; // 32 units = 8 grid tiles (4 units each)
@@ -168,12 +167,12 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Floor tiles (3 wide x 4 deep = 12 tiles)
       ...Array.from({ length: 12 }, (_, i) => ({
         type: 'structural' as const,
-        modelPath: '/models/psx/structures/floor_ceiling_hr_1.glb',
+        modelPath: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
         position: { x: ((i % 3) - 1) * 4, y: 0, z: Math.floor(i / 3) * 4 - 6 },
         components: {
           structuralPiece: {
             pieceType: 'floor' as const,
-            modelPath: '/models/psx/structures/floor_ceiling_hr_1.glb',
+            modelPath: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
             gridX: i % 3,
             gridZ: Math.floor(i / 3),
             gridY: 0,
@@ -184,13 +183,13 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Ceiling tiles
       ...Array.from({ length: 12 }, (_, i) => ({
         type: 'structural' as const,
-        modelPath: '/models/psx/structures/floor_ceiling_hr_1.glb',
+        modelPath: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
         position: { x: ((i % 3) - 1) * 4, y: 6, z: Math.floor(i / 3) * 4 - 6 },
         rotation: { x: Math.PI, y: 0, z: 0 },
         components: {
           structuralPiece: {
             pieceType: 'ceiling' as const,
-            modelPath: '/models/psx/structures/floor_ceiling_hr_1.glb',
+            modelPath: '/assets/models/environment/station/floor_ceiling_hr_1.glb',
             gridX: i % 3,
             gridZ: Math.floor(i / 3),
             gridY: 1,
@@ -201,13 +200,13 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Left wall panels (4 deep)
       ...Array.from({ length: 4 }, (_, i) => ({
         type: 'structural' as const,
-        modelPath: '/models/psx/structures/wall_hr_1_double.glb',
+        modelPath: '/assets/models/environment/station/wall_hr_1_double.glb',
         position: { x: -6, y: 3, z: i * 4 - 6 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 },
         components: {
           structuralPiece: {
             pieceType: 'wall' as const,
-            modelPath: '/models/psx/structures/wall_hr_1_double.glb',
+            modelPath: '/assets/models/environment/station/wall_hr_1_double.glb',
             gridX: -1,
             gridZ: i,
             gridY: 0,
@@ -218,13 +217,13 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Right wall panels
       ...Array.from({ length: 4 }, (_, i) => ({
         type: 'structural' as const,
-        modelPath: '/models/psx/structures/wall_hr_1_double.glb',
+        modelPath: '/assets/models/environment/station/wall_hr_1_double.glb',
         position: { x: 6, y: 3, z: i * 4 - 6 },
         rotation: { x: 0, y: -Math.PI / 2, z: 0 },
         components: {
           structuralPiece: {
             pieceType: 'wall' as const,
-            modelPath: '/models/psx/structures/wall_hr_1_double.glb',
+            modelPath: '/assets/models/environment/station/wall_hr_1_double.glb',
             gridX: 3,
             gridZ: i,
             gridY: 0,
@@ -235,7 +234,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Overhead pipes
       {
         type: 'structural' as const,
-        modelPath: '/models/psx/structures/pipe_cx_1.glb',
+        modelPath: '/assets/models/environment/station/pipe_cx_1.glb',
         position: { x: -2, y: 5.5, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
         components: {
@@ -251,7 +250,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Lights
       {
         type: 'light' as const,
-        modelPath: '/models/psx/lights/lamp_mx_2_on.glb',
+        modelPath: '/assets/models/props/electrical/lamp_mx_2_on.glb',
         position: { x: 0, y: 5.8, z: -4 },
         components: {
           lightFixture: {
@@ -267,7 +266,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       },
       {
         type: 'light' as const,
-        modelPath: '/models/psx/lights/lamp_mx_2_on.glb',
+        modelPath: '/assets/models/props/electrical/lamp_mx_2_on.glb',
         position: { x: 0, y: 5.8, z: 4 },
         components: {
           lightFixture: {
@@ -301,12 +300,12 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Floor - use industrial grated version
       ...Array.from({ length: 9 }, (_, i) => ({
         type: 'structural' as const,
-        modelPath: '/models/psx/structures/floor_ceiling_hr_3.glb',
+        modelPath: '/assets/models/environment/station/floor_ceiling_hr_3.glb',
         position: { x: ((i % 3) - 1) * 4, y: 0, z: Math.floor(i / 3) * 4 - 4 },
         components: {
           structuralPiece: {
             pieceType: 'floor' as const,
-            modelPath: '/models/psx/structures/floor_ceiling_hr_3.glb',
+            modelPath: '/assets/models/environment/station/floor_ceiling_hr_3.glb',
             gridX: i % 3,
             gridZ: Math.floor(i / 3),
             gridY: 0,
@@ -317,7 +316,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Inner door (north)
       {
         type: 'door' as const,
-        modelPath: '/models/psx/doors/door_hr_6.glb',
+        modelPath: '/assets/models/props/doors/door_hr_6.glb',
         position: { x: 0, y: 0, z: 4 },
         components: {
           door: {
@@ -335,7 +334,7 @@ export const STATION_ASSEMBLAGES: Record<string, AssemblageDefinition> = {
       // Outer door (south)
       {
         type: 'door' as const,
-        modelPath: '/models/psx/doors/door_hr_6.glb',
+        modelPath: '/assets/models/props/doors/door_hr_6.glb',
         position: { x: 0, y: 0, z: -4 },
         components: {
           door: {

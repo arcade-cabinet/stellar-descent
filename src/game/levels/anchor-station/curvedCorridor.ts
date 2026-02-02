@@ -4,10 +4,85 @@ import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { Mesh as BabylonMesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
+import { getLogger } from '../../core/Logger';
+
+const log = getLogger('CurvedCorridor');
+
+// Constants for mesh side orientation (replacing magic number 2)
+const SIDE_DOUBLE = BabylonMesh.DOUBLESIDE; // Both sides visible
+
+// ============================================================================
+// GLB Asset Paths for Curved Corridor Elements
+// ============================================================================
+
+const CORRIDOR_MODELS = {
+  // Windows
+  window1: '/assets/models/environment/station/window_hr_1.glb',
+  window2: '/assets/models/environment/station/window_hr_2.glb',
+
+  // Light fixtures
+  lightFixture: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
+
+  // Pipes (for ceiling) - Note: curved pipes use MeshBuilder.CreateTube
+  pipe1: '/assets/models/environment/station/pipe_cx_1.glb',
+  pipe2: '/assets/models/environment/station/pipe_cx_2.glb',
+
+  // Door frame pieces
+  doorFrame: '/assets/models/environment/station/doorway_hr_1.glb',
+
+  // Rivets/bolts for wall detailing
+  rivet: '/assets/models/props/containers/bolt_mx_1.glb',
+} as const;
+
+/**
+ * Preload all GLB assets needed for curved corridors.
+ * Must be called before createCurvedCorridor() for GLB visuals to appear.
+ */
+export async function preloadCurvedCorridorAssets(scene: Scene): Promise<void> {
+  const loadPromises = Object.values(CORRIDOR_MODELS).map((path) =>
+    AssetManager.loadAssetByPath(path, scene)
+  );
+  await Promise.allSettled(loadPromises);
+  log.info('Curved corridor assets preloaded');
+}
+
+/**
+ * Place a GLB visual model at the specified position.
+ * Returns the TransformNode root of the placed model, or null if loading fails.
+ */
+function placeVisualModel(
+  scene: Scene,
+  parent: TransformNode,
+  assetPath: string,
+  name: string,
+  position: Vector3,
+  rotation: Vector3,
+  scale: Vector3,
+  allMeshes: (Mesh | AbstractMesh)[]
+): TransformNode | null {
+  const node = AssetManager.createInstanceByPath(assetPath, name, scene, true, 'environment');
+  if (node) {
+    node.position = position;
+    node.rotation = rotation;
+    node.scaling = scale;
+    node.parent = parent;
+    // Add child meshes to tracking array
+    const children = node.getChildMeshes();
+    for (const mesh of children) {
+      mesh.receiveShadows = true;
+      mesh.checkCollisions = false; // Windows don't need collision
+      allMeshes.push(mesh);
+    }
+  }
+  return node;
+}
 
 // ============================================================================
 // Curved Corridor System for Ring Station Design
@@ -137,7 +212,7 @@ function createCurvedSurface(
       pathArray: paths,
       closeArray: false,
       closePath: false,
-      sideOrientation: 2,
+      sideOrientation: SIDE_DOUBLE,
     },
     scene
   );
@@ -190,7 +265,7 @@ function createCurvedFloor(
       pathArray: floorPaths,
       closeArray: false,
       closePath: false,
-      sideOrientation: 2,
+      sideOrientation: SIDE_DOUBLE,
     },
     scene
   );
@@ -265,7 +340,7 @@ function createCurvedWalls(
     // Create wall segments between windows
     const windowArcSpacing = config.arcAngle / (config.windowCount + 1);
     const windowArcWidth = windowArcSpacing * 0.4; // Window takes 40% of spacing
-    const wallArcWidth = windowArcSpacing * 0.6; // Wall takes 60%
+    const _wallArcWidth = windowArcSpacing * 0.6; // Wall takes 60%
 
     for (let w = 0; w <= config.windowCount; w++) {
       // Wall segment before/between/after windows
@@ -305,33 +380,21 @@ function createCurvedWalls(
         const windowPos = polarToCartesian(config.ringRadius + config.width / 2, windowAngle);
         windowPos.y = config.height * 0.5;
 
-        // Window frame
-        const frameOuter = MeshBuilder.CreateBox(
-          `windowFrame_${w}`,
-          { width: 2, height: 1.5, depth: wallThickness + 0.1 },
-          scene
-        );
-        frameOuter.position = windowPos.clone();
-        frameOuter.position.y = config.height * 0.55;
         // Rotate to face outward
         const outwardAngle = windowAngle + Math.PI / 2;
-        frameOuter.rotation.y = outwardAngle;
-        frameOuter.material = materials.get('windowFrame')!;
-        frameOuter.parent = parent;
-        allMeshes.push(frameOuter);
 
-        // Window glass
-        const glass = MeshBuilder.CreateBox(
-          `windowGlass_${w}`,
-          { width: 1.6, height: 1.2, depth: 0.05 },
-          scene
+        // Use GLB window model (alternating between window1 and window2 for variety)
+        const windowModelPath = w % 2 === 0 ? CORRIDOR_MODELS.window1 : CORRIDOR_MODELS.window2;
+        placeVisualModel(
+          scene,
+          parent,
+          windowModelPath,
+          `window_${w}`,
+          new Vector3(windowPos.x, 0, windowPos.z),
+          new Vector3(0, outwardAngle, 0),
+          new Vector3(1, 1, 1),
+          allMeshes
         );
-        glass.position = windowPos.clone();
-        glass.position.y = config.height * 0.55;
-        glass.rotation.y = outwardAngle;
-        glass.material = materials.get('window')!;
-        glass.parent = parent;
-        allMeshes.push(glass);
       }
     }
   } else {
@@ -348,7 +411,7 @@ function createCurvedWalls(
     allMeshes.push(outerWall);
   }
 
-  // Add rivets along walls
+  // Add rivets along walls using GLB bolt models
   if (config.hasRivets) {
     const rivetSpacing = config.arcAngle / 12;
     for (let i = 1; i < 12; i++) {
@@ -359,15 +422,17 @@ function createCurvedWalls(
         const innerRivetPos = polarToCartesian(config.ringRadius - config.width / 2 + 0.05, angle);
         innerRivetPos.y = yOffset;
 
-        const rivet = MeshBuilder.CreateSphere(
+        // Use GLB bolt model for rivets
+        placeVisualModel(
+          scene,
+          parent,
+          CORRIDOR_MODELS.rivet,
           `rivet_inner_${i}_${yOffset}`,
-          { diameter: 0.08 },
-          scene
+          innerRivetPos,
+          new Vector3(Math.PI / 2, angle + Math.PI, 0), // Rotate to face outward from wall
+          new Vector3(0.3, 0.3, 0.3), // Scale down the bolt
+          allMeshes
         );
-        rivet.position = innerRivetPos;
-        rivet.material = materials.get('pipe')!;
-        rivet.parent = parent;
-        allMeshes.push(rivet);
       }
 
       // Outer wall rivets (between windows)
@@ -379,15 +444,17 @@ function createCurvedWalls(
           );
           outerRivetPos.y = yOffset;
 
-          const rivet = MeshBuilder.CreateSphere(
+          // Use GLB bolt model for rivets
+          placeVisualModel(
+            scene,
+            parent,
+            CORRIDOR_MODELS.rivet,
             `rivet_outer_${i}_${yOffset}`,
-            { diameter: 0.08 },
-            scene
+            outerRivetPos,
+            new Vector3(Math.PI / 2, angle, 0), // Rotate to face inward from wall
+            new Vector3(0.3, 0.3, 0.3), // Scale down the bolt
+            allMeshes
           );
-          rivet.position = outerRivetPos;
-          rivet.material = materials.get('pipe')!;
-          rivet.parent = parent;
-          allMeshes.push(rivet);
         }
       }
     }
@@ -435,7 +502,7 @@ function createCurvedCeiling(
       pathArray: ceilingPaths,
       closeArray: false,
       closePath: false,
-      sideOrientation: 2,
+      sideOrientation: SIDE_DOUBLE,
     },
     scene
   );
@@ -452,18 +519,19 @@ function createCurvedCeiling(
       const lightPos = polarToCartesian(config.ringRadius, angle);
       lightPos.y = config.height - 0.15;
 
-      // Light fixture
-      const fixture = MeshBuilder.CreateCylinder(
+      // Light fixture - GLB model
+      placeVisualModel(
+        scene,
+        parent,
+        CORRIDOR_MODELS.lightFixture,
         `lightFixture_${i}`,
-        { height: 0.12, diameter: 0.5, tessellation: 12 },
-        scene
+        new Vector3(lightPos.x, config.height - 0.3, lightPos.z),
+        new Vector3(0, angle, 0),
+        new Vector3(0.5, 0.5, 0.5),
+        allMeshes
       );
-      fixture.position = lightPos.clone();
-      fixture.material = materials.get('active')!;
-      fixture.parent = parent;
-      allMeshes.push(fixture);
 
-      // Point light
+      // Point light (BabylonJS light source - not geometry)
       const light = new PointLight(`corridorLight_${i}`, lightPos.clone(), scene);
       light.diffuse = new Color3(0.9, 0.95, 1);
       light.intensity = 0.4;
@@ -493,7 +561,7 @@ function createCurvedCeiling(
           path: pipePaths,
           radius: 0.08,
           tessellation: 8,
-          sideOrientation: 2,
+          sideOrientation: SIDE_DOUBLE,
         },
         scene
       );
@@ -557,20 +625,19 @@ function createCorridorDoor(
   doorRight.parent = parent;
   allMeshes.push(doorRight);
 
-  // Door frame pieces
-  const frameTop = MeshBuilder.CreateBox(
-    `${name}_frameTop`,
-    { width: frameWidth + 0.4, height: 0.25, depth: 0.4 },
-    scene
+  // Door frame - GLB model placed above the door
+  placeVisualModel(
+    scene,
+    parent,
+    CORRIDOR_MODELS.doorFrame,
+    `${name}_frame`,
+    new Vector3(doorPos.x, 0, doorPos.z),
+    new Vector3(0, doorRotationY, 0),
+    new Vector3(1, 1, 1),
+    allMeshes
   );
-  frameTop.position = doorPos.clone();
-  frameTop.position.y = frameHeight;
-  frameTop.rotation.y = doorRotationY;
-  frameTop.material = materials.get('windowFrame')!;
-  frameTop.parent = parent;
-  allMeshes.push(frameTop);
 
-  // Status light
+  // Status light (VFX - animated emissive color)
   const statusLight = MeshBuilder.CreateSphere(`${name}_status`, { diameter: 0.12 }, scene);
   statusLight.position = doorPos.clone();
   statusLight.position.y = frameHeight + 0.2;

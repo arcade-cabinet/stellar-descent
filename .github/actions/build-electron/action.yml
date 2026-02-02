@@ -1,0 +1,111 @@
+name: 'Build Electron Desktop App'
+description: 'Builds Electron desktop application for Mac, Linux, or Windows'
+
+inputs:
+  platform:
+    description: 'Target platform (mac, linux, win)'
+    required: true
+  version:
+    description: 'Version string for naming artifacts'
+    required: false
+    default: 'dev'
+  upload-artifact:
+    description: 'Whether to upload the build artifact'
+    required: false
+    default: 'true'
+  mac-certs-base64:
+    description: 'Base64 encoded Mac code signing certificate (optional)'
+    required: false
+  mac-certs-password:
+    description: 'Mac certificate password (optional)'
+    required: false
+  win-certs-base64:
+    description: 'Base64 encoded Windows code signing certificate (optional)'
+    required: false
+  win-certs-password:
+    description: 'Windows certificate password (optional)'
+    required: false
+
+outputs:
+  artifact-path:
+    description: 'Path to the output directory'
+    value: ${{ steps.build.outputs.artifact-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build web assets
+      shell: bash
+      run: pnpm build
+
+    - name: Add Electron platform
+      shell: bash
+      run: pnpm exec cap add @capacitor-community/electron || true
+
+    - name: Sync Capacitor with Electron
+      shell: bash
+      run: pnpm exec cap sync @capacitor-community/electron
+
+    - name: Install Electron dependencies
+      shell: bash
+      run: |
+        cd electron
+        npm install
+
+    - name: Build Electron app
+      shell: bash
+      id: build
+      run: |
+        cd electron
+
+        # Set platform-specific build command
+        case "${{ inputs.platform }}" in
+          mac)
+            npm run electron:build-mac || npx electron-builder --mac
+            ARTIFACT_DIR="dist/mac"
+            ;;
+          linux)
+            npm run electron:build-linux || npx electron-builder --linux AppImage deb
+            ARTIFACT_DIR="dist/linux"
+            ;;
+          win)
+            npm run electron:build-win || npx electron-builder --win
+            ARTIFACT_DIR="dist/win"
+            ;;
+        esac
+
+        # Create versioned output directory
+        VERSION=${{ inputs.version }}
+        PLATFORM=${{ inputs.platform }}
+        mkdir -p ../electron-builds
+
+        # Copy build outputs
+        if [ -d "dist" ]; then
+          find dist -type f \( -name "*.dmg" -o -name "*.pkg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.exe" -o -name "*.msi" \) -exec cp {} ../electron-builds/ \;
+        fi
+
+        # Rename with version
+        cd ../electron-builds
+        for file in *; do
+          if [ -f "$file" ]; then
+            ext="${file##*.}"
+            base="${file%.*}"
+            mv "$file" "stellar-descent-${VERSION}-${PLATFORM}.${ext}" 2>/dev/null || true
+          fi
+        done
+
+        ls -la .
+        echo "artifact-path=electron-builds" >> $GITHUB_OUTPUT
+      env:
+        CSC_LINK: ${{ inputs.mac-certs-base64 }}
+        CSC_KEY_PASSWORD: ${{ inputs.mac-certs-password }}
+        WIN_CSC_LINK: ${{ inputs.win-certs-base64 }}
+        WIN_CSC_KEY_PASSWORD: ${{ inputs.win-certs-password }}
+
+    - name: Upload Electron artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: electron-${{ inputs.platform }}-${{ inputs.version }}
+        path: electron-builds/
+        retention-days: 30

@@ -1,11 +1,11 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useCombatStore } from '../stores/useCombatStore';
+import { useMissionStore } from '../stores/useMissionStore';
+import { usePlayerStore } from '../stores/usePlayerStore';
 import {
   DEFAULT_HUD_VISIBILITY,
   GameProvider,
-  type HUDVisibility,
-  type ObjectiveMarker,
-  type ScreenSpaceObjective,
   TUTORIAL_START_HUD_VISIBILITY,
   useGame,
 } from './GameContext';
@@ -53,9 +53,6 @@ function TestConsumer() {
       <button type="button" onClick={() => game.showNotification('Test notification')}>
         Show Notification
       </button>
-      <button type="button" onClick={() => game.onDamage()}>
-        Trigger Damage
-      </button>
     </div>
   );
 }
@@ -63,6 +60,10 @@ function TestConsumer() {
 describe('GameContext', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // Reset shared Zustand store state between tests
+    useCombatStore.getState().reset();
+    useMissionStore.getState().reset();
+    usePlayerStore.getState().reset();
   });
 
   afterEach(() => {
@@ -413,53 +414,11 @@ describe('GameContext', () => {
     });
   });
 
-  describe('damage flash', () => {
-    it('should trigger damage flash', () => {
-      let damageFlash = false;
-
-      function DamageTestConsumer() {
-        const game = useGame();
-        damageFlash = game.damageFlash;
-        return (
-          <button type="button" onClick={() => game.onDamage()}>
-            Trigger Damage
-          </button>
-        );
-      }
-
-      render(
-        <GameProvider>
-          <DamageTestConsumer />
-        </GameProvider>
-      );
-
-      expect(damageFlash).toBe(false);
-
-      act(() => {
-        screen.getByText('Trigger Damage').click();
-      });
-
-      expect(damageFlash).toBe(true);
-
-      // Damage flash should clear after 300ms
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
-      expect(damageFlash).toBe(false);
-    });
-  });
-
-  describe('error handling', () => {
-    it('should throw when useGame is used outside provider', () => {
-      // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      expect(() => {
-        render(<TestConsumer />);
-      }).toThrow('useGame must be used within a GameProvider');
-
-      consoleSpy.mockRestore();
+  describe('store-based state', () => {
+    it('should work without GameProvider since all state is in Zustand stores', () => {
+      // After migration to Zustand, useGame() works outside GameProvider
+      render(<TestConsumer />);
+      expect(screen.getByTestId('health').textContent).toBe('100');
     });
   });
 

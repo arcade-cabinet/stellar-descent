@@ -21,13 +21,16 @@ import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 
 import '@babylonjs/core/Particles/particleSystemComponent';
+
+import { getLogger } from '../core/Logger';
+
+const log = getLogger('WeatherSystem');
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -212,9 +215,6 @@ export class WeatherSystem {
 
   // Camera reference for positioned effects
   private cameraPosition: Vector3 = Vector3.Zero();
-
-  // Performance settings
-  private readonly baseParticleCount = 100;
   private qualityLevel: 'low' | 'medium' | 'high' = 'medium';
 
   constructor(scene: Scene) {
@@ -235,7 +235,7 @@ export class WeatherSystem {
     // Create particle texture
     this.createParticleTexture();
 
-    console.log('[WeatherSystem] Initialized');
+    log.info('Initialized');
   }
 
   // ============================================================================
@@ -827,7 +827,7 @@ export class WeatherSystem {
   setWeather(type: WeatherType, intensity: WeatherIntensity = 'medium', immediate = false): void {
     const preset = this.getPresetForType(type);
     if (!preset) {
-      console.warn(`[WeatherSystem] Unknown weather type: ${type}`);
+      log.warn(`Unknown weather type: ${type}`);
       return;
     }
 
@@ -850,7 +850,7 @@ export class WeatherSystem {
       this.transitionProgress = 0;
     }
 
-    console.log(`[WeatherSystem] Weather changing to ${type} (${intensity})`);
+    log.info(`Weather changing to ${type} (${intensity})`);
   }
 
   private getPresetForType(type: WeatherType): WeatherPreset | null {
@@ -1094,7 +1094,7 @@ export class WeatherSystem {
     }
   }
 
-  private updateHiveEffects(deltaTime: number): void {
+  private updateHiveEffects(_deltaTime: number): void {
     // Update bioluminescent pulsing
     const time = Date.now() * 0.001;
 
@@ -1207,7 +1207,7 @@ export class WeatherSystem {
     this.particleTexture?.dispose();
     this.particleTexture = null;
 
-    console.log('[WeatherSystem] Disposed');
+    log.info('Disposed');
   }
 }
 

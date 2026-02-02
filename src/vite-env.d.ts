@@ -1,6 +1,27 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
 
+// Build timestamp injected by Vite at build time
+declare const __BUILD_TIMESTAMP__: string;
+
+// Build flag environment variables
+interface ImportMetaEnv {
+  readonly VITE_APP_TITLE: string;
+  readonly VITE_PUBLIC_PATH?: string;
+  /** Unlock all campaign levels (dev/testing) */
+  readonly VITE_UNLOCK_ALL_CAMPAIGNS?: string;
+  /** Enable AI Player option in Settings */
+  readonly VITE_ENABLE_AI_PLAYER?: string;
+  /** Show debug info in HUD */
+  readonly VITE_DEBUG_HUD?: string;
+  /** Enable dev menu (backtick key) */
+  readonly VITE_DEV_MENU?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 declare module '*.gltf' {
   const gltf: any;
   export default gltf;

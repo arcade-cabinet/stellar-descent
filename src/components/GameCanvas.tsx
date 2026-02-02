@@ -3,14 +3,14 @@ import { Engine } from '@babylonjs/core/Engines/engine';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
 import { Effect } from '@babylonjs/core/Materials/effect';
-import { ShaderMaterial } from '@babylonjs/core/Materials/shaderMaterial';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Scene } from '@babylonjs/core/scene';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Side effect imports - need these for proper ES6 tree-shaking
 import '@babylonjs/core/Materials/standardMaterial';
@@ -21,17 +21,28 @@ import '@babylonjs/core/Shaders/default.vertex';
 import '@babylonjs/core/Shaders/default.fragment';
 
 import { useGame } from '../game/context/GameContext';
+import { AssetManager } from '../game/core/AssetManager';
 import { disposeAudioManager, getAudioManager } from '../game/core/AudioManager';
+import { getEventBus } from '../game/core/EventBus';
 import { GameManager } from '../game/core/GameManager';
+import { getLogger } from '../game/core/Logger';
 import { getPerformanceManager } from '../game/core/PerformanceManager';
-import { AnchorStationLevel } from '../game/levels/anchor-station';
-import {
-  CAMPAIGN_LEVELS,
-  type ILevel,
-  type LevelCallbacks,
-  type LevelId,
-} from '../game/levels/types';
+import { defaultLevelFactories } from '../game/levels/factories';
+import { CAMPAIGN_LEVELS, type ILevel, type LevelId } from '../game/levels/types';
+import { initShareSystem } from '../game/social';
+import { getCombatStore } from '../game/stores/useCombatStore';
 import styles from './GameCanvas.module.css';
+
+// ---------------------------------------------------------------------------
+// Rock formation GLB paths (replaces procedural cylinders)
+// ---------------------------------------------------------------------------
+
+/** Tall rock pillar GLBs for menu scene background decoration */
+const ROCK_FORMATION_GLBS = [
+  '/assets/models/environment/alien-flora/alien_tall_rock_1_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_2_01.glb',
+  '/assets/models/environment/alien-flora/alien_tall_rock_3_01.glb',
+];
 
 // Planet configuration
 const PLANET_RADIUS = 6000;
@@ -214,19 +225,12 @@ const planetFragmentShader = `
   }
 `;
 
-export type GameState =
-  | 'title'
-  | 'menu'
-  | 'briefing'
-  | 'intro'
-  | 'loading'
-  | 'tutorial'
-  | 'dropping'
-  | 'playing'
-  | 'paused'
-  | 'gameover'
-  | 'levelComplete'
-  | 'credits';
+import type { CampaignPhase } from '../game/campaign/types';
+
+const log = getLogger('GameCanvas');
+
+/** @deprecated Use CampaignPhase from campaign/types instead */
+export type GameState = CampaignPhase;
 
 interface LoadingProgress {
   stage: string;
@@ -241,6 +245,7 @@ interface GameCanvasProps {
   onDropComplete: () => void;
   onLoadingProgress?: (progress: LoadingProgress) => void;
   onLevelChange?: (levelId: LevelId) => void;
+  onLevelComplete?: () => void;
 }
 
 export function GameCanvas({
@@ -250,12 +255,13 @@ export function GameCanvas({
   onDropComplete,
   onLoadingProgress,
   onLevelChange,
+  onLevelComplete,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const sceneRef = useRef<Scene | null>(null);
   const gameManagerRef = useRef<GameManager | null>(null);
-  const tutorialLevelRef = useRef<(ILevel & { onCommsDismissed?: () => void }) | null>(null);
+  const currentLevelRef = useRef<(ILevel & { onCommsDismissed?: () => void }) | null>(null);
   const prevGameStateRef = useRef<GameState>('menu');
   const planetRef = useRef<{
     planet: ReturnType<typeof MeshBuilder.CreateSphere>;
@@ -265,19 +271,14 @@ export function GameCanvas({
   const {
     showNotification,
     setPlayerHealth,
-    addKill,
-    onDamage,
     touchInput,
     showComms,
     hideComms,
     setObjective,
     commsDismissedFlag,
-    setIsCalibrating,
     setCompassData,
     setTutorialPhase,
     setIsTutorialActive,
-    addHitMarker,
-    addDamageIndicator,
   } = useGame();
 
   // Track pause state via ref for render loop access
@@ -288,8 +289,8 @@ export function GameCanvas({
 
   // Pass touch input to active level/game
   useEffect(() => {
-    if (gameState === 'tutorial' && tutorialLevelRef.current) {
-      tutorialLevelRef.current.setTouchInput(touchInput);
+    if (gameState === 'tutorial' && currentLevelRef.current) {
+      currentLevelRef.current.setTouchInput(touchInput);
     } else if ((gameState === 'playing' || gameState === 'dropping') && gameManagerRef.current) {
       gameManagerRef.current.setTouchInput(touchInput);
     }
@@ -297,8 +298,8 @@ export function GameCanvas({
 
   // Notify tutorial level when comms are dismissed
   useEffect(() => {
-    if (commsDismissedFlag > 0 && tutorialLevelRef.current?.onCommsDismissed) {
-      tutorialLevelRef.current.onCommsDismissed();
+    if (commsDismissedFlag > 0 && currentLevelRef.current?.onCommsDismissed) {
+      currentLevelRef.current.onCommsDismissed();
     }
   }, [commsDismissedFlag]);
 
@@ -308,7 +309,7 @@ export function GameCanvas({
     if (!canvas) return;
 
     let mounted = true;
-    let animationTime = 0;
+    let _animationTime = 0;
 
     async function initEngine() {
       if (!canvas || !mounted) return;
@@ -341,6 +342,10 @@ export function GameCanvas({
       const scene = new Scene(engine);
       sceneRef.current = scene;
 
+      // Expose scene for debugging (dev only)
+      (window as any).__BABYLON_SCENE__ = scene;
+      (window as any).__BABYLON_ENGINE__ = engine;
+
       // Enable better rendering
       scene.useRightHandedSystem = false;
       scene.clearColor = new Color4(0.01, 0.01, 0.02, 1);
@@ -372,10 +377,10 @@ export function GameCanvas({
       }
 
       // Register shaders
-      Effect.ShadersStore['starfieldVertexShader'] = starfieldVertexShader;
-      Effect.ShadersStore['starfieldFragmentShader'] = starfieldFragmentShader;
-      Effect.ShadersStore['planetVertexShader'] = planetVertexShader;
-      Effect.ShadersStore['planetFragmentShader'] = planetFragmentShader;
+      Effect.ShadersStore.starfieldVertexShader = starfieldVertexShader;
+      Effect.ShadersStore.starfieldFragmentShader = starfieldFragmentShader;
+      Effect.ShadersStore.planetVertexShader = planetVertexShader;
+      Effect.ShadersStore.planetFragmentShader = planetFragmentShader;
 
       // Starfield skybox - temporarily using solid color to bypass shader error
       const skybox = MeshBuilder.CreateBox('skybox', { size: 10000 }, scene);
@@ -418,7 +423,7 @@ export function GameCanvas({
       );
       planet.position.y = -PLANET_RADIUS;
 
-      const surfaceTexture = new Texture('https://assets.babylonjs.com/textures/rock.png', scene);
+      const surfaceTexture = new Texture('/assets/textures/levels/landfall/Rock022_1K-JPG_Color.jpg', scene);
 
       // Temporarily use StandardMaterial to bypass shader compilation issue
       const planetMaterial = new StandardMaterial('planetMat', scene);
@@ -430,36 +435,68 @@ export function GameCanvas({
 
       planetRef.current = { planet, planetMaterial };
 
-      // Rock formations
-      const rockMat = new StandardMaterial('rockMat', scene);
-      rockMat.diffuseColor = Color3.FromHexString('#5C4A3A');
-      rockMat.specularColor = new Color3(0.1, 0.08, 0.06);
-
-      for (let i = 0; i < 60; i++) {
-        const height = 20 + Math.random() * 100;
-        const rock = MeshBuilder.CreateCylinder(
-          `rock_${i}`,
-          {
-            height: height,
-            diameterTop: 2 + Math.random() * 8,
-            diameterBottom: 8 + Math.random() * 20,
-            tessellation: 6,
-          },
-          scene
+      // Rock formations - load GLB models asynchronously
+      // Fire-and-forget load; rocks appear once assets are cached
+      (async () => {
+        // Preload all rock GLBs
+        await Promise.all(
+          ROCK_FORMATION_GLBS.map((path) =>
+            AssetManager.loadAssetByPath(path, scene).catch((err) => {
+              log.warn(`Failed to preload rock GLB ${path}:`, err);
+              return null;
+            })
+          )
         );
 
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 50 + Math.random() * 600;
-        rock.position.x = Math.cos(angle) * dist;
-        rock.position.z = Math.sin(angle) * dist;
-        rock.position.y = height / 2;
-        rock.rotation.y = Math.random() * Math.PI;
-        rock.material = rockMat;
-      }
+        // Guard: component may have unmounted during async load
+        if (!mounted) return;
+
+        // Create rock formation instances
+        const rockNodes: TransformNode[] = [];
+        for (let i = 0; i < 60; i++) {
+          // Pick a random rock variant
+          const glbPath = ROCK_FORMATION_GLBS[i % ROCK_FORMATION_GLBS.length];
+          const instanceName = `menuRock_${i}`;
+
+          const rockNode = AssetManager.createInstanceByPath(
+            glbPath,
+            instanceName,
+            scene,
+            false, // No LOD for menu background
+            'environment'
+          );
+
+          if (!rockNode) continue;
+
+          // Random scale to vary heights (replaces height param from cylinders)
+          const baseScale = 5 + Math.random() * 15;
+          const heightVariance = 0.7 + Math.random() * 0.6;
+          rockNode.scaling = new Vector3(
+            baseScale * (0.8 + Math.random() * 0.4),
+            baseScale * heightVariance * 1.5, // Taller for pillar effect
+            baseScale * (0.8 + Math.random() * 0.4)
+          );
+
+          // Position in a ring around the scene
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 50 + Math.random() * 600;
+          rockNode.position.x = Math.cos(angle) * dist;
+          rockNode.position.z = Math.sin(angle) * dist;
+          rockNode.position.y = 0;
+
+          // Random rotation + slight tilt for natural look
+          rockNode.rotation.x = (Math.random() - 0.5) * 0.2;
+          rockNode.rotation.y = Math.random() * Math.PI * 2;
+          rockNode.rotation.z = (Math.random() - 0.5) * 0.2;
+
+          rockNodes.push(rockNode);
+        }
+        log.info(`Created ${rockNodes.length} rock formation GLB instances`);
+      })();
 
       // Render loop
       engine.runRenderLoop(() => {
-        animationTime += engine.getDeltaTime() / 1000;
+        _animationTime += engine.getDeltaTime() / 1000;
 
         // Update performance monitoring (dynamic resolution, FPS tracking)
         perfManager.update();
@@ -470,13 +507,13 @@ export function GameCanvas({
         // Update active level/game based on current refs (not state)
         const deltaTime = engine.getDeltaTime() / 1000;
 
-        if (tutorialLevelRef.current) {
+        if (currentLevelRef.current) {
           // Only update game logic if not paused
           if (!isPaused) {
-            tutorialLevelRef.current.update(deltaTime);
+            currentLevelRef.current.update(deltaTime);
           }
           // Always render the level's own scene (levels create their own scene in ILevel architecture)
-          tutorialLevelRef.current.getScene().render();
+          currentLevelRef.current.getScene().render();
         } else if (gameManagerRef.current) {
           // Only update game logic if not paused
           if (!isPaused) {
@@ -498,11 +535,16 @@ export function GameCanvas({
     };
     window.addEventListener('resize', handleResize);
 
+    // Initialize share system with canvas reference
+    if (canvas) {
+      initShareSystem(canvas);
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize);
       mounted = false;
-      tutorialLevelRef.current?.dispose();
-      tutorialLevelRef.current = null;
+      currentLevelRef.current?.dispose();
+      currentLevelRef.current = null;
       gameManagerRef.current?.dispose();
       gameManagerRef.current = null;
       sceneRef.current?.dispose();
@@ -585,93 +627,127 @@ export function GameCanvas({
       setIsTutorialActive(true);
       setTutorialPhase(0);
 
-      // Build LevelCallbacks for the ILevel interface
-      const levelCallbacks: LevelCallbacks = {
-        onCommsMessage: (msg) => {
-          console.log(
-            '[GameCanvas] onCommsMessage callback, showing comms:',
-            msg.text?.substring(0, 40)
-          );
-          showComms(msg);
-        },
-        onObjectiveUpdate: (title, instructions) => {
-          setObjective(title, instructions);
-        },
-        onChapterChange: (_chapter) => {
-          // Tutorial level is chapter 1
-        },
-        onHealthChange: setPlayerHealth,
-        onKill: addKill,
-        onDamage: onDamage,
-        onNotification: showNotification,
-        onLevelComplete: (_nextLevelId) => {
-          // Tutorial complete - transition to next state
-          setIsTutorialActive(false);
-          onTutorialComplete();
-        },
-        onCombatStateChange: (_inCombat) => {
-          // Tutorial doesn't track combat state
-        },
-        onActionGroupsChange: (_groups) => {
-          // Action buttons handled by level internally
-        },
-        onActionHandlerRegister: (_handler) => {
-          // Action handler registration
-        },
-        onHitMarker: (damage, isCritical) => {
-          addHitMarker(damage, isCritical);
-        },
-        onDirectionalDamage: (angle, damage) => {
-          addDamageIndicator(angle, damage);
-        },
-      };
-
-      console.log('[GameCanvas] Creating AnchorStationLevel');
-      tutorialLevelRef.current = new AnchorStationLevel(
-        engine,
-        canvas,
-        CAMPAIGN_LEVELS.anchor_station,
-        levelCallbacks
-      );
-      console.log('[GameCanvas] Calling initialize()');
-      tutorialLevelRef.current
+      // Use factory system to create the tutorial level
+      // Callbacks are now handled via EventBus - no need to pass callbacks
+      const levelConfig = CAMPAIGN_LEVELS.anchor_station;
+      const factory = defaultLevelFactories[levelConfig.type];
+      if (!factory) {
+        log.error(`No factory found for level type: ${levelConfig.type}`);
+        return;
+      }
+      log.info(`Creating level via factory: ${levelConfig.id} (type: ${levelConfig.type})`);
+      const level = factory(engine, canvas, levelConfig);
+      log.debug('Calling initialize()');
+      level
         .initialize()
         .then(() => {
-          console.log('[GameCanvas] initialize() completed');
+          log.info('initialize() completed');
+          // Only start rendering the level AFTER initialization completes.
+          // This prevents rendering an empty scene while assets load.
+          currentLevelRef.current = level;
         })
         .catch((e) => {
-          console.error('[GameCanvas] initialize() failed:', e);
+          log.error('initialize() failed:', e);
+          // Still set the level ref so user sees something rather than stuck loading
+          currentLevelRef.current = level;
         });
     }
 
     // Transition: tutorial -> dropping OR menu -> dropping (skip)
     if (gameState === 'dropping' && prevState !== 'dropping' && prevState !== 'playing') {
       // Clean up tutorial
-      if (tutorialLevelRef.current) {
-        tutorialLevelRef.current.dispose();
-        tutorialLevelRef.current = null;
+      if (currentLevelRef.current) {
+        currentLevelRef.current.dispose();
+        currentLevelRef.current = null;
       }
       hideComms();
       setObjective('', '');
 
-      // Notify level change
-      onLevelChange?.('landfall');
+      // Determine which level to load
+      const dropLevelId: LevelId = (startLevelId as LevelId) || 'landfall';
+      onLevelChange?.(dropLevelId);
 
-      // Create game manager for surface gameplay
+      // Create game manager for surface gameplay (Landfall uses GameManager for HALO drop)
       if (!gameManagerRef.current) {
         gameManagerRef.current = new GameManager(scene, engine, canvas, {
           onHealthChange: setPlayerHealth,
-          onKill: addKill,
-          onDamage: onDamage,
+          onKill: () => {
+            getCombatStore().addKill();
+          },
+          onDamage: () => {
+            getEventBus().emit({ type: 'PLAYER_DAMAGED', amount: 0, source: 'combat' });
+          },
           onNotification: showNotification,
           onCompassUpdate: setCompassData,
-          onHitMarker: addHitMarker,
-          onDirectionalDamage: addDamageIndicator,
+          onHitMarker: (damage, isCritical, isKill) => {
+            if (isKill) {
+              getEventBus().emit({
+                type: 'ENEMY_KILLED',
+                position: Vector3.Zero(),
+                enemyType: 'unknown',
+              });
+            } else {
+              getEventBus().emit({
+                type: 'PROJECTILE_IMPACT',
+                position: Vector3.Zero(),
+                damage,
+                isCritical,
+              });
+            }
+          },
+          onDirectionalDamage: (angle, damage) => {
+            getEventBus().emit({
+              type: 'PLAYER_DAMAGED',
+              amount: damage,
+              direction: angle,
+            });
+          },
         });
         gameManagerRef.current.initialize();
       }
 
       showNotification('ORBITAL DROP INITIATED', 4000);
+    }
+
+    // Transition: loading -> playing (for levels beyond tutorial/landfall)
+    if (gameState === 'playing' && prevState !== 'playing' && prevState !== 'dropping') {
+      // For non-tutorial, non-drop levels, create the level via factory
+      const levelId = startLevelId as LevelId;
+      if (levelId && levelId !== 'anchor_station' && levelId !== 'landfall') {
+        // Clean up any existing level
+        if (currentLevelRef.current) {
+          currentLevelRef.current.dispose();
+          currentLevelRef.current = null;
+        }
+        if (gameManagerRef.current) {
+          gameManagerRef.current.dispose();
+          gameManagerRef.current = null;
+        }
+
+        onLevelChange?.(levelId);
+
+        const levelConfig = CAMPAIGN_LEVELS[levelId];
+        const factory = defaultLevelFactories[levelConfig.type];
+        if (!factory) {
+          log.error(`No factory found for level type: ${levelConfig.type} (level: ${levelId})`);
+          return;
+        }
+
+        log.info(`Creating level via factory: ${levelId} (type: ${levelConfig.type})`);
+        // Callbacks are now handled via EventBus - no need to pass callbacks
+        const level = factory(engine, canvas, levelConfig);
+        level
+          .initialize()
+          .then(() => {
+            log.info(`Level ${levelId} initialized`);
+            // Only start rendering after initialization completes
+            currentLevelRef.current = level;
+          })
+          .catch((e) => {
+            log.error(`Level ${levelId} initialization failed:`, e);
+            currentLevelRef.current = level;
+          });
+      }
     }
 
     // Transition: dropping -> playing
@@ -683,21 +759,15 @@ export function GameCanvas({
     prevGameStateRef.current = gameState;
   }, [
     gameState,
+    startLevelId,
     setPlayerHealth,
-    addKill,
-    onDamage,
     showNotification,
-    showComms,
     hideComms,
     setObjective,
-    onTutorialComplete,
-    setIsCalibrating,
     onLevelChange,
     setCompassData,
     setTutorialPhase,
     setIsTutorialActive,
-    addHitMarker,
-    addDamageIndicator,
   ]);
 
   return (

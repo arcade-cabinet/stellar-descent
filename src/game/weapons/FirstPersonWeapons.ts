@@ -1,34 +1,49 @@
 /**
- * FirstPersonWeapons - First-person weapon view model system
+ * FirstPersonWeapons - First-person weapon view model system (GLB-backed)
  *
- * Creates procedural BabylonJS meshes for each weapon, attaches them to the
- * active camera, and drives per-frame animation (bob, sway, recoil, ADS,
- * reload, switch) via WeaponAnimationController.
+ * Loads weapon models from GLB files in public/assets/models/props/weapons/ and
+ * attaches them to the active camera. Drives per-frame animation (bob, sway,
+ * recoil, ADS, reload, switch) via WeaponAnimationController.
  *
- * Weapon meshes are screen-space positioned (right side, slight angle) and
- * rendered on a dedicated render layer so they never clip into world geometry.
+ * Supports a DOOM-style weapon inventory:
+ *   - Player starts with a sidearm
+ *   - Weapon caches in levels grant access to better weapons
+ *   - Up to 18 unique weapons, each with its own GLB model
+ *   - Quick-switch between any owned weapons
  *
- * Three procedural weapon models (all from BabylonJS primitives):
- *   1. Assault Rifle  - box body + cylinder barrel + box stock + box magazine
- *   2. Pulse SMG      - smaller box body + shorter cylinder barrel (no stock)
- *   3. Plasma Cannon  - sphere body + flared cylinder barrel + emissive glow
+ * Weapon meshes are rendered on a dedicated render layer (renderingGroupId 1)
+ * so they never clip into world geometry.
  *
- * Materials: metallic PBR for ballistic weapons, emissive blue PBR for plasma.
+ * Muzzle flash and tracer VFX remain as MeshBuilder planes (transient effects).
  */
 
 import type { Camera } from '@babylonjs/core/Cameras/camera';
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import '@babylonjs/loaders/glTF';
+
 import { getWeaponActions } from '../context/useWeaponActions';
-import { MuzzleFlashManager } from '../effects/MuzzleFlash';
+import { getLogger } from '../core/Logger';
+import { getPostProcessManager } from '../core/PostProcessManager';
+import { weaponSoundManager } from '../core/WeaponSoundManager';
+import { createMuzzleFlashConfigFromWeapon, MuzzleFlashManager } from '../effects/MuzzleFlash';
+import { categoryToCasingType, shellCasings } from '../effects/ShellCasings';
 import { WeaponEffects, type WeaponType } from '../effects/WeaponEffects';
-import type { WeaponId } from '../entities/weapons';
+import {
+  categoryToEffectType,
+  getWeaponGLBPath,
+  WEAPONS,
+  type WeaponId,
+} from '../entities/weapons';
+import { type VehicleYokeInput, VehicleYokeSystem } from './VehicleYoke';
 import { WeaponAnimationController, type WeaponMovementInput } from './WeaponAnimations';
+import { WeaponRecoilSystem } from './WeaponRecoilSystem';
+
+const log = getLogger('FirstPersonWeapons');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -54,58 +69,122 @@ const _tmpPos = Vector3.Zero();
 const _tmpRot = Vector3.Zero();
 
 // ---------------------------------------------------------------------------
-// Weapon mesh definitions
+// Per-weapon transform tuning for GLB models
 // ---------------------------------------------------------------------------
 
-interface WeaponMeshDef {
-  weaponId: WeaponId;
-  /** Build the procedural mesh hierarchy and return the root + muzzle point. */
-  build: (scene: Scene) => { root: TransformNode; muzzlePoint: TransformNode };
-  /** Weapon type tag for muzzle flash / effect system. */
-  effectType: WeaponType;
+/**
+ * Per-weapon local transform adjustments so each GLB sits correctly in
+ * first-person view. Values are applied on top of the anchor position.
+ */
+interface WeaponViewTransform {
+  position: Vector3;
+  rotation: Vector3;
+  scale: Vector3;
+  /** Muzzle point offset from the weapon root (local space). */
+  muzzleOffset: Vector3;
 }
 
-// ---------------------------------------------------------------------------
-// Material helpers
-// ---------------------------------------------------------------------------
+/** Default view transform for weapons without specific tuning. */
+const DEFAULT_VIEW_TRANSFORM: WeaponViewTransform = {
+  position: new Vector3(0, 0, 0),
+  rotation: new Vector3(0, Math.PI, 0),
+  scale: new Vector3(1, 1, 1),
+  muzzleOffset: new Vector3(0, 0.005, 0.4),
+};
 
-function createBallisticMaterial(scene: Scene, name: string): PBRMaterial {
-  const mat = new PBRMaterial(`fpWeapon_${name}_mat`, scene);
-  mat.albedoColor = new Color3(0.15, 0.15, 0.17);
-  mat.metallic = 0.85;
-  mat.roughness = 0.35;
-  mat.environmentIntensity = 0.5;
-  return mat;
-}
+/**
+ * Per-weapon view transforms. Weapons not listed here use DEFAULT_VIEW_TRANSFORM.
+ * Adjust these after seeing the GLBs in-engine for pixel-perfect placement.
+ */
+const VIEW_TRANSFORMS: Partial<Record<WeaponId, Partial<WeaponViewTransform>>> = {
+  bare_hands: {
+    position: new Vector3(0, -0.15, 0.3),
+    rotation: new Vector3(0, Math.PI, 0),
+    scale: new Vector3(0.008, 0.008, 0.008), // Scale down GLB from Blender
+    muzzleOffset: new Vector3(0, 0, 0.2), // Not used for melee
+  },
+  sidearm: {
+    position: new Vector3(0, -0.02, 0.05),
+    scale: new Vector3(0.9, 0.9, 0.9),
+    muzzleOffset: new Vector3(0, 0.005, 0.22),
+  },
+  heavy_pistol: {
+    position: new Vector3(0, -0.02, 0.05),
+    scale: new Vector3(0.95, 0.95, 0.95),
+    muzzleOffset: new Vector3(0, 0.005, 0.24),
+  },
+  classic_pistol: {
+    position: new Vector3(0, -0.02, 0.05),
+    scale: new Vector3(0.9, 0.9, 0.9),
+    muzzleOffset: new Vector3(0, 0.005, 0.22),
+  },
+  revolver: {
+    position: new Vector3(0, -0.02, 0.05),
+    scale: new Vector3(0.95, 0.95, 0.95),
+    muzzleOffset: new Vector3(0, 0.008, 0.26),
+  },
+  pulse_smg: {
+    muzzleOffset: new Vector3(0, 0.003, 0.29),
+  },
+  pdw: {
+    muzzleOffset: new Vector3(0, 0.003, 0.28),
+  },
+  smg_mp5: {
+    muzzleOffset: new Vector3(0, 0.003, 0.3),
+  },
+  smg_ump: {
+    muzzleOffset: new Vector3(0, 0.003, 0.3),
+  },
+  assault_rifle: {
+    muzzleOffset: new Vector3(0, 0.005, 0.46),
+  },
+  battle_rifle: {
+    muzzleOffset: new Vector3(0, 0.005, 0.48),
+  },
+  carbine: {
+    muzzleOffset: new Vector3(0, 0.005, 0.42),
+  },
+  dmr: {
+    muzzleOffset: new Vector3(0, 0.005, 0.5),
+  },
+  sniper_rifle: {
+    muzzleOffset: new Vector3(0, 0.005, 0.55),
+  },
+  auto_shotgun: {
+    muzzleOffset: new Vector3(0, 0.005, 0.44),
+  },
+  double_barrel: {
+    muzzleOffset: new Vector3(0, 0.005, 0.42),
+  },
+  plasma_cannon: {
+    muzzleOffset: new Vector3(0, 0, 0.3),
+  },
+  heavy_lmg: {
+    position: new Vector3(0, -0.02, 0),
+    muzzleOffset: new Vector3(0, 0.005, 0.5),
+  },
+  saw_lmg: {
+    position: new Vector3(0, -0.02, 0),
+    muzzleOffset: new Vector3(0, 0.005, 0.5),
+  },
+  vehicle_yoke: {
+    position: new Vector3(0, -0.15, 0.35), // Centered, close to camera
+    rotation: new Vector3(0.3, 0, 0), // Tilted for dashboard view
+    scale: new Vector3(1, 1, 1), // Yoke handles its own scaling
+    muzzleOffset: new Vector3(0, 0, 0), // Not used for yoke
+  },
+};
 
-function createBallisticAccentMaterial(scene: Scene, name: string): PBRMaterial {
-  const mat = new PBRMaterial(`fpWeapon_${name}_accent_mat`, scene);
-  mat.albedoColor = new Color3(0.25, 0.25, 0.27);
-  mat.metallic = 0.7;
-  mat.roughness = 0.5;
-  mat.environmentIntensity = 0.4;
-  return mat;
-}
-
-function createPlasmaMaterial(scene: Scene, name: string): PBRMaterial {
-  const mat = new PBRMaterial(`fpWeapon_${name}_plasma_mat`, scene);
-  mat.albedoColor = new Color3(0.08, 0.12, 0.2);
-  mat.metallic = 0.9;
-  mat.roughness = 0.2;
-  mat.emissiveColor = new Color3(0.15, 0.4, 0.8);
-  mat.emissiveIntensity = 0.6;
-  mat.environmentIntensity = 0.5;
-  return mat;
-}
-
-function createPlasmaGlowMaterial(scene: Scene, name: string): PBRMaterial {
-  const mat = new PBRMaterial(`fpWeapon_${name}_glow_mat`, scene);
-  mat.albedoColor = new Color3(0.2, 0.5, 1.0);
-  mat.metallic = 0.3;
-  mat.roughness = 0.1;
-  mat.emissiveColor = new Color3(0.3, 0.6, 1.0);
-  mat.emissiveIntensity = 1.5;
-  return mat;
+/** Resolve the full view transform for a weapon. */
+function resolveViewTransform(weaponId: WeaponId): WeaponViewTransform {
+  const overrides = VIEW_TRANSFORMS[weaponId];
+  if (!overrides) return { ...DEFAULT_VIEW_TRANSFORM };
+  return {
+    position: overrides.position ?? DEFAULT_VIEW_TRANSFORM.position,
+    rotation: overrides.rotation ?? DEFAULT_VIEW_TRANSFORM.rotation,
+    scale: overrides.scale ?? DEFAULT_VIEW_TRANSFORM.scale,
+    muzzleOffset: overrides.muzzleOffset ?? DEFAULT_VIEW_TRANSFORM.muzzleOffset,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -124,338 +203,27 @@ function tagWeaponMeshes(root: TransformNode): void {
 }
 
 // ---------------------------------------------------------------------------
-// Mesh builders for each weapon
+// Loaded weapon instance
 // ---------------------------------------------------------------------------
 
-function buildAssaultRifle(scene: Scene): { root: TransformNode; muzzlePoint: TransformNode } {
-  const root = new TransformNode('fp_assault_rifle', scene);
-
-  const bodyMat = createBallisticMaterial(scene, 'rifle');
-  const accentMat = createBallisticAccentMaterial(scene, 'rifle');
-
-  // Body (main receiver)
-  const body = MeshBuilder.CreateBox(
-    'rifle_body',
-    { width: 0.06, height: 0.065, depth: 0.28 },
-    scene
-  );
-  body.material = bodyMat;
-  body.parent = root;
-  body.position.set(0, 0, 0);
-
-  // Barrel
-  const barrel = MeshBuilder.CreateCylinder(
-    'rifle_barrel',
-    {
-      diameter: 0.025,
-      height: 0.32,
-      tessellation: 12,
-    },
-    scene
-  );
-  barrel.material = accentMat;
-  barrel.parent = root;
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.005, 0.3);
-
-  // Barrel shroud / handguard
-  const handguard = MeshBuilder.CreateBox(
-    'rifle_handguard',
-    {
-      width: 0.05,
-      height: 0.045,
-      depth: 0.14,
-    },
-    scene
-  );
-  handguard.material = accentMat;
-  handguard.parent = root;
-  handguard.position.set(0, -0.005, 0.15);
-
-  // Stock
-  const stock = MeshBuilder.CreateBox(
-    'rifle_stock',
-    { width: 0.04, height: 0.055, depth: 0.15 },
-    scene
-  );
-  stock.material = bodyMat;
-  stock.parent = root;
-  stock.position.set(0, 0, -0.2);
-
-  // Stock butt (angled)
-  const stockButt = MeshBuilder.CreateBox(
-    'rifle_stockbutt',
-    { width: 0.035, height: 0.06, depth: 0.04 },
-    scene
-  );
-  stockButt.material = bodyMat;
-  stockButt.parent = root;
-  stockButt.position.set(0, -0.01, -0.27);
-
-  // Magazine
-  const magazine = MeshBuilder.CreateBox(
-    'rifle_mag',
-    { width: 0.035, height: 0.1, depth: 0.06 },
-    scene
-  );
-  magazine.material = accentMat;
-  magazine.parent = root;
-  magazine.position.set(0, -0.07, 0.02);
-  magazine.rotation.x = -0.12; // Slight forward angle
-
-  // Top rail
-  const rail = MeshBuilder.CreateBox(
-    'rifle_rail',
-    { width: 0.03, height: 0.012, depth: 0.18 },
-    scene
-  );
-  rail.material = accentMat;
-  rail.parent = root;
-  rail.position.set(0, 0.038, 0.04);
-
-  // Muzzle point (where flash spawns)
-  const muzzlePoint = new TransformNode('rifle_muzzle', scene);
-  muzzlePoint.parent = root;
-  muzzlePoint.position.set(0, 0.005, 0.46);
-
-  tagWeaponMeshes(root);
-
-  return { root, muzzlePoint };
-}
-
-function buildPulseSMG(scene: Scene): { root: TransformNode; muzzlePoint: TransformNode } {
-  const root = new TransformNode('fp_pulse_smg', scene);
-
-  const bodyMat = createBallisticMaterial(scene, 'smg');
-  const accentMat = createBallisticAccentMaterial(scene, 'smg');
-
-  // Body (compact receiver)
-  const body = MeshBuilder.CreateBox(
-    'smg_body',
-    { width: 0.05, height: 0.055, depth: 0.18 },
-    scene
-  );
-  body.material = bodyMat;
-  body.parent = root;
-  body.position.set(0, 0, 0);
-
-  // Barrel (shorter)
-  const barrel = MeshBuilder.CreateCylinder(
-    'smg_barrel',
-    {
-      diameter: 0.02,
-      height: 0.2,
-      tessellation: 12,
-    },
-    scene
-  );
-  barrel.material = accentMat;
-  barrel.parent = root;
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.003, 0.19);
-
-  // Barrel shroud
-  const shroud = MeshBuilder.CreateCylinder(
-    'smg_shroud',
-    {
-      diameter: 0.035,
-      height: 0.08,
-      tessellation: 8,
-    },
-    scene
-  );
-  shroud.material = accentMat;
-  shroud.parent = root;
-  shroud.rotation.x = Math.PI / 2;
-  shroud.position.set(0, 0.003, 0.12);
-
-  // Pistol grip
-  const grip = MeshBuilder.CreateBox(
-    'smg_grip',
-    { width: 0.03, height: 0.065, depth: 0.035 },
-    scene
-  );
-  grip.material = bodyMat;
-  grip.parent = root;
-  grip.position.set(0, -0.05, -0.04);
-  grip.rotation.x = -0.2;
-
-  // Magazine (in front of grip)
-  const magazine = MeshBuilder.CreateBox(
-    'smg_mag',
-    { width: 0.028, height: 0.08, depth: 0.04 },
-    scene
-  );
-  magazine.material = accentMat;
-  magazine.parent = root;
-  magazine.position.set(0, -0.06, 0.02);
-
-  // Top sight
-  const sight = MeshBuilder.CreateBox(
-    'smg_sight',
-    { width: 0.015, height: 0.015, depth: 0.04 },
-    scene
-  );
-  sight.material = accentMat;
-  sight.parent = root;
-  sight.position.set(0, 0.035, 0.02);
-
-  // Muzzle point
-  const muzzlePoint = new TransformNode('smg_muzzle', scene);
-  muzzlePoint.parent = root;
-  muzzlePoint.position.set(0, 0.003, 0.29);
-
-  tagWeaponMeshes(root);
-
-  return { root, muzzlePoint };
-}
-
-function buildPlasmaCannon(scene: Scene): { root: TransformNode; muzzlePoint: TransformNode } {
-  const root = new TransformNode('fp_plasma_cannon', scene);
-
-  const bodyMat = createPlasmaMaterial(scene, 'plasma');
-  const glowMat = createPlasmaGlowMaterial(scene, 'plasma');
-  const metalMat = createBallisticMaterial(scene, 'plasma_frame');
-
-  // Main body (sphere - plasma chamber)
-  const chamber = MeshBuilder.CreateSphere(
-    'plasma_chamber',
-    {
-      diameter: 0.14,
-      segments: 16,
-    },
-    scene
-  );
-  chamber.material = bodyMat;
-  chamber.parent = root;
-  chamber.position.set(0, 0, -0.02);
-
-  // Frame rails around chamber
-  const frameTop = MeshBuilder.CreateBox(
-    'plasma_frame_top',
-    { width: 0.02, height: 0.015, depth: 0.2 },
-    scene
-  );
-  frameTop.material = metalMat;
-  frameTop.parent = root;
-  frameTop.position.set(0, 0.065, 0.0);
-
-  const frameBottom = MeshBuilder.CreateBox(
-    'plasma_frame_bottom',
-    { width: 0.05, height: 0.015, depth: 0.2 },
-    scene
-  );
-  frameBottom.material = metalMat;
-  frameBottom.parent = root;
-  frameBottom.position.set(0, -0.065, 0.0);
-
-  // Barrel (flared cylinder - widens toward muzzle)
-  const barrel = MeshBuilder.CreateCylinder(
-    'plasma_barrel',
-    {
-      diameterTop: 0.055,
-      diameterBottom: 0.035,
-      height: 0.22,
-      tessellation: 16,
-    },
-    scene
-  );
-  barrel.material = bodyMat;
-  barrel.parent = root;
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0, 0.18);
-
-  // Inner barrel glow ring (emissive accent)
-  const glowRing = MeshBuilder.CreateTorus(
-    'plasma_glow_ring',
-    {
-      diameter: 0.05,
-      thickness: 0.008,
-      tessellation: 16,
-    },
-    scene
-  );
-  glowRing.material = glowMat;
-  glowRing.parent = root;
-  glowRing.rotation.x = Math.PI / 2;
-  glowRing.position.set(0, 0, 0.28);
-
-  // Rear glow ring
-  const rearGlow = MeshBuilder.CreateTorus(
-    'plasma_rear_ring',
-    {
-      diameter: 0.06,
-      thickness: 0.006,
-      tessellation: 16,
-    },
-    scene
-  );
-  rearGlow.material = glowMat;
-  rearGlow.parent = root;
-  rearGlow.rotation.x = Math.PI / 2;
-  rearGlow.position.set(0, 0, -0.08);
-
-  // Grip
-  const grip = MeshBuilder.CreateBox(
-    'plasma_grip',
-    { width: 0.035, height: 0.075, depth: 0.04 },
-    scene
-  );
-  grip.material = metalMat;
-  grip.parent = root;
-  grip.position.set(0, -0.09, -0.04);
-  grip.rotation.x = -0.15;
-
-  // Energy cell (rear)
-  const cell = MeshBuilder.CreateBox(
-    'plasma_cell',
-    { width: 0.04, height: 0.04, depth: 0.06 },
-    scene
-  );
-  cell.material = glowMat;
-  cell.parent = root;
-  cell.position.set(0, -0.04, -0.11);
-
-  // Muzzle point
-  const muzzlePoint = new TransformNode('plasma_muzzle', scene);
-  muzzlePoint.parent = root;
-  muzzlePoint.position.set(0, 0, 0.3);
-
-  tagWeaponMeshes(root);
-
-  return { root, muzzlePoint };
-}
-
-// ---------------------------------------------------------------------------
-// Mesh definition registry
-// ---------------------------------------------------------------------------
-
-const WEAPON_MESH_DEFS: WeaponMeshDef[] = [
-  {
-    weaponId: 'assault_rifle',
-    build: buildAssaultRifle,
-    effectType: 'rifle',
-  },
-  {
-    weaponId: 'pulse_smg',
-    build: buildPulseSMG,
-    effectType: 'pistol',
-  },
-  {
-    weaponId: 'plasma_cannon',
-    build: buildPlasmaCannon,
-    effectType: 'plasma',
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Built weapon instance
-// ---------------------------------------------------------------------------
-
-interface BuiltWeapon {
-  def: WeaponMeshDef;
+interface LoadedWeapon {
+  weaponId: WeaponId;
   root: TransformNode;
   muzzlePoint: TransformNode;
+  meshes: AbstractMesh[];
+  effectType: WeaponType;
+}
+
+// ---------------------------------------------------------------------------
+// Weapon inventory state
+// ---------------------------------------------------------------------------
+
+/** Tracks which weapons the player currently owns. */
+interface WeaponInventory {
+  /** Set of owned weapon IDs. */
+  owned: Set<WeaponId>;
+  /** Ordered list for quick-switch cycling. */
+  order: WeaponId[];
 }
 
 // ---------------------------------------------------------------------------
@@ -465,6 +233,9 @@ interface BuiltWeapon {
 /**
  * FirstPersonWeaponSystem - singleton that owns the FP weapon meshes, drives
  * animations, and integrates with the muzzle flash / effects pipeline.
+ *
+ * Weapon GLBs are loaded asynchronously on demand. The system pre-loads
+ * weapons in the player's inventory and lazily loads new ones when picked up.
  */
 export class FirstPersonWeaponSystem {
   private static instance: FirstPersonWeaponSystem | null = null;
@@ -475,8 +246,11 @@ export class FirstPersonWeaponSystem {
   /** Parent node attached to camera; weapon roots are children. */
   private weaponAnchor: TransformNode | null = null;
 
-  /** Pre-built weapon meshes keyed by WeaponId. */
-  private weapons: Map<WeaponId, BuiltWeapon> = new Map();
+  /** Loaded weapon meshes keyed by WeaponId. */
+  private weapons: Map<WeaponId, LoadedWeapon> = new Map();
+
+  /** In-flight load promises to deduplicate concurrent loads. */
+  private loadingWeapons: Map<WeaponId, Promise<LoadedWeapon | null>> = new Map();
 
   /** Currently visible weapon. */
   private activeWeaponId: WeaponId | null = null;
@@ -484,11 +258,32 @@ export class FirstPersonWeaponSystem {
   /** Animation controller. */
   private animController: WeaponAnimationController | null = null;
 
-  /** Optional glow layer for plasma weapon. */
+  /** Recoil system for camera effects. */
+  private recoilSystem: WeaponRecoilSystem | null = null;
+
+  /** Optional glow layer for plasma / energy weapons. */
   private glowLayer: GlowLayer | null = null;
 
   /** Frame observer dispose handle. */
   private frameObserverDispose: (() => void) | null = null;
+
+  /** DOOM-style weapon inventory. */
+  private inventory: WeaponInventory = {
+    owned: new Set(),
+    order: [],
+  };
+
+  /** Whether init has completed (including initial weapon load). */
+  private initialized = false;
+
+  /** Vehicle yoke system for vehicle sections. */
+  private vehicleYokeSystem: VehicleYokeSystem | null = null;
+
+  /** Whether vehicle mode is active. */
+  private isVehicleMode = false;
+
+  /** Stored weapon before entering vehicle. */
+  private preVehicleWeaponId: WeaponId | null = null;
 
   private constructor() {}
 
@@ -503,11 +298,14 @@ export class FirstPersonWeaponSystem {
 
   /**
    * Initialize the system. Call once after the scene and camera are ready.
+   * This is now async because GLB loading is asynchronous.
    *
    * @param scene   Active BabylonJS scene.
    * @param camera  The player's first-person camera.
+   * @param startingWeapons  Optional list of weapons to start with.
+   *                         Defaults to ['assault_rifle'].
    */
-  init(scene: Scene, camera: Camera): void {
+  async init(scene: Scene, camera: Camera, startingWeapons?: WeaponId[]): Promise<void> {
     this.scene = scene;
     this.camera = camera;
 
@@ -515,40 +313,50 @@ export class FirstPersonWeaponSystem {
     this.weaponAnchor = new TransformNode('fpWeaponAnchor', scene);
     this.weaponAnchor.parent = camera;
 
-    // Build all weapon meshes up front
-    for (const def of WEAPON_MESH_DEFS) {
-      const { root, muzzlePoint } = def.build(scene);
-      root.parent = this.weaponAnchor;
-      root.setEnabled(false); // hidden until equipped
-      this.weapons.set(def.weaponId, { def, root, muzzlePoint });
-    }
-
-    // Glow layer for plasma effects
+    // Glow layer for plasma / energy effects
     this.glowLayer = new GlowLayer('fpWeaponGlow', scene, {
       blurKernelSize: 32,
       mainTextureFixedSize: 256,
     });
     this.glowLayer.intensity = 0.6;
-    // Only affect weapon meshes by checking the name prefix
-    this.glowLayer.customEmissiveColorSelector = (mesh, _subMesh, _material, result) => {
-      if (
-        mesh.name.startsWith('plasma_glow') ||
-        mesh.name.startsWith('plasma_cell') ||
-        mesh.name.startsWith('plasma_rear')
-      ) {
-        result.set(0.3, 0.6, 1.0, 1.0);
-      } else {
-        result.set(0, 0, 0, 0);
-      }
+    this.glowLayer.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => {
+      // Let the GLB materials handle their own emissive; we just need the
+      // glow layer active for any emissive materials in weapon GLBs.
+      // Default: no custom override, use material emissive as-is.
+      result.set(0, 0, 0, 0);
     };
 
-    // Determine initial weapon
+    // Determine initial weapons
+    const weaponsToLoad = startingWeapons ?? ['assault_rifle'];
+    for (const id of weaponsToLoad) {
+      this.inventory.owned.add(id);
+      this.inventory.order.push(id);
+    }
+
+    // Load all starting weapons in parallel
+    const loadPromises = weaponsToLoad.map((id) => this.loadWeaponGLB(id));
+    await Promise.all(loadPromises);
+
+    // Determine initial active weapon
     const weaponActions = getWeaponActions();
     const startId: WeaponId = weaponActions
       ? weaponActions.getState().currentWeaponId
-      : 'assault_rifle';
+      : weaponsToLoad[0];
 
     this.animController = new WeaponAnimationController(startId);
+
+    // Initialize recoil system
+    this.recoilSystem = WeaponRecoilSystem.getInstance();
+    this.recoilSystem.init(scene, camera);
+    this.recoilSystem.setWeapon(startId);
+
+    // Initialize shell casing system with impact sound callback
+    shellCasings.init(scene, (_position, velocity) => {
+      // Play casing impact sound based on velocity
+      const volume = Math.min(0.3, velocity * 0.05);
+      weaponSoundManager.playImpact('metal', volume);
+    });
+
     this.equipWeapon(startId, false);
 
     // Register per-frame update
@@ -559,14 +367,293 @@ export class FirstPersonWeaponSystem {
       scene.onBeforeRenderObservable.remove(observer);
     };
 
-    console.log('[FirstPersonWeapons] Initialized with weapon:', startId);
+    // Initialize vehicle yoke system
+    this.vehicleYokeSystem = VehicleYokeSystem.getInstance();
+    this.vehicleYokeSystem.init(scene);
+
+    // Attach yoke to weapon anchor (but hidden by default)
+    const yoke = this.vehicleYokeSystem.getYoke();
+    if (yoke && this.weaponAnchor) {
+      yoke.getRoot().parent = this.weaponAnchor;
+      // Apply weapon layer mask to yoke meshes
+      for (const mesh of yoke.getMeshes()) {
+        mesh.layerMask = WEAPON_LAYER_MASK;
+        mesh.isPickable = false;
+        mesh.checkCollisions = false;
+        mesh.renderingGroupId = 1;
+      }
+    }
+
+    this.initialized = true;
+    log.info('Initialized with weapons:', [...this.inventory.owned].join(', '));
+  }
+
+  // -- GLB Loading ------------------------------------------------------------
+
+  /**
+   * Load a weapon GLB and register it in the weapons map.
+   * Returns the loaded weapon, or null if loading fails.
+   * Deduplicates concurrent loads of the same weapon.
+   */
+  private async loadWeaponGLB(weaponId: WeaponId): Promise<LoadedWeapon | null> {
+    // Already loaded
+    if (this.weapons.has(weaponId)) {
+      return this.weapons.get(weaponId)!;
+    }
+
+    // Already loading -- return the in-flight promise
+    if (this.loadingWeapons.has(weaponId)) {
+      return this.loadingWeapons.get(weaponId)!;
+    }
+
+    const promise = this.doLoadWeaponGLB(weaponId);
+    this.loadingWeapons.set(weaponId, promise);
+
+    try {
+      const result = await promise;
+      return result;
+    } finally {
+      this.loadingWeapons.delete(weaponId);
+    }
+  }
+
+  private async doLoadWeaponGLB(weaponId: WeaponId): Promise<LoadedWeapon | null> {
+    if (!this.scene || !this.weaponAnchor) return null;
+
+    const glbPath = getWeaponGLBPath(weaponId);
+    const weaponDef = WEAPONS[weaponId];
+    const viewTransform = resolveViewTransform(weaponId);
+
+    log.info(`Loading GLB: ${glbPath}`);
+    const startTime = performance.now();
+
+    try {
+      const result = await SceneLoader.ImportMeshAsync('', glbPath, '', this.scene);
+
+      const elapsed = (performance.now() - startTime).toFixed(1);
+      log.info(`Loaded ${weaponId} (${result.meshes.length} meshes) in ${elapsed}ms`);
+
+      // Create a root transform for this weapon
+      const root = new TransformNode(`fp_${weaponId}`, this.scene);
+      root.parent = this.weaponAnchor;
+
+      // Apply view transform
+      root.position.copyFrom(viewTransform.position);
+      root.rotation.copyFrom(viewTransform.rotation);
+      root.scaling.copyFrom(viewTransform.scale);
+
+      // Parent all top-level imported nodes under our root.
+      // SceneLoader.ImportMeshAsync creates a __root__ TransformNode;
+      // we reparent any mesh without a parent (or whose top-level ancestor
+      // has no parent) under our weapon root.
+      const reparented = new Set<TransformNode>();
+      for (const mesh of result.meshes) {
+        // Walk to the topmost ancestor
+        let topLevel: TransformNode = mesh;
+        while (topLevel.parent) {
+          topLevel = topLevel.parent as TransformNode;
+        }
+        if (!reparented.has(topLevel) && topLevel !== root) {
+          topLevel.parent = root;
+          reparented.add(topLevel);
+        }
+      }
+
+      // Tag for weapon render layer
+      tagWeaponMeshes(root);
+
+      // Create muzzle point
+      const muzzlePoint = new TransformNode(`${weaponId}_muzzle`, this.scene);
+      muzzlePoint.parent = root;
+      muzzlePoint.position.copyFrom(viewTransform.muzzleOffset);
+
+      // Start hidden
+      root.setEnabled(false);
+
+      const effectType = categoryToEffectType(weaponDef.category);
+
+      const loaded: LoadedWeapon = {
+        weaponId,
+        root,
+        muzzlePoint,
+        meshes: result.meshes,
+        effectType,
+      };
+
+      this.weapons.set(weaponId, loaded);
+      return loaded;
+    } catch (error) {
+      log.error(`Failed to load ${weaponId} from ${glbPath}:`, error);
+      return null;
+    }
+  }
+
+  // -- Inventory Management (DOOM-style) --------------------------------------
+
+  /** Check if the player owns a weapon. */
+  hasWeapon(weaponId: WeaponId): boolean {
+    return this.inventory.owned.has(weaponId);
+  }
+
+  /** Get the list of owned weapons in order. */
+  getOwnedWeapons(): WeaponId[] {
+    return [...this.inventory.order];
+  }
+
+  /**
+   * Grant a weapon to the player (e.g., from a weapon cache pickup).
+   * Loads the GLB asynchronously if not already loaded.
+   * Returns true if the weapon was newly added, false if already owned.
+   */
+  async grantWeapon(weaponId: WeaponId): Promise<boolean> {
+    if (this.inventory.owned.has(weaponId)) {
+      log.info(`Already own ${weaponId}`);
+      return false;
+    }
+
+    this.inventory.owned.add(weaponId);
+
+    // Insert into order based on tier (ascending)
+    const weaponDef = WEAPONS[weaponId];
+    let insertIdx = this.inventory.order.length;
+    for (let i = 0; i < this.inventory.order.length; i++) {
+      const existingDef = WEAPONS[this.inventory.order[i]];
+      if (weaponDef.tier < existingDef.tier) {
+        insertIdx = i;
+        break;
+      }
+    }
+    this.inventory.order.splice(insertIdx, 0, weaponId);
+
+    // Load the GLB in the background
+    await this.loadWeaponGLB(weaponId);
+
+    log.info(`Granted weapon: ${weaponDef.name} (tier ${weaponDef.tier})`);
+    return true;
+  }
+
+  /**
+   * Remove a weapon from the player's inventory.
+   * If the removed weapon is currently active, switches to next available.
+   */
+  revokeWeapon(weaponId: WeaponId): void {
+    if (!this.inventory.owned.has(weaponId)) return;
+
+    this.inventory.owned.delete(weaponId);
+    const idx = this.inventory.order.indexOf(weaponId);
+    if (idx >= 0) this.inventory.order.splice(idx, 1);
+
+    // Unload the mesh
+    const weapon = this.weapons.get(weaponId);
+    if (weapon) {
+      weapon.root.dispose();
+      this.weapons.delete(weaponId);
+    }
+
+    // If this was the active weapon, switch to the first available
+    if (this.activeWeaponId === weaponId && this.inventory.order.length > 0) {
+      this.equipWeapon(this.inventory.order[0], true);
+    }
+  }
+
+  /**
+   * Cycle to next/previous weapon in inventory.
+   * @param direction  1 for next, -1 for previous.
+   */
+  cycleWeapon(direction: 1 | -1): void {
+    if (this.inventory.order.length <= 1) return;
+    if (!this.activeWeaponId) return;
+
+    const currentIdx = this.inventory.order.indexOf(this.activeWeaponId);
+    const nextIdx =
+      (currentIdx + direction + this.inventory.order.length) % this.inventory.order.length;
+    this.equipWeapon(this.inventory.order[nextIdx], true);
+  }
+
+  // -- Vehicle Mode -----------------------------------------------------------
+
+  /**
+   * Enter vehicle mode - show steering yoke and hide current weapon.
+   * Called when the player enters a vehicle.
+   */
+  enterVehicleMode(): void {
+    if (this.isVehicleMode) return;
+
+    // Store current weapon
+    this.preVehicleWeaponId = this.activeWeaponId;
+
+    // Hide all weapons
+    for (const [, w] of this.weapons) {
+      w.root.setEnabled(false);
+    }
+
+    // Show yoke
+    this.vehicleYokeSystem?.getYoke()?.show();
+
+    // Update animation controller for vehicle mode
+    this.animController?.setWeapon('vehicle_yoke');
+
+    this.isVehicleMode = true;
+    this.activeWeaponId = 'vehicle_yoke';
+
+    log.info('Entered vehicle mode');
+  }
+
+  /**
+   * Exit vehicle mode - restore previous weapon and hide yoke.
+   * Called when the player exits a vehicle.
+   */
+  exitVehicleMode(): void {
+    if (!this.isVehicleMode) return;
+
+    // Hide yoke
+    this.vehicleYokeSystem?.getYoke()?.hide();
+
+    // Restore previous weapon
+    const weaponToRestore = this.preVehicleWeaponId ?? this.inventory.order[0];
+    this.preVehicleWeaponId = null;
+    this.isVehicleMode = false;
+
+    if (weaponToRestore) {
+      this.equipWeapon(weaponToRestore, true);
+    }
+
+    log.info('Exited vehicle mode');
+  }
+
+  /**
+   * Update vehicle yoke state (call each frame while in vehicle).
+   */
+  updateVehicleYoke(input: VehicleYokeInput): void {
+    if (!this.isVehicleMode) return;
+    this.vehicleYokeSystem?.update(input);
+  }
+
+  /**
+   * Check if currently in vehicle mode.
+   */
+  get inVehicleMode(): boolean {
+    return this.isVehicleMode;
+  }
+
+  /**
+   * Get the vehicle yoke system for advanced control.
+   */
+  getVehicleYokeSystem(): VehicleYokeSystem | null {
+    return this.vehicleYokeSystem;
   }
 
   // -- Public API -------------------------------------------------------------
 
-  /** Show a weapon immediately (no switch animation). */
+  /** Show a weapon immediately (no switch animation) or with animation. */
   equipWeapon(weaponId: WeaponId, animate: boolean = true): void {
     if (!this.scene) return;
+
+    // Only equip weapons we own (or that are loaded)
+    if (!this.inventory.owned.has(weaponId) && !this.weapons.has(weaponId)) {
+      log.warn(`Cannot equip ${weaponId} -- not owned or loaded`);
+      return;
+    }
 
     if (animate && this.activeWeaponId && this.activeWeaponId !== weaponId) {
       // Trigger animated switch
@@ -581,10 +668,14 @@ export class FirstPersonWeaponSystem {
     this.animController?.setWeapon(weaponId);
   }
 
-  /** Fire the active weapon (triggers recoil + muzzle flash). */
+  /** Fire the active weapon (triggers recoil + muzzle flash + shell casing + camera effects). */
   fireWeapon(): void {
     this.animController?.triggerFire();
     this.emitMuzzleFlash();
+    this.ejectShellCasing();
+
+    // Trigger camera recoil, screen shake, and FOV punch
+    this.recoilSystem?.triggerFire();
   }
 
   /** Start reload animation (visual only; ammo logic is in WeaponContext). */
@@ -600,6 +691,18 @@ export class FirstPersonWeaponSystem {
   /** Enter or leave ADS. */
   setADS(aiming: boolean): void {
     this.animController?.setADS(aiming);
+    // Sync ADS state with recoil system for reduced recoil while aiming
+    this.recoilSystem?.setADSBlend(aiming ? 1.0 : 0.0);
+  }
+
+  /** Trigger melee lunge animation. */
+  triggerMeleeLunge(): void {
+    this.animController?.triggerMeleeLunge();
+  }
+
+  /** True if melee lunge animation is in progress. */
+  get isMeleeLunging(): boolean {
+    return this.animController?.isMeleeLungePlaying ?? false;
   }
 
   /** True if a switch animation is in progress. */
@@ -610,6 +713,11 @@ export class FirstPersonWeaponSystem {
   /** Currently displayed weapon id. */
   get currentWeaponId(): WeaponId | null {
     return this.activeWeaponId;
+  }
+
+  /** Whether the system has completed initialization. */
+  get isInitialized(): boolean {
+    return this.initialized;
   }
 
   // -- Frame update -----------------------------------------------------------
@@ -628,6 +736,12 @@ export class FirstPersonWeaponSystem {
     this.animController.update(input);
     const output = this.animController.output;
 
+    // Update recoil system and get camera effects
+    const recoilResult = this.recoilSystem?.update(dt);
+
+    // Sync ADS blend with recoil system for smooth transitions
+    this.recoilSystem?.setADSBlend(output.adsBlend);
+
     // Compute blended base position between hip and ADS
     const adsBlend = output.adsBlend;
     Vector3.LerpToRef(HIP_POSITION, ADS_POSITION, adsBlend, _tmpPos);
@@ -643,11 +757,44 @@ export class FirstPersonWeaponSystem {
     _tmpRot.y += output.rotationOffset.y * animScale;
     _tmpRot.z += output.rotationOffset.z * animScale;
 
+    // Apply screen shake offset to weapon position
+    if (this.recoilSystem) {
+      const shakeOffset = this.recoilSystem.shakeOffset;
+      _tmpPos.x += shakeOffset.x;
+      _tmpPos.y += shakeOffset.y;
+      _tmpPos.z += shakeOffset.z;
+    }
+
     this.weaponAnchor.position.copyFrom(_tmpPos);
     this.weaponAnchor.rotation.copyFrom(_tmpRot);
 
+    // Update post-processing effects based on recoil state
+    if (recoilResult && recoilResult.chromaticIntensity > 0) {
+      const postProcess = getPostProcessManager();
+      if (postProcess) {
+        // Apply chromatic aberration pulse from weapon fire
+        // This integrates with the existing PostProcessManager
+        this.applyChromaticPulse(recoilResult.chromaticIntensity);
+      }
+    }
+
     // Detect weapon changes from React context
     this.syncWeaponFromContext();
+  }
+
+  /**
+   * Apply chromatic aberration pulse to post-processing.
+   * This creates the visual "punch" effect on heavy weapon fire.
+   */
+  private applyChromaticPulse(intensity: number): void {
+    // The PostProcessManager handles chromatic aberration internally
+    // We can trigger a damage-like flash with reduced intensity for weapon fire
+    const postProcess = getPostProcessManager();
+    if (postProcess && intensity > 0.1) {
+      // Use a subtle hit confirmation effect for weapon fire feedback
+      // Scale down since this isn't damage, just weapon impact feel
+      postProcess.triggerHitConfirmation();
+    }
   }
 
   // -- Helpers ----------------------------------------------------------------
@@ -701,14 +848,23 @@ export class FirstPersonWeaponSystem {
       target.root.setEnabled(true);
     }
     this.activeWeaponId = weaponId;
+
+    // Update recoil system with new weapon profile
+    this.recoilSystem?.setWeapon(weaponId);
   }
 
-  /** Emit muzzle flash at the active weapon's muzzle point. */
+  /**
+   * Emit muzzle flash at the active weapon's muzzle point.
+   * Uses weapon-specific configuration for color, intensity, and range.
+   */
   private emitMuzzleFlash(): void {
     if (!this.activeWeaponId || !this.scene) return;
 
     const active = this.weapons.get(this.activeWeaponId);
     if (!active) return;
+
+    // Get weapon definition for flash configuration
+    const weaponDef = WEAPONS[this.activeWeaponId];
 
     // Compute world position of muzzle
     const worldMatrix = active.muzzlePoint.getWorldMatrix();
@@ -722,11 +878,67 @@ export class FirstPersonWeaponSystem {
 
     // Use enhanced weapon effects
     const effects = WeaponEffects.getInstance();
-    effects.emitMuzzleFlash(muzzleWorldPos, forward, active.def.effectType, 0.7);
+    effects.emitMuzzleFlash(muzzleWorldPos, forward, active.effectType, 0.7);
 
-    // Also use MuzzleFlash manager for light + sprite
+    // Create weapon-specific flash config using weapon definition properties
+    const weaponFlashConfig = createMuzzleFlashConfigFromWeapon(
+      active.effectType,
+      weaponDef.muzzleFlashColor,
+      weaponDef.muzzleFlashIntensity,
+      weaponDef.muzzleFlashRange
+    );
+
+    // Use MuzzleFlash manager for dynamic light + sprite with weapon-specific config
     const flash = MuzzleFlashManager.getInstance();
-    flash.emit(muzzleWorldPos, forward, active.def.effectType);
+    flash.emit(muzzleWorldPos, forward, active.effectType, weaponFlashConfig);
+  }
+
+  /**
+   * Eject a shell casing from the weapon's ejection port.
+   * Uses weapon category to determine casing size and behavior.
+   */
+  private ejectShellCasing(): void {
+    if (!this.activeWeaponId || !this.scene || !this.camera) return;
+
+    const active = this.weapons.get(this.activeWeaponId);
+    if (!active) return;
+
+    // Get weapon definition for category
+    const weaponDef = WEAPONS[this.activeWeaponId];
+
+    // Skip casings for plasma weapons (energy weapons don't eject brass)
+    if (weaponDef.category === 'heavy' && weaponDef.id === 'plasma_cannon') {
+      return;
+    }
+
+    // Compute ejection port position (slightly behind and right of muzzle)
+    const worldMatrix = active.muzzlePoint.getWorldMatrix();
+    const muzzleWorldPos = Vector3.TransformCoordinates(Vector3.Zero(), worldMatrix);
+
+    // Get camera directions for ejection
+    const cam = this.camera;
+    const right = cam.getDirection(new Vector3(1, 0, 0)).normalize();
+    const back = cam.getDirection(new Vector3(0, 0, -1)).normalize();
+
+    // Ejection port is to the right and slightly back from muzzle
+    const ejectionPort = muzzleWorldPos.add(right.scale(0.08)).add(back.scale(0.1));
+
+    // Ejection direction: right with slight backward and upward components
+    const ejectionDir = right
+      .add(back.scale(0.3))
+      .add(new Vector3(0, 0.2, 0))
+      .normalize();
+
+    // Get player velocity from camera movement
+    const playerVelocity = this.lastCameraPos
+      ? this.camera.position
+          .subtract(this.lastCameraPos)
+          .scale(60) // Approximate velocity
+      : Vector3.Zero();
+
+    // Eject the casing
+    const casingType = categoryToCasingType(weaponDef.category);
+    shellCasings.eject(ejectionPort, ejectionDir, casingType, playerVelocity);
   }
 
   /** Check if React weapon context changed and trigger visual switch. */
@@ -759,10 +971,23 @@ export class FirstPersonWeaponSystem {
     this.animController?.dispose();
     this.animController = null;
 
+    this.recoilSystem?.dispose();
+    this.recoilSystem = null;
+
+    // Dispose shell casing system
+    shellCasings.dispose();
+
+    // Dispose vehicle yoke system
+    this.vehicleYokeSystem?.dispose();
+    this.vehicleYokeSystem = null;
+    this.isVehicleMode = false;
+    this.preVehicleWeaponId = null;
+
     for (const [, w] of this.weapons) {
       w.root.dispose();
     }
     this.weapons.clear();
+    this.loadingWeapons.clear();
 
     this.glowLayer?.dispose();
     this.glowLayer = null;
@@ -776,8 +1001,12 @@ export class FirstPersonWeaponSystem {
     this.lastCameraPos = null;
     this.lastContextWeaponId = null;
 
+    this.inventory.owned.clear();
+    this.inventory.order = [];
+    this.initialized = false;
+
     FirstPersonWeaponSystem.instance = null;
-    console.log('[FirstPersonWeapons] Disposed');
+    log.info('Disposed');
   }
 }
 

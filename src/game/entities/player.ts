@@ -1,25 +1,37 @@
 import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
 import type { Engine } from '@babylonjs/core/Engines/engine';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAchievementManager } from '../achievements';
+import { getMeleeSystem } from '../combat';
 import { getCurrentWeaponDef } from '../context/useWeaponActions';
+import { AssetManager } from '../core/AssetManager';
 import { getAudioManager } from '../core/AudioManager';
+import { getDifficultyModifiers, loadDifficultySetting } from '../core/DifficultySettings';
 import { createEntity, type Entity } from '../core/ecs';
+import { getLogger } from '../core/Logger';
 import { particleManager } from '../effects/ParticleManager';
 import { weaponEffects } from '../effects/WeaponEffects';
+import { getInputManager, type InputManager } from '../input';
+import { getJetpackSystem, getVerticalMovement } from '../movement';
 import type { TouchInput } from '../types';
 import { tokens } from '../utils/designTokens';
 import { getScreenInfo, vibrate } from '../utils/responsive';
+import { firstPersonWeapons } from '../weapons/FirstPersonWeapons';
+import { STARTER_WEAPON } from './weapons';
+
+const log = getLogger('Player');
+
+// Path to the marine soldier GLB model
+const PLAYER_MODEL_PATH = '/assets/models/npcs/marine/marine_soldier.glb';
 
 // Sun direction for optimal visuals - sun should be top-right when facing forward
-const SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
+const _SUN_DIRECTION = new Vector3(0.4, 0.3, -0.5).normalize();
 // Player should face so sun is top-right (roughly northeast facing southwest)
 const OPTIMAL_SPAWN_ROTATION_Y = Math.PI * 0.75; // Face southwest, sun top-right
 
@@ -29,15 +41,18 @@ export class Player {
   public mesh: Mesh;
   public isDropComplete = false;
 
+  /** Resolves when the GLB model has finished loading (or failed gracefully). */
+  public readonly modelReady: Promise<void>;
+
   private scene: Scene;
   private canvas: HTMLCanvasElement;
   private engine: Engine;
 
+  // Third-person model root (loaded from GLB, follows collision capsule)
+  private playerModelRoot: TransformNode | null = null;
+
   // First-person weapon view
   private weaponContainer: TransformNode;
-  private weaponMesh: Mesh;
-  private handsMesh: Mesh;
-  private muzzleFlashMesh: Mesh | null = null;
   private weaponBobTime = 0;
   private weaponRecoilOffset = 0;
 
@@ -45,8 +60,39 @@ export class Player {
   private sprintMultiplier = 2;
   private isSprinting = false;
 
+  // Slide mechanic state
+  private isSliding = false;
+  private slideTimer = 0;
+  private slideCooldown = 0;
+  private readonly slideDuration = 0.8; // seconds
+  private readonly slideCooldownDuration = 1.0; // seconds
+  private readonly slideSpeedMultiplier = 1.5; // relative to sprint speed
+  private slideDirection: Vector3 = Vector3.Zero();
+  private readonly slideBaseHeight = 0.6; // lower camera height during slide (for cover)
+  private readonly crouchHeight = 1.0; // crouch height
+  private readonly standingHeight = 1.8; // normal camera height
+  private slideDistance = 0; // track distance slid
+  private readonly maxSlideDistance = 12; // auto-cancel after this distance
+
+  // Sprint FOV effect
+  private readonly baseFOV = Math.PI / 2; // 90 degrees
+  private readonly sprintFOVIncrease = 0.15; // ~8.6 degrees
+  private readonly slideFOVIncrease = 0.25; // ~14.3 degrees during slide
+  private currentFOVOffset = 0;
+  private readonly fovLerpSpeed = 8; // smooth transition speed
+
+  // Crouch state
+  private isCrouching = false;
+
+  // Vertical movement state (jump, mantle, jetpack)
+  private isJumping = false;
+  private spacePressed = false;
+  private spaceHoldTime = 0;
+  private readonly jetpackActivationDelay = 0.15; // Hold space for 150ms to activate jetpack
+
+  // Input manager for keybinding-aware input handling
+  private inputManager: InputManager;
   private keysPressed: Set<string> = new Set();
-  private mouseDown = false;
   private lastFireTime = 0;
   private fireRate = 8;
 
@@ -83,38 +129,152 @@ export class Player {
     this.engine = engine;
     this.isTouchDevice = getScreenInfo().isTouchDevice;
 
-    this.mesh = this.createPlayerMesh();
+    // Initialize input manager for keybinding-aware input handling
+    this.inputManager = getInputManager();
+
+    // Create invisible collision capsule (used for physics / entity position)
+    this.mesh = this.createCollisionCapsule();
     this.camera = this.createCamera();
 
-    // Create first-person weapon view
-    const { container, weapon, hands } = this.createWeaponView();
-    this.weaponContainer = container;
-    this.weaponMesh = weapon;
-    this.handsMesh = hands;
+    // Create the weapon view container (initially empty -- populated by GLB)
+    this.weaponContainer = this.createWeaponContainer();
 
     this.entity = this.createEntity();
 
+    // Initialize vertical movement system
+    this.initVerticalMovement();
+
     this.setupControls();
     this.startHaloDrop();
+
+    // Kick off async GLB model loading.
+    // The model loads in the background while the 6-second drop sequence plays.
+    this.modelReady = this.initModelAsync();
   }
 
-  private createPlayerMesh(): Mesh {
-    const body = MeshBuilder.CreateCapsule('playerBody', { height: 2, radius: 0.4 }, this.scene);
+  /**
+   * Initialize the vertical movement system with scene and callbacks
+   */
+  private initVerticalMovement(): void {
+    const vertical = getVerticalMovement();
+    vertical.init(this.scene);
 
-    const material = new StandardMaterial('playerMat', this.scene);
-    material.diffuseColor = Color3.FromHexString(tokens.colors.primary.olive);
+    // Add player mesh to ignored meshes for ground detection
+    vertical.addIgnoredMesh(this.mesh);
 
-    const armorTex = new Texture('https://assets.babylonjs.com/textures/floor.png', this.scene);
-    armorTex.uScale = 2;
-    armorTex.vScale = 2;
-    material.diffuseTexture = armorTex;
-    material.specularColor = new Color3(0.3, 0.3, 0.3);
+    // Set up callbacks
+    vertical.setOnLand((velocity, surfaceType) => {
+      log.debug(`Landed with velocity ${velocity.toFixed(1)} on ${surfaceType}`);
+      // Trigger screen shake on hard landing
+      if (velocity > 15 && this.isTouchDevice) {
+        vibrate([30, 20, 30]);
+      }
+    });
 
-    body.material = material;
+    vertical.setOnJump(() => {
+      log.debug('Jumped');
+    });
+
+    vertical.setOnFallDamage((damage) => {
+      log.info(`Fall damage: ${damage}`);
+      this.takeDamage(damage);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Collision capsule (physics only -- invisible)
+  // ---------------------------------------------------------------------------
+
+  private createCollisionCapsule(): Mesh {
+    const body = MeshBuilder.CreateCapsule(
+      'playerCollider',
+      { height: 2, radius: 0.5 }, // Increased from 0.4 for better collision detection
+      this.scene
+    );
     body.position.y = 1;
-    body.isVisible = false;
-
+    body.isVisible = false; // Collision-only, never rendered
+    body.isPickable = false;
     return body;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Async GLB model loading
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Load the marine_soldier GLB and wire up:
+   *   - Third-person body model (for shadows / spectate)
+   *   - First-person weapon view (via FirstPersonWeaponSystem with dedicated GLBs)
+   */
+  private async initModelAsync(): Promise<void> {
+    // Load third-person body model
+    const asset = await AssetManager.loadAssetByPath(PLAYER_MODEL_PATH, this.scene);
+    if (!asset) {
+      throw new Error(`[Player] Failed to load player GLB model from ${PLAYER_MODEL_PATH}`);
+    }
+
+    log.info(`GLB loaded: ${asset.meshes.length} meshes in ${asset.loadTime.toFixed(0)}ms`);
+
+    // ----- Third-person body (follows collision capsule) -----
+    this.playerModelRoot = this.createThirdPersonModel(asset.meshes);
+
+    // ----- First-person weapon view (via dedicated FPS weapon GLBs) -----
+    // Initialize the FirstPersonWeaponSystem with proper FPS weapon models.
+    // The system loads dedicated fps_*.glb files from /models/props/weapons/
+    await firstPersonWeapons.init(this.scene, this.camera, [STARTER_WEAPON, 'assault_rifle']);
+    log.info('FirstPersonWeaponSystem initialized with FPS weapon GLBs');
+
+    // Hide the old weaponContainer since FirstPersonWeaponSystem handles rendering
+    this.weaponContainer.setEnabled(false);
+  }
+
+  /**
+   * Create the third-person body by cloning meshes from the loaded GLB.
+   * The model is invisible in first-person but casts shadows and is visible
+   * in third-person spectating / reflections.
+   */
+  private createThirdPersonModel(
+    sourceMeshes: import('@babylonjs/core/Meshes/abstractMesh').AbstractMesh[]
+  ): TransformNode {
+    const root = new TransformNode('playerModel', this.scene);
+
+    // Clone every mesh with geometry into the third-person root
+    for (const mesh of sourceMeshes) {
+      if (mesh instanceof Mesh && mesh.getTotalVertices() > 0) {
+        const clone = mesh.clone(`playerBody_${mesh.name}`, root);
+        if (clone) {
+          clone.isVisible = true;
+          clone.isPickable = false;
+          // The model will cast shadows but the first-person camera sits inside,
+          // so the body is effectively invisible to the player.
+        }
+      }
+    }
+
+    // Scale and position to match the collision capsule
+    root.scaling.setAll(0.01); // GLB models are often in cm; adjust to metres
+    root.position.y = 0; // Feet at ground level; updated each frame
+
+    // Parent to the collision capsule so it moves with the player
+    root.parent = this.mesh;
+
+    return root;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Weapon container (empty shell, populated by initModelAsync)
+  // ---------------------------------------------------------------------------
+
+  private createWeaponContainer(): TransformNode {
+    // Create container that follows camera
+    const container = new TransformNode('weaponContainer', this.scene);
+    container.parent = this.camera;
+
+    // Position weapon in lower right of view (typical FPS style)
+    container.position = new Vector3(0.35, -0.25, 0.5);
+    container.rotation = new Vector3(0, 0.05, 0);
+
+    return container;
   }
 
   private createCamera(): UniversalCamera {
@@ -131,198 +291,13 @@ export class Player {
 
     camera.minZ = 0.1;
     camera.maxZ = 2000;
-    camera.fov = 1.2;
+    // 90 degrees FOV - standard for FPS games, provides good peripheral vision
+    camera.fov = Math.PI / 2; // 1.5708 radians = 90 degrees
 
     // Disable built-in controls - we handle everything manually
     camera.inputs.clear();
 
     return camera;
-  }
-
-  private createWeaponView(): { container: TransformNode; weapon: Mesh; hands: Mesh } {
-    // Create container that follows camera
-    const container = new TransformNode('weaponContainer', this.scene);
-    container.parent = this.camera;
-
-    // Position weapon in lower right of view (typical FPS style)
-    container.position = new Vector3(0.35, -0.25, 0.5);
-    container.rotation = new Vector3(0, 0.05, 0);
-
-    // === HANDS ===
-    // Create armored gloves/hands
-    const handsMat = new StandardMaterial('handsMat', this.scene);
-    handsMat.diffuseColor = Color3.FromHexString('#2A2A2A'); // Dark armor
-    handsMat.specularColor = new Color3(0.15, 0.15, 0.15);
-
-    // Left hand (grip on weapon)
-    const leftHand = MeshBuilder.CreateBox(
-      'leftHand',
-      {
-        width: 0.06,
-        height: 0.08,
-        depth: 0.12,
-      },
-      this.scene
-    );
-    leftHand.position = new Vector3(-0.04, 0.02, 0.08);
-    leftHand.rotation = new Vector3(0.3, 0, -0.1);
-    leftHand.material = handsMat;
-    leftHand.parent = container;
-
-    // Right hand (trigger hand)
-    const rightHand = MeshBuilder.CreateBox(
-      'rightHand',
-      {
-        width: 0.07,
-        height: 0.09,
-        depth: 0.14,
-      },
-      this.scene
-    );
-    rightHand.position = new Vector3(0.04, -0.02, -0.06);
-    rightHand.rotation = new Vector3(-0.2, 0, 0.15);
-    rightHand.material = handsMat;
-    rightHand.parent = container;
-
-    // Merge hands for easier manipulation
-    const hands = MeshBuilder.CreateBox('handsContainer', { size: 0.001 }, this.scene);
-    hands.isVisible = false;
-    hands.parent = container;
-    leftHand.parent = hands;
-    rightHand.parent = hands;
-
-    // === WEAPON - Futuristic Assault Rifle ===
-    const gunMat = new StandardMaterial('gunMat', this.scene);
-    gunMat.diffuseColor = Color3.FromHexString('#1A1A1A');
-    gunMat.specularColor = new Color3(0.3, 0.3, 0.35);
-
-    const gunAccentMat = new StandardMaterial('gunAccentMat', this.scene);
-    gunAccentMat.diffuseColor = Color3.FromHexString(tokens.colors.primary.olive);
-    gunAccentMat.specularColor = new Color3(0.2, 0.2, 0.2);
-
-    const gunGlowMat = new StandardMaterial('gunGlowMat', this.scene);
-    gunGlowMat.emissiveColor = Color3.FromHexString('#4A7B3C');
-    gunGlowMat.diffuseColor = Color3.FromHexString('#4A7B3C');
-
-    // Main body/receiver
-    const receiver = MeshBuilder.CreateBox(
-      'gunReceiver',
-      {
-        width: 0.06,
-        height: 0.08,
-        depth: 0.25,
-      },
-      this.scene
-    );
-    receiver.position = new Vector3(0, 0, 0);
-    receiver.material = gunMat;
-    receiver.parent = container;
-
-    // Barrel
-    const barrel = MeshBuilder.CreateCylinder(
-      'gunBarrel',
-      {
-        height: 0.22,
-        diameter: 0.025,
-        tessellation: 12,
-      },
-      this.scene
-    );
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position = new Vector3(0, 0.01, 0.22);
-    barrel.material = gunMat;
-    barrel.parent = container;
-
-    // Barrel shroud (cooling vents)
-    const shroud = MeshBuilder.CreateBox(
-      'barrelShroud',
-      {
-        width: 0.045,
-        height: 0.045,
-        depth: 0.15,
-      },
-      this.scene
-    );
-    shroud.position = new Vector3(0, 0.01, 0.16);
-    shroud.material = gunAccentMat;
-    shroud.parent = container;
-
-    // Magazine
-    const magazine = MeshBuilder.CreateBox(
-      'magazine',
-      {
-        width: 0.035,
-        height: 0.12,
-        depth: 0.06,
-      },
-      this.scene
-    );
-    magazine.position = new Vector3(0, -0.08, 0.02);
-    magazine.rotation.x = -0.15;
-    magazine.material = gunAccentMat;
-    magazine.parent = container;
-
-    // Stock
-    const stock = MeshBuilder.CreateBox(
-      'stock',
-      {
-        width: 0.04,
-        height: 0.06,
-        depth: 0.12,
-      },
-      this.scene
-    );
-    stock.position = new Vector3(0, -0.01, -0.14);
-    stock.rotation.x = 0.1;
-    stock.material = gunMat;
-    stock.parent = container;
-
-    // Sight/optic rail
-    const sightRail = MeshBuilder.CreateBox(
-      'sightRail',
-      {
-        width: 0.025,
-        height: 0.015,
-        depth: 0.1,
-      },
-      this.scene
-    );
-    sightRail.position = new Vector3(0, 0.05, 0.02);
-    sightRail.material = gunMat;
-    sightRail.parent = container;
-
-    // Holographic sight housing
-    const sightHousing = MeshBuilder.CreateBox(
-      'sightHousing',
-      {
-        width: 0.04,
-        height: 0.035,
-        depth: 0.05,
-      },
-      this.scene
-    );
-    sightHousing.position = new Vector3(0, 0.07, 0.02);
-    sightHousing.material = gunMat;
-    sightHousing.parent = container;
-
-    // Glowing elements (power indicator)
-    const powerIndicator = MeshBuilder.CreateBox(
-      'powerIndicator',
-      {
-        width: 0.01,
-        height: 0.008,
-        depth: 0.03,
-      },
-      this.scene
-    );
-    powerIndicator.position = new Vector3(0.025, 0.02, -0.02);
-    powerIndicator.material = gunGlowMat;
-    powerIndicator.parent = container;
-
-    // Combine into single reference
-    const weapon = receiver;
-
-    return { container, weapon, hands };
   }
 
   private createEntity(): Entity {
@@ -360,44 +335,30 @@ export class Player {
   }
 
   private setupControls(): void {
-    // Keyboard controls
+    // Track previous action states for edge detection
+    // (The InputManager handles this internally, but we need local tracking for
+    // actions that trigger once on press rather than while held)
+    const _wasJumpPressed = false;
+    const _wasCrouchPressed = false;
+    const _wasMeleePressed = false;
+
+    // Keyboard controls - we still track raw keys for the keysPressed set
+    // but use InputManager for action-based queries
     const keydownHandler = (e: KeyboardEvent) => {
       this.keysPressed.add(e.code);
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-        this.isSprinting = true;
-      }
     };
     window.addEventListener('keydown', keydownHandler);
     this._listeners.push(() => window.removeEventListener('keydown', keydownHandler));
 
     const keyupHandler = (e: KeyboardEvent) => {
       this.keysPressed.delete(e.code);
-      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-        this.isSprinting = false;
-      }
     };
     window.addEventListener('keyup', keyupHandler);
     this._listeners.push(() => window.removeEventListener('keyup', keyupHandler));
 
-    // Mouse controls
-    const mousedownHandler = (e: MouseEvent) => {
-      if (e.button === 0) {
-        this.mouseDown = true;
-      }
-    };
-    window.addEventListener('mousedown', mousedownHandler);
-    this._listeners.push(() => window.removeEventListener('mousedown', mousedownHandler));
-
-    const mouseupHandler = (e: MouseEvent) => {
-      if (e.button === 0) {
-        this.mouseDown = false;
-      }
-    };
-    window.addEventListener('mouseup', mouseupHandler);
-    this._listeners.push(() => window.removeEventListener('mouseup', mouseupHandler));
-
     // Mouse look - only when pointer is locked
     // Updates TARGET rotation - actual rotation interpolates toward this for smooth feel
+    // Also accumulates movement in InputManager for gamepad look integration
     const mousemoveHandler = (e: MouseEvent) => {
       if (document.pointerLockElement === this.canvas && !this.isDropping) {
         const sensitivity = 0.002;
@@ -409,6 +370,9 @@ export class Player {
           -Math.PI / 2.2,
           Math.min(Math.PI / 2.2, this.targetRotationX)
         );
+
+        // Accumulate in InputManager for unified tracking
+        this.inputManager.accumulateMouseMovement(e.movementX, e.movementY);
       }
     };
     document.addEventListener('mousemove', mousemoveHandler);
@@ -437,8 +401,15 @@ export class Player {
     this._listeners.forEach((cleanup) => cleanup());
     this._listeners = [];
     this.keysPressed.clear();
+
+    // Dispose third-person model
+    if (this.playerModelRoot) {
+      this.playerModelRoot.dispose(false, true);
+      this.playerModelRoot = null;
+    }
+
     this.mesh.dispose();
-    this.weaponContainer.dispose();
+    this.weaponContainer.dispose(false, true);
   }
 
   private startHaloDrop(): void {
@@ -473,8 +444,8 @@ export class Player {
     // Track shot fired for achievement accuracy tracking
     getAchievementManager().onShotFired();
 
-    // Trigger weapon recoil animation
-    this.triggerWeaponRecoil();
+    // Trigger first-person weapon visual effects (muzzle flash, shell casing, recoil)
+    firstPersonWeapons.fireWeapon();
 
     // Play per-weapon fire sound (polished, with variation)
     const weaponDef = getCurrentWeaponDef();
@@ -584,6 +555,7 @@ export class Player {
     const projectileId = `player_proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     weaponEffects.createProjectileTrail(laserBolt, 'player_plasma', projectileId);
 
+    // Create projectile entity with current weapon's damage stats
     createEntity({
       transform: {
         position: laserBolt.position.clone(),
@@ -595,12 +567,20 @@ export class Player {
         angular: Vector3.Zero(),
         maxSpeed: this.entity.combat!.projectileSpeed,
       },
+      combat: {
+        damage: weaponDef.damage,
+        range: weaponDef.range,
+        fireRate: weaponDef.fireRate,
+        lastFire: performance.now(),
+        projectileSpeed: weaponDef.projectileSpeed,
+      },
       renderable: {
         mesh: laserBolt,
         visible: true,
       },
       tags: {
         projectile: true,
+        player: true, // Mark as player projectile for collision detection
       },
       lifetime: {
         remaining: 2000,
@@ -727,10 +707,35 @@ export class Player {
       return;
     }
 
+    // Update input manager state (polls gamepad, updates edge detection)
+    this.inputManager.update();
+
+    // Sync touch input with InputManager
+    if (this.touchInput) {
+      this.inputManager.setTouchInput({
+        movement: this.touchInput.movement,
+        look: this.touchInput.look,
+        isFiring: this.touchInput.isFiring,
+        isSprinting: this.touchInput.isSprinting,
+        isJumping: this.touchInput.isJumping,
+        isCrouching: this.touchInput.isCrouching,
+        isJetpacking: this.touchInput.isJetpacking,
+        isReloading: this.touchInput.isReloading,
+        isInteracting: this.touchInput.isInteracting,
+        isMelee: this.touchInput.isMelee,
+        isGrenade: this.touchInput.isGrenade,
+        isAimingGrenade: this.touchInput.isAimingGrenade,
+        isSliding: this.touchInput.isSliding,
+      });
+    } else {
+      this.inputManager.setTouchInput(null);
+    }
+
     // Determine input source
     const usingTouch = this.touchInput !== null && this.isTouchDevice;
 
-    // Process touch look input (updates target rotation)
+    // Process look input (touch and gamepad via InputManager)
+    const lookInput = this.inputManager.getLookInput();
     if (usingTouch && this.touchInput) {
       const look = this.touchInput.look;
       if (Math.abs(look.x) > 0.0001 || Math.abs(look.y) > 0.0001) {
@@ -743,6 +748,16 @@ export class Player {
         );
       }
     }
+    // Gamepad right stick look (from InputManager)
+    if (Math.abs(lookInput.x) > 0.01 || Math.abs(lookInput.y) > 0.01) {
+      const gamepadLookSensitivity = 0.03; // Adjust for gamepad feel
+      this.targetRotationY += lookInput.x * gamepadLookSensitivity;
+      this.targetRotationX -= lookInput.y * gamepadLookSensitivity;
+      this.targetRotationX = Math.max(
+        -Math.PI / 2.2,
+        Math.min(Math.PI / 2.2, this.targetRotationX)
+      );
+    }
 
     // Smooth camera rotation interpolation (lerp toward target)
     // This creates fluid, non-snappy camera movement for both mouse and touch
@@ -754,41 +769,125 @@ export class Player {
     this.camera.rotation.x = this.rotationX;
     this.camera.rotation.y = this.rotationY;
 
-    // Sprint state
-    if (usingTouch && this.touchInput) {
-      this.isSprinting = this.touchInput.isSprinting;
+    // Sprint state (uses keybindings via InputManager)
+    const _wasSprinting = this.isSprinting;
+    this.isSprinting = this.inputManager.isActionPressed('sprint');
+
+    // Crouch state (uses keybindings via InputManager)
+    const wasCrouching = this.isCrouching;
+    const isCrouchPressed = this.inputManager.isActionPressed('crouch');
+    if (isCrouchPressed && !wasCrouching) {
+      this.isCrouching = true;
+      this.tryInitiateSlide();
+
+      // Haptic feedback on crouch start (touch devices)
+      if (this.isTouchDevice) {
+        vibrate(10);
+      }
+    } else if (!isCrouchPressed && wasCrouching) {
+      // Crouch released - if sliding, cancel to crouch first then stand
+      if (this.isSliding) {
+        this.cancelSlide(true); // Cancel to crouch
+      }
+      this.isCrouching = false;
+
+      // Haptic feedback on stand (touch devices)
+      if (this.isTouchDevice) {
+        vibrate(8);
+      }
     }
 
-    const speed = this.isSprinting ? this.moveSpeed * this.sprintMultiplier : this.moveSpeed;
+    // Jump action (uses keybindings via InputManager)
+    const isJumpPressed = this.inputManager.isActionPressed('jump');
+    if (isJumpPressed && !this.spacePressed) {
+      this.spacePressed = true;
+      this.spaceHoldTime = 0;
+
+      // If sliding, cancel slide with jump (slide-jump combo)
+      if (this.isSliding) {
+        this.cancelSlideWithJump();
+      } else {
+        // Request jump immediately
+        const vertical = getVerticalMovement();
+        vertical.requestJump();
+      }
+    } else if (!isJumpPressed && this.spacePressed) {
+      this.spacePressed = false;
+      this.spaceHoldTime = 0;
+      const vertical = getVerticalMovement();
+      vertical.stopJetpack();
+    }
+
+    // Melee attack (check for weaponMelee dynamic action)
+    if (this.inputManager.isActionJustPressed('weaponMelee')) {
+      this.tryMeleeAttack();
+    }
+
+    // Grenade throw (check for weaponGrenade dynamic action)
+    if (this.inputManager.isActionJustPressed('weaponGrenade')) {
+      this.tryThrowGrenade();
+    }
+
+    // Slide action (check for slide dynamic action, often from touch double-tap crouch)
+    if (this.inputManager.isActionJustPressed('slide')) {
+      this.tryInitiateSlide();
+    }
+
+    // Update slide state
+    this.updateSlide(deltaTime);
+
+    // Update FOV for sprint/slide effects
+    this.updateFOV(deltaTime);
+
+    // Update vertical movement (jump, mantle, jetpack)
+    this.updateVerticalMovement(deltaTime, usingTouch);
+
+    // Calculate speed based on state
+    let speed: number;
+    const vertical = getVerticalMovement();
+    const airControl = vertical.getAirControlMultiplier();
+
+    if (this.isSliding) {
+      // Sliding at boosted speed
+      speed = this.moveSpeed * this.sprintMultiplier * this.slideSpeedMultiplier;
+    } else if (this.isSprinting) {
+      speed = this.moveSpeed * this.sprintMultiplier;
+    } else if (this.isCrouching) {
+      speed = this.moveSpeed * 0.5; // Crouch walk is slower
+    } else {
+      speed = this.moveSpeed;
+    }
+
+    // Apply air control reduction
+    speed *= airControl;
 
     // Calculate movement (relative to camera facing direction)
     const moveDir = Vector3.Zero();
 
-    if (usingTouch && this.touchInput) {
-      // Touch joystick movement (relative to camera facing)
-      const movement = this.touchInput.movement;
-      const moveMagnitude = Math.sqrt(movement.x * movement.x + movement.y * movement.y);
-      if (moveMagnitude > 0.1) {
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movement.y));
-        moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movement.x));
+    // If sliding, use locked slide direction
+    if (this.isSliding) {
+      moveDir.addInPlace(this.slideDirection);
+    } else {
+      // Get movement input from InputManager (combines keyboard, gamepad, touch)
+      const movementInput = this.inputManager.getMovementInput();
+
+      // Apply movement relative to camera direction
+      if (Math.abs(movementInput.x) > 0.01 || Math.abs(movementInput.y) > 0.01) {
+        // Forward/backward
+        if (movementInput.y !== 0) {
+          moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()).scale(movementInput.y));
+        }
+        // Left/right strafe
+        if (movementInput.x !== 0) {
+          moveDir.addInPlace(this.camera.getDirection(Vector3.Right()).scale(movementInput.x));
+        }
       }
     }
 
-    // Keyboard movement (works alongside touch)
-    if (this.keysPressed.has('KeyW')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Forward()));
-    }
-    if (this.keysPressed.has('KeyS')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Backward()));
-    }
-    if (this.keysPressed.has('KeyA')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Left()));
-    }
-    if (this.keysPressed.has('KeyD')) {
-      moveDir.addInPlace(this.camera.getDirection(Vector3.Right()));
-    }
+    // Set movement input for jetpack directional boost
+    vertical.setMovementInput(moveDir);
 
-    // Apply movement
+    // Apply horizontal movement
     if (moveDir.length() > 0) {
       moveDir.normalize();
       moveDir.y = 0;
@@ -796,8 +895,15 @@ export class Player {
       this.camera.position.addInPlace(moveDir);
     }
 
-    // Keep camera at proper height
-    this.camera.position.y = 1.8;
+    // Get base camera height from vertical movement
+    const _verticalState = vertical.getState();
+    const baseHeight = this.getTargetCameraHeight();
+
+    // Smoothly interpolate camera height based on crouch/slide state
+    // Faster lerp on touch devices for more responsive feel (0.15s vs 0.3s)
+    const lerpSpeed = this.isTouchDevice ? 20 : 12; // Higher = faster transition
+    const heightLerpFactor = Math.min(1, lerpSpeed * deltaTime);
+    this.camera.position.y += (baseHeight - this.camera.position.y) * heightLerpFactor;
 
     // Update entity transform
     if (this.entity.transform) {
@@ -809,19 +915,23 @@ export class Player {
     this.mesh.position = this.camera.position.clone();
     this.mesh.position.y = 1;
 
-    // Fire logic
-    const shouldFire = usingTouch ? (this.touchInput?.isFiring ?? false) : this.mouseDown;
+    // Fire logic (uses keybindings via InputManager)
+    const shouldFire = this.inputManager.isActionPressed('fire');
 
     if (shouldFire) {
       this.fire();
     }
 
-    // Health regen
+    // Health regen (scaled by difficulty)
     if (this.entity.health) {
-      if (this.entity.health.current < this.entity.health.max) {
+      if (this.entity.health.current < this.entity.health.max && !this.isDead) {
+        const difficulty = loadDifficultySetting();
+        const modifiers = getDifficultyModifiers(difficulty);
+        const scaledRegenRate =
+          this.entity.health.regenRate * modifiers.playerHealthRegenMultiplier;
         this.entity.health.current = Math.min(
           this.entity.health.max,
-          this.entity.health.current + this.entity.health.regenRate * deltaTime
+          this.entity.health.current + scaledRegenRate * deltaTime
         );
       }
     }
@@ -831,44 +941,397 @@ export class Player {
   }
 
   private updateWeaponAnimation(deltaTime: number, isMoving: boolean): void {
-    // Weapon bob while moving
-    if (isMoving) {
+    const vertical = getVerticalMovement();
+    const verticalState = this.lastVerticalState ?? vertical.getState();
+
+    // Weapon bob while moving - reduced during slide and in air
+    if (this.isSliding) {
+      // Minimal bob during slide - weapon stays steady
+      this.weaponBobTime += deltaTime * 4;
+    } else if (!verticalState.isGrounded) {
+      // Reduced bob while airborne
+      this.weaponBobTime += deltaTime * 3;
+    } else if (isMoving) {
       this.weaponBobTime += deltaTime * (this.isSprinting ? 14 : 10);
     } else {
       // Subtle idle sway
       this.weaponBobTime += deltaTime * 2;
     }
 
-    // Calculate bob offsets
-    const bobAmplitudeX = isMoving ? (this.isSprinting ? 0.025 : 0.015) : 0.003;
-    const bobAmplitudeY = isMoving ? (this.isSprinting ? 0.03 : 0.018) : 0.004;
+    // Calculate bob offsets - reduced during slide and air
+    let bobAmplitudeX: number;
+    let bobAmplitudeY: number;
+
+    if (this.isSliding) {
+      // Very minimal bob during slide
+      bobAmplitudeX = 0.005;
+      bobAmplitudeY = 0.003;
+    } else if (!verticalState.isGrounded) {
+      // Reduced bob while airborne
+      bobAmplitudeX = 0.004;
+      bobAmplitudeY = 0.003;
+    } else if (isMoving) {
+      bobAmplitudeX = this.isSprinting ? 0.025 : 0.015;
+      bobAmplitudeY = this.isSprinting ? 0.03 : 0.018;
+    } else {
+      bobAmplitudeX = 0.003;
+      bobAmplitudeY = 0.004;
+    }
 
     const bobX = Math.sin(this.weaponBobTime) * bobAmplitudeX;
     const bobY = Math.abs(Math.sin(this.weaponBobTime * 2)) * bobAmplitudeY;
 
-    // Smooth recoil recovery
-    this.weaponRecoilOffset *= 0.001 ** deltaTime; // Exponential decay
-    if (this.weaponRecoilOffset < 0.001) this.weaponRecoilOffset = 0;
+    // Smooth recoil recovery - use proper exponential decay
+    // 0.05^deltaTime gives ~2-3 frames to recover at 60fps
+    const recoilDecay = 0.05 ** deltaTime;
+    this.weaponRecoilOffset *= recoilDecay;
+    if (this.weaponRecoilOffset < 0.01) this.weaponRecoilOffset = 0;
 
     // Apply to weapon container (relative to base position)
+    // During slide, lower the weapon slightly for a more dynamic feel
     const baseX = 0.35;
-    const baseY = -0.25;
-    const baseZ = 0.5;
+    let baseY = this.isSliding ? -0.32 : -0.25;
+    const baseZ = this.isSliding ? 0.45 : 0.5;
+
+    // Apply landing impact to weapon (weapon dips down on hard landing)
+    const landingBob = vertical.getLandingBobOffset();
+    if (landingBob !== 0) {
+      baseY += landingBob * 0.5; // Weapon dips down
+    }
+
+    // Raise weapon slightly while jumping/mantling
+    if (verticalState.isMantling) {
+      baseY += 0.05; // Raise weapon during mantle
+    } else if (verticalState.isJumping && verticalState.velocityY > 0) {
+      baseY += 0.02; // Slight raise during jump apex
+    }
 
     this.weaponContainer.position.x = baseX + bobX;
     this.weaponContainer.position.y = baseY + bobY - this.weaponRecoilOffset * 0.05;
     this.weaponContainer.position.z = baseZ - this.weaponRecoilOffset * 0.08;
 
-    // Slight rotation during recoil
-    this.weaponContainer.rotation.x = -this.weaponRecoilOffset * 0.3;
+    // Slight rotation during recoil, additional tilt during slide
+    const slideRotation = this.isSliding ? 0.1 : 0;
+    let mantleRotation = 0;
+    if (verticalState.isMantling) {
+      // Tilt weapon forward during mantle
+      mantleRotation = 0.15;
+    }
+    this.weaponContainer.rotation.x =
+      -this.weaponRecoilOffset * 0.3 + slideRotation + mantleRotation + landingBob * 0.3;
   }
 
-  private triggerWeaponRecoil(): void {
-    this.weaponRecoilOffset = 1.0;
+  /**
+   * Attempt to initiate a slide - only works if sprinting and not on cooldown
+   */
+  private tryInitiateSlide(): void {
+    // Can only slide if: sprinting, not already sliding, and off cooldown
+    if (!this.isSprinting || this.isSliding || this.slideCooldown > 0) {
+      return;
+    }
+
+    // Check if player is moving using InputManager (respects keybindings)
+    const movementInput = this.inputManager.getMovementInput();
+    const forward = this.camera.getDirection(Vector3.Forward());
+    const right = this.camera.getDirection(Vector3.Right());
+    const moveDir = Vector3.Zero();
+
+    // Apply movement relative to camera direction
+    if (Math.abs(movementInput.x) > 0.1 || Math.abs(movementInput.y) > 0.1) {
+      if (movementInput.y !== 0) {
+        moveDir.addInPlace(forward.scale(movementInput.y));
+      }
+      if (movementInput.x !== 0) {
+        moveDir.addInPlace(right.scale(movementInput.x));
+      }
+    }
+
+    // Need movement to slide
+    if (moveDir.length() < 0.1) {
+      return;
+    }
+
+    // Initiate slide
+    this.isSliding = true;
+    this.slideTimer = this.slideDuration;
+    this.slideDistance = 0; // Reset distance tracking
+    this.slideDirection = moveDir.normalize();
+    this.slideDirection.y = 0; // Keep slide horizontal
+
+    // Play slide sound
+    getAudioManager().play('slide', { volume: 0.5 });
+
+    // Haptic feedback on touch devices
+    if (this.isTouchDevice) {
+      vibrate([20, 10, 20]);
+    }
+
+    log.info('Slide initiated');
+  }
+
+  /**
+   * Update slide state each frame
+   */
+  private updateSlide(deltaTime: number): void {
+    // Update slide cooldown
+    if (this.slideCooldown > 0) {
+      this.slideCooldown = Math.max(0, this.slideCooldown - deltaTime);
+    }
+
+    // Update active slide
+    if (this.isSliding) {
+      this.slideTimer -= deltaTime;
+
+      // Track distance traveled during slide
+      const slideSpeed = this.moveSpeed * this.sprintMultiplier * this.slideSpeedMultiplier;
+      this.slideDistance += slideSpeed * deltaTime;
+
+      // Check for slide cancel conditions
+      const shouldCancel =
+        this.slideTimer <= 0 || // Time expired
+        this.slideDistance >= this.maxSlideDistance; // Max distance reached
+
+      if (shouldCancel) {
+        this.cancelSlide(false);
+      }
+    }
+  }
+
+  /**
+   * Cancel the current slide
+   * @param toCrouch - If true, transition to crouch instead of stand
+   */
+  private cancelSlide(toCrouch: boolean = false): void {
+    if (!this.isSliding) return;
+
+    this.isSliding = false;
+    this.slideCooldown = this.slideCooldownDuration;
+    this.slideDistance = 0;
+
+    // If canceling to crouch, keep crouched
+    if (toCrouch) {
+      this.isCrouching = true;
+    }
+
+    // Play slide end sound
+    getAudioManager().play('slide_end', { volume: 0.4 });
+
+    log.info(`Slide ended (to ${toCrouch ? 'crouch' : 'stand'})`);
+  }
+
+  /**
+   * Cancel slide with a jump (for slide-jump combo)
+   */
+  cancelSlideWithJump(): void {
+    if (!this.isSliding) return;
+
+    this.isSliding = false;
+    this.slideCooldown = this.slideCooldownDuration * 0.5; // Reduced cooldown for jump cancel
+    this.slideDistance = 0;
+
+    // Request jump immediately
+    const vertical = getVerticalMovement();
+    vertical.requestJump();
+
+    log.info('Slide canceled with jump');
+  }
+
+  /**
+   * Update vertical movement (jump, mantle, jetpack)
+   */
+  private updateVerticalMovement(deltaTime: number, usingTouch: boolean): void {
+    const vertical = getVerticalMovement();
+    const forward = this.camera.getDirection(Vector3.Forward());
+
+    // Handle space key hold for jetpack activation
+    if (this.spacePressed) {
+      this.spaceHoldTime += deltaTime;
+
+      // If holding space and not grounded, try to activate jetpack
+      if (this.spaceHoldTime >= this.jetpackActivationDelay) {
+        const state = vertical.getState();
+        if (!state.isGrounded && !state.isMantling) {
+          vertical.tryJetpack();
+        }
+      }
+    }
+
+    // Handle touch jetpack input
+    if (usingTouch && this.touchInput?.isJetpacking) {
+      const state = vertical.getState();
+      if (!state.isGrounded && !state.isMantling) {
+        vertical.tryJetpack();
+      }
+    } else if (usingTouch && !this.touchInput?.isJumping) {
+      vertical.stopJetpack();
+    }
+
+    // Handle touch jump input
+    if (usingTouch && this.touchInput?.isJumping && !this.isJumping) {
+      vertical.requestJump();
+      this.isJumping = true;
+    } else if (usingTouch && !this.touchInput?.isJumping) {
+      this.isJumping = false;
+    }
+
+    // Update vertical movement physics
+    const verticalDelta = vertical.update(deltaTime, this.camera.position, forward);
+
+    // Apply vertical position change
+    if (verticalDelta !== 0) {
+      this.camera.position.y += verticalDelta;
+    }
+
+    // Get camera animation from vertical movement (mantle + jetpack)
+    const cameraAnim = vertical.getCameraAnimation();
+
+    // Apply camera effects (subtle pitch/roll during mantle, shake during jetpack)
+    if (cameraAnim.pitchOffset !== 0 || cameraAnim.rollOffset !== 0) {
+      // These are additive offsets during mantle animation
+      // We don't modify rotationX/Y directly to avoid interfering with mouse look
+      this.camera.rotation.x = this.rotationX + cameraAnim.pitchOffset;
+      this.camera.rotation.z = cameraAnim.rollOffset;
+    } else {
+      this.camera.rotation.z = 0;
+    }
+
+    // Apply jetpack camera shake
+    if (cameraAnim.shakeX !== 0 || cameraAnim.shakeY !== 0) {
+      this.camera.position.x += cameraAnim.shakeX;
+      this.camera.position.z += cameraAnim.shakeY;
+    }
+
+    // Apply landing bob effect to camera
+    const landingBob = vertical.getLandingBobOffset();
+    if (landingBob !== 0) {
+      this.camera.position.y += landingBob;
+      // Also add a subtle pitch dip during landing
+      this.camera.rotation.x = this.rotationX + landingBob * 0.5;
+    }
+
+    // Auto-mantle detection when approaching ledges
+    const state = vertical.getState();
+    if (!state.isGrounded && !state.isMantling && !state.isJetpacking && state.velocityY < 0) {
+      // Player is falling - check for mantle opportunity
+      vertical.tryMantle(this.camera.position, forward);
+    }
+
+    // Store vertical state for weapon animation
+    this.lastVerticalState = state;
+  }
+
+  // Track vertical state for weapon animation
+  private lastVerticalState: import('../movement').VerticalState | null = null;
+
+  /**
+   * Get current target camera height based on slide/crouch state
+   * - Standing: 1.8m
+   * - Crouching: 1.0m
+   * - Sliding: 0.6m (lower for cover)
+   */
+  private getTargetCameraHeight(): number {
+    if (this.isSliding) {
+      return this.slideBaseHeight; // 0.6m
+    }
+    if (this.isCrouching && !this.isSprinting) {
+      return this.crouchHeight; // 1.0m
+    }
+    return this.standingHeight; // 1.8m
+  }
+
+  /**
+   * Update FOV based on sprint/slide state with smooth transitions
+   */
+  private updateFOV(deltaTime: number): void {
+    // Determine target FOV offset
+    let targetOffset = 0;
+
+    if (this.isSliding) {
+      targetOffset = this.slideFOVIncrease;
+    } else if (this.isSprinting) {
+      targetOffset = this.sprintFOVIncrease;
+    }
+
+    // Smoothly interpolate FOV
+    const lerpFactor = Math.min(1, this.fovLerpSpeed * deltaTime);
+    this.currentFOVOffset += (targetOffset - this.currentFOVOffset) * lerpFactor;
+
+    // Apply FOV
+    this.camera.fov = this.baseFOV + this.currentFOVOffset;
+  }
+
+  /**
+   * Attempt to perform a melee attack
+   */
+  private tryMeleeAttack(): void {
+    if (this.isDropping || this.isDead) return;
+
+    const melee = getMeleeSystem();
+    if (!melee.canAttack()) return;
+
+    // Execute the attack
+    melee.attack();
+  }
+
+  /**
+   * Attempt to throw a grenade
+   */
+  private tryThrowGrenade(): void {
+    if (this.isDropping || this.isDead) return;
+
+    // Import grenadeSystem dynamically to avoid circular deps
+    import('../combat').then(({ grenadeSystem }) => {
+      if (grenadeSystem.getTotalGrenadeCount() <= 0) {
+        // No grenades - play empty click sound
+        getAudioManager().play('weapon_empty_click', { volume: 0.4 });
+        return;
+      }
+
+      // Throw the grenade - the system handles position, direction from camera
+      grenadeSystem.throwGrenade(
+        this.camera.position.clone(),
+        this.camera.getDirection(Vector3.Forward())
+      );
+    });
   }
 
   getPosition(): Vector3 {
     return this.camera.position.clone();
+  }
+
+  /**
+   * Check if player is currently sliding
+   */
+  isPlayerSliding(): boolean {
+    return this.isSliding;
+  }
+
+  /**
+   * Check if player is currently sprinting
+   */
+  isPlayerSprinting(): boolean {
+    return this.isSprinting;
+  }
+
+  /**
+   * Check if player is crouching (not sliding)
+   */
+  isPlayerCrouching(): boolean {
+    return this.isCrouching && !this.isSliding;
+  }
+
+  /**
+   * Get slide cooldown remaining (0 = ready to slide)
+   */
+  getSlideCooldownRemaining(): number {
+    return this.slideCooldown;
+  }
+
+  /**
+   * Get current FOV (useful for UI or other systems)
+   */
+  getCurrentFOV(): number {
+    return this.camera.fov;
   }
 
   /**
@@ -882,10 +1345,65 @@ export class Player {
     return this.rotationY;
   }
 
+  /**
+   * Check if player is currently mantling (ledge climbing)
+   */
+  isPlayerMantling(): boolean {
+    return getVerticalMovement().getState().isMantling;
+  }
+
+  /**
+   * Check if player is currently using jetpack
+   */
+  isPlayerJetpacking(): boolean {
+    return getVerticalMovement().getState().isJetpacking;
+  }
+
+  /**
+   * Check if player is airborne (not grounded)
+   */
+  isPlayerAirborne(): boolean {
+    return !getVerticalMovement().getState().isGrounded;
+  }
+
+  /**
+   * Get jetpack fuel level (0-1)
+   */
+  getJetpackFuel(): number {
+    return getVerticalMovement().getState().jetpackFuel;
+  }
+
+  /**
+   * Get vertical movement state for HUD
+   */
+  getVerticalState() {
+    return getVerticalMovement().getState();
+  }
+
+  // Invincibility frames tracking
+  private lastDamageTime = 0;
+  private readonly invincibilityDuration = 200; // 200ms invincibility after hit
+  private isDead = false;
+
   takeDamage(amount: number): void {
     if (!this.entity.health) return;
+    if (this.isDead) return;
+
+    // Check invincibility frames
+    const now = performance.now();
+    if (now - this.lastDamageTime < this.invincibilityDuration) {
+      return; // Still invincible
+    }
+    this.lastDamageTime = now;
 
     this.entity.health.current = Math.max(0, this.entity.health.current - amount);
+
+    // Check for death
+    if (this.entity.health.current <= 0 && !this.isDead) {
+      this.isDead = true;
+      this.onDeath();
+      return;
+    }
 
     // Play damage sound
     getAudioManager().play('player_damage', { volume: 0.6 });
@@ -916,5 +1434,95 @@ export class Player {
     };
 
     requestAnimationFrame(shake);
+  }
+
+  /**
+   * Handle player death - called when health reaches 0
+   */
+  private onDeath(): void {
+    log.info('Death triggered');
+
+    // Cancel any in-progress vertical movement
+    getVerticalMovement().cancelMovement();
+
+    // Play death sound
+    getAudioManager().play('player_damage', { volume: 0.8 });
+
+    // Vibrate on death for touch devices
+    if (this.isTouchDevice) {
+      vibrate([100, 50, 100, 50, 200]);
+    }
+
+    // Camera fall effect
+    const startY = this.camera.position.y;
+    const startTime = performance.now();
+    const fallDuration = 800;
+
+    const animateFall = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / fallDuration, 1);
+
+      // Ease out fall
+      const easeOut = 1 - (1 - progress) ** 3;
+      this.camera.position.y = startY - easeOut * 1.3;
+
+      // Tilt camera
+      this.camera.rotation.z = easeOut * 0.3;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateFall);
+      }
+    };
+
+    requestAnimationFrame(animateFall);
+  }
+
+  /**
+   * Check if the player is dead
+   */
+  isPlayerDead(): boolean {
+    return this.isDead;
+  }
+
+  /**
+   * Respawn the player (reset death state and health)
+   */
+  respawn(position?: Vector3): void {
+    this.isDead = false;
+    if (this.entity.health) {
+      this.entity.health.current = this.entity.health.max;
+    }
+    this.camera.rotation.z = 0;
+
+    // Reset vertical movement state
+    const vertical = getVerticalMovement();
+    vertical.reset();
+
+    // Refuel jetpack
+    getJetpackSystem().refuel();
+
+    if (position) {
+      this.camera.position = position.clone();
+      this.mesh.position = position.clone();
+      this.mesh.position.y = 1;
+    }
+    log.info('Respawned');
+  }
+
+  /**
+   * Refresh keybindings from localStorage.
+   * Call this when returning from settings menu where bindings may have changed.
+   */
+  refreshKeybindings(): void {
+    this.inputManager.refreshKeybindings();
+    log.info('Keybindings refreshed');
+  }
+
+  /**
+   * Get the input manager instance.
+   * Useful for advanced input queries from external systems.
+   */
+  getInputManager(): InputManager {
+    return this.inputManager;
   }
 }

@@ -1,0 +1,27 @@
+{
+  "levelId": "anchor_station",
+  "schemaVersion": "1.0.0",
+  "updatedAt": "2026-01-31T19:58:46.822Z",
+  "introCinematic": {
+    "id": "cinematic_anchor_station_intro",
+    "type": "video",
+    "path": "videos/cinematics/anchor_station/intro.mp4",
+    "model": "veo-3.1-fast-generate-preview",
+    "promptHash": "-71acd814",
+    "prompt": "Cinematic sci-fi space station interior. Camera slowly moves\nthrough a cryo-bay with hibernation pods glowing blue. Warning alarms flash red.\nOne pod opens with steam. Dark metallic corridors. Dramatic lighting. 8 seconds.",
+    "generatedAt": "2026-01-31T19:58:46.821Z",
+    "generationTimeMs": 63127.08120900001,
+    "fileSizeBytes": 4414652,
+    "levelId": "anchor_station",
+    "tags": ["cinematic", "intro", "anchor_station"],
+    "durationSeconds": 8,
+    "resolution": "720p",
+    "aspectRatio": "16:9",
+    "hasAudio": true,
+    "style": "space_station"
+  },
+  "loadingScreens": [],
+  "briefingImages": [],
+  "audio": [],
+  "textContent": []
+}

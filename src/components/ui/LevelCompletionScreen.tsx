@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Achievement, getAchievementManager } from '../../game/achievements';
-import { useGame } from '../../game/context/GameContext';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { useDifficultyStore } from '../../game/difficulty';
 import type { LevelId } from '../../game/levels/types';
+import { getPlayerName, leaderboardSystem } from '../../game/social';
+import type { LeaderboardSubmission } from '../../game/social/LeaderboardTypes';
+import { useCombatStore } from '../../game/stores/useCombatStore';
+import { useGameStatsStore } from '../../game/stores/useGameStatsStore';
+import { LeaderboardScreen } from './LeaderboardScreen';
 import styles from './LevelCompletionScreen.module.css';
+import { MilitaryButton } from './MilitaryButton';
+import { ShareDialog } from './ShareDialog';
 
 /**
  * Stats collected during level gameplay
@@ -217,36 +224,17 @@ function formatTime(seconds: number): string {
 }
 
 /**
- * Storage key for level best stats
- */
-function getBestStatsKey(levelId: LevelId): string {
-  return `stellar_descent_best_${levelId}`;
-}
-
-/**
- * Load best stats from localStorage
+ * Load best stats from the game stats store
  */
 function loadBestStats(levelId: LevelId): LevelBestStats | null {
-  try {
-    const stored = localStorage.getItem(getBestStatsKey(levelId));
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return null;
+  return useGameStatsStore.getState().getLevelBestStats(levelId);
 }
 
 /**
- * Save best stats to localStorage
+ * Save best stats to the game stats store (persisted to SQLite)
  */
 function saveBestStats(levelId: LevelId, stats: LevelBestStats): void {
-  try {
-    localStorage.setItem(getBestStatsKey(levelId), JSON.stringify(stats));
-  } catch {
-    // Ignore storage errors
-  }
+  useGameStatsStore.getState().saveLevelBestStats(levelId, stats);
 }
 
 /**
@@ -338,10 +326,14 @@ export function LevelCompletionScreen({
   stats,
   isFinalLevel = false,
 }: LevelCompletionScreenProps) {
-  const { kills } = useGame();
+  const kills = useCombatStore((state) => state.kills);
+  const difficulty = useDifficultyStore((state) => state.difficulty);
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
   const continueButtonRef = useRef<HTMLButtonElement>(null);
 
   // Calculate rating and breakdown
@@ -513,6 +505,50 @@ export function LevelCompletionScreen({
     };
   }, [hasPlayedSound]);
 
+  // Submit score to leaderboard
+  useEffect(() => {
+    if (hasSubmittedScore) return;
+
+    const submitToLeaderboard = async () => {
+      try {
+        await leaderboardSystem.initialize();
+
+        const submission: LeaderboardSubmission = {
+          levelId,
+          playerName: getPlayerName(),
+          completionTime: stats.timeElapsed,
+          difficulty,
+          accuracy: accuracy ?? 0,
+          enemiesKilled: kills,
+          damageDealt: 0, // Not tracked currently
+          damageTaken: stats.damageTaken ?? 0,
+          deaths: stats.deaths ?? 0,
+          headshots: stats.headshots ?? 0,
+          secretsFound: stats.secretsFound ?? 0,
+          totalSecrets: stats.totalSecrets ?? 0,
+          rating,
+          totalScore: breakdown.totalScore,
+        };
+
+        await leaderboardSystem.submitScore(submission);
+        setHasSubmittedScore(true);
+      } catch (error) {
+        console.error('Failed to submit score to leaderboard:', error);
+      }
+    };
+
+    submitToLeaderboard();
+  }, [
+    hasSubmittedScore,
+    levelId,
+    stats,
+    kills,
+    accuracy,
+    rating,
+    breakdown.totalScore,
+    difficulty,
+  ]);
+
   const playClickSound = useCallback(() => {
     getAudioManager().play('ui_click', { volume: 0.3 });
   }, []);
@@ -531,6 +567,26 @@ export function LevelCompletionScreen({
     playClickSound();
     onMainMenu();
   }, [onMainMenu, playClickSound]);
+
+  const handleShowLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(true);
+  }, [playClickSound]);
+
+  const handleCloseLeaderboard = useCallback(() => {
+    playClickSound();
+    setShowLeaderboard(false);
+  }, [playClickSound]);
+
+  const handleShowShare = useCallback(() => {
+    playClickSound();
+    setShowShareDialog(true);
+  }, [playClickSound]);
+
+  const handleCloseShare = useCallback(() => {
+    playClickSound();
+    setShowShareDialog(false);
+  }, [playClickSound]);
 
   // Get rating color class
   const ratingClass = useMemo(() => {
@@ -564,11 +620,31 @@ export function LevelCompletionScreen({
     }
   }, [rating]);
 
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        if (!e.target || (e.target as HTMLElement).tagName !== 'BUTTON') {
+          e.preventDefault();
+          handleContinue();
+        }
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleMainMenu();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleContinue, handleMainMenu]);
+
   return (
     <div
       className={styles.overlay}
       role="dialog"
       aria-labelledby="completion-title"
+      aria-describedby="completion-mission"
       aria-modal="true"
     >
       {/* Scan line effect */}
@@ -595,7 +671,9 @@ export function LevelCompletionScreen({
         </h1>
 
         {/* Mission name */}
-        <p className={styles.missionName}>{missionName}</p>
+        <p id="completion-mission" className={styles.missionName}>
+          {missionName}
+        </p>
 
         {/* Divider */}
         <div className={styles.divider} aria-hidden="true">
@@ -603,7 +681,7 @@ export function LevelCompletionScreen({
         </div>
 
         {/* Stats grid */}
-        <div className={styles.statsContainer}>
+        <div className={styles.statsContainer} role="group" aria-label="Mission statistics">
           <div
             className={`${styles.statItem} ${styles.statAnimateIn}`}
             style={{ animationDelay: '0.2s' }}
@@ -828,13 +906,25 @@ export function LevelCompletionScreen({
         )}
 
         {/* Rating display */}
-        <div className={`${styles.ratingContainer} ${showBreakdown ? styles.ratingVisible : ''}`}>
+        <div
+          className={`${styles.ratingContainer} ${showBreakdown ? styles.ratingVisible : ''}`}
+          role="status"
+          aria-label={`Performance rating: ${rating}, ${ratingDescription}${newRecords.rating ? ' - New personal best!' : ''}`}
+        >
           <span className={styles.ratingLabel}>PERFORMANCE RATING</span>
           <div className={styles.ratingDisplay}>
-            <span className={`${styles.ratingValue} ${ratingClass}`}>{rating}</span>
-            {newRecords.rating && <span className={styles.ratingNewRecord}>NEW BEST!</span>}
+            <span className={`${styles.ratingValue} ${ratingClass}`} aria-hidden="true">
+              {rating}
+            </span>
+            {newRecords.rating && (
+              <span className={styles.ratingNewRecord} aria-hidden="true">
+                NEW BEST!
+              </span>
+            )}
           </div>
-          <span className={styles.ratingDescription}>{ratingDescription}</span>
+          <span className={styles.ratingDescription} aria-hidden="true">
+            {ratingDescription}
+          </span>
         </div>
 
         {/* Achievements earned */}
@@ -859,33 +949,32 @@ export function LevelCompletionScreen({
 
         {/* Buttons */}
         <div className={styles.buttonGroup}>
-          <button
-            ref={continueButtonRef}
-            type="button"
-            className={`${styles.button} ${styles.primaryButton}`}
+          <MilitaryButton
+            variant="primary"
             onClick={handleContinue}
+            icon={isFinalLevel ? '\u2605' : '\u25B6'}
+            buttonRef={continueButtonRef}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">
-              {isFinalLevel ? '\u2605' : '\u25B6'}
-            </span>
             {isFinalLevel ? 'VIEW CREDITS' : 'CONTINUE'}
-          </button>
+          </MilitaryButton>
+
+          <MilitaryButton onClick={handleShowShare} icon={'\u2197'}>
+            SHARE
+          </MilitaryButton>
+
+          <MilitaryButton onClick={handleShowLeaderboard} icon={'\u2605'}>
+            LEADERBOARDS
+          </MilitaryButton>
 
           {onRetry && (
-            <button type="button" className={styles.button} onClick={handleRetry}>
-              <span className={styles.buttonIcon} aria-hidden="true">
-                {'\u21BB'}
-              </span>
+            <MilitaryButton onClick={handleRetry} icon={'\u21BB'}>
               RETRY MISSION
-            </button>
+            </MilitaryButton>
           )}
 
-          <button type="button" className={styles.button} onClick={handleMainMenu}>
-            <span className={styles.buttonIcon} aria-hidden="true">
-              {'\u25C0'}
-            </span>
+          <MilitaryButton onClick={handleMainMenu} icon={'\u25C0'}>
             MAIN MENU
-          </button>
+          </MilitaryButton>
         </div>
 
         {/* Footer info */}
@@ -895,6 +984,37 @@ export function LevelCompletionScreen({
           <span>MISSION DEBRIEF</span>
         </div>
       </div>
+
+      {/* Leaderboard Screen */}
+      <LeaderboardScreen
+        isOpen={showLeaderboard}
+        onClose={handleCloseLeaderboard}
+        initialLevel={levelId}
+        initialType="score"
+      />
+
+      {/* Share Dialog */}
+      <ShareDialog
+        isOpen={showShareDialog}
+        onClose={handleCloseShare}
+        levelId={levelId}
+        missionName={missionName}
+        stats={{
+          timeSpent: stats.timeElapsed,
+          kills: kills,
+          totalShots: stats.shotsFired,
+          shotsHit: stats.shotsHit,
+          headshots: stats.headshots,
+          deaths: stats.deaths,
+          secretsFound: stats.secretsFound ?? 0,
+          totalSecrets: stats.totalSecrets,
+        }}
+        kills={kills}
+        rating={rating}
+        trigger={isFinalLevel ? 'campaign_complete' : 'level_complete'}
+        isPersonalBest={newRecords.rating}
+        isCampaignComplete={isFinalLevel}
+      />
     </div>
   );
 }

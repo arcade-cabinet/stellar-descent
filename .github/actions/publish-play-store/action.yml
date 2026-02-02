@@ -1,0 +1,160 @@
+name: 'Publish to Google Play Store'
+description: 'Builds Android App Bundle and publishes to Google Play'
+
+inputs:
+  track:
+    description: 'Release track (internal, alpha, beta, production)'
+    required: false
+    default: 'internal'
+  release-status:
+    description: 'Release status (draft, completed, inProgress, halted)'
+    required: false
+    default: 'completed'
+  service-account-json-base64:
+    description: 'Base64 encoded Google Play service account JSON'
+    required: true
+  keystore-base64:
+    description: 'Base64 encoded release keystore'
+    required: true
+  keystore-password:
+    description: 'Keystore password'
+    required: true
+  key-alias:
+    description: 'Key alias'
+    required: true
+  key-password:
+    description: 'Key password'
+    required: true
+  version:
+    description: 'Version string'
+    required: false
+    default: 'dev'
+  version-code:
+    description: 'Android version code (integer)'
+    required: false
+  upload-artifact:
+    description: 'Whether to upload the AAB artifact'
+    required: false
+    default: 'true'
+
+outputs:
+  aab-path:
+    description: 'Path to the built AAB file'
+    value: ${{ steps.build.outputs.aab-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+
+    - name: Setup Ruby (for fastlane)
+      uses: ruby/setup-ruby@8d27f39a5e7ad39aebbcbd1324f7af020229645c # v1.287.0
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+        working-directory: android
+
+    - name: Build web assets
+      shell: bash
+      run: pnpm build
+
+    - name: Add Android platform
+      shell: bash
+      run: pnpm exec cap add android || true
+
+    - name: Sync Capacitor
+      shell: bash
+      run: pnpm exec cap sync android
+
+    - name: Copy fastlane configs
+      shell: bash
+      run: |
+        cp -r fastlane/android/* android/ 2>/dev/null || true
+        ls -la android/fastlane/ || echo "No fastlane dir"
+
+    - name: Cache Gradle
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          gradle-${{ runner.os }}-
+
+    - name: Decode keystore
+      shell: bash
+      run: |
+        echo "${{ inputs.keystore-base64 }}" | base64 -d > android/app/release-keystore.jks
+
+    - name: Decode service account
+      shell: bash
+      run: |
+        echo "${{ inputs.service-account-json-base64 }}" | base64 -d > android/play-store-credentials.json
+
+    - name: Update version code
+      if: ${{ inputs.version-code != '' }}
+      shell: bash
+      run: |
+        cd android/app
+        sed -i "s/versionCode [0-9]*/versionCode ${{ inputs.version-code }}/" build.gradle
+
+    - name: Build release AAB
+      id: build
+      shell: bash
+      run: |
+        cd android
+        chmod +x gradlew
+
+        ./gradlew bundleRelease \
+          -Pandroid.injected.signing.store.file=app/release-keystore.jks \
+          -Pandroid.injected.signing.store.password="${{ inputs.keystore-password }}" \
+          -Pandroid.injected.signing.key.alias="${{ inputs.key-alias }}" \
+          -Pandroid.injected.signing.key.password="${{ inputs.key-password }}"
+
+        AAB_PATH=$(find app/build/outputs/bundle/release -name "*.aab" | head -1)
+        echo "aab-path=$AAB_PATH" >> $GITHUB_OUTPUT
+
+        # Copy to output directory
+        mkdir -p ../play-store-builds
+        cp "$AAB_PATH" "../play-store-builds/stellar-descent-${{ inputs.version }}.aab"
+
+    - name: Install Fastlane
+      shell: bash
+      run: gem install fastlane
+
+    - name: Upload to Google Play
+      shell: bash
+      env:
+        SUPPLY_JSON_KEY: android/play-store-credentials.json
+      run: |
+        cd android
+
+        fastlane supply \
+          --aab app/build/outputs/bundle/release/*.aab \
+          --track ${{ inputs.track }} \
+          --release_status ${{ inputs.release-status }} \
+          --package_name com.jbcom.stellardescent \
+          --json_key play-store-credentials.json
+
+    - name: Upload AAB artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: play-store-aab-${{ inputs.version }}
+        path: play-store-builds/
+        retention-days: 30
+
+    - name: Cleanup credentials
+      if: always()
+      shell: bash
+      run: |
+        rm -f android/app/release-keystore.jks
+        rm -f android/play-store-credentials.json

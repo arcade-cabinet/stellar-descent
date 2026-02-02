@@ -15,7 +15,6 @@
  */
 
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
@@ -24,7 +23,10 @@ import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
 import type { Scene } from '@babylonjs/core/scene';
 import { getAudioManager } from '../../core/AudioManager';
 import { createEntity, type Entity, getEntitiesInRadius, removeEntity } from '../../core/ecs';
+import { getLogger } from '../../core/Logger';
 import { particleManager } from '../../effects/ParticleManager';
+
+const log = getLogger('WraithMortar');
 
 // ----------------------------------------------------------------------------
 // Configuration
@@ -93,7 +95,7 @@ export function predictTargetPosition(
   targetPos: Vector3,
   targetVelocity: Vector3,
   leadTime: number,
-  inaccuracy: number = 2.0
+  inaccuracy: number = 1.2 // Reduced from 2.0 for more accurate mortars
 ): Vector3 {
   const predicted = targetPos.add(targetVelocity.scale(leadTime));
 
@@ -187,7 +189,7 @@ export function launchMortar(
     trailParticles.start();
   } catch {
     // Particle system creation may fail in test environments
-    console.warn('[WraithMortar] Could not create trail particles');
+    log.warn('Could not create trail particles');
   }
 
   // Animate glow pulsing

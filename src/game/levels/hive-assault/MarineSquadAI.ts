@@ -27,14 +27,21 @@
  * - If all squad members are downed, squad is "wiped"
  */
 
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { AssetManager } from '../../core/AssetManager';
 import type { CommsMessage } from '../../types';
+
+// Marine GLB model paths
+const MARINE_GLBS = [
+  '/assets/models/npcs/marine/marine_soldier.glb',
+  '/assets/models/npcs/marine/marine_sergeant.glb',
+  '/assets/models/npcs/marine/marine_elite.glb',
+  '/assets/models/npcs/marine/marine_crusader.glb',
+] as const;
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -125,12 +132,16 @@ const MARINE_FIRE_RATE = 2.5; // shots per second
 const MARINE_DAMAGE = 12;
 const MARINE_ATTACK_RANGE = 50;
 const MARINE_MOVE_SPEED = 6;
+const MARINE_SPRINT_SPEED = 9; // when catching up to player
 const REVIVE_TIME = 3.0; // seconds of holding interact
 const REVIVE_PROXIMITY = 4; // meters
 const CALLOUT_COOLDOWN = 8; // seconds between callouts per marine
 const COVER_SEEK_RADIUS = 15; // how far a marine will look for cover
 const MORALE_RECOVERY_RATE = 0.02; // per second
 const MORALE_LOSS_PER_DOWN = 0.2;
+const MARINE_ACCURACY_BASE = 0.7; // base hit chance
+const MARINE_ACCURACY_MORALE_BONUS = 0.2; // bonus from high morale
+const MARINE_FOLLOW_DISTANCE = 8; // meters behind player
 
 // Formation offsets relative to squad center
 const FORMATION_OFFSETS: Record<SquadFormation, Vector3[]> = {
@@ -233,6 +244,15 @@ const CALLOUTS = {
     'Hostiles eliminated!',
     "Clear! Let's keep moving!",
   ],
+  FORMATION_CHANGE: [
+    'Adjusting formation!',
+    'Reforming on your position!',
+    'Copy that, changing formation!',
+    'Moving to new positions!',
+  ],
+  COVER: ['Taking cover!', 'Getting to cover!', 'Find some cover!', 'Behind the barrier!'],
+  RELOAD: ['Reloading!', 'Swapping mags!', 'Cover me, reloading!', 'Mag change!'],
+  KILL: ['Target down!', 'Got one!', 'Hostile eliminated!', 'Tango down!'],
 };
 
 // ============================================================================
@@ -294,49 +314,62 @@ export class MarineSquadManager {
   /**
    * Create a single marine mesh and data
    */
-  private createMarine(squadId: string, callsign: string, index: number, basePos: Vector3): Marine {
+  private createMarine(
+    squadId: string,
+    _callsign: string,
+    index: number,
+    basePos: Vector3
+  ): Marine {
     const name = this.getUniqueName();
     const marineId = `${squadId}_marine_${index}`;
 
     const rootNode = new TransformNode(marineId, this.scene);
     rootNode.position = basePos.clone();
 
-    // Body (simplified humanoid shape)
+    // Load GLB marine model (each squad member gets a different variant)
+    const glbPath = MARINE_GLBS[index % MARINE_GLBS.length];
+    if (AssetManager.isPathCached(glbPath)) {
+      const marineModel = AssetManager.createInstanceByPath(
+        glbPath,
+        `${marineId}_model`,
+        this.scene,
+        true,
+        'npc'
+      );
+      if (marineModel) {
+        marineModel.scaling.setAll(1.0);
+        marineModel.parent = rootNode;
+      }
+    }
+
+    // Invisible proxy meshes to satisfy the Marine interface (body, helmet, weapon)
     const bodyMesh = MeshBuilder.CreateBox(
       `${marineId}_body`,
       { width: 0.6, height: 1.4, depth: 0.4 },
       this.scene
     );
-    const bodyMat = new StandardMaterial(`${marineId}_bodyMat`, this.scene);
-    bodyMat.diffuseColor = Color3.FromHexString('#3A4A3A');
-    bodyMat.specularColor = new Color3(0.1, 0.1, 0.1);
-    bodyMesh.material = bodyMat;
     bodyMesh.position.y = 0.9;
     bodyMesh.parent = rootNode;
+    bodyMesh.isVisible = false;
 
-    // Helmet
+    // Invisible collision proxy for helmet (GLB model provides visuals)
     const helmetMesh = MeshBuilder.CreateSphere(
       `${marineId}_helmet`,
-      { diameter: 0.45, segments: 8 },
+      { diameter: 0.45, segments: 4 },
       this.scene
     );
-    const helmetMat = new StandardMaterial(`${marineId}_helmetMat`, this.scene);
-    helmetMat.diffuseColor = Color3.FromHexString('#4A5A4A');
-    helmetMesh.material = helmetMat;
     helmetMesh.position.y = 1.8;
     helmetMesh.parent = rootNode;
+    helmetMesh.isVisible = false;
 
-    // Weapon (rifle)
     const weaponMesh = MeshBuilder.CreateBox(
       `${marineId}_weapon`,
       { width: 0.08, height: 0.08, depth: 0.8 },
       this.scene
     );
-    const weaponMat = new StandardMaterial(`${marineId}_weaponMat`, this.scene);
-    weaponMat.diffuseColor = new Color3(0.2, 0.2, 0.2);
-    weaponMesh.material = weaponMat;
     weaponMesh.position.set(0.3, 0.9, 0.3);
     weaponMesh.parent = rootNode;
+    weaponMesh.isVisible = false;
 
     return {
       id: marineId,
@@ -442,25 +475,38 @@ export class MarineSquadManager {
     deltaTime: number
   ): void {
     let targetPos: Vector3;
+    let moveSpeed = MARINE_MOVE_SPEED;
+
+    const squadIndex = this.squads.indexOf(squad);
 
     switch (squad.order) {
-      case 'follow_player':
-        // Follow 8m behind and offset to one side
-        targetPos = playerPosition.add(
-          new Vector3(Math.sin((this.squads.indexOf(squad) * Math.PI) / 2) * 8, 0, 8)
-        );
+      case 'follow_player': {
+        // Follow behind player with squad-specific offset to prevent clumping
+        const sideOffset = Math.sin((squadIndex * Math.PI) / 2) * MARINE_FOLLOW_DISTANCE;
+        const behindOffset = MARINE_FOLLOW_DISTANCE + squadIndex * 3;
+        targetPos = playerPosition.add(new Vector3(sideOffset, 0, behindOffset));
+
+        // Sprint to catch up if too far
+        const distToPlayer = Vector3.Distance(squad.position, playerPosition);
+        if (distToPlayer > 25) {
+          moveSpeed = MARINE_SPRINT_SPEED;
+        }
         break;
+      }
 
       case 'hold_position':
         targetPos = squad.waypointPosition;
+        moveSpeed = MARINE_MOVE_SPEED * 0.5; // Slow down when holding
         break;
 
       case 'advance':
         targetPos = squad.waypointPosition;
+        moveSpeed = MARINE_SPRINT_SPEED; // Move faster when advancing
         break;
 
       case 'retreat':
         targetPos = squad.waypointPosition;
+        moveSpeed = MARINE_SPRINT_SPEED; // Retreat quickly
         break;
 
       default:
@@ -472,7 +518,7 @@ export class MarineSquadManager {
     const distance = diff.length();
     if (distance > 1) {
       const moveDir = diff.normalize();
-      const moveAmount = Math.min(distance, MARINE_MOVE_SPEED * deltaTime);
+      const moveAmount = Math.min(distance, moveSpeed * deltaTime);
       squad.position.addInPlace(moveDir.scale(moveAmount));
     }
   }
@@ -536,46 +582,84 @@ export class MarineSquadManager {
     coverPositions: Vector3[],
     deltaTime: number
   ): void {
-    // Find closest enemy
-    let closestEnemy: EnemyTarget | null = null;
-    let closestDist = Infinity;
+    // Find best target (prioritize high-threat enemies)
+    let bestEnemy: EnemyTarget | null = null;
+    let bestScore = -Infinity;
 
     for (const enemy of enemies) {
       const dist = Vector3.Distance(marine.position, enemy.position);
-      if (dist < closestDist && dist < marine.attackRange) {
-        closestDist = dist;
-        closestEnemy = enemy;
+      if (dist > marine.attackRange) continue;
+
+      // Score based on distance and threat level
+      let score = 100 - dist;
+
+      // Prioritize high threat enemies
+      if (enemy.threatLevel === 'high') score += 40;
+      else if (enemy.threatLevel === 'medium') score += 20;
+
+      // Prioritize low health enemies (finish them off)
+      if (enemy.health < 30) score += 25;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestEnemy = enemy;
       }
     }
 
-    if (closestEnemy) {
-      marine.targetEnemyPos = closestEnemy.position.clone();
+    if (bestEnemy) {
+      marine.targetEnemyPos = bestEnemy.position.clone();
       marine.state = 'combat';
 
-      // Face the enemy
-      const lookDir = closestEnemy.position.subtract(marine.position);
+      // Face the enemy smoothly
+      const lookDir = bestEnemy.position.subtract(marine.position);
       if (lookDir.length() > 0.01) {
-        marine.rootNode.rotation.y = Math.atan2(lookDir.x, lookDir.z);
+        const targetRotY = Math.atan2(lookDir.x, lookDir.z);
+        const currentRotY = marine.rootNode.rotation.y;
+        const rotDiff = targetRotY - currentRotY;
+        marine.rootNode.rotation.y += rotDiff * Math.min(1, deltaTime * 6);
       }
 
-      // Fire weapon
+      // Fire weapon with accuracy based on morale
       marine.fireCooldown -= deltaTime;
       if (marine.fireCooldown <= 0) {
         marine.fireCooldown = 1 / marine.fireRate;
-        // Fire event is handled by the level (checking hit registration)
+
+        // Calculate hit chance based on morale and distance
+        const distanceFactor =
+          1 - (Vector3.Distance(marine.position, bestEnemy.position) / marine.attackRange) * 0.3;
+        const moraleFactor = MARINE_ACCURACY_BASE + squad.morale * MARINE_ACCURACY_MORALE_BONUS;
+        const hitChance = distanceFactor * moraleFactor;
+
+        // Store hit result for level to process
+        if (Math.random() < hitChance) {
+          // Fire event is handled by the level (checking hit registration)
+        }
       }
 
-      // Seek cover if taking fire (low health) or morale is low
-      if (marine.health < marine.maxHealth * 0.5 || squad.morale < 0.4) {
+      // Tactical behavior based on health and morale
+      const healthPercent = marine.health / marine.maxHealth;
+
+      if (healthPercent < 0.3) {
+        // Critically low health - seek cover urgently
         const nearestCover = this.findNearestCover(marine.position, coverPositions);
         if (nearestCover) {
           marine.targetPosition = nearestCover;
           marine.state = 'taking_cover';
         }
+      } else if (healthPercent < 0.5 || squad.morale < 0.4) {
+        // Low health or morale - fight from cover if available
+        const nearestCover = this.findNearestCover(marine.position, coverPositions);
+        if (nearestCover && Vector3.Distance(marine.position, nearestCover) < 10) {
+          marine.targetPosition = nearestCover;
+          marine.state = 'taking_cover';
+        }
+      } else if (squad.morale > 0.7 && healthPercent > 0.7) {
+        // High morale and health - aggressive positioning
+        marine.state = 'suppressing';
       }
 
       // Radio callouts
-      this.tryCallout(marine, squad, closestEnemy, enemies.length);
+      this.tryCallout(marine, squad, bestEnemy, enemies.length);
     } else {
       // No enemy in range, advance toward formation position
       this.updateMarineMovement(marine, deltaTime);
@@ -665,15 +749,9 @@ export class MarineSquadManager {
     marine.state = 'downed';
     marine.reviveProgress = 0;
 
-    // Update body visual
+    // Update collision proxy position to indicate downed state
     marine.bodyMesh.position.y = 0.3;
     marine.rootNode.rotation.x = Math.PI / 6;
-
-    // Dim the helmet to indicate downed
-    const helmetMat = marine.helmetMesh.material as StandardMaterial;
-    if (helmetMat) {
-      helmetMat.emissiveColor = new Color3(0.3, 0.05, 0.05);
-    }
 
     // Find the squad and update count
     const squad = this.squads.find((s) => s.id === marine.squadId);
@@ -723,14 +801,9 @@ export class MarineSquadManager {
     marine.health = marine.maxHealth * 0.5; // Revive at half health
     marine.reviveProgress = 0;
 
-    // Reset visuals
+    // Reset collision proxy position
     marine.bodyMesh.position.y = 0.9;
     marine.rootNode.rotation.x = 0;
-
-    const helmetMat = marine.helmetMesh.material as StandardMaterial;
-    if (helmetMat) {
-      helmetMat.emissiveColor = Color3.Black();
-    }
 
     // Update squad
     const squad = this.squads.find((s) => s.id === marine.squadId);

@@ -45,16 +45,11 @@ export class AssetLoader {
       this.updateProgress('LOADING TEXTURES', 5);
 
       for (const textureInfo of manifest.textures) {
-        try {
-          const texture = await this.loadTexture(textureInfo.name, textureInfo.url);
-          this.loadedAssets.set(`texture:${textureInfo.name}`, texture);
-          loadedCount++;
-          const progress = 5 + (loadedCount / totalAssets) * 60;
-          this.updateProgress('LOADING TEXTURES', progress, textureInfo.name);
-        } catch (error) {
-          console.warn(`Failed to load texture ${textureInfo.name}:`, error);
-          loadedCount++;
-        }
+        const texture = await this.loadTexture(textureInfo.name, textureInfo.url);
+        this.loadedAssets.set(`texture:${textureInfo.name}`, texture);
+        loadedCount++;
+        const progress = 5 + (loadedCount / totalAssets) * 60;
+        this.updateProgress('LOADING TEXTURES', progress, textureInfo.name);
       }
     }
 
@@ -71,7 +66,7 @@ export class AssetLoader {
     this.updateProgress('SYSTEMS ONLINE', 100);
   }
 
-  private loadTexture(name: string, url: string): Promise<Texture> {
+  private loadTexture(_name: string, url: string): Promise<Texture> {
     return new Promise((resolve, reject) => {
       const texture = new Texture(
         url,

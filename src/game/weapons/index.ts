@@ -4,6 +4,7 @@
  * Exports:
  * - FirstPersonWeaponSystem / firstPersonWeapons  - View model mesh + rendering
  * - WeaponAnimationController                     - Procedural animation driver
+ * - WeaponRecoilSystem / weaponRecoilSystem       - Camera recoil, shake, FOV effects
  * - Animation types and profiles
  */
 
@@ -17,3 +18,10 @@ export {
   type WeaponAnimState,
   type WeaponMovementInput,
 } from './WeaponAnimations';
+
+export {
+  getRecoilProfile,
+  type WeaponRecoilProfile,
+  WeaponRecoilSystem,
+  weaponRecoilSystem,
+} from './WeaponRecoilSystem';

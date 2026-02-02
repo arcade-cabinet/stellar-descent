@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAudioManager } from '../../game/core/AudioManager';
+import { BUILD_FLAGS } from '../../game/core/BuildConfig';
+import { devMode } from '../../game/core/DevMode';
 import { worldDb } from '../../game/db/worldDatabase';
-import {
-  CAMPAIGN_LEVELS,
-  iterateLevels,
-  type LevelConfig,
-  type LevelId,
-} from '../../game/levels/types';
+import { iterateLevels, type LevelConfig, type LevelId } from '../../game/levels/types';
 import styles from './LevelSelect.module.css';
 
 interface LevelSelectProps {
@@ -36,16 +33,25 @@ export function LevelSelect({ isOpen, onClose, onSelectLevel }: LevelSelectProps
 
     const loadCompletionState = async () => {
       await worldDb.init();
-      const completedLevels = worldDb.getCompletedLevels() as LevelId[];
+      const completedLevels = (await worldDb.getCompletedLevels()) as LevelId[];
       const completed = new Set<LevelId>(completedLevels);
 
       // Calculate unlocked levels based on completion
+      // If BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS is set OR devMode.allLevelsUnlocked (Player Governor),
+      // all levels are unlocked
       const unlocked = new Set<LevelId>(['anchor_station']);
 
-      // Traverse the level linked list and unlock based on completion
-      for (const level of iterateLevels()) {
-        if (completed.has(level.id) && level.nextLevelId) {
-          unlocked.add(level.nextLevelId);
+      if (BUILD_FLAGS.UNLOCK_ALL_CAMPAIGNS || devMode.allLevelsUnlocked) {
+        // Dev mode or Player Governor: unlock all levels
+        for (const level of iterateLevels()) {
+          unlocked.add(level.id);
+        }
+      } else {
+        // Production: unlock based on completion
+        for (const level of iterateLevels()) {
+          if (completed.has(level.id) && level.nextLevelId) {
+            unlocked.add(level.nextLevelId);
+          }
         }
       }
 

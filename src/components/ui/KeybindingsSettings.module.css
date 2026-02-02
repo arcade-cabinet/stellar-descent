@@ -1,0 +1,679 @@
+/**
+ * KeybindingsSettings Styles - Military terminal theme
+ * Matches KeyboardRemapper and SettingsMenu styling
+ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+  padding: 1rem;
+}
+
+.container {
+  position: relative;
+  width: min(95%, 700px);
+  max-height: 90vh;
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98) 0%, rgba(15, 15, 17, 0.98) 100%);
+  border: 1px solid #4a5d23;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Corner decorations - military terminal style */
+.cornerTL,
+.cornerTR,
+.cornerBL,
+.cornerBR {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: #b5a642;
+  border-style: solid;
+  border-width: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cornerTL {
+  top: -1px;
+  left: -1px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+
+.cornerTR {
+  top: -1px;
+  right: -1px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+
+.cornerBL {
+  bottom: -1px;
+  left: -1px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+
+.cornerBR {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+}
+
+/* Header */
+.header {
+  padding: 1.25rem 1.5rem;
+  background: rgba(74, 93, 35, 0.15);
+  border-bottom: 1px solid #4a5d23;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.title {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.125rem;
+  color: #b5a642;
+  letter-spacing: 0.2em;
+  margin: 0;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(181, 166, 66, 0.3);
+}
+
+.subtitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #666;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.closeButton {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #888;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.closeButton:hover {
+  border-color: #ff4444;
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+}
+
+/* Tab bar */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid #2a2a2a;
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.tabButton {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #666;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tabButton:hover:not(:disabled) {
+  color: #888;
+  background: rgba(74, 93, 35, 0.1);
+}
+
+.tabButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tabButton.activeTab {
+  color: #b5a642;
+  border-bottom-color: #b5a642;
+  background: rgba(74, 93, 35, 0.15);
+}
+
+.connectedBadge {
+  font-size: 0.5rem;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.15);
+  padding: 0.125rem 0.375rem;
+  border: 1px solid #00cc6a;
+  letter-spacing: 0.05em;
+}
+
+/* Controller info bar */
+.controllerInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(74, 93, 35, 0.1);
+  border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+
+.controllerIcon {
+  font-size: 1.25rem;
+}
+
+.controllerName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #b5a642;
+  letter-spacing: 0.1em;
+}
+
+/* Conflict warning banner */
+.conflictBanner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.5rem;
+  background: rgba(139, 58, 58, 0.2);
+  border-bottom: 1px solid #8b3a3a;
+  flex-shrink: 0;
+}
+
+.conflictIcon {
+  width: 28px;
+  height: 28px;
+  background: #8b3a3a;
+  color: #fff;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.conflictText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+}
+
+.conflictText strong {
+  display: block;
+  font-size: 0.8125rem;
+  color: #cc6666;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+}
+
+.conflictText p {
+  font-size: 0.6875rem;
+  color: #998888;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Content area */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+  min-height: 0;
+}
+
+/* Category sections */
+.category {
+  margin-bottom: 1rem;
+  border: 1px solid #2a2a2a;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.category:last-of-type {
+  margin-bottom: 0;
+}
+
+.categoryHeader {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(74, 93, 35, 0.1);
+  border: none;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.categoryHeader:hover {
+  background: rgba(74, 93, 35, 0.2);
+}
+
+.categoryHeader.expanded {
+  border-bottom-color: #2a2a2a;
+}
+
+.categoryTitleArea {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.expandIcon {
+  font-size: 0.625rem;
+  color: #4a5d23;
+  transition: transform 0.15s ease;
+}
+
+.categoryTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.categoryConflictBadge {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.625rem;
+  color: #cc6666;
+  background: rgba(139, 58, 58, 0.3);
+  padding: 0.125rem 0.5rem;
+  border: 1px solid #8b3a3a;
+}
+
+.categoryDescription {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #555;
+  letter-spacing: 0.05em;
+}
+
+.categoryContent {
+  padding: 0.5rem;
+}
+
+/* Keybinding row */
+.keybindingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #2a2a2a;
+  margin-bottom: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.keybindingRow:last-child {
+  margin-bottom: 0;
+}
+
+.keybindingRow:hover {
+  border-color: #3a3a3a;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.keybindingRow.hasConflict {
+  border-color: #8b3a3a;
+  background: rgba(139, 58, 58, 0.1);
+}
+
+.keybindingRow.modified {
+  border-left: 3px solid #4a5d23;
+}
+
+/* Action info */
+.actionInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 140px;
+}
+
+.actionName {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #a0a0a0;
+}
+
+.modifiedBadge {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.5rem;
+  color: #4a5d23;
+  background: rgba(74, 93, 35, 0.2);
+  padding: 0.125rem 0.375rem;
+  letter-spacing: 0.05em;
+}
+
+/* Bindings container */
+.bindingsContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.keyBadge {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.primaryKey {
+  color: #b5a642;
+  background: rgba(74, 93, 35, 0.3);
+  border: 1px solid #4a5d23;
+}
+
+.altKey {
+  color: #888;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #3a3a3a;
+  font-size: 0.6875rem;
+}
+
+.conflictWarning {
+  width: 22px;
+  height: 22px;
+  background: #8b3a3a;
+  color: #fff;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+/* Rebind button */
+.rebindButton {
+  min-width: 80px;
+  padding: 0.5rem 1rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid #00cc6a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.rebindButton:hover {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ffaa;
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+/* Info panel */
+.infoPanel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+}
+
+.infoPanelHeader {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #4a5d23;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.infoValue {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #888;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #2a2a2a;
+}
+
+/* Footer */
+.footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #2a2a2a;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.resetButton {
+  padding: 0.75rem 1.25rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #888;
+  background: transparent;
+  border: 1px solid #5d2323;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.resetButton:hover:not(:disabled) {
+  background: rgba(93, 35, 35, 0.2);
+  border-color: #8b3a3a;
+  color: #cc6666;
+}
+
+.resetButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #3a3a3a;
+}
+
+.doneButton {
+  padding: 0.75rem 1.5rem;
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  color: #e8e8e8;
+  background: rgba(74, 93, 35, 0.3);
+  border: 1px solid #4a5d23;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.doneButton:hover {
+  background: rgba(74, 93, 35, 0.5);
+  color: #b5a642;
+  box-shadow: 0 0 15px rgba(74, 93, 35, 0.3);
+}
+
+/* Scrollbar styling */
+.content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 1px solid #2a2a2a;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: #4a5d23;
+  border: 1px solid #3a3a3a;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: #5a7030;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .container {
+    width: 100%;
+    max-height: 100vh;
+    height: 100%;
+  }
+
+  .header {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .content {
+    padding: 0.75rem;
+  }
+
+  .keybindingRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.875rem;
+  }
+
+  .actionInfo {
+    min-width: auto;
+    justify-content: space-between;
+  }
+
+  .bindingsContainer {
+    justify-content: flex-start;
+  }
+
+  .rebindButton {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .categoryHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+
+  .categoryDescription {
+    margin-left: 1.25rem;
+  }
+
+  .footer {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .resetButton,
+  .doneButton {
+    width: 100%;
+    text-align: center;
+  }
+
+  .infoRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+}
+
+/* No keyboard detected state (mobile without physical keyboard) */
+.noKeyboardContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98) 0%, rgba(15, 15, 17, 0.98) 100%);
+  border: 1px solid #4a5d23;
+  max-width: 400px;
+  text-align: center;
+}
+
+.noKeyboardIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: grayscale(0.5);
+}
+
+.noKeyboardTitle {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1rem;
+  color: #b5a642;
+  letter-spacing: 0.15em;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+}
+
+.noKeyboardText {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.8125rem;
+  color: #888;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.noKeyboardHint {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 0.6875rem;
+  color: #555;
+  margin: 0 0 1.5rem 0;
+}

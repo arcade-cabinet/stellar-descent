@@ -5,7 +5,7 @@
  * Integrates with AssetPipeline for smart priority-based loading, memory
  * budgeting, and background prefetch.
  *
- * All game-ready GLB assets are stored in public/models/ (enemies, vehicles,
+ * All game-ready GLB assets are stored in public/assets/models/ (enemies, vehicles,
  * environment, props).
  */
 
@@ -16,8 +16,12 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import '@babylonjs/loaders/glTF';
 
+import { getNextLevelId, LEVEL_MANIFESTS } from '../assets';
 import type { LevelId } from '../levels/types';
-import { getNextLevelId, LEVEL_MANIFESTS } from './AssetManifest';
+import { getLogger } from './Logger';
+
+const log = getLogger('AssetManager');
+
 import { getAssetPipeline, type PipelineProgress, type ProgressCallback } from './AssetPipeline';
 import { LODManager } from './LODManager';
 
@@ -27,10 +31,10 @@ import { LODManager } from './LODManager';
 
 // Asset categories and their base paths
 const ASSET_PATHS = {
-  aliens: '/models/aliens/',
-  vehicles: '/models/vehicles/',
-  structures: '/models/structures/',
-  props: '/models/psx/props/',
+  aliens: '/assets/models/enemies/chitin/',
+  vehicles: '/assets/models/vehicles/',
+  structures: '/assets/models/environment/hive/',
+  props: '/assets/models/props/',
 } as const;
 
 // Asset manifest - maps logical names to GLB files
@@ -49,7 +53,7 @@ export const ASSET_MANIFEST = {
   },
   // Vehicles
   vehicles: {
-    wraith: 'wraith.glb', // Enemy hover tank
+    wraith: 'chitin/wraith.glb', // Enemy hover tank
     phantom: 'phantom.glb', // Dropship for extraction
   },
   // Organic hive structures for The Breach
@@ -144,7 +148,7 @@ class AssetManagerClass {
     onProgress?: (progress: LoadProgress) => void
   ): Promise<void> {
     if (!this.pipelineInitialized) {
-      console.warn('[AssetManager] Pipeline not initialized. Call init(scene) first.');
+      log.warn('Pipeline not initialized. Call init(scene) first.');
       return;
     }
 
@@ -229,7 +233,7 @@ class AssetManagerClass {
       }
     }
 
-    console.log(`[AssetManager] Unloaded level: ${levelId}`);
+    log.info(`Unloaded level: ${levelId}`);
   }
 
   /**
@@ -252,7 +256,7 @@ class AssetManagerClass {
   private getAssetPath(category: keyof typeof ASSET_PATHS, assetName: string): string {
     const manifest = ASSET_MANIFEST[category as keyof typeof ASSET_MANIFEST];
     if (!manifest || !(assetName in manifest)) {
-      console.warn(`Asset not found in manifest: ${category}/${assetName}`);
+      log.warn(`Asset not found in manifest: ${category}/${assetName}`);
       return '';
     }
     return `${ASSET_PATHS[category]}${manifest[assetName as keyof typeof manifest]}`;
@@ -268,7 +272,7 @@ class AssetManagerClass {
   ): Promise<CachedAsset | null> {
     const targetScene = scene || this.scene;
     if (!targetScene) {
-      console.error('AssetManager: No scene available');
+      log.error('No scene available');
       return null;
     }
 
@@ -296,7 +300,7 @@ class AssetManagerClass {
       this.cache.set(cacheKey, asset);
       return asset;
     } catch (error) {
-      console.error(`Failed to load asset ${cacheKey}:`, error);
+      log.error(`Failed to load asset ${cacheKey}:`, error);
       return null;
     } finally {
       this.loading.delete(cacheKey);
@@ -314,11 +318,11 @@ class AssetManagerClass {
   ): Promise<CachedAsset> {
     const startTime = performance.now();
 
-    console.log(`[AssetManager] Loading GLB: ${path}`);
+    log.info(`Loading GLB: ${path}`);
 
     const result = await SceneLoader.ImportMeshAsync('', path, '', scene);
 
-    console.log(`[AssetManager] GLB loaded: ${path} - ${result.meshes.length} meshes found`);
+    log.info(`GLB loaded: ${path} - ${result.meshes.length} meshes found`);
 
     // Create a root transform node for the asset
     const root = new TransformNode(`asset_${name}`, scene);
@@ -335,8 +339,8 @@ class AssetManagerClass {
       }
     });
 
-    console.log(
-      `[AssetManager] GLB ${name}: ${meshWithGeometry}/${result.meshes.length} meshes have geometry (can be instanced)`
+    log.info(
+      `GLB ${name}: ${meshWithGeometry}/${result.meshes.length} meshes have geometry (can be instanced)`
     );
 
     return {
@@ -362,7 +366,7 @@ class AssetManagerClass {
     const cached = this.cache.get(cacheKey);
 
     if (!cached) {
-      console.warn(`[AssetManager] Asset not loaded: ${cacheKey}. Call loadAsset first.`);
+      log.warn(`Asset not loaded: ${cacheKey}. Call loadAsset first.`);
       return null;
     }
 
@@ -384,13 +388,13 @@ class AssetManagerClass {
     });
 
     if (instanceCount === 0) {
-      console.warn(
-        `[AssetManager] WARNING: Created instance '${instanceName}' but NO mesh instances were created from ${cacheKey}. ` +
+      log.warn(
+        `WARNING: Created instance '${instanceName}' but NO mesh instances were created from ${cacheKey}. ` +
           `This likely means the GLB has no instancable geometry.`
       );
     } else {
-      console.log(
-        `[AssetManager] Created instance '${instanceName}' with ${instanceCount} mesh instances from ${cacheKey}`
+      log.info(
+        `Created instance '${instanceName}' with ${instanceCount} mesh instances from ${cacheKey}`
       );
 
       // Apply LOD to the instance based on category
@@ -434,9 +438,7 @@ class AssetManagerClass {
   ): Promise<TransformNode | null> {
     const asset = await this.loadAsset(category, assetName, scene);
     if (!asset) {
-      console.warn(
-        `[AssetManager] loadAndCreateInstance failed: could not load ${category}/${assetName}`
-      );
+      log.warn(`loadAndCreateInstance failed: could not load ${category}/${assetName}`);
       return null;
     }
     return this.createInstance(category, assetName, instanceName, scene);
@@ -448,7 +450,7 @@ class AssetManagerClass {
   async loadAlienModel(speciesId: string, scene?: Scene): Promise<CachedAsset | null> {
     const assetName = SPECIES_TO_ASSET[speciesId];
     if (!assetName) {
-      console.warn(`No GLB asset mapped for species: ${speciesId}`);
+      log.warn(`No GLB asset mapped for species: ${speciesId}`);
       return null;
     }
     return this.loadAsset('aliens', assetName, scene);
@@ -556,7 +558,7 @@ class AssetManagerClass {
   async loadAssetByPath(path: string, scene?: Scene): Promise<CachedAsset | null> {
     const targetScene = scene || this.scene;
     if (!targetScene) {
-      console.error('AssetManager: No scene available');
+      log.error('No scene available');
       return null;
     }
 
@@ -583,7 +585,7 @@ class AssetManagerClass {
       this.cache.set(cacheKey, asset);
       return asset;
     } catch (error) {
-      console.error(`Failed to load asset at path ${path}:`, error);
+      log.error(`Failed to load asset at path ${path}:`, error);
       return null;
     } finally {
       this.loading.delete(cacheKey);
@@ -605,9 +607,7 @@ class AssetManagerClass {
     const cached = this.cache.get(cacheKey);
 
     if (!cached) {
-      console.warn(
-        `[AssetManager] Asset not loaded for path: ${path}. Call loadAssetByPath first.`
-      );
+      log.warn(`Asset not loaded for path: ${path}. Call loadAssetByPath first.`);
       return null;
     }
 

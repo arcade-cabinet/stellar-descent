@@ -20,7 +20,7 @@ export interface GameCallbacks {
   onDamage: () => void;
   onNotification: (text: string, duration?: number) => void;
   onCompassUpdate?: (data: CompassData) => void;
-  onHitMarker?: (damage: number, isCritical: boolean) => void;
+  onHitMarker?: (damage: number, isCritical: boolean, isKill?: boolean) => void;
   onDirectionalDamage?: (angle: number, damage: number) => void;
 }
 
@@ -75,7 +75,7 @@ export class GameManager {
       this.callbacks.onKill();
     });
 
-    this.combatSystem.onPlayerDamage((amount) => {
+    this.combatSystem.onPlayerDamage((_amount) => {
       this.callbacks.onDamage();
       // We could use 'amount' for damage numbers here
       if (this.player?.entity.health) {

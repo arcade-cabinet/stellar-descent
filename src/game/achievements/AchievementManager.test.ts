@@ -1,14 +1,32 @@
 /**
  * AchievementManager Tests
+ *
+ * Tests the Zustand-based achievements store (replacement for old AchievementManager singleton).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  ACHIEVEMENTS,
-  type AchievementId,
-  getAchievementManager,
-  initAchievements,
-} from './AchievementManager';
+
+// Mock the database to prevent sql.js script loading
+vi.mock('../db/database', () => ({
+  capacitorDb: {
+    init: vi.fn().mockResolvedValue(undefined),
+    run: vi.fn().mockResolvedValue({ changes: 0, lastId: 0 }),
+    query: vi.fn().mockResolvedValue([]),
+    execute: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock the SaveSystem for persistence
+vi.mock('../persistence/SaveSystem', () => ({
+  saveSystem: {
+    init: vi.fn().mockResolvedValue(undefined),
+    loadTable: vi.fn().mockResolvedValue(null),
+    saveTable: vi.fn().mockResolvedValue(undefined),
+    deleteTable: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+import { ACHIEVEMENTS, type AchievementId, getAchievementManager, initAchievements } from './index';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -298,12 +316,17 @@ describe('AchievementManager', () => {
   });
 
   describe('persistence', () => {
-    it('should save unlocked achievements to localStorage', () => {
+    it('should save unlocked achievements to SQLite', async () => {
       const manager = getAchievementManager();
 
       manager.unlock('first_steps');
 
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      // Give async persistence a moment to run
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      // The store saves via SaveSystem
+      const { saveSystem } = await import('../persistence/SaveSystem');
+      expect(saveSystem.saveTable).toHaveBeenCalled();
     });
 
     it('should get all achievements with states', () => {

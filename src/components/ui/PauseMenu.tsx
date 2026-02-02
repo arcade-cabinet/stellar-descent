@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getCollectionProgress } from '../../game/collectibles';
+import { getCollectiblesProgress } from '../../game/collectibles';
+import { getAudioManager } from '../../game/core/AudioManager';
+import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
 import {
   ACTION_LABELS,
   type BindableAction,
   getKeyDisplayName,
   useKeybindings,
-} from '../../game/context/KeybindingsContext';
-import { getAudioManager } from '../../game/core/AudioManager';
-import { CAMPAIGN_LEVELS, type LevelId } from '../../game/levels/types';
+} from '../../game/stores/useKeybindingsStore';
 import { AudioLogCollection } from './AudioLogCollection';
+import { MilitaryButton } from './MilitaryButton';
 import styles from './PauseMenu.module.css';
 import { SettingsMenu } from './SettingsMenu';
 
@@ -102,8 +103,28 @@ export function PauseMenu({
     return CAMPAIGN_LEVELS[currentLevelId];
   }, [currentLevelId]);
 
-  // Get audio log collection progress for badge display
-  const audioLogProgress = useMemo(() => getCollectionProgress(), []);
+  // Get audio log collection progress for badge display (async)
+  const [audioLogProgress, setAudioLogProgress] = useState<{
+    total: number;
+    discovered: number;
+    played: number;
+    percentage: number;
+  }>({ total: 0, discovered: 0, played: 0, percentage: 0 });
+
+  useEffect(() => {
+    const collectiblesProgress = getCollectiblesProgress();
+    setAudioLogProgress({
+      total: collectiblesProgress.audioLogs.total,
+      discovered: collectiblesProgress.audioLogs.found,
+      played: collectiblesProgress.audioLogs.played,
+      percentage:
+        collectiblesProgress.audioLogs.total > 0
+          ? Math.round(
+              (collectiblesProgress.audioLogs.found / collectiblesProgress.audioLogs.total) * 100
+            )
+          : 0,
+    });
+  }, []);
 
   // Main menu buttons configuration
   const mainMenuButtons = useMemo(
@@ -488,7 +509,13 @@ export function PauseMenu({
 
       {/* Confirmation Dialog */}
       {confirmDialog && (
-        <div className={styles.confirmOverlay} role="alertdialog" aria-modal="true">
+        <div
+          className={styles.confirmOverlay}
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+          aria-describedby="confirm-message"
+        >
           <div className={styles.confirmDialog}>
             {/* Corner decorations */}
             <div className={styles.cornerTL} aria-hidden="true" />
@@ -500,32 +527,28 @@ export function PauseMenu({
               {confirmDialog === 'restart' ? '\u21BA' : '\u26A0'}
             </div>
 
-            <h2 className={styles.confirmTitle}>
+            <h2 id="confirm-title" className={styles.confirmTitle}>
               {confirmDialog === 'restart' ? 'RESTART LEVEL?' : 'QUIT TO MENU?'}
             </h2>
 
-            <p className={styles.confirmMessage}>
+            <p id="confirm-message" className={styles.confirmMessage}>
               {confirmDialog === 'restart'
                 ? 'All progress in this level will be lost. Your checkpoint will be reset to the start of this mission.'
                 : 'Your current mission progress will be lost. You will return to the main menu.'}
             </p>
 
             <div className={styles.confirmButtons}>
-              <button
-                type="button"
-                className={styles.confirmCancelButton}
-                onClick={handleCancelConfirm}
-              >
+              <MilitaryButton onClick={handleCancelConfirm} size="sm">
                 CANCEL
-              </button>
-              <button
-                ref={confirmButtonRef}
-                type="button"
-                className={`${styles.confirmActionButton} ${confirmDialog === 'quit' ? styles.confirmDanger : styles.confirmWarning}`}
+              </MilitaryButton>
+              <MilitaryButton
+                variant={confirmDialog === 'quit' ? 'danger' : 'default'}
                 onClick={handleConfirmAction}
+                buttonRef={confirmButtonRef}
+                size="sm"
               >
                 {confirmDialog === 'restart' ? 'RESTART' : 'QUIT'}
-              </button>
+              </MilitaryButton>
             </div>
           </div>
         </div>

@@ -24,18 +24,16 @@ import type { Camera } from '@babylonjs/core/Cameras/camera';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import {
-  type ISimplificationSettings,
-  SimplificationQueue,
-  SimplificationType,
-} from '@babylonjs/core/Meshes/meshSimplification';
+import { SimplificationQueue } from '@babylonjs/core/Meshes/meshSimplification';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
+import { getLogger } from './Logger';
 import { getPerformanceManager } from './PerformanceManager';
+
+const log = getLogger('LODManager');
 
 // Side-effect import to register SimplificationQueue with the scene
 import '@babylonjs/core/Meshes/meshSimplificationSceneComponent';
@@ -172,10 +170,6 @@ class LODManagerClass {
   private trackedMeshes: Map<string, TrackedMesh> = new Map();
   private simplificationQueue: SimplificationQueue | null = null;
 
-  // Performance budget
-  private maxTrianglesPerFrame = 500000;
-  private currentTriangleCount = 0;
-
   // Update throttling - don't update LOD every frame
   private lastFullUpdate = 0;
   private updateInterval = 100; // ms between full LOD updates
@@ -207,6 +201,9 @@ class LODManagerClass {
   private pendingSimplifications: Set<string> = new Set();
   private simplificationCallbacks: Map<string, () => void> = new Map();
 
+  // Triangle budget
+  private maxTrianglesPerFrame = 500000;
+
   /**
    * Initialize the LOD manager with scene and camera
    */
@@ -223,7 +220,7 @@ class LODManagerClass {
     // Adjust configs based on device performance
     this.adjustConfigsForDevice();
 
-    console.log('[LODManager] Initialized with default configs');
+    log.info('Initialized with default configs');
   }
 
   /**
@@ -250,7 +247,7 @@ class LODManagerClass {
           });
         }
       }
-      console.log('[LODManager] Applied mobile LOD distance adjustments');
+      log.info('Applied mobile LOD distance adjustments');
     }
   }
 
@@ -304,7 +301,7 @@ class LODManagerClass {
     autoSimplify: boolean = true
   ): Promise<void> {
     if (!this.scene) {
-      console.warn('[LODManager] Not initialized, cannot register mesh');
+      log.warn('Not initialized, cannot register mesh');
       return;
     }
 
@@ -320,7 +317,7 @@ class LODManagerClass {
     this.collectMeshes(rootNode, meshes);
 
     if (meshes.length === 0) {
-      console.warn(`[LODManager] No meshes found under node: ${id}`);
+      log.warn(`No meshes found under node: ${id}`);
       return;
     }
 
@@ -432,7 +429,7 @@ class LODManagerClass {
 
         tracked.lodLevels.set(mesh, lodMeshes);
       } catch (error) {
-        console.warn(`[LODManager] Failed to generate LOD for mesh ${mesh.name}:`, error);
+        log.warn(`Failed to generate LOD for mesh ${mesh.name}:`, error);
       }
     }
   }
@@ -446,7 +443,7 @@ class LODManagerClass {
 
     try {
       const vertexCount = original.getTotalVertices();
-      const targetVertexCount = Math.floor(vertexCount * quality);
+      const _targetVertexCount = Math.floor(vertexCount * quality);
 
       // For very small reductions, just clone without decimation
       if (quality > 0.9 || vertexCount < 100) {
@@ -471,7 +468,7 @@ class LODManagerClass {
       }
       return clone;
     } catch (error) {
-      console.warn(`[LODManager] Failed to create simplified mesh:`, error);
+      log.warn(`Failed to create simplified mesh:`, error);
       return null;
     }
   }
@@ -531,7 +528,7 @@ class LODManagerClass {
 
       return simplified;
     } catch (error) {
-      console.warn(`[LODManager] Mesh decimation failed:`, error);
+      log.warn(`Mesh decimation failed:`, error);
       return null;
     }
   }
@@ -548,7 +545,7 @@ class LODManagerClass {
     quality: number
   ): { positions: number[]; indices: number[]; normals?: number[]; uvs?: number[] } | null {
     const vertexCount = positions.length / 3;
-    const stride = Math.max(1, Math.floor(1 / quality));
+    const _stride = Math.max(1, Math.floor(1 / quality));
 
     // Build unique vertex map (collapse nearby vertices)
     const gridSize = 0.1 / quality; // Larger grid = more aggressive merging
@@ -648,12 +645,12 @@ class LODManagerClass {
     }
 
     // Handle edge cases
-    if (!isFinite(minY)) minY = 0;
-    if (!isFinite(maxY)) maxY = 2;
-    if (!isFinite(minX)) minX = -1;
-    if (!isFinite(maxX)) maxX = 1;
-    if (!isFinite(minZ)) minZ = -1;
-    if (!isFinite(maxZ)) maxZ = 1;
+    if (!Number.isFinite(minY)) minY = 0;
+    if (!Number.isFinite(maxY)) maxY = 2;
+    if (!Number.isFinite(minX)) minX = -1;
+    if (!Number.isFinite(maxX)) maxX = 1;
+    if (!Number.isFinite(minZ)) minZ = -1;
+    if (!Number.isFinite(maxZ)) maxZ = 1;
 
     const height = Math.max(0.5, maxY - minY);
     const widthX = maxX - minX;
@@ -732,7 +729,7 @@ class LODManagerClass {
 
     let pendingCount = 0;
 
-    for (const [id, tracked] of this.trackedMeshes) {
+    for (const [_id, tracked] of this.trackedMeshes) {
       // Skip if recently updated (stagger updates across frames)
       if (now - tracked.lastUpdateTime < this.distanceCheckInterval) {
         continue;
@@ -991,7 +988,7 @@ class LODManagerClass {
    * Log performance report to console
    */
   logPerformanceReport(): void {
-    console.log(this.getPerformanceReport());
+    log.info(this.getPerformanceReport());
   }
 
   /**
@@ -1026,8 +1023,8 @@ class LODManagerClass {
     const multiplier = this.getSuggestedDistanceMultiplier();
 
     if (Math.abs(multiplier - 1.0) > 0.05) {
-      console.log(
-        `[LODManager] Auto-tuning: applying ${multiplier.toFixed(2)}x distance multiplier (FPS: ${this.metrics.avgFPS.toFixed(1)})`
+      log.info(
+        `Auto-tuning: applying ${multiplier.toFixed(2)}x distance multiplier (FPS: ${this.metrics.avgFPS.toFixed(1)})`
       );
 
       for (const [category, config] of this.categoryConfigs) {
@@ -1079,7 +1076,7 @@ class LODManagerClass {
       performanceTargetMet: true,
     };
 
-    console.log('[LODManager] Disposed');
+    log.info('Disposed');
   }
 }
 
@@ -1092,8 +1089,8 @@ export const LODManager = new LODManagerClass();
  */
 export function applyLOD(
   mesh: Mesh,
-  distances: [number, number, number] = [20, 50, 100],
-  qualities: [number, number] = [0.5, 0.25]
+  _distances: [number, number, number] = [20, 50, 100],
+  _qualities: [number, number] = [0.5, 0.25]
 ): void {
   // Delegate to LODManager which has proper decimation
   LODManager.applyNativeLOD(mesh, 'prop');

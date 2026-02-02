@@ -1,0 +1,87 @@
+# Maestro Test Suite Configuration
+# Cross-platform E2E tests for Stellar Descent
+#
+# Usage examples:
+#   maestro test .maestro/                              # Run all tests
+#   maestro test --include-tags smoke .maestro/         # Run smoke tests only
+#   maestro test --include-tags campaign .maestro/      # Run campaign level tests
+#   maestro test --include-tags level-1 .maestro/       # Run specific level test
+#   maestro test --include-tags nightly .maestro/       # Run extended nightly tests
+#   maestro test --env PLATFORM=android .maestro/       # Run on Android
+
+# Include all flow files recursively
+flows:
+  - "flows/**"
+
+# Continue running other flows even if one fails
+continueOnFailure: true
+
+# Tags for selective test execution
+# Run specific tags with: maestro test --include-tags <tag>
+tags:
+  # Core test categories
+  - smoke
+  - menu
+  - gameplay
+  - loading
+
+  # UI screens
+  - ui
+  - completion
+  - death
+  - credits
+  - achievements
+  - briefing
+  - level-select
+
+  # Campaign levels (use level-N for specific level)
+  - campaign
+  - level-1
+  - level-2
+  - level-3
+  - level-4
+  - level-5
+  - level-6
+  - level-7
+  - level-8
+  - level-9
+  - level-10
+
+  # Level types
+  - tutorial
+  - combat
+  - vehicle
+  - boss
+  - hive
+  - ice
+  - finale
+
+  # Integration tests
+  - integration
+  - save
+  - persistence
+
+  # Extended/nightly tests
+  - extended
+  - nightly
+  - playthrough
+
+  # Platform-specific
+  - mobile
+  - mobile-only
+  - web-only
+  - controls
+  - touch
+  - orientation
+
+# Environment variables available to all flows
+env:
+  APP_NAME: "Stellar Descent"
+  WEB_URL: "http://localhost:8080"
+  # Platform detection for cross-platform tests
+  # Override with: maestro test --env PLATFORM=android
+  PLATFORM: ${PLATFORM:-web}
+
+# Execution order (flows run in alphabetical order by default)
+executionOrder:
+  continueOnFailure: true

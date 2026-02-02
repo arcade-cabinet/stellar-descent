@@ -1,0 +1,136 @@
+name: 'Build iOS App'
+description: 'Builds iOS app and optionally uploads to TestFlight'
+
+inputs:
+  build-type:
+    description: 'Build type (development, adhoc, appstore)'
+    required: false
+    default: 'appstore'
+  upload-testflight:
+    description: 'Whether to upload to TestFlight'
+    required: false
+    default: 'false'
+  distribute-external:
+    description: 'Distribute to external TestFlight testers'
+    required: false
+    default: 'false'
+  apple-api-key-id:
+    description: 'App Store Connect API Key ID'
+    required: true
+  apple-api-issuer-id:
+    description: 'App Store Connect API Issuer ID'
+    required: true
+  apple-api-key-base64:
+    description: 'Base64 encoded App Store Connect API Key (.p8)'
+    required: true
+  apple-team-id:
+    description: 'Apple Developer Team ID'
+    required: true
+  match-password:
+    description: 'Password for Match certificate encryption'
+    required: true
+  match-git-url:
+    description: 'Git URL for Match certificates repo'
+    required: true
+  match-git-basic-auth:
+    description: 'Base64 encoded Git credentials for Match repo'
+    required: false
+  version:
+    description: 'Version string for naming artifacts'
+    required: false
+    default: 'dev'
+  upload-artifact:
+    description: 'Whether to upload the IPA artifact'
+    required: false
+    default: 'true'
+
+outputs:
+  ipa-path:
+    description: 'Path to the built IPA file'
+    value: ${{ steps.build.outputs.ipa-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@8d27f39a5e7ad39aebbcbd1324f7af020229645c # v1.287.0
+      with:
+        ruby-version: '3.2'
+        bundler-cache: false
+
+    - name: Build web assets
+      shell: bash
+      run: pnpm build
+
+    - name: Add iOS platform
+      shell: bash
+      run: pnpm exec cap add ios || true
+
+    - name: Sync Capacitor
+      shell: bash
+      run: pnpm exec cap sync ios
+
+    - name: Copy fastlane configs
+      shell: bash
+      run: |
+        cp -r fastlane/ios/* ios/App/ 2>/dev/null || true
+        ls -la ios/App/fastlane/ || echo "No fastlane dir"
+
+    - name: Install CocoaPods dependencies
+      shell: bash
+      run: |
+        cd ios/App
+        pod install --repo-update
+
+    - name: Install Fastlane
+      shell: bash
+      run: |
+        cd ios/App
+        if [ -f "Gemfile" ]; then
+          bundle install
+        else
+          gem install fastlane
+        fi
+
+    - name: Build and optionally upload
+      id: build
+      shell: bash
+      env:
+        APP_STORE_CONNECT_API_KEY_ID: ${{ inputs.apple-api-key-id }}
+        APP_STORE_CONNECT_API_ISSUER_ID: ${{ inputs.apple-api-issuer-id }}
+        APP_STORE_CONNECT_API_KEY: ${{ inputs.apple-api-key-base64 }}
+        APPLE_TEAM_ID: ${{ inputs.apple-team-id }}
+        MATCH_PASSWORD: ${{ inputs.match-password }}
+        MATCH_GIT_URL: ${{ inputs.match-git-url }}
+        MATCH_GIT_BASIC_AUTH: ${{ inputs.match-git-basic-auth }}
+      run: |
+        cd ios/App
+
+        if [[ "${{ inputs.upload-testflight }}" == "true" ]]; then
+          if [[ "${{ inputs.distribute-external }}" == "true" ]]; then
+            bundle exec fastlane beta_external
+          else
+            bundle exec fastlane beta
+          fi
+        else
+          bundle exec fastlane build
+        fi
+
+        # Find the IPA
+        IPA_PATH=$(find build -name "*.ipa" | head -1)
+        echo "ipa-path=$IPA_PATH" >> $GITHUB_OUTPUT
+
+        # Rename with version
+        VERSION=${{ inputs.version }}
+        if [ -f "$IPA_PATH" ]; then
+          mkdir -p ../ios-builds
+          cp "$IPA_PATH" "../ios-builds/stellar-descent-${VERSION}-ios.ipa"
+        fi
+
+    - name: Upload IPA artifact
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: ios-ipa-${{ inputs.version }}
+        path: ios/ios-builds/
+        retention-days: 30

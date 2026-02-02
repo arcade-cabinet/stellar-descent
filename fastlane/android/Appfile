@@ -1,0 +1,7 @@
+# Stellar Descent Android Appfile
+# https://docs.fastlane.tools/advanced/Appfile/
+
+package_name("com.jbcom.stellardescent")
+
+# Path to the service account JSON key file
+json_key_file(ENV["SUPPLY_JSON_KEY"] || "play-store-credentials.json")

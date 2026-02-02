@@ -26,6 +26,9 @@ import type { IShadowLight } from '@babylonjs/core/Lights/shadowLight';
 import type { Scene } from '@babylonjs/core/scene';
 import type { DeviceType, ScreenInfo } from '../types';
 import { getScreenInfo } from '../utils/responsive';
+import { getLogger } from './Logger';
+
+const log = getLogger('PerformanceManager');
 
 // Import shadow generator components for BabylonJS tree-shaking
 import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent';
@@ -324,8 +327,8 @@ class PerformanceManager {
     this.currentResolutionScale = this.settings.resolutionScale;
     this.engine.setHardwareScalingLevel(1 / this.currentResolutionScale);
 
-    console.log(
-      `[PerformanceManager] Initialized: ${this.qualityLevel} quality for ${this.screenInfo.deviceType} (tier: ${this.performanceTier})`
+    log.info(
+      `Initialized: ${this.qualityLevel} quality for ${this.screenInfo.deviceType} (tier: ${this.performanceTier})`
     );
   }
 
@@ -390,7 +393,7 @@ class PerformanceManager {
     this.performanceTier = tier;
 
     if (this.config.showWarnings) {
-      console.log(`[PerformanceManager] GPU Benchmark:`, {
+      log.info(`GPU Benchmark:`, {
         tier,
         maxTextureSize,
         isWebGL2,
@@ -462,9 +465,9 @@ class PerformanceManager {
         this.isCharging = battery.charging;
         this.updateLowBatteryMode();
       });
-    } catch (e) {
+    } catch (_e) {
       // Battery API not available or failed
-      console.log('[PerformanceManager] Battery monitoring not available');
+      log.info('Battery monitoring not available');
     }
   }
 
@@ -476,7 +479,7 @@ class PerformanceManager {
 
     // If entering low battery mode, reduce quality
     if (this.lowBatteryMode && !wasLowBattery) {
-      console.log('[PerformanceManager] Entering low battery mode');
+      log.info('Entering low battery mode');
       this.setQuality(this.lowerQuality(this.qualityLevel));
     }
   }
@@ -588,8 +591,8 @@ class PerformanceManager {
     const newLevel = this.lowerQuality(currentLevel);
 
     if (newLevel !== currentLevel) {
-      console.log(
-        `[PerformanceManager] Degrading quality: ${currentLevel} -> ${newLevel} (FPS: ${this.calculateFPS().toFixed(1)})`
+      log.info(
+        `Degrading quality: ${currentLevel} -> ${newLevel} (FPS: ${this.calculateFPS().toFixed(1)})`
       );
       this.setQuality(newLevel);
     } else {
@@ -602,7 +605,7 @@ class PerformanceManager {
         this.currentResolutionScale = newScale;
         this.engine?.setHardwareScalingLevel(1 / newScale);
         this.dynamicScalingActive = true;
-        console.log(`[PerformanceManager] Reducing resolution to ${Math.round(newScale * 100)}%`);
+        log.info(`Reducing resolution to ${Math.round(newScale * 100)}%`);
       }
     }
   }
@@ -629,7 +632,7 @@ class PerformanceManager {
       if (newScale >= this.settings.resolutionScale - 0.01) {
         this.dynamicScalingActive = false;
       }
-      console.log(`[PerformanceManager] Restoring resolution to ${Math.round(newScale * 100)}%`);
+      log.info(`Restoring resolution to ${Math.round(newScale * 100)}%`);
       return;
     }
 
@@ -640,7 +643,7 @@ class PerformanceManager {
       const maxQuality = DEVICE_QUALITY_MAP[this.screenInfo.deviceType];
       const levels: QualityLevel[] = ['potato', 'low', 'medium', 'high', 'ultra'];
       if (levels.indexOf(newLevel) <= levels.indexOf(maxQuality)) {
-        console.log(`[PerformanceManager] Upgrading quality: ${this.qualityLevel} -> ${newLevel}`);
+        log.info(`Upgrading quality: ${this.qualityLevel} -> ${newLevel}`);
         this.setQuality(newLevel);
       }
     }
@@ -662,7 +665,7 @@ class PerformanceManager {
     if (!this.engine || this.frameHistory.length < 10) return;
 
     const fps = this.calculateFPS();
-    const targetFPS = this.settings.targetFPS;
+    const _targetFPS = this.settings.targetFPS;
 
     // Below low threshold - reduce resolution
     if (fps < this.config.lowFPSThreshold) {
@@ -679,9 +682,7 @@ class PerformanceManager {
         this.scalingCooldown = this.SCALING_COOLDOWN_FRAMES;
 
         if (this.config.showWarnings) {
-          console.log(
-            `[PerformanceManager] Reduced resolution to ${Math.round(newScale * 100)}% (FPS: ${fps.toFixed(1)})`
-          );
+          log.info(`Reduced resolution to ${Math.round(newScale * 100)}% (FPS: ${fps.toFixed(1)})`);
         }
       }
     }
@@ -795,7 +796,7 @@ class PerformanceManager {
     // Update shadow generators
     this.updateShadowGenerators();
 
-    console.log(`[PerformanceManager] Quality set to: ${level}${userInitiated ? ' (user)' : ''}`);
+    log.info(`Quality set to: ${level}${userInitiated ? ' (user)' : ''}`);
   }
 
   /**
@@ -803,7 +804,7 @@ class PerformanceManager {
    */
   unlockQuality(): void {
     this.qualityLocked = false;
-    console.log('[PerformanceManager] Quality auto-adjustment unlocked');
+    log.info('Quality auto-adjustment unlocked');
   }
 
   /**
@@ -1159,23 +1160,21 @@ class PerformanceManager {
 
     // Draw call warning
     if (metrics.drawCalls > this.settings.drawCallBudget) {
-      console.warn(
-        `[PerformanceManager] Draw calls (${metrics.drawCalls}) exceed budget (${this.settings.drawCallBudget})`
-      );
+      log.warn(`Draw calls (${metrics.drawCalls}) exceed budget (${this.settings.drawCallBudget})`);
     }
 
     // Particle system warning
     if (metrics.activeParticles > this.settings.maxParticleSystems) {
-      console.warn(
-        `[PerformanceManager] Particle systems (${metrics.activeParticles}) exceed limit (${this.settings.maxParticleSystems})`
+      log.warn(
+        `Particle systems (${metrics.activeParticles}) exceed limit (${this.settings.maxParticleSystems})`
       );
     }
 
     // P95 frame time warning (targeting 60fps = 16.67ms, 30fps = 33.33ms)
     const targetFrameTime = 1000 / this.settings.targetFPS;
     if (metrics.p95FrameTime > targetFrameTime * 2) {
-      console.warn(
-        `[PerformanceManager] P95 frame time (${metrics.p95FrameTime.toFixed(1)}ms) exceeds budget (${(targetFrameTime * 2).toFixed(1)}ms)`
+      log.warn(
+        `P95 frame time (${metrics.p95FrameTime.toFixed(1)}ms) exceeds budget (${(targetFrameTime * 2).toFixed(1)}ms)`
       );
     }
   }
@@ -1244,7 +1243,7 @@ class PerformanceManager {
       <div>Quality: ${m.qualityLevel.toUpperCase()} (${this.performanceTier})</div>
       <div>Auto: ${autoQualityStatus}</div>
       <div>Resolution: ${Math.round(m.currentResolutionScale * 100)}%${m.dynamicScalingActive ? ' (scaling)' : ''}</div>
-      <div>Shadows: ${this.settings.shadowsEnabled ? this.settings.shadowMapSize + 'px' : 'OFF'}</div>
+      <div>Shadows: ${this.settings.shadowsEnabled ? `${this.settings.shadowMapSize}px` : 'OFF'}</div>
       <div>Meshes: ${m.activeMeshes} | Draw: ${m.drawCalls}</div>
       <div>Particles: ${m.activeParticles}/${this.settings.maxParticleSystems} (x${this.settings.particleMultiplier.toFixed(2)})</div>
       ${this.batteryLevel !== null ? `<div>Battery: ${Math.round(this.batteryLevel * 100)}%${this.lowBatteryMode ? ' (SAVING)' : ''}</div>` : ''}
@@ -1266,7 +1265,7 @@ class PerformanceManager {
     this.removeDebugOverlay();
 
     // Dispose shadow generators
-    for (const [name, generator] of this.shadowGenerators) {
+    for (const [_name, generator] of this.shadowGenerators) {
       generator.dispose();
     }
     this.shadowGenerators.clear();

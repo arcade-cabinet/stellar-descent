@@ -9,17 +9,15 @@ import type { Engine } from '@babylonjs/core/Engines/engine';
 import { AnchorStationLevel } from './anchor-station/AnchorStationLevel';
 import { BrothersInArmsLevel } from './brothers-in-arms/BrothersInArmsLevel';
 import { CanyonRunLevel } from './canyon-run/CanyonRunLevel';
-import { ExtractionLevel } from './extraction/ExtractionLevel';
+import { ExtractionLevel } from './extraction';
+import { FinalEscapeLevel } from './final-escape/FinalEscapeLevel';
 import { FOBDeltaLevel } from './fob-delta/FOBDeltaLevel';
-import { LandfallLevel } from './landfall/LandfallLevel';
+import { HiveAssaultLevel } from './hive-assault/HiveAssaultLevel';
+import { LandfallLevel } from './landfall';
+import { MiningDepthsLevel } from './mining-depths/MiningDepthsLevel';
+import { SouthernIceLevel } from './southern-ice/SouthernIceLevel';
 import { TheBreachLevel } from './the-breach/TheBreachLevel';
-import type {
-  ILevel,
-  LevelCallbacks,
-  LevelConfig,
-  LevelFactory,
-  LevelFactoryRegistry,
-} from './types';
+import type { ILevel, LevelConfig, LevelFactory, LevelFactoryRegistry } from './types';
 
 /**
  * Factory for station (interior) levels
@@ -27,10 +25,9 @@ import type {
 export const stationLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new AnchorStationLevel(engine, canvas, config, callbacks);
+  return new AnchorStationLevel(engine, canvas, config);
 };
 
 /**
@@ -39,23 +36,35 @@ export const stationLevelFactory: LevelFactory = (
 export const dropLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new LandfallLevel(engine, canvas, config, callbacks);
+  return new LandfallLevel(engine, canvas, config);
 };
 
 /**
  * Factory for canyon (exterior surface) levels
  * Used for canyon terrain combat scenarios
+ * Currently unused - canyon levels use 'vehicle' type via CanyonRunLevel
  */
 export const canyonLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
 ): ILevel => {
-  throw new Error('Canyon level type is not yet implemented. Awaiting CanyonLevel class.');
+  // Generic canyon infantry level - uses CanyonRunLevel as fallback
+  return new CanyonRunLevel(engine, canvas, config);
+};
+
+/**
+ * Factory for mine (underground mining) levels
+ * Used for Mining Depths bonus level
+ */
+export const mineLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
+): ILevel => {
+  return new MiningDepthsLevel(engine, canvas, config);
 };
 
 /**
@@ -64,10 +73,9 @@ export const canyonLevelFactory: LevelFactory = (
 export const baseLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new FOBDeltaLevel(engine, canvas, config, callbacks);
+  return new FOBDeltaLevel(engine, canvas, config);
 };
 
 /**
@@ -76,23 +84,33 @@ export const baseLevelFactory: LevelFactory = (
 export const brothersLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new BrothersInArmsLevel(engine, canvas, config, callbacks);
+  return new BrothersInArmsLevel(engine, canvas, config);
 };
 
 /**
- * Factory for hive (underground + Queen boss) levels
- * Underground alien tunnels with Chitin Queen boss fight
+ * Factory for hive (underground) levels
+ * Underground alien tunnels
  */
 export const hiveLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new TheBreachLevel(engine, canvas, config, callbacks);
+  return new TheBreachLevel(engine, canvas, config);
+};
+
+/**
+ * Factory for boss fight levels (The Breach - Queen boss)
+ * Underground alien tunnels with Chitin Queen boss fight
+ */
+export const bossLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
+): ILevel => {
+  return new TheBreachLevel(engine, canvas, config);
 };
 
 /**
@@ -102,10 +120,9 @@ export const hiveLevelFactory: LevelFactory = (
 export const extractionLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new ExtractionLevel(engine, canvas, config, callbacks);
+  return new ExtractionLevel(engine, canvas, config);
 };
 
 /**
@@ -115,10 +132,9 @@ export const extractionLevelFactory: LevelFactory = (
 export const vehicleLevelFactory: LevelFactory = (
   engine: Engine,
   canvas: HTMLCanvasElement,
-  config: LevelConfig,
-  callbacks: LevelCallbacks
+  config: LevelConfig
 ): ILevel => {
-  return new CanyonRunLevel(engine, canvas, config, callbacks);
+  return new CanyonRunLevel(engine, canvas, config);
 };
 
 /**
@@ -126,13 +142,23 @@ export const vehicleLevelFactory: LevelFactory = (
  * Frozen terrain with new enemy types and environmental hazards
  */
 export const iceLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
 ): ILevel => {
-  // TODO: Implement SouthernIceLevel class
-  throw new Error('Ice level type is not yet implemented. Awaiting SouthernIceLevel class.');
+  return new SouthernIceLevel(engine, canvas, config);
+};
+
+/**
+ * Factory for assault levels (Hive Assault)
+ * Combined arms assault with vehicle and infantry gameplay
+ */
+export const assaultLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
+): ILevel => {
+  return new HiveAssaultLevel(engine, canvas, config);
 };
 
 /**
@@ -140,15 +166,23 @@ export const iceLevelFactory: LevelFactory = (
  * Mixed vehicle and infantry gameplay pushing into the hive
  */
 export const combinedArmsLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
 ): ILevel => {
-  // TODO: Implement HiveAssaultLevel class
-  throw new Error(
-    'Combined arms level type is not yet implemented. Awaiting HiveAssaultLevel class.'
-  );
+  return new HiveAssaultLevel(engine, canvas, config);
+};
+
+/**
+ * Factory for escape levels (Final Escape)
+ * Timed escape sequence - outrun the collapse
+ */
+export const escapeLevelFactory: LevelFactory = (
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
+): ILevel => {
+  return new FinalEscapeLevel(engine, canvas, config);
 };
 
 /**
@@ -156,13 +190,11 @@ export const combinedArmsLevelFactory: LevelFactory = (
  * Timed vehicle escape sequence - Warthog Run style
  */
 export const finaleLevelFactory: LevelFactory = (
-  _engine: Engine,
-  _canvas: HTMLCanvasElement,
-  _config: LevelConfig,
-  _callbacks: LevelCallbacks
+  engine: Engine,
+  canvas: HTMLCanvasElement,
+  config: LevelConfig
 ): ILevel => {
-  // TODO: Implement FinalEscapeLevel class
-  throw new Error('Finale level type is not yet implemented. Awaiting FinalEscapeLevel class.');
+  return new FinalEscapeLevel(engine, canvas, config);
 };
 
 /**
@@ -175,11 +207,15 @@ export const defaultLevelFactories: LevelFactoryRegistry = {
   base: baseLevelFactory,
   brothers: brothersLevelFactory,
   hive: hiveLevelFactory,
+  boss: bossLevelFactory,
   extraction: extractionLevelFactory,
   vehicle: vehicleLevelFactory,
   ice: iceLevelFactory,
+  assault: assaultLevelFactory,
   combined_arms: combinedArmsLevelFactory,
+  escape: escapeLevelFactory,
   finale: finaleLevelFactory,
+  mine: mineLevelFactory,
 };
 
 /**
@@ -188,15 +224,30 @@ export const defaultLevelFactories: LevelFactoryRegistry = {
  */
 export function createLevelFactories(
   overrides: Partial<LevelFactoryRegistry> = {}
-): Partial<LevelFactoryRegistry> {
+): LevelFactoryRegistry {
   return {
-    station: stationLevelFactory,
-    drop: dropLevelFactory,
-    vehicle: vehicleLevelFactory,
-    base: baseLevelFactory,
-    brothers: brothersLevelFactory,
-    hive: hiveLevelFactory,
-    extraction: extractionLevelFactory,
+    ...defaultLevelFactories,
     ...overrides,
   };
+}
+
+/**
+ * Issue #96: Get factory for a specific level type
+ */
+export function getFactoryForType(type: keyof LevelFactoryRegistry): LevelFactory | null {
+  return defaultLevelFactories[type] ?? null;
+}
+
+/**
+ * Issue #97: Check if a level type is supported
+ */
+export function isLevelTypeSupported(type: string): type is keyof LevelFactoryRegistry {
+  return type in defaultLevelFactories;
+}
+
+/**
+ * Issue #98: Get all supported level types
+ */
+export function getSupportedLevelTypes(): (keyof LevelFactoryRegistry)[] {
+  return Object.keys(defaultLevelFactories) as (keyof LevelFactoryRegistry)[];
 }

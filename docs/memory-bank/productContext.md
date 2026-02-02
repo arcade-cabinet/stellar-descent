@@ -7,29 +7,35 @@ The player controls **Sergeant James Cole (Callsign: SPECTER)**, a "Hell Jumper"
 
 **The Mission**: Find his brother, **Corporal Marcus Cole (Callsign: HAMMER)**, who went missing with Recon Team Vanguard at FOB Delta.
 
-## Campaign Structure
+## Campaign Structure (10 Levels)
 
-### ACT 1: THE DROP
-1. **Anchor Station Prometheus** (Tutorial) - Prep Bay 7 briefing, equipment, shooting range
-2. **Landfall** - HALO drop to planet surface, first contact with Chitin
+### ACT 1: THE DROP (Ch. 1-3)
+1. **Anchor Station Prometheus** - Tutorial, holodeck training, drop pod boarding
+2. **Landfall** - HALO drop, first contact with Chitin
+3. **Canyon Run** - Vehicle chase, Wraith tank pursuit
 
-### ACT 2: THE SEARCH
-3. **FOB Delta** - Investigate abandoned forward operating base, horror atmosphere
-4. **Brothers in Arms** - Reunite with Marcus in his Titan mech, wave-based combat
+### ACT 2: THE SEARCH (Ch. 4-6)
+4. **FOB Delta** - Abandoned base investigation, horror, power restoration
+5. **Brothers in Arms** - Marcus reunion, Titan mech, wave defense
+6. **Southern Ice** - Frozen wasteland, blizzard survival
 
-### ACT 3: THE TRUTH
-5. **Into the Breach** - Descend into Chitin hive, face the Queen
-6. **Extraction** - Escape collapsing hive, holdout at LZ Omega until evac
+### ACT 3: THE BREACH (Ch. 7-10)
+7. **The Breach** - Queen's lair, boss fight
+8. **Hive Assault** - Combined arms, nexus destruction
+9. **Extraction** - LZ Omega holdout
+10. **Final Escape** - Vehicle finale, outrun collapse
 
 ## The Enemy
-**Strain-X / "Chitin"**: An insectoid hive species living deep underground, awakened by mining operations.
+**Chitin**: Insectoid hive species from underground, awakened by mining.
 
 ### Enemy Variants
-- **Drones**: Fast, weak scouts
-- **Grunts**: Standard melee attackers
-- **Brutes**: Heavy, slow, high damage
-- **Spitters**: Ranged acid attacks
-- **Queen**: Boss enemy, multiple phases
+- **Skitterer**: Fast scouts, 80 HP
+- **Spitter**: Ranged acid, 120 HP
+- **Warrior**: Melee attackers, 200 HP
+- **Heavy**: Armored tanks, 400 HP
+- **Stalker**: Agile ambushers, 150 HP
+- **Broodmother**: Mini-boss, 700 HP
+- **Queen**: Final boss, 3000 HP, multiple phases
 
 ## Characters
 
@@ -43,9 +49,10 @@ The player controls **Sergeant James Cole (Callsign: SPECTER)**, a "Hell Jumper"
 - Pilots a Titan-class mech
 - Allied NPC in Level 4+
 
-### AI Command (MOTHER)
-- Ship AI providing mission updates
-- Comms dialogue throughout game
+### Commander Elena Vasquez (ACTUAL)
+- Mission control officer
+- Comms dialogue and mission briefings
+- Coordinates extraction and support
 
 ## User Experience Goals
 - **Grounded & Human**: Military story about brotherhood

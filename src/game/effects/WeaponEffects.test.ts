@@ -3,7 +3,7 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { particleManager } from './ParticleManager';
 import { WeaponEffects, weaponEffects } from './WeaponEffects';
 

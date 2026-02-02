@@ -1,0 +1,134 @@
+# Achievement Unlocks and Panel Tests
+# Tests achievement system and unlock notifications
+# Cross-platform: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - ui
+  - achievements
+  - progression
+name: "Achievements - Unlock and Display"
+
+---
+- launchApp:
+    clearState: true
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "ACHIEVEMENTS"
+    timeout: 30000
+
+# Open achievements panel
+- tapOn:
+    text: "ACHIEVEMENTS"
+
+- wait: 1000
+
+- takeScreenshot: "achievements_panel_open"
+
+# Verify achievements panel elements
+- assertVisible:
+    text: "ACHIEVEMENTS"
+    optional: true
+
+# Check for achievement categories or list
+- assertVisible:
+    text: "Unlocked"
+    optional: true
+
+- assertVisible:
+    text: "Locked"
+    optional: true
+
+- takeScreenshot: "achievements_list"
+
+# Check for specific achievement entries
+# These are common achievements based on game mechanics
+
+# First Blood - First enemy kill
+- assertVisible:
+    text: "First Blood"
+    optional: true
+
+# Tutorial completion
+- assertVisible:
+    text: "Boot Camp"
+    optional: true
+
+# Level completion achievements
+- assertVisible:
+    text: "Landfall"
+    optional: true
+
+# Combat achievements
+- assertVisible:
+    text: "Sharpshooter"
+    optional: true
+
+- assertVisible:
+    text: "Headhunter"
+    optional: true
+
+- takeScreenshot: "achievements_combat"
+
+# Exploration achievements
+- assertVisible:
+    text: "Explorer"
+    optional: true
+
+- assertVisible:
+    text: "Intel Collector"
+    optional: true
+
+- takeScreenshot: "achievements_exploration"
+
+# Speedrun achievements
+- assertVisible:
+    text: "Speed Demon"
+    optional: true
+
+- takeScreenshot: "achievements_speedrun"
+
+# Scroll through achievements list
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+    duration: 1000
+
+- wait: 500
+
+- takeScreenshot: "achievements_scrolled"
+
+# Continue scrolling
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+    duration: 1000
+
+- wait: 500
+
+- takeScreenshot: "achievements_more"
+
+# Check achievement progress indicators
+- assertVisible:
+    text: "Progress"
+    optional: true
+
+# Close achievements panel
+- tapOn:
+    text: "CLOSE"
+    optional: true
+
+- tapOn:
+    text: "BACK"
+    optional: true
+
+- wait: 1000
+
+# Verify we're back at main menu
+- assertVisible:
+    text: "NEW GAME"
+    timeout: 5000
+
+- takeScreenshot: "main_menu_after_achievements"

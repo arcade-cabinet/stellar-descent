@@ -1,0 +1,46 @@
+# Game Loading tests
+# Works on: Web, Android, iOS
+
+appId: "${PLATFORM == 'android' ? 'com.jbcom.stellardescent' : (PLATFORM == 'ios' ? 'com.jbcom.stellardescent' : null)}"
+url: "${PLATFORM == 'web' ? 'http://localhost:8080' : null}"
+tags:
+  - loading
+  - gameplay
+name: "Game Loading - New Campaign Flow"
+
+---
+
+- launchApp
+
+# Wait for main menu
+- extendedWaitUntil:
+    visible: "NEW GAME"
+    timeout: 30000
+
+# Start new campaign
+- tapOn:
+    text: "NEW GAME"
+
+# Should see loading screen
+- extendedWaitUntil:
+    visible: "ANCHOR STATION PROMETHEUS"
+    timeout: 10000
+
+- takeScreenshot: "loading-screen"
+
+# Wait for loading to complete
+- extendedWaitUntil:
+    visible: "SYSTEMS ONLINE"
+    timeout: 60000
+
+- takeScreenshot: "loading-complete"
+
+# Should see tutorial comms
+- extendedWaitUntil:
+    visible: "Good morning"
+    timeout: 30000
+
+- assertVisible:
+    text: "ATHENA"
+
+- takeScreenshot: "tutorial-start"

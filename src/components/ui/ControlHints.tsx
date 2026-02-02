@@ -9,7 +9,7 @@
  * - Integrates with tutorial phases to show relevant hints
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { TutorialPhase } from '../../game/levels/anchor-station/tutorialSteps';
 import { getScreenInfo } from '../../game/utils/responsive';
 import styles from './ControlHints.module.css';

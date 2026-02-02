@@ -1,5 +1,6 @@
+import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { vitePlugins } from './vite/plugin';
@@ -7,6 +8,70 @@ import { vitePlugins } from './vite/plugin';
 function pathResolve(dir: string) {
   return resolve(__dirname, '.', dir);
 }
+
+/**
+ * Vite plugin to ensure WASM files are served with the correct MIME type.
+ * This is necessary for sql.js/jeep-sqlite to load properly on the web.
+ */
+function wasmMimePlugin(): Plugin {
+  return {
+    name: 'wasm-mime-type',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.endsWith('.wasm')) {
+          res.setHeader('Content-Type', 'application/wasm');
+        }
+        next();
+      });
+    },
+  };
+}
+
+/**
+ * Vite plugin to prevent SPA fallback for BabylonJS shader file requests.
+ *
+ * BabylonJS dynamically loads shader source via HTTP when a shader isn't
+ * pre-registered in Effect.ShadersStore. Vite's SPA fallback serves index.html
+ * for any unresolved URL, which BabylonJS then tries to compile as GLSL,
+ * causing "SHADER ERROR: '<' : syntax error" from the DOCTYPE tag.
+ *
+ * This middleware intercepts shader-like requests and returns 404, so BabylonJS
+ * hits its error path instead of compiling HTML as shader code.
+ */
+function babylonShaderGuardPlugin(): Plugin {
+  return {
+    name: 'babylon-shader-guard',
+    configureServer(server) {
+      // Must run BEFORE Vite's built-in SPA fallback middleware
+      server.middlewares.use((req, res, next) => {
+        const url = req.url;
+        if (
+          url &&
+          (url.endsWith('.fragment') ||
+            url.endsWith('.vertex') ||
+            url.endsWith('.fx') ||
+            url.endsWith('.fragment.fx') ||
+            url.endsWith('.vertex.fx'))
+        ) {
+          res.statusCode = 404;
+          res.end(`Shader file not found: ${url}`);
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
+// Build timestamp for cache verification
+const BUILD_TIMESTAMP = new Date().toISOString();
+
+// Environment variable documentation:
+// - VITE_PUBLIC_PATH: Base path for the application
+// - VITE_GEMINI_API_KEY: Google Gemini API key for AI-powered asset generation
+//   Used for: Video generation (Veo 3.1), Image generation (Imagen), Text generation
+//   Required for: Cinematic videos, character portraits, dynamic dialogue
+//   Note: Set in .env.local file or CI/CD environment. Never commit API keys!
 
 // https://vitejs.dev/config/
 export default ({ mode }: any) => {
@@ -17,17 +82,17 @@ export default ({ mode }: any) => {
     root,
     // plugin
     plugins: [
+      babylonShaderGuardPlugin(),
+      wasmMimePlugin(),
       react(),
       ...vitePlugins(env),
       VitePWA({
-        registerType: 'prompt', // Prompt user before updating
+        registerType: 'autoUpdate', // Automatically apply updates without prompting
         includeAssets: [
-          'logo_babylonpress.png',
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-192x192.png',
           'pwa-maskable-512x512.png',
-          'sql-wasm.wasm',
         ],
         manifest: {
           name: 'STELLAR DESCENT: PROXIMA BREACH',
@@ -87,8 +152,30 @@ export default ({ mode }: any) => {
             '**/*.wasm',
           ],
 
+          // Exclude very large NPC models from precaching (>15MB)
+          // They will be cached at runtime via runtimeCaching when first loaded
+          globIgnores: [
+            '**/models/npcs/marine/marine_elite.glb',
+            '**/models/npcs/marine/marine_crusader.glb',
+          ],
+
           // Runtime caching strategies
           runtimeCaching: [
+            // Cache-first for video files (splash videos are ~12MB each, don't precache)
+            {
+              urlPattern: /\.(?:mp4|webm)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'game-video',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             // Cache-first for models (GLB/GLTF files)
             {
               urlPattern: /\.(?:glb|gltf|bin)$/i,
@@ -203,6 +290,7 @@ export default ({ mode }: any) => {
         devOptions: {
           enabled: true, // Enable PWA in dev mode for testing
           type: 'module',
+          suppressWarnings: true,
         },
       }),
     ],
@@ -222,12 +310,44 @@ export default ({ mode }: any) => {
       open: false,
       hmr: true,
       cors: true,
+      headers: {
+        // COOP/COEP for SharedArrayBuffer - only needed if using Havok physics WASM
+        // Disabled in dev to allow browser extension testing
+        // Production build keeps these for WebSQLite WASM (sql.js)
+        ...(mode === 'production'
+          ? {
+              'Cross-Origin-Opener-Policy': 'same-origin',
+              'Cross-Origin-Embedder-Policy': 'require-corp',
+            }
+          : {}),
+      },
+      // Configure MIME types for WASM files
+      fs: {
+        // Allow serving files from node_modules for WASM (including pnpm nested structure)
+        allow: ['.', '..', 'node_modules'],
+        strict: false,
+      },
+    },
+    // Configure preview server similarly
+    preview: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      },
+    },
+    // Ensure WASM files can be loaded
+    assetsInclude: ['**/*.wasm'],
+    // Inject build timestamp as define for runtime access
+    define: {
+      __BUILD_TIMESTAMP__: JSON.stringify(BUILD_TIMESTAMP),
     },
     build: {
       target: 'esnext',
       outDir: 'dist',
       chunkSizeWarningLimit: 600, // Increased slightly to avoid warning for index chunk
       assetsInlineLimit: 4096,
+      // Enable source maps for production debugging
+      sourcemap: true,
       rollupOptions: {
         output: {
           chunkFileNames: 'static/js/[name]-[hash].js',

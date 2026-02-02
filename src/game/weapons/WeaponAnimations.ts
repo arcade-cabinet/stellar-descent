@@ -15,7 +15,8 @@
  */
 
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { WeaponId } from '../entities/weapons';
+import type { WeaponCategory, WeaponId } from '../entities/weapons';
+import { WEAPONS } from '../entities/weapons';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,23 +57,40 @@ export interface WeaponAnimationProfile {
   bobAmplitude: number;
   /** Walk bob frequency multiplier. */
   bobFrequency: number;
+  /** Horizontal recoil roll (rotation around Z-axis in radians). */
+  recoilRoll: number;
+  /** Random horizontal sway during recoil (radians). */
+  recoilYawSpread: number;
 }
 
 // ---------------------------------------------------------------------------
-// Per-weapon profiles
+// Category-based animation profile templates
 // ---------------------------------------------------------------------------
 
-const PROFILES: Record<WeaponId, WeaponAnimationProfile> = {
-  assault_rifle: {
-    recoilKickBack: 0.04,
-    recoilPitchUp: 0.035,
+const CATEGORY_PROFILES: Record<WeaponCategory, WeaponAnimationProfile> = {
+  melee: {
+    recoilKickBack: 0.08, // Forward punch motion
+    recoilPitchUp: 0.02,
     recoilRecoverySpeed: 6.0,
-    reloadDuration: 2.0,
-    switchHalfDuration: 0.25,
-    bobAmplitude: 0.012,
+    reloadDuration: 0, // No reload
+    switchHalfDuration: 0.1,
+    bobAmplitude: 0.02,
     bobFrequency: 1.0,
+    recoilRoll: 0.0,
+    recoilYawSpread: 0.0,
   },
-  pulse_smg: {
+  sidearm: {
+    recoilKickBack: 0.03,
+    recoilPitchUp: 0.04,
+    recoilRecoverySpeed: 8.0,
+    reloadDuration: 1.2,
+    switchHalfDuration: 0.15,
+    bobAmplitude: 0.016,
+    bobFrequency: 1.2,
+    recoilRoll: 0.015,
+    recoilYawSpread: 0.01,
+  },
+  smg: {
     recoilKickBack: 0.02,
     recoilPitchUp: 0.02,
     recoilRecoverySpeed: 10.0,
@@ -80,8 +98,43 @@ const PROFILES: Record<WeaponId, WeaponAnimationProfile> = {
     switchHalfDuration: 0.2,
     bobAmplitude: 0.015,
     bobFrequency: 1.15,
+    recoilRoll: 0.01,
+    recoilYawSpread: 0.008,
   },
-  plasma_cannon: {
+  rifle: {
+    recoilKickBack: 0.04,
+    recoilPitchUp: 0.035,
+    recoilRecoverySpeed: 6.0,
+    reloadDuration: 2.0,
+    switchHalfDuration: 0.25,
+    bobAmplitude: 0.012,
+    bobFrequency: 1.0,
+    recoilRoll: 0.02,
+    recoilYawSpread: 0.012,
+  },
+  marksman: {
+    recoilKickBack: 0.06,
+    recoilPitchUp: 0.05,
+    recoilRecoverySpeed: 4.0,
+    reloadDuration: 2.5,
+    switchHalfDuration: 0.3,
+    bobAmplitude: 0.01,
+    bobFrequency: 0.9,
+    recoilRoll: 0.025,
+    recoilYawSpread: 0.015,
+  },
+  shotgun: {
+    recoilKickBack: 0.07,
+    recoilPitchUp: 0.055,
+    recoilRecoverySpeed: 4.5,
+    reloadDuration: 2.8,
+    switchHalfDuration: 0.28,
+    bobAmplitude: 0.011,
+    bobFrequency: 0.95,
+    recoilRoll: 0.035,
+    recoilYawSpread: 0.02,
+  },
+  heavy: {
     recoilKickBack: 0.08,
     recoilPitchUp: 0.06,
     recoilRecoverySpeed: 3.0,
@@ -89,11 +142,140 @@ const PROFILES: Record<WeaponId, WeaponAnimationProfile> = {
     switchHalfDuration: 0.35,
     bobAmplitude: 0.008,
     bobFrequency: 0.85,
+    recoilRoll: 0.04,
+    recoilYawSpread: 0.025,
+  },
+  vehicle: {
+    recoilKickBack: 0, // No recoil for vehicle controls
+    recoilPitchUp: 0,
+    recoilRecoverySpeed: 0,
+    reloadDuration: 0, // No reload
+    switchHalfDuration: 0.3, // Smooth transition
+    bobAmplitude: 0.003, // Very subtle bob (vehicle vibration)
+    bobFrequency: 0.5,
+    recoilRoll: 0,
+    recoilYawSpread: 0,
   },
 };
 
+// ---------------------------------------------------------------------------
+// Per-weapon overrides (optional -- falls back to category profile)
+// ---------------------------------------------------------------------------
+
+const WEAPON_OVERRIDES: Partial<Record<WeaponId, Partial<WeaponAnimationProfile>>> = {
+  // Revolver: heavy recoil for a sidearm
+  revolver: {
+    recoilKickBack: 0.055,
+    recoilPitchUp: 0.05,
+    recoilRecoverySpeed: 5.0,
+    reloadDuration: 2.8,
+    recoilRoll: 0.03,
+    recoilYawSpread: 0.018,
+  },
+  // Heavy pistol: more kick than standard sidearm
+  heavy_pistol: {
+    recoilKickBack: 0.04,
+    recoilPitchUp: 0.045,
+    recoilRecoverySpeed: 7.0,
+    recoilRoll: 0.02,
+  },
+  // Sniper: very heavy recoil, slow recovery
+  sniper_rifle: {
+    recoilKickBack: 0.09,
+    recoilPitchUp: 0.07,
+    recoilRecoverySpeed: 2.5,
+    reloadDuration: 3.5,
+    switchHalfDuration: 0.35,
+    recoilRoll: 0.04,
+    recoilYawSpread: 0.02,
+  },
+  // DMR: precision weapon feel
+  dmr: {
+    recoilKickBack: 0.065,
+    recoilPitchUp: 0.055,
+    recoilRecoverySpeed: 3.5,
+    recoilRoll: 0.028,
+    recoilYawSpread: 0.012,
+  },
+  // Double barrel: massive recoil
+  double_barrel: {
+    recoilKickBack: 0.12,
+    recoilPitchUp: 0.09,
+    recoilRecoverySpeed: 3.5,
+    reloadDuration: 2.2,
+    recoilRoll: 0.05,
+    recoilYawSpread: 0.03,
+  },
+  // Auto shotgun: less than double barrel
+  auto_shotgun: {
+    recoilKickBack: 0.065,
+    recoilPitchUp: 0.05,
+    recoilRecoverySpeed: 5.0,
+    recoilRoll: 0.03,
+    recoilYawSpread: 0.018,
+  },
+  // Plasma cannon: energy discharge feel
+  plasma_cannon: {
+    recoilKickBack: 0.08,
+    recoilPitchUp: 0.06,
+    recoilRecoverySpeed: 3.0,
+    reloadDuration: 3.5,
+    switchHalfDuration: 0.35,
+    recoilRoll: 0.035,
+    recoilYawSpread: 0.015,
+  },
+  // Pulse SMG: futuristic low recoil
+  pulse_smg: {
+    recoilKickBack: 0.015,
+    recoilPitchUp: 0.015,
+    recoilRecoverySpeed: 12.0,
+    recoilRoll: 0.008,
+    recoilYawSpread: 0.005,
+  },
+  // Battle rifle: heavier than assault rifle
+  battle_rifle: {
+    recoilKickBack: 0.05,
+    recoilPitchUp: 0.04,
+    recoilRecoverySpeed: 5.5,
+    recoilRoll: 0.025,
+    recoilYawSpread: 0.015,
+  },
+  // SAW LMG: sustained fire, low per-shot recoil
+  saw_lmg: {
+    recoilKickBack: 0.025,
+    recoilPitchUp: 0.02,
+    recoilRecoverySpeed: 8.0,
+    reloadDuration: 5.0,
+    switchHalfDuration: 0.4,
+    recoilRoll: 0.015,
+    recoilYawSpread: 0.01,
+  },
+  // Heavy LMG: slower handling than SAW
+  heavy_lmg: {
+    recoilKickBack: 0.035,
+    recoilPitchUp: 0.03,
+    recoilRecoverySpeed: 6.0,
+    reloadDuration: 4.5,
+    switchHalfDuration: 0.4,
+    recoilRoll: 0.022,
+    recoilYawSpread: 0.015,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Profile resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the animation profile for a weapon.
+ * Merges category defaults with any per-weapon overrides.
+ */
 export function getAnimationProfile(weaponId: WeaponId): WeaponAnimationProfile {
-  return PROFILES[weaponId];
+  const def = WEAPONS[weaponId];
+  const base = CATEGORY_PROFILES[def?.category ?? 'rifle'];
+  const overrides = WEAPON_OVERRIDES[weaponId];
+  if (!overrides) return base;
+  return { ...base, ...overrides };
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +291,8 @@ export type WeaponAnimState =
   | 'switching'
   | 'ads_in'
   | 'ads_hold'
-  | 'ads_out';
+  | 'ads_out'
+  | 'melee_lunge';
 
 /**
  * Core animation controller.
@@ -152,15 +335,20 @@ export class WeaponAnimationController {
   private adsCurrent = 0;
   private readonly adsSpeed = 6.0;
 
+  // -- Melee Lunge ------------------------------------------------------------
+  private meleeLungeTimer = 0;
+  private meleeLungeDuration = 0.2; // 200ms lunge
+  private isMeleeLunging = false;
+
   constructor(weaponId: WeaponId) {
-    this.profile = PROFILES[weaponId];
+    this.profile = getAnimationProfile(weaponId);
   }
 
   // -- Public API -------------------------------------------------------------
 
   /** Switch to a new weapon profile (e.g. after weapon switch completes). */
   setWeapon(weaponId: WeaponId): void {
-    this.profile = PROFILES[weaponId];
+    this.profile = getAnimationProfile(weaponId);
   }
 
   /** Trigger a single fire recoil impulse. */
@@ -205,6 +393,18 @@ export class WeaponAnimationController {
     this.adsTarget = aiming ? 1 : 0;
   }
 
+  /**
+   * Trigger melee lunge animation.
+   * Weapon thrusts forward briefly then returns.
+   */
+  triggerMeleeLunge(): void {
+    if (this.isMeleeLunging) return;
+    this.isMeleeLunging = true;
+    this.meleeLungeTimer = 0;
+    // Exit ADS when lunging
+    this.setADS(false);
+  }
+
   /** True while a switch animation is playing. */
   get isSwitching(): boolean {
     return this.switchPhase !== 'none';
@@ -213,6 +413,11 @@ export class WeaponAnimationController {
   /** True while reload animation is playing. */
   get isReloadPlaying(): boolean {
     return this.isReloading;
+  }
+
+  /** True while melee lunge animation is playing. */
+  get isMeleeLungePlaying(): boolean {
+    return this.isMeleeLunging;
   }
 
   // -- Frame update -----------------------------------------------------------
@@ -255,7 +460,12 @@ export class WeaponAnimationController {
       this.updateSwitch(dt, pos, rot);
     }
 
-    // 7. ADS blend
+    // 7. Melee lunge animation
+    if (this.isMeleeLunging) {
+      this.updateMeleeLunge(dt, pos, rot);
+    }
+
+    // 8. ADS blend
     this.updateADS(dt);
   }
 
@@ -307,21 +517,37 @@ export class WeaponAnimationController {
     rot.z *= 2.5;
   }
 
+  // Store last random yaw direction for consistent recoil pattern per shot
+  private recoilYawDirection: number = 0;
+
   private updateRecoil(dt: number, pos: Vector3, rot: Vector3): void {
     if (!this.recoilActive && this.recoilAmount <= 0) return;
 
     if (this.recoilActive) {
       // Instant kick is applied in triggerFire via recoilAmount = 1
       this.recoilActive = false;
+      // Generate random yaw direction for this shot (weighted to alternate)
+      this.recoilYawDirection = (Math.random() - 0.5) * 2;
     }
 
-    // Apply current recoil
+    // Apply current recoil - weapon model kick
     pos.z -= this.recoilAmount * this.profile.recoilKickBack;
     rot.x -= this.recoilAmount * this.profile.recoilPitchUp;
 
-    // Small random horizontal jitter
-    const jitter = (Math.random() - 0.5) * 0.005 * this.recoilAmount;
-    rot.y += jitter;
+    // Apply roll (weapon tilts to the side during recoil)
+    const rollDirection = this.recoilYawDirection > 0 ? 1 : -1;
+    rot.z += this.recoilAmount * this.profile.recoilRoll * rollDirection;
+
+    // Apply yaw spread (horizontal rotation)
+    rot.y += this.recoilAmount * this.profile.recoilYawSpread * this.recoilYawDirection;
+
+    // Small random high-frequency jitter for mechanical feel
+    const jitterAmount = this.recoilAmount * 0.003;
+    rot.y += (Math.random() - 0.5) * jitterAmount;
+    rot.x += (Math.random() - 0.5) * jitterAmount * 0.5;
+
+    // Slight upward position kick (weapon rises)
+    pos.y += this.recoilAmount * this.profile.recoilPitchUp * 0.3;
 
     // Recover
     this.recoilAmount = Math.max(0, this.recoilAmount - dt * this.profile.recoilRecoverySpeed);
@@ -391,6 +617,50 @@ export class WeaponAnimationController {
         this.switchPhase = 'none';
         this.switchTimer = 0;
       }
+    }
+  }
+
+  /**
+   * Melee lunge animation - weapon thrusts forward then returns
+   * Creates a satisfying punch/stab motion
+   */
+  private updateMeleeLunge(dt: number, pos: Vector3, rot: Vector3): void {
+    this.meleeLungeTimer += dt;
+    const progress = Math.min(this.meleeLungeTimer / this.meleeLungeDuration, 1.0);
+
+    // Animation curve: quick thrust forward (0-0.4), hold (0.4-0.5), return (0.5-1.0)
+    let lungeAmount: number;
+    let rotAmount: number;
+
+    if (progress < 0.4) {
+      // Thrust phase - ease out for snappy motion
+      const t = progress / 0.4;
+      lungeAmount = t * (2 - t); // Quadratic ease out
+      rotAmount = t * (2 - t);
+    } else if (progress < 0.5) {
+      // Hold phase
+      lungeAmount = 1.0;
+      rotAmount = 1.0;
+    } else {
+      // Return phase - ease in for smooth return
+      const t = (progress - 0.5) / 0.5;
+      lungeAmount = 1.0 - t * t;
+      rotAmount = 1.0 - t * t;
+    }
+
+    // Apply lunge: push weapon forward and slightly down
+    pos.z += lungeAmount * 0.15; // Forward thrust
+    pos.y -= lungeAmount * 0.05; // Slight dip
+    pos.x -= lungeAmount * 0.02; // Slight inward motion
+
+    // Rotation: tilt weapon forward during lunge
+    rot.x += rotAmount * 0.2; // Pitch down
+    rot.z -= rotAmount * 0.05; // Slight roll
+
+    // End animation
+    if (progress >= 1.0) {
+      this.isMeleeLunging = false;
+      this.meleeLungeTimer = 0;
     }
   }
 

@@ -6,8 +6,44 @@
  * - Audio log system for level integration
  * - Secret areas and rewards system
  * - Skull modifier system (Halo-style easter eggs)
- * - Persistence layer for save/load
+ * - Unified collectibles store (replacing old persistence files)
  */
+
+// ============================================================================
+// UNIFIED COLLECTIBLES STORE
+// ============================================================================
+
+export {
+  // Types
+  type AudioLogEntry,
+  addDiscoveredAudioLog,
+  addDiscoveredSecret,
+  addFoundSkull,
+  type CollectiblesActions,
+  type CollectiblesProgress,
+  type CollectiblesState,
+  type CollectiblesStoreState,
+  getActiveSkullIds,
+  getCollectiblesProgress,
+  getDiscoveredAudioLogIds,
+  getDiscoveredLogsByLevel,
+  getDiscoveredSecretIds,
+  getDiscoveredSecretsByLevel,
+  getFoundSkullIds,
+  // Backwards compatibility functions
+  getUnplayedAudioLogs,
+  hasAudioLog,
+  hasSecret,
+  hasSkull,
+  initializeCollectiblesStore,
+  isAudioLogDiscovered,
+  isSecretDiscovered,
+  isSkullFound,
+  markAudioLogPlayed,
+  type SecretEntry,
+  type SkullEntry,
+  useCollectiblesStore,
+} from '../stores/useCollectiblesStore';
 
 // ============================================================================
 // AUDIO LOGS
@@ -16,23 +52,6 @@
 export type { AudioLogSystemCallbacks } from './AudioLogSystem';
 // Audio log system
 export { AudioLogSystem, createAudioLogSystem } from './AudioLogSystem';
-// Persistence
-export type { AudioLogCollectionState } from './audioLogPersistence';
-export {
-  addDiscoveredAudioLog,
-  deleteAllAudioLogSaves,
-  getCollectionProgress,
-  getCurrentSaveId,
-  getDiscoveredAudioLogIds,
-  getDiscoveredLogsByLevel,
-  getUnplayedAudioLogs,
-  isAudioLogDiscovered,
-  loadAudioLogCollection,
-  markAudioLogPlayed,
-  resetAudioLogCollection,
-  saveAudioLogCollection,
-  setCurrentSaveId,
-} from './audioLogPersistence';
 // Audio log types and data
 export type { AudioLog, AudioLogDiscovery, AudioLogSpeaker } from './audioLogs';
 export {
@@ -51,20 +70,6 @@ export {
 export type { SecretAreaSystemCallbacks } from './SecretAreaSystem';
 // Secret area system
 export { createSecretAreaSystem, SecretAreaSystem } from './SecretAreaSystem';
-// Secret persistence
-export type { SecretCollectionState } from './secretPersistence';
-export {
-  addDiscoveredSecret,
-  deleteAllSecretSaves,
-  getDiscoveredSecretIds,
-  getDiscoveredSecretsByLevel,
-  getSecretCollectionProgress,
-  isLevelSecretsComplete,
-  isSecretDiscovered,
-  loadSecretCollection,
-  resetSecretCollection,
-  saveSecretCollection,
-} from './secretPersistence';
 // Secret types and data
 export type {
   SecretArea,
@@ -105,16 +110,3 @@ export {
   SKULL_ORDER,
   SKULLS,
 } from './SkullSystem';
-// Skull persistence
-export type { SkullCollectionState } from './skullPersistence';
-export {
-  addFoundSkull,
-  deleteAllSkullSaves,
-  getActiveSkullIds,
-  getFoundSkullIds,
-  getSkullCollectionProgress,
-  isSkullFound,
-  loadSkullCollection,
-  resetSkullCollection,
-  saveSkullCollection,
-} from './skullPersistence';

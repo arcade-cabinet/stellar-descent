@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PersistenceManager } from './IndexedDBPersistence';
 
 // Create a mock IndexedDB implementation
-const createMockIndexedDB = () => {
+const _createMockIndexedDB = () => {
   const stores = new Map<string, Map<string, unknown>>();
 
   const mockStore = (name: string) => {
