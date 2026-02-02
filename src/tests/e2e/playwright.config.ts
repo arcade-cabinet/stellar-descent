@@ -94,6 +94,8 @@ export default defineConfig({
 
   outputDir: 'test-results',
 
+  globalTeardown: path.resolve(import.meta.dirname, 'global-teardown.ts'),
+
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080',
     trace: 'retain-on-failure',
@@ -102,7 +104,8 @@ export default defineConfig({
     actionTimeout: 15_000,
     navigationTimeout: 60_000,
     ignoreHTTPSErrors: true,
-    headless: !!process.env.CI,
+    // Default headless; use --headed flag for visible browser windows
+    headless: true,
     contextOptions: {
       permissions: ['accelerometer', 'gyroscope'],
       locale: 'en-US',

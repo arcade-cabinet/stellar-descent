@@ -151,9 +151,14 @@ interface WindowWithDebug {
 export const test = baseTest.extend<{
   gamePage: GamePage;
 }>({
-  gamePage: async ({ page }, use) => {
+  gamePage: async ({ page, context }, use) => {
     const gamePage = createGamePage(page);
     await use(gamePage);
+    // Explicit cleanup: close all pages in this context so the browser
+    // window disappears even if the test timed out or was interrupted.
+    for (const p of context.pages()) {
+      await p.close().catch(() => {});
+    }
   },
 });
 
