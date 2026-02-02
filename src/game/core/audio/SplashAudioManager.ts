@@ -266,6 +266,10 @@ export class SplashAudioManager {
       // Without this check, Vite's SPA fallback serves index.html for missing files,
       // and Tone.js fails globally when trying to decode HTML as audio
       const headResp = await fetch(audioPath, { method: 'HEAD' });
+      if (!headResp.ok) {
+        log.warn('Splash audio file not reachable', { path: audioPath, status: headResp.status });
+        return;
+      }
       const contentType = headResp.headers.get('content-type') || '';
       if (!contentType.startsWith('audio/')) {
         log.warn('Splash audio file not available', { path: audioPath, contentType });

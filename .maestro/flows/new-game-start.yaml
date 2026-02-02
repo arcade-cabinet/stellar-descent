@@ -34,7 +34,7 @@ name: "New Game Start - Campaign Entry"
 - tapOn:
     text: "ANCHOR STATION PROMETHEUS"
 
-# Select Normal difficulty (already default)
+# Wait for difficulty screen (Normal is preselected by default)
 - extendedWaitUntil:
     visible: "SELECT DIFFICULTY"
     timeout: 10000

@@ -172,4 +172,4 @@ dev-dist/
 **/.DS_Store
 
 # Maestro screenshots (generated at project root during ad-hoc runs)
-*.png
+/*.png

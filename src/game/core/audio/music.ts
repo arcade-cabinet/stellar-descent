@@ -74,7 +74,10 @@ export class MusicPlayer {
           fadeIn: 0.1,
           fadeOut: 0.1,
           onload: () => resolve(player),
-          onerror: (err) => reject(err),
+          onerror: (err) => {
+            player.dispose();
+            reject(err);
+          },
         });
       });
 

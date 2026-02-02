@@ -20,6 +20,7 @@ import { isNative } from './PlatformDetector';
 export const BREAKPOINTS = {
   phone: 768,
   tablet: 1024,
+  desktopOrLargeTablet: 1366, // Above this, touch devices are treated as desktop
   // Foldable detection ranges - covers Galaxy Fold, OnePlus Open, Pixel Fold, etc.
   foldableMinWidth: 600,
   foldableMaxWidth: 1400, // OnePlus Open unfolded can be ~1200px+
@@ -94,7 +95,7 @@ function determineDeviceType(
   }
 
   // Large touch devices are tablets, others are desktop
-  return isTouchDevice && maxDim < 1366 ? 'tablet' : 'desktop';
+  return isTouchDevice && maxDim < BREAKPOINTS.desktopOrLargeTablet ? 'tablet' : 'desktop';
 }
 
 /**

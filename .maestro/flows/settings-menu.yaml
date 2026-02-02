@@ -37,9 +37,16 @@ name: "Settings Menu Navigation"
 
 - takeScreenshot: "settings_menu"
 
-# Close settings via X button
+# Close settings (button has aria-label="Close settings", text content is "X")
 - tapOn:
-    text: "X"
+    text: "Close settings"
+    optional: true
+- runFlow:
+    when:
+      visible: "X"
+    commands:
+      - tapOn:
+          text: "X"
 
 - extendedWaitUntil:
     visible: "NEW GAME"

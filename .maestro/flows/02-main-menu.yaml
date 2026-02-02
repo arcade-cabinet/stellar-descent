@@ -57,9 +57,16 @@ name: "Main Menu - Navigation and Controls"
 
 - takeScreenshot: "settings-modal"
 
-# Close settings (uses X button, tap on first element containing "X")
+# Close settings (button has aria-label="Close settings", text content is "X")
 - tapOn:
-    text: "X"
+    text: "Close settings"
+    optional: true
+- runFlow:
+    when:
+      visible: "X"
+    commands:
+      - tapOn:
+          text: "X"
 
 # Verify we're back at main menu
 - extendedWaitUntil:
