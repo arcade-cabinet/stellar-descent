@@ -6,6 +6,7 @@
  * use CapacitorDatabase which wraps @capacitor-community/sqlite.
  */
 
+import { locateWasmFile, SQL_WASM_JS } from '@config/wasm';
 import { getLogger } from '../core/Logger';
 
 // sql.js types
@@ -75,7 +76,7 @@ export class WebSQLiteDatabase {
       }
 
       const script = document.createElement('script');
-      script.src = '/assets/sql-wasm.js';
+      script.src = SQL_WASM_JS;
       script.async = true;
 
       script.onload = () => {
@@ -125,7 +126,7 @@ export class WebSQLiteDatabase {
 
     // Initialize sql.js with WASM from public/assets
     this.SQL = await initSqlJs({
-      locateFile: (file: string) => `/assets/${file}`,
+      locateFile: locateWasmFile,
     });
 
     log.info('sql.js initialized, loading database...');

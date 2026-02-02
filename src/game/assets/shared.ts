@@ -6,6 +6,7 @@
  * prop, and texture assets are curated per-level for unique atmosphere.
  */
 
+import { ENEMY_MODELS, NPC_MODELS, VEHICLE_MODELS } from '@config/models';
 import type { AssetEntry } from './types';
 
 // ---------------------------------------------------------------------------
@@ -15,55 +16,55 @@ import type { AssetEntry } from './types';
 export const ENEMY_ASSETS: AssetEntry[] = [
   {
     id: 'enemy/spider',
-    path: '/assets/models/enemies/chitin/spider.glb',
+    path: ENEMY_MODELS.spider,
     category: 'model',
     sizeKB: 620,
   },
   {
     id: 'enemy/scout',
-    path: '/assets/models/enemies/chitin/scout.glb',
+    path: ENEMY_MODELS.scout,
     category: 'model',
     sizeKB: 780,
   },
   {
     id: 'enemy/soldier',
-    path: '/assets/models/enemies/chitin/soldier.glb',
+    path: ENEMY_MODELS.soldier,
     category: 'model',
     sizeKB: 850,
   },
   {
     id: 'enemy/flyingalien',
-    path: '/assets/models/enemies/chitin/flyingalien.glb',
+    path: ENEMY_MODELS.flyingalien,
     category: 'model',
     sizeKB: 700,
   },
   {
     id: 'enemy/tentakel',
-    path: '/assets/models/enemies/chitin/tentakel.glb',
+    path: ENEMY_MODELS.tentakel,
     category: 'model',
     sizeKB: 1400,
   },
   {
     id: 'enemy/alienmonster',
-    path: '/assets/models/enemies/chitin/alienmonster.glb',
+    path: ENEMY_MODELS.alienmonster,
     category: 'model',
     sizeKB: 900,
   },
   {
     id: 'enemy/alienmale',
-    path: '/assets/models/enemies/chitin/alienmale.glb',
+    path: ENEMY_MODELS.alienmale,
     category: 'model',
     sizeKB: 680,
   },
   {
     id: 'enemy/alienfemale',
-    path: '/assets/models/enemies/chitin/alienfemale.glb',
+    path: ENEMY_MODELS.alienfemale,
     category: 'model',
     sizeKB: 660,
   },
   {
     id: 'enemy/alien_scifi',
-    path: '/assets/models/enemies/chitin/alien_scifi.glb',
+    path: ENEMY_MODELS.alien_scifi,
     category: 'model',
     sizeKB: 8500,
   },
@@ -76,25 +77,25 @@ export const ENEMY_ASSETS: AssetEntry[] = [
 export const NPC_ASSETS: AssetEntry[] = [
   {
     id: 'npc/marine_soldier',
-    path: '/assets/models/npcs/marine/marine_soldier.glb',
+    path: NPC_MODELS.marine_soldier,
     category: 'model',
     sizeKB: 8300,
   },
   {
     id: 'npc/marine_sergeant',
-    path: '/assets/models/npcs/marine/marine_sergeant.glb',
+    path: NPC_MODELS.marine_sergeant,
     category: 'model',
     sizeKB: 11928,
   },
   {
     id: 'npc/marine_crusader',
-    path: '/assets/models/npcs/marine/marine_crusader.glb',
+    path: NPC_MODELS.marine_crusader,
     category: 'model',
     sizeKB: 11500,
   },
   {
     id: 'npc/marine_elite',
-    path: '/assets/models/npcs/marine/marine_elite.glb',
+    path: NPC_MODELS.marine_elite,
     category: 'model',
     sizeKB: 13000,
   },
@@ -107,19 +108,19 @@ export const NPC_ASSETS: AssetEntry[] = [
 export const VEHICLE_ASSETS: AssetEntry[] = [
   {
     id: 'vehicle/wraith',
-    path: '/assets/models/vehicles/chitin/wraith.glb',
+    path: VEHICLE_MODELS.wraith,
     category: 'model',
     sizeKB: 1100,
   },
   {
     id: 'vehicle/phantom',
-    path: '/assets/models/spaceships/Dispatcher.glb',
+    path: VEHICLE_MODELS.phantom,
     category: 'model',
     sizeKB: 1200,
   },
   {
     id: 'vehicle/marcus_mech',
-    path: '/assets/models/vehicles/marcus_mech.glb',
+    path: VEHICLE_MODELS.marcus_mech,
     category: 'model',
     sizeKB: 1600,
   },

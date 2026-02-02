@@ -10,16 +10,11 @@
  */
 
 import { Capacitor } from '@capacitor/core';
+import { SPLASH_AUDIO_PATHS } from '@config/audio';
 import * as Tone from 'tone';
 import { getLogger } from '../Logger';
 
 const log = getLogger('SplashAudioManager');
-
-// Audio file paths
-const SPLASH_AUDIO_PATHS = {
-  portrait: '/assets/audio/splash/splash-portrait.ogg',
-  landscape: '/assets/audio/splash/splash-landscape.ogg',
-} as const;
 
 // Storage keys for volume persistence
 const STORAGE_KEYS = {
