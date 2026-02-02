@@ -110,7 +110,7 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 | floor_ceiling_rtx_1.glb | High-detail floor |
 | doorway_hr_1.glb | Standard doorframe |
 | doorway_hr_1_wide.glb | Wide doorframe |
-| beam_hc_horizonatal_1.glb | Structural beams |
+| beam_hc_horizontal_1.glb | Structural beams |
 | beam_hc_vertical_1.glb | Support columns |
 | pipe_cx_1.glb | Industrial piping |
 | pipe_cx_2.glb | Piping variant |

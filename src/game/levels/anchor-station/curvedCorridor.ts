@@ -28,7 +28,7 @@ const CORRIDOR_MODELS = {
   window2: '/assets/models/environment/station/window_hr_2.glb',
 
   // Light fixtures
-  lightFixture: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
+  lightFixture: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
 
   // Pipes (for ceiling) - Note: curved pipes use MeshBuilder.CreateTube
   pipe1: '/assets/models/environment/station/pipe_cx_1.glb',

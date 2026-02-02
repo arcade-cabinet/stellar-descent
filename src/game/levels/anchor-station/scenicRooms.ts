@@ -120,10 +120,10 @@ const SCENIC_MODELS = {
   modPlateSmall: '/assets/models/environment/modular/Details_Plate_Small.glb',
 
   // Industrial props
-  barrel1: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
-  barrel2: '/assets/models/props/industrial/metal_barrel_hr_2.glb',
+  barrel1: '/assets/models/props/containers/metal_barrel_hr_1.glb',
+  barrel2: '/assets/models/props/containers/metal_barrel_hr_2.glb',
   bench: '/assets/models/props/furniture/bench_mx_1.glb',
-  lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
+  lamp1: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
   lamp2: '/assets/models/props/electrical/lamp_mx_2_on.glb',
 
   // Station door

@@ -443,10 +443,10 @@ describe('Environment - GLB Asset Paths', () => {
   describe('Industrial Props', () => {
     it('should define industrial prop paths', () => {
       const MODEL_PATHS = {
-        barrel1: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
-        shelf: '/assets/models/props/industrial/shelf_mx_1.glb',
-        machinery: '/assets/models/props/industrial/machinery_mx_1.glb',
-        lamp1: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
+        barrel1: '/assets/models/props/containers/metal_barrel_hr_1.glb',
+        shelf: '/assets/models/props/furniture/shelf_mx_1.glb',
+        machinery: '/assets/models/environment/industrial/machinery_mx_1.glb',
+        lamp1: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
       };
 
       expect(MODEL_PATHS.barrel1).toContain('barrel');

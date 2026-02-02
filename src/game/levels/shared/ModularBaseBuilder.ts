@@ -386,11 +386,6 @@ function getAssetPath(assetId: string): string {
     const name = assetId.substring('station/'.length);
     return `/assets/models/environment/station/${name}.glb`;
   }
-  // For prop/ prefixed ids, map to the props/industrial path
-  if (assetId.startsWith('prop/')) {
-    const name = assetId.substring('prop/'.length);
-    return `/assets/models/props/industrial/${name}.glb`;
-  }
   // Fallback: treat the id itself as a path
   return assetId;
 }

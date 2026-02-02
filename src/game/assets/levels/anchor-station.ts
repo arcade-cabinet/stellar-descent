@@ -292,19 +292,19 @@ const INDUSTRIAL_PROPS: AssetEntry[] = [
   {
     id: 'prop/barrel_1',
     category: 'model',
-    path: '/assets/models/props/industrial/metal_barrel_hr_1.glb',
+    path: '/assets/models/props/containers/metal_barrel_hr_1.glb',
     sizeKB: 120,
   },
   {
     id: 'prop/barrel_2',
     category: 'model',
-    path: '/assets/models/props/industrial/metal_barrel_hr_2.glb',
+    path: '/assets/models/props/containers/metal_barrel_hr_2.glb',
     sizeKB: 125,
   },
   {
     id: 'prop/shelf',
     category: 'model',
-    path: '/assets/models/props/industrial/shelf_mx_1.glb',
+    path: '/assets/models/props/furniture/shelf_mx_1.glb',
     sizeKB: 140,
   },
   {
@@ -322,13 +322,13 @@ const INDUSTRIAL_PROPS: AssetEntry[] = [
   {
     id: 'prop/machinery',
     category: 'model',
-    path: '/assets/models/props/industrial/machinery_mx_1.glb',
+    path: '/assets/models/environment/industrial/machinery_mx_1.glb',
     sizeKB: 250,
   },
   {
     id: 'prop/pipes',
     category: 'model',
-    path: '/assets/models/props/industrial/pipes_hr_1.glb',
+    path: '/assets/models/environment/industrial/pipes_hr_1.glb',
     sizeKB: 160,
   },
   {
@@ -340,7 +340,7 @@ const INDUSTRIAL_PROPS: AssetEntry[] = [
   {
     id: 'prop/door_12',
     category: 'model',
-    path: '/assets/models/props/industrial/door_hr_12.glb',
+    path: '/assets/models/props/doors/door_hr_12.glb',
     sizeKB: 135,
   },
   {
@@ -355,7 +355,7 @@ const LIGHTING_PROPS: AssetEntry[] = [
   {
     id: 'prop/lamp_1',
     category: 'model',
-    path: '/assets/models/props/industrial/lamp_mx_1_a_on.glb',
+    path: '/assets/models/props/electrical/lamp_mx_1_a_on.glb',
     sizeKB: 70,
   },
   {
