@@ -78,7 +78,7 @@ export default ({ mode }: any) => {
   const root = process.cwd();
   const env = loadEnv(mode, root);
   return defineConfig({
-    base: env.VITE_PUBLIC_PATH,
+    base: env.VITE_PUBLIC_PATH || '/',
     root,
     // plugin
     plugins: [
@@ -103,8 +103,8 @@ export default ({ mode }: any) => {
           background_color: '#000000',
           display: 'fullscreen',
           orientation: 'landscape',
-          start_url: '/',
-          scope: '/',
+          start_url: env.VITE_PUBLIC_PATH || '/',
+          scope: env.VITE_PUBLIC_PATH || '/',
           categories: ['games', 'entertainment'],
           icons: [
             {
@@ -298,6 +298,8 @@ export default ({ mode }: any) => {
     resolve: {
       alias: {
         '@': pathResolve('src'),
+        '@types': pathResolve('src/types'),
+        '@config': pathResolve('src/config'),
       },
       extensions: ['.js', '.ts', '.tsx', '.json'],
     },
@@ -310,17 +312,9 @@ export default ({ mode }: any) => {
       open: false,
       hmr: true,
       cors: true,
-      headers: {
-        // COOP/COEP for SharedArrayBuffer - only needed if using Havok physics WASM
-        // Disabled in dev to allow browser extension testing
-        // Production build keeps these for WebSQLite WASM (sql.js)
-        ...(mode === 'production'
-          ? {
-              'Cross-Origin-Opener-Policy': 'same-origin',
-              'Cross-Origin-Embedder-Policy': 'require-corp',
-            }
-          : {}),
-      },
+      // No COOP/COEP headers — sql.js uses regular ArrayBuffer, not SharedArrayBuffer.
+      // GitHub Pages doesn't support custom response headers anyway.
+      headers: {},
       // Configure MIME types for WASM files
       fs: {
         // Allow serving files from node_modules for WASM (including pnpm nested structure)
@@ -328,13 +322,7 @@ export default ({ mode }: any) => {
         strict: false,
       },
     },
-    // Configure preview server similarly
-    preview: {
-      headers: {
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
-      },
-    },
+    preview: {},
     // Ensure WASM files can be loaded
     assetsInclude: ['**/*.wasm'],
     // Inject build timestamp as define for runtime access
