@@ -421,6 +421,15 @@ export class CinematicSystem {
     // Hide letterbox
     this.hideLetterbox();
 
+    // Hide fade overlay (may still be visible after a fade_out transition)
+    if (this.fadeOverlay) {
+      this.fadeOverlay.isVisible = false;
+      this.fadeOverlay.parent = null;
+    }
+    if (this.fadeMaterial) {
+      this.fadeMaterial.alpha = 0;
+    }
+
     // Restore camera
     this.restoreCamera();
 
@@ -738,11 +747,13 @@ export class CinematicSystem {
       case 'flash':
         this.flash(duration);
         break;
-      case 'crossfade':
+      case 'crossfade': {
         // For crossfade, do a quick fade out then fade in
         this.fadeOut(duration / 2);
-        setTimeout(() => this.fadeIn(duration / 2), duration / 2);
+        const crossfadeTimeout = setTimeout(() => this.fadeIn(duration / 2), duration / 2);
+        this.pendingTimeouts.push(crossfadeTimeout);
         break;
+      }
     }
   }
 

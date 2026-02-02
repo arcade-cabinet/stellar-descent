@@ -688,8 +688,7 @@ export class CampaignDirector {
     this.store.enterBonusLevel();
     // Reset level tracking for bonus level
     this.store.startLevelSession();
-    // Use dedicated bonus level phase then transition to loading
-    this.setPhase('bonusLevel');
+    // Transition directly to loading for the bonus level
     this.setPhase('loading');
   }
 

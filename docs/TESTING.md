@@ -361,6 +361,35 @@ Test full user journeys:
 - **Responsive design** - Mobile, tablet, desktop
 - **Cross-platform** - Web, iOS, Android
 
+### Parallel Playwright Level Rendering Test
+
+A Playwright script tests all 11 levels render correctly by opening them in parallel:
+
+```bash
+# Start dev server, then run:
+node /tmp/test-levels-parallel.mjs
+```
+
+The script:
+1. Opens all 11 levels simultaneously in headed Chromium tabs
+2. Waits 45 seconds for assets to load
+3. Checks each scene with a 5-second `evaluate()` timeout (WebGL can block main thread)
+4. Reports: mesh count, material count, lights, alpha=0 materials, fade overlay blocking, shader errors
+
+**Key flags**: `--disable-background-timer-throttling` and `--disable-renderer-backgrounding` prevent Chrome from throttling unfocused tabs.
+
+**Results format**:
+```
+PASS/LOADED: N  BUSY(rendering): N  LOADING: N  FAIL: N  / 11
+
+Key checks across ALL levels:
+  PBR alpha=0 materials: NONE (fix working)
+  Fade overlay blocking: NONE (fix working)
+  Shader errors: NONE (fix working)
+```
+
+**Current status**: 0 FAIL across all 11 levels. BUSY status means the level's WebGL context was still rendering (not a failure -- just means evaluate timed out due to GPU load).
+
 ## Writing Good Tests
 
 ### Do

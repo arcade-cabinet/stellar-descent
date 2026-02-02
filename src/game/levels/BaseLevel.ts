@@ -59,6 +59,23 @@ import '@babylonjs/core/Shaders/default.fragment';
 import '@babylonjs/core/Materials/standardMaterial';
 import '@babylonjs/core/Meshes/meshBuilder';
 
+// PBR material + shader registration (required for GLB models loaded via GLTF loader).
+// The PBRMaterial class import alone is NOT sufficient: BabylonJS relies on dynamic
+// import() to load the PBR vertex/fragment shaders, but Vite + pnpm resolves the
+// dynamic chunk's ShaderStore to a *different* module instance than the statically
+// bundled one, so shaders register into an empty store nobody reads.
+// Importing the shaders statically here ensures they register in the correct store.
+import '@babylonjs/core/Materials/PBR/pbrMaterial';
+import '@babylonjs/core/Shaders/pbr.vertex';
+import '@babylonjs/core/Shaders/pbr.fragment';
+
+// GlowLayer shader registration (used by AtmosphericEffects emergency lights).
+// Same dynamic import() duplication issue as PBR shaders above.
+import '@babylonjs/core/Shaders/glowMapGeneration.vertex';
+import '@babylonjs/core/Shaders/glowMapGeneration.fragment';
+import '@babylonjs/core/Shaders/glowMapMerge.vertex';
+import '@babylonjs/core/Shaders/glowMapMerge.fragment';
+
 // ============================================================================
 // CAMERA SHAKE CONFIGURATION
 // ============================================================================
@@ -214,6 +231,20 @@ export abstract class BaseLevel implements ILevel {
     this.scene = new Scene(engine);
     this.scene.clearColor = this.getBackgroundColor();
 
+    // Fix GLTF models that export with baseColorFactor alpha=0 and alphaMode="MASK".
+    // BabylonJS maps this to transparencyMode=ALPHATEST with material.alpha=0,
+    // causing all fragments to fail the alpha test and be discarded (invisible geometry).
+    // Watch for new materials from async GLB loads and fix them as they're added.
+    this.scene.onNewMaterialAddedObservable?.add((material: any) => {
+      if ('metallic' in material && 'roughness' in material && material.alpha === 0) {
+        material.alpha = 1;
+        material.transparencyMode = 0; // OPAQUE
+      }
+    });
+
+    // Expose scene for debugging (dev only)
+    (window as any).__BABYLON_SCENE__ = this.scene;
+
     // Create camera
     this.camera = this.createCamera();
 
@@ -292,8 +323,11 @@ export abstract class BaseLevel implements ILevel {
     // Attach event listeners
     this.attachEventListeners();
 
-    // Start level-specific audio (music and basic procedural ambient)
-    await getAudioManager().startLevelAudio(this.id);
+    // Start level-specific audio (fire-and-forget: audio must NOT block level init
+    // because the browser audio context may be locked until a user gesture)
+    getAudioManager().startLevelAudio(this.id).catch((e) => {
+      log.warn(`startLevelAudio failed for ${this.id}:`, e);
+    });
 
     // Start advanced environmental audio (layered soundscapes with spatial audio)
     getAudioManager().startEnvironmentalAudio(this.id);
@@ -1891,8 +1925,7 @@ export abstract class BaseLevel implements ILevel {
       dx = (dx / len) * speed;
       dz = (dz / len) * speed;
 
-      this.camera.position.x += dx;
-      this.camera.position.z += dz;
+      this.applyMovement(dx, dz);
     }
 
     // Update low health feedback with movement state (for critical health screen shake)
@@ -1919,6 +1952,21 @@ export abstract class BaseLevel implements ILevel {
   protected getSprintMultiplier(): number {
     // Subclasses can override for different sprint speeds
     return 1.5;
+  }
+
+  /**
+   * Apply movement delta to the camera position.
+   *
+   * Override this in subclasses that need collision-based movement (e.g., indoor
+   * station levels with corridor walls). The default implementation does direct
+   * position updates which works for open outdoor levels.
+   *
+   * @param dx X movement delta (already speed-scaled)
+   * @param dz Z movement delta (already speed-scaled)
+   */
+  protected applyMovement(dx: number, dz: number): void {
+    this.camera.position.x += dx;
+    this.camera.position.z += dz;
   }
 
   /**

@@ -574,7 +574,7 @@ class SaveSystem {
   /**
    * Auto-save (called on level completion)
    */
-  autoSave(): void {
+  async autoSave(): Promise<void> {
     if (!this.autoSaveEnabled || !this.currentSave) {
       return;
     }
@@ -590,7 +590,7 @@ class SaveSystem {
       timestamp: Date.now(),
     };
 
-    this.persistSave(autosave, SAVE_SLOT_AUTOSAVE);
+    await this.persistSave(autosave, SAVE_SLOT_AUTOSAVE);
     this.emit({ type: 'auto_saved', save: extractSaveMetadata(autosave) });
     log.info('Auto-saved');
   }

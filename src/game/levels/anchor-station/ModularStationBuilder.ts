@@ -759,6 +759,40 @@ export async function buildModularStation(
     }
   }
 
+  // ─── Step 2b: Log corridor bounding info for snapping diagnostics ───
+  for (const type of uniqueTypes) {
+    const container = containers[type];
+    if (!container) continue;
+    // Measure actual model dimensions from the container's meshes
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+    for (const mesh of container.meshes) {
+      if (mesh.name === '__root__') continue;
+      const bounds = mesh.getBoundingInfo();
+      if (!bounds) continue;
+      const bMin = bounds.boundingBox.minimumWorld;
+      const bMax = bounds.boundingBox.maximumWorld;
+      minX = Math.min(minX, bMin.x); maxX = Math.max(maxX, bMax.x);
+      minY = Math.min(minY, bMin.y); maxY = Math.max(maxY, bMax.y);
+      minZ = Math.min(minZ, bMin.z); maxZ = Math.max(maxZ, bMax.z);
+    }
+    const sizeX = maxX - minX;
+    const sizeY = maxY - minY;
+    const sizeZ = maxZ - minZ;
+    log.info(
+      `Corridor '${type}' actual dimensions: ` +
+      `X=${sizeX.toFixed(2)} Y=${sizeY.toFixed(2)} Z=${sizeZ.toFixed(2)} ` +
+      `(expected: length=${_MODULE_LENGTH} width=${_MODULE_WIDTH} height=${_MODULE_HEIGHT})`
+    );
+    if (Math.abs(sizeZ - _MODULE_LENGTH) > 0.5 && Math.abs(sizeX - _MODULE_LENGTH) > 0.5) {
+      log.warn(
+        `Corridor '${type}' may not snap at 4-unit intervals! ` +
+        `Neither X (${sizeX.toFixed(2)}) nor Z (${sizeZ.toFixed(2)}) matches MODULE_LENGTH (${_MODULE_LENGTH})`
+      );
+    }
+  }
+
   // ─── Step 3: Freeze world matrices for static geometry ───
   // This prevents BabylonJS from recomputing transforms every frame.
   // Must be done AFTER setting all positions/rotations/parenting.

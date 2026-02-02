@@ -127,6 +127,20 @@ const engine = new Engine(canvas, true, {
 **Why No WebGPU?**
 WebGPU support is still inconsistent. Silent fallbacks hide real errors and make debugging harder. We use WebGL2 which works everywhere.
 
+**Rendering Safety Patterns**
+
+Three critical patterns prevent black screen / invisible geometry bugs:
+
+1. **PBR Material Observer** (`BaseLevel.ts` constructor): Catches GLB models with `alpha=0` from GLTF `baseColorFactor[3]=0` + `alphaMode:"MASK"`. Sets alpha=1 and transparencyMode=OPAQUE.
+
+2. **Static Shader Imports** (`BaseLevel.ts` top-level): Forces PBR, StandardMaterial, and GlowLayer shaders into the same `ShaderStore` module instance. Without this, Vite+pnpm resolves dynamic BabylonJS imports to a different module, causing shader compilation to fail silently.
+
+3. **Shader Guard Plugin** (`vite.config.ts`): Intercepts `.fragment`/`.vertex`/`.fx` HTTP requests and returns 404. Without this, Vite's SPA fallback serves `index.html` as shader source, causing "SHADER ERROR: '<' : syntax error".
+
+**COOP/COEP Headers**
+
+Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers are only enabled in production builds. The game does not use SharedArrayBuffer (no Havok physics WASM), and the headers block Chrome extension content scripts needed for dev testing.
+
 **Post-Processing Pipeline**
 ```typescript
 const pipeline = new DefaultRenderingPipeline();

@@ -342,6 +342,10 @@ export function GameCanvas({
       const scene = new Scene(engine);
       sceneRef.current = scene;
 
+      // Expose scene for debugging (dev only)
+      (window as any).__BABYLON_SCENE__ = scene;
+      (window as any).__BABYLON_ENGINE__ = engine;
+
       // Enable better rendering
       scene.useRightHandedSystem = false;
       scene.clearColor = new Color4(0.01, 0.01, 0.02, 1);
@@ -419,7 +423,7 @@ export function GameCanvas({
       );
       planet.position.y = -PLANET_RADIUS;
 
-      const surfaceTexture = new Texture('https://assets.babylonjs.com/textures/rock.png', scene);
+      const surfaceTexture = new Texture('/assets/textures/levels/landfall/Rock022_1K-JPG_Color.jpg', scene);
 
       // Temporarily use StandardMaterial to bypass shader compilation issue
       const planetMaterial = new StandardMaterial('planetMat', scene);
@@ -443,6 +447,9 @@ export function GameCanvas({
             })
           )
         );
+
+        // Guard: component may have unmounted during async load
+        if (!mounted) return;
 
         // Create rock formation instances
         const rockNodes: TransformNode[] = [];

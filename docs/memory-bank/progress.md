@@ -13,7 +13,27 @@
 
 ## Current Status (Phase 6 - Release)
 
-### Completed (Feb 1, 2026)
+### Completed (Feb 1, 2026 - Rendering & Bug Fix Sprint)
+
+#### Rendering Bug Fixes ✅ (3 root causes of black screen)
+- **PBR ShaderStore duplication**: Static shader imports in `BaseLevel.ts` prevent Vite+pnpm from resolving BabylonJS shaders to wrong module instance
+- **GLTF alpha=0 material fix**: Global `onNewMaterialAddedObservable` in BaseLevel catches PBR materials with alpha=0 from GLB imports
+- **CinematicSystem fade overlay leak**: `completeSequence()` now properly hides fadeOverlay mesh
+- **Vite shader guard plugin**: `babylonShaderGuardPlugin()` returns 404 for .fragment/.vertex/.fx requests (prevents HTML-as-GLSL compilation)
+- **COOP/COEP dev mode**: Headers disabled in dev mode (game doesn't use SharedArrayBuffer)
+- **Level verification**: Parallel Playwright test confirms 0 FAIL across all 11 levels
+
+#### Runtime Bug Fixes ✅ (5 bugs fixed)
+- **autoSave data loss**: `SaveSystem.autoSave()` now properly awaits `persistSave()` before emitting event
+- **Crossfade timeout leak**: `CinematicSystem` crossfade setTimeout now tracked in `pendingTimeouts` for cleanup
+- **Dead bonusLevel phase**: Removed unreachable `setPhase('bonusLevel')` in CampaignDirector
+- **External texture URL**: Replaced `https://assets.babylonjs.com/` URL with local texture for PWA offline support
+- **Rock IIFE unmount race**: Added `mounted` flag check after async GLB preload in GameCanvas
+
+#### Cross-Project Hardening ✅
+- **infinite-headaches**: Added PBR alpha=0 observer and shader guard plugin
+- **otter-river-rush**: Added PBR alpha=0 observer, water material transparencyMode, shader guard
+- **Audited 6 more projects**: iron-frontier (HIGH), neo-tokyo (HIGH), protocol-silent-night (HIGH), sky-hats (MODERATE), rivers-of-reckoning (LOW), aethermoor (LOW)
 
 #### Station Light Tube System ✅
 - **Visible light fixtures**: Emissive fluorescent tube meshes along station corridors
@@ -94,8 +114,12 @@
 
 #### Build Status ✅
 - **TypeScript**: Zero errors
-- **Production build**: Passes (1185 assets precached)
-- **Tests**: 94 files pass, 4,659 tests passed
+- **Production build**: Passes
+- **Tests**: 93 files pass, 4,763 tests passed, 604 skipped
+- **Level rendering**: 0 FAIL across all 11 levels
+- **Shader errors**: NONE
+- **PBR alpha=0**: NONE
+- **Fade overlay**: NONE
 
 ## Asset Status
 

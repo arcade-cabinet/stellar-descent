@@ -27,6 +27,42 @@ function wasmMimePlugin(): Plugin {
   };
 }
 
+/**
+ * Vite plugin to prevent SPA fallback for BabylonJS shader file requests.
+ *
+ * BabylonJS dynamically loads shader source via HTTP when a shader isn't
+ * pre-registered in Effect.ShadersStore. Vite's SPA fallback serves index.html
+ * for any unresolved URL, which BabylonJS then tries to compile as GLSL,
+ * causing "SHADER ERROR: '<' : syntax error" from the DOCTYPE tag.
+ *
+ * This middleware intercepts shader-like requests and returns 404, so BabylonJS
+ * hits its error path instead of compiling HTML as shader code.
+ */
+function babylonShaderGuardPlugin(): Plugin {
+  return {
+    name: 'babylon-shader-guard',
+    configureServer(server) {
+      // Must run BEFORE Vite's built-in SPA fallback middleware
+      server.middlewares.use((req, res, next) => {
+        const url = req.url;
+        if (
+          url &&
+          (url.endsWith('.fragment') ||
+            url.endsWith('.vertex') ||
+            url.endsWith('.fx') ||
+            url.endsWith('.fragment.fx') ||
+            url.endsWith('.vertex.fx'))
+        ) {
+          res.statusCode = 404;
+          res.end(`Shader file not found: ${url}`);
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 // Build timestamp for cache verification
 const BUILD_TIMESTAMP = new Date().toISOString();
 
@@ -46,6 +82,7 @@ export default ({ mode }: any) => {
     root,
     // plugin
     plugins: [
+      babylonShaderGuardPlugin(),
       wasmMimePlugin(),
       react(),
       ...vitePlugins(env),
@@ -274,9 +311,15 @@ export default ({ mode }: any) => {
       hmr: true,
       cors: true,
       headers: {
-        // Ensure WASM files are served with correct MIME type
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
+        // COOP/COEP for SharedArrayBuffer - only needed if using Havok physics WASM
+        // Disabled in dev to allow browser extension testing
+        // Production build keeps these for WebSQLite WASM (sql.js)
+        ...(mode === 'production'
+          ? {
+              'Cross-Origin-Opener-Policy': 'same-origin',
+              'Cross-Origin-Embedder-Policy': 'require-corp',
+            }
+          : {}),
       },
       // Configure MIME types for WASM files
       fs: {

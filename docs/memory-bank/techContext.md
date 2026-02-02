@@ -48,6 +48,12 @@ pnpm lint         # Biome lint + format
 - **No WebGPU**: WebGL2 only for stability and "fail fast" debugging.
 - **GLB Models**: Using `AssetManager` for PSX-style GLB model loading.
 - **Texture Atlas**: Shared textures via `public/assets/textures/` directory.
+- **No External URLs**: All textures must be local for PWA offline support (no CDN textures).
+- **No SharedArrayBuffer**: COOP/COEP headers only in production (no Havok physics WASM).
+
+## Vite Plugins (Custom)
+- **babylonShaderGuardPlugin**: Prevents SPA fallback for `.fragment`/`.vertex`/`.fx` requests
+- **wasmMimePlugin**: Ensures `.wasm` files served with correct MIME type for sql.js
 
 ## Asset Organization
 All game assets are consolidated under `public/assets/`:

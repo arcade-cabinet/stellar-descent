@@ -1,6 +1,6 @@
 # Project Brief
 
-**STELLAR DESCENT: PROXIMA BREACH** is a mobile-first, 3D arcade shooter built with BabylonJS. The game features a 6-level story campaign, dynamic enemy AI, and a persistent world state.
+**STELLAR DESCENT: PROXIMA BREACH** is a mobile-first, 3D arcade shooter built with BabylonJS. The game features a 10-level story campaign (plus 1 bonus level), dynamic enemy AI, and a persistent world state.
 
 ## Core Philosophy
 1. **Mobile-first**: All UI and controls must work on phones first, then scale up.

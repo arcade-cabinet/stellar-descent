@@ -1,151 +1,135 @@
 # Active Context
 
 ## Current Development Phase
-**Phase 6: Release** (In Progress)
+**Phase 6: Release Polish** (In Progress)
 
-## Session Summary (Feb 1, 2026)
+## Session Summary (Feb 1, 2026 - Latest)
 
 ### Current Focus
-1. **Lighting Polish** - Visible light fixtures for all station corridors
-2. **Composable Architecture** - Level systems extracted from BaseLevel monolith
-3. **Playtesting** - Verifying station tutorial flow and lighting
+1. **Rendering Bug Fixes** - Fixed 3 root causes of black screen across all levels
+2. **Runtime Bug Fixes** - Fixed 5 gameplay bugs found via code audit
+3. **Cross-Project Hardening** - Applied PBR alpha=0 fix to infinite-headaches and otter-river-rush
+4. **Level Verification** - All 11 levels pass parallel Playwright rendering tests
 
-### Session Work
+### Rendering Fixes (Critical - 3 Root Causes)
 
-#### Station Light Tube System
-Every light in the station now has a visible source - emissive fluorescent tubes mounted in ceiling tracks:
-- **Briefing Room**: 3x2 ceiling grid of tubes
-- **Corridor A**: Tube run every 5 meters along corridor
-- **Equipment Bay**: Green-tinted work area lighting
-- **Armory**: Warm tactical lighting
-- **Holodeck**: Blue-tinted VR training room
-- **Shooting Range**: Triple-row bright illumination
-- **Hangar Bay**: Large industrial overhead fixtures
-- **Exploration Areas**: Themed lighting per room
+#### 1. PBR Shader Registration (Vite+pnpm ShaderStore Duplication)
+**Root cause**: BabylonJS dynamic shader imports resolved to a DIFFERENT `ShaderStore` module instance than statically bundled code due to Vite+pnpm module resolution. PBR materials compiled with wrong shader store.
+**Fix**: Static imports in `BaseLevel.ts`:
+```typescript
+import '@babylonjs/core/Materials/PBR/pbrMaterial';
+import '@babylonjs/core/Shaders/pbr.vertex';
+import '@babylonjs/core/Shaders/pbr.fragment';
+import '@babylonjs/core/Shaders/glowMapGeneration.vertex';
+import '@babylonjs/core/Shaders/glowMapGeneration.fragment';
+```
+**Location**: `src/game/levels/BaseLevel.ts:56-77`
 
-Location: `src/game/levels/anchor-station/StationLightTubes.ts`
+#### 2. GLTF Alpha=0 Material Bug
+**Root cause**: GLB models with `baseColorFactor[3]=0` and `alphaMode:"MASK"` cause BabylonJS to set `transparencyMode=1` (ALPHATEST) with `alpha=0`, discarding ALL fragments.
+**Fix**: Global material observer in BaseLevel constructor:
+```typescript
+scene.onNewMaterialAddedObservable.add((material) => {
+  if ('metallic' in material && 'roughness' in material && material.alpha === 0) {
+    material.alpha = 1;
+    material.transparencyMode = 0; // OPAQUE
+  }
+});
+```
+**Location**: `src/game/levels/BaseLevel.ts` constructor
 
-#### Composable Level Systems
-Extracted shared functionality from BaseLevel into composable modules:
-- `CameraShakeSystem.ts` - Screen shake effects
-- `LevelStatsTracker.ts` - Kills, accuracy, secrets tracking
-- `VictorySystem.ts` - Objective tracking
-- `CheckpointSystem.ts` - Save points and respawning
-- `EnvironmentalAudio.ts` - Ambient audio wrapper
-- `LevelLighting.ts` - PBR lighting presets
+#### 3. CinematicSystem Fade Overlay Leak
+**Root cause**: `CinematicSystem.completeSequence()` hid letterbox bars but not the fadeOverlay. After a cinematic with a fade-out, the overlay remained visible (black screen over the game).
+**Fix**: Hide fadeOverlay and reset fadeMaterial in `completeSequence()`.
+**Location**: `src/game/cinematics/CinematicSystem.ts`
 
-Location: `src/game/levels/shared/`
+#### 4. Vite Shader Guard Plugin
+**Root cause**: BabylonJS dynamically loads shader source via HTTP for unregistered shaders. Vite's SPA fallback serves `index.html`, which BabylonJS tries to compile as GLSL causing "SHADER ERROR: '<' : syntax error".
+**Fix**: `babylonShaderGuardPlugin()` in `vite.config.ts` intercepts `.fragment`/`.vertex`/`.fx` requests and returns 404.
+**Location**: `vite.config.ts:41-64`
+
+#### 5. COOP/COEP Headers (Dev Mode)
+**Root cause**: `Cross-Origin-Opener-Policy: same-origin` headers blocked Chrome extension content scripts. Game doesn't use SharedArrayBuffer (no Havok physics WASM in this project).
+**Fix**: COOP/COEP headers only enabled in production mode.
+**Location**: `vite.config.ts:317-323`
+
+### Runtime Bug Fixes (5 bugs)
+
+| Bug | File | Fix |
+|-----|------|-----|
+| **autoSave data loss** | `SaveSystem.ts:577` | Made `autoSave()` async, now awaits `persistSave()` |
+| **Crossfade timeout leak** | `CinematicSystem.ts:750` | Track crossfade setTimeout in `pendingTimeouts` |
+| **Dead bonusLevel phase** | `CampaignDirector.ts:691` | Removed unreachable `setPhase('bonusLevel')` |
+| **External texture URL** | `GameCanvas.tsx:426` | Local texture instead of `assets.babylonjs.com` URL |
+| **Rock IIFE unmount race** | `GameCanvas.tsx:449` | Added `if (!mounted) return` guard after async load |
+
+### Cross-Project Hardening
+
+Applied PBR alpha=0 fix pattern to other BabylonJS games in arcade-cabinet:
+
+| Project | Fixes |
+|---------|-------|
+| **infinite-headaches** | `onNewMaterialAddedObservable` in GameScene.tsx, `babylonShaderGuardPlugin` in vite.config.ts |
+| **otter-river-rush** | `onNewMaterialAddedObservable` in BabylonCanvas.tsx, `transparencyMode` on water material, shader guard |
+
+Audited 6 more Ionic+BabylonJS projects: iron-frontier (HIGH risk), neo-tokyo (HIGH risk), protocol-silent-night (HIGH risk), sky-hats (MODERATE), rivers-of-reckoning (LOW), aethermoor (LOW).
 
 ### Previously Implemented Features
 
-#### ULTRA-NIGHTMARE Difficulty
-New extreme difficulty mode with forced permadeath (inspired by DOOM Eternal):
-- Location: `src/game/core/DifficultySettings.ts`
-- Five difficulty levels: easy, normal, hard, nightmare, ultra_nightmare
-- ULTRA-NIGHTMARE features:
-  - 2.0x enemy health, 2.5x enemy damage
-  - No health regeneration
-  - Forced permadeath (one death ends campaign)
-  - 2.0x XP multiplier
-- UI: `src/components/ui/DifficultySelector.tsx` shows bottom row with nightmare | permadeath toggle | ultra-nightmare
+#### Station Light Tube System
+Every light in the station now has a visible source - emissive fluorescent tubes.
+Location: `src/game/levels/anchor-station/StationLightTubes.ts`
 
-#### Permadeath Toggle System
-Optional permadeath mode that can be enabled on any difficulty:
-- Stored in localStorage (`stellar_descent_permadeath`)
-- Adds +50% XP bonus when enabled
-- Functions: `loadPermadeathSetting()`, `savePermadeathSetting()`, `isPermadeathActive()`
-- ULTRA-NIGHTMARE always forces permadeath regardless of toggle
+#### Composable Level Systems
+Extracted from BaseLevel into `src/game/levels/shared/`:
+- `CameraShakeSystem.ts`, `LevelStatsTracker.ts`, `VictorySystem.ts`
+- `CheckpointSystem.ts`, `EnvironmentalAudio.ts`, `LevelLighting.ts`
+
+#### ULTRA-NIGHTMARE Difficulty
+Five difficulty levels: easy, normal, hard, nightmare, ultra_nightmare.
+ULTRA-NIGHTMARE: 2.0x HP, 2.5x damage, forced permadeath, 2.0x XP.
 
 #### Player Governor (Dev Mode)
-Autonomous player control system for e2e testing and level unlocking:
-- Location: `src/game/systems/PlayerGovernor.ts`
-- Uses Yuka AI behaviors to control player character
-- DevMenu toggle (`src/components/ui/DevMenu.tsx`): "Player Governor (Unlock All)"
-- Enables: `devMode.allLevelsUnlocked` flag in `src/game/core/DevMode.ts`
-- Goals: navigate, follow_objective, engage_enemies, advance_dialogue, complete_tutorial
-
-#### SQLite Web/Native Split
-Dual SQLite implementation for cross-platform persistence:
-- **Native (iOS/Android)**: `src/game/db/CapacitorDatabase.ts` - Uses @capacitor-community/sqlite
-- **Web**: `src/game/db/WebSQLiteDatabase.ts` - Uses sql.js with IndexedDB persistence
-- Singleton initialization with race condition protection
-- Platform detection via `Capacitor.isNativePlatform()`
-
-#### Leaderboard System
-Local leaderboards stored in SQLite:
-- Location: `src/game/social/LeaderboardSystem.ts`
-- Per-level and global campaign leaderboards
-- Categories: speedrun, high score, accuracy, kills
-- Top 100 entries per category
-- Personal best tracking with difficulty filtering
-- UI: `src/components/ui/LeaderboardScreen.tsx`
-
-#### Internationalization (i18n)
-Multi-language support:
-- Location: `src/i18n/`
-- Core: `i18n.ts` - translation functions, language management
-- React hooks: `useTranslation.ts` - component integration
-- Language selector UI: `src/components/ui/LanguageSelector.tsx`
-
-#### Game Mode Manager
-Unified modifier system for different game modes:
-- Location: `src/game/modes/GameModeManager.ts`
-- Modes: normal, new_game_plus, arcade, survival
-- Coordinates: NewGamePlus tiers, Skull modifiers, Difficulty settings
-- Combined modifiers affect enemies, player, resources, gameplay flags
+Autonomous player control via Yuka AI for e2e testing.
+Location: `src/game/systems/PlayerGovernor.ts`
 
 ### Build Status
 - **TypeScript**: Zero errors
-- **Production build**: Passes (1185 assets precached)
-- **Tests**: 94 files pass, 4,659 tests passed
-
-## Asset Status
-
-### Asset Organization
-All assets consolidated under `public/assets/`:
-```
-public/assets/
-├── models/       # 803+ GLB 3D models
-├── textures/     # PBR textures (AmbientCG)
-├── audio/        # Sound effects and music
-├── images/       # Portraits, UI elements
-│   └── portraits/ # Character portraits (Cole, Marcus, Reyes, Athena)
-├── videos/
-│   └── splash/   # Splash videos
-└── manifests/    # Asset manifests for levels
-```
-
-### GenAI Asset Generation (Complete)
-- **Portraits**: 9 generated (Cole 3, Marcus 2, Athena 2, Reyes 2)
-- **Splash Videos**: 2 generated (16:9 and 9:16)
-- **Cinematics**: 10 generated (one per level)
-- **Total**: 21 assets, 0 pending, 0 failed
-
-### MeshBuilder Status (Final)
-- **589 remaining** - All intentionally kept for VFX/collision/terrain
+- **Production build**: Passes
+- **Tests**: 93 files pass, 4,763 tests passed, 604 skipped
+- **Level rendering**: 0 FAIL across all 11 levels (parallel Playwright test)
+- **Shader errors**: NONE
+- **PBR alpha=0 materials**: NONE
+- **Fade overlay blocking**: NONE
 
 ## Active Decisions
 - **Package Manager**: PNPM exclusively (never npm/npx)
-- **Quest System**: Main quests auto-activate, branch quests from objects/NPCs
 - **No Skip Tutorial**: Linear campaign, unlock levels by completion
-- **Immersive Storytelling**: No popups, controls learned in-game
 - **Save Format**: v5 with quest chain persistence
 - **Difficulty**: 5 levels with optional permadeath toggle
 - **SQLite Strategy**: Web uses sql.js, native uses Capacitor plugin
+- **COOP/COEP**: Production only (not needed in dev - no SharedArrayBuffer)
+- **Material Safety**: All levels protected by global `onNewMaterialAddedObservable` watcher
 
 ## Key Files to Watch
 | File | Purpose |
 |------|---------|
-| `src/game/core/DifficultySettings.ts` | ULTRA-NIGHTMARE and permadeath |
-| `src/game/systems/PlayerGovernor.ts` | Autonomous player control |
-| `src/game/db/CapacitorDatabase.ts` | Native SQLite persistence |
-| `src/game/db/WebSQLiteDatabase.ts` | Web SQLite persistence |
-| `src/game/social/LeaderboardSystem.ts` | Local leaderboards |
-| `src/i18n/i18n.ts` | Internationalization core |
-| `src/game/modes/GameModeManager.ts` | Game mode modifiers |
+| `src/game/levels/BaseLevel.ts` | Material observer + shader imports (rendering fixes) |
+| `src/game/cinematics/CinematicSystem.ts` | Fade overlay lifecycle |
+| `src/game/persistence/SaveSystem.ts` | Async autoSave fix |
+| `src/game/campaign/CampaignDirector.ts` | Phase transitions |
+| `src/components/GameCanvas.tsx` | Engine init, menu scene, local textures |
+| `vite.config.ts` | Shader guard plugin, COOP/COEP conditional |
+
+## Known Remaining Issues
+- **CampaignDirector race condition**: Rapid NEW_GAME + CONTINUE dispatches could overlap async `.then()` callbacks (low probability, menu interaction speed)
+- **Failed level init still set as active**: `GameCanvas.tsx:638-650` assigns partially-initialized level on error (intentional "show something" but risky)
+- **require() in ESM context**: `CampaignDirector.ts:875` and `useInputActions.ts:236` use `require()` for lazy loading (works via Vite CJS compat)
+- **Player laser bolt material race**: One-frame window where materials dispose before mesh in rAF loop (cosmetic only)
+- **iron-frontier, neo-tokyo, protocol-silent-night**: HIGH risk for PBR alpha=0 bug (not yet fixed, lower priority Ionic projects)
 
 ## Next Steps
-1. Final production testing
-2. Mobile app store submissions
-3. Performance profiling on target devices
-4. User feedback integration
+1. Address remaining known issues (CampaignDirector race condition is highest priority)
+2. Final production testing on mobile devices
+3. Mobile app store submissions
+4. Performance profiling on target devices

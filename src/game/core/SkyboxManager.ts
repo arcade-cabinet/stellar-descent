@@ -375,15 +375,66 @@ export class SkyboxManager {
    * This provides neutral, soft lighting appropriate for indoor spaces.
    */
   async loadIndoorEnvironment(intensity: number = 0.4): Promise<void> {
-    try {
-      const envTexture = await this.loadEnvironmentTexture(INDOOR_HDRI_PATH);
-      if (envTexture) {
-        this.scene.environmentTexture = envTexture;
-        this.scene.environmentIntensity = intensity;
+    // PBR materials need an environment texture for proper rendering. Without one
+    // (or with a flat RawCubeTexture lacking prefiltered mipmaps), PBR surfaces
+    // appear black because roughness lookups fail.
+    //
+    // Since we can't load EXR as a cube texture, we fix this by adjusting all PBR
+    // materials in the scene to work with direct lighting only. We also watch for
+    // new materials added later (from async GLB loads) and adjust them too.
+    //
+    // To properly enable IBL in the future, convert indoor.exr to .env format
+    // using BabylonJS Sandbox, then load via CubeTexture.CreateFromPrefilteredData.
+
+    this.scene.ambientColor.copyFromFloats(0.6, 0.6, 0.65);
+    this.scene.environmentIntensity = 0; // Don't use missing env texture
+
+    // Fix existing PBR materials
+    let pbrCount = 0;
+    for (const material of this.scene.materials) {
+      if (this.adjustPBRMaterialForDirectLight(material)) {
+        pbrCount++;
       }
-    } catch (error) {
-      log.warn('Failed to load indoor environment:', error);
     }
+
+    // Watch for new materials added by async GLB loads
+    this.scene.onNewMaterialAddedObservable.add((material) => {
+      this.adjustPBRMaterialForDirectLight(material);
+    });
+
+    log.info(`Indoor lighting: adjusted ${pbrCount} PBR materials for direct-light-only mode (watching for new materials)`);
+  }
+
+  /**
+   * Adjust a PBR material to render properly with direct lights only (no IBL).
+   * Returns true if the material was a PBR material and was adjusted.
+   */
+  private adjustPBRMaterialForDirectLight(material: any): boolean {
+    if (!('metallic' in material && 'roughness' in material)) {
+      return false;
+    }
+
+    // Fix GLTF models that export with baseColorFactor alpha=0 and alphaMode="MASK".
+    // BabylonJS maps this to transparencyMode=ALPHATEST with material.alpha=0,
+    // causing all fragments to fail the alpha test and be discarded (invisible geometry).
+    // Force alpha=1 and switch to OPAQUE mode so the geometry renders normally.
+    if (material.alpha === 0) {
+      material.alpha = 1;
+      // transparencyMode 0 = OPAQUE (ignore alpha entirely)
+      material.transparencyMode = 0;
+    }
+
+    // Kill environment dependency - rely on direct lights only
+    material.environmentIntensity = 0;
+    // Boost direct light contribution (default is 1.0)
+    material.directIntensity = 3.0;
+    // Reduce metallicness so surfaces don't require environment reflections
+    if (material.metallic !== undefined && material.metallic > 0.5) {
+      material.metallic = Math.min(material.metallic, 0.3);
+    }
+    // Ensure emissive contributes some fill light
+    material.emissiveIntensity = Math.max(material.emissiveIntensity ?? 1.0, 1.0);
+    return true;
   }
 
   /**
@@ -441,7 +492,7 @@ export class SkyboxManager {
         this.scene,
         512, // size
         false, // noMipmap (we want mipmaps for PBR)
-        true, // gammaSpace = false would be linear, but EXR is already linear
+        false, // gammaSpace - EXR is linear HDR data, NOT gamma-encoded
         () => {
           // On load success
           resolve(texture);

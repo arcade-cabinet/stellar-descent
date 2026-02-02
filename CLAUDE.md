@@ -29,11 +29,13 @@ This project uses **pnpm** exclusively. Never use npm or npx.
 ## Project Overview
 
 Stellar Descent: Proxima Breach is a tactical arcade shooter built with:
-- **React 18** - UI framework
-- **BabylonJS 7** - 3D engine
-- **TypeScript** - Type safety
-- **Vite** - Build system with PWA support
+- **React 19** - UI framework
+- **BabylonJS 8.48+** - 3D engine (WebGL2)
+- **TypeScript 5.9+** - Type safety
+- **Vite 7.x** - Build system with PWA support
 - **Capacitor** - Mobile deployment (iOS/Android)
+- **Miniplex** - Entity Component System
+- **Yuka** - AI behaviors and state machines
 
 ## Project Structure
 
@@ -114,6 +116,9 @@ Levels are in `src/game/levels/` with each level in its own folder:
 
 Each level implements `ILevel` interface from `src/game/levels/types.ts`.
 
+There is also a bonus level:
+- `mining_depths/` - Bonus mining level (11 total levels)
+
 ### Factory Pattern for Levels
 
 `src/game/levels/factories.ts` contains all level factory registrations:
@@ -189,6 +194,47 @@ The game is a linear campaign. Players unlock levels by completing them. The tut
 - Platforming training happens in a holodeck area
 - Story unfolds through Commander Reyes dialogue
 - No breaking the fourth wall
+
+### BabylonJS Rendering Safety (CRITICAL)
+
+These patterns prevent black screen / invisible geometry bugs. Do NOT remove them.
+
+#### PBR Material Observer
+`BaseLevel.ts` constructor adds a global observer that fixes GLB models with `alpha=0`:
+```typescript
+scene.onNewMaterialAddedObservable.add((material) => {
+  if ('metallic' in material && 'roughness' in material && material.alpha === 0) {
+    material.alpha = 1;
+    material.transparencyMode = 0; // OPAQUE
+  }
+});
+```
+**Why**: GLTF `baseColorFactor[3]=0` + `alphaMode:"MASK"` causes BabylonJS to discard all fragments.
+
+#### Static Shader Imports
+`BaseLevel.ts` has static imports for PBR and GlowLayer shaders:
+```typescript
+import '@babylonjs/core/Materials/PBR/pbrMaterial';
+import '@babylonjs/core/Shaders/pbr.vertex';
+import '@babylonjs/core/Shaders/pbr.fragment';
+```
+**Why**: Vite+pnpm can resolve dynamic imports to a different `ShaderStore` module instance.
+
+#### Vite Shader Guard Plugin
+`vite.config.ts` has `babylonShaderGuardPlugin()` that returns 404 for `.fragment`/`.vertex`/`.fx` requests.
+**Why**: Without this, Vite serves `index.html` as shader source, causing GLSL compilation errors.
+
+#### COOP/COEP Headers
+Only enabled in production mode. Dev mode omits them because the game doesn't use SharedArrayBuffer and they block Chrome extension testing.
+
+#### No External Texture URLs
+All textures must be local (under `public/assets/`). No CDN URLs like `assets.babylonjs.com` -- the game is a PWA and must work offline.
+
+### CinematicSystem Lifecycle
+When modifying cinematics, ensure:
+1. `completeSequence()` hides BOTH letterbox bars AND fadeOverlay
+2. ALL `setTimeout` calls are tracked in `pendingTimeouts` array
+3. `dispose()` clears all pending timeouts
 
 ### Asset Loading
 Use `AssetManager` for loading GLB models:
@@ -274,7 +320,10 @@ Enemies are the "Chitin" - insectoid aliens from underground hives.
 | `src/game/core/Logger.ts` | Logging system |
 | `src/game/core/DifficultySettings.ts` | Difficulty levels, modifiers, permadeath |
 | `src/game/core/DevMode.ts` | Runtime dev flags (god mode, noclip, etc.) |
-| `src/game/persistence/SaveSystem.ts` | Save/load system |
+| `src/game/persistence/SaveSystem.ts` | Save/load system (autoSave is async) |
+| `src/game/cinematics/CinematicSystem.ts` | Cinematic playback, fade overlays |
+| `src/game/levels/BaseLevel.ts` | Base class with material observer + shader imports |
+| `vite.config.ts` | Shader guard plugin, COOP/COEP, WASM MIME |
 | `src/game/db/CapacitorDatabase.ts` | Native SQLite persistence |
 | `src/game/db/WebSQLiteDatabase.ts` | Web SQLite persistence |
 | `src/game/timer/GameTimer.ts` | Mission timing |

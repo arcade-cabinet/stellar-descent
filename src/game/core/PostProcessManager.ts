@@ -50,6 +50,16 @@ import '@babylonjs/core/Shaders/pass.fragment';
 import '@babylonjs/core/Shaders/bloomMerge.fragment';
 import '@babylonjs/core/Shaders/extractHighlights.fragment';
 
+// Blur shaders (used by bloom and DOF internally via BlurPostProcess)
+// Without these, BabylonJS attempts to fetch kernelBlur.vertex.fx / .fragment.fx
+// via HTTP, which Vite's SPA fallback intercepts and returns index.html instead
+import '@babylonjs/core/Shaders/kernelBlur.fragment';
+import '@babylonjs/core/Shaders/kernelBlur.vertex';
+
+// Environment texture decoding (used by skybox / IBL / CubeTexture)
+import '@babylonjs/core/Shaders/rgbdDecode.fragment';
+import '@babylonjs/core/Shaders/rgbdEncode.fragment';
+
 // Depth of field shaders
 import '@babylonjs/core/Shaders/circleOfConfusion.fragment';
 import '@babylonjs/core/Shaders/depthOfField.fragment';

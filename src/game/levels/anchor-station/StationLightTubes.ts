@@ -36,6 +36,12 @@ export interface LightTubeConfig {
   lightRange?: number;
   /** Whether tube is horizontal or vertical */
   orientation?: 'horizontal' | 'vertical';
+  /**
+   * If true, only create the emissive mesh visual - skip the PointLight.
+   * Use this for most tubes to reduce draw calls. A few strategic zone
+   * lights provide actual illumination while emissive meshes sell the effect.
+   */
+  visualOnly?: boolean;
 }
 
 const DEFAULT_CONFIG: Required<LightTubeConfig> = {
@@ -46,11 +52,12 @@ const DEFAULT_CONFIG: Required<LightTubeConfig> = {
   lightIntensity: 8.0,
   lightRange: 15,
   orientation: 'horizontal',
+  visualOnly: false,
 };
 
 export class StationLightTubes {
   private scene: Scene;
-  private tubes: Map<string, { mesh: Mesh; light: PointLight }> = new Map();
+  private tubes: Map<string, { mesh: Mesh; light: PointLight | null }> = new Map();
   private tubeMaterial: StandardMaterial;
 
   constructor(scene: Scene, color: Color3 = new Color3(0.95, 0.95, 1.0)) {
@@ -65,16 +72,17 @@ export class StationLightTubes {
   }
 
   /**
-   * Add a single light tube at a position
+   * Add a single light tube at a position.
+   * If config.visualOnly is true, only the emissive mesh is created (no PointLight).
    */
   addLightTube(
     id: string,
     position: Vector3,
     config: LightTubeConfig = {}
-  ): { mesh: Mesh; light: PointLight } {
+  ): { mesh: Mesh; light: PointLight | null } {
     const cfg = { ...DEFAULT_CONFIG, ...config };
 
-    // Create the tube mesh
+    // Create the tube mesh (always created - provides visual glow)
     const tube = MeshBuilder.CreateCylinder(
       `lightTube_${id}`,
       {
@@ -94,12 +102,19 @@ export class StationLightTubes {
     // Apply material
     tube.material = this.tubeMaterial;
 
-    // Create point light at the tube center
-    const light = new PointLight(`lightTubeLight_${id}`, position, this.scene);
-    light.diffuse = cfg.color;
-    light.specular = cfg.color.scale(0.5);
-    light.intensity = cfg.lightIntensity;
-    light.range = cfg.lightRange;
+    // Static visual-only tubes: freeze transform for zero per-frame cost
+    tube.computeWorldMatrix(true);
+    tube.freezeWorldMatrix();
+
+    // Only create PointLight if not visual-only mode
+    let light: PointLight | null = null;
+    if (!cfg.visualOnly) {
+      light = new PointLight(`lightTubeLight_${id}`, position, this.scene);
+      light.diffuse = cfg.color;
+      light.specular = cfg.color.scale(0.5);
+      light.intensity = cfg.lightIntensity;
+      light.range = cfg.lightRange;
+    }
 
     this.tubes.set(id, { mesh: tube, light });
     return { mesh: tube, light };
@@ -186,10 +201,10 @@ export class StationLightTubes {
     const ceilingEnd = new Vector3(end.x, ceilingHeight - 0.3, end.z);
 
     this.addLightTubeRun(id, ceilingStart, ceilingEnd, count, {
-      ...config,
       length: 1.5, // Shorter tubes for corridors
       lightIntensity: 6.0,
       lightRange: 12,
+      ...config,
     });
   }
 
@@ -201,15 +216,19 @@ export class StationLightTubes {
       this.tubeMaterial.emissiveColor = new Color3(1.0, 0.2, 0.1).scale(1.5);
       this.tubeMaterial.diffuseColor = new Color3(1.0, 0.3, 0.2);
       for (const { light } of this.tubes.values()) {
-        light.diffuse = new Color3(1.0, 0.2, 0.1);
-        light.intensity *= 0.5;
+        if (light) {
+          light.diffuse = new Color3(1.0, 0.2, 0.1);
+          light.intensity *= 0.5;
+        }
       }
     } else {
       this.tubeMaterial.emissiveColor = new Color3(0.95, 0.95, 1.0).scale(2.0);
       this.tubeMaterial.diffuseColor = new Color3(0.95, 0.95, 1.0);
       for (const { light } of this.tubes.values()) {
-        light.diffuse = new Color3(0.95, 0.95, 1.0);
-        light.intensity *= 2.0;
+        if (light) {
+          light.diffuse = new Color3(0.95, 0.95, 1.0);
+          light.intensity *= 2.0;
+        }
       }
     }
   }
@@ -219,28 +238,29 @@ export class StationLightTubes {
    */
   flickerTube(id: string, duration: number = 500): void {
     const tube = this.tubes.get(id);
-    if (!tube) return;
+    if (!tube?.light) return;
 
-    const originalIntensity = tube.light.intensity;
+    const light = tube.light;
+    const originalIntensity = light.intensity;
     let flickering = true;
 
     const flicker = () => {
       if (!flickering) return;
-      tube.light.intensity = Math.random() * originalIntensity;
+      light.intensity = Math.random() * originalIntensity;
       setTimeout(flicker, 50 + Math.random() * 50);
     };
 
     flicker();
     setTimeout(() => {
       flickering = false;
-      tube.light.intensity = originalIntensity;
+      light.intensity = originalIntensity;
     }, duration);
   }
 
   dispose(): void {
     for (const { mesh, light } of this.tubes.values()) {
       mesh.dispose();
-      light.dispose();
+      light?.dispose();
     }
     this.tubes.clear();
     this.tubeMaterial.dispose();
