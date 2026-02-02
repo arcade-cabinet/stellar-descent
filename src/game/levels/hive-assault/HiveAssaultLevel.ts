@@ -78,7 +78,7 @@ import '@babylonjs/core/Animations/animatable';
 // ============================================================================
 
 const LEVEL_GLB = {
-  marcusMech: '/assets/models/vehicles/tea/marcus_mech.glb',
+  marcusMech: '/assets/models/vehicles/marcus_mech.glb',
   marineSoldier: '/assets/models/npcs/marine/marine_soldier.glb',
   marineSergeant: '/assets/models/npcs/marine/marine_sergeant.glb',
   marineElite: '/assets/models/npcs/marine/marine_elite.glb',

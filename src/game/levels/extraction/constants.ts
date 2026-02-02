@@ -13,7 +13,7 @@ import type { WaveConfig } from './types';
 // ============================================================================
 
 /** Marcus's Titan mech GLB model */
-export const GLB_MECH = '/assets/models/vehicles/tea/marcus_mech.glb';
+export const GLB_MECH = '/assets/models/vehicles/marcus_mech.glb';
 
 /** Dropship GLB model */
 export const GLB_DROPSHIP = '/assets/models/spaceships/Dispatcher.glb';

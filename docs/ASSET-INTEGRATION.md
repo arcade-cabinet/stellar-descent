@@ -69,7 +69,7 @@ Each folder contains full PBR set: Color, Normal, Roughness, Metalness, AO, Disp
 
 ## Integrated Models (public/assets/models/)
 
-### Aliens (8 models) - `public/assets/models/aliens/`
+### Aliens (8 models) - `public/assets/models/enemies/chitin/`
 | Model | Size | Enemy Type | Levels |
 |-------|------|------------|--------|
 | scout.glb | 1.6MB | Drone - fast, weak scouts | 2, 3, 4, 5, 6 |

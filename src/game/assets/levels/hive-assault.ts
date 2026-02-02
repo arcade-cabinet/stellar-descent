@@ -453,7 +453,7 @@ export const MARINE_ASSETS: AssetEntry[] = [
 export const VEHICLE_ASSETS: AssetEntry[] = [
   {
     id: 'vehicle/marcus_mech',
-    path: '/assets/models/vehicles/tea/marcus_mech.glb',
+    path: '/assets/models/vehicles/marcus_mech.glb',
     category: 'model',
     sizeKB: 2000,
   },

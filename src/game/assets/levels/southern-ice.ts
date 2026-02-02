@@ -269,7 +269,7 @@ export const SOUTHERN_ICE_ASSETS: AssetEntry[] = [
   // MARCUS MECH COMPANION
   {
     id: 'vehicle/marcus_mech',
-    path: '/assets/models/vehicles/tea/marcus_mech.glb',
+    path: '/assets/models/vehicles/marcus_mech.glb',
     category: 'model',
     sizeKB: 800,
   },

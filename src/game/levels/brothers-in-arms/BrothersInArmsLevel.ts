@@ -782,7 +782,7 @@ export class BrothersInArmsLevel extends BaseLevel {
     root.position = MARCUS_START_POSITION.clone();
 
     // Load the Marcus mech GLB model
-    const MECH_GLB_PATH = '/assets/models/vehicles/tea/marcus_mech.glb';
+    const MECH_GLB_PATH = '/assets/models/vehicles/marcus_mech.glb';
 
     await AssetManager.loadAssetByPath(MECH_GLB_PATH, this.scene);
 

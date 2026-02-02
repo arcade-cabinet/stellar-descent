@@ -87,7 +87,7 @@ import {
 // GLB MODEL PATHS
 // ============================================================================
 
-const MARCUS_MECH_GLB = '/assets/models/vehicles/tea/marcus_mech.glb';
+const MARCUS_MECH_GLB = '/assets/models/vehicles/marcus_mech.glb';
 
 type LevelPhase = 'ice_fields' | 'frozen_lake' | 'ice_caverns' | 'complete';
 

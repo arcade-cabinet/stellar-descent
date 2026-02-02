@@ -162,27 +162,27 @@ const GLB_HATCH = {
 
 /** Supply/pickup props for ammo and health */
 const GLB_SUPPLIES = {
-  ammo_crate: '/assets/models/props/containers/ammo_crate_mx_1.glb',
-  med_kit: '/assets/models/props/containers/med_kit_mx_1.glb',
+  ammo_crate: '/assets/models/props/weapons/ammo_box_556.glb',
+  med_kit: '/assets/models/props/containers/cardboard_box_1.glb',
   supply_crate: '/assets/models/props/collectibles/supply_drop.glb',
   flare_box: '/assets/models/props/weapons/flare_mx_1.glb',
 } as const;
 
 /** Fortification props - sandbags, barriers, defensive positions */
 const GLB_FORTIFICATIONS = {
-  sandbag_wall: '/assets/models/props/containers/sandbag_wall_mx_1.glb',
-  sandbag_corner: '/assets/models/props/containers/sandbag_corner_mx_1.glb',
-  barricade: '/assets/models/props/containers/barricade_mx_1.glb',
+  sandbag_wall: '/assets/models/props/containers/cement_bags_mp_1_pallet_1.glb',
+  sandbag_corner: '/assets/models/props/containers/cement_bags_mp_1_pallet_2.glb',
+  barricade: '/assets/models/props/containers/wooden_crate_hx_5.glb',
   bunker_small: '/assets/models/environment/station/shed_ax_3.glb',
   bunker_large: '/assets/models/environment/station/shed_ax_4.glb',
   watchtower_base: '/assets/models/environment/station/platform_bx_1.glb',
-  guard_rail: '/assets/models/props/furniture/railing_mx_1.glb',
+  guard_rail: '/assets/models/props/pipes/pipe_mx_1.glb',
 } as const;
 
 /** Turret/defense system props */
 const GLB_DEFENSES = {
-  turret_base: '/assets/models/props/weapons/turret_base_mx_1.glb',
-  turret_gun: '/assets/models/props/weapons/turret_gun_mx_1.glb',
+  turret_base: '/assets/models/props/containers/metal_barrel_hr_1.glb',
+  turret_gun: '/assets/models/props/pipes/pipe_mx_2.glb',
   radar_dish: '/assets/models/environment/station/platform_ax_1.glb',
   spotlight: '/assets/models/props/electrical/lamp_mx_4_on.glb',
 } as const;
@@ -203,7 +203,7 @@ const GLB_ANTENNA_PLATFORM = {
 
 /** Marcus's TITAN mech */
 const GLB_MECH = {
-  marcus_mech: '/assets/models/vehicles/tea/marcus_mech.glb',
+  marcus_mech: '/assets/models/vehicles/marcus_mech.glb',
 } as const;
 
 /**
@@ -648,11 +648,21 @@ export class FOBDeltaLevel extends BaseLevel {
    * subsequent createInstanceByPath calls are instant.
    */
   private async preloadFOBAssets(): Promise<void> {
-    const loadPromises = ALL_FOB_GLB_PATHS.map((path) =>
-      AssetManager.loadAssetByPath(path, this.scene)
+    const results = await Promise.all(
+      ALL_FOB_GLB_PATHS.map(async (path) => {
+        const result = await AssetManager.loadAssetByPath(path, this.scene);
+        return { path, success: result !== null };
+      })
     );
-    await Promise.all(loadPromises);
-    log.info(`Preloaded ${ALL_FOB_GLB_PATHS.length} GLB assets`);
+    const failed = results.filter((r) => !r.success);
+    if (failed.length > 0) {
+      log.warn(
+        `Failed to load ${failed.length}/${ALL_FOB_GLB_PATHS.length} GLB assets: ${failed.map((r) => r.path).join(', ')}`
+      );
+    }
+    log.info(
+      `Preloaded ${results.length - failed.length}/${ALL_FOB_GLB_PATHS.length} GLB assets`
+    );
   }
 
   /**
@@ -2393,7 +2403,11 @@ export class FOBDeltaLevel extends BaseLevel {
       );
     }
 
-    await AssetManager.loadAsset('aliens', assetName, this.scene);
+    const result = await AssetManager.loadAsset('aliens', assetName, this.scene);
+    if (!result) {
+      log.error(`Failed to preload ambush enemy GLB: ${assetName} - enemies will not spawn`);
+      return;
+    }
     this.ambushEnemiesPreloaded = true;
     log.info(`Preloaded ambush enemy GLB: ${assetName}`);
   }

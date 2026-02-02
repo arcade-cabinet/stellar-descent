@@ -31,7 +31,7 @@ import { LODManager } from './LODManager';
 
 // Asset categories and their base paths
 const ASSET_PATHS = {
-  aliens: '/assets/models/aliens/',
+  aliens: '/assets/models/enemies/chitin/',
   vehicles: '/assets/models/vehicles/',
   structures: '/assets/models/structures/',
   props: '/assets/models/psx/props/',

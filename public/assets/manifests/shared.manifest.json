@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "updatedAt": "2026-02-02T00:59:16.941Z",
+  "updatedAt": "2026-02-02T01:24:24.758Z",
   "portraits": {
     "cole_james": [
       {
@@ -2703,6 +2703,75 @@
         "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
         "generatedAt": "2026-02-02T00:59:16.507Z",
         "generationTimeMs": 605.4456660000001,
+        "fileSizeBytes": 3637365,
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
+        "width": 2048,
+        "height": 2048,
+        "format": "jpg",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "cole_james",
+        "emotion": "neutral"
+      },
+      {
+        "id": "portrait_cole_neutral",
+        "type": "image",
+        "path": "images/portraits/cole_james/neutral.jpg",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "4277ead9",
+        "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
+        "generatedAt": "2026-02-02T01:17:09.782Z",
+        "generationTimeMs": 718.241542,
+        "fileSizeBytes": 3637365,
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
+        "width": 2048,
+        "height": 2048,
+        "format": "jpg",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "cole_james",
+        "emotion": "neutral"
+      },
+      {
+        "id": "portrait_cole_neutral",
+        "type": "image",
+        "path": "images/portraits/cole_james/neutral.jpg",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "4277ead9",
+        "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
+        "generatedAt": "2026-02-02T01:18:14.293Z",
+        "generationTimeMs": 478.80049999999983,
+        "fileSizeBytes": 3637365,
+        "tags": [
+          "portrait",
+          "cole",
+          "protagonist"
+        ],
+        "width": 2048,
+        "height": 2048,
+        "format": "jpg",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "cole_james",
+        "emotion": "neutral"
+      },
+      {
+        "id": "portrait_cole_neutral",
+        "type": "image",
+        "path": "images/portraits/cole_james/neutral.jpg",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "4277ead9",
+        "prompt": "Photorealistic character portrait of Sergeant James Cole,\na battle-hardened space marine in his late 30s. Short dark hair with grey at temples,\nstrong jaw, determined expression. Wearing futuristic military combat armor.\nDramatic side lighting. Dark background. High detail, cinematic quality.",
+        "generatedAt": "2026-02-02T01:24:24.324Z",
+        "generationTimeMs": 526.9178750000001,
         "fileSizeBytes": 3637365,
         "tags": [
           "portrait",
@@ -5488,6 +5557,78 @@
         "prompt": "Sci-fi military commander portrait, dramatic lighting",
         "generatedAt": "2026-02-02T00:59:16.938Z",
         "generationTimeMs": 414.92954199999986,
+        "fileSizeBytes": 3033072,
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
+        "width": 1024,
+        "height": 1024,
+        "format": "png",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "reyes_commander",
+        "emotion": "commanding"
+      },
+      {
+        "id": "portrait_reyes_commanding",
+        "type": "image",
+        "path": "images/portraits/reyes_commander/commanding.png",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "-62dd3e13",
+        "prompt": "Sci-fi military commander portrait, dramatic lighting",
+        "generatedAt": "2026-02-02T01:17:10.304Z",
+        "generationTimeMs": 500.1011249999997,
+        "fileSizeBytes": 3033072,
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
+        "width": 1024,
+        "height": 1024,
+        "format": "png",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "reyes_commander",
+        "emotion": "commanding"
+      },
+      {
+        "id": "portrait_reyes_commanding",
+        "type": "image",
+        "path": "images/portraits/reyes_commander/commanding.png",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "-62dd3e13",
+        "prompt": "Sci-fi military commander portrait, dramatic lighting",
+        "generatedAt": "2026-02-02T01:18:14.696Z",
+        "generationTimeMs": 386.9622079999999,
+        "fileSizeBytes": 3033072,
+        "tags": [
+          "portrait",
+          "reyes",
+          "commander",
+          "npc"
+        ],
+        "width": 1024,
+        "height": 1024,
+        "format": "png",
+        "aspectRatio": "1:1",
+        "style": "portrait_realistic",
+        "characterId": "reyes_commander",
+        "emotion": "commanding"
+      },
+      {
+        "id": "portrait_reyes_commanding",
+        "type": "image",
+        "path": "images/portraits/reyes_commander/commanding.png",
+        "model": "gemini-3-pro-image-preview",
+        "promptHash": "-62dd3e13",
+        "prompt": "Sci-fi military commander portrait, dramatic lighting",
+        "generatedAt": "2026-02-02T01:24:24.757Z",
+        "generationTimeMs": 418.27945899999986,
         "fileSizeBytes": 3033072,
         "tags": [
           "portrait",
